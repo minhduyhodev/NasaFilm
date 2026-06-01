@@ -1,55 +1,71 @@
-// package com.thdpv.movietheater.common.exception;
+package com.thdpv.movietheater.common.exception;
 
-// import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.validation.FieldError;
-// import org.springframework.web.bind.MethodArgumentNotValidException;
-// import org.springframework.web.bind.annotation.ExceptionHandler;
-// import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-// import lombok.extern.slf4j.Slf4j;
+import com.thdpv.movietheater.common.response.ApiResponse;
 
-// @RestControllerAdvice
-// @Slf4j
-// public class GlobalExceptionHandler {
+import lombok.extern.slf4j.Slf4j;
 
-// // ── 1. AppException — lỗi business mình tự throw ─────────────────────────
-// @ExceptionHandler(AppException.class)
-// public ResponseEntity<ApiResponse<?>> handleApp(AppException ex) {
-// log.warn("[AppException] code={} msg={}", ex.getErrorCode(),
-// ex.getMessage());
-// ErrorCode ec = ex.getErrorCode();
-// return ResponseEntity
-// .status(ec.getHttpStatus()) // HTTP status lấy thẳng từ ErrorCode
-// .body(ApiResponse.error(ec, ex.getMessage()));
-// }
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
 
-// // ── 2. Validation — Spring tự throw khi @Valid fail ──────────────────────
-// @ExceptionHandler(MethodArgumentNotValidException.class)
-// public ResponseEntity<ApiResponse<?>> handleValidation(
-// MethodArgumentNotValidException ex) {
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<?>> handleApp(AppException ex) {
+        ErrorCode errorCode = ex.getErrorCode();
+        log.warn("[AppException] code={} msg={}", errorCode, ex.getMessage());
 
-// // Thu thập tất cả lỗi: field → message lỗi cụ thể
-// Map<String, String> errors = ex.getBindingResult()
-// .getFieldErrors()
-// .stream()
-// .collect(Collectors.toMap(
-// FieldError::getField,
-// fe -> Objects.requireNonNullElse(fe.getDefaultMessage(), "Không hợp lệ"),
-// (a, b) -> a // nếu 1 field có nhiều lỗi, giữ lỗi đầu tiên
-// ));
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ApiResponse.error(errorCode, ex.getMessage()));
+    }
 
-// return ResponseEntity.badRequest()
-// .body(ApiResponse.error(ErrorCode.VALIDATION_FAILED, errors));
-// }
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        fieldError -> Objects.requireNonNullElse(
+                                fieldError.getDefaultMessage(),
+                                "Gia tri khong hop le"),
+                        (first, second) -> first));
 
-// // ── 3. Catch-all — bắt mọi lỗi bất ngờ còn lại ──────────────────────────
-// @ExceptionHandler(Exception.class)
-// public ResponseEntity<ApiResponse<?>> handleAll(Exception ex) {
-// log.error("[UnexpectedException]", ex); // log full stack trace để debug
-// return ResponseEntity.internalServerError()
-// .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
-// // KHÔNG expose chi tiết cho client — bảo mật
-// }
-// }
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.VALIDATION_FAILED, errors));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthentication(AuthenticationException ex) {
+        log.warn("[AuthenticationException] msg={}", ex.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.INVALID_CREDENTIALS.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.INVALID_CREDENTIALS));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("[AccessDeniedException] msg={}", ex.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.FORBIDDEN.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.FORBIDDEN));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleAll(Exception ex) {
+        log.error("[UnexpectedException]", ex);
+        return ResponseEntity.internalServerError()
+                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
+    }
+}

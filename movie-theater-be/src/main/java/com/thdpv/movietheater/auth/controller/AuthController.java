@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.service.AuthService;
+import com.thdpv.movietheater.common.response.ApiResponse;
 
 import jakarta.validation.Valid;
 
@@ -23,7 +24,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(authService.login(loginRequest));
+    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.login(loginRequest)));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        authService.logout();
+        return ResponseEntity.ok(ApiResponse.success(null, "Dang xuat thanh cong"));
     }
 }

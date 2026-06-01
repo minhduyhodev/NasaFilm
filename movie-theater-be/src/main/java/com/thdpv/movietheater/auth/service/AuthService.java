@@ -42,4 +42,8 @@ public class AuthService {
 
         return new JwtResponse(jwt, userDetails.getUsername(), roles);
     }
+
+    public void logout() {
+        SecurityContextHolder.clearContext();
+    }
 }
