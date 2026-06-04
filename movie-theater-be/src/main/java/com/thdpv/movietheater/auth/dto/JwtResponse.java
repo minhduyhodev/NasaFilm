@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.auth.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 public class JwtResponse {
 
@@ -9,6 +10,8 @@ public class JwtResponse {
     private String refreshToken;
     private String email;
     private List<String> roles;
+    private UUID userId;
+    private String fullName;
 
     public JwtResponse(String accessToken, String refreshToken, String email, List<String> roles, UUID userId,
             String fullName) {
@@ -16,6 +19,8 @@ public class JwtResponse {
         this.refreshToken = refreshToken;
         this.email = email;
         this.roles = roles;
+        this.userId = userId;
+        this.fullName = fullName;
     }
 
     public String getAccessToken() {
@@ -52,5 +57,21 @@ public class JwtResponse {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 }
