@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { AuthInput } from '../components/AuthInput';
 import { SocialLoginButtons } from '../components/SocialLoginButtons';
 import { loginSchema } from '../utils/validation';
 import { useAuthContext } from '../hooks/useAuthContext';
+import { notificationService } from '../../../shared/services/notificationService';
 import './LoginPage.css';
 
 export const LoginPage = () => {
@@ -20,11 +21,23 @@ export const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    const isExpired = sessionStorage.getItem('auth_expired');
+    if (isExpired === 'true') {
+      notificationService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
+        toastId: 'auth_expired_toast',
+      });
+      console.warn('[Auth] Nhận thông báo phiên đăng nhập hết hạn từ sessionStorage.');
+      sessionStorage.removeItem('auth_expired');
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
+    setValue,
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -32,6 +45,12 @@ export const LoginPage = () => {
       rememberMe: !!localStorage.getItem('rememberEmail'),
     },
   });
+
+  const handleQuickLogin = (email, password) => {
+    setValue('email', email);
+    setValue('password', password);
+    handleSubmit(onSubmit)();
+  };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -43,14 +62,18 @@ export const LoginPage = () => {
       });
       const from = (location.state)?.from?.pathname;
 
+      // Redirect theo role sau khi đăng nhập thành công
+      const storedUser = tokenService.getUser();
+      const roles = storedUser?.roles || [];
+      const displayName = storedUser?.fullName || storedUser?.email || '';
+
+      notificationService.success("Welcome to NASA FILM!");
+      console.log(`[Auth] Đăng nhập thành công cho người dùng: ${storedUser?.email}`);
+
       if (from) {
         navigate(from, { replace: true });
         return;
       }
-
-      // Redirect theo role sau khi đăng nhập thành công
-      const storedUser = tokenService.getUser();
-      const roles = storedUser?.roles || [];
 
       const isAdminOrStaff = roles.some(
         (r) => r === 'admin' || r === 'staff'
@@ -64,7 +87,11 @@ export const LoginPage = () => {
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Login failed. Please try again.';
+        error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.';
+      
+      notificationService.error(errorMessage);
+      console.error(`[Auth] Đăng nhập thất bại. Lỗi: ${errorMessage}`);
+      
       setError('email', {
         message: errorMessage,
       });
@@ -145,6 +172,33 @@ export const LoginPage = () => {
               'Sign In'
             )}
           </motion.button>
+
+          {/* Quick Login Section */}
+          <div className="auth-quick-login-section">
+            <span className="auth-quick-login-title">Quick Login (Đăng nhập nhanh)</span>
+            <div className="auth-quick-login-grid">
+              <motion.button
+                whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => handleQuickLogin('customer@example.com', '123123')}
+                disabled={isLoading}
+                className="auth-quick-btn customer"
+              >
+                Tài khoản khách
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => handleQuickLogin('admin@example.com', '123123')}
+                disabled={isLoading}
+                className="auth-quick-btn admin"
+              >
+                Quản trị viên
+              </motion.button>
+            </div>
+          </div>
 
           <div className="auth-divider-wrapper">
             <div className="auth-divider-line"></div>

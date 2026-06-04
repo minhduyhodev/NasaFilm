@@ -85,3 +85,91 @@
 .dropdown-logout-btn {
   @apply flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 disabled:opacity-50;
 }
+
+/* Notification Badge */
+.navbar-notif-badge {
+  @apply absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white border-2 border-[#0f172a];
+}
+
+/* Notification Dropdown List */
+.notif-dropdown-menu {
+  @apply absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl bg-[#0f172a]/95 border border-white/10 shadow-2xl backdrop-blur-xl z-20 overflow-hidden;
+}
+
+.notif-dropdown-header {
+  @apply flex items-center justify-between px-5 py-4 border-b border-white/5 bg-white/5;
+}
+
+.notif-dropdown-header h3 {
+  @apply text-sm font-bold text-white;
+}
+
+.notif-dropdown-actions {
+  @apply flex items-center gap-2 text-xs text-white/40;
+}
+
+.notif-action-btn {
+  @apply hover:text-white transition duration-200 font-medium;
+}
+
+.notif-dropdown-content {
+  @apply max-h-[360px] overflow-y-auto;
+}
+
+.notif-empty-state {
+  @apply flex flex-col items-center justify-center py-12 px-6 text-center text-sm text-white/40;
+}
+
+.notif-list-items {
+  @apply divide-y divide-white/5;
+}
+
+.notif-item {
+  @apply flex items-start gap-3 p-4 hover:bg-white/5 transition duration-200 relative;
+}
+
+.notif-item.unread {
+  @apply bg-violet-500/5;
+}
+
+.notif-item-dot {
+  @apply h-2 w-2 rounded-full bg-violet-500 mt-1.5 flex-shrink-0 opacity-0 transition-opacity;
+}
+
+.notif-item.unread .notif-item-dot {
+  @apply opacity-100;
+}
+
+.notif-item-body {
+  @apply flex-1 space-y-1 min-w-0;
+}
+
+.notif-item-title-row {
+  @apply flex items-baseline justify-between gap-2;
+}
+
+.notif-item-title {
+  @apply text-sm font-bold text-white truncate;
+}
+
+.notif-item-time {
+  @apply text-[10px] text-white/40 flex-shrink-0;
+}
+
+.notif-item-text {
+  @apply text-xs text-white/60 leading-relaxed break-words;
+}
+
+/* Notif types */
+.notif-item.success .notif-item-title {
+  @apply text-green-400;
+}
+
+.notif-item.error .notif-item-title {
+  @apply text-red-400;
+}
+
+.notif-item.warning .notif-item-title {
+  @apply text-yellow-400;
+}
+
