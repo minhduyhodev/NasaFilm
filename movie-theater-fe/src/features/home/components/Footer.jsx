@@ -53,7 +53,8 @@ const Footer = () => {
                 { label: 'Phim Sắp Chiếu', to: '/' },
                 { label: 'Lịch Chiếu Toàn Rạp', to: '/' },
                 { label: 'Ưu Đãi Đặc Biệt', to: '/' },
-                { label: 'Phòng Chiếu VIP', to: '/' }
+                { label: 'Phòng Chiếu VIP', to: '/' },
+                { label: 'Giới Thiệu CINE LUXE', to: '/about' }
               ].map((link) => (
                 <li key={link.label}>
                   <Link 
@@ -126,6 +127,7 @@ const Footer = () => {
         <div className="footer-bottom">
           <p>© {new Date().getFullYear()} NASAFILM. All rights reserved.</p>
           <div className="footer-bottom-links">
+            <Link to="/about" className="hover:text-white transition-colors">Giới Thiệu</Link>
             <a href="#" className="hover:text-white transition-colors">Bản Quyền</a>
             <a href="#" className="hover:text-white transition-colors">Liên Hệ Quảng Cáo</a>
             <a href="#" className="hover:text-white transition-colors">Tuyển Dụng</a>

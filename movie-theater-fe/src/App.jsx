@@ -22,7 +22,7 @@ export default function App() {
             <Route path="/auth/*" element={<AuthRoutes />} />
 
             {/* Home routes */}
-            <Route path="/" element={<HomeRoutes />} />
+            <Route path="/*" element={<HomeRoutes />} />
 
             {/* Admin routes — chỉ ADMIN và STAFF mới được vào */}
             <Route
