@@ -8,7 +8,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleLogout = useCallback(() => {
     logout();
-    navigate('/login');
+    navigate('/auth/login');
   }, [logout, navigate]);
 
   return (

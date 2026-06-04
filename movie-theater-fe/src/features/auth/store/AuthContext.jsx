@@ -45,12 +45,15 @@ export const AuthProvider = ({ children }) => {
     async (credentials) => {
       setLoading(true);
       setError(null);
+      console.log("[AuthContext] Bắt đầu gọi login callback cho:", credentials.email);
       try {
         const response = await authService.login(credentials);
+        console.log("[AuthContext] Đăng nhập thành công, thiết lập user state cho:", response.user?.email);
         setUser(response.user);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Login failed';
+        console.error("[AuthContext] Đăng nhập callback thất bại:", errorMessage);
         setError(errorMessage);
         throw err;
       } finally {
@@ -79,13 +82,15 @@ export const AuthProvider = ({ children }) => {
   );
 
   const logout = useCallback(async () => {
+    console.log("[AuthContext] Khởi động quá trình đăng xuất người dùng...");
     try {
       await authService.logout();
     } catch (err) {
-      console.warn('[AuthContext] Logout error:', err);
+      console.warn('[AuthContext] Lỗi xảy ra khi đăng xuất:', err);
     } finally {
       setUser(null);
       setError(null);
+      console.log("[AuthContext] Hoàn tất quá trình đăng xuất, reset user state về null.");
     }
   }, [setUser]);
 

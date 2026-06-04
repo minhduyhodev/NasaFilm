@@ -1,0 +1,131 @@
+.cinemas-page-wrapper {
+  @apply bg-[#0b0f19] text-gray-400 min-h-screen pt-20;
+}
+
+.cinemas-hero {
+  @apply relative h-[45vh] flex items-center justify-center overflow-hidden bg-cover bg-center;
+}
+
+.cinemas-hero-overlay {
+  @apply absolute inset-0 bg-gradient-to-b from-black/40 via-[#0b0f19]/70 to-[#0b0f19] z-10;
+}
+
+.cinemas-hero-content {
+  @apply relative z-20 text-center px-4 max-w-4xl mx-auto space-y-4;
+}
+
+.cinemas-hero-title {
+  @apply text-4xl md:text-6xl font-black text-white tracking-tight uppercase leading-none;
+}
+
+.cinemas-hero-sub {
+  @apply text-sm md:text-base text-gray-300 max-w-xl mx-auto leading-relaxed font-medium;
+}
+
+.cinemas-container {
+  @apply max-w-7xl mx-auto py-16 px-4 md:px-8 lg:px-20 space-y-12;
+}
+
+.cinemas-search-bar {
+  @apply flex items-center bg-white/5 border border-white/10 rounded-2xl px-5 py-4 gap-4 max-w-2xl mx-auto shadow-xl backdrop-blur-md;
+}
+
+.cinemas-search-input {
+  @apply flex-1 bg-transparent border-none outline-none text-white text-sm placeholder-gray-500 focus:ring-0;
+}
+
+.cinemas-city-tabs {
+  @apply flex gap-2 justify-center flex-wrap mb-4;
+}
+
+.cinemas-city-btn {
+  @apply px-6 py-2.5 text-xs font-bold text-gray-400 bg-[#171c2a] border border-white/5 rounded-full transition-all duration-200 hover:text-white;
+}
+
+.cinemas-city-btn-active {
+  @apply bg-[#f3a092] text-neutral-900 border-[#f3a092] shadow-lg shadow-red-500/5;
+}
+
+.cinemas-grid {
+  @apply grid md:grid-cols-2 lg:grid-cols-3 gap-8;
+}
+
+.cinema-card {
+  @apply bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/20 hover:shadow-red-500/5;
+}
+
+.cinema-card-img-wrapper {
+  @apply relative h-48 overflow-hidden;
+}
+
+.cinema-card-img {
+  @apply w-full h-full object-cover transition-transform duration-500 hover:scale-105;
+}
+
+.cinema-card-badge {
+  @apply absolute top-4 right-4 px-3 py-1 bg-red-600/90 text-white text-[10px] font-black uppercase rounded tracking-wider;
+}
+
+.cinema-card-content {
+  @apply p-6 space-y-4;
+}
+
+.cinema-card-title {
+  @apply text-xl font-black text-white uppercase tracking-wide leading-tight;
+}
+
+.cinema-card-details {
+  @apply space-y-2 text-sm text-gray-400/90;
+}
+
+.cinema-card-detail-item {
+  @apply flex items-start gap-2.5;
+}
+
+.cinema-card-icon {
+  @apply text-red-500 mt-0.5 flex-shrink-0;
+}
+
+.cinema-card-techs {
+  @apply flex flex-wrap gap-2 pt-2;
+}
+
+.cinema-tech-badge {
+  @apply px-2 py-0.5 bg-white/5 border border-white/10 text-gray-300 text-[10px] font-bold rounded-md uppercase tracking-wider;
+}
+
+.cinema-card-actions {
+  @apply flex gap-3 pt-4 border-t border-white/5;
+}
+
+.cinema-btn-primary {
+  @apply flex-1 py-3 bg-[#f3a092] hover:bg-[#e28e80] text-neutral-900 font-black text-xs uppercase tracking-wider rounded-xl text-center transition duration-200 cursor-pointer;
+}
+
+.cinema-btn-secondary {
+  @apply py-3 px-5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs uppercase tracking-wider rounded-xl text-center transition duration-200 cursor-pointer;
+}
+
+.showtimes-expanded-area {
+  @apply bg-[#11141e]/50 border border-white/5 rounded-2xl p-6 space-y-4 shadow-inner;
+}
+
+.showtimes-movie-row {
+  @apply flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b border-white/5 last:border-none gap-3;
+}
+
+.showtimes-movie-info {
+  @apply font-bold text-white text-sm uppercase tracking-wide;
+}
+
+.showtimes-movie-genre {
+  @apply text-[11px] text-gray-500 font-bold block mt-0.5;
+}
+
+.showtimes-list {
+  @apply flex flex-wrap gap-2;
+}
+
+.showtime-bubble {
+  @apply px-3.5 py-2 bg-[#171c2a] hover:bg-red-600 border border-white/5 hover:border-red-500 rounded-lg text-xs font-black text-gray-200 hover:text-white transition duration-200 cursor-pointer;
+}

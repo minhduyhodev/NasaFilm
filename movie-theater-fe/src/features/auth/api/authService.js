@@ -65,6 +65,7 @@ class AuthService {
         // Nếu gặp lỗi 401 và không phải là request xác thực cơ bản, và chưa từng thử lại (retry)
         if (error.response?.status === 401 && !isAuthRequest && originalRequest && !originalRequest._retry) {
           if (isRefreshing) {
+            console.log("[AuthService] Đang trong quá trình làm mới token, xếp hàng đợi request:", requestUrl);
             // Đưa request vào hàng đợi đợi lấy token mới
             return new Promise((resolve) => {
               subscribeTokenRefresh((token) => {
@@ -76,17 +77,21 @@ class AuthService {
 
           originalRequest._retry = true;
           isRefreshing = true;
+          console.log("[AuthService] Access token hết hạn. Bắt đầu làm mới token (Silent Refresh)...");
 
           try {
             const newAccessToken = await this.refreshToken();
             isRefreshing = false;
+            console.log("[AuthService] Làm mới access token thành công.");
             onRefreshed(newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
             isRefreshing = false;
             refreshSubscribers = [];
+            console.warn("[AuthService] Làm mới token thất bại. Chuyển hướng đăng nhập. Lỗi:", refreshError.message || refreshError);
             tokenService.clear();
+            sessionStorage.setItem('auth_expired', 'true');
             window.location.href = '/auth/login';
             return Promise.reject(refreshError);
           }
@@ -94,7 +99,9 @@ class AuthService {
 
         // Nếu Refresh Token hết hạn hoặc các trường hợp 401 khác trên request không thuộc hàng đợi
         if (error.response?.status === 401 && !isAuthRequest) {
+          console.warn("[AuthService] Nhận phản hồi 401 không thể khôi phục từ:", requestUrl, ". Đang dọn dẹp session và chuyển hướng đăng nhập.");
           tokenService.clear();
+          sessionStorage.setItem('auth_expired', 'true');
           window.location.href = '/auth/login';
         }
 
@@ -105,6 +112,7 @@ class AuthService {
 
   async login(credentials) {
     try {
+      console.log("[AuthService] Gửi yêu cầu đăng nhập cho email:", credentials.email);
       // BE: POST /api/auth/login → ApiResponse<JwtResponse>
       const response = await this.api.post('/api/auth/login', {
         email: credentials.email,
@@ -126,6 +134,8 @@ class AuthService {
         refreshToken: jwtData.refreshToken,
       };
 
+      console.log("[AuthService] Đăng nhập thành công, lưu thông tin phiên người dùng:", authResponse.user.email);
+
       // Lưu trữ thông tin xác thực
       tokenService.setToken(authResponse.token);
       if (authResponse.refreshToken) {
@@ -139,6 +149,7 @@ class AuthService {
 
       return authResponse;
     } catch (error) {
+      console.error("[AuthService] Đăng nhập thất bại. Lỗi:", error.message || error);
       throw this.handleError(error);
     }
   }
@@ -173,6 +184,7 @@ class AuthService {
         throw new Error('No refresh token available');
       }
 
+      console.log("[AuthService] Gọi API refresh token...");
       // Gọi API trực tiếp bằng axios để tránh vòng lặp interceptor vô hạn
       const response = await axios.post(
         `${API_BASE_URL}/api/auth/refresh`,
@@ -193,6 +205,7 @@ class AuthService {
 
       return jwtData.accessToken;
     } catch (error) {
+      console.error("[AuthService] Lỗi khi làm mới access token:", error.message || error);
       tokenService.clear();
       throw this.handleError(error);
     }
@@ -204,13 +217,16 @@ class AuthService {
    */
   async logout() {
     try {
+      console.log("[AuthService] Gọi API đăng xuất trên hệ thống...");
       const refreshToken = tokenService.getRefreshToken();
       // BE: POST /api/auth/logout — nhận Refresh Token trong Request Body để hủy phiên
       await this.api.post('/api/auth/logout', { refreshToken });
+      console.log("[AuthService] Gọi API đăng xuất thành công.");
     } catch (error) {
       console.warn('[AuthService] Server logout failed, clearing local session anyway:', error);
     } finally {
       tokenService.clear();
+      console.log("[AuthService] Đã dọn dẹp local session của người dùng.");
     }
   }
 

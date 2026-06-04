@@ -1,0 +1,115 @@
+.offers-page-wrapper {
+  @apply bg-[#0b0f19] text-gray-400 min-h-screen pt-20;
+}
+
+.offers-hero {
+  @apply relative h-[45vh] flex items-center justify-center overflow-hidden bg-cover bg-center;
+}
+
+.offers-hero-overlay {
+  @apply absolute inset-0 bg-gradient-to-b from-black/40 via-[#0b0f19]/70 to-[#0b0f19] z-10;
+}
+
+.offers-hero-content {
+  @apply relative z-20 text-center px-4 max-w-4xl mx-auto space-y-4;
+}
+
+.offers-hero-title {
+  @apply text-4xl md:text-6xl font-black text-white tracking-tight uppercase leading-none;
+}
+
+.offers-hero-sub {
+  @apply text-sm md:text-base text-gray-300 max-w-xl mx-auto leading-relaxed font-medium;
+}
+
+.offers-container {
+  @apply max-w-7xl mx-auto py-16 px-4 md:px-8 lg:px-20 space-y-12;
+}
+
+.offers-tabs {
+  @apply flex gap-2 justify-center flex-wrap mb-4;
+}
+
+.offers-tab-btn {
+  @apply px-6 py-2.5 text-xs font-bold text-gray-400 bg-[#171c2a] border border-white/5 rounded-full transition-all duration-200 hover:text-white;
+}
+
+.offers-tab-btn-active {
+  @apply bg-[#f3a092] text-neutral-900 border-[#f3a092] shadow-lg shadow-red-500/5;
+}
+
+.offers-grid {
+  @apply grid sm:grid-cols-2 lg:grid-cols-3 gap-8;
+}
+
+.offer-card {
+  @apply bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/20 hover:shadow-red-500/5 flex flex-col;
+}
+
+.offer-card-img-wrapper {
+  @apply relative h-48 overflow-hidden flex-shrink-0;
+}
+
+.offer-card-img {
+  @apply w-full h-full object-cover transition-transform duration-500 hover:scale-105;
+}
+
+.offer-card-badge {
+  @apply absolute top-4 left-4 px-3 py-1 bg-red-600/90 text-white text-[10px] font-black uppercase rounded tracking-wider;
+}
+
+.offer-card-content {
+  @apply p-6 flex flex-col justify-between flex-grow gap-4;
+}
+
+.offer-card-title {
+  @apply text-lg font-black text-white uppercase tracking-wide leading-tight;
+}
+
+.offer-card-desc {
+  @apply text-sm text-gray-400/80 leading-relaxed line-clamp-2;
+}
+
+.offer-card-footer {
+  @apply flex items-center justify-between pt-4 border-t border-white/5;
+}
+
+.offer-card-date {
+  @apply text-xs text-gray-500 font-bold;
+}
+
+.offer-btn-details {
+  @apply px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer;
+}
+
+.offer-modal-overlay {
+  @apply fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+}
+
+.offer-modal-card {
+  @apply bg-[#0f121d] border border-white/10 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl p-6 md:p-8 space-y-6 relative;
+}
+
+.offer-modal-close {
+  @apply absolute top-4 right-4 text-gray-500 hover:text-white transition duration-200 cursor-pointer;
+}
+
+.offer-modal-title {
+  @apply text-2xl font-black text-white uppercase tracking-wider pr-6;
+}
+
+.offer-modal-desc {
+  @apply text-sm text-gray-400 leading-relaxed space-y-3;
+}
+
+.offer-coupon-box {
+  @apply bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between;
+}
+
+.offer-coupon-code {
+  @apply font-mono text-lg font-black text-[#f3a092] tracking-wider;
+}
+
+.offer-btn-copy {
+  @apply px-4 py-2 bg-[#f3a092] hover:bg-[#e28e80] text-neutral-900 text-xs font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer;
+}
