@@ -16,7 +16,7 @@ const Navbar = () => {
         </div>
 
         <nav className="navbar-nav">
-          <Link to="/" className="navbar-nav-link">Phim</Link>
+          <Link to="/movies" className="navbar-nav-link">Phim</Link>
           <a href="#" className="navbar-nav-link">Rạp Chiếu</a>
           <a href="#" className="navbar-nav-link">Ưu Đãi</a>
           <a href="#" className="navbar-nav-link">VIP</a>

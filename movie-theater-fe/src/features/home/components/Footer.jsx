@@ -49,8 +49,8 @@ const Footer = () => {
             <h3 className="footer-col-title">Khám Phá</h3>
             <ul className="footer-links-list">
               {[
-                { label: 'Phim Đang Chiếu', to: '/' },
-                { label: 'Phim Sắp Chiếu', to: '/' },
+                { label: 'Phim Đang Chiếu', to: '/movies' },
+                { label: 'Phim Sắp Chiếu', to: '/movies?tab=coming-soon' },
                 { label: 'Lịch Chiếu Toàn Rạp', to: '/' },
                 { label: 'Ưu Đãi Đặc Biệt', to: '/' },
                 { label: 'Phòng Chiếu VIP', to: '/' },
