@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { notificationService } from '../../../shared/services/notificationService';
 
 const TicketFilters = () => {
   const [theater, setTheater] = useState('');
   const [movie, setMovie] = useState('');
   const [date, setDate] = useState('');
   const [showtime, setShowtime] = useState('');
+
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   const handleTheaterChange = (e) => {
     const val = e.target.value;
@@ -33,8 +39,13 @@ const TicketFilters = () => {
   };
 
   const handleBookNow = () => {
+    if (!user) {
+      notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
+      navigate('/auth/login');
+      return;
+    }
     if (theater && movie && date && showtime) {
-      alert(`Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`);
+      notificationService.success(`Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`);
     }
   };
 
