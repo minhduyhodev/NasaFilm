@@ -1,0 +1,44 @@
+package com.thdpv.movietheater.common.exception;
+
+import org.springframework.http.HttpStatus;
+
+import lombok.Getter;
+
+@Getter
+public enum ErrorCode {
+    SUCCESS(200, "Thanh cong", HttpStatus.OK),
+    CREATED(201, "Tao thanh cong", HttpStatus.CREATED),
+
+    BAD_REQUEST(400, "Request khong hop le", HttpStatus.BAD_REQUEST),
+    VALIDATION_FAILED(400, "Du lieu khong hop le", HttpStatus.BAD_REQUEST),
+
+    UNAUTHORIZED(401, "Chua xac thuc", HttpStatus.UNAUTHORIZED),
+    INVALID_CREDENTIALS(401, "Email hoac mat khau khong dung", HttpStatus.UNAUTHORIZED),
+    TOKEN_EXPIRED(401, "Token da het han", HttpStatus.UNAUTHORIZED),
+    TOKEN_INVALID(401, "Token khong hop le", HttpStatus.UNAUTHORIZED),
+
+    FORBIDDEN(403, "Khong co quyen truy cap", HttpStatus.FORBIDDEN),
+
+    NOT_FOUND(404, "Khong tim thay", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND(404, "Nguoi dung khong ton tai", HttpStatus.NOT_FOUND),
+    MOVIE_NOT_FOUND(404, "Phim khong ton tai", HttpStatus.NOT_FOUND),
+    BOOKING_NOT_FOUND(404, "Dat ve khong ton tai", HttpStatus.NOT_FOUND),
+    SHOWTIME_NOT_FOUND(404, "Suat chieu khong ton tai", HttpStatus.NOT_FOUND),
+
+    CONFLICT(409, "Du lieu da ton tai", HttpStatus.CONFLICT),
+    EMAIL_ALREADY_EXISTS(409, "Email da duoc su dung", HttpStatus.CONFLICT),
+    PHONE_ALREADY_EXISTS(409, "So dien thoai da ton tai", HttpStatus.CONFLICT),
+
+    INTERNAL_ERROR(500, "Loi he thong", HttpStatus.INTERNAL_SERVER_ERROR),
+    DATABASE_ERROR(500, "Loi co so du lieu", HttpStatus.INTERNAL_SERVER_ERROR);
+
+    private final int code;
+    private final String message;
+    private final HttpStatus httpStatus;
+
+    ErrorCode(int code, String message, HttpStatus httpStatus) {
+        this.code = code;
+        this.message = message;
+        this.httpStatus = httpStatus;
+    }
+}
