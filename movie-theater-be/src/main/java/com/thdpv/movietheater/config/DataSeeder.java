@@ -1,7 +1,5 @@
 package com.thdpv.movietheater.config;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +26,7 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Admin seed
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
 
@@ -36,6 +35,26 @@ public class DataSeeder implements CommandLineRunner {
 
     @Value("${app.auth.seed.admin-full-name}")
     private String adminFullName;
+
+    // Staff seed
+    @Value("${app.auth.seed.staff-email}")
+    private String staffEmail;
+
+    @Value("${app.auth.seed.staff-password}")
+    private String staffPassword;
+
+    @Value("${app.auth.seed.staff-full-name}")
+    private String staffFullName;
+
+    // Customer seed
+    @Value("${app.auth.seed.customer-email}")
+    private String customerEmail;
+
+    @Value("${app.auth.seed.customer-password}")
+    private String customerPassword;
+
+    @Value("${app.auth.seed.customer-full-name}")
+    private String customerFullName;
 
     public DataSeeder(RoleRepository roleRepository,
             UserRepository userRepository,
@@ -51,6 +70,8 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         seedRoles();
         seedAdminUser();
+        seedStaffUser();
+        seedCustomerUser();
     }
 
     private void seedRoles() {
@@ -66,26 +87,48 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedAdminUser() {
-        if (userRepository.findByEmailIgnoreCase(adminEmail).isPresent()) {
-            logger.info("Admin user already exists, skipping seed.");
+        createUserIfNotExists(adminEmail, adminPassword, adminFullName, RoleName.ADMIN);
+    }
+
+    private void seedStaffUser() {
+        createUserIfNotExists(staffEmail, staffPassword, staffFullName, RoleName.STAFF);
+    }
+
+    private void seedCustomerUser() {
+        createUserIfNotExists(customerEmail, customerPassword, customerFullName, RoleName.CUSTOMER);
+    }
+
+    /**
+     * Tạo user nếu chưa tồn tại trong DB, gán role tương ứng. Nếu đã tồn tại, cập
+     * nhật mật khẩu và họ tên mới từ env.
+     */
+    private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
+        java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+        if (existingUserOpt.isPresent()) {
+            User user = existingUserOpt.get();
+            user.setPassword(passwordEncoder.encode(password));
+            user.setFullName(fullName);
+            userRepository.save(user);
+            logger.info("Updated existing {} user '{}' details (password and name) from env configuration.",
+                    roleName.name(), email);
             return;
         }
 
-        User admin = new User();
-        admin.setEmail(adminEmail);
-        admin.setPassword(passwordEncoder.encode(adminPassword));
-        admin.setFullName(adminFullName);
-        admin.setStatus(UserStatus.ACTIVE);
-        userRepository.save(admin);
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setFullName(fullName);
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
 
-        Role adminRole = roleRepository.findByName(RoleName.ADMIN)
-                .orElseThrow(() -> new RuntimeException("ADMIN role not found"));
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(admin);
-        userRole.setRole(adminRole);
+        userRole.setUser(user);
+        userRole.setRole(role);
         userRoleRepository.save(userRole);
 
-        logger.info("Seeded admin user: {}", adminEmail);
+        logger.info("Seeded {} user: {}", roleName.name(), email);
     }
 }

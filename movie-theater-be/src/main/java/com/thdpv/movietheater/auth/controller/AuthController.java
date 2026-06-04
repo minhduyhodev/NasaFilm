@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
+import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.service.AuthService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
@@ -28,9 +29,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.login(loginRequest)));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<JwtResponse>> refresh(@Valid @RequestBody TokenRefreshRequest refreshRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(refreshRequest)));
+    }
+
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout() {
-        authService.logout();
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody(required = false) TokenRefreshRequest refreshRequest) {
+        authService.logout(refreshRequest);
         return ResponseEntity.ok(ApiResponse.success(null, "Dang xuat thanh cong"));
     }
 }

@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import javax.crypto.SecretKey;
 
@@ -27,7 +28,13 @@ public class JwtUtils {
     public JwtUtils(
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.access-token-expiration}") long accessTokenExpirationMs) {
-        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        SecretKey key;
+        try {
+            key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        } catch (IllegalArgumentException ex) {
+            key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        }
+        this.secretKey = key;
         this.accessTokenExpirationMs = accessTokenExpirationMs;
     }
 

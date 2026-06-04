@@ -1,0 +1,83 @@
+.footer-wrapper {
+  @apply relative border-t border-white/5 bg-[#0b0f19] pt-16 pb-8 text-gray-400;
+}
+
+.footer-glow {
+  @apply absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-[1px] bg-gradient-to-r from-transparent via-red-500/25 to-transparent blur-sm;
+}
+
+.footer-container {
+  @apply mx-auto max-w-7xl px-4 md:px-8 lg:px-20;
+}
+
+.footer-grid {
+  @apply grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8;
+}
+
+.footer-col {
+  @apply space-y-4;
+}
+
+.footer-brand-logo {
+  @apply flex items-center gap-2.5;
+}
+
+.footer-logo-img {
+  @apply h-14 w-auto object-contain rounded-lg;
+}
+
+.footer-brand-name {
+  @apply text-base font-black tracking-wider text-white;
+}
+
+.footer-brand-sub {
+  @apply text-[10px] uppercase tracking-widest text-red-500 font-bold;
+}
+
+.footer-brand-text {
+  @apply text-sm leading-relaxed text-gray-400/80;
+}
+
+.footer-social-list {
+  @apply flex items-center gap-4 pt-2;
+}
+
+.footer-col-title {
+  @apply text-sm font-bold uppercase tracking-wider text-white;
+}
+
+.footer-links-list {
+  @apply space-y-2.5 text-sm;
+}
+
+.footer-link-item {
+  @apply hover:text-white transition-colors duration-200 flex items-center gap-1.5;
+}
+
+.footer-link-dot {
+  @apply h-1 w-1 rounded-full bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+}
+
+.footer-contact-list {
+  @apply space-y-3.5 text-sm;
+}
+
+.footer-contact-item {
+  @apply flex items-start gap-3;
+}
+
+.footer-contact-icon {
+  @apply h-5 w-5 text-red-500 flex-shrink-0 mt-0.5;
+}
+
+.footer-divider {
+  @apply my-10 border-t border-white/5;
+}
+
+.footer-bottom {
+  @apply flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500/80;
+}
+
+.footer-bottom-links {
+  @apply flex items-center gap-6;
+}
