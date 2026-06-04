@@ -32,6 +32,14 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final ObjectMapper objectMapper;
 
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/api/auth/login",
+
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**"
+    };
+
     public SecurityConfig(
             JwtAuthTokenFilter jwtAuthTokenFilter,
             CustomUserDetailsService customUserDetailsService,
@@ -64,14 +72,14 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) ->
-                                writeErrorResponse(response, ErrorCode.UNAUTHORIZED))
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeErrorResponse(response, ErrorCode.FORBIDDEN)))
+                        .authenticationEntryPoint((request, response, authException) -> writeErrorResponse(response,
+                                ErrorCode.UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, accessDeniedException) -> writeErrorResponse(response,
+                                ErrorCode.FORBIDDEN)))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
