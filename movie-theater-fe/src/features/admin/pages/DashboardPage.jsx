@@ -1,68 +1,38 @@
 import React from 'react';
+import { DollarSign, Target, TrendingUp, BarChart3 } from 'lucide-react';
 
 const DashboardPage = () => {
   return (
     <>
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.32em] text-on-surface-variant">Admin Dashboard</p>
-          <h1 className="font-headline-xl text-white">Cinema operations at a glance</h1>
-          <p className="max-w-2xl text-on-surface-variant">Monitor revenue, audience activity, and screening performance from one centralized admin panel.</p>
+        <div className="space-y-1.5">
+          <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">Admin Dashboard</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6e7191]">Operations & Analytics at a glance</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-error px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
+        <button className="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
           <span className="material-symbols-outlined">add</span>
           Add New Campaign
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="rounded-[32px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="p-4 rounded-3xl bg-[#2b0f12] text-error shadow-[0_15px_40px_rgba(220,38,38,0.16)]">
-              <span className="material-symbols-outlined">analytics</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        {[
+          { label: 'REVENUE', value: '142,5K', badge: 'This month', Icon: DollarSign },
+          { label: 'CONVERSATION', value: '32,8%', badge: 'Avg rate', Icon: Target },
+          { label: 'GROWTH', value: '+8,4%', badge: 'vs last month', Icon: TrendingUp },
+          { label: 'TRANSACTIONS', value: '3,480', badge: 'Completed', Icon: BarChart3 },
+        ].map((card) => (
+          <div key={card.label} className="rounded-[20px] bg-[#11121a] border border-white/5 p-6 flex flex-col justify-between h-[140px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191]">{card.label}</span>
+              <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
             </div>
-            <span className="text-error font-label-sm flex items-center gap-1">+12.5% <span className="material-symbols-outlined text-[14px]">trending_up</span></span>
-          </div>
-          <p className="font-label-sm uppercase tracking-[0.2em] text-on-surface-variant mb-2">Total Revenue</p>
-          <h3 className="font-headline-lg text-white">$482,900</h3>
-          <p className="font-body-md text-on-surface-variant mt-3">vs. last month $429.2k</p>
-        </div>
-
-        <div className="rounded-[32px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="p-4 rounded-3xl bg-[#10141d] text-primary shadow-[0_15px_40px_rgba(132,102,236,0.16)]">
-              <span className="material-symbols-outlined">confirmation_number</span>
+            <div>
+              <h3 className="text-3xl font-bold text-white tracking-tight leading-none">{card.value}</h3>
+              <p className="text-xs text-[#6e7191] mt-2 font-medium">{card.badge}</p>
             </div>
-            <span className="text-on-surface-variant font-label-sm flex items-center gap-1">+8.2% <span className="material-symbols-outlined text-[14px]">trending_up</span></span>
           </div>
-          <p className="font-label-sm uppercase tracking-[0.2em] text-on-surface-variant mb-2">Tickets Sold</p>
-          <h3 className="font-headline-lg text-white">24,102</h3>
-          <p className="font-body-md text-on-surface-variant mt-3">Target reached: 92%</p>
-        </div>
-
-        <div className="rounded-[32px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="p-4 rounded-3xl bg-[#11131b] text-tertiary shadow-[0_15px_40px_rgba(204,197,191,0.16)]">
-              <span className="material-symbols-outlined">meeting_room</span>
-            </div>
-            <span className="text-on-surface-variant font-label-sm flex items-center gap-1">Steady <span className="material-symbols-outlined text-[14px]">horizontal_rule</span></span>
-          </div>
-          <p className="font-label-sm uppercase tracking-[0.2em] text-on-surface-variant mb-2">Active Screens</p>
-          <h3 className="font-headline-lg text-white">112</h3>
-          <p className="font-body-md text-on-surface-variant mt-3">Across 14 locations</p>
-        </div>
-
-        <div className="rounded-[32px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="p-4 rounded-3xl bg-[#2b0f12] text-error shadow-[0_15px_40px_rgba(220,38,38,0.16)]">
-              <span className="material-symbols-outlined">person_add</span>
-            </div>
-            <span className="text-error font-label-sm flex items-center gap-1">+24.1% <span className="material-symbols-outlined text-[14px]">trending_up</span></span>
-          </div>
-          <p className="font-label-sm uppercase tracking-[0.2em] text-on-surface-variant mb-2">New Users</p>
-          <h3 className="font-headline-lg text-white">3,480</h3>
-          <p className="font-body-md text-on-surface-variant mt-3">Loyalty program growing</p>
-        </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -73,7 +43,7 @@ const DashboardPage = () => {
               <p className="font-body-md text-on-surface-variant">Daily sales performance across all theaters</p>
             </div>
             <div className="flex gap-3">
-              <button className="px-4 py-2 rounded-full bg-[#11131b] text-on-surface-variant font-label-sm border border-white/10">Weekly</button>
+              <button className="px-4 py-2 rounded-full bg-[#11131b] text-on-surface-variant font-label-sm border border-white/10">Daily</button>
               <button className="px-4 py-2 rounded-full bg-error text-white font-label-sm">Monthly</button>
             </div>
           </div>
@@ -88,6 +58,13 @@ const DashboardPage = () => {
               <path d="M0,180 L0,120 C100,100 150,150 250,90 C350,30 400,100 500,60 C600,20 750,140 850,70 L1000,40 L1000,180 Z" fill="url(#chartGrad)" />
               <path d="M0,120 C100,100 150,150 250,90 C350,30 400,100 500,60 C600,20 750,140 850,70 L1000,40" fill="none" stroke="#ff8a7a" strokeWidth={4} />
             </svg>
+          </div>
+          {/* X Axis labels */}
+          <div className="flex justify-between text-[10px] font-bold text-[#6e7191] uppercase tracking-[0.2em] mt-4 px-2">
+            <span>DAY 01</span>
+            <span>DAY 10</span>
+            <span>DAY 20</span>
+            <span>DAY 30</span>
           </div>
         </div>
 
@@ -136,7 +113,55 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-          <button className="w-full mt-6 py-3 rounded-full bg-[#11131b] text-on-surface-variant border border-white/10 hover:bg-white/5 transition-colors">View Detailed Breakdown</button>
+        </div>
+      </div>
+
+      {/* Bottom Row: Recent Activity */}
+      <div className="rounded-[24px] bg-[#10111a] border border-white/5 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300 mt-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white tracking-tight">Recent Activity</h2>
+          <button className="text-xs font-bold text-[#6e7191] hover:text-white transition-colors tracking-wide uppercase tracking-[0.1em]">
+            View All Records
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="text-[#6e7191] text-[11px] font-bold uppercase tracking-[0.2em] border-b border-white/5">
+                <th className="pb-4">TRANSACTION ID</th>
+                <th className="pb-4">CUSTOMER</th>
+                <th className="pb-4">ITEM</th>
+                <th className="pb-4">STATUS</th>
+                <th className="pb-4 text-right">AMOUNT</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {[
+                { id: '#TXN-9021', name: 'Marcus Thorne', item: 'VIP Seating (2)', status: 'SUCCESS', amount: '$84.00' },
+                { id: '#TXN-9020', name: 'Elena Vane', item: 'Annual Pass', status: 'SUCCESS', amount: '$450.00' },
+                { id: '#TXN-9019', name: 'Julian Black', item: 'Refreshment Pack', status: 'PENDING', amount: '$22.50' },
+              ].map((row, idx) => (
+                <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-4 font-bold text-white">{row.id}</td>
+                  <td className="py-4 text-[#8a8d9f] font-medium">{row.name}</td>
+                  <td className="py-4 text-[#8a8d9f] font-medium">{row.item}</td>
+                  <td className="py-4">
+                    <span
+                      className={`inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        row.status === 'SUCCESS'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="py-4 font-bold text-white text-right">{row.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </>

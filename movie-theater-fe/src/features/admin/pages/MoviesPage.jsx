@@ -1,31 +1,88 @@
 import React from 'react';
+import { Film, Play, Calendar, Star } from 'lucide-react';
 
 const MoviesPage = () => {
   return (
     <>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.32em] text-on-surface-variant mb-2">Manage Movies</p>
-          <h1 className="font-headline-xl text-white">Movie Inventory</h1>
-          <p className="max-w-2xl text-on-surface-variant mt-2">Update titles, track screening status, and keep your movie catalog up to date.</p>
+        <div className="space-y-1.5">
+          <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">Manage Movies</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6e7191]">Movie Inventory & Catalog Management</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-error px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
+        <button className="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
           <span className="material-symbols-outlined">add</span>
           Add New Movie
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {[
-          { label: 'Total Movies', value: '124', badge: 'All titles' },
-          { label: 'Live Now', value: '18', badge: 'Currently screening' },
-          { label: 'Upcoming', value: '42', badge: 'Scheduled premieres' },
-          { label: 'Avg Rating', value: '4.8', badge: 'Audience score' },
+          {
+            label: 'TOTAL MOVIES',
+            value: '124',
+            sub: 'from last month',
+            trend: '+4%',
+            Icon: Film
+          },
+          {
+            label: 'LIVE NOW',
+            value: '18',
+            sub: 'Currently screening',
+            hasDot: true,
+            Icon: Play
+          },
+          {
+            label: 'UPCOMING',
+            value: '42',
+            sub: 'Scheduled premieres',
+            Icon: Calendar
+          },
+          {
+            label: 'AVG RATING',
+            value: '4.8',
+            sub: 'Target: 5.0 score',
+            hasProgress: true,
+            progressValue: '96%',
+            Icon: Star
+          }
         ].map((card) => (
-          <div key={card.label} className="rounded-[28px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
-            <p className="text-sm uppercase tracking-[0.24em] text-on-surface-variant mb-4">{card.label}</p>
-            <h3 className="font-headline-lg text-white">{card.value}</h3>
-            <p className="text-on-surface-variant mt-3">{card.badge}</p>
+          <div
+            key={card.label}
+            className="rounded-[24px] bg-[#11121a] border border-white/5 p-6 h-[170px] relative overflow-hidden flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300 group"
+          >
+            {/* Watermark Icon */}
+            <card.Icon className="absolute -right-4 -top-4 w-24 h-24 text-white/5 group-hover:text-white/10 transition-colors duration-300" strokeWidth={1} />
+
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191]">{card.label}</p>
+                <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
+              </div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <h3 className="text-4xl font-black text-white tracking-tight leading-none">{card.value}</h3>
+                {card.trend && (
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-0.5">
+                    {card.trend} <span className="text-[10px]">↑</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-auto w-full">
+              {card.hasProgress ? (
+                <div className="space-y-2">
+                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#ccbba3] rounded-full" style={{ width: card.progressValue }} />
+                  </div>
+                  <p className="text-[11px] text-[#6e7191] font-medium">{card.sub}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-[#8a8d9f] font-medium flex items-center gap-1.5">
+                  {card.hasDot && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />}
+                  {card.trend ? <span className="italic text-[#6e7191]">{card.sub}</span> : card.sub}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>

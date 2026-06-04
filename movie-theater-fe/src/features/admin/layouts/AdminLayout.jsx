@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
+import huyAdmin from '../../../shared/assets/huyadmin.jpg';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { logout } = useAuthContext();
@@ -13,18 +15,16 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#06060a] border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-      <div className="p-8">
-        <h1 className="font-display-lg text-[24px] tracking-tighter text-primary">NASAFILM</h1>
-        <p className="font-label-sm text-on-surface-variant mt-1 opacity-50 uppercase tracking-[0.2em]">Command Center</p>
+      <div className="px-6 pt-8 pb-4 flex items-center justify-center">
+        <img src={nasaLogo} alt="NASAFILM Logo" className="w-full max-w-[200px] h-auto object-contain rounded-xl translate-x-2" />
       </div>
-      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto no-scrollbar">
         {[
           { to: '/admin', icon: 'dashboard', label: 'Overview' },
           { to: '/admin/movies', icon: 'movie', label: 'Movies' },
           { to: '/admin/showtimes', icon: 'schedule', label: 'Showtimes' },
           { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Cinemas' },
           { to: '/admin/users', icon: 'group', label: 'Users' },
-          { to: '/admin/sales', icon: 'payments', label: 'Sales' },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -51,14 +51,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         ))}
       </nav>
       <div className="p-4 mt-auto space-y-3">
-        <button className="w-full rounded-3xl bg-[#11131b] px-4 py-3 text-left text-sm text-on-surface-variant hover:bg-white/5 transition">Support</button>
         <div className="bg-[#101118] p-4 rounded-[30px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.25)] flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#161820] border border-white/10 flex items-center justify-center overflow-hidden">
-            <img alt="Admin Profile" className="w-full h-full object-cover" src="https://via.placeholder.com/80" />
+            <img alt="Admin Profile" className="w-full h-full object-cover" src={huyAdmin} />
           </div>
           <div>
-            <p className="font-label-md text-white">Admin Alex</p>
-            <p className="font-label-sm text-on-surface-variant">Super User</p>
+            <p className="font-label-md text-white font-bold">ADMIN HUY HANDSOME</p>
           </div>
           <button onClick={handleLogout} className="ml-auto rounded-full border border-white/10 p-2 text-on-surface-variant hover:text-error transition-colors">
             <span className="material-symbols-outlined">logout</span>
@@ -94,15 +92,6 @@ const AdminLayout = ({ children }) => {
                   type="text"
                 />
               </div>
-            </div>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-              <div className="flex items-center gap-2 rounded-full bg-[#11131b] px-4 py-2 border border-white/10">
-                <span className="inline-block h-2 w-2 rounded-full bg-error animate-pulse"></span>
-                <span className="font-label-sm text-on-surface">Live Sales Active</span>
-              </div>
-              <button className="rounded-full bg-error px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] transition hover:bg-[#dc2b2b] active:scale-95">
-                Generate Report
-              </button>
             </div>
           </div>
         </div>
