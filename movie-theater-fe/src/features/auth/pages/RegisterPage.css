@@ -1,0 +1,59 @@
+.auth-form {
+  @apply space-y-5;
+}
+
+.auth-terms-label {
+  @apply flex items-start gap-3 cursor-pointer;
+}
+
+.auth-terms-checkbox {
+  @apply w-4 h-4 mt-1 bg-white/10 border border-white/20 rounded cursor-pointer accent-red-600 flex-shrink-0;
+}
+
+.auth-terms-text {
+  @apply text-sm text-gray-400 group-hover:text-gray-300 transition-colors;
+}
+
+.auth-terms-link {
+  @apply text-red-500 hover:text-red-400;
+}
+
+.auth-error-msg {
+  @apply text-sm text-red-500 flex items-center gap-2;
+}
+
+.auth-error-dot {
+  @apply w-1.5 h-1.5 bg-red-500 rounded-full;
+}
+
+.auth-submit-btn {
+  @apply w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-600/20;
+}
+
+.auth-loading-spinner {
+  @apply flex items-center justify-center gap-2;
+}
+
+.auth-spinner-icon {
+  @apply w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin;
+}
+
+.auth-divider-wrapper {
+  @apply relative my-4;
+}
+
+.auth-divider-line {
+  @apply w-full border-t border-white/10;
+}
+
+.auth-footer {
+  @apply text-center pt-2;
+}
+
+.auth-footer-text {
+  @apply text-gray-400;
+}
+
+.auth-footer-link {
+  @apply text-red-500 hover:text-red-400 font-semibold transition-colors;
+}
