@@ -80,7 +80,7 @@ public class AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return new JwtResponse(accessToken, refreshToken, userDetails.getUsername(), roles, user.getId(), user.getFullName());
+        return new JwtResponse(accessToken, refreshToken, userDetails.getUsername(), roles);
     }
 
     @Transactional
@@ -114,7 +114,7 @@ public class AuthService {
                 .map(ur -> "ROLE_" + ur.getRole().getName().name())
                 .toList();
 
-        return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles, session.getUser().getId(), session.getUser().getFullName());
+        return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles);
     }
 
     @Transactional
