@@ -1,0 +1,139 @@
+.about-page-wrapper {
+  @apply bg-[#0b0f19] text-gray-400 min-h-screen pt-20;
+}
+
+.about-hero {
+  @apply relative h-[65vh] flex items-center justify-center overflow-hidden bg-cover bg-center;
+}
+
+.about-hero-overlay {
+  @apply absolute inset-0 bg-gradient-to-b from-black/40 via-[#0b0f19]/70 to-[#0b0f19] z-10;
+}
+
+.about-hero-content {
+  @apply relative z-20 text-center px-4 max-w-4xl mx-auto space-y-6;
+}
+
+.about-hero-title {
+  @apply text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase leading-none;
+}
+
+.about-hero-sub {
+  @apply text-base md:text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed font-medium;
+}
+
+.about-story-section {
+  @apply max-w-7xl mx-auto py-20 px-4 md:px-8 lg:px-20 grid md:grid-cols-2 gap-12 lg:gap-16 items-center;
+}
+
+.about-story-content {
+  @apply space-y-6;
+}
+
+.about-story-title {
+  @apply text-3xl lg:text-4xl font-black text-white uppercase tracking-wide;
+}
+
+.about-story-text {
+  @apply text-base leading-relaxed text-gray-400/90;
+}
+
+.about-story-image-container {
+  @apply relative rounded-[32px] overflow-hidden border border-white/10 shadow-2xl;
+}
+
+.about-story-image {
+  @apply w-full h-[400px] object-cover transition-transform duration-700 hover:scale-105;
+}
+
+.about-values-section {
+  @apply bg-black/10 border-y border-white/5 py-24 px-4 md:px-8 lg:px-20;
+}
+
+.about-values-title {
+  @apply text-center text-3xl lg:text-4xl font-black text-white uppercase tracking-wide mb-16;
+}
+
+.about-values-grid {
+  @apply max-w-7xl mx-auto grid md:grid-cols-3 gap-8;
+}
+
+.about-value-card {
+  @apply bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:border-red-500/20 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/5;
+}
+
+.about-value-icon-wrapper {
+  @apply w-12 h-12 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-6;
+}
+
+.about-value-title {
+  @apply text-xl font-black text-white tracking-wide mb-3;
+}
+
+.about-value-description {
+  @apply text-sm leading-relaxed text-gray-400/90;
+}
+
+.about-visionaries-section {
+  @apply py-24 px-4 md:px-8 lg:px-20;
+}
+
+.about-visionaries-title {
+  @apply text-center text-3xl lg:text-4xl font-black text-white uppercase tracking-wide mb-3;
+}
+
+.about-visionaries-sub {
+  @apply text-center text-sm md:text-base text-gray-400 mb-16 max-w-xl mx-auto;
+}
+
+.about-visionaries-grid {
+  @apply max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12;
+}
+
+.about-visionary-card {
+  @apply flex flex-col items-center text-center;
+}
+
+.about-visionary-avatar-wrapper {
+  @apply w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-white/10 p-1 mb-5 transition-all duration-300 hover:scale-105 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10;
+}
+
+.about-visionary-avatar {
+  @apply w-full h-full object-cover rounded-full filter grayscale contrast-125;
+}
+
+.about-visionary-name {
+  @apply text-lg font-black text-white mb-1;
+}
+
+.about-visionary-role {
+  @apply text-[11px] uppercase tracking-widest text-red-500 font-bold;
+}
+
+.about-cta-section {
+  @apply py-16 px-4 md:px-8 lg:px-20 mb-20;
+}
+
+.about-cta-card {
+  @apply max-w-5xl mx-auto bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-10 md:p-14 backdrop-blur-xl text-center space-y-6 shadow-2xl;
+}
+
+.about-cta-title {
+  @apply text-3xl md:text-4xl font-black text-white tracking-tight leading-tight;
+}
+
+.about-cta-sub {
+  @apply text-sm md:text-base text-gray-400 max-w-xl mx-auto leading-relaxed;
+}
+
+.about-cta-buttons {
+  @apply flex flex-col sm:flex-row gap-4 justify-center items-center pt-4;
+}
+
+.about-btn-primary {
+  @apply px-8 py-3.5 bg-[#f3a092] hover:bg-[#e28e80] text-neutral-900 font-black uppercase tracking-wider text-xs rounded-xl transition duration-200 shadow-lg shadow-red-500/20;
+}
+
+.about-btn-secondary {
+  @apply px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition duration-200;
+}

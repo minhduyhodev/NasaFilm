@@ -16,11 +16,11 @@ const Navbar = () => {
         </div>
 
         <nav className="navbar-nav">
-          {['Phim', 'Rạp Chiếu', 'Ưu Đãi', 'VIP'].map((item) => (
-            <a key={item} href="#" className="navbar-nav-link">
-              {item}
-            </a>
-          ))}
+          <Link to="/movies" className="navbar-nav-link">Phim</Link>
+          <a href="#" className="navbar-nav-link">Rạp Chiếu</a>
+          <a href="#" className="navbar-nav-link">Ưu Đãi</a>
+          <a href="#" className="navbar-nav-link">VIP</a>
+          <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
         </nav>
 
         <div className="navbar-actions">

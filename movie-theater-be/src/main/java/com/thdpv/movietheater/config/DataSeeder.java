@@ -99,7 +99,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     /**
-     * Tạo user nếu chưa tồn tại trong DB, gán role tương ứng. Nếu đã tồn tại, cập nhật mật khẩu và họ tên mới từ env.
+     * Tạo user nếu chưa tồn tại trong DB, gán role tương ứng. Nếu đã tồn tại, cập
+     * nhật mật khẩu và họ tên mới từ env.
      */
     private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
         java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
@@ -108,7 +109,8 @@ public class DataSeeder implements CommandLineRunner {
             user.setPassword(passwordEncoder.encode(password));
             user.setFullName(fullName);
             userRepository.save(user);
-            logger.info("Updated existing {} user '{}' details (password and name) from env configuration.", roleName.name(), email);
+            logger.info("Updated existing {} user '{}' details (password and name) from env configuration.",
+                    roleName.name(), email);
             return;
         }
 

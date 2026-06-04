@@ -1,5 +1,4 @@
 import React from 'react';
-import { DollarSign, Target, TrendingUp, BarChart3 } from 'lucide-react';
 
 const DashboardPage = () => {
   return (
@@ -9,7 +8,7 @@ const DashboardPage = () => {
           <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">Admin Dashboard</h1>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6e7191]">Operations & Analytics at a glance</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
+        <button className="inline-flex items-center gap-2 rounded-full bg-error px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
           <span className="material-symbols-outlined">add</span>
           Add New Campaign
         </button>
@@ -17,15 +16,15 @@ const DashboardPage = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         {[
-          { label: 'REVENUE', value: '142,5K', badge: 'This month', Icon: DollarSign },
-          { label: 'CONVERSATION', value: '32,8%', badge: 'Avg rate', Icon: Target },
-          { label: 'GROWTH', value: '+8,4%', badge: 'vs last month', Icon: TrendingUp },
-          { label: 'TRANSACTIONS', value: '3,480', badge: 'Completed', Icon: BarChart3 },
+          { label: 'REVENUE', value: '142,5K', badge: 'This month', icon: 'analytics' },
+          { label: 'CONVERSATION', value: '32,8%', badge: 'Avg rate', icon: 'target' },
+          { label: 'GROWTH', value: '+8,4%', badge: 'vs last month', icon: 'trending_up' },
+          { label: 'TRANSACTIONS', value: '3,480', badge: 'Completed', icon: 'analytics' },
         ].map((card) => (
           <div key={card.label} className="rounded-[20px] bg-[#11121a] border border-white/5 p-6 flex flex-col justify-between h-[140px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191]">{card.label}</span>
-              <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
+              <span className="material-symbols-outlined text-[#6e7191] text-[20px]">{card.icon}</span>
             </div>
             <div>
               <h3 className="text-3xl font-bold text-white tracking-tight leading-none">{card.value}</h3>
@@ -113,55 +112,7 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Row: Recent Activity */}
-      <div className="rounded-[24px] bg-[#10111a] border border-white/5 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300 mt-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">Recent Activity</h2>
-          <button className="text-xs font-bold text-[#6e7191] hover:text-white transition-colors tracking-wide uppercase tracking-[0.1em]">
-            View All Records
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-[#6e7191] text-[11px] font-bold uppercase tracking-[0.2em] border-b border-white/5">
-                <th className="pb-4">TRANSACTION ID</th>
-                <th className="pb-4">CUSTOMER</th>
-                <th className="pb-4">ITEM</th>
-                <th className="pb-4">STATUS</th>
-                <th className="pb-4 text-right">AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {[
-                { id: '#TXN-9021', name: 'Marcus Thorne', item: 'VIP Seating (2)', status: 'SUCCESS', amount: '$84.00' },
-                { id: '#TXN-9020', name: 'Elena Vane', item: 'Annual Pass', status: 'SUCCESS', amount: '$450.00' },
-                { id: '#TXN-9019', name: 'Julian Black', item: 'Refreshment Pack', status: 'PENDING', amount: '$22.50' },
-              ].map((row, idx) => (
-                <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-4 font-bold text-white">{row.id}</td>
-                  <td className="py-4 text-[#8a8d9f] font-medium">{row.name}</td>
-                  <td className="py-4 text-[#8a8d9f] font-medium">{row.item}</td>
-                  <td className="py-4">
-                    <span
-                      className={`inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                        row.status === 'SUCCESS'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      }`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="py-4 font-bold text-white text-right">{row.amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <button className="w-full mt-6 py-3 rounded-full bg-[#11131b] text-on-surface-variant border border-white/10 hover:bg-white/5 transition-colors">View Detailed Breakdown</button>
         </div>
       </div>
     </>

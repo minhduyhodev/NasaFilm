@@ -64,15 +64,12 @@ public class AuthService {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String accessToken = jwtUtils.generateToken(userDetails.getUsername());
 
-        // Tìm User để tạo session
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // Tạo Refresh Token
         String refreshToken = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
 
-        // Lưu phiên làm việc vào DB
         UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
         userSessionRepository.save(userSession);
 
@@ -80,7 +77,8 @@ public class AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return new JwtResponse(accessToken, refreshToken, userDetails.getUsername(), roles);
+        return new JwtResponse(accessToken, refreshToken, userDetails.getUsername(), roles, user.getId(),
+                user.getFullName());
     }
 
     @Transactional
@@ -97,7 +95,6 @@ public class AuthService {
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        // Xoay vòng Refresh Token (Token Rotation)
         String newRefreshToken = UUID.randomUUID().toString();
         LocalDateTime newExpiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
 
@@ -105,16 +102,15 @@ public class AuthService {
         session.setExpiryDate(newExpiryDate);
         userSessionRepository.save(session);
 
-        // Tạo Access Token mới
         String newAccessToken = jwtUtils.generateToken(session.getUser().getEmail());
 
-        // Lấy danh sách Roles
         List<UserRole> userRoles = userRoleRepository.findByUserId(session.getUser().getId());
         List<String> roles = userRoles.stream()
                 .map(ur -> "ROLE_" + ur.getRole().getName().name())
                 .toList();
 
-        return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles);
+        return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles,
+                session.getUser().getId(), session.getUser().getFullName());
     }
 
     @Transactional
@@ -129,4 +125,3 @@ public class AuthService {
         SecurityContextHolder.clearContext();
     }
 }
-

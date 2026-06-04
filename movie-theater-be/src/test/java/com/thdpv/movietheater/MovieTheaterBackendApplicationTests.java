@@ -46,7 +46,8 @@ class MovieTheaterBackendApplicationTests {
 		System.out.println("====== DB USERS DUMP ======");
 		List<User> users = userRepository.findAll();
 		for (User u : users) {
-			System.out.println("USER: email=" + u.getEmail() + ", fullName=" + u.getFullName() + ", status=" + u.getStatus());
+			System.out.println(
+					"USER: email=" + u.getEmail() + ", fullName=" + u.getFullName() + ", status=" + u.getStatus());
 		}
 		System.out.println("===========================");
 	}
