@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import { notificationService } from '../../../shared/services/notificationService';
+import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -186,9 +187,15 @@ const AuthControls = () => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const avatar = avatarLoadFailed ? null : normalizeAvatarUrl(user?.avatar);
 
   const isAdminOrStaff =
     user?.roles?.some((r) => r === 'admin' || r === 'staff') ?? false;
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [user?.avatar]);
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -219,7 +226,6 @@ const AuthControls = () => {
     );
   }
 
-  const avatar = user.avatar || null;
   const displayName = user.fullName || user.email || '?';
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -235,7 +241,13 @@ const AuthControls = () => {
           {/* Avatar or initial */}
           <div className="user-avatar">
             {avatar ? (
-              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+              <img
+                src={avatar}
+                alt="avatar"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setAvatarLoadFailed(true)}
+              />
             ) : (
               <span>{initial}</span>
             )}

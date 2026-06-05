@@ -1,5 +1,6 @@
 import axios from 'axios';
 import tokenService from '../utils/tokenService';
+import { resolveAvatarUrl } from '../../../shared/utils/avatarUrl';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -17,7 +18,7 @@ const buildAuthResponse = (jwtData) => ({
     id: jwtData.userId,
     fullName: jwtData.fullName,
     email: jwtData.email,
-    avatar: jwtData.avatarUrl,
+    avatar: resolveAvatarUrl(jwtData),
     roles: mapBackendRoles(jwtData.roles ?? []),
   },
   token: jwtData.accessToken,

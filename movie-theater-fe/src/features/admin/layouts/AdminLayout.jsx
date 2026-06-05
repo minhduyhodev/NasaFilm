@@ -1,14 +1,20 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
+import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
   const displayName = user?.fullName || user?.email || 'ADMIN';
-  const avatar = user?.avatar || huyAdmin;
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const avatar = avatarLoadFailed ? huyAdmin : normalizeAvatarUrl(user?.avatar) || huyAdmin;
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [user?.avatar]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -55,7 +61,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       <div className="p-4 mt-auto space-y-3">
         <div className="bg-[#101118] p-4 rounded-[30px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.25)] flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#161820] border border-white/10 flex items-center justify-center overflow-hidden">
-            <img alt="Admin Profile" className="w-full h-full object-cover" src={avatar} />
+            <img
+              alt="Admin Profile"
+              className="w-full h-full object-cover"
+              src={avatar}
+              referrerPolicy="no-referrer"
+              onError={() => setAvatarLoadFailed(true)}
+            />
           </div>
           <div>
             <p className="font-label-md text-white font-bold">{displayName}</p>
