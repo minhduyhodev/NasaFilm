@@ -34,10 +34,12 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/login",
+            "/api/auth/google",
+            "/api/auth/refresh",
+            "/api/auth/logout",
 
             "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/v3/api-docs/**"
+            "/swagger-ui.html"
     };
 
     public SecurityConfig(

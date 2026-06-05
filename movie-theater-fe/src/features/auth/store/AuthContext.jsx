@@ -1,11 +1,9 @@
-import React, { createContext, useEffect, useCallback } from 'react';
+import React, { createContext, useCallback, useEffect } from 'react';
 import { authService } from '../api/authService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import tokenService from '../utils/tokenService';
 
 export const AuthContext = createContext(undefined);
-
-
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useLocalStorage('auth_user', null);
@@ -30,7 +28,6 @@ export const AuthProvider = ({ children }) => {
           setUser(null);
         }
       } catch (err) {
-        console.error('Auth initialization failed:', err);
         tokenService.clear();
         setUser(null);
       } finally {
@@ -41,56 +38,58 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, [setUser]);
 
-  const login = useCallback(
-    async (credentials) => {
-      setLoading(true);
-      setError(null);
-      console.log("[AuthContext] Bắt đầu gọi login callback cho:", credentials.email);
-      try {
-        const response = await authService.login(credentials);
-        console.log("[AuthContext] Đăng nhập thành công, thiết lập user state cho:", response.user?.email);
-        setUser(response.user);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Login failed';
-        console.error("[AuthContext] Đăng nhập callback thất bại:", errorMessage);
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setUser]
-  );
+  const login = useCallback(async (credentials) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authService.login(credentials);
+      setUser(response.user);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [setUser]);
 
-  const register = useCallback(
-    async (credentials) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await authService.register(credentials);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Registration failed';
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const loginWithGoogle = useCallback(async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authService.loginWithGoogle(payload);
+      setUser(response.user);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Google login failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [setUser]);
+
+  const register = useCallback(async (credentials) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await authService.register(credentials);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const logout = useCallback(async () => {
-    console.log("[AuthContext] Khởi động quá trình đăng xuất người dùng...");
     try {
       await authService.logout();
-    } catch (err) {
-      console.warn('[AuthContext] Lỗi xảy ra khi đăng xuất:', err);
     } finally {
       setUser(null);
       setError(null);
-      console.log("[AuthContext] Hoàn tất quá trình đăng xuất, reset user state về null.");
     }
   }, [setUser]);
 
@@ -106,6 +105,7 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated: !!user && !!token && !tokenService.isTokenExpired(token),
     login,
+    loginWithGoogle,
     register,
     logout,
     resetError,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -15,19 +15,20 @@ import { notificationService } from '../../../shared/services/notificationServic
 import './LoginPage.css';
 
 export const LoginPage = () => {
+  const googleButtonId = 'google-signin-button';
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuthContext();
+  const { login, loginWithGoogle } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     const isExpired = sessionStorage.getItem('auth_expired');
     if (isExpired === 'true') {
-      notificationService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
+      notificationService.warning('Phien dang nhap da het han. Vui long dang nhap lai.', {
         toastId: 'auth_expired_toast',
       });
-      console.warn('[Auth] Nhận thông báo phiên đăng nhập hết hạn từ sessionStorage.');
       sessionStorage.removeItem('auth_expired');
     }
   }, []);
@@ -46,6 +47,90 @@ export const LoginPage = () => {
     },
   });
 
+  const redirectAfterLogin = () => {
+    const from = location.state?.from?.pathname;
+    const storedUser = tokenService.getUser();
+    const roles = storedUser?.roles || [];
+
+    if (from) {
+      navigate(from, { replace: true });
+      return;
+    }
+
+    const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
+    navigate(isAdminOrStaff ? '/admin' : '/', { replace: true });
+  };
+
+  useEffect(() => {
+    if (!googleClientId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const initGoogle = () => {
+      if (cancelled || !window.google?.accounts?.id) {
+        return false;
+      }
+
+      const googleButtonElement = document.getElementById(googleButtonId);
+      if (!googleButtonElement) {
+        return false;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response?.credential) {
+            notificationService.error('Đăng nhập thất bại!');
+            return;
+          }
+
+          setIsLoading(true);
+          try {
+            await loginWithGoogle({ idToken: response.credential });
+            notificationService.success('Welcome to NASA FILM!');
+            redirectAfterLogin();
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Đăng nhập thất bại!';
+            notificationService.error(errorMessage);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      });
+
+      googleButtonElement.innerHTML = '';
+      window.google.accounts.id.renderButton(googleButtonElement, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        width: googleButtonElement.offsetWidth || 320,
+      });
+
+      return true;
+    };
+
+    if (initGoogle()) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (initGoogle()) {
+        window.clearInterval(intervalId);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [googleClientId, loginWithGoogle]);
+
   const handleQuickLogin = (email, password) => {
     setValue('email', email);
     setValue('password', password);
@@ -60,38 +145,14 @@ export const LoginPage = () => {
         password: data.password,
         rememberMe: data.rememberMe,
       });
-      const from = (location.state)?.from?.pathname;
 
-      // Redirect theo role sau khi đăng nhập thành công
-      const storedUser = tokenService.getUser();
-      const roles = storedUser?.roles || [];
-      const displayName = storedUser?.fullName || storedUser?.email || '';
-
-      notificationService.success("Welcome to NASA FILM!");
-      console.log(`[Auth] Đăng nhập thành công cho người dùng: ${storedUser?.email}`);
-
-      if (from) {
-        navigate(from, { replace: true });
-        return;
-      }
-
-      const isAdminOrStaff = roles.some(
-        (r) => r === 'admin' || r === 'staff'
-      );
-
-      if (isAdminOrStaff) {
-        navigate('/admin', { replace: true });
-      } else {
-        // CUSTOMER (role 'user') → về trang chủ
-        navigate('/', { replace: true });
-      }
+      notificationService.success('Welcome to NASA FILM!');
+      redirectAfterLogin();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.';
-      
+        error instanceof Error ? error.message : 'Dang nhap that bai. Vui long thu lai.';
+
       notificationService.error(errorMessage);
-      console.error(`[Auth] Đăng nhập thất bại. Lỗi: ${errorMessage}`);
-      
       setError('email', {
         message: errorMessage,
       });
@@ -101,7 +162,25 @@ export const LoginPage = () => {
   };
 
   const handleGoogleLogin = async () => {
-    console.log('Google login clicked');
+    if (!googleClientId) {
+      notificationService.error('Thieu VITE_GOOGLE_CLIENT_ID tren frontend.');
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      notificationService.error('Google SDK chua san sang.');
+      return;
+    }
+
+    const googleButtonElement = document.getElementById(googleButtonId);
+    const googleButton = googleButtonElement?.querySelector('div[role="button"], iframe');
+
+    if (googleButton instanceof HTMLElement) {
+      googleButton.click();
+      return;
+    }
+
+    notificationService.info('Nut Google chua san sang. Thu tai lai trang.');
   };
 
   return (
@@ -125,7 +204,7 @@ export const LoginPage = () => {
             <AuthInput
               {...register('password')}
               label="Password"
-              placeholder="••••••••"
+              placeholder="********"
               type="password"
               icon={<Lock size={20} />}
               error={errors.password}
@@ -165,7 +244,7 @@ export const LoginPage = () => {
           >
             {isLoading ? (
               <span className="auth-loading-spinner">
-                <div className="auth-spinner-icon"></div>
+                <div className="auth-spinner-icon" />
                 Signing in...
               </span>
             ) : (
@@ -173,9 +252,8 @@ export const LoginPage = () => {
             )}
           </motion.button>
 
-          {/* Quick Login Section */}
           <div className="auth-quick-login-section">
-            <span className="auth-quick-login-title">Quick Login (Đăng nhập nhanh)</span>
+            <span className="auth-quick-login-title">Quick Login (Dang nhap nhanh)</span>
             <div className="auth-quick-login-grid">
               <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
@@ -185,7 +263,7 @@ export const LoginPage = () => {
                 disabled={isLoading}
                 className="auth-quick-btn customer"
               >
-                Tài khoản khách
+                Tai khoan khach
               </motion.button>
               <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.02 }}
@@ -195,17 +273,18 @@ export const LoginPage = () => {
                 disabled={isLoading}
                 className="auth-quick-btn admin"
               >
-                Quản trị viên
+                Quan tri vien
               </motion.button>
             </div>
           </div>
 
           <div className="auth-divider-wrapper">
-            <div className="auth-divider-line"></div>
+            <div className="auth-divider-line" />
           </div>
 
           <SocialLoginButtons
             onGoogleLogin={handleGoogleLogin}
+            googleButtonId={googleButtonId}
             loading={isLoading}
           />
 

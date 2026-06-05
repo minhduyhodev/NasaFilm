@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
@@ -27,6 +28,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(loginRequest)));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<JwtResponse>> loginWithGoogle(
+            @Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.loginWithGoogle(googleLoginRequest)));
     }
 
     @PostMapping("/refresh")

@@ -1,11 +1,33 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+const GoogleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M21.805 12.23c0-.71-.064-1.39-.182-2.045H12v3.87h5.498a4.702 4.702 0 0 1-2.036 3.086v2.56h3.3c1.93-1.777 3.043-4.394 3.043-7.471Z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 22c2.76 0 5.074-.914 6.762-2.47l-3.3-2.56c-.915.613-2.084.975-3.462.975-2.66 0-4.914-1.797-5.72-4.213H2.87v2.64A10.2 10.2 0 0 0 12 22Z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M6.28 13.732A6.13 6.13 0 0 1 5.96 11.99c0-.606.11-1.195.32-1.742V7.608H2.87a10.19 10.19 0 0 0 0 8.765l3.41-2.64Z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 6.035c1.5 0 2.847.516 3.908 1.529l2.93-2.93C17.07 2.98 14.758 2 12 2A10.2 10.2 0 0 0 2.87 7.608l3.41 2.64C7.086 7.832 9.34 6.035 12 6.035Z"
+    />
+  </svg>
+);
+
 
 
 export const SocialLoginButtons = ({
   onGoogleLogin,
   onAppleLogin,
+  googleButtonId,
   loading = false,
 }) => {
   const showGoogle = !!onGoogleLogin;
@@ -22,27 +44,31 @@ export const SocialLoginButtons = ({
 
       <div className={`grid ${count === 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
         {showGoogle && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onGoogleLogin}
-            disabled={loading}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 w-full"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" strokeWidth="1" />
-              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="currentColor">
-                G
-              </text>
-            </svg>
-            <span>Google</span>
-          </motion.button>
+          <div className="relative space-y-3">
+            <div
+              id={googleButtonId}
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
+            />
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={onGoogleLogin}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 w-full"
+            >
+              <GoogleIcon />
+              <span>Choose Google account</span>
+            </motion.button>
+          </div>
         )}
 
         {showApple && (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            type="button"
             onClick={onAppleLogin}
             disabled={loading}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 w-full"

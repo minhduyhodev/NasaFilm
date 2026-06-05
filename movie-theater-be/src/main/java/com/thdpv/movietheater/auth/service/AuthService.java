@@ -14,18 +14,27 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
-import com.thdpv.movietheater.user.entity.User;
-import com.thdpv.movietheater.user.entity.UserRole;
-import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.security.JwtUtils;
+import com.thdpv.movietheater.user.entity.Role;
+import com.thdpv.movietheater.user.entity.User;
+import com.thdpv.movietheater.user.entity.UserRole;
+import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.RoleName;
+import com.thdpv.movietheater.user.enums.UserStatus;
+import com.thdpv.movietheater.user.repository.UserRepository;
 
 @Service
 public class AuthService {
@@ -35,21 +44,30 @@ public class AuthService {
     private final UserSessionRepository userSessionRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final RoleRepository roleRepository;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
+
+    @Value("${app.google.client-id:}")
+    private String googleClientId;
 
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtUtils jwtUtils,
             UserSessionRepository userSessionRepository,
             UserRepository userRepository,
-            UserRoleRepository userRoleRepository) {
+            UserRoleRepository userRoleRepository,
+            RoleRepository roleRepository,
+            GoogleIdTokenVerifier googleIdTokenVerifier) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userSessionRepository = userSessionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
+        this.roleRepository = roleRepository;
+        this.googleIdTokenVerifier = googleIdTokenVerifier;
     }
 
     @Transactional
@@ -67,18 +85,46 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String refreshToken = UUID.randomUUID().toString();
-        LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
-
-        UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
-        userSessionRepository.save(userSession);
-
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return new JwtResponse(accessToken, refreshToken, userDetails.getUsername(), roles, user.getId(),
-                user.getFullName());
+        return createSessionAndResponse(user, accessToken, roles);
+    }
+
+    @Transactional
+    public JwtResponse loginWithGoogle(GoogleLoginRequest googleLoginRequest) {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Google login is not configured on the server");
+        }
+
+        GoogleIdToken idToken;
+        try {
+            idToken = googleIdTokenVerifier.verify(googleLoginRequest.getIdToken());
+        } catch (Exception ex) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Google ID token is invalid");
+        }
+
+        if (idToken == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Google ID token is invalid");
+        }
+
+        Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String fullName = (String) payload.get("name");
+        String avatarUrl = (String) payload.get("picture");
+        Boolean emailVerified = payload.getEmailVerified();
+
+        if (email == null || email.isBlank() || !Boolean.TRUE.equals(emailVerified)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Google account must have a verified email");
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .map(existingUser -> updateGoogleProfile(existingUser, fullName, avatarUrl))
+                .orElseGet(() -> createGoogleUser(email, fullName, avatarUrl));
+
+        String accessToken = jwtUtils.generateToken(user.getEmail());
+        return createSessionAndResponse(user, accessToken, getRoleAuthorities(user));
     }
 
     @Transactional
@@ -103,14 +149,10 @@ public class AuthService {
         userSessionRepository.save(session);
 
         String newAccessToken = jwtUtils.generateToken(session.getUser().getEmail());
-
-        List<UserRole> userRoles = userRoleRepository.findByUserId(session.getUser().getId());
-        List<String> roles = userRoles.stream()
-                .map(ur -> "ROLE_" + ur.getRole().getName().name())
-                .toList();
+        List<String> roles = getRoleAuthorities(session.getUser());
 
         return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles,
-                session.getUser().getId(), session.getUser().getFullName());
+                session.getUser().getId(), session.getUser().getFullName(), session.getUser().getAvatarUrl());
     }
 
     @Transactional
@@ -123,5 +165,59 @@ public class AuthService {
                     });
         }
         SecurityContextHolder.clearContext();
+    }
+
+    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> roles) {
+        String refreshToken = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
+
+        UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
+        userSessionRepository.save(userSession);
+
+        return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
+                user.getFullName(), user.getAvatarUrl());
+    }
+
+    private List<String> getRoleAuthorities(User user) {
+        return userRoleRepository.findByUserId(user.getId()).stream()
+                .map(userRole -> "ROLE_" + userRole.getRole().getName().name())
+                .toList();
+    }
+
+    private User updateGoogleProfile(User user, String fullName, String avatarUrl) {
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName);
+        }
+        if (avatarUrl != null && !avatarUrl.isBlank()) {
+            user.setAvatarUrl(avatarUrl);
+        }
+        if (user.getAuthProvider() == null) {
+            user.setAuthProvider(AuthProvider.GOOGLE);
+        }
+        if (user.getStatus() == null) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
+        return userRepository.save(user);
+    }
+
+    private User createGoogleUser(String email, String fullName, String avatarUrl) {
+        User user = new User();
+        user.setEmail(email);
+        user.setFullName((fullName == null || fullName.isBlank()) ? email : fullName);
+        user.setAvatarUrl(avatarUrl);
+        user.setPassword(null);
+        user.setAuthProvider(AuthProvider.GOOGLE);
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+
+        Role defaultRole = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Default customer role not found"));
+
+        UserRole userRole = new UserRole();
+        userRole.setUser(user);
+        userRole.setRole(defaultRole);
+        userRoleRepository.save(userRole);
+
+        return user;
     }
 }

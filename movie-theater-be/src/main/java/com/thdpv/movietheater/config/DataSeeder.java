@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.thdpv.movietheater.user.entity.Role;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
+import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -108,6 +109,8 @@ public class DataSeeder implements CommandLineRunner {
             User user = existingUserOpt.get();
             user.setPassword(passwordEncoder.encode(password));
             user.setFullName(fullName);
+            user.setAuthProvider(AuthProvider.LOCAL);
+            user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
             logger.info("Updated existing {} user '{}' details (password and name) from env configuration.",
                     roleName.name(), email);
@@ -118,6 +121,7 @@ public class DataSeeder implements CommandLineRunner {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setFullName(fullName);
+        user.setAuthProvider(AuthProvider.LOCAL);
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
 

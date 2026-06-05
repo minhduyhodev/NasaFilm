@@ -12,15 +12,17 @@ public class JwtResponse {
     private List<String> roles;
     private UUID userId;
     private String fullName;
+    private String avatarUrl;
 
     public JwtResponse(String accessToken, String refreshToken, String email, List<String> roles, UUID userId,
-            String fullName) {
+            String fullName, String avatarUrl) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.email = email;
         this.roles = roles;
         this.userId = userId;
         this.fullName = fullName;
+        this.avatarUrl = avatarUrl;
     }
 
     public String getAccessToken() {
@@ -73,5 +75,13 @@ public class JwtResponse {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

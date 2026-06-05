@@ -1,23 +1,29 @@
 import axios from 'axios';
 import tokenService from '../utils/tokenService';
 
-// DEV: VITE_API_URL rỗng → baseURL = '' → Vite proxy forward /api/* → localhost:8080
-// PROD: VITE_API_URL = 'https://api.example.com' → gọi thẳng
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-/**
- * Maps BE role names (ADMIN, STAFF, CUSTOMER) to FE role types.
- * BE RoleName enum: ADMIN | STAFF | CUSTOMER
- */
-const mapBackendRoles = (roles) => {
+const mapBackendRoles = (roles = []) => {
   return roles.map((role) => {
     const normalized = role.toUpperCase();
     if (normalized === 'ADMIN' || normalized.includes('ADMIN')) return 'admin';
     if (normalized === 'STAFF' || normalized.includes('STAFF')) return 'staff';
-    // CUSTOMER → 'user'
     return 'user';
   });
 };
+
+const buildAuthResponse = (jwtData) => ({
+  user: {
+    id: jwtData.userId,
+    fullName: jwtData.fullName,
+    email: jwtData.email,
+    avatar: jwtData.avatarUrl,
+    roles: mapBackendRoles(jwtData.roles ?? []),
+  },
+  token: jwtData.accessToken,
+  tokenType: jwtData.tokenType,
+  refreshToken: jwtData.refreshToken,
+});
 
 let isRefreshing = false;
 let refreshSubscribers = [];
@@ -42,7 +48,6 @@ class AuthService {
       },
     });
 
-    // Tự động đính kèm JWT Token vào Header của mỗi request
     this.api.interceptors.request.use((config) => {
       const token = tokenService.getToken();
       if (token && config.headers) {
@@ -51,7 +56,6 @@ class AuthService {
       return config;
     });
 
-    // Axios Interceptor xử lý lỗi 401 toàn cục và tự động làm mới Access Token (Silent Refresh)
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -59,14 +63,12 @@ class AuthService {
         const requestUrl = originalRequest?.url ?? '';
         const isAuthRequest =
           requestUrl.includes('/api/auth/login') ||
+          requestUrl.includes('/api/auth/google') ||
           requestUrl.includes('/api/auth/refresh') ||
           requestUrl.includes('/api/auth/register');
 
-        // Nếu gặp lỗi 401 và không phải là request xác thực cơ bản, và chưa từng thử lại (retry)
         if (error.response?.status === 401 && !isAuthRequest && originalRequest && !originalRequest._retry) {
           if (isRefreshing) {
-            console.log("[AuthService] Đang trong quá trình làm mới token, xếp hàng đợi request:", requestUrl);
-            // Đưa request vào hàng đợi đợi lấy token mới
             return new Promise((resolve) => {
               subscribeTokenRefresh((token) => {
                 originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -77,19 +79,16 @@ class AuthService {
 
           originalRequest._retry = true;
           isRefreshing = true;
-          console.log("[AuthService] Access token hết hạn. Bắt đầu làm mới token (Silent Refresh)...");
 
           try {
             const newAccessToken = await this.refreshToken();
             isRefreshing = false;
-            console.log("[AuthService] Làm mới access token thành công.");
             onRefreshed(newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
             isRefreshing = false;
             refreshSubscribers = [];
-            console.warn("[AuthService] Làm mới token thất bại. Chuyển hướng đăng nhập. Lỗi:", refreshError.message || refreshError);
             tokenService.clear();
             sessionStorage.setItem('auth_expired', 'true');
             window.location.href = '/auth/login';
@@ -97,9 +96,7 @@ class AuthService {
           }
         }
 
-        // Nếu Refresh Token hết hạn hoặc các trường hợp 401 khác trên request không thuộc hàng đợi
         if (error.response?.status === 401 && !isAuthRequest) {
-          console.warn("[AuthService] Nhận phản hồi 401 không thể khôi phục từ:", requestUrl, ". Đang dọn dẹp session và chuyển hướng đăng nhập.");
           tokenService.clear();
           sessionStorage.setItem('auth_expired', 'true');
           window.location.href = '/auth/login';
@@ -112,31 +109,14 @@ class AuthService {
 
   async login(credentials) {
     try {
-      console.log("[AuthService] Gửi yêu cầu đăng nhập cho email:", credentials.email);
-      // BE: POST /api/auth/login → ApiResponse<JwtResponse>
       const response = await this.api.post('/api/auth/login', {
         email: credentials.email,
         password: credentials.password,
       });
 
-      // BE trả về ApiResponse: { code, message, data: { accessToken, tokenType, email, roles } }
       const jwtData = response.data.data ?? response.data;
+      const authResponse = buildAuthResponse(jwtData);
 
-      const authResponse = {
-        user: {
-          id: jwtData.userId,
-          fullName: jwtData.fullName,
-          email: jwtData.email,
-          roles: mapBackendRoles(jwtData.roles),
-        },
-        token: jwtData.accessToken,
-        tokenType: jwtData.tokenType,
-        refreshToken: jwtData.refreshToken,
-      };
-
-      console.log("[AuthService] Đăng nhập thành công, lưu thông tin phiên người dùng:", authResponse.user.email);
-
-      // Lưu trữ thông tin xác thực
       tokenService.setToken(authResponse.token);
       if (authResponse.refreshToken) {
         tokenService.setRefreshToken(authResponse.refreshToken);
@@ -149,17 +129,30 @@ class AuthService {
 
       return authResponse;
     } catch (error) {
-      console.error("[AuthService] Đăng nhập thất bại. Lỗi:", error.message || error);
+      throw this.handleError(error);
+    }
+  }
+
+  async loginWithGoogle({ idToken }) {
+    try {
+      const response = await this.api.post('/api/auth/google', { idToken });
+      const jwtData = response.data.data ?? response.data;
+      const authResponse = buildAuthResponse(jwtData);
+
+      tokenService.setToken(authResponse.token);
+      if (authResponse.refreshToken) {
+        tokenService.setRefreshToken(authResponse.refreshToken);
+      }
+      tokenService.setUser(authResponse.user);
+
+      return authResponse;
+    } catch (error) {
       throw this.handleError(error);
     }
   }
 
   async register(_) {
     throw new Error('Registration is not supported by the current backend version.');
-  }
-
-  async loginWithGoogle(_) {
-    throw new Error('Social login is not supported by the current backend version.');
   }
 
   async loginWithApple(_) {
@@ -174,9 +167,6 @@ class AuthService {
     throw new Error('Password reset is not supported by the current backend version.');
   }
 
-  /**
-   * Cấp lại Access Token từ Refresh Token hiện tại
-   */
   async refreshToken() {
     try {
       const currentRefreshToken = tokenService.getRefreshToken();
@@ -184,55 +174,37 @@ class AuthService {
         throw new Error('No refresh token available');
       }
 
-      console.log("[AuthService] Gọi API refresh token...");
-      // Gọi API trực tiếp bằng axios để tránh vòng lặp interceptor vô hạn
       const response = await axios.post(
         `${API_BASE_URL}/api/auth/refresh`,
         { refreshToken: currentRefreshToken }
       );
 
       const jwtData = response.data.data ?? response.data;
+      const authResponse = buildAuthResponse(jwtData);
 
-      // Cập nhật token và refresh token mới (Rotation)
-      tokenService.setToken(jwtData.accessToken);
-      tokenService.setRefreshToken(jwtData.refreshToken);
-      tokenService.setUser({
-        id: jwtData.userId,
-        fullName: jwtData.fullName,
-        email: jwtData.email,
-        roles: mapBackendRoles(jwtData.roles),
-      });
+      tokenService.setToken(authResponse.token);
+      tokenService.setRefreshToken(authResponse.refreshToken);
+      tokenService.setUser(authResponse.user);
 
-      return jwtData.accessToken;
+      return authResponse.token;
     } catch (error) {
-      console.error("[AuthService] Lỗi khi làm mới access token:", error.message || error);
       tokenService.clear();
       throw this.handleError(error);
     }
   }
 
-  /**
-   * Gọi API POST /api/auth/logout kèm Refresh Token để vô hiệu hóa phiên ở server,
-   * sau đó dọn dẹp sạch LocalStorage.
-   */
   async logout() {
     try {
-      console.log("[AuthService] Gọi API đăng xuất trên hệ thống...");
       const refreshToken = tokenService.getRefreshToken();
-      // BE: POST /api/auth/logout — nhận Refresh Token trong Request Body để hủy phiên
       await this.api.post('/api/auth/logout', { refreshToken });
-      console.log("[AuthService] Gọi API đăng xuất thành công.");
     } catch (error) {
-      console.warn('[AuthService] Server logout failed, clearing local session anyway:', error);
+      console.warn('Server logout failed, clearing local session anyway:', error);
     } finally {
+      window.google?.accounts?.id?.disableAutoSelect?.();
       tokenService.clear();
-      console.log("[AuthService] Đã dọn dẹp local session của người dùng.");
     }
   }
 
-  /**
-   * Phân tích nội dung lỗi trả về từ Backend
-   */
   handleError(error) {
     if (axios.isAxiosError(error)) {
       const beMessage =
@@ -246,4 +218,3 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-

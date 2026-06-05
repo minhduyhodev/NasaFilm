@@ -1,68 +1,142 @@
-import { toast } from 'react-toastify';
 import tokenService from '../../features/auth/utils/tokenService';
+
+const DEFAULT_AUTO_CLOSE = 4000;
+const toastListeners = new Set();
+const toastTimeouts = new Map();
+let activeToasts = [];
 
 const getUserId = () => {
   const user = tokenService.getUser();
   return user?.id || 'guest';
 };
 
+const emitToastChange = () => {
+  const snapshot = [...activeToasts];
+  toastListeners.forEach((listener) => listener(snapshot));
+};
+
+const clearToastTimer = (toastId) => {
+  const timeoutId = toastTimeouts.get(toastId);
+  if (timeoutId) {
+    window.clearTimeout(timeoutId);
+    toastTimeouts.delete(toastId);
+  }
+};
+
+const scheduleToastRemoval = (toastId, autoClose) => {
+  clearToastTimer(toastId);
+
+  if (autoClose === false) {
+    return;
+  }
+
+  const duration = typeof autoClose === 'number' ? autoClose : DEFAULT_AUTO_CLOSE;
+  const timeoutId = window.setTimeout(() => {
+    dismissToast(toastId);
+  }, duration);
+
+  toastTimeouts.set(toastId, timeoutId);
+};
+
+const upsertToast = (toast) => {
+  const existingIndex = activeToasts.findIndex((item) => item.id === toast.id);
+
+  if (existingIndex >= 0) {
+    activeToasts = activeToasts.map((item, index) => (
+      index === existingIndex ? { ...item, ...toast } : item
+    ));
+  } else {
+    activeToasts = [toast, ...activeToasts].slice(0, 5);
+  }
+
+  emitToastChange();
+};
+
+const showToast = (type, message, options = {}) => {
+  const toastId = options.toastId || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const toast = {
+    id: toastId,
+    type,
+    message,
+    autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
+  };
+
+  upsertToast(toast);
+  scheduleToastRemoval(toastId, toast.autoClose);
+  return toastId;
+};
+
+export const subscribeToToasts = (listener) => {
+  toastListeners.add(listener);
+  listener([...activeToasts]);
+
+  return () => {
+    toastListeners.delete(listener);
+  };
+};
+
+export const dismissToast = (toastId) => {
+  if (!toastId) {
+    activeToasts.forEach((toast) => clearToastTimer(toast.id));
+    activeToasts = [];
+    emitToastChange();
+    return;
+  }
+
+  clearToastTimer(toastId);
+  activeToasts = activeToasts.filter((toast) => toast.id !== toastId);
+  emitToastChange();
+};
+
 export const notificationService = {
-  // Toast alerts helpers
-  success: (message, options) => {
-    toast.success(message, {
-      position: 'bottom-right',
-      autoClose: 4000,
-      ...options,
-    });
-  },
+  success: (message, options) => showToast('success', message, options),
 
-  error: (message, options) => {
-    toast.error(message, {
-      position: 'bottom-right',
-      autoClose: 5000,
-      ...options,
-    });
-  },
+  error: (message, options) => showToast('error', message, {
+    autoClose: 5000,
+    ...options,
+  }),
 
-  warning: (message, options) => {
-    toast.warning(message, {
-      position: 'bottom-right',
-      autoClose: 4000,
-      ...options,
-    });
-  },
+  warning: (message, options) => showToast('warning', message, options),
 
-  info: (message, options) => {
-    toast.info(message, {
-      position: 'bottom-right',
-      autoClose: 4000,
-      ...options,
-    });
-  },
+  info: (message, options) => showToast('info', message, options),
 
-  loading: (message, options) => {
-    return toast.loading(message, {
-      position: 'bottom-right',
-      ...options,
-    });
-  },
+  loading: (message, options) => showToast('loading', message, {
+    autoClose: false,
+    ...options,
+  }),
 
-  update: (toastId, options) => {
-    toast.update(toastId, options);
+  update: (toastId, options = {}) => {
+    if (!toastId) {
+      return;
+    }
+
+    const existingToast = activeToasts.find((toast) => toast.id === toastId);
+    if (!existingToast) {
+      return;
+    }
+
+    const nextToast = {
+      ...existingToast,
+      type: options.type || existingToast.type,
+      message: options.render || options.message || existingToast.message,
+      autoClose: options.autoClose ?? existingToast.autoClose,
+    };
+
+    upsertToast(nextToast);
+    scheduleToastRemoval(toastId, nextToast.autoClose);
   },
 
   dismiss: (toastId) => {
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   },
 
-  // Persistent Bell Notifications
   getNotifications: () => {
     const userId = getUserId();
     try {
       const data = localStorage.getItem(`nasa_notifications_${userId}`);
       return data ? JSON.parse(data) : [];
     } catch (e) {
-      console.error("[NotificationService] Lỗi khi đọc notifications:", e);
+      console.error('[NotificationService] Loi khi doc notifications:', e);
       return [];
     }
   },
@@ -72,21 +146,19 @@ export const notificationService = {
     try {
       const list = notificationService.getNotifications();
       const newNotif = {
-        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         title,
         content,
-        type, // 'success' | 'error' | 'warning' | 'info'
+        type,
         timestamp: new Date().toISOString(),
         read: false,
       };
-      const updatedList = [newNotif, ...list].slice(0, 50); // Giới hạn 50 thông báo gần nhất
+      const updatedList = [newNotif, ...list].slice(0, 50);
       localStorage.setItem(`nasa_notifications_${userId}`, JSON.stringify(updatedList));
-      
-      // Phát sự kiện để Navbar nhận biết thay đổi
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
       return newNotif;
     } catch (e) {
-      console.error("[NotificationService] Lỗi khi thêm notification:", e);
+      console.error('[NotificationService] Loi khi them notification:', e);
       return null;
     }
   },
@@ -95,11 +167,11 @@ export const notificationService = {
     const userId = getUserId();
     try {
       const list = notificationService.getNotifications();
-      const updatedList = list.map(item => ({ ...item, read: true }));
+      const updatedList = list.map((item) => ({ ...item, read: true }));
       localStorage.setItem(`nasa_notifications_${userId}`, JSON.stringify(updatedList));
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error("[NotificationService] Lỗi khi cập nhật trạng thái đọc:", e);
+      console.error('[NotificationService] Loi khi cap nhat trang thai doc:', e);
     }
   },
 
@@ -109,9 +181,9 @@ export const notificationService = {
       localStorage.removeItem(`nasa_notifications_${userId}`);
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error("[NotificationService] Lỗi khi xóa toàn bộ notifications:", e);
+      console.error('[NotificationService] Loi khi xoa notifications:', e);
     }
-  }
+  },
 };
 
 export default notificationService;
