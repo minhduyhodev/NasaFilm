@@ -254,28 +254,16 @@ export const LoginPage = () => {
 
           <div className="auth-quick-login-section">
             <span className="auth-quick-login-title">Quick Login (Dang nhap nhanh)</span>
-            <div className="auth-quick-login-grid">
-              <motion.button
-                whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => handleQuickLogin('customer@example.com', '123123')}
-                disabled={isLoading}
-                className="auth-quick-btn customer"
-              >
-                Tai khoan khach
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => handleQuickLogin('admin@example.com', '123123')}
-                disabled={isLoading}
-                className="auth-quick-btn admin"
-              >
-                Quan tri vien
-              </motion.button>
-            </div>
+            <motion.button
+              whileHover={{ scale: isLoading ? 1 : 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="button"
+              onClick={() => navigate('/')}
+              disabled={isLoading}
+              className="auth-quick-btn customer w-full py-2.5"
+            >
+              Truy cập với tư cách khách
+            </motion.button>
           </div>
 
           <div className="auth-divider-wrapper">
