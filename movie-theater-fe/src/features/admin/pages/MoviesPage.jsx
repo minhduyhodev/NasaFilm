@@ -1,21 +1,22 @@
 import React from 'react';
 import { Film, Play, Calendar, Star } from 'lucide-react';
+import './MoviesPage.css';
 
 const MoviesPage = () => {
   return (
     <>
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1.5">
-          <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">Manage Movies</h1>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6e7191]">Movie Inventory & Catalog Management</p>
+      <div className="admin-header-container">
+        <div className="admin-header-info">
+          <h1 className="admin-title">Manage Movies</h1>
+          <p className="admin-subtitle">Movie Inventory & Catalog Management</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition">
+        <button className="admin-add-btn">
           <span className="material-symbols-outlined">add</span>
           Add New Movie
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="admin-stats-grid">
         {[
           {
             label: 'TOTAL MOVIES',
@@ -46,40 +47,37 @@ const MoviesPage = () => {
             Icon: Star
           }
         ].map((card) => (
-          <div
-            key={card.label}
-            className="rounded-[24px] bg-[#11121a] border border-white/5 p-6 h-[170px] relative overflow-hidden flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300 group"
-          >
+          <div key={card.label} className="admin-stat-card group">
             {/* Watermark Icon */}
             <card.Icon className="absolute -right-4 -top-4 w-24 h-24 text-white/5 group-hover:text-white/10 transition-colors duration-300" strokeWidth={1} />
 
             <div>
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191]">{card.label}</p>
+              <div className="admin-stat-card-top">
+                <p className="admin-stat-label">{card.label}</p>
                 <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
               </div>
-              <div className="mt-4 flex items-baseline gap-2">
-                <h3 className="text-4xl font-black text-white tracking-tight leading-none">{card.value}</h3>
+              <div className="admin-stat-value-group">
+                <h3 className="admin-stat-value">{card.value}</h3>
                 {card.trend && (
-                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-0.5">
-                    {card.trend} <span className="text-[10px]">↑</span>
+                  <span className="admin-stat-trend">
+                    {card.trend} <span className="admin-stat-trend-arrow">↑</span>
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="mt-auto w-full">
+            <div className="admin-stat-footer">
               {card.hasProgress ? (
                 <div className="space-y-2">
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#ccbba3] rounded-full" style={{ width: card.progressValue }} />
+                  <div className="admin-progress-bg">
+                    <div className="admin-progress-fill" style={{ width: card.progressValue }} />
                   </div>
-                  <p className="text-[11px] text-[#6e7191] font-medium">{card.sub}</p>
+                  <p className="admin-progress-label">{card.sub}</p>
                 </div>
               ) : (
-                <p className="text-xs text-[#8a8d9f] font-medium flex items-center gap-1.5">
-                  {card.hasDot && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />}
-                  {card.trend ? <span className="italic text-[#6e7191]">{card.sub}</span> : card.sub}
+                <p className="admin-stat-desc">
+                  {card.hasDot && <span className="admin-stat-desc-dot" />}
+                  {card.trend ? <span className="admin-stat-desc-italic">{card.sub}</span> : card.sub}
                 </p>
               )}
             </div>
@@ -87,22 +85,22 @@ const MoviesPage = () => {
         ))}
       </div>
 
-      <div className="rounded-[32px] bg-[#101118] border border-white/10 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-          <div className="relative w-full lg:max-w-xl">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-            <input className="w-full rounded-full bg-[#0f1117] py-3 pl-14 pr-4 text-white placeholder:text-on-surface-variant border border-white/10 focus:outline-none focus:ring-2 focus:ring-error/30" placeholder="Filter by title, genre, or director..." />
+      <div className="admin-table-card">
+        <div className="admin-table-controls">
+          <div className="admin-search-wrapper">
+            <span className="admin-search-icon">search</span>
+            <input className="admin-search-input" placeholder="Filter by title, genre, or director..." />
           </div>
-          <div className="flex gap-3">
-            <button className="rounded-full border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-on-surface-variant">Filters</button>
-            <button className="rounded-full border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-on-surface-variant">Export CSV</button>
+          <div className="admin-action-group">
+            <button className="admin-action-btn">Filters</button>
+            <button className="admin-action-btn">Export CSV</button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-separate border-spacing-y-3 text-sm">
+        <div className="admin-table-container">
+          <table className="admin-table">
             <thead>
-              <tr className="text-on-surface-variant text-xs uppercase tracking-[0.2em]">
+              <tr className="admin-table-thead-tr">
                 <th className="pb-3">Movie</th>
                 <th className="pb-3">Genre</th>
                 <th className="pb-3">Release Date</th>
@@ -117,19 +115,19 @@ const MoviesPage = () => {
                 { title: 'The Attic Watcher', genre: 'Horror', date: 'Oct 31, 2024', status: 'Archived' },
                 { title: 'Midnight Heist', genre: 'Action / Crime', date: 'Jan 15, 2025', status: 'Live' },
               ].map((row) => (
-                <tr key={row.title} className="bg-[#0d0f16] rounded-[24px]">
-                  <td className="py-4 pr-6">
-                    <div className="font-semibold text-white">{row.title}</div>
-                    <div className="text-on-surface-variant text-xs mt-1">By studio cinema</div>
+                <tr key={row.title} className="admin-table-tr">
+                  <td className="admin-table-td-name">
+                    <div className="admin-table-name">{row.title}</div>
+                    <div className="admin-table-desc">By studio cinema</div>
                   </td>
-                  <td className="py-4 pr-6 text-on-surface-variant">{row.genre}</td>
-                  <td className="py-4 pr-6 text-on-surface-variant">{row.date}</td>
+                  <td className="admin-table-td-genre">{row.genre}</td>
+                  <td className="admin-table-td-date">{row.date}</td>
                   <td className="py-4 pr-6">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs ${row.status === 'Live' ? 'bg-emerald-500/10 text-emerald-300' : row.status === 'Draft' ? 'bg-yellow-500/10 text-yellow-300' : 'bg-slate-600/10 text-slate-300'}`}>
+                    <span className={row.status === 'Live' ? 'admin-badge-live' : row.status === 'Draft' ? 'admin-badge-draft' : 'admin-badge-archived'}>
                       {row.status}
                     </span>
                   </td>
-                  <td className="py-4 pr-6 text-on-surface-variant">Edit · Delete</td>
+                  <td className="admin-table-actions-td">Edit · Delete</td>
                 </tr>
               ))}
             </tbody>

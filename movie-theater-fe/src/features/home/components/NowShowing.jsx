@@ -171,7 +171,7 @@ const NowShowing = () => {
   return (
     <section className="relative">
       <div className="mb-6 flex items-center justify-center">
-        <h2 className="text-3xl font-black text-white md:text-4xl text-center">PHIM ĐANG CHIẾU</h2>
+        <h2 className="text-3xl font-black text-white md:text-4xl text-center">PHIM ĐANG CHIẾU </h2>
       </div>
 
       {/* arrows positioned outside scroller (borderless, transparent, no focus ring/background circles) */}
