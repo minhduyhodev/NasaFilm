@@ -1,7 +1,7 @@
 import React from 'react';
-import { Star } from 'lucide-react';
+import { Star, Tag, Clock, Globe, MessageSquare } from 'lucide-react';
 
-const MovieCard = ({ title, genre, rating, poster, duration, format }) => {
+const MovieCard = ({ title, genre, rating, poster, duration, format, hoverDetails }) => {
   // Format badge color mappings matching mockup styles
   const getFormatBadgeStyle = (fmt) => {
     const f = fmt?.toUpperCase() || '';
@@ -18,7 +18,7 @@ const MovieCard = ({ title, genre, rating, poster, duration, format }) => {
       <img
         src={poster}
         alt={title}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
       />
 
       {/* Dark gradient overlay */}
@@ -49,6 +49,41 @@ const MovieCard = ({ title, genre, rating, poster, duration, format }) => {
           {genre} {duration && `• ${duration}`}
         </p>
       </div>
+
+      {/* Hover Details Overlay */}
+      {hoverDetails && (
+        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-30 flex flex-col justify-center p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+          <h4 className="text-lg font-black text-white uppercase tracking-wide mb-6">
+            {hoverDetails.fullTitle || title}
+          </h4>
+          <div className="flex flex-col gap-4">
+            {hoverDetails.genre && (
+              <div className="flex items-center gap-3 text-sm font-bold text-gray-200">
+                <Tag className="h-5 w-5 text-yellow-400" />
+                <span>{hoverDetails.genre}</span>
+              </div>
+            )}
+            {hoverDetails.duration && (
+              <div className="flex items-center gap-3 text-sm font-bold text-gray-200">
+                <Clock className="h-5 w-5 text-yellow-400" />
+                <span>{hoverDetails.duration}</span>
+              </div>
+            )}
+            {hoverDetails.country && (
+              <div className="flex items-center gap-3 text-sm font-bold text-gray-200">
+                <Globe className="h-5 w-5 text-yellow-400" />
+                <span>{hoverDetails.country}</span>
+              </div>
+            )}
+            {hoverDetails.language && (
+              <div className="flex items-center gap-3 text-sm font-bold text-gray-200">
+                <MessageSquare className="h-5 w-5 text-yellow-400" />
+                <span>{hoverDetails.language}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -108,14 +108,14 @@ export const LoginPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="The most immersive cinema experience ever crafted for the digital age."
+      heroDescription="The most immersive cinema experience ever crafted for the digital age. Mission-critical quality, delivered directly to your home observatory."
     >
-      <AuthCard title="Welcome Back" subtitle="Sign in to your premier account">
+      <AuthCard title="Welcome Back">
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <AuthInput
             {...register('email')}
             label="Email"
-            placeholder="name@example.com"
+            placeholder="explorer@nasafilm.com"
             type="email"
             icon={<Mail size={20} />}
             error={errors.email}

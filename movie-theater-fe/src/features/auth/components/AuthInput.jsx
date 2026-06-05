@@ -39,13 +39,13 @@ export const AuthInput = React.forwardRef(
             initial={{ opacity: 0 }}
             animate={{ opacity: isFocused ? 1 : 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-transparent rounded-lg blur-sm pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent rounded-lg blur-sm pointer-events-none"
           ></motion.div>
 
           {/* Input container */}
           <div className="relative flex items-center">
             {icon && (
-              <div className="absolute left-4 text-gray-400 group-focus-within:text-red-500 transition-colors">
+              <div className="absolute left-4 text-gray-400 group-focus-within:text-blue-400 transition-colors">
                 {icon}
               </div>
             )}
@@ -56,7 +56,7 @@ export const AuthInput = React.forwardRef(
               placeholder={placeholder}
               className={`w-full px-4 ${icon ? 'pl-12' : ''} ${
                 showPasswordToggle ? 'pr-12' : ''
-              } py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-all duration-200 ${
+              } py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 ${
                 error ? 'border-red-500/50' : ''
               } ${className}`}
               onFocus={() => setIsFocused(true)}
@@ -68,7 +68,7 @@ export const AuthInput = React.forwardRef(
               <button
                 type="button"
                 onClick={onPasswordToggle}
-                className="absolute right-4 text-gray-400 hover:text-red-500 transition-colors"
+                className="absolute right-4 text-gray-400 hover:text-blue-400 transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}

@@ -1,0 +1,151 @@
+.dashboard-header-container {
+  @apply flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between;
+}
+
+.dashboard-header-info {
+  @apply space-y-1.5;
+}
+
+.dashboard-title {
+  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
+}
+
+.dashboard-subtitle {
+  @apply text-xs font-bold uppercase tracking-[0.2em] text-[#6e7191];
+}
+
+.dashboard-action-btn {
+  @apply inline-flex items-center gap-2 rounded-full bg-error px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(220,38,38,0.24)] hover:bg-[#d12c2c] transition;
+}
+
+.dashboard-stats-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6;
+}
+
+.dashboard-stat-card {
+  @apply rounded-[20px] bg-[#11121a] border border-white/5 p-6 flex flex-col justify-between h-[140px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300;
+}
+
+.dashboard-stat-card-top {
+  @apply flex items-center justify-between;
+}
+
+.dashboard-stat-label {
+  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191];
+}
+
+.dashboard-stat-icon {
+  @apply text-[#6e7191] text-[20px];
+}
+
+.dashboard-stat-value {
+  @apply text-3xl font-bold text-white tracking-tight leading-none;
+}
+
+.dashboard-stat-badge {
+  @apply text-xs text-[#6e7191] mt-2 font-medium;
+}
+
+.dashboard-layout-grid {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.dashboard-main-chart-card {
+  @apply lg:col-span-2 rounded-[32px] bg-[#101118] border border-white/10 p-8 shadow-[0_20px_80px_rgba(0,0,0,0.35)];
+}
+
+.dashboard-chart-header {
+  @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6;
+}
+
+.dashboard-chart-title {
+  @apply text-xl font-bold text-white;
+}
+
+.dashboard-chart-subtitle {
+  @apply text-sm font-medium text-[#8a8d9f];
+}
+
+.dashboard-chart-actions {
+  @apply flex gap-3;
+}
+
+.dashboard-chart-btn-outline {
+  @apply px-4 py-2 rounded-full bg-[#11131b] text-[#8a8d9f] text-xs font-semibold border border-white/10;
+}
+
+.dashboard-chart-btn-filled {
+  @apply px-4 py-2 rounded-full bg-error text-white text-xs font-semibold;
+}
+
+.dashboard-chart-wrapper {
+  @apply flex-1 w-full relative rounded-[32px] bg-[#0b0b0f] p-6 h-72;
+}
+
+.dashboard-chart-axis {
+  @apply flex justify-between text-[10px] font-bold text-[#6e7191] uppercase tracking-[0.2em] mt-4 px-2;
+}
+
+.dashboard-occupancy-card {
+  @apply rounded-[32px] bg-[#101118] border border-white/10 p-8 shadow-[0_20px_80px_rgba(0,0,0,0.35)];
+}
+
+.dashboard-occupancy-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+.dashboard-occupancy-title {
+  @apply text-xl font-bold text-white;
+}
+
+.dashboard-occupancy-subtitle {
+  @apply text-sm font-medium text-[#8a8d9f];
+}
+
+.dashboard-occupancy-list {
+  @apply space-y-6 flex-1;
+}
+
+.dashboard-occupancy-item {
+  @apply space-y-2;
+}
+
+.dashboard-occupancy-row {
+  @apply flex justify-between text-sm font-semibold;
+}
+
+.dashboard-occupancy-label {
+  @apply text-white;
+}
+
+.dashboard-occupancy-val-danger {
+  @apply text-error;
+}
+
+.dashboard-occupancy-val-muted {
+  @apply text-[#8a8d9f];
+}
+
+.dashboard-occupancy-val-warning {
+  @apply text-amber-400;
+}
+
+.dashboard-progress-bg {
+  @apply w-full bg-white/5 rounded-full h-2 overflow-hidden;
+}
+
+.dashboard-progress-fill-danger {
+  @apply bg-error h-full rounded-full;
+}
+
+.dashboard-progress-fill-muted {
+  @apply bg-[#6b7280] h-full rounded-full;
+}
+
+.dashboard-progress-fill-warning {
+  @apply bg-amber-400 h-full rounded-full;
+}
+
+.dashboard-occupancy-btn {
+  @apply w-full mt-6 py-3 rounded-full bg-[#11131b] text-[#8a8d9f] border border-white/10 hover:bg-white/5 transition-colors;
+}
