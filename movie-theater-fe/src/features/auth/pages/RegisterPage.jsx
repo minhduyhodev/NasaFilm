@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
@@ -19,6 +19,14 @@ export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // 2-step verification state
+  const [step, setStep] = useState(1); // 1: Info Form, 2: OTP Code
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [otpValues, setOtpValues] = useState(Array(6).fill(''));
+  const [otpError, setOtpError] = useState('');
+  const [timer, setTimer] = useState(0);
+  const otpRefs = useRef([]);
+
   const {
     register,
     handleSubmit,
@@ -31,22 +39,31 @@ export const RegisterPage = () => {
 
   const password = watch('password');
 
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    let interval = null;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
       await authService.register({
         fullName: data.fullName,
         email: data.email,
-        phoneNumber: data.phoneNumber,
         password: data.password,
-        confirmPassword: data.confirmPassword,
-        agreeToTerms: data.agreeToTerms,
       });
 
-      // Show success message and redirect to login
-      navigate('/auth/login', {
-        state: { message: 'Registration successful! Please log in.' },
-      });
+      setRegisteredEmail(data.email);
+      setStep(2);
+      setTimer(60);
+      setOtpValues(Array(6).fill(''));
+      setOtpError('');
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -60,8 +77,79 @@ export const RegisterPage = () => {
     }
   };
 
+  const handleOtpChange = (index, value) => {
+    // Only allow single digit
+    const cleaned = value.replace(/[^0-9]/g, '');
+    if (cleaned === '' && value !== '') return;
+
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = cleaned;
+    setOtpValues(newOtpValues);
+    setOtpError('');
+
+    // Auto focus next input
+    if (cleaned !== '' && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (otpValues[index] === '' && index > 0) {
+        const newOtpValues = [...otpValues];
+        newOtpValues[index - 1] = '';
+        setOtpValues(newOtpValues);
+        otpRefs.current[index - 1]?.focus();
+      } else {
+        const newOtpValues = [...otpValues];
+        newOtpValues[index] = '';
+        setOtpValues(newOtpValues);
+      }
+      setOtpError('');
+    }
+  };
+
+  const onVerifyOtpSubmit = async (e) => {
+    e.preventDefault();
+    const code = otpValues.join('');
+    if (code.length < 6) {
+      setOtpError('Vui lòng nhập đầy đủ mã xác thực 6 chữ số.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authService.verifyRegister(registeredEmail, code);
+      navigate('/auth/login', {
+        state: { message: 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.' },
+      });
+    } catch (error) {
+      setOtpError(error instanceof Error ? error.message : 'Xác thực OTP thất bại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpError('');
+    setIsLoading(true);
+    try {
+      await authService.register({
+        fullName: watch('fullName'),
+        email: registeredEmail,
+        password: watch('password'),
+      });
+      setTimer(60);
+      setOtpValues(Array(6).fill(''));
+      setOtpError('');
+    } catch (error) {
+      setOtpError(error instanceof Error ? error.message : 'Gửi lại mã xác thực thất bại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
-    // Implement Google OAuth registration
     console.log('Google signup clicked');
   };
 
@@ -71,157 +159,242 @@ export const RegisterPage = () => {
       heroTitle="NASAFILM"
       heroDescription="Experience cinema like never before. Exclusive premieres, VIP lounges, and curated events."
     >
-      <AuthCard
-        title="Create Account"
-        subtitle="Join the premiere film community"
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
-          {/* Full Name Input */}
-          <AuthInput
-            {...register('fullName')}
-            label="Full Name"
-            placeholder="John Doe"
-            type="text"
-            icon={<User size={20} />}
-            error={errors.fullName}
-          />
-
-          {/* Email Input */}
-          <AuthInput
-            {...register('email')}
-            label="Email Address"
-            placeholder="name@email.com"
-            type="email"
-            icon={<Mail size={20} />}
-            error={errors.email}
-          />
-
-          {/* Phone Number Input */}
-          <AuthInput
-            {...register('phoneNumber')}
-            label="Phone Number"
-            placeholder="+1 (555) 000-0000"
-            type="tel"
-            icon={<Phone size={20} />}
-            error={errors.phoneNumber}
-          />
-
-          {/* Password Input */}
-          <AuthInput
-            {...register('password')}
-            label="Password"
-            placeholder="••••••••"
-            type="password"
-            icon={<Lock size={20} />}
-            error={errors.password}
-            showPasswordToggle={true}
-            showPassword={showPassword}
-            onPasswordToggle={() => setShowPassword(!showPassword)}
-          />
-
-          {/* Password Strength Indicator */}
-          {password && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/5 rounded-lg p-4 border border-white/10"
-            >
-              <PasswordStrength
-                password={password}
-                showRequirements={true}
-              />
-            </motion.div>
-          )}
-
-          {/* Confirm Password Input */}
-          <AuthInput
-            {...register('confirmPassword')}
-            label="Confirm Password"
-            placeholder="••••••••"
-            type="password"
-            icon={<Lock size={20} />}
-            error={errors.confirmPassword}
-            showPasswordToggle={true}
-            showPassword={showConfirmPassword}
-            onPasswordToggle={() =>
-              setShowConfirmPassword(!showConfirmPassword)
-            }
-          />
-
-          {/* Terms Agreement */}
-          <motion.label
-            whileHover={{ scale: 1.02 }}
-            className="auth-terms-label group"
-          >
-            <input
-              type="checkbox"
-              {...register('agreeToTerms')}
-              className="auth-terms-checkbox"
+      {step === 1 ? (
+        <AuthCard
+          title="Create Account"
+          subtitle="Join the premiere film community"
+        >
+          <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+            {/* Full Name Input */}
+            <AuthInput
+              {...register('fullName')}
+              label="Full Name"
+              placeholder="John Doe"
+              type="text"
+              icon={<User size={20} />}
+              error={errors.fullName}
             />
-            <span className="auth-terms-text">
-              I agree to the{' '}
-              <a href="#" className="auth-terms-link">
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="auth-terms-link">
-                Privacy Policy
-              </a>
-            </span>
-          </motion.label>
 
-          {errors.agreeToTerms && (
-            <motion.p
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="auth-error-msg"
-            >
-              <span className="auth-error-dot"></span>
-              {errors.agreeToTerms.message}
-            </motion.p>
-          )}
+            {/* Email Input */}
+            <AuthInput
+              {...register('email')}
+              label="Email Address"
+              placeholder="name@email.com"
+              type="email"
+              icon={<Mail size={20} />}
+              error={errors.email}
+            />
 
-          {/* Create Account Button */}
-          <motion.button
-            whileHover={{ scale: isLoading ? 1 : 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={isLoading}
-            className="auth-submit-btn"
-          >
-            {isLoading ? (
-              <span className="auth-loading-spinner">
-                <div className="auth-spinner-icon"></div>
-                Creating Account...
-              </span>
-            ) : (
-              'Create Account'
+            {/* Phone Number Input */}
+            <AuthInput
+              {...register('phoneNumber')}
+              label="Phone Number (Optional)"
+              placeholder="+1 (555) 000-0000"
+              type="tel"
+              icon={<Phone size={20} />}
+              error={errors.phoneNumber}
+            />
+
+            {/* Password Input */}
+            <AuthInput
+              {...register('password')}
+              label="Password"
+              placeholder="••••••••"
+              type="password"
+              icon={<Lock size={20} />}
+              error={errors.password}
+              showPasswordToggle={true}
+              showPassword={showPassword}
+              onPasswordToggle={() => setShowPassword(!showPassword)}
+            />
+
+            {/* Password Strength Indicator */}
+            {password && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/5 rounded-lg p-4 border border-white/10"
+              >
+                <PasswordStrength
+                  password={password}
+                  showRequirements={true}
+                />
+              </motion.div>
             )}
-          </motion.button>
 
-          {/* Divider */}
-          <div className="auth-divider-wrapper">
-            <div className="auth-divider-line"></div>
-          </div>
+            {/* Confirm Password Input */}
+            <AuthInput
+              {...register('confirmPassword')}
+              label="Confirm Password"
+              placeholder="••••••••"
+              type="password"
+              icon={<Lock size={20} />}
+              error={errors.confirmPassword}
+              showPasswordToggle={true}
+              showPassword={showConfirmPassword}
+              onPasswordToggle={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            />
 
-          {/* Social Login */}
-          <SocialLoginButtons
-            onGoogleLogin={handleGoogleLogin}
-            loading={isLoading}
-          />
-
-          {/* Sign In Link */}
-          <div className="auth-footer">
-            <span className="auth-footer-text">Already have an account? </span>
-            <Link
-              to="/auth/login"
-              className="auth-footer-link"
+            {/* Terms Agreement */}
+            <motion.label
+              whileHover={{ scale: 1.02 }}
+              className="auth-terms-label group"
             >
-              Sign In
-            </Link>
-          </div>
-        </form>
-      </AuthCard>
+              <input
+                type="checkbox"
+                {...register('agreeToTerms')}
+                className="auth-terms-checkbox"
+              />
+              <span className="auth-terms-text">
+                I agree to the{' '}
+                <a href="#" className="auth-terms-link">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="auth-terms-link">
+                  Privacy Policy
+                </a>
+              </span>
+            </motion.label>
+
+            {errors.agreeToTerms && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="auth-error-msg"
+              >
+                <span className="auth-error-dot"></span>
+                {errors.agreeToTerms.message}
+              </motion.p>
+            )}
+
+            {/* Create Account Button */}
+            <motion.button
+              whileHover={{ scale: isLoading ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={isLoading}
+              className="auth-submit-btn"
+            >
+              {isLoading ? (
+                <span className="auth-loading-spinner">
+                  <div className="auth-spinner-icon"></div>
+                  Creating Account...
+                </span>
+              ) : (
+                'Create Account'
+              )}
+            </motion.button>
+
+            {/* Divider */}
+            <div className="auth-divider-wrapper">
+              <div className="auth-divider-line"></div>
+            </div>
+
+            {/* Social Login */}
+            <SocialLoginButtons
+              onGoogleLogin={handleGoogleLogin}
+              loading={isLoading}
+            />
+
+            {/* Sign In Link */}
+            <div className="auth-footer">
+              <span className="auth-footer-text">Already have an account? </span>
+              <Link
+                to="/auth/login"
+                className="auth-footer-link"
+              >
+                Sign In
+              </Link>
+            </div>
+          </form>
+        </AuthCard>
+      ) : (
+        <AuthCard
+          title="Verify Email"
+          subtitle={`We've sent a 6-digit OTP verification code to: ${registeredEmail}`}
+        >
+          <form onSubmit={onVerifyOtpSubmit} className="auth-form">
+            <div className="otp-inputs-container">
+              {otpValues.map((val, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (otpRefs.current[index] = el)}
+                  type="text"
+                  maxLength="1"
+                  value={val}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                  className="otp-input"
+                  disabled={isLoading}
+                  autoComplete="one-time-code"
+                />
+              ))}
+            </div>
+
+            {otpError && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="auth-error-msg justify-center text-center w-full"
+                style={{ justifyContent: 'center' }}
+              >
+                <span className="auth-error-dot"></span>
+                {otpError}
+              </motion.p>
+            )}
+
+            <motion.button
+              whileHover={{ scale: isLoading ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={isLoading}
+              className="auth-submit-btn"
+            >
+              {isLoading ? (
+                <span className="auth-loading-spinner">
+                  <div className="auth-spinner-icon"></div>
+                  Verifying OTP...
+                </span>
+              ) : (
+                'Verify & Activate Account'
+              )}
+            </motion.button>
+
+            <div className="otp-resend-container">
+              {timer > 0 ? (
+                <span className="otp-timer">Resend code in {timer}s</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={isLoading}
+                  className="otp-resend-btn"
+                >
+                  Resend OTP Code
+                </button>
+              )}
+            </div>
+
+            <div className="auth-footer">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setOtpValues(Array(6).fill(''));
+                  setOtpError('');
+                }}
+                className="auth-back-btn"
+                disabled={isLoading}
+              >
+                Back to Registration
+              </button>
+            </div>
+          </form>
+        </AuthCard>
+      )}
     </AuthLayout>
   );
 };

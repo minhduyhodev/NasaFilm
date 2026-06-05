@@ -57,3 +57,27 @@
 .auth-footer-link {
   @apply text-red-500 hover:text-red-400 font-semibold transition-colors;
 }
+
+.otp-inputs-container {
+  @apply flex justify-between gap-2 my-6;
+}
+
+.otp-input {
+  @apply w-12 h-12 text-center text-xl font-bold bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all;
+}
+
+.otp-resend-container {
+  @apply text-center mt-4 text-sm;
+}
+
+.otp-timer {
+  @apply text-gray-500;
+}
+
+.otp-resend-btn {
+  @apply text-red-500 hover:text-red-400 font-semibold bg-transparent border-0 cursor-pointer transition-colors;
+}
+
+.auth-back-btn {
+  @apply text-gray-400 hover:text-gray-300 font-medium bg-transparent border-0 cursor-pointer transition-colors;
+}

@@ -37,7 +37,8 @@ public class SecurityConfig {
             "/api/auth/google",
             "/api/auth/refresh",
             "/api/auth/logout",
-
+            "/api/auth/register",
+            "/api/auth/register/verify",
             "/swagger-ui/**",
             "/swagger-ui.html"
     };

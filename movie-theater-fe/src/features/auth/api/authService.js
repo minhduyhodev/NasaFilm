@@ -151,8 +151,33 @@ class AuthService {
     }
   }
 
-  async register(_) {
-    throw new Error('Registration is not supported by the current backend version.');
+  async register(credentials) {
+    try {
+      console.log("[AuthService] Gửi yêu cầu đăng ký cho email:", credentials.email);
+      const response = await this.api.post('/api/auth/register', {
+        email: credentials.email,
+        password: credentials.password,
+        fullName: credentials.fullName,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("[AuthService] Đăng ký thất bại. Lỗi:", error.message || error);
+      throw this.handleError(error);
+    }
+  }
+
+  async verifyRegister(email, code) {
+    try {
+      console.log("[AuthService] Gửi yêu cầu xác thực OTP đăng ký cho email:", email);
+      const response = await this.api.post('/api/auth/register/verify', {
+        email,
+        code,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("[AuthService] Xác thực OTP thất bại. Lỗi:", error.message || error);
+      throw this.handleError(error);
+    }
   }
 
   async loginWithApple(_) {

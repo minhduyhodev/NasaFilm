@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,9 +37,14 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.auth.dto.RegisterRequest;
+import com.thdpv.movietheater.auth.dto.VerifyRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
@@ -46,6 +53,8 @@ public class AuthService {
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
@@ -59,15 +68,19 @@ public class AuthService {
             UserSessionRepository userSessionRepository,
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
-            RoleRepository roleRepository,
-            GoogleIdTokenVerifier googleIdTokenVerifier) {
+            GoogleIdTokenVerifier googleIdTokenVerifier,
+            PasswordEncoder passwordEncoder,
+            EmailService emailService,
+            RoleRepository roleRepository) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userSessionRepository = userSessionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
-        this.roleRepository = roleRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.roleRepository = roleRepository;
     }
 
     @Transactional
@@ -84,6 +97,16 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
+        String refreshToken = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
+
+        UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
+        userSessionRepository.save(userSession);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -219,5 +242,69 @@ public class AuthService {
         userRoleRepository.save(userRole);
 
         return user;
+    }
+
+    @Transactional
+    public void register(RegisterRequest request) {
+        java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        User user;
+        if (existingUserOpt.isPresent()) {
+            user = existingUserOpt.get();
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+            user.setFullName(request.getFullName().trim());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        } else {
+            user = new User();
+            user.setEmail(request.getEmail().trim());
+            user.setFullName(request.getFullName().trim());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setStatus(UserStatus.PENDING_VERIFICATION);
+        }
+
+        // Generate 6-digit random code
+        String otpCode = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.setVerificationCode(otpCode);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+
+        userRepository.save(user);
+
+        // Send OTP email
+        emailService.sendOtpEmail(user.getEmail(), otpCode);
+    }
+
+    @Transactional
+    public void verifyRegister(VerifyRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
+        }
+
+        if (user.getVerificationCode() == null
+                || !user.getVerificationCode().equals(request.getCode().trim())
+                || user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID);
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+        userRepository.save(user);
+
+        // Add Customer Role
+        Role role = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
+
+        // Check if UserRole mapping already exists
+        if (userRoleRepository.findByUserId(user.getId()).stream()
+                .noneMatch(ur -> ur.getRole().getName() == RoleName.CUSTOMER)) {
+            UserRole userRole = new UserRole();
+            userRole.setUser(user);
+            userRole.setRole(role);
+            userRoleRepository.save(userRole);
+        }
     }
 }
