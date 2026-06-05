@@ -5,6 +5,8 @@ import AboutPage from '../pages/AboutPage';
 import MoviesPage from '../pages/MoviesPage';
 import CinemasPage from '../pages/CinemasPage';
 import OffersPage from '../pages/OffersPage';
+import ProfilePage from '../pages/ProfilePage';
+import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 
 export const HomeRoutes = () => {
   return (
@@ -14,6 +16,14 @@ export const HomeRoutes = () => {
       <Route path="cinemas" element={<CinemasPage />} />
       <Route path="offers" element={<OffersPage />} />
       <Route path="about" element={<AboutPage />} />
+      <Route
+        path="profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
