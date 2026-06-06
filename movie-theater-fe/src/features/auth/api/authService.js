@@ -185,12 +185,25 @@ class AuthService {
     throw new Error('Social login is not supported by the current backend version.');
   }
 
-  async forgotPassword(_) {
-    throw new Error('Password recovery is not supported by the current backend version.');
+  async forgotPassword({ email }) {
+    try {
+      const response = await this.api.post('/api/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
-  async resetPassword(_) {
-    throw new Error('Password reset is not supported by the current backend version.');
+  async resetPassword({ token, password }) {
+    try {
+      const response = await this.api.post('/api/auth/reset-password', {
+        token,
+        newPassword: password,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async refreshToken() {
