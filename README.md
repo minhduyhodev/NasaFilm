@@ -1,17 +1,46 @@
-# NasaFilm
+# 🎬 NasaFilm
 
-NasaFilm là hệ thống đặt vé xem phim, gồm 2 subproject chạy độc lập:
+NasaFilm là dự án hệ thống đặt vé xem phim, gồm frontend React/Vite và backend Spring Boot chạy tách biệt. Repo này hiện tập trung vào nền tảng xác thực người dùng, giao diện public/admin và phần khởi tạo hạ tầng cho các nghiệp vụ rạp phim.
 
-- `movie-theater-be`: backend Spring Boot, xử lý xác thực, người dùng, JWT và PostgreSQL.
-- `movie-theater-fe`: frontend React/Vite, xử lý giao diện public, auth và admin.
+## 🌌 Tổng quan
 
-## Tổng quan hiện trạng
+- `movie-theater-be`: backend Spring Boot, JWT, Spring Security, PostgreSQL
+- `movie-theater-fe`: frontend React/Vite cho public pages, auth flow và admin pages
+- `docs/`: tài liệu tổng quan, yêu cầu, thiết kế database, thiết kế API và tiến độ
 
-- Backend hiện tập trung vào auth và user foundation.
-- Frontend đã có giao diện cho public pages, auth flow và admin layout.
-- Các nghiệp vụ cinema đầy đủ như booking thật, payment thật, showtime thật vẫn chưa hoàn thiện end-to-end trong backend.
+Hiện tại dự án đã có luồng auth tương đối đầy đủ ở mức nền tảng, nhưng các nghiệp vụ lõi như booking, payment, showtime thực tế vẫn chưa hoàn thiện end-to-end.
 
-## Cấu trúc repo
+## ✨ Tính năng hiện có
+
+### ☕ Backend
+
+- Đăng nhập bằng email/password
+- Đăng nhập bằng Google
+- Refresh token
+- Logout
+- Đăng ký tài khoản
+- Xác thực đăng ký qua mã gửi email
+- Seed sẵn role `ADMIN`, `STAFF`, `CUSTOMER`, `GUEST`
+- Seed sẵn tài khoản admin, staff, customer qua biến môi trường
+- Swagger UI để kiểm tra API
+
+### ⚛️ Frontend
+
+- Trang public: home, movies, cinemas, offers, about
+- Trang auth: login, register, forgot-password, reset-password
+- Verify đăng ký sau bước register
+- Profile page cho người dùng đã đăng nhập
+- Admin pages: dashboard, movies, showtimes, cinemas, users
+- Bảo vệ route theo trạng thái đăng nhập và role
+- Tự gắn bearer token và tự refresh token qua axios interceptor
+
+## ⚠️ Giới hạn hiện tại
+
+- Frontend đã có giao diện `forgot-password` và `reset-password`, nhưng backend hiện chưa có API tương ứng.
+- Một số màn hình frontend đang dùng dữ liệu trình bày hoặc mock data.
+- Nghiệp vụ đặt vé, suất chiếu, thanh toán và quản trị rạp vẫn chưa hoàn thiện đầy đủ ở backend.
+
+## 🗂️ Cấu trúc repo
 
 ```text
 NasaFilm/
@@ -35,69 +64,41 @@ NasaFilm/
     `-- src/
 ```
 
-## Tech stack
+## 🛠️ Công nghệ sử dụng
 
-### Backend
+### ☕ Backend
 
 - Java 21
 - Spring Boot 3.5.14
-- Spring Web, Spring Security, Spring Data JPA, Validation, Mail
+- Spring Web
+- Spring Security
+- Spring Data JPA
 - PostgreSQL
-- JWT với `jjwt` 0.12.6
+- JJWT 0.12.6
+- Spring Mail
 - OpenAPI / Swagger UI
-- Maven Wrapper
 
-### Frontend
+### ⚛️ Frontend
 
 - React 19
 - Vite 8
 - React Router DOM 6
 - Axios
-- React Hook Form + Zod
+- React Hook Form
+- Zod
 - Framer Motion
-- Tailwind CSS và CSS riêng theo từng màn hình
+- Tailwind CSS
 
-## Những gì đang có trong mã nguồn
-
-### Backend
-
-- `POST /api/auth/login`
-- `POST /api/auth/google`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-- `POST /api/auth/register`
-- `POST /api/auth/register/verify`
-- Seed sẵn role `ADMIN`, `STAFF`, `CUSTOMER`
-- Seed sẵn tài khoản admin, staff, customer qua biến môi trường
-- Response wrapper chung qua `ApiResponse`
-- Swagger UI để test API
-
-### Frontend
-
-- Public pages: home, movies, cinemas, offers, about
-- Auth pages: login, register, forgot-password, reset-password
-- Verify đăng ký sau bước register
-- Lưu access token, refresh token và tự refresh qua interceptor
-- Profile page cho user đã đăng nhập
-- Admin area: dashboard, movies, showtimes, cinemas, users
-- Protected route theo trạng thái đăng nhập và role
-
-## Giới hạn hiện tại
-
-- Frontend có giao diện `forgot-password` và `reset-password`, nhưng backend hiện chưa có API tương ứng.
-- Nhiều màn hình frontend đang là UI hoặc mock data, chưa gắn đầy đủ với dữ liệu backend thật.
-- Tài liệu trong `docs/` có mô tả roadmap dài hạn, nên một số phần sẽ vượt quá phạm vi code hiện tại.
-
-## Yêu cầu môi trường
+## 📋 Yêu cầu môi trường
 
 - Java 21
 - Node.js 20+ và npm
 - PostgreSQL
-- Docker Desktop nếu muốn chạy PostgreSQL bằng `docker compose`
+- Docker Desktop nếu muốn chạy database bằng `docker compose`
 
-## Chạy backend
+## 🚀 Cài đặt và chạy dự án
 
-Từ thư mục `movie-theater-be`:
+### 1. ▶️ Chạy backend
 
 ```powershell
 cd movie-theater-be
@@ -106,14 +107,37 @@ docker compose up -d
 .\mvnw.cmd spring-boot:run
 ```
 
-Các biến quan trọng trong `.env`:
+Backend mặc định chạy tại:
+
+- `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+
+### 2. 🎨 Chạy frontend
+
+```powershell
+cd movie-theater-fe
+npm install
+npm run dev
+```
+
+Frontend mặc định chạy tại:
+
+- `http://localhost:5173`
+
+## 🔐 Biến môi trường quan trọng
+
+### ☕ Backend
+
+Tạo file `.env` trong `movie-theater-be` dựa trên `.env.example`.
+
+Ví dụ:
 
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=name_movie_theater
-DB_USERNAME=nameDB
-DB_PASSWORD=passDB
+DB_NAME=movie_theater
+DB_USERNAME=postgres
+DB_PASSWORD=sa123
 
 APP_JWT_SECRET=your_base64_encoded_jwt_secret
 APP_JWT_ACCESS_EXPIRATION=900000
@@ -122,29 +146,16 @@ APP_JWT_REFRESH_EXPIRATION=604800000
 GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
 ```
 
-Ngoài ra backend còn dùng:
+Ngoài ra backend còn dùng các nhóm biến:
 
 - `APP_SEED_ADMIN_*`
 - `APP_SEED_STAFF_*`
 - `APP_SEED_CUSTOMER_*`
 - `MAIL_*`
 
-Backend mặc định chạy tại:
+### ⚛️ Frontend
 
-- `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-
-## Chạy frontend
-
-Từ thư mục `movie-theater-fe`:
-
-```powershell
-cd movie-theater-fe
-npm install
-npm run dev
-```
-
-Tạo `.env` nếu cần, dựa trên `.env.example`:
+Tạo file `.env` trong `movie-theater-fe` nếu cần:
 
 ```env
 VITE_API_URL=http://localhost:8080
@@ -152,19 +163,22 @@ VITE_ENABLE_GOOGLE_LOGIN=true
 VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 ```
 
-Frontend mặc định chạy tại `http://localhost:5173`.
-
-## Kiểm tra nhanh
+## ✅ Kiểm tra nhanh
 
 1. Chạy backend và mở Swagger UI.
-2. Dùng tài khoản seed để gọi `POST /api/auth/login`.
-3. Chạy frontend và đăng nhập bằng tài khoản seed.
-4. Nếu dùng Google login, bảo đảm `GOOGLE_WEB_CLIENT_ID` ở backend và `VITE_GOOGLE_CLIENT_ID` ở frontend dùng cùng một Web Client.
+2. Gọi `POST /api/auth/login` bằng tài khoản seed sẵn.
+3. Chạy frontend và đăng nhập bằng tài khoản backend.
+4. Nếu dùng Google login, bảo đảm backend và frontend dùng cùng một Google Web Client ID.
 
-## Tài liệu liên quan
+## 📚 Tài liệu liên quan
 
-- `docs/00_PROJECT_OVERVIEW.md`: tổng quan và định hướng dự án
-- `docs/01_REQUIREMENTS.md`: yêu cầu nghiệp vụ
-- `docs/02_DATABASE_DESIGN.md`: thiết kế dữ liệu
-- `docs/03_API_DESIGN.md`: thiết kế API
-- `docs/04_PROGRESS.md`: tiến độ và roadmap
+- [00_PROJECT_OVERVIEW.md](/F:/NasaFilm/docs/00_PROJECT_OVERVIEW.md)
+- [01_REQUIREMENTS.md](/F:/NasaFilm/docs/01_REQUIREMENTS.md)
+- [02_DATABASE_DESIGN.md](/F:/NasaFilm/docs/02_DATABASE_DESIGN.md)
+- [03_API_DESIGN.md](/F:/NasaFilm/docs/03_API_DESIGN.md)
+- [04_PROGRESS.md](/F:/NasaFilm/docs/04_PROGRESS.md)
+
+## 📝 Ghi chú
+
+- Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
+- README này chỉ đóng vai trò hướng dẫn vào dự án; phần chi tiết nên đặt trong thư mục `docs/`.
