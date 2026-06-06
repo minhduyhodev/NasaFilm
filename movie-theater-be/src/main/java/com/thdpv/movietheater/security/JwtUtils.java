@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
@@ -75,5 +76,24 @@ public class JwtUtils {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
         return false;
+    }
+
+    public String generateResetToken(String email, String passwordHash) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("pass", passwordHash)
+                .claim("purpose", "RESET_PASSWORD")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 900000)) // 15 minutes
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public Claims parseResetToken(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

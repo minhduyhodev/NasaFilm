@@ -107,4 +107,68 @@ public class EmailService {
                 """;
         return template.replace("{{OTP_CODE}}", otpCode);
     }
+
+    @Async
+    public void sendPasswordResetEmail(String toEmail, String resetLink) {
+        String subject = "NASA FILM - Yêu cầu đặt lại mật khẩu";
+        String htmlContent = buildResetPasswordTemplate(resetLink);
+        sendHtmlEmail(toEmail, subject, htmlContent);
+    }
+
+    private String buildResetPasswordTemplate(String resetLink) {
+        String template = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0e14; color: #ffffff;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0b0e14; padding: 40px 0;">
+                        <tr>
+                            <td align="center">
+                                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #121824; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                                    <!-- Header -->
+                                    <tr>
+                                        <td style="background: linear-gradient(135deg, #e50914, #9f060f); padding: 30px; text-align: center;">
+                                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 2px;">NASA FILM</h1>
+                                            <p style="margin: 5px 0 0; color: rgba(255,255,255,0.8); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Đặt lại mật khẩu</p>
+                                        </td>
+                                    </tr>
+                                    <!-- Body -->
+                                    <tr>
+                                        <td style="padding: 40px 30px; line-height: 1.6; font-size: 15px; color: #cbd5e1;">
+                                            <p style="margin-top: 0; color: #ffffff; font-size: 18px; font-weight: 600;">Yêu cầu đặt lại mật khẩu</p>
+                                            <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn trên hệ thống rạp chiếu phim NASA FILM.</p>
+                                            <p>Vui lòng nhấn vào nút dưới đây để tiến hành đặt lại mật khẩu mới:</p>
+                                            
+                                            <!-- Button -->
+                                            <div style="text-align: center; margin: 35px 0;">
+                                                <a href="{{RESET_LINK}}" style="display: inline-block; background: linear-gradient(135deg, #e50914, #9f060f); color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 15px rgba(229,9,20,0.4);">Đặt lại mật khẩu</a>
+                                                <p style="margin: 15px 0 0; font-size: 12px; color: #94a3b8;">(Liên kết này có hiệu lực trong vòng 15 phút)</p>
+                                            </div>
+                                            
+                                            <p style="color: #94a3b8; font-size: 13px;">Nếu nút trên không hoạt động, bạn có thể sao chép đường liên kết sau và dán vào trình duyệt web của mình:</p>
+                                            <p style="word-break: break-all; font-size: 12px; color: #ff3b47;">{{RESET_LINK}}</p>
+                                            
+                                            <p>Nếu bạn không thực hiện yêu cầu này, xin vui lòng bỏ qua email này. Mật khẩu của bạn sẽ được giữ nguyên.</p>
+                                            <p style="margin-bottom: 0;">Trân trọng,<br><strong style="color: #ffffff;">Đội ngũ NASA FILM</strong></p>
+                                        </td>
+                                    </tr>
+                                    <!-- Footer -->
+                                    <tr>
+                                        <td style="background-color: #0f131f; padding: 20px 30px; text-align: center; border-top: 1px solid #1e293b;">
+                                            <p style="margin: 0; color: #64748b; font-size: 12px;">&copy; 2026 NASA FILM. All rights reserved.</p>
+                                            <p style="margin: 5px 0 0; color: #475569; font-size: 11px;">Đây là email tự động từ hệ thống. Vui lòng không trả lời trực tiếp email này.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """;
+        return template.replace("{{RESET_LINK}}", resetLink);
+    }
 }

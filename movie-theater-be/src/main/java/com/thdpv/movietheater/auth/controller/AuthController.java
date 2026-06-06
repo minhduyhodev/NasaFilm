@@ -12,7 +12,10 @@ import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
+import com.thdpv.movietheater.auth.dto.ForgotPasswordRequest;
+import com.thdpv.movietheater.auth.dto.ResetPasswordRequest;
 import com.thdpv.movietheater.auth.service.AuthService;
+import com.thdpv.movietheater.auth.service.PasswordResetService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -22,9 +25,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/login")
@@ -59,5 +64,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyRegister(@Valid @RequestBody VerifyRequest verifyRequest) {
         authService.verifyRegister(verifyRequest);
         return ResponseEntity.ok(ApiResponse.success(null, "Xac thuc dang ky thanh cong"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(null, "Ma dat lai mat khau da duoc gui qua email"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Mat khau da duoc cap nhat thanh cong"));
     }
 }

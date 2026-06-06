@@ -134,7 +134,7 @@ export const AuthLayout = ({
                         PREMIER EXPERIENCE
                       </span>
                     </motion.div>
-                    <div className="flex items-center gap-5 mb-6">
+                    <Link to="/" className="flex items-center gap-5 mb-6 hover:opacity-90 transition-opacity cursor-pointer">
                       <img
                         src={logoSrc}
                         alt="NASAFILM Logo"
@@ -143,7 +143,7 @@ export const AuthLayout = ({
                       <span className="text-4xl md:text-5xl font-black tracking-tight leading-none">
                         NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
                       </span>
-                    </div>
+                    </Link>
                     <p className="text-base text-gray-300 leading-relaxed font-medium">
                       {heroDescription}
                     </p>
