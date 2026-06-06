@@ -5,8 +5,6 @@ NasaFilm là hệ thống đặt vé xem phim, gồm 2 subproject chạy độc 
 - `movie-theater-be`: backend Spring Boot, xử lý xác thực, người dùng, JWT và PostgreSQL.
 - `movie-theater-fe`: frontend React/Vite, xử lý giao diện public, auth và admin.
 
-README này mô tả trạng thái hiện tại của repo theo mã nguồn đang có, không theo toàn bộ roadmap trong các tài liệu cũ.
-
 ## Tổng quan hiện trạng
 
 - Backend hiện tập trung vào auth và user foundation.
