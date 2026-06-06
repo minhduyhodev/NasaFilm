@@ -168,8 +168,3 @@ Frontend mặc định chạy tại `http://localhost:5173`.
 - `docs/02_DATABASE_DESIGN.md`: thiết kế dữ liệu
 - `docs/03_API_DESIGN.md`: thiết kế API
 - `docs/04_PROGRESS.md`: tiến độ và roadmap
-
-## Lưu ý
-
-- Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
-- Nếu cần tài liệu chi tiết sát code hơn, nên duy trì README riêng trong từng subproject.
