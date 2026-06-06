@@ -1,16 +1,64 @@
-# React + Vite
+# movie-theater-fe
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend của NasaFilm được xây bằng React và Vite. Project này chịu trách nhiệm cho giao diện public, luồng xác thực người dùng và khu vực admin.
 
-Currently, two official plugins are available:
+## Tech stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- Vite 8
+- React Router DOM 6
+- Axios
+- React Hook Form + Zod
+- Framer Motion
+- Tailwind CSS
 
-## React Compiler
+## Những gì đang có
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Public pages: home, movies, cinemas, offers, about
+- Auth pages: login, register, forgot-password, reset-password
+- Verify đăng ký sau khi register
+- Lưu `accessToken`, `refreshToken`, thông tin user ở client
+- Axios interceptor tự gắn bearer token và tự gọi refresh token khi cần
+- Profile page
+- Admin pages: dashboard, movies, showtimes, cinemas, users
+- Route protection cho user thường và admin/staff
 
-## Expanding the ESLint configuration
+## Những gì chưa hoàn chỉnh
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `forgot-password` và `reset-password` mới có giao diện; backend hiện chưa có API tương ứng.
+- Nhiều màn hình home/admin đang dùng dữ liệu trình bày hoặc mock data.
+- Chức năng Google login phụ thuộc vào cả biến môi trường frontend lẫn backend.
+
+## Cấu hình môi trường
+
+Tạo file `.env` từ `.env.example` nếu cần:
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_ENV=development
+VITE_ENABLE_GOOGLE_LOGIN=true
+VITE_ENABLE_APPLE_LOGIN=false
+VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
+```
+
+## Chạy project
+
+```powershell
+npm install
+npm run dev
+```
+
+Mặc định frontend chạy tại `http://localhost:5173`.
+
+## Kết nối backend
+
+Frontend hiện gọi các endpoint auth sau:
+
+- `POST /api/auth/login`
+- `POST /api/auth/google`
+- `POST /api/auth/register`
+- `POST /api/auth/register/verify`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+
+Nếu backend không chạy hoặc `VITE_API_URL` sai, các luồng auth sẽ lỗi.
