@@ -1,6 +1,6 @@
 # NasaFilm
 
-NasaFilm là repo gốc của hệ thống đặt vé xem phim, gồm 2 subproject chạy độc lập:
+NasaFilm là hệ thống đặt vé xem phim, gồm 2 subproject chạy độc lập:
 
 - `movie-theater-be`: backend Spring Boot, xử lý xác thực, người dùng, JWT và PostgreSQL.
 - `movie-theater-fe`: frontend React/Vite, xử lý giao diện public, auth và admin.
