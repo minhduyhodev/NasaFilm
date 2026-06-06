@@ -254,27 +254,26 @@ export const LoginPage = () => {
 
           <div className="auth-quick-login-section">
             <span className="auth-quick-login-title">Quick Login (Dang nhap nhanh)</span>
-            <motion.button
-              whileHover={{ scale: isLoading ? 1 : 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              type="button"
-              onClick={() => navigate('/')}
-              disabled={isLoading}
-              className="auth-quick-btn customer w-full py-2.5"
-            >
-              Truy cập với tư cách khách
-            </motion.button>
-          </div>
+            <div className="space-y-3 mt-2">
+              <motion.button
+                whileHover={{ scale: isLoading ? 1 : 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                type="button"
+                onClick={() => navigate('/')}
+                disabled={isLoading}
+                className="auth-quick-btn customer"
+              >
+                Truy cập với tư cách khách
+              </motion.button>
 
-          <div className="auth-divider-wrapper">
-            <div className="auth-divider-line" />
+              <SocialLoginButtons
+                onGoogleLogin={handleGoogleLogin}
+                googleButtonId={googleButtonId}
+                loading={isLoading}
+                isPrioritized={true}
+              />
+            </div>
           </div>
-
-          <SocialLoginButtons
-            onGoogleLogin={handleGoogleLogin}
-            googleButtonId={googleButtonId}
-            loading={isLoading}
-          />
 
           <div className="auth-footer">
             <span className="auth-footer-text">Don't have an account? </span>

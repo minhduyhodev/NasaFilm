@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { SpaceBackground } from './SpaceBackground';
+import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 
 export const AuthLayout = ({
   children,
@@ -9,6 +10,95 @@ export const AuthLayout = ({
   heroTitle = 'NASAFILM',
   heroDescription = 'The most immersive cinema experience ever crafted for the digital age. Mission-critical quality, delivered directly to your home observatory.',
 }) => {
+  const [logoSrc, setLogoSrc] = React.useState(nasaLogo);
+
+  React.useEffect(() => {
+    const img = new Image();
+    img.src = nasaLogo;
+    img.onload = () => {
+      const width = img.width;
+      const height = img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+      
+      // Flood fill from corners to find and remove white background
+      const visited = new Uint8Array(width * height);
+      const queue = [];
+      
+      const isWhite = (x, y) => {
+        const idx = (y * width + x) * 4;
+        const r = data[idx];
+        const g = data[idx+1];
+        const b = data[idx+2];
+        return r > 240 && g > 240 && b > 240;
+      };
+      
+      const corners = [
+        [0, 0],
+        [width - 1, 0],
+        [0, height - 1],
+        [width - 1, height - 1]
+      ];
+      
+      corners.forEach(([x, y]) => {
+        if (isWhite(x, y)) {
+          queue.push([x, y]);
+          visited[y * width + x] = 1;
+        }
+      });
+      
+      while (queue.length > 0) {
+        const [cx, cy] = queue.shift();
+        const idx = (cy * width + cx) * 4;
+        data[idx+3] = 0; // Transparent
+        
+        const neighbors = [
+          [cx + 1, cy],
+          [cx - 1, cy],
+          [cx, cy + 1],
+          [cx, cy - 1]
+        ];
+        
+        for (const [nx, ny] of neighbors) {
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            const vIdx = ny * width + nx;
+            if (visited[vIdx] === 0 && isWhite(nx, ny)) {
+              visited[vIdx] = 1;
+              queue.push([nx, ny]);
+            }
+          }
+        }
+      }
+      
+      // Recolor dark text in the bottom half of the image to white
+      for (let y = Math.floor(height * 0.5); y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const alpha = data[idx+3];
+          if (alpha > 0) {
+            const r = data[idx];
+            const g = data[idx+1];
+            const b = data[idx+2];
+            // NASA text / FILM outlines
+            if (r < 130 && g < 130 && b < 160) {
+              data[idx] = 255;
+              data[idx+1] = 255;
+              data[idx+2] = 255;
+            }
+          }
+        }
+      }
+      
+      ctx.putImageData(imgData, 0, 0);
+      setLogoSrc(canvas.toDataURL());
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-[#030307] text-white overflow-hidden relative flex flex-col justify-between">
       {/* Dynamic Starry Canvas Background */}
@@ -44,9 +134,16 @@ export const AuthLayout = ({
                         PREMIER EXPERIENCE
                       </span>
                     </motion.div>
-                    <h1 className="text-6xl md:text-7xl font-black tracking-tight leading-none mb-6">
-                      NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
-                    </h1>
+                    <div className="flex items-center gap-5 mb-6">
+                      <img
+                        src={logoSrc}
+                        alt="NASAFILM Logo"
+                        className="h-20 md:h-24 w-auto object-contain select-none"
+                      />
+                      <span className="text-4xl md:text-5xl font-black tracking-tight leading-none">
+                        NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+                      </span>
+                    </div>
                     <p className="text-base text-gray-300 leading-relaxed font-medium">
                       {heroDescription}
                     </p>
