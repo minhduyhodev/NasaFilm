@@ -90,28 +90,20 @@ public class AuthService {
                         loginRequest.getEmail(),
                         loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String accessToken = jwtUtils.generateToken(userDetails.getUsername());
 
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
-        }
-
-        String refreshToken = UUID.randomUUID().toString();
-        LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
-
-        UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
-        userSessionRepository.save(userSession);
+        ensureAccountIsActive(user);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String accessToken = jwtUtils.generateToken(userDetails.getUsername());
         return createSessionAndResponse(user, accessToken, roles);
     }
 
@@ -146,6 +138,8 @@ public class AuthService {
                 .map(existingUser -> updateGoogleProfile(existingUser, fullName, avatarUrl))
                 .orElseGet(() -> createGoogleUser(email, fullName, avatarUrl));
 
+        ensureAccountIsActive(user);
+
         String accessToken = jwtUtils.generateToken(user.getEmail());
         return createSessionAndResponse(user, accessToken, getRoleAuthorities(user));
     }
@@ -163,6 +157,8 @@ public class AuthService {
         if (session.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
+
+        ensureAccountIsActive(session.getUser());
 
         String newRefreshToken = UUID.randomUUID().toString();
         LocalDateTime newExpiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
@@ -199,6 +195,18 @@ public class AuthService {
 
         return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
                 user.getFullName(), user.getAvatarUrl());
+    }
+
+    private void ensureAccountIsActive(User user) {
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            return;
+        }
+
+        if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+            throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
+        throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVE);
     }
 
     private List<String> getRoleAuthorities(User user) {

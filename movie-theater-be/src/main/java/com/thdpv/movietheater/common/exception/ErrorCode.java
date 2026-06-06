@@ -33,6 +33,7 @@ public enum ErrorCode {
     EMAIL_SEND_FAILED(500, "Khong the gui email xac nhan", HttpStatus.INTERNAL_SERVER_ERROR),
     USER_ALREADY_ACTIVE(400, "Tai khoan da duoc kich hoat truoc do", HttpStatus.BAD_REQUEST),
     USER_NOT_VERIFIED(401, "Tai khoan chua duoc xac minh qua email", HttpStatus.UNAUTHORIZED),
+    ACCOUNT_NOT_ACTIVE(403, "Tai khoan khong o trang thai hoat dong", HttpStatus.FORBIDDEN),
 
     INTERNAL_ERROR(500, "Loi he thong", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_ERROR(500, "Loi co so du lieu", HttpStatus.INTERNAL_SERVER_ERROR);
