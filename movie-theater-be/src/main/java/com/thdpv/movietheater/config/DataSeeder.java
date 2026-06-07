@@ -7,6 +7,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.user.entity.Role;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
@@ -14,8 +16,6 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
-import com.thdpv.movietheater.auth.repository.UserRoleRepository;
-import com.thdpv.movietheater.config.repository.RoleRepository;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -27,7 +27,6 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Admin seed
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
 
@@ -37,7 +36,6 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.auth.seed.admin-full-name}")
     private String adminFullName;
 
-    // Staff seed
     @Value("${app.auth.seed.staff-email}")
     private String staffEmail;
 
@@ -47,7 +45,6 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.auth.seed.staff-full-name}")
     private String staffFullName;
 
-    // Customer seed
     @Value("${app.auth.seed.customer-email}")
     private String customerEmail;
 
@@ -99,20 +96,19 @@ public class DataSeeder implements CommandLineRunner {
         createUserIfNotExists(customerEmail, customerPassword, customerFullName, RoleName.CUSTOMER);
     }
 
-    /**
-     * Tạo user nếu chưa tồn tại trong DB, gán role tương ứng. Nếu đã tồn tại, cập
-     * nhật mật khẩu và họ tên mới từ env.
-     */
     private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
         java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+
         if (existingUserOpt.isPresent()) {
             User user = existingUserOpt.get();
+            // ✅ Chỉ update password + status, KHÔNG reset fullName và avatarUrl
             user.setPassword(passwordEncoder.encode(password));
-            user.setFullName(fullName);
-            user.setAuthProvider(AuthProvider.LOCAL);
             user.setStatus(UserStatus.ACTIVE);
+            if (user.getAuthProvider() == null) {
+                user.setAuthProvider(AuthProvider.LOCAL);
+            }
             userRepository.save(user);
-            logger.info("Updated existing {} user '{}' details (password and name) from env configuration.",
+            logger.info("Updated existing {} user '{}' password from env configuration.",
                     roleName.name(), email);
             return;
         }
