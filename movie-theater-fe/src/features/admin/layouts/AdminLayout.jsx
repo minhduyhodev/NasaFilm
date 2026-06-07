@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
@@ -24,7 +24,12 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#06060a] border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       <div className="px-6 pt-8 pb-4 flex items-center justify-center">
-        <img src={nasaLogo} alt="NASAFILM Logo" className="w-full max-w-[200px] h-auto object-contain rounded-xl translate-x-2" />
+        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
+          <img src={nasaLogo} alt="NASAFILM Logo" className="h-12 w-auto object-contain rounded-xl" />
+          <span className="text-2xl font-black tracking-tight leading-none text-white">
+            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+          </span>
+        </Link>
       </div>
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto no-scrollbar">
         {[

@@ -76,25 +76,6 @@ export const AuthLayout = ({
         }
       }
       
-      // Recolor dark text in the bottom half of the image to white
-      for (let y = Math.floor(height * 0.5); y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const idx = (y * width + x) * 4;
-          const alpha = data[idx+3];
-          if (alpha > 0) {
-            const r = data[idx];
-            const g = data[idx+1];
-            const b = data[idx+2];
-            // NASA text / FILM outlines
-            if (r < 130 && g < 130 && b < 160) {
-              data[idx] = 255;
-              data[idx+1] = 255;
-              data[idx+2] = 255;
-            }
-          }
-        }
-      }
-      
       ctx.putImageData(imgData, 0, 0);
       setLogoSrc(canvas.toDataURL());
     };
@@ -126,14 +107,6 @@ export const AuthLayout = ({
               >
                 <div className="space-y-6 max-w-lg">
                   <div>
-                    <motion.div
-                      className="inline-block mb-4"
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <span className="px-3 py-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 bg-white/5 rounded-full border border-white/10 uppercase">
-                        PREMIER EXPERIENCE
-                      </span>
-                    </motion.div>
                     <Link to="/" className="flex items-center gap-5 mb-6 hover:opacity-90 transition-opacity cursor-pointer">
                       <img
                         src={logoSrc}

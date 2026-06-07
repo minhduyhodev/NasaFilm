@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Menu, Search, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut } from 'lucide-react';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -25,8 +25,11 @@ const Navbar = () => {
     <header className="navbar-header">
       <div className="navbar-container">
         <div className="navbar-logo-group">
-          <Link to="/" className="navbar-logo-link">
+          <Link to="/" className="navbar-logo-link gap-3">
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
+            <span className="text-2xl font-black tracking-tight leading-none text-white">
+              NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+            </span>
           </Link>
         </div>
 
@@ -38,10 +41,7 @@ const Navbar = () => {
         </nav>
 
         <div className="navbar-actions">
-          <button className="navbar-btn-search">
-            <Search className="h-4 w-4" />
-            <span>Tìm phim, rạp</span>
-          </button>
+
 
           <button onClick={handleBookingClick} className="navbar-btn-booking">
             Đặt Vé Ngay
@@ -120,7 +120,6 @@ const NotificationBell = () => {
         className="navbar-btn-notif relative"
       >
         <Bell className="h-4 w-4" />
-        <span>Thông báo</span>
         {unreadCount > 0 && (
           <span className="navbar-notif-badge">
             {unreadCount}
@@ -287,7 +286,7 @@ const AuthControls = () => {
                 className="dropdown-menu-link"
               >
                 <User className="h-4 w-4" />
-                <span>Tài khoản</span>
+                <span>Thông tin cá nhân</span>
               </Link>
               
               <Link

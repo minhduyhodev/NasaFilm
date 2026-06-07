@@ -1,22 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { 
   User, Mail, Shield, Award, Calendar, 
   MapPin, Edit2, Check, Lock, Ticket, 
-  Gift, Bell, ShieldAlert, Key, LogOut, Camera, Star
+  Gift, Bell, ShieldAlert, Key, LogOut, Camera, Star,
+  X, Search, History
 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import './ProfilePage.css';
-
-const PRESETS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=256',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=256'
-];
 
 export const ProfilePage = () => {
   const { user, logout } = useAuthContext();
@@ -24,13 +18,31 @@ export const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result);
+        notificationService.success('Đã chọn ảnh đại diện mới. Hãy nhấn "Lưu" trong phần Thông tin khách hàng để hoàn tất!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   // Security Form States
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPass, setIsChangingPass] = useState(false);
+
+  // Purchase History Modal States
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [historySearch, setHistorySearch] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   // Derived user details
   const displayRole = user?.roles?.includes('admin') ? 'Quản trị viên' : user?.roles?.includes('staff') ? 'Nhân viên' : 'Khách hàng';
@@ -94,10 +106,7 @@ export const ProfilePage = () => {
     }, 1000);
   };
 
-  const handleSelectAvatar = (url) => {
-    setAvatarUrl(url);
-    setShowAvatarModal(false);
-  };
+
 
   // Predefined Mock Booking History
   const mockBookings = [
@@ -143,8 +152,13 @@ export const ProfilePage = () => {
     }
   ];
 
+  // Predefined Mock Transactions
+  const mockTransactions = [];
+
   return (
-    <div className="profile-wrapper">
+    <>
+      <Navbar />
+      <div className="profile-wrapper">
       <div className="profile-container">
         
         {/* Profile Header Block */}
@@ -154,7 +168,11 @@ export const ProfilePage = () => {
             
             {/* Avatar block */}
             <div className="profile-avatar-wrapper">
-              <div className="profile-avatar-frame">
+              <div 
+                onClick={() => fileInputRef.current.click()} 
+                className="profile-avatar-frame cursor-pointer hover:scale-105 transition-all duration-300"
+                title="Thay đổi ảnh đại diện"
+              >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="profile-avatar-image" />
                 ) : (
@@ -162,14 +180,17 @@ export const ProfilePage = () => {
                     {fullName.charAt(0).toUpperCase() || '?'}
                   </div>
                 )}
-                <button 
-                  onClick={() => setShowAvatarModal(true)} 
-                  className="profile-avatar-edit-btn"
-                  title="Thay đổi ảnh đại diện"
-                >
+                <div className="profile-avatar-edit-btn">
                   <Camera size={16} />
-                </button>
+                </div>
               </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+              />
             </div>
 
             {/* Profile Brief Info */}
@@ -225,7 +246,15 @@ export const ProfilePage = () => {
               className={`sidebar-menu-item ${activeTab === 'info' ? 'active' : ''}`}
             >
               <User size={18} />
-              <span>Thông tin tài khoản</span>
+              <span>Thông tin khách hàng</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('member')} 
+              className={`sidebar-menu-item ${activeTab === 'member' ? 'active' : ''}`}
+            >
+              <Award size={18} />
+              <span>Thành viên NASAFilm</span>
             </button>
             
             <button 
@@ -253,6 +282,14 @@ export const ProfilePage = () => {
               <Key size={18} />
               <span>Cài đặt bảo mật</span>
             </button>
+
+            <button 
+              onClick={() => setShowHistoryModal(true)} 
+              className="sidebar-menu-item text-slate-400 hover:text-white"
+            >
+              <History size={18} />
+              <span>Lịch sử mua hàng</span>
+            </button>
           </div>
 
           {/* Right Content Area */}
@@ -270,7 +307,7 @@ export const ProfilePage = () => {
                   className="tab-panel-body"
                 >
                   <div className="panel-header">
-                    <h2>Thông tin tài khoản</h2>
+                    <h2>Thông tin khách hàng</h2>
                     {!isEditing ? (
                       <button onClick={() => setIsEditing(true)} className="panel-edit-btn">
                         <Edit2 size={14} />
@@ -341,6 +378,235 @@ export const ProfilePage = () => {
                 </motion.div>
               )}
 
+              {/* TAB: NASAFilm Member */}
+              {activeTab === 'member' && (
+                <motion.div
+                  key="member"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.2 }}
+                  className="tab-panel-body"
+                >
+                  {/* Header Title */}
+                  <div className="panel-header mb-6">
+                    <h2 className="text-3xl font-extrabold tracking-tight text-white uppercase">ĐĂNG KÝ THÀNH VIÊN</h2>
+                  </div>
+
+                  {/* Points Progress */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center text-sm font-bold text-slate-300 mb-2">
+                      <span className="uppercase tracking-wider">Tích điểm N'VIP MEMBER</span>
+                      <span className="text-yellow-400 font-mono text-base">{loyaltyPoints}/10K</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.min((loyaltyPoints / 10000) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Horizontal line separator */}
+                  <div className="border-t border-slate-800 my-6" />
+
+                  {/* Grid layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    
+                    {/* Column 1: N'FRIEND */}
+                    <div className="flex flex-col justify-between bg-slate-950/40 border border-white/5 rounded-2xl p-6">
+                      <div>
+                        {/* NASA'FRIEND card mockup */}
+                        <div 
+                          className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-purple-500/20 shadow-2xl p-6 mb-6 flex flex-col justify-between"
+                          style={{
+                            backgroundImage: `linear-gradient(to right, rgba(88, 28, 135, 0.85), rgba(15, 23, 42, 0.65)), url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=600')`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundBlendMode: 'overlay'
+                          }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-3xl font-black italic tracking-widest text-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                              NASA'FRIEND
+                            </h4>
+                          </div>
+                          
+                          <div className="flex justify-between items-end">
+                            <div>
+                              <p className="text-[8px] uppercase tracking-widest text-slate-300 font-bold">Thẻ thành viên</p>
+                              <p className="text-sm font-semibold text-white mt-0.5">{fullName || 'Khách hàng'}</p>
+                            </div>
+                            <p className="text-xs font-mono text-slate-300">NSF-FRIEND</p>
+                          </div>
+                        </div>
+
+                        {/* Title & Info */}
+                        <h3 className="text-xl font-extrabold text-white mb-2 uppercase">NASA'FRIEND</h3>
+                        <p className="text-sm text-slate-300 mb-4 font-semibold">
+                          Được cấp lần đầu khi mua 2 vé xem phim bất kỳ tại NASAFilm.
+                        </p>
+
+                        <h4 className="text-xs font-bold text-amber-400 tracking-wider uppercase mb-3 border-b border-slate-800 pb-1">
+                          ĐƯỢC TÍCH LŨY ĐIỂM THEO GIÁ TRỊ MUA HÀNG HÓA DỊCH VỤ NHƯ SAU:
+                        </h4>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-300">
+                          <li>Được giảm <span className="text-yellow-400 font-bold">10%</span> trực tiếp trên giá trị hóa đơn bắp nước khi mua tại quầy.</li>
+                          <li>Được tặng <span className="text-yellow-400 font-bold">1 vé xem phim 2D</span> vào tuần sinh nhật (tính từ Thứ Hai đến Chủ Nhật) với số điểm tích lũy tối thiểu 500 điểm.</li>
+                          <li>Được tham gia các chương trình dành cho thành viên.</li>
+                        </ul>
+                      </div>
+
+                      {/* Member status button */}
+                      <div className="mt-8">
+                        <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
+                          BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Column 2: N'VIP */}
+                    <div className="flex flex-col justify-between bg-slate-950/40 border border-white/5 rounded-2xl p-6">
+                      <div>
+                        {/* NASA'VIP card mockup */}
+                        <div className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-yellow-500/30 shadow-[0_15px_30px_rgba(251,191,36,0.1)] bg-[#0c0a1a] p-6 mb-6 flex flex-col justify-between">
+                          {/* Inner glowing radial circular patterns like in the image */}
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.15),transparent_70%)] pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-purple-500/10 rounded-full pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border border-purple-500/20 rounded-full pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-indigo-500/15 rounded-full pointer-events-none" />
+                          
+                          {/* Center round logo badge */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c183a] to-[#0a0818] border-2 border-yellow-500 rounded-full w-24 h-24 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
+                            <span className="text-yellow-500 text-base leading-none">★</span>
+                            <span className="text-yellow-400 text-lg font-black italic tracking-tighter mt-0.5">NASA'VIP</span>
+                          </div>
+
+                          <div className="flex justify-between items-start z-10">
+                            <span className="text-[10px] text-yellow-400 font-black tracking-widest uppercase">
+                              VIP Card
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold">NS-VIP</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-end z-10">
+                            <div>
+                              <p className="text-[8px] uppercase tracking-widest text-yellow-500/80 font-bold">Thành viên VIP</p>
+                              <p className="text-sm font-semibold text-slate-200 mt-0.5">{fullName || 'Khách hàng'}</p>
+                            </div>
+                            <p className="text-xs font-mono text-yellow-400/80 font-bold">NSF-VIP</p>
+                          </div>
+                        </div>
+
+                        {/* Title & Info */}
+                        <h3 className="text-xl font-extrabold text-white mb-2 uppercase">NASA'VIP</h3>
+                        <p className="text-sm text-slate-300 mb-4 font-semibold">
+                          Được cấp cho thành viên NASA'Friend khi tích lũy được ít nhất 10.000 điểm.
+                        </p>
+
+                        <h4 className="text-xs font-bold text-yellow-500 tracking-wider uppercase mb-3 border-b border-slate-800 pb-1">
+                          ĐƯỢC TÍCH LŨY ĐIỂM THEO GIÁ TRỊ MUA HÀNG HÓA DỊCH VỤ NHƯ SAU:
+                        </h4>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-300">
+                          <li>Được giảm <span className="text-yellow-400 font-bold">15%</span> trực tiếp trên giá trị hóa đơn bắp nước khi mua tại quầy.</li>
+                          <li>Có cơ hội nhận vé tham gia Lễ Ra Mắt Phim và các chương trình khuyến mãi khác của NASAFilm.</li>
+                        </ul>
+                      </div>
+
+                      {/* Progress/Condition placeholder */}
+                      <div className="mt-8">
+                        <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                          CẦN TÍCH LŨY 10.000 ĐIỂM
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Horizontal line separator */}
+                  <div className="border-t border-slate-800 my-8" />
+
+                  {/* Table Section: MỨC THƯỞNG THẺ THÀNH VIÊN */}
+                  <div className="bg-[#0b0a1a] border border-white/5 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-red-500 via-yellow-500 to-indigo-500" />
+                    
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400 uppercase">
+                        MỨC THƯỞNG THẺ THÀNH VIÊN
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Bảng quy đổi quà tặng của NASAFilm</p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-slate-800 text-xs font-bold uppercase tracking-wider text-yellow-400 bg-white/5">
+                            <th className="py-4 px-4 flex items-center gap-2">
+                              <Ticket size={14} className="text-yellow-400" />
+                              LOẠI THẺ
+                            </th>
+                            <th className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <Award size={14} className="text-yellow-400" />
+                                MỨC ĐIỂM
+                              </div>
+                            </th>
+                            <th className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <Gift size={14} className="text-yellow-400" />
+                                MỨC THƯỞNG <span className="text-[10px] text-slate-400 font-normal lowercase">(Hoặc dùng để tích điểm)</span>
+                              </div>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm divide-y divide-slate-800/50">
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">Mua 2 vé xem phim</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">0</td>
+                            <td className="py-3 px-4 text-slate-300">Cấp thẻ NASA'FRIEND</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">1.000</td>
+                            <td className="py-3 px-4 text-slate-300">1 Coke 16 Oz</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">1.500</td>
+                            <td className="py-3 px-4 text-slate-300">1 Popcorn 32 Oz</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">2.000</td>
+                            <td className="py-3 px-4 text-slate-300">1 Coke 16 Oz + 1 Popcorn 32 Oz</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">2.500</td>
+                            <td className="py-3 px-4 text-slate-300">2 Coke 16 Oz + 1 Popcorn 32 Oz</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">3.000</td>
+                            <td className="py-3 px-4 text-slate-300">1 vé xem phim 2D</td>
+                          </tr>
+                          <tr className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-300">NASA'FRIEND</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-300">4.000</td>
+                            <td className="py-3 px-4 text-slate-300">1 vé xem phim 3D</td>
+                          </tr>
+                          <tr className="bg-yellow-500/10 hover:bg-yellow-500/15 transition-colors font-bold text-yellow-400">
+                            <td className="py-4 px-4 uppercase tracking-wider">NASA'VIP</td>
+                            <td className="py-4 px-4 font-mono text-yellow-300">10.000</td>
+                            <td className="py-4 px-4 uppercase tracking-wide text-yellow-300">CẤP THẺ NASA'VIP</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               {/* TAB 2: Tickets History */}
               {activeTab === 'tickets' && (
                 <motion.div
@@ -353,6 +619,13 @@ export const ProfilePage = () => {
                 >
                   <div className="panel-header">
                     <h2>Vé của tôi</h2>
+                    <button 
+                      onClick={() => setShowHistoryModal(true)} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 font-bold text-xs rounded-lg transition duration-200"
+                    >
+                      <History size={14} />
+                      <span>Lịch sử mua hàng</span>
+                    </button>
                   </div>
 
                   <div className="tickets-list">
@@ -508,33 +781,222 @@ export const ProfilePage = () => {
 
       </div>
 
-      {/* Avatar Presets Selection Modal */}
-      {showAvatarModal && (
-        <div className="avatar-modal-overlay">
-          <div className="avatar-modal-card">
-            <h3>Chọn ảnh đại diện của bạn</h3>
-            
-            <div className="avatar-presets-grid">
-              {PRESETS.map((url, index) => (
-                <button 
-                  key={index}
-                  onClick={() => handleSelectAvatar(url)}
-                  className="preset-avatar-btn"
-                >
-                  <img src={url} alt={`Preset ${index + 1}`} />
-                </button>
-              ))}
+
+
+      {/* Purchase History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-[#0b0f19] border border-white/10 rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-white/5">
+              <div className="flex items-center gap-2">
+                <History className="text-yellow-400" size={20} />
+                <h3 className="text-lg font-bold text-white">Lịch sử mua hàng</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowHistoryModal(false);
+                  setSelectedTransaction(null);
+                }} 
+                className="text-slate-400 hover:text-white transition duration-200"
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            <div className="avatar-modal-actions">
-              <button onClick={() => setShowAvatarModal(false)} className="avatar-modal-close">
+            {/* Spend Summary */}
+            <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-white/[0.02] border-b border-white/5 text-center">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Tổng chi tiêu</p>
+                <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500 mt-1">
+                  {mockTransactions.length === 0 ? '0đ' : mockTransactions.reduce((sum, txn) => sum + parseInt(txn.amount.replace(/\./g, '')), 0).toLocaleString('vi-VN') + 'đ'}
+                </p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Số lượng vé</p>
+                <p className="text-lg font-black text-indigo-400 mt-1">
+                  {mockTransactions.length === 0 ? '0' : mockTransactions.filter(txn => txn.type === 'ticket').length} vé
+                </p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Số lượng combo</p>
+                <p className="text-lg font-black text-purple-400 mt-1">
+                  {mockTransactions.length === 0 ? '0' : mockTransactions.filter(txn => txn.type === 'combo').length} combo
+                </p>
+              </div>
+            </div>
+
+            {/* Filter and Search controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01]">
+              {/* Filter Tabs */}
+              <div className="flex gap-2 bg-slate-900 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
+                <button 
+                  onClick={() => setHistoryFilter('all')} 
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Tất cả
+                </button>
+                <button 
+                  onClick={() => setHistoryFilter('ticket')} 
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'ticket' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Vé xem phim
+                </button>
+                <button 
+                  onClick={() => setHistoryFilter('combo')} 
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'combo' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Bắp nước
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input 
+                  type="text" 
+                  placeholder="Tìm theo mã giao dịch, tên..." 
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 no-scrollbar min-h-[300px]">
+              {selectedTransaction ? (
+                /* Detailed Transaction Receipt */
+                <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 max-w-lg mx-auto shadow-inner relative">
+                  <button 
+                    onClick={() => setSelectedTransaction(null)} 
+                    className="absolute top-4 left-4 text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    ← Quay lại
+                  </button>
+
+                  <div className="text-center border-b border-dashed border-white/10 pb-4 mb-4 mt-4">
+                    <h4 className="text-base font-bold text-white uppercase tracking-wider">Hóa đơn điện tử</h4>
+                    <p className="text-xs text-slate-400 mt-1">Mã GD: {selectedTransaction.id}</p>
+                    <p className="text-xs text-slate-400">{selectedTransaction.date}</p>
+                  </div>
+
+                  <div className="space-y-3 text-sm text-slate-300 mb-6">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Địa điểm rạp:</span>
+                      <span className="font-semibold text-white text-right max-w-[200px]">{selectedTransaction.details.cinema}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Vị trí ghế:</span>
+                      <span className="font-semibold text-white">{selectedTransaction.details.seats}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Đồ ăn thức uống:</span>
+                      <span className="font-semibold text-white text-right max-w-[200px]">{selectedTransaction.details.combo}</span>
+                    </div>
+                    <div className="border-t border-slate-800 my-2 pt-2" />
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Tiền vé:</span>
+                      <span>{selectedTransaction.details.price}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Tiền combo:</span>
+                      <span>{selectedTransaction.details.comboPrice}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Phương thức:</span>
+                      <span className="text-indigo-400 font-bold">{selectedTransaction.method}</span>
+                    </div>
+                    <div className="border-t-2 border-dashed border-white/10 my-2 pt-3" />
+                    <div className="flex justify-between text-base font-extrabold">
+                      <span className="text-white">Tổng cộng:</span>
+                      <span className="text-yellow-400">{selectedTransaction.details.total}</span>
+                    </div>
+                  </div>
+
+                  {/* Mock Barcode inside Invoice */}
+                  <div className="flex flex-col items-center justify-center pt-2 border-t border-slate-800">
+                    <div className="h-10 w-48 bg-repeating-linear-gradient(90deg,#fff,#fff 2px,#0f172a 2px,#0f172a 6px,#fff 6px,#fff 8px) opacity-50 mb-2" />
+                    <span className="text-[10px] font-mono text-slate-500">NSF-{selectedTransaction.id}</span>
+                  </div>
+                </div>
+              ) : (
+                /* Transaction List */
+                <div className="space-y-3">
+                  {mockTransactions
+                    .filter(txn => historyFilter === 'all' || txn.type === historyFilter)
+                    .filter(txn => 
+                      txn.id.toLowerCase().includes(historySearch.toLowerCase()) || 
+                      txn.itemName.toLowerCase().includes(historySearch.toLowerCase())
+                    )
+                    .map((txn) => (
+                      <div 
+                        key={txn.id} 
+                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-xl transition duration-200 gap-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${txn.type === 'ticket' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                            {txn.type === 'ticket' ? <Ticket size={18} /> : <Gift size={18} />}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white leading-snug">{txn.itemName}</h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {txn.date} | Mã GD: <span className="font-mono text-slate-300">{txn.id}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex sm:flex-col items-end justify-between w-full sm:w-auto border-t sm:border-0 border-white/5 pt-2 sm:pt-0 gap-2">
+                          <span className="text-sm font-black text-yellow-400">{txn.amount}</span>
+                          <button 
+                            onClick={() => setSelectedTransaction(txn)}
+                            className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-200"
+                          >
+                            Chi tiết hóa đơn →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Empty State */}
+                  {mockTransactions
+                    .filter(txn => historyFilter === 'all' || txn.type === historyFilter)
+                    .filter(txn => 
+                      txn.id.toLowerCase().includes(historySearch.toLowerCase()) || 
+                      txn.itemName.toLowerCase().includes(historySearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-center py-12">
+                        <History className="mx-auto text-slate-600 mb-3" size={40} />
+                        <p className="text-sm text-slate-400">Không tìm thấy giao dịch nào phù hợp</p>
+                      </div>
+                    )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-[#white/5]">
+              <button 
+                onClick={() => {
+                  setShowHistoryModal(false);
+                  setSelectedTransaction(null);
+                }} 
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-lg transition duration-200"
+              >
                 Đóng
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 };
 
