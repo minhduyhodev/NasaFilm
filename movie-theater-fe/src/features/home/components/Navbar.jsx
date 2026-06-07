@@ -5,6 +5,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import { useNotification } from '../../../shared/context/NotificationContext';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -62,52 +63,38 @@ const Navbar = () => {
 };
 
 const NotificationBell = () => {
-  const { user } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-
-  useEffect(() => {
-    // Tải notifications ban đầu
-    setNotifications(notificationService.getNotifications());
-
-    const handleUpdate = () => {
-      setNotifications(notificationService.getNotifications());
-    };
-
-    window.addEventListener('nasa-notifications-updated', handleUpdate);
-    return () => {
-      window.removeEventListener('nasa-notifications-updated', handleUpdate);
-    };
-  }, [user]);
-
+  const { notifications, markAllAsRead, clearAll } = useNotification();
+ 
   const unreadCount = notifications.filter((n) => !n.read).length;
-
+ 
   const handleToggle = () => {
     setIsOpen(!isOpen);
     if (!isOpen && unreadCount > 0) {
-      // Tự động đánh dấu đọc khi mở
-      notificationService.markAllAsRead();
+      markAllAsRead();
     }
   };
-
+ 
   const handleMarkAllRead = () => {
-    notificationService.markAllAsRead();
+    markAllAsRead();
   };
-
+ 
   const handleClearAll = () => {
-    notificationService.clearAll();
+    clearAll();
   };
 
   const formatTime = (isoString) => {
     try {
       const date = new Date(isoString);
-      const diffMs = Date.now() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'Vừa xong';
-      if (diffMins < 60) return `${diffMins} phút trước`;
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `${diffHours} giờ trước`;
-      return date.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      const dateStr = date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      return `${timeStr} - ${dateStr}`;
     } catch (e) {
       return '';
     }
