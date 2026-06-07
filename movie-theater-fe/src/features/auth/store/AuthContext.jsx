@@ -93,6 +93,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [setUser]);
 
+  const updateUser = useCallback((updatedUser) => {
+    setUser(updatedUser);
+    tokenService.setUser(updatedUser);
+  }, [setUser]);
+
   const resetError = useCallback(() => {
     setError(null);
   }, []);
@@ -108,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     register,
     logout,
+    updateUser,
     resetError,
   };
 

@@ -244,6 +244,39 @@ class AuthService {
     }
   }
 
+  async getProfile() {
+    try {
+      const response = await this.api.get('/api/user/profile');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async updateProfile(profileData) {
+    try {
+      const response = await this.api.put('/api/user/profile', profileData);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async uploadAvatar(file) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await this.api.post('/api/user/profile/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   handleError(error) {
     if (axios.isAxiosError(error)) {
       const beMessage =

@@ -161,3 +161,56 @@
 .admin-btn-delete {
   @apply text-[#8a8d9f] hover:text-red-500 transition-colors duration-300;
 }
+
+/* Modal Styling */
+.admin-modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm;
+}
+
+.admin-modal-container {
+  @apply bg-[#11121a] border border-white/10 rounded-[24px] max-w-md w-full overflow-hidden flex flex-col shadow-2xl;
+}
+
+.admin-modal-header {
+  @apply flex justify-between items-center px-6 py-4 border-b border-white/5;
+}
+
+.admin-modal-title {
+  @apply text-lg font-bold text-white uppercase tracking-wider;
+}
+
+.admin-modal-close-btn {
+  @apply text-[#6e7191] hover:text-white transition duration-200;
+}
+
+.admin-modal-body {
+  @apply p-6 space-y-5;
+}
+
+.admin-form-group {
+  @apply flex flex-col gap-2;
+}
+
+.admin-form-label {
+  @apply text-xs font-bold uppercase tracking-[0.1em] text-[#6e7191];
+}
+
+.admin-form-input-wrapper {
+  @apply relative;
+}
+
+.admin-form-select {
+  @apply w-full rounded-xl bg-[#161722] border border-white/10 px-4 py-3 text-sm text-white placeholder-[#6e7191] focus:outline-none focus:border-red-500/50 transition-all duration-300;
+}
+
+.admin-modal-footer {
+  @apply flex justify-end gap-3 px-6 py-4 border-t border-white/5 bg-[#161722]/50;
+}
+
+.admin-modal-cancel-btn {
+  @apply px-5 py-2.5 bg-[#161722] hover:bg-white/5 border border-white/5 text-[#8a8d9f] hover:text-white font-bold text-xs rounded-xl transition duration-200;
+}
+
+.admin-modal-save-btn {
+  @apply px-5 py-2.5 bg-red-600 hover:bg-[#d12c2c] text-white font-bold text-xs rounded-xl transition duration-200 flex items-center gap-2;
+}
