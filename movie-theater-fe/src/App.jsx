@@ -5,6 +5,7 @@ import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
+import { UnauthorizedPage } from './features/auth';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
@@ -32,6 +33,9 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Unauthorized page */}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
