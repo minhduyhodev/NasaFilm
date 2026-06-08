@@ -1,0 +1,218 @@
+/* Curtain Overlay Container */
+.curtain-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none; /* Tránh cản trở chuột khi đã mở */
+}
+
+/* Base style for both left and right panels */
+.curtain-panel {
+  position: absolute;
+  top: 0;
+  width: 50.5%; /* Hơi lớn hơn 50% một chút để đảm bảo không bị khe hở ở giữa */
+  height: 100%;
+  
+  /* Tạo nếp gấp rèm nhung đỏ realistic bằng 2 lớp gradient nhân (multiply) nhau */
+  background-image: 
+    repeating-linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.6) 0px,
+      rgba(0, 0, 0, 0.2) 25px,
+      rgba(255, 255, 255, 0.15) 50px,
+      rgba(0, 0, 0, 0.2) 75px,
+      rgba(0, 0, 0, 0.6) 100px
+    ),
+    linear-gradient(
+      to bottom,
+      #1b0000 0%,
+      #660000 35%,
+      #990000 65%,
+      #b22222 85%,
+      #3a0000 100%
+    );
+  background-blend-mode: multiply;
+  
+  transition: transform 1.7s cubic-bezier(0.77, 0, 0.175, 1);
+  pointer-events: auto; /* Cho phép tương tác khi đang đóng */
+}
+
+/* Left Curtain Panel */
+.curtain-panel.curtain-left {
+  left: 0;
+  transform: translateX(0);
+  box-shadow: 15px 0 50px rgba(0, 0, 0, 0.8);
+  /* Bo viền phải tạo chiều sâu nếp gấp giữa */
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Right Curtain Panel */
+.curtain-panel.curtain-right {
+  right: 0;
+  transform: translateX(0);
+  box-shadow: -15px 0 50px rgba(0, 0, 0, 0.8);
+  /* Bo viền trái tạo chiều sâu nếp gấp giữa */
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Bottom Golden Trim & Fringes (Tua rua vàng ở mép dưới) */
+.curtain-panel::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: repeating-linear-gradient(
+    to right,
+    #ffe066 0px,
+    #d4af37 4px,
+    #aa7c11 6px,
+    #d4af37 8px,
+    #ffe066 12px
+  );
+  border-top: 3px solid #ffd700;
+  box-shadow: 0 -3px 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Open States */
+.curtain-container.open .curtain-left {
+  transform: translateX(-100%);
+}
+
+.curtain-container.open .curtain-right {
+  transform: translateX(100%);
+}
+
+/* Welcome Center Sign */
+.curtain-welcome-sign {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100000;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Welcome Tagline (Small gold uppercase text) */
+.curtain-welcome-sign .welcome-tag {
+  color: #ffd700;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  margin-bottom: 0.75rem;
+  opacity: 0;
+  animation: slideInDown 0.8s ease-out forwards;
+}
+
+/* Welcome Title (Huge gold text with reflection & neon shadow) */
+.curtain-welcome-sign .welcome-title {
+  color: #ffffff;
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0;
+  background: linear-gradient(to bottom, #ffffff 30%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.5));
+  opacity: 0;
+  animation: fadeInScale 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards, glowPulse 2s infinite alternate 1.3s;
+}
+
+/* Gold Divider Line */
+.curtain-welcome-sign .welcome-divider {
+  width: 0px;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #ffd700, transparent);
+  margin-top: 1rem;
+  opacity: 0;
+  animation: expandWidth 1s ease-out 0.6s forwards;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+}
+
+/* Fade out welcome sign when opening */
+.curtain-container.open .curtain-welcome-sign {
+  opacity: 0;
+  transform: translate(-50%, -60%) scale(0.9);
+}
+
+/* Animations */
+@keyframes slideInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes expandWidth {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 240px;
+    opacity: 1;
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 5px rgba(255, 215, 0, 0.2));
+  }
+  100% {
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 35px rgba(255, 215, 0, 0.3));
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .curtain-welcome-sign .welcome-title {
+    font-size: 2.2rem;
+    letter-spacing: 0.15em;
+  }
+  .curtain-welcome-sign .welcome-tag {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+  }
+  @keyframes expandWidth {
+    0% {
+      width: 0;
+      opacity: 0;
+    }
+    100% {
+      width: 150px;
+      opacity: 1;
+    }
+  }
+}

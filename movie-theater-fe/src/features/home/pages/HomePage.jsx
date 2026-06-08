@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import TicketFilters from '../components/TicketFilters';
@@ -6,10 +6,22 @@ import NowShowing from '../components/NowShowing';
 import Upcoming from '../components/Upcoming';
 import VIPSection from '../components/VIPSection';
 import Footer from '../components/Footer';
+import CurtainEffect from '../components/CurtainEffect';
 
 const HomePage = () => {
+	const [showCurtain, setShowCurtain] = useState(false);
+
+	useEffect(() => {
+		const hasShowCurtain = sessionStorage.getItem('showCurtain') === 'true';
+		if (hasShowCurtain) {
+			setShowCurtain(true);
+			sessionStorage.removeItem('showCurtain');
+		}
+	}, []);
+
 	return (
 		<div className="bg-neutral-900 text-white min-h-screen">
+			{showCurtain && <CurtainEffect onComplete={() => setShowCurtain(false)} />}
 			<Navbar />
 
 			<main className="pt-0">

@@ -269,6 +269,7 @@ public class AuthService {
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setStatus(UserStatus.PENDING_VERIFICATION);
+            user.setAuthProvider(AuthProvider.LOCAL);
         }
 
         // Generate 6-digit random code

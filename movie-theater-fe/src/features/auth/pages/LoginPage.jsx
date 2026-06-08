@@ -57,8 +57,13 @@ export const LoginPage = () => {
       return;
     }
 
-    const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
-    navigate(isAdminOrStaff ? '/admin' : '/', { replace: true });
+   const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
+
+    const targetPath = from || (isAdminOrStaff ? '/admin' : '/');
+    if (targetPath === '/') {
+      sessionStorage.setItem('showCurtain', 'true');
+    }
+    navigate(targetPath, { replace: true });
   };
 
   useEffect(() => {

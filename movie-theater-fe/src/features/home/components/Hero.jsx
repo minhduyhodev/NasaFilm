@@ -31,7 +31,7 @@ const Hero = () => {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/20 bg-red-600/10 text-red-400 text-xs font-extrabold uppercase tracking-wider"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-            ✦ HỆ THỐNG RẠP CHIẾU PHIM HIỆN ĐẠI
+             HỆ THỐNG RẠP CHIẾU PHIM HIỆN ĐẠI
           </motion.div>
 
           {/* Heading */}
