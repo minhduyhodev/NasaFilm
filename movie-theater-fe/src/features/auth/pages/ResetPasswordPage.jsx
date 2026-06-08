@@ -93,8 +93,8 @@ export const ResetPasswordPage = () => {
   return (
     <AuthLayout showHero={false}>
       <AuthCard
-        title="Reset Password"
-        subtitle="Create a new password for your account"
+        title="Đặt Lại Mật Khẩu"
+        subtitle="Tạo mật khẩu mới cho tài khoản của bạn"
       >
         {successMessage ? (
           <motion.div
@@ -129,7 +129,7 @@ export const ResetPasswordPage = () => {
             {/* Success Message */}
             <div className="text-center space-y-2">
               <h3 className="text-lg font-semibold text-green-500">
-                Password Reset Successful!
+                Đặt lại mật khẩu thành công!
               </h3>
               <p className="text-gray-400">{successMessage}</p>
             </div>
@@ -139,7 +139,7 @@ export const ResetPasswordPage = () => {
             {/* New Password Input */}
             <AuthInput
               {...register('password')}
-              label="New Password"
+              label="Mật khẩu mới"
               placeholder="••••••••"
               type="password"
               icon={<Lock size={20} />}
@@ -166,7 +166,7 @@ export const ResetPasswordPage = () => {
             {/* Confirm Password Input */}
             <AuthInput
               {...register('confirmPassword')}
-              label="Confirm Password"
+              label="Xác nhận mật khẩu"
               placeholder="••••••••"
               type="password"
               icon={<Lock size={20} />}
@@ -185,8 +185,7 @@ export const ResetPasswordPage = () => {
               className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg"
             >
               <p className="text-sm text-red-300">
-                Your password must be at least 8 characters long and contain
-                uppercase, lowercase, numbers, and special characters.
+                Mật khẩu của bạn phải dài ít nhất 8 ký tự và chứa chữ hoa, chữ thường, chữ số cùng ký tự đặc biệt.
               </p>
             </motion.div>
 
@@ -201,10 +200,10 @@ export const ResetPasswordPage = () => {
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Resetting...
+                  Đang đặt lại...
                 </span>
               ) : (
-                'Reset Password'
+                'Đặt lại mật khẩu'
               )}
             </motion.button>
 
@@ -214,7 +213,7 @@ export const ResetPasswordPage = () => {
               className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200"
             >
               <ArrowLeft size={20} />
-              Back to Login
+              Quay lại Đăng nhập
             </Link>
           </form>
         )}

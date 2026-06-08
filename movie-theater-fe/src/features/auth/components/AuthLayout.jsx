@@ -8,7 +8,7 @@ export const AuthLayout = ({
   children,
   showHero = true,
   heroTitle = 'NASAFILM',
-  heroDescription = 'The most immersive cinema experience ever crafted for the digital age. Mission-critical quality, delivered directly to your home observatory.',
+  heroDescription = 'Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn.',
 }) => {
   const [logoSrc, setLogoSrc] = React.useState(nasaLogo);
 
@@ -129,7 +129,7 @@ export const AuthLayout = ({
 
                   {/* Features list */}
                   <div className="space-y-4 pt-4">
-                    {['Exclusive Screenings', 'VIP Amenities', 'Premium Access'].map((feature, index) => (
+                    {['Ra Mắt Phim Độc Quyền', 'Trải Nghiệm Dịch Vụ VIP', 'Đặt Vé Ưu Tiên'].map((feature, index) => (
                       <motion.div
                         key={feature}
                         initial={{ opacity: 0, x: -10 }}

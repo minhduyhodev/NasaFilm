@@ -187,9 +187,9 @@ export const LoginPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="The most immersive cinema experience ever crafted for the digital age. Mission-critical quality, delivered directly to your home observatory."
+      heroDescription="Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn."
     >
-      <AuthCard title="Welcome Back">
+      <AuthCard title="Chào Mừng Trở Lại">
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <AuthInput
             {...register('email')}
@@ -203,7 +203,7 @@ export const LoginPage = () => {
           <div className="auth-field-wrapper">
             <AuthInput
               {...register('password')}
-              label="Password"
+              label="Mật khẩu"
               placeholder="********"
               type="password"
               icon={<Lock size={20} />}
@@ -224,14 +224,14 @@ export const LoginPage = () => {
                 {...register('rememberMe')}
                 className="auth-checkbox"
               />
-              <span className="auth-checkbox-label">Remember Me</span>
+              <span className="auth-checkbox-label">Ghi nhớ đăng nhập</span>
             </motion.label>
 
             <Link
               to="/auth/forgot-password"
               className="auth-forgot-link"
             >
-              Forgot Password?
+              Quên mật khẩu?
             </Link>
           </div>
 
@@ -245,15 +245,15 @@ export const LoginPage = () => {
             {isLoading ? (
               <span className="auth-loading-spinner">
                 <div className="auth-spinner-icon" />
-                Signing in...
+                Đang đăng nhập...
               </span>
             ) : (
-              'Sign In'
+              'Đăng Nhập'
             )}
           </motion.button>
 
           <div className="auth-quick-login-section">
-            <span className="auth-quick-login-title">Quick Login (Dang nhap nhanh)</span>
+            <span className="auth-quick-login-title">Đăng nhập nhanh</span>
             <div className="space-y-3 mt-2">
               <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.01 }}
@@ -276,12 +276,12 @@ export const LoginPage = () => {
           </div>
 
           <div className="auth-footer">
-            <span className="auth-footer-text">Don't have an account? </span>
+            <span className="auth-footer-text">Chưa có tài khoản? </span>
             <Link
               to="/auth/register"
               className="auth-footer-link"
             >
-              Create Account
+              Đăng ký ngay
             </Link>
           </div>
         </form>

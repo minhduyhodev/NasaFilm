@@ -65,30 +65,30 @@ const UsersPage = () => {
 
   const cards = [
     {
-      label: 'TOTAL USERS',
+      label: 'TỔNG KHÁCH HÀNG',
       value: totalUsers,
-      sub: 'Total registered accounts',
+      sub: 'Tài khoản khách hàng đã đăng ký',
       isGreen: true,
       Icon: Users,
     },
     {
-      label: 'ACTIVE NOW',
+      label: 'ĐANG HOẠT ĐỘNG',
       value: activeUsers,
-      sub: 'Accounts in Active status',
+      sub: 'Tài khoản hoạt động bình thường',
       isGreen: true,
       Icon: Activity,
     },
     {
-      label: 'ADMIN & STAFF',
+      label: 'ADMIN & NHÂN VIÊN',
       value: staffAndAdmins,
-      sub: 'System administrators',
+      sub: 'Ban quản trị hệ thống',
       isGreen: false,
       Icon: Crown,
     },
     {
-      label: 'GOOGLE SIGN-IN',
+      label: 'LIÊN KẾT GOOGLE',
       value: googleUsers,
-      sub: 'Google OAuth accounts',
+      sub: 'Tài khoản đăng nhập nhanh',
       isGreen: false,
       Icon: User,
     },
@@ -118,10 +118,10 @@ const UsersPage = () => {
     <>
       <div className="admin-header-container">
         <div className="admin-header-info">
-          <p className="admin-subtitle">USER ACCOUNTS</p>
-          <h1 className="admin-title">Manage Customers</h1>
+          <p className="admin-subtitle">TÀI KHOẢN NGƯỜI DÙNG</p>
+          <h1 className="admin-title">Quản lý Khách hàng</h1>
           <p className="admin-description">
-            Review membership tiers, track active users, and monitor account registration activity across the full customer base.
+            Xem xét các hạng thành viên, theo dõi người dùng đang hoạt động và giám sát hoạt động đăng ký tài khoản của khách hàng.
           </p>
         </div>
       </div>
@@ -148,7 +148,7 @@ const UsersPage = () => {
             <Search className="admin-search-icon" />
             <input
               className="admin-search-input"
-              placeholder="Search by name, email, phone..."
+              placeholder="Tìm kiếm theo tên, email, số điện thoại..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -162,10 +162,10 @@ const UsersPage = () => {
               className="admin-action-btn focus:outline-none bg-[#161722] border border-white/5 rounded-xl text-sm text-[#8a8d9f]"
               style={{ appearance: 'none', paddingRight: '2rem', backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238a8d9f\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem', backgroundRepeat: 'no-repeat' }}
             >
-              <option value="all">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="all">Tất cả Trạng thái</option>
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="SUSPENDED">Bị khóa</option>
+              <option value="INACTIVE">Chưa kích hoạt</option>
             </select>
           </div>
         </div>
@@ -174,18 +174,18 @@ const UsersPage = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-              <p className="text-[#8a8d9f] text-sm font-medium">Loading user list...</p>
+              <p className="text-[#8a8d9f] text-sm font-medium">Đang tải danh sách người dùng...</p>
             </div>
           ) : filteredUsers.length > 0 ? (
             <table className="admin-table">
               <thead>
                 <tr className="admin-table-thead-tr">
-                  <th className="pb-3">USER</th>
-                  <th className="pb-3">ROLES</th>
-                  <th className="pb-3">PHONE NUMBER</th>
-                  <th className="pb-3">SCORE</th>
-                  <th className="pb-3">JOINED DATE</th>
-                  <th className="pb-3 text-right">STATUS</th>
+                  <th className="pb-3">KHÁCH HÀNG</th>
+                  <th className="pb-3">VAI TRÒ</th>
+                  <th className="pb-3">SỐ ĐIỆN THOẠI</th>
+                  <th className="pb-3">ĐIỂM TÍCH LŨY</th>
+                  <th className="pb-3">NGÀY THAM GIA</th>
+                  <th className="pb-3 text-right">TRẠNG THÁI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -213,7 +213,7 @@ const UsersPage = () => {
                       {row.phoneNumber || '—'}
                     </td>
                     <td className="admin-table-td-val text-yellow-400 text-sm">
-                      {row.score} pts
+                      {row.score} điểm
                     </td>
                     <td className="admin-table-td-active">
                       {row.createdAt ? new Date(row.createdAt).toLocaleDateString('vi-VN') : '—'}
@@ -231,11 +231,11 @@ const UsersPage = () => {
                             : 'text-slate-400 border-slate-500/20'
                         }`}
                       >
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="SUSPENDED">SUSPENDED</option>
-                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="SUSPENDED">Bị khóa</option>
+                        <option value="INACTIVE">Chưa kích hoạt</option>
                         {row.status === 'PENDING_VERIFICATION' && (
-                          <option value="PENDING_VERIFICATION">PENDING_VERIFICATION</option>
+                          <option value="PENDING_VERIFICATION">Chờ xác minh</option>
                         )}
                       </select>
                     </td>
@@ -246,7 +246,7 @@ const UsersPage = () => {
           ) : (
             <div className="text-center py-20">
               <Users className="mx-auto text-slate-700 mb-3" size={40} />
-              <p className="text-sm text-[#8a8d9f]">No users found matching search filters.</p>
+              <p className="text-sm text-[#8a8d9f]">Không tìm thấy khách hàng nào phù hợp với bộ lọc tìm kiếm.</p>
             </div>
           )}
         </div>

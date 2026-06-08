@@ -33,11 +33,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       </div>
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto no-scrollbar">
         {[
-          { to: '/admin', icon: 'dashboard', label: 'Overview' },
-          { to: '/admin/movies', icon: 'movie', label: 'Movies' },
-          { to: '/admin/showtimes', icon: 'schedule', label: 'Showtimes' },
-          { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Cinemas' },
-          { to: '/admin/users', icon: 'group', label: 'Users' },
+          { to: '/admin', icon: 'dashboard', label: 'Tổng quan' },
+          { to: '/admin/movies', icon: 'movie', label: 'Phim' },
+          { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
+          { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
+          { to: '/admin/users', icon: 'group', label: 'Khách hàng' },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -107,7 +107,7 @@ const AdminLayout = ({ children }) => {
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
                 <input
                   className="w-full rounded-full bg-[#101118] border border-white/10 py-3 pl-14 pr-4 text-white placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-error/30"
-                  placeholder="Search analytics, users, or movies..."
+                  placeholder="Tìm kiếm thống kê, khách hàng hoặc phim..."
                   type="text"
                 />
               </div>

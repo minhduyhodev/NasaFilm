@@ -157,18 +157,18 @@ export const RegisterPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="Experience cinema like never before. Exclusive premieres, VIP lounges, and curated events."
+      heroDescription="Trải nghiệm điện ảnh chưa từng có trước đây. Ra mắt độc quyền, phòng chờ VIP và các sự kiện tuyển chọn đặc biệt."
     >
       {step === 1 ? (
         <AuthCard
-          title="Create Account"
-          subtitle="Join the premiere film community"
+          title="Đăng Ký Tài Khoản"
+          subtitle="Tham gia cộng đồng điện ảnh hàng đầu"
         >
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
             {/* Full Name Input */}
             <AuthInput
               {...register('fullName')}
-              label="Full Name"
+              label="Họ và Tên"
               placeholder="John Doe"
               type="text"
               icon={<User size={20} />}
@@ -178,7 +178,7 @@ export const RegisterPage = () => {
             {/* Email Input */}
             <AuthInput
               {...register('email')}
-              label="Email Address"
+              label="Địa chỉ Email"
               placeholder="name@email.com"
               type="email"
               icon={<Mail size={20} />}
@@ -188,8 +188,8 @@ export const RegisterPage = () => {
             {/* Phone Number Input */}
             <AuthInput
               {...register('phoneNumber')}
-              label="Phone Number (Optional)"
-              placeholder="+1 (555) 000-0000"
+              label="Số điện thoại (Không bắt buộc)"
+              placeholder="+84 900-000-000"
               type="tel"
               icon={<Phone size={20} />}
               error={errors.phoneNumber}
@@ -198,7 +198,7 @@ export const RegisterPage = () => {
             {/* Password Input */}
             <AuthInput
               {...register('password')}
-              label="Password"
+              label="Mật khẩu"
               placeholder="••••••••"
               type="password"
               icon={<Lock size={20} />}
@@ -225,7 +225,7 @@ export const RegisterPage = () => {
             {/* Confirm Password Input */}
             <AuthInput
               {...register('confirmPassword')}
-              label="Confirm Password"
+              label="Xác nhận mật khẩu"
               placeholder="••••••••"
               type="password"
               icon={<Lock size={20} />}
@@ -248,13 +248,13 @@ export const RegisterPage = () => {
                 className="auth-terms-checkbox"
               />
               <span className="auth-terms-text">
-                I agree to the{' '}
+                Tôi đồng ý với{' '}
                 <a href="#" className="auth-terms-link">
-                  Terms of Service
+                  Điều khoản dịch vụ
                 </a>{' '}
-                and{' '}
+                và{' '}
                 <a href="#" className="auth-terms-link">
-                  Privacy Policy
+                  Chính sách bảo mật
                 </a>
               </span>
             </motion.label>
@@ -281,10 +281,10 @@ export const RegisterPage = () => {
               {isLoading ? (
                 <span className="auth-loading-spinner">
                   <div className="auth-spinner-icon"></div>
-                  Creating Account...
+                  Đang tạo tài khoản...
                 </span>
               ) : (
-                'Create Account'
+                'Đăng Ký'
               )}
             </motion.button>
 
@@ -301,20 +301,20 @@ export const RegisterPage = () => {
 
             {/* Sign In Link */}
             <div className="auth-footer">
-              <span className="auth-footer-text">Already have an account? </span>
+              <span className="auth-footer-text">Đã có tài khoản? </span>
               <Link
                 to="/auth/login"
                 className="auth-footer-link"
               >
-                Sign In
+                Đăng nhập
               </Link>
             </div>
           </form>
         </AuthCard>
       ) : (
         <AuthCard
-          title="Verify Email"
-          subtitle={`We've sent a 6-digit OTP verification code to: ${registeredEmail}`}
+          title="Xác Minh Email"
+          subtitle={`Chúng tôi đã gửi mã xác minh OTP gồm 6 chữ số tới: ${registeredEmail}`}
         >
           <form onSubmit={onVerifyOtpSubmit} className="auth-form">
             <div className="otp-inputs-container">
@@ -356,16 +356,16 @@ export const RegisterPage = () => {
               {isLoading ? (
                 <span className="auth-loading-spinner">
                   <div className="auth-spinner-icon"></div>
-                  Verifying OTP...
+                  Đang xác minh OTP...
                 </span>
               ) : (
-                'Verify & Activate Account'
+                'Xác Minh & Kích Hoạt Tài Khoản'
               )}
             </motion.button>
 
             <div className="otp-resend-container">
               {timer > 0 ? (
-                <span className="otp-timer">Resend code in {timer}s</span>
+                <span className="otp-timer">Gửi lại mã sau {timer} giây</span>
               ) : (
                 <button
                   type="button"
@@ -373,7 +373,7 @@ export const RegisterPage = () => {
                   disabled={isLoading}
                   className="otp-resend-btn"
                 >
-                  Resend OTP Code
+                  Gửi lại mã OTP
                 </button>
               )}
             </div>
@@ -389,7 +389,7 @@ export const RegisterPage = () => {
                 className="auth-back-btn"
                 disabled={isLoading}
               >
-                Back to Registration
+                Quay lại trang Đăng ký
               </button>
             </div>
           </form>
