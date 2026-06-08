@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut } from 'lucide-react';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -29,7 +29,7 @@ const Navbar = () => {
           <Link to="/" className="navbar-logo-link gap-3">
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
             <span className="text-2xl font-black tracking-tight leading-none text-white">
-              NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+              NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
             </span>
           </Link>
         </div>
@@ -44,8 +44,25 @@ const Navbar = () => {
         <div className="navbar-actions">
 
 
-          <button onClick={handleBookingClick} className="navbar-btn-booking">
-            Đặt Vé Ngay
+          <button 
+            onClick={handleBookingClick} 
+            className="relative overflow-hidden bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-xs uppercase tracking-wider h-11 pl-4 pr-3.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-[0_4px_15px_rgba(220,38,38,0.3)] hidden md:flex items-stretch"
+          >
+            {/* Left section (Star + Text) */}
+            <span className="flex items-center gap-1.5 pr-3.5 border-r border-dashed border-white/30">
+              <Star className="h-4 w-4 fill-white text-white" />
+              <span>MUA VÉ</span>
+            </span>
+            
+            {/* Right section (Hole punch dot) */}
+            <span className="pl-3.5 pr-0.5 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+            </span>
+
+            {/* Ticket Cutout Notch Top */}
+            <span className="absolute top-0 right-[16px] -translate-y-1/2 w-3 h-3 rounded-full bg-[#0f0f0f]" />
+            {/* Ticket Cutout Notch Bottom */}
+            <span className="absolute bottom-0 right-[16px] translate-y-1/2 w-3 h-3 rounded-full bg-[#0f0f0f]" />
           </button>
 
           <NotificationBell />

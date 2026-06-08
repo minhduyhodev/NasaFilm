@@ -237,12 +237,12 @@ export const SpaceBackground = () => {
           backgroundImage: `url(${spaceAuthBg})`,
           transform: 'scale(1.04)',
           animation: 'spaceBgPan 60s ease-in-out infinite',
-          filter: 'brightness(0.32) contrast(1.1)',
+          filter: 'brightness(0.6) contrast(1.1)',
         }}
       />
       
       {/* Dark gradient overlay to improve text contrast and visual depth */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/40 to-black/60 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-black/45 pointer-events-none" />
 
       {/* Custom CSS keyframe for background panning */}
       <style dangerouslySetInnerHTML={{__html: `

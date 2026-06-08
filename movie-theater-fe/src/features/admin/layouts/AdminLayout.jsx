@@ -27,7 +27,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
           <img src={nasaLogo} alt="NASAFILM Logo" className="h-12 w-auto object-contain rounded-xl" />
           <span className="text-2xl font-black tracking-tight leading-none text-white">
-            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
           </span>
         </Link>
       </div>

@@ -1,5 +1,5 @@
 .navbar-header {
-  @apply fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-[#0f172a]/95 backdrop-blur-xl;
+  @apply fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-[#0f0f0f]/95 backdrop-blur-xl;
 }
 
 .navbar-container {
@@ -39,7 +39,7 @@
 }
 
 .navbar-btn-notif {
-  @apply hidden h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white transition hover:bg-violet-500 lg:flex;
+  @apply hidden h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white transition hover:bg-red-700 lg:flex;
 }
 
 .navbar-btn-menu {
@@ -63,7 +63,7 @@
 }
 
 .user-avatar {
-  @apply h-8 w-8 rounded-full overflow-hidden bg-violet-600/30 border border-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0;
+  @apply h-8 w-8 rounded-full overflow-hidden bg-red-600/30 border border-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0;
 }
 
 .user-name {
@@ -71,11 +71,11 @@
 }
 
 .dropdown-menu-list {
-  @apply absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f172a]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-20;
+  @apply absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-20;
 }
 
 .dropdown-admin-link {
-  @apply flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-violet-300 hover:bg-violet-600/20 transition-all duration-200;
+  @apply flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-200;
 }
 
 .dropdown-menu-link {
@@ -88,12 +88,12 @@
 
 /* Notification Badge */
 .navbar-notif-badge {
-  @apply absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white border-2 border-[#0f172a];
+  @apply absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white border-2 border-[#0f0f0f];
 }
 
 /* Notification Dropdown List */
 .notif-dropdown-menu {
-  @apply absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl bg-[#0f172a]/95 border border-white/10 shadow-2xl backdrop-blur-xl z-20 overflow-hidden;
+  @apply absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 shadow-2xl backdrop-blur-xl z-20 overflow-hidden;
 }
 
 .notif-dropdown-header {

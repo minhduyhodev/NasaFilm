@@ -182,9 +182,9 @@ export const ResetPasswordPage = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg"
+              className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg"
             >
-              <p className="text-sm text-blue-300">
+              <p className="text-sm text-red-300">
                 Your password must be at least 8 characters long and contain
                 uppercase, lowercase, numbers, and special characters.
               </p>

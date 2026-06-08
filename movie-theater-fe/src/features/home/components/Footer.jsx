@@ -19,7 +19,7 @@ const Footer = () => {
               <img src={nasaFilmLogo} alt="NASAFILM Logo" className="footer-logo-img" />
               <div className="flex flex-col">
                 <span className="footer-brand-name text-lg">
-                  NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+                  NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
                 </span>
               </div>
             </div>
