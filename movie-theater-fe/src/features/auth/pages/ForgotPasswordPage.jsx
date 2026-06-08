@@ -9,6 +9,7 @@ import { AuthCard } from '../components/AuthCard';
 import { AuthInput } from '../components/AuthInput';
 import { forgotPasswordSchema } from '../utils/validation';
 import { authService } from '../api/authService';
+import { notificationService } from '../../../shared/services/notificationService';
 
 export const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -35,6 +36,11 @@ export const ForgotPasswordPage = () => {
         navigate('/auth/login');
       }, 3000);
     } catch (error) {
+      if (error instanceof Error && error.message === 'GOOGLE_SSO_ACCOUNT') {
+        notificationService.info('Tài khoản của bạn đã được liên kết với Google. Vui lòng đăng nhập qua Google.');
+        navigate('/auth/login');
+        return;
+      }
       const errorMessage =
         error instanceof Error
           ? error.message

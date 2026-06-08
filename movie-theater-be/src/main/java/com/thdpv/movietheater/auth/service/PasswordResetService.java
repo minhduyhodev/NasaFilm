@@ -49,6 +49,10 @@ public class PasswordResetService {
         User user = userRepository.findByEmailIgnoreCase(email.trim())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại với email này"));
 
+        if (user.getAuthProvider() == com.thdpv.movietheater.user.enums.AuthProvider.GOOGLE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "GOOGLE_SSO_ACCOUNT");
+        }
+
         // Generate stateless reset token (expires in 15 minutes)
         String resetToken = jwtUtils.generateResetToken(user.getEmail(), user.getPassword());
 
