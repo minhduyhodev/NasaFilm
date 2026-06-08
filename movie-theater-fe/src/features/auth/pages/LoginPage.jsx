@@ -260,7 +260,7 @@ export const LoginPage = () => {
           <div className="auth-quick-login-section">
             <span className="auth-quick-login-title">Đăng nhập nhanh</span>
             <div className="space-y-3 mt-2">
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: isLoading ? 1 : 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 type="button"
@@ -269,7 +269,7 @@ export const LoginPage = () => {
                 className="auth-quick-btn customer"
               >
                 Truy cập với tư cách khách
-              </motion.button>
+              </motion.button> */}
 
               <SocialLoginButtons
                 onGoogleLogin={handleGoogleLogin}

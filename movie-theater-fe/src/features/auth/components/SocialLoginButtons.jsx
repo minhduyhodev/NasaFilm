@@ -62,7 +62,7 @@ export const SocialLoginButtons = ({
               className="auth-quick-btn google"
             >
               <GoogleIcon />
-              <span>{isPrioritized ? 'Đăng nhập nhanh bằng Google' : 'Choose Google account'}</span>
+              <span>{isPrioritized ? 'Đăng nhập bằng Google' : 'Choose Google account'}</span>
             </motion.button>
           </div>
         )}

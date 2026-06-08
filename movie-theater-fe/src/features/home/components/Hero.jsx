@@ -41,7 +41,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-6xl lg:text-7.5xl font-black uppercase tracking-tight text-white leading-[1.05]"
           >
-            THẾ GIỚI ĐIỆN ẢNH <br />
+            VŨ TRỤ ĐIỆN ẢNH <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-500">
               TRONG TẦM TAY
             </span>

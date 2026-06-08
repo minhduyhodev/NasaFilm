@@ -15,6 +15,7 @@ export const ForgotPasswordPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [submittedEmail, setSubmittedEmail] = useState('');
 
   const {
     register,
@@ -29,6 +30,7 @@ export const ForgotPasswordPage = () => {
     setIsLoading(true);
     try {
       await authService.forgotPassword({ email: data.email });
+      setSubmittedEmail(data.email);
       setSuccessMessage(
         `Recovery code sent to ${data.email}. Please check your email.`
       );
@@ -96,7 +98,7 @@ export const ForgotPasswordPage = () => {
               </h3>
               <p className="text-gray-400">
                 Chúng tôi đã gửi mã khôi phục mật khẩu đến{' '}
-                <span className="font-semibold text-white">{registeredEmail}</span>.
+                <span className="font-semibold text-white">{submittedEmail}</span>.
                 Vui lòng kiểm tra hộp thư của bạn.
               </p>
             </div>
