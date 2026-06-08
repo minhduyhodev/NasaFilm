@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Search, Map, Calendar, Film } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { useNotification } from '../../../shared/context/NotificationContext';
+import { notificationService } from '../../../shared/services/notificationService';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -60,6 +64,10 @@ const cinemaLocations = [
 ];
 
 const CinemasPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthContext();
+  const { addNotification } = useNotification();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('Tất cả');
   const [expandedCinemaId, setExpandedCinemaId] = useState(null);
@@ -81,7 +89,16 @@ const CinemasPage = () => {
   };
 
   const handleShowtimeClick = (cinemaName, movieTitle, time) => {
-    alert(`Đặt vé thành công Suất chiếu: ${time} - Phim: ${movieTitle} tại ${cinemaName}`);
+    if (!user) {
+      notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
+      navigate('/auth/login');
+      return;
+    }
+    addNotification(
+      "Đặt vé thành công",
+      `Đặt vé thành công Suất chiếu: ${time} - Phim: ${movieTitle} tại ${cinemaName}`,
+      "success"
+    );
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { useNotification } from '../../../shared/context/NotificationContext';
 import { notificationService } from '../../../shared/services/notificationService';
 
 const TicketFilters = () => {
@@ -11,6 +12,7 @@ const TicketFilters = () => {
   const [showtime, setShowtime] = useState('');
 
   const { user } = useAuthContext();
+  const { addNotification } = useNotification();
   const navigate = useNavigate();
 
   const handleTheaterChange = (e) => {
@@ -45,7 +47,11 @@ const TicketFilters = () => {
       return;
     }
     if (theater && movie && date && showtime) {
-      notificationService.success(`Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`);
+      addNotification(
+        "Đặt vé thành công",
+        `Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`,
+        "success"
+      );
     }
   };
 

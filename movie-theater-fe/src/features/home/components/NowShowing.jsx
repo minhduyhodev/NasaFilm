@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import MovieCard from './MovieCard';
+import { notificationService } from '../../../shared/services/notificationService';
 import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
 import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
 import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
@@ -216,7 +217,16 @@ const NowShowing = () => {
                 <span className="underline underline-offset-4 decoration-white/30 hover:decoration-white">Xem Trailer</span>
               </button>
 
-              <button className="rounded-md bg-yellow-400 px-6 py-2 text-sm font-bold text-black hover:brightness-95">
+              <button
+                onClick={() => {
+                  const el = document.getElementById('quick-booking');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                  notificationService.info(`Vui lòng hoàn tất thông tin để đặt vé cho phim: ${movie.title}`);
+                }}
+                className="rounded-md bg-yellow-400 px-6 py-2 text-sm font-bold text-black hover:brightness-95"
+              >
                 ĐẶT VÉ
               </button>
             </div>

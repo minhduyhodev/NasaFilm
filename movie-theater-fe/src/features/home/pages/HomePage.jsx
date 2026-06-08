@@ -15,7 +15,7 @@ const HomePage = () => {
 			<main className="pt-20">
 				<Hero />
 
-				<section className="mt-6 md:mt-8 lg:mt-10 relative z-20 px-4 md:px-8 lg:px-20">
+				<section id="quick-booking" className="mt-6 md:mt-8 lg:mt-10 relative z-20 px-4 md:px-8 lg:px-20">
 					<div className="max-w-6xl mx-auto">
 						<TicketFilters />
 					</div>

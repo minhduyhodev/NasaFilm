@@ -1,5 +1,14 @@
 package com.thdpv.movietheater.user.entity;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.UserStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,14 +17,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import com.thdpv.movietheater.user.enums.AuthProvider;
-import com.thdpv.movietheater.user.enums.UserStatus;
 
 @Entity
 @Table(name = "users")
@@ -36,6 +37,9 @@ public class User {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
@@ -116,6 +120,14 @@ public class User {
         this.avatarUrl = avatarUrl;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public AuthProvider getAuthProvider() {
         return authProvider;
     }
@@ -171,5 +183,4 @@ public class User {
     public void setVerificationCodeExpiry(LocalDateTime verificationCodeExpiry) {
         this.verificationCodeExpiry = verificationCodeExpiry;
     }
-
 }

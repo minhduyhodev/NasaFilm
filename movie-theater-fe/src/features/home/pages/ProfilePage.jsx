@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { authService } from '../../auth/api/authService';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -7,28 +8,75 @@ import {
   User, Mail, Shield, Award, Calendar, 
   MapPin, Edit2, Check, Lock, Ticket, 
   Gift, Bell, ShieldAlert, Key, LogOut, Camera, Star,
-  X, Search, History
+  X, Search, History, Phone
 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import './ProfilePage.css';
 
 export const ProfilePage = () => {
-  const { user, logout } = useAuthContext();
+  const { user, logout, updateUser } = useAuthContext();
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || '');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
+  const [authProvider, setAuthProvider] = useState('LOCAL');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
+  // Fetch real profile data from Backend on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await authService.getProfile();
+        if (data) {
+          setFullName(data.fullName || '');
+          setPhoneNumber(data.phoneNumber || '');
+          setAvatarUrl(data.avatarUrl || '');
+          setAuthProvider(data.authProvider || 'LOCAL');
+        }
+      } catch (err) {
+        notificationService.error('Không thể tải thông tin cá nhân từ máy chủ.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarUrl(reader.result);
-        notificationService.success('Đã chọn ảnh đại diện mới. Hãy nhấn "Lưu" trong phần Thông tin khách hàng để hoàn tất!');
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      notificationService.error('Vui lòng chọn file hình ảnh hợp lệ.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      notificationService.error('Dung lượng hình ảnh không được vượt quá 5MB.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const data = await authService.uploadAvatar(file);
+      if (data) {
+        setAvatarUrl(data.avatarUrl);
+        
+        // Update user context dynamically for Navbar/Header
+        const updatedUser = {
+          ...user,
+          avatar: data.avatarUrl,
+        };
+        updateUser(updatedUser);
+        notificationService.success('Cập nhật ảnh đại diện thành công!');
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Tải ảnh đại diện thất bại.');
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -54,34 +102,47 @@ export const ProfilePage = () => {
   const progressPercent = Math.min((loyaltyPoints / nextTierPoints) * 100, 100);
   const loyaltyTier = loyaltyPoints >= 2000 ? 'Platinum Explorer' : loyaltyPoints >= 1000 ? 'Gold Navigator' : 'Silver Crew';
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!fullName.trim()) {
       notificationService.error('Họ tên không được để trống.');
       return;
     }
     
-    // Simulate API update by updating local storage/auth context
+    setIsSaving(true);
     try {
-      const authUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-      const updatedUser = { ...authUser, fullName, avatar: avatarUrl };
-      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-      
-      // Force reload auth state in context by writing directly to window context trigger if possible, 
-      // or simply showing notification and advising refresh.
-      notificationService.success('Cập nhật thông tin cá nhân thành công!');
-      setIsEditing(false);
-      
-      // Auto reload to apply changes everywhere (Navbar etc.)
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-    } catch (e) {
-      notificationService.error('Có lỗi xảy ra, vui lòng thử lại.');
+      const data = await authService.updateProfile({
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim() || null
+      });
+
+      if (data) {
+        setFullName(data.fullName || '');
+        setPhoneNumber(data.phoneNumber || '');
+        
+        // Update user context dynamically
+        const updatedUser = {
+          ...user,
+          fullName: data.fullName,
+          avatar: data.avatarUrl,
+        };
+        updateUser(updatedUser);
+
+        notificationService.success('Cập nhật thông tin cá nhân thành công!');
+        setIsEditing(false);
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
+    if (authProvider === 'GOOGLE') {
+      notificationService.error('Tài khoản đăng nhập bằng Google không thể đổi mật khẩu.');
+      return;
+    }
     if (!currentPassword || !newPassword || !confirmPassword) {
       notificationService.error('Vui lòng điền đầy đủ thông tin mật khẩu.');
       return;
@@ -96,14 +157,20 @@ export const ProfilePage = () => {
     }
 
     setIsChangingPass(true);
-    // Simulation
-    setTimeout(() => {
+    try {
+      await authService.updateProfile({
+        currentPassword,
+        newPassword
+      });
       notificationService.success('Đổi mật khẩu thành công!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    } catch (err) {
+      notificationService.error(err.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại.');
+    } finally {
       setIsChangingPass(false);
-    }, 1000);
+    }
   };
 
 
@@ -155,6 +222,21 @@ export const ProfilePage = () => {
   // Predefined Mock Transactions
   const mockTransactions = [];
 
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="profile-wrapper flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
+            <p className="text-slate-400 font-medium text-sm">Đang tải thông tin tài khoản...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -169,20 +251,26 @@ export const ProfilePage = () => {
             {/* Avatar block */}
             <div className="profile-avatar-wrapper">
               <div 
-                onClick={() => fileInputRef.current.click()} 
-                className="profile-avatar-frame cursor-pointer hover:scale-105 transition-all duration-300"
+                onClick={() => !isSaving && fileInputRef.current.click()} 
+                className={`profile-avatar-frame cursor-pointer hover:scale-105 transition-all duration-300 ${isSaving ? 'opacity-50' : ''}`}
                 title="Thay đổi ảnh đại diện"
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="profile-avatar-image" />
                 ) : (
                   <div className="profile-avatar-placeholder">
-                    {fullName.charAt(0).toUpperCase() || '?'}
+                    {fullName ? fullName.charAt(0).toUpperCase() : '?'}
                   </div>
                 )}
-                <div className="profile-avatar-edit-btn">
-                  <Camera size={16} />
-                </div>
+                {isSaving ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                    <div className="w-6 h-6 border-2 border-t-indigo-500 border-white/20 rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="profile-avatar-edit-btn">
+                    <Camera size={16} />
+                  </div>
+                )}
               </div>
               <input 
                 type="file" 
@@ -315,12 +403,18 @@ export const ProfilePage = () => {
                       </button>
                     ) : (
                       <div className="panel-editing-actions">
-                        <button onClick={() => setIsEditing(false)} className="panel-cancel-btn">
+                        <button onClick={() => setIsEditing(false)} disabled={isSaving} className="panel-cancel-btn">
                           Hủy
                         </button>
-                        <button onClick={handleSaveProfile} className="panel-save-btn">
-                          <Check size={14} />
-                          <span>Lưu</span>
+                        <button onClick={handleSaveProfile} disabled={isSaving} className="panel-save-btn">
+                          {isSaving ? (
+                            <span>Đang lưu...</span>
+                          ) : (
+                            <>
+                              <Check size={14} />
+                              <span>Lưu</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
@@ -335,8 +429,23 @@ export const ProfilePage = () => {
                           type="text" 
                           value={fullName} 
                           onChange={(e) => setFullName(e.target.value)}
-                          disabled={!isEditing}
+                          disabled={!isEditing || isSaving}
                           className={isEditing ? 'editable' : ''}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="info-field-group">
+                      <label>Số điện thoại</label>
+                      <div className="info-input-wrapper">
+                        <Phone size={16} className="input-icon" />
+                        <input 
+                          type="text" 
+                          value={phoneNumber} 
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          disabled={!isEditing || isSaving}
+                          className={isEditing ? 'editable' : ''}
+                          placeholder="Chưa cập nhật số điện thoại"
                         />
                       </div>
                     </div>
@@ -360,7 +469,7 @@ export const ProfilePage = () => {
                         <Shield size={16} className="input-icon" />
                         <input 
                           type="text" 
-                          value={user?.avatar?.includes('google') ? 'Google Sign-In' : 'Tài khoản thường'} 
+                          value={authProvider === 'GOOGLE' ? 'Google Sign-In' : 'Tài khoản thường'} 
                           disabled 
                         />
                       </div>
@@ -723,54 +832,67 @@ export const ProfilePage = () => {
                     <h2>Đổi mật khẩu</h2>
                   </div>
 
-                  <form onSubmit={handlePasswordChange} className="password-change-form">
-                    <div className="info-field-group">
-                      <label>Mật khẩu hiện tại</label>
-                      <div className="info-input-wrapper">
-                        <Lock size={16} className="input-icon" />
-                        <input 
-                          type="password" 
-                          placeholder="••••••••" 
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                        />
+                  {authProvider === 'GOOGLE' ? (
+                    <div className="profile-security-alert">
+                      <ShieldAlert size={20} className="alert-icon text-yellow-500" />
+                      <div className="alert-content">
+                        <h4>Tính năng không khả dụng</h4>
+                        <p>Tài khoản của bạn đăng nhập thông qua Google Sign-In. Mật khẩu được quản lý trực tiếp bởi Google, do đó không thể đổi mật khẩu tại đây.</p>
                       </div>
                     </div>
-
-                    <div className="info-field-group">
-                      <label>Mật khẩu mới</label>
-                      <div className="info-input-wrapper">
-                        <Key size={16} className="input-icon" />
-                        <input 
-                          type="password" 
-                          placeholder="Mật khẩu tối thiểu 6 ký tự" 
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                        />
+                  ) : (
+                    <form onSubmit={handlePasswordChange} className="password-change-form">
+                      <div className="info-field-group">
+                        <label>Mật khẩu hiện tại</label>
+                        <div className="info-input-wrapper">
+                          <Lock size={16} className="input-icon" />
+                          <input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            disabled={isChangingPass}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="info-field-group">
-                      <label>Xác nhận mật khẩu mới</label>
-                      <div className="info-input-wrapper">
-                        <Key size={16} className="input-icon" />
-                        <input 
-                          type="password" 
-                          placeholder="Nhập lại mật khẩu mới" 
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
+                      <div className="info-field-group">
+                        <label>Mật khẩu mới</label>
+                        <div className="info-input-wrapper">
+                          <Key size={16} className="input-icon" />
+                          <input 
+                            type="password" 
+                            placeholder="Mật khẩu tối thiểu 6 ký tự" 
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            disabled={isChangingPass}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <button 
-                      type="submit" 
-                      disabled={isChangingPass} 
-                      className="password-submit-btn"
-                    >
-                      {isChangingPass ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
-                    </button>
-                  </form>
+                      <div className="info-field-group">
+                        <label>Xác nhận mật khẩu mới</label>
+                        <div className="info-input-wrapper">
+                          <Key size={16} className="input-icon" />
+                          <input 
+                            type="password" 
+                            placeholder="Nhập lại mật khẩu mới" 
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            disabled={isChangingPass}
+                          />
+                        </div>
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        disabled={isChangingPass} 
+                        className="password-submit-btn"
+                      >
+                        {isChangingPass ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
+                      </button>
+                    </form>
+                  )}
                 </motion.div>
               )}
 
