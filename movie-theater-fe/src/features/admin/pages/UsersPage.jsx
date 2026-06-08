@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, SlidersHorizontal, Search, Edit2, Users, Crown, Activity, X, Loader2 } from 'lucide-react';
 import { adminUserService } from '../api/adminUserService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { useNotification } from '../../../shared/context/NotificationContext';
 import './UsersPage.css';
 
 const UsersPage = () => {
+  const { addNotification } = useNotification();
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,11 +64,19 @@ const UsersPage = () => {
         await adminUserService.updateUserRole(selectedUser.id, editRole);
       }
 
-      notificationService.success('Cập nhật người dùng thành công!');
+      addNotification(
+        'Cập nhật người dùng thành công',
+        `Cập nhật thành công vai trò/trạng thái cho tài khoản: ${selectedUser.email}`,
+        'success'
+      );
       setSelectedUser(null);
       fetchUsers(); // Refresh list
     } catch (error) {
-      notificationService.error(error.message || 'Cập nhật thất bại.');
+      addNotification(
+        'Cập nhật thất bại',
+        error.message || 'Đã xảy ra lỗi khi cập nhật thông tin người dùng.',
+        'error'
+      );
     } finally {
       setIsSubmitting(false);
     }

@@ -11,10 +11,12 @@ import {
   X, Search, History, Phone
 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
+import { useNotification } from '../../../shared/context/NotificationContext';
 import './ProfilePage.css';
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
+  const { addNotification } = useNotification();
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -71,10 +73,18 @@ export const ProfilePage = () => {
           avatar: data.avatarUrl,
         };
         updateUser(updatedUser);
-        notificationService.success('Cập nhật ảnh đại diện thành công!');
+        addNotification(
+          'Cập nhật ảnh đại diện thành công',
+          'Ảnh đại diện của bạn đã được cập nhật thành công.',
+          'success'
+        );
       }
     } catch (err) {
-      notificationService.error(err.message || 'Tải ảnh đại diện thất bại.');
+      addNotification(
+        'Tải ảnh đại diện thất bại',
+        err.message || 'Không thể tải lên ảnh đại diện của bạn.',
+        'error'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -127,11 +137,19 @@ export const ProfilePage = () => {
         };
         updateUser(updatedUser);
 
-        notificationService.success('Cập nhật thông tin cá nhân thành công!');
+        addNotification(
+          'Cập nhật thông tin thành công',
+          'Thông tin cá nhân của bạn đã được cập nhật thành công.',
+          'success'
+        );
         setIsEditing(false);
       }
     } catch (err) {
-      notificationService.error(err.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+      addNotification(
+        'Cập nhật thông tin thất bại',
+        err.message || 'Đã xảy ra lỗi khi cập nhật thông tin cá nhân.',
+        'error'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -162,12 +180,20 @@ export const ProfilePage = () => {
         currentPassword,
         newPassword
       });
-      notificationService.success('Đổi mật khẩu thành công!');
+      addNotification(
+        'Đổi mật khẩu thành công',
+        'Mật khẩu tài khoản của bạn đã được thay đổi thành công.',
+        'success'
+      );
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      notificationService.error(err.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại.');
+      addNotification(
+        'Đổi mật khẩu thất bại',
+        err.message || 'Thay đổi mật khẩu không thành công.',
+        'error'
+      );
     } finally {
       setIsChangingPass(false);
     }
