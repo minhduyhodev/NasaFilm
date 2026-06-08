@@ -1,81 +1,62 @@
-import React, { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import hero1 from '../../../shared/assets/hero1.jpg';
-import hero2 from '../../../shared/assets/hero2.jpg';
-import hero3 from '../../../shared/assets/hero3.jpg';
+import React from 'react';
+import { motion } from 'framer-motion';
+import interstellarTrailer from '../../../shared/assets/Interstellar-Trailer.mp4';
 
 const Hero = () => {
-  const slides = useMemo(
-    () => [
-      { image: hero1 },
-      { image: hero2 },
-      { image: hero3 },
-    ],
-    []
-  );
-
-  const [activeSlide, setActiveSlide] = useState(0);
-
-  const currentSlide = slides[activeSlide];
-
-  const goToPrevious = () => {
-    setActiveSlide((current) => (current === 0 ? slides.length - 1 : current - 1));
-  };
-
-  const goToNext = () => {
-    setActiveSlide((current) => (current === slides.length - 1 ? 0 : current + 1));
-  };
-
   return (
-    <section className="relative overflow-hidden pt-0">
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-neutral-950 to-transparent z-10" />
+    <section className="relative min-h-[90vh] md:min-h-screen w-full flex items-center pt-24 pb-32 overflow-hidden bg-black">
+      {/* 1. Background Video Layer */}
+      <div className="absolute inset-0 z-0 select-none pointer-events-none">
+        <video
+          src={interstellarTrailer}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        {/* Cinematic dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-950/40 to-neutral-950/70" />
+      </div>
 
-      <div className="absolute inset-0 bg-[#0f172a]" />
+      {/* 2. Text Content Overlay Layer */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 lg:px-20 w-full flex flex-col justify-center h-full">
+        <div className="max-w-2xl text-left space-y-4 md:space-y-6">
+          
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/20 bg-red-600/10 text-red-400 text-xs font-extrabold uppercase tracking-wider"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+            ✦ HỆ THỐNG RẠP CHIẾU PHIM HIỆN ĐẠI
+          </motion.div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 lg:px-20 h-full">
-        <div className="pt-2">
-          <div className="relative">
-            <div className="rounded-[28px] overflow-hidden border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.6)] bg-neutral-900/60 backdrop-blur-md">
-              <div className="relative bg-black">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentSlide.image}
-                    initial={{ opacity: 0, scale: 1.03 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.99 }}
-                    transition={{ duration: 0.55, ease: 'easeOut' }}
-                    className="relative flex items-center justify-center overflow-hidden"
-                  >
-                    <img
-                      src={currentSlide.image}
-                      alt="Hero slide"
-                      className="w-full h-auto object-contain object-center block"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
+          {/* Heading */}
+          <motion.h1
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl md:text-6xl lg:text-7.5xl font-black uppercase tracking-tight text-white leading-[1.05]"
+          >
+            THẾ GIỚI ĐIỆN ẢNH <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-500">
+              TRONG TẦM TAY
+            </span>
+          </motion.h1>
 
-            {/* Navigation Arrows positioned outside the hero card */}
-            <button
-              type="button"
-              aria-label="Previous slide"
-              onClick={goToPrevious}
-              className="absolute -left-3 md:-left-10 lg:-left-16 top-1/2 z-20 -translate-y-1/2 h-11 w-11 md:h-14 md:w-14 rounded-full border border-white/15 bg-black/45 backdrop-blur-md text-white flex items-center justify-center shadow-lg hover:bg-black/65 hover:scale-105 transition-all"
-            >
-              <ChevronLeft size={28} className="md:size-8" />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Next slide"
-              onClick={goToNext}
-              className="absolute -right-3 md:-right-10 lg:-right-16 top-1/2 z-20 -translate-y-1/2 h-11 w-11 md:h-14 md:w-14 rounded-full border border-white/15 bg-black/45 backdrop-blur-md text-white flex items-center justify-center shadow-lg hover:bg-black/65 hover:scale-105 transition-all"
-            >
-              <ChevronRight size={28} className="md:size-8" />
-            </button>
-          </div>
+          {/* Description */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-base md:text-lg text-white/70 font-medium tracking-wide max-w-xl"
+          >
+            Trải nghiệm những thước phim bom tấn đỉnh cao với hệ thống âm thanh vòm sống động và màn hình sắc nét tại NASA FILM.
+          </motion.p>
+          
         </div>
       </div>
     </section>

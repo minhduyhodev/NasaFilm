@@ -8,7 +8,7 @@ export const AuthLayout = ({
   children,
   showHero = true,
   heroTitle = 'NASAFILM',
-  heroDescription = 'The most immersive cinema experience ever crafted for the digital age. Mission-critical quality, delivered directly to your home observatory.',
+  heroDescription = 'Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn.',
 }) => {
   const [logoSrc, setLogoSrc] = React.useState(nasaLogo);
 
@@ -87,8 +87,8 @@ export const AuthLayout = ({
 
       {/* Cosmic spot lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-3xl opacity-40 animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-3xl opacity-30"></div>
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-3xl opacity-40 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-rose-600/10 rounded-full blur-3xl opacity-30"></div>
       </div>
 
 
@@ -114,7 +114,7 @@ export const AuthLayout = ({
                         className="h-20 md:h-24 w-auto object-contain select-none"
                       />
                       <span className="text-4xl md:text-5xl font-black tracking-tight leading-none">
-                        NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+                        NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
                       </span>
                     </Link>
                     <p className="text-base text-gray-300 leading-relaxed font-medium">
@@ -124,12 +124,12 @@ export const AuthLayout = ({
 
                   {/* Decorative line */}
                   <div className="pt-2">
-                    <div className="h-0.5 w-24 bg-gradient-to-r from-blue-500 to-transparent"></div>
+                    <div className="h-0.5 w-24 bg-gradient-to-r from-red-500 to-transparent"></div>
                   </div>
 
                   {/* Features list */}
                   <div className="space-y-4 pt-4">
-                    {['Exclusive Screenings', 'VIP Amenities', 'Premium Access'].map((feature, index) => (
+                    {['Ra Mắt Phim Độc Quyền', 'Trải Nghiệm Dịch Vụ VIP', 'Đặt Vé Ưu Tiên'].map((feature, index) => (
                       <motion.div
                         key={feature}
                         initial={{ opacity: 0, x: -10 }}
@@ -137,7 +137,7 @@ export const AuthLayout = ({
                         transition={{ delay: 0.1 * (index + 1) }}
                         className="flex items-center gap-3.5"
                       >
-                        <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                        <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.8)]"></div>
                         <span className="text-gray-400 font-semibold text-sm">{feature}</span>
                       </motion.div>
                     ))}

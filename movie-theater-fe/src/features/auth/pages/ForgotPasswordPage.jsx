@@ -9,6 +9,7 @@ import { AuthCard } from '../components/AuthCard';
 import { AuthInput } from '../components/AuthInput';
 import { forgotPasswordSchema } from '../utils/validation';
 import { authService } from '../api/authService';
+import { notificationService } from '../../../shared/services/notificationService';
 
 export const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -35,6 +36,11 @@ export const ForgotPasswordPage = () => {
         navigate('/auth/login');
       }, 3000);
     } catch (error) {
+      if (error instanceof Error && error.message === 'GOOGLE_SSO_ACCOUNT') {
+        notificationService.info('Tài khoản của bạn đã được liên kết với Google. Vui lòng đăng nhập qua Google.');
+        navigate('/auth/login');
+        return;
+      }
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -48,10 +54,10 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <AuthLayout showHero={false}>
+    <AuthLayout showHero={true}>
       <AuthCard
-        title="Forgot Password?"
-        subtitle="Enter your registered email to receive a recovery code"
+        title="Quên Mật Khẩu"
+        subtitle="Nhập email của bạn để nhận mã khôi phục mật khẩu"
       >
         {successMessage ? (
           <motion.div
@@ -86,26 +92,21 @@ export const ForgotPasswordPage = () => {
             {/* Success Message */}
             <div className="text-center space-y-2">
               <h3 className="text-lg font-semibold text-green-500">
-                Recovery Code Sent!
+                Kiểm tra email của bạn
               </h3>
-              <p className="text-gray-400">{successMessage}</p>
+              <p className="text-gray-400">
+                Chúng tôi đã gửi mã khôi phục mật khẩu đến{' '}
+                <span className="font-semibold text-white">{registeredEmail}</span>.
+                Vui lòng kiểm tra hộp thư của bạn.
+              </p>
             </div>
-
-            {/* Redirect Info */}
-            <motion.div
-              animate={{ opacity: [0.5, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="text-center text-sm text-gray-500"
-            >
-              Redirecting to login...
-            </motion.div>
 
             {/* Manual redirect button */}
             <Link
               to="/auth/login"
               className="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 text-center"
             >
-              Back to Login
+              Quay lại Đăng nhập
             </Link>
           </motion.div>
         ) : (
@@ -113,7 +114,7 @@ export const ForgotPasswordPage = () => {
             {/* Email Input */}
             <AuthInput
               {...register('email')}
-              label="Email Address"
+              label="Địa chỉ Email"
               placeholder="name@example.com"
               type="email"
               icon={<Mail size={20} />}
@@ -124,11 +125,10 @@ export const ForgotPasswordPage = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg"
+              className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg"
             >
-              <p className="text-sm text-blue-300">
-                We'll send you a recovery code to reset your password. Make sure
-                you have access to this email address.
+              <p className="text-sm text-red-300">
+                Chúng tôi sẽ gửi cho bạn một mã khôi phục để đặt lại mật khẩu. Hãy chắc chắn rằng bạn có quyền truy cập vào địa chỉ email này.
               </p>
             </motion.div>
 
@@ -143,10 +143,10 @@ export const ForgotPasswordPage = () => {
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Sending...
+                  Đang gửi...
                 </span>
               ) : (
-                'Send Recovery Code'
+                'Gửi mã khôi phục'
               )}
             </motion.button>
 
@@ -156,7 +156,7 @@ export const ForgotPasswordPage = () => {
               className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200"
             >
               <ArrowLeft size={20} />
-              Back to Login
+              Quay lại Đăng nhập
             </Link>
           </form>
         )}

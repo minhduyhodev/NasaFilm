@@ -27,17 +27,17 @@ const Sidebar = ({ isOpen, onClose }) => {
         <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer">
           <img src={nasaLogo} alt="NASAFILM Logo" className="h-12 w-auto object-contain rounded-xl" />
           <span className="text-2xl font-black tracking-tight leading-none text-white">
-            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Film</span>
+            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
           </span>
         </Link>
       </div>
       <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto no-scrollbar">
         {[
-          { to: '/admin', icon: 'dashboard', label: 'Overview' },
-          { to: '/admin/movies', icon: 'movie', label: 'Movies' },
-          { to: '/admin/showtimes', icon: 'schedule', label: 'Showtimes' },
-          { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Cinemas' },
-          { to: '/admin/users', icon: 'group', label: 'Users' },
+          { to: '/admin', icon: 'dashboard', label: 'Tổng quan' },
+          { to: '/admin/movies', icon: 'movie', label: 'Phim' },
+          { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
+          { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
+          { to: '/admin/users', icon: 'group', label: 'Khách hàng' },
         ].map((item) => (
           <NavLink
             key={item.to}
@@ -107,7 +107,7 @@ const AdminLayout = ({ children }) => {
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
                 <input
                   className="w-full rounded-full bg-[#101118] border border-white/10 py-3 pl-14 pr-4 text-white placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-error/30"
-                  placeholder="Search analytics, users, or movies..."
+                  placeholder="Tìm kiếm thống kê, khách hàng hoặc phim..."
                   type="text"
                 />
               </div>

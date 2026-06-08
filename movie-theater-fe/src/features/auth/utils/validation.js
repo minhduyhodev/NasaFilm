@@ -24,8 +24,12 @@ export const registerSchema = z
       .email('Please enter a valid email address'),
     phoneNumber: z
       .string()
-      .min(1, 'Phone number is required')
-      .regex(/^[0-9+\-\s()]+$/, 'Please enter a valid phone number'),
+      .optional()
+      .or(z.literal(''))
+      .refine(
+        (val) => !val || /^[0-9+\-\s()]+$/.test(val),
+        'Please enter a valid phone number'
+      ),
     password: z
       .string()
       .min(1, 'Password is required')
