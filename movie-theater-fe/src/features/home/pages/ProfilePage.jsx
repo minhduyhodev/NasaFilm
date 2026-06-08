@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { authService } from '../../auth/api/authService';
+import { AuthInput } from '../../auth/components/AuthInput';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -94,6 +95,9 @@ export const ProfilePage = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
 
   // Purchase History Modal States
@@ -870,7 +874,18 @@ export const ProfilePage = () => {
                     <form onSubmit={handlePasswordChange} className="password-change-form">
                       <div className="info-field-group">
                         <label>Mật khẩu hiện tại</label>
-                        <div className="info-input-wrapper">
+                        <AuthInput
+                          placeholder="••••••••"
+                          type="password"
+                          icon={<Lock size={16} />}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          disabled={isChangingPass}
+                          showPasswordToggle={true}
+                          showPassword={showCurrentPassword}
+                          onPasswordToggle={() => setShowCurrentPassword((prev) => !prev)}
+                        />
+                        <div className="info-input-wrapper hidden">
                           <Lock size={16} className="input-icon" />
                           <input 
                             type="password" 
@@ -884,7 +899,18 @@ export const ProfilePage = () => {
 
                       <div className="info-field-group">
                         <label>Mật khẩu mới</label>
-                        <div className="info-input-wrapper">
+                        <AuthInput
+                          placeholder="Mật khẩu tối thiểu 6 ký tự"
+                          type="password"
+                          icon={<Key size={16} />}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          disabled={isChangingPass}
+                          showPasswordToggle={true}
+                          showPassword={showNewPassword}
+                          onPasswordToggle={() => setShowNewPassword((prev) => !prev)}
+                        />
+                        <div className="info-input-wrapper hidden">
                           <Key size={16} className="input-icon" />
                           <input 
                             type="password" 
@@ -898,7 +924,18 @@ export const ProfilePage = () => {
 
                       <div className="info-field-group">
                         <label>Xác nhận mật khẩu mới</label>
-                        <div className="info-input-wrapper">
+                        <AuthInput
+                          placeholder="Nhập lại mật khẩu mới"
+                          type="password"
+                          icon={<Key size={16} />}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          disabled={isChangingPass}
+                          showPasswordToggle={true}
+                          showPassword={showConfirmPassword}
+                          onPasswordToggle={() => setShowConfirmPassword((prev) => !prev)}
+                        />
+                        <div className="info-input-wrapper hidden">
                           <Key size={16} className="input-icon" />
                           <input 
                             type="password" 
