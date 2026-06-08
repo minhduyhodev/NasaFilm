@@ -58,6 +58,11 @@ public class UserService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Tài khoản Google không thể chỉnh sửa thông tin cá nhân");
+        }
+
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
             user.setFullName(request.getFullName().trim());
         }
@@ -67,10 +72,6 @@ public class UserService {
         }
 
         if (request.getCurrentPassword() != null || request.getNewPassword() != null) {
-            if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-                throw new AppException(ErrorCode.BAD_REQUEST,
-                        "Tài khoản Google không thể đổi mật khẩu");
-            }
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 throw new AppException(ErrorCode.BAD_REQUEST,
                         "Mật khẩu hiện tại không đúng");
@@ -87,17 +88,55 @@ public class UserService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Tài khoản Google không thể đổi ảnh đại diện");
+        }
+
         try {
+            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+                String publicId = extractPublicId(user.getAvatarUrl());
+                if (publicId != null) {
+                    cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+                }
+            }
+
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap("folder", "avatars"));
             String avatarUrl = (String) uploadResult.get("secure_url");
             user.setAvatarUrl(avatarUrl);
             userRepository.save(user);
+
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_ERROR, "Upload ảnh thất bại");
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Upload ảnh thất bại: " + e.getMessage());
         }
 
         return mapToResponse(user);
+    }
+
+    private String extractPublicId(String avatarUrl) {
+        try {
+            String marker = "/upload/";
+            int idx = avatarUrl.indexOf(marker);
+            if (idx == -1) return null;
+
+            String afterUpload = avatarUrl.substring(idx + marker.length());
+
+            if (afterUpload.startsWith("v") && afterUpload.contains("/")) {
+                afterUpload = afterUpload.substring(afterUpload.indexOf("/") + 1);
+            }
+
+            int dotIdx = afterUpload.lastIndexOf(".");
+            if (dotIdx != -1) {
+                afterUpload = afterUpload.substring(0, dotIdx);
+            }
+
+            return afterUpload;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private UserProfileResponse mapToResponse(User user) {
