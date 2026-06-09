@@ -28,7 +28,7 @@ const Navbar = () => {
         <div className="navbar-logo-group">
           <Link to="/" className="navbar-logo-link gap-3">
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
-            <span className="text-2xl font-black tracking-tight leading-none text-white">
+            <span className="font-heading text-3xl font-black tracking-wider leading-none text-white">
               NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
             </span>
           </Link>

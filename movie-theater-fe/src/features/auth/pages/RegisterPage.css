@@ -47,7 +47,7 @@
 }
 
 .auth-footer {
-  @apply text-center pt-2;
+  @apply text-center pt-2.5 text-sm;
 }
 
 .auth-footer-text {

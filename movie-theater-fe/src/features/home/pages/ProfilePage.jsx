@@ -275,8 +275,10 @@ export const ProfilePage = () => {
         
         {/* Profile Header Block */}
         <div className="profile-header-card">
-          <div className="profile-header-stars" />
-          <div className="profile-header-body">
+          <div className="profile-header-cover">
+            <div className="profile-header-stars" />
+          </div>
+          <div className="profile-header-info-bar">
             
             {/* Avatar block */}
             <div className="profile-avatar-wrapper">
@@ -450,60 +452,67 @@ export const ProfilePage = () => {
                     )}
                   </div>
 
-                  <div className="profile-info-fields">
-                    <div className="info-field-group">
-                      <label>Họ và tên</label>
-                      <div className="info-input-wrapper">
-                        <User size={16} className="input-icon" />
+                  <div className="profile-info-rows">
+                    
+                    {/* Row 1: Họ và tên */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <User size={18} className="text-red-500" />
+                        <span className="info-row-label">Họ và tên</span>
+                      </div>
+                      <div className="info-row-right">
                         <input 
                           type="text" 
                           value={fullName} 
                           onChange={(e) => setFullName(e.target.value)}
                           disabled={!isEditing || isSaving}
-                          className={isEditing ? 'editable' : ''}
+                          className={`info-row-input ${isEditing ? 'editable' : ''}`}
                         />
                       </div>
                     </div>
 
-                    <div className="info-field-group">
-                      <label>Số điện thoại</label>
-                      <div className="info-input-wrapper">
-                        <Phone size={16} className="input-icon" />
+                    {/* Row 2: Số điện thoại */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <Phone size={18} className="text-red-500" />
+                        <span className="info-row-label">Số điện thoại</span>
+                      </div>
+                      <div className="info-row-right">
                         <input 
                           type="text" 
                           value={phoneNumber} 
                           onChange={(e) => setPhoneNumber(e.target.value)}
                           disabled={!isEditing || isSaving}
-                          className={isEditing ? 'editable' : ''}
-                          placeholder="Chưa cập nhật số điện thoại"
+                          className={`info-row-input ${isEditing ? 'editable' : ''}`}
+                          placeholder={isEditing ? "Nhập số điện thoại" : "Chưa cập nhật số điện thoại"}
                         />
                       </div>
                     </div>
 
-                    <div className="info-field-group">
-                      <label>Địa chỉ Email</label>
-                      <div className="info-input-wrapper disabled">
-                        <Mail size={16} className="input-icon" />
-                        <input 
-                          type="email" 
-                          value={user?.email || ''} 
-                          disabled 
-                        />
-                        <Lock size={14} className="lock-icon" />
+                    {/* Row 3: Email */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <Mail size={18} className="text-red-500" />
+                        <span className="info-row-label">Địa chỉ Email</span>
+                      </div>
+                      <div className="info-row-right">
+                        <span className="info-row-text">{user?.email || ''}</span>
                       </div>
                     </div>
 
-                    <div className="info-field-group">
-                      <label>Phương thức đăng nhập</label>
-                      <div className="info-input-wrapper disabled">
-                        <Shield size={16} className="input-icon" />
-                        <input 
-                          type="text" 
-                          value={authProvider === 'GOOGLE' ? 'Google Sign-In' : 'Tài khoản thường'} 
-                          disabled 
-                        />
+                    {/* Row 4: Phương thức đăng nhập */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <Shield size={18} className="text-red-500" />
+                        <span className="info-row-label">Phương thức đăng nhập</span>
+                      </div>
+                      <div className="info-row-right">
+                        <span className="info-row-text">
+                          {authProvider === 'GOOGLE' ? 'Google Sign-In' : 'Tài khoản thường'}
+                        </span>
                       </div>
                     </div>
+
                   </div>
 
                   {/* Account Verification notice */}
