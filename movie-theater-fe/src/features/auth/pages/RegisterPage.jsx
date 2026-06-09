@@ -11,6 +11,9 @@ import { PasswordStrength } from '../components/PasswordStrength';
 import { SocialLoginButtons } from '../components/SocialLoginButtons';
 import { registerSchema } from '../utils/validation';
 import { authService } from '../api/authService';
+import { useAuthContext } from '../hooks/useAuthContext';
+import { notificationService } from '../../../shared/services/notificationService';
+import tokenService from '../utils/tokenService';
 import './RegisterPage.css';
 
 export const RegisterPage = () => {
@@ -149,8 +152,111 @@ export const RegisterPage = () => {
     }
   };
 
+  const googleButtonId = 'google-signup-button';
+  const { loginWithGoogle } = useAuthContext();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const redirectAfterLogin = () => {
+    const storedUser = tokenService.getUser();
+    const roles = storedUser?.roles || [];
+    const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
+    const targetPath = isAdminOrStaff ? '/admin' : '/';
+    if (targetPath === '/') {
+      sessionStorage.setItem('showCurtain', 'true');
+    }
+    navigate(targetPath, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!googleClientId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const initGoogle = () => {
+      if (cancelled || !window.google?.accounts?.id) {
+        return false;
+      }
+
+      const googleButtonElement = document.getElementById(googleButtonId);
+      if (!googleButtonElement) {
+        return false;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response?.credential) {
+            notificationService.error('Đăng ký/Đăng nhập bằng Google thất bại!');
+            return;
+          }
+
+          setIsLoading(true);
+          try {
+            await loginWithGoogle({ idToken: response.credential });
+            notificationService.success('Welcome to NASA FILM!');
+            redirectAfterLogin();
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Đăng ký/Đăng nhập bằng Google thất bại!';
+            notificationService.error(errorMessage);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      });
+
+      googleButtonElement.innerHTML = '';
+      window.google.accounts.id.renderButton(googleButtonElement, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        width: googleButtonElement.offsetWidth || 320,
+      });
+
+      return true;
+    };
+
+    if (initGoogle()) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (initGoogle()) {
+        window.clearInterval(intervalId);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [googleClientId, loginWithGoogle]);
+
   const handleGoogleLogin = async () => {
-    console.log('Google signup clicked');
+    if (!googleClientId) {
+      notificationService.error('Thiếu VITE_GOOGLE_CLIENT_ID trên frontend.');
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      notificationService.error('Google SDK chưa sẵn sàng.');
+      return;
+    }
+
+    const googleButtonElement = document.getElementById(googleButtonId);
+    const googleButton = googleButtonElement?.querySelector('div[role="button"], iframe');
+
+    if (googleButton instanceof HTMLElement) {
+      googleButton.click();
+      return;
+    }
+
+    notificationService.info('Nút Google chưa sẵn sàng. Thử tải lại trang.');
   };
 
   return (
@@ -249,13 +355,13 @@ export const RegisterPage = () => {
               />
               <span className="auth-terms-text">
                 Tôi đồng ý với{' '}
-                <a href="#" className="auth-terms-link">
+                <Link to="/terms" className="auth-terms-link">
                   Điều khoản dịch vụ
-                </a>{' '}
+                </Link>{' '}
                 và{' '}
-                <a href="#" className="auth-terms-link">
+                <Link to="/privacy" className="auth-terms-link">
                   Chính sách bảo mật
-                </a>
+                </Link>
               </span>
             </motion.label>
 
@@ -296,6 +402,7 @@ export const RegisterPage = () => {
             {/* Social Login */}
             <SocialLoginButtons
               onGoogleLogin={handleGoogleLogin}
+              googleButtonId={googleButtonId}
               loading={isLoading}
             />
 

@@ -294,7 +294,7 @@ export const ProfilePage = () => {
                 )}
                 {isSaving ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
-                    <div className="w-6 h-6 border-2 border-t-indigo-500 border-white/20 rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-t-red-600 border-white/20 rounded-full animate-spin" />
                   </div>
                 ) : (
                   <div className="profile-avatar-edit-btn">
@@ -321,11 +321,11 @@ export const ProfilePage = () => {
               
               <div className="profile-badges-row">
                 <div className="profile-badge-item">
-                  <MapPin size={14} className="text-blue-400" />
+                  <MapPin size={14} className="text-red-500" />
                   <span>TP. Hồ Chí Minh</span>
                 </div>
                 <div className="profile-badge-item">
-                  <Calendar size={14} className="text-indigo-400" />
+                  <Calendar size={14} className="text-amber-500" />
                   <span>Thành viên từ 2026</span>
                 </div>
               </div>
@@ -557,9 +557,9 @@ export const ProfilePage = () => {
                       <div>
                         {/* NASA'FRIEND card mockup */}
                         <div 
-                          className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-purple-500/20 shadow-2xl p-6 mb-6 flex flex-col justify-between"
+                          className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-red-500/20 shadow-2xl p-6 mb-6 flex flex-col justify-between"
                           style={{
-                            backgroundImage: `linear-gradient(to right, rgba(88, 28, 135, 0.85), rgba(15, 23, 42, 0.65)), url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=600')`,
+                            backgroundImage: `linear-gradient(to right, rgba(185, 28, 28, 0.85), rgba(15, 23, 42, 0.65)), url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=600')`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             backgroundBlendMode: 'overlay'
@@ -608,15 +608,15 @@ export const ProfilePage = () => {
                     <div className="flex flex-col justify-between bg-slate-950/40 border border-white/5 rounded-2xl p-6">
                       <div>
                         {/* NASA'VIP card mockup */}
-                        <div className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-yellow-500/30 shadow-[0_15px_30px_rgba(251,191,36,0.1)] bg-[#0c0a1a] p-6 mb-6 flex flex-col justify-between">
+                        <div className="relative w-full aspect-[1.58/1] rounded-2xl overflow-hidden border border-red-500/30 shadow-[0_15px_30px_rgba(220,38,38,0.1)] bg-[#0c0a1a] p-6 mb-6 flex flex-col justify-between">
                           {/* Inner glowing radial circular patterns like in the image */}
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.15),transparent_70%)] pointer-events-none" />
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-purple-500/10 rounded-full pointer-events-none" />
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border border-purple-500/20 rounded-full pointer-events-none" />
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-indigo-500/15 rounded-full pointer-events-none" />
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(220,38,38,0.15),transparent_70%)] pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-red-500/10 rounded-full pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border border-red-500/20 rounded-full pointer-events-none" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-amber-500/15 rounded-full pointer-events-none" />
                           
                           {/* Center round logo badge */}
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c183a] to-[#0a0818] border-2 border-yellow-500 rounded-full w-24 h-24 shadow-[0_0_20px_rgba(251,191,36,0.25)]">
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center bg-gradient-to-b from-[#2d0f14] to-[#0d0708] border-2 border-red-600 rounded-full w-24 h-24 shadow-[0_0_20px_rgba(220,38,38,0.25)]">
                             <span className="text-yellow-500 text-base leading-none">★</span>
                             <span className="text-yellow-400 text-lg font-black italic tracking-tighter mt-0.5">NASA'VIP</span>
                           </div>
@@ -667,7 +667,7 @@ export const ProfilePage = () => {
 
                   {/* Table Section: MỨC THƯỞNG THẺ THÀNH VIÊN */}
                   <div className="bg-[#0b0a1a] border border-white/5 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-red-500 via-yellow-500 to-indigo-500" />
+                    <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-red-500 via-yellow-500 to-red-600" />
                     
                     <div className="text-center mb-6">
                       <h3 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400 uppercase">
@@ -760,7 +760,7 @@ export const ProfilePage = () => {
                     <h2>Vé của tôi</h2>
                     <button 
                       onClick={() => setShowHistoryModal(true)} 
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 font-bold text-xs rounded-lg transition duration-200"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
                     >
                       <History size={14} />
                       <span>Lịch sử mua hàng</span>
@@ -787,11 +787,11 @@ export const ProfilePage = () => {
                             </div>
                             <div className="ticket-detail">
                               <span className="label">Suất chiếu</span>
-                              <span className="value text-blue-400">{tkt.showtime}</span>
+                              <span className="value text-red-500">{tkt.showtime}</span>
                             </div>
                             <div className="ticket-detail">
                               <span className="label">Ghế</span>
-                              <span className="value text-indigo-400">{tkt.seats}</span>
+                              <span className="value text-amber-500">{tkt.seats}</span>
                             </div>
                             <div className="ticket-detail">
                               <span className="label">Đồ ăn & Nước</span>
@@ -834,7 +834,7 @@ export const ProfilePage = () => {
                       <div key={voucher.code} className="voucher-card">
                         <div className="voucher-glow-dot" />
                         <div className="voucher-icon-box">
-                          <Gift size={24} className="text-violet-400" />
+                          <Gift size={24} className="text-amber-500" />
                         </div>
                         <div className="voucher-body">
                           <span className="voucher-code">{voucher.code}</span>
@@ -1004,13 +1004,13 @@ export const ProfilePage = () => {
               </div>
               <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                 <p className="text-[10px] uppercase tracking-wider text-slate-400">Số lượng vé</p>
-                <p className="text-lg font-black text-indigo-400 mt-1">
+                <p className="text-lg font-black text-red-500 mt-1">
                   {mockTransactions.length === 0 ? '0' : mockTransactions.filter(txn => txn.type === 'ticket').length} vé
                 </p>
               </div>
               <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                 <p className="text-[10px] uppercase tracking-wider text-slate-400">Số lượng combo</p>
-                <p className="text-lg font-black text-purple-400 mt-1">
+                <p className="text-lg font-black text-amber-500 mt-1">
                   {mockTransactions.length === 0 ? '0' : mockTransactions.filter(txn => txn.type === 'combo').length} combo
                 </p>
               </div>
@@ -1022,19 +1022,19 @@ export const ProfilePage = () => {
               <div className="flex gap-2 bg-slate-900 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
                 <button 
                   onClick={() => setHistoryFilter('all')} 
-                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'all' ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
                 >
                   Tất cả
                 </button>
                 <button 
                   onClick={() => setHistoryFilter('ticket')} 
-                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'ticket' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'ticket' ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
                 >
                   Vé xem phim
                 </button>
                 <button 
                   onClick={() => setHistoryFilter('combo')} 
-                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'combo' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === 'combo' ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
                 >
                   Bắp nước
                 </button>
@@ -1048,7 +1048,7 @@ export const ProfilePage = () => {
                   placeholder="Tìm theo mã giao dịch, tên..." 
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500"
+                  className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -1060,7 +1060,7 @@ export const ProfilePage = () => {
                 <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 max-w-lg mx-auto shadow-inner relative">
                   <button 
                     onClick={() => setSelectedTransaction(null)} 
-                    className="absolute top-4 left-4 text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    className="absolute top-4 left-4 text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-1"
                   >
                     ← Quay lại
                   </button>
@@ -1095,7 +1095,7 @@ export const ProfilePage = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Phương thức:</span>
-                      <span className="text-indigo-400 font-bold">{selectedTransaction.method}</span>
+                      <span className="text-red-500 font-bold">{selectedTransaction.method}</span>
                     </div>
                     <div className="border-t-2 border-dashed border-white/10 my-2 pt-3" />
                     <div className="flex justify-between text-base font-extrabold">
@@ -1125,7 +1125,7 @@ export const ProfilePage = () => {
                         className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-xl transition duration-200 gap-4"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${txn.type === 'ticket' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${txn.type === 'ticket' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-500'}`}>
                             {txn.type === 'ticket' ? <Ticket size={18} /> : <Gift size={18} />}
                           </div>
                           <div>
@@ -1140,7 +1140,7 @@ export const ProfilePage = () => {
                           <span className="text-sm font-black text-yellow-400">{txn.amount}</span>
                           <button 
                             onClick={() => setSelectedTransaction(txn)}
-                            className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition duration-200"
+                            className="text-xs font-bold text-red-500 hover:text-red-400 hover:underline transition duration-200"
                           >
                             Chi tiết hóa đơn →
                           </button>

@@ -73,3 +73,9 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Hide browser default password reveal and clear buttons (e.g. in Edge) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}

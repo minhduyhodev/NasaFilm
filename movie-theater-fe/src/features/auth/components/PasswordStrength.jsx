@@ -7,11 +7,11 @@ import { Check, X } from 'lucide-react';
 
 
 const requirements = [
-  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
-  { label: 'One number', test: (p) => /[0-9]/.test(p) },
-  { label: 'One special character (!@#$%^&*)', test: (p) => /[!@#$%^&*]/.test(p) },
+  { label: 'Ít nhất 8 ký tự', test: (p) => p.length >= 8 },
+  { label: 'Ít nhất một chữ cái viết hoa', test: (p) => /[A-Z]/.test(p) },
+  { label: 'Ít nhất một chữ cái viết thường', test: (p) => /[a-z]/.test(p) },
+  { label: 'Ít nhất một chữ số', test: (p) => /[0-9]/.test(p) },
+  { label: 'Ít nhất một ký tự đặc biệt (!@#$%^&*)', test: (p) => /[!@#$%^&*]/.test(p) },
 ];
 
 export const PasswordStrength = ({
@@ -29,9 +29,9 @@ export const PasswordStrength = ({
   };
 
   const getStrengthText = () => {
-    if (strengthPercent < 40) return 'Weak';
-    if (strengthPercent < 70) return 'Fair';
-    return 'Strong';
+    if (strengthPercent < 40) return 'Yếu';
+    if (strengthPercent < 70) return 'Trung bình';
+    return 'Mạnh';
   };
 
   if (!showRequirements && !password) return null;
@@ -68,7 +68,7 @@ export const PasswordStrength = ({
           className="space-y-2 pt-2"
         >
           <p className="text-xs uppercase tracking-widest text-gray-500">
-            Password Requirements
+            Yêu cầu mật khẩu
           </p>
           <div className="grid grid-cols-1 gap-2">
             {requirements.map((req, index) => {

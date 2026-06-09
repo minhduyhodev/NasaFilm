@@ -75,11 +75,11 @@ const Footer = () => {
             <h3 className="footer-col-title">Chính Sách & Hỗ Trợ</h3>
             <ul className="footer-links-list">
               {[
-                { label: 'Điều Khoản Sử Dụng', to: '/' },
-                { label: 'Chính Sách Bảo Mật', to: '/' },
-                { label: 'Chính Sách Thanh Toán', to: '/' },
-                { label: 'Chính Sách Hoàn Vé', to: '/' },
-                { label: 'Câu Hỏi Thường Gặp', to: '/' }
+                { label: 'Điều Khoản Sử Dụng', to: '/terms' },
+                { label: 'Chính Sách Bảo Mật', to: '/privacy' },
+                { label: 'Chính Sách Thanh Toán', to: '/payment-policy' },
+                { label: 'Chính Sách Hoàn Vé', to: '/refund-policy' },
+                { label: 'Câu Hỏi Thường Gặp', to: '/faq' }
               ].map((link) => (
                 <li key={link.label}>
                   <Link 

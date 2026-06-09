@@ -16,24 +16,15 @@ const TicketFilters = () => {
   const navigate = useNavigate();
 
   const handleTheaterChange = (e) => {
-    const val = e.target.value;
-    setTheater(val);
-    setMovie('');
-    setDate('');
-    setShowtime('');
+    setTheater(e.target.value);
   };
 
   const handleMovieChange = (e) => {
-    const val = e.target.value;
-    setMovie(val);
-    setDate('');
-    setShowtime('');
+    setMovie(e.target.value);
   };
 
   const handleDateChange = (e) => {
-    const val = e.target.value;
-    setDate(val);
-    setShowtime('');
+    setDate(e.target.value);
   };
 
   const handleShowtimeChange = (e) => {
@@ -46,17 +37,19 @@ const TicketFilters = () => {
       navigate('/auth/login');
       return;
     }
-    if (theater && movie && date && showtime) {
-      addNotification(
-        "Đặt vé thành công",
-        `Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`,
-        "success"
-      );
+    if (!theater || !movie || !date || !showtime) {
+      notificationService.warning("Vui lòng chọn đầy đủ Rạp, Phim, Ngày và Suất chiếu để đặt vé.");
+      return;
     }
+    addNotification(
+      "Đặt vé thành công",
+      `Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`,
+      "success"
+    );
   };
 
   const getSelectClass = (value) => {
-    const baseClass = 'h-14 w-full appearance-none rounded-xl border px-4 pr-10 text-base font-extrabold shadow-[0_10px_30px_rgba(15,23,42,0.25)] outline-none transition focus:border-red-500/40 disabled:opacity-100 disabled:pointer-events-none';
+    const baseClass = 'h-14 w-full appearance-none rounded-xl border px-4 pr-10 text-base font-extrabold shadow-[0_10px_30px_rgba(15,23,42,0.25)] outline-none transition focus:border-red-500/40';
     if (value) {
       return `${baseClass} bg-yellow-400 border-yellow-400 text-red-700`;
     }
@@ -91,7 +84,6 @@ const TicketFilters = () => {
             className={getSelectClass(movie)} 
             value={movie} 
             onChange={handleMovieChange}
-            disabled={!theater}
           >
             <option value="">2. Chọn Phim</option>
             <option value="Doraemon: Lâu Đài Dưới Đáy Biển">Doraemon: Lâu Đài Dưới Đáy Biển</option>
@@ -107,7 +99,6 @@ const TicketFilters = () => {
             className={getSelectClass(date)} 
             value={date} 
             onChange={handleDateChange}
-            disabled={!movie}
           >
             <option value="">3. Chọn Ngày</option>
             <option value="Hôm nay">Hôm nay</option>
@@ -123,7 +114,6 @@ const TicketFilters = () => {
             className={getSelectClass(showtime)} 
             value={showtime} 
             onChange={handleShowtimeChange}
-            disabled={!date}
           >
             <option value="">4. Chọn Suất</option>
             <option value="10:00">10:00</option>
@@ -137,8 +127,7 @@ const TicketFilters = () => {
 
         <button 
           onClick={handleBookNow}
-          disabled={!showtime}
-          className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-base font-black uppercase tracking-wide text-white shadow-[0_14px_35px_rgba(220,38,38,0.35)] transition hover:enabled:-translate-y-0.5 hover:enabled:bg-red-700 disabled:opacity-100 disabled:pointer-events-none"
+          className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-base font-black uppercase tracking-wide text-white shadow-[0_14px_35px_rgba(220,38,38,0.35)] transition hover:bg-red-700"
         >
           Đặt Ngay
         </button>

@@ -6,6 +6,11 @@ import MoviesPage from '../pages/MoviesPage';
 import CinemasPage from '../pages/CinemasPage';
 import OffersPage from '../pages/OffersPage';
 import ProfilePage from '../pages/ProfilePage';
+import TermsPage from '../pages/TermsPage';
+import PrivacyPage from '../pages/PrivacyPage';
+import PaymentPolicyPage from '../pages/PaymentPolicyPage';
+import RefundPolicyPage from '../pages/RefundPolicyPage';
+import FaqPage from '../pages/FaqPage';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 
 export const HomeRoutes = () => {
@@ -16,6 +21,11 @@ export const HomeRoutes = () => {
       <Route path="cinemas" element={<CinemasPage />} />
       <Route path="offers" element={<OffersPage />} />
       <Route path="about" element={<AboutPage />} />
+      <Route path="terms" element={<TermsPage />} />
+      <Route path="privacy" element={<PrivacyPage />} />
+      <Route path="payment-policy" element={<PaymentPolicyPage />} />
+      <Route path="refund-policy" element={<RefundPolicyPage />} />
+      <Route path="faq" element={<FaqPage />} />
       <Route
         path="profile"
         element={

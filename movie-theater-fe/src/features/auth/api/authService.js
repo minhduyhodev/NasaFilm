@@ -126,6 +126,8 @@ class AuthService {
 
       if (credentials.rememberMe) {
         localStorage.setItem('rememberEmail', credentials.email);
+      } else {
+        localStorage.removeItem('rememberEmail');
       }
 
       return authResponse;
