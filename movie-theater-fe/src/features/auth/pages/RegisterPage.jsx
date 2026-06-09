@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Mail, Lock, User, Phone } from 'lucide-react';
-import { AuthLayout } from '../components/AuthLayout';
-import { AuthCard } from '../components/AuthCard';
-import { AuthInput } from '../components/AuthInput';
-import { PasswordStrength } from '../components/PasswordStrength';
-import { SocialLoginButtons } from '../components/SocialLoginButtons';
-import { registerSchema } from '../utils/validation';
-import { authService } from '../api/authService';
-import { useAuthContext } from '../hooks/useAuthContext';
-import { notificationService } from '../../../shared/services/notificationService';
-import tokenService from '../utils/tokenService';
-import './RegisterPage.css';
+import { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, Lock, User, Phone } from "lucide-react";
+import { AuthLayout } from "../components/AuthLayout";
+import { AuthCard } from "../components/AuthCard";
+import { AuthInput } from "../components/AuthInput";
+import { PasswordStrength } from "../components/PasswordStrength";
+import { SocialLoginButtons } from "../components/SocialLoginButtons";
+import { registerSchema } from "../utils/validation";
+import { authService } from "../api/authService";
+import { useAuthContext } from "../hooks/useAuthContext";
+import { notificationService } from "../../../shared/services/notificationService";
+import tokenService from "../utils/tokenService";
+import "./RegisterPage.css";
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -24,9 +24,9 @@ export const RegisterPage = () => {
 
   // 2-step verification state
   const [step, setStep] = useState(1); // 1: Info Form, 2: OTP Code
-  const [registeredEmail, setRegisteredEmail] = useState('');
-  const [otpValues, setOtpValues] = useState(Array(6).fill(''));
-  const [otpError, setOtpError] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [otpValues, setOtpValues] = useState(Array(6).fill(""));
+  const [otpError, setOtpError] = useState("");
   const [timer, setTimer] = useState(0);
   const otpRefs = useRef([]);
 
@@ -40,7 +40,7 @@ export const RegisterPage = () => {
     resolver: zodResolver(registerSchema),
   });
 
-  const password = watch('password');
+  const password = watch("password");
 
   // Countdown timer for resend OTP
   useEffect(() => {
@@ -65,14 +65,14 @@ export const RegisterPage = () => {
       setRegisteredEmail(data.email);
       setStep(2);
       setTimer(60);
-      setOtpValues(Array(6).fill(''));
-      setOtpError('');
+      setOtpValues(Array(6).fill(""));
+      setOtpError("");
     } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Registration failed. Please try again.';
-      setError('email', {
+          : "Registration failed. Please try again.";
+      setError("email", {
         message: errorMessage,
       });
     } finally {
@@ -82,88 +82,91 @@ export const RegisterPage = () => {
 
   const handleOtpChange = (index, value) => {
     // Only allow single digit
-    const cleaned = value.replace(/[^0-9]/g, '');
-    if (cleaned === '' && value !== '') return;
+    const cleaned = value.replace(/[^0-9]/g, "");
+    if (cleaned === "" && value !== "") return;
 
     const newOtpValues = [...otpValues];
     newOtpValues[index] = cleaned;
     setOtpValues(newOtpValues);
-    setOtpError('');
+    setOtpError("");
 
     // Auto focus next input
-    if (cleaned !== '' && index < 5) {
+    if (cleaned !== "" && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace') {
-      if (otpValues[index] === '' && index > 0) {
+    if (e.key === "Backspace") {
+      if (otpValues[index] === "" && index > 0) {
         const newOtpValues = [...otpValues];
-        newOtpValues[index - 1] = '';
+        newOtpValues[index - 1] = "";
         setOtpValues(newOtpValues);
         otpRefs.current[index - 1]?.focus();
       } else {
         const newOtpValues = [...otpValues];
-        newOtpValues[index] = '';
+        newOtpValues[index] = "";
         setOtpValues(newOtpValues);
       }
-      setOtpError('');
+      setOtpError("");
     }
   };
 
   const onVerifyOtpSubmit = async (e) => {
     e.preventDefault();
-    const code = otpValues.join('');
+    const code = otpValues.join("");
     if (code.length < 6) {
-      setOtpError('Vui lòng nhập đầy đủ mã xác thực 6 chữ số.');
+      setOtpError("Vui lòng nhập đầy đủ mã xác thực 6 chữ số.");
       return;
     }
 
     setIsLoading(true);
     try {
       await authService.verifyRegister(registeredEmail, code);
-      navigate('/auth/login', {
-        state: { message: 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.' },
+      navigate("/auth/login", {
+        state: { message: "Đăng ký tài khoản thành công! Vui lòng đăng nhập." },
       });
     } catch (error) {
-      setOtpError(error instanceof Error ? error.message : 'Xác thực OTP thất bại.');
+      setOtpError(
+        error instanceof Error ? error.message : "Xác thực OTP thất bại.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
-    setOtpError('');
+    setOtpError("");
     setIsLoading(true);
     try {
       await authService.register({
-        fullName: watch('fullName'),
+        fullName: watch("fullName"),
         email: registeredEmail,
-        password: watch('password'),
+        password: watch("password"),
       });
       setTimer(60);
-      setOtpValues(Array(6).fill(''));
-      setOtpError('');
+      setOtpValues(Array(6).fill(""));
+      setOtpError("");
     } catch (error) {
-      setOtpError(error instanceof Error ? error.message : 'Gửi lại mã xác thực thất bại.');
+      setOtpError(
+        error instanceof Error
+          ? error.message
+          : "Gửi lại mã xác thực thất bại.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const googleButtonId = 'google-signup-button';
+  const googleButtonId = "google-signup-button";
   const { loginWithGoogle } = useAuthContext();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const redirectAfterLogin = () => {
     const storedUser = tokenService.getUser();
     const roles = storedUser?.roles || [];
-    const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
-    const targetPath = isAdminOrStaff ? '/admin' : '/';
-    if (targetPath === '/') {
-      sessionStorage.setItem('showCurtain', 'true');
-    }
+    const isAdminOrStaff = roles.some((r) => r === "admin" || r === "staff");
+    const targetPath = isAdminOrStaff ? "/admin" : "/";
     navigate(targetPath, { replace: true });
   };
 
@@ -188,18 +191,22 @@ export const RegisterPage = () => {
         client_id: googleClientId,
         callback: async (response) => {
           if (!response?.credential) {
-            notificationService.error('Đăng ký/Đăng nhập bằng Google thất bại!');
+            notificationService.error(
+              "Đăng ký/Đăng nhập bằng Google thất bại!",
+            );
             return;
           }
 
           setIsLoading(true);
           try {
             await loginWithGoogle({ idToken: response.credential });
-            notificationService.success('Welcome to NASA FILM!');
+            notificationService.success("Welcome to NASA FILM!");
             redirectAfterLogin();
           } catch (error) {
             const errorMessage =
-              error instanceof Error ? error.message : 'Đăng ký/Đăng nhập bằng Google thất bại!';
+              error instanceof Error
+                ? error.message
+                : "Đăng ký/Đăng nhập bằng Google thất bại!";
             notificationService.error(errorMessage);
           } finally {
             setIsLoading(false);
@@ -207,12 +214,12 @@ export const RegisterPage = () => {
         },
       });
 
-      googleButtonElement.innerHTML = '';
+      googleButtonElement.innerHTML = "";
       window.google.accounts.id.renderButton(googleButtonElement, {
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        shape: 'rectangular',
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
         width: googleButtonElement.offsetWidth || 320,
       });
 
@@ -239,24 +246,26 @@ export const RegisterPage = () => {
 
   const handleGoogleLogin = async () => {
     if (!googleClientId) {
-      notificationService.error('Thiếu VITE_GOOGLE_CLIENT_ID trên frontend.');
+      notificationService.error("Thiếu VITE_GOOGLE_CLIENT_ID trên frontend.");
       return;
     }
 
     if (!window.google?.accounts?.id) {
-      notificationService.error('Google SDK chưa sẵn sàng.');
+      notificationService.error("Google SDK chưa sẵn sàng.");
       return;
     }
 
     const googleButtonElement = document.getElementById(googleButtonId);
-    const googleButton = googleButtonElement?.querySelector('div[role="button"], iframe');
+    const googleButton = googleButtonElement?.querySelector(
+      'div[role="button"], iframe',
+    );
 
     if (googleButton instanceof HTMLElement) {
       googleButton.click();
       return;
     }
 
-    notificationService.info('Nút Google chưa sẵn sàng. Thử tải lại trang.');
+    notificationService.info("Nút Google chưa sẵn sàng. Thử tải lại trang.");
   };
 
   return (
@@ -273,9 +282,9 @@ export const RegisterPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
             {/* Full Name Input */}
             <AuthInput
-              {...register('fullName')}
-              label="Họ và Tên"
-              placeholder="John Doe"
+              {...register("fullName")}
+              label="Tên tài khoản"
+              placeholder="Chí Trung"
               type="text"
               icon={<User size={20} />}
               error={errors.fullName}
@@ -283,7 +292,7 @@ export const RegisterPage = () => {
 
             {/* Email Input */}
             <AuthInput
-              {...register('email')}
+              {...register("email")}
               label="Địa chỉ Email"
               placeholder="name@email.com"
               type="email"
@@ -293,7 +302,7 @@ export const RegisterPage = () => {
 
             {/* Phone Number Input */}
             <AuthInput
-              {...register('phoneNumber')}
+              {...register("phoneNumber")}
               label="Số điện thoại (Không bắt buộc)"
               placeholder="+84 900-000-000"
               type="tel"
@@ -303,7 +312,7 @@ export const RegisterPage = () => {
 
             {/* Password Input */}
             <AuthInput
-              {...register('password')}
+              {...register("password")}
               label="Mật khẩu"
               placeholder="••••••••"
               type="password"
@@ -321,16 +330,13 @@ export const RegisterPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white/5 rounded-lg p-4 border border-white/10"
               >
-                <PasswordStrength
-                  password={password}
-                  showRequirements={true}
-                />
+                <PasswordStrength password={password} showRequirements={true} />
               </motion.div>
             )}
 
             {/* Confirm Password Input */}
             <AuthInput
-              {...register('confirmPassword')}
+              {...register("confirmPassword")}
               label="Xác nhận mật khẩu"
               placeholder="••••••••"
               type="password"
@@ -350,15 +356,15 @@ export const RegisterPage = () => {
             >
               <input
                 type="checkbox"
-                {...register('agreeToTerms')}
+                {...register("agreeToTerms")}
                 className="auth-terms-checkbox"
               />
               <span className="auth-terms-text">
-                Tôi đồng ý với{' '}
+                Tôi đồng ý với{" "}
                 <Link to="/terms" className="auth-terms-link">
                   Điều khoản dịch vụ
-                </Link>{' '}
-                và{' '}
+                </Link>{" "}
+                và{" "}
                 <Link to="/privacy" className="auth-terms-link">
                   Chính sách bảo mật
                 </Link>
@@ -390,7 +396,7 @@ export const RegisterPage = () => {
                   Đang tạo tài khoản...
                 </span>
               ) : (
-                'Đăng Ký'
+                "Đăng Ký"
               )}
             </motion.button>
 
@@ -409,10 +415,7 @@ export const RegisterPage = () => {
             {/* Sign In Link */}
             <div className="auth-footer">
               <span className="auth-footer-text">Đã có tài khoản? </span>
-              <Link
-                to="/auth/login"
-                className="auth-footer-link"
-              >
+              <Link to="/auth/login" className="auth-footer-link">
                 Đăng nhập
               </Link>
             </div>
@@ -446,7 +449,7 @@ export const RegisterPage = () => {
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="auth-error-msg justify-center text-center w-full"
-                style={{ justifyContent: 'center' }}
+                style={{ justifyContent: "center" }}
               >
                 <span className="auth-error-dot"></span>
                 {otpError}
@@ -466,7 +469,7 @@ export const RegisterPage = () => {
                   Đang xác minh OTP...
                 </span>
               ) : (
-                'Xác Minh & Kích Hoạt Tài Khoản'
+                "Xác Minh & Kích Hoạt Tài Khoản"
               )}
             </motion.button>
 
@@ -490,8 +493,8 @@ export const RegisterPage = () => {
                 type="button"
                 onClick={() => {
                   setStep(1);
-                  setOtpValues(Array(6).fill(''));
-                  setOtpError('');
+                  setOtpValues(Array(6).fill(""));
+                  setOtpError("");
                 }}
                 className="auth-back-btn"
                 disabled={isLoading}

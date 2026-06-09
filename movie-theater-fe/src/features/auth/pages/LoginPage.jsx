@@ -60,9 +60,6 @@ export const LoginPage = () => {
    const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
 
     const targetPath = from || (isAdminOrStaff ? '/admin' : '/');
-    if (targetPath === '/') {
-      sessionStorage.setItem('showCurtain', 'true');
-    }
     navigate(targetPath, { replace: true });
   };
 
