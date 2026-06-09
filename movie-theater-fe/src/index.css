@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply font-normal; /* 400 */
+  }
+
+  h1, h2, h3, h4, h5, h6, .movie-title, .font-heading {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* Fallback headings to Montserrat 700 */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+
+  /* Buttons & navbar links defaulting to 600 */
+  button, .btn, .btn-primary, .navbar-nav-link, [role="button"] {
+    font-family: 'Inter', sans-serif;
+    @apply font-semibold; /* 600 */
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
