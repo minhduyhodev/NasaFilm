@@ -68,7 +68,15 @@ public class UserService {
         }
 
         if (request.getPhoneNumber() != null) {
-            user.setPhoneNumber(request.getPhoneNumber());
+            user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
+        }
+
+        if (request.getDayOfBirth() != null) {
+            user.setDayOfBirth(request.getDayOfBirth());
+        }
+
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
         }
 
         if (request.getCurrentPassword() != null || request.getNewPassword() != null) {
@@ -146,7 +154,9 @@ public class UserService {
                 user.getFullName(),
                 user.getAvatarUrl(),
                 user.getAuthProvider(),
-                user.getPhoneNumber());
+                user.getPhoneNumber(),
+                user.getDayOfBirth(),
+                user.getGender());
     }
 
     @Transactional(readOnly = true)
