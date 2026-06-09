@@ -41,4 +41,5 @@ build/
 out/
 bin/
 thdpv-movie-theater-fe/
+docs/movie_theater.sql
 

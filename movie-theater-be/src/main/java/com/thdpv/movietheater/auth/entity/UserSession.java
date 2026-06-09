@@ -8,17 +8,21 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import com.thdpv.movietheater.user.entity.User;
 
 @Entity
-@Table(name = "user_sessions")
+@Table(
+        name = "user_sessions",
+        indexes = {
+                @Index(name = "idx_user_sessions_user_id", columnList = "user_id"),
+                @Index(name = "idx_user_sessions_expired_at", columnList = "expired_at"),
+                @Index(name = "idx_user_sessions_status", columnList = "status"),
+                @Index(name = "idx_user_sessions_user_status", columnList = "user_id,status")
+        })
 public class UserSession {
 
     @Id
@@ -26,42 +30,60 @@ public class UserSession {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
-    @Column(name = "refresh_token", nullable = false, unique = true, length = 128)
-    private String refreshToken;
+    @Column(name = "refresh_token_hash", unique = true, length = 64)
+    private String refreshTokenHash;
 
-    @Column(name = "expiry_date", nullable = false)
-    private LocalDateTime expiryDate;
+    @Column(name = "device_info", length = 255)
+    private String deviceInfo;
 
-    @Column(nullable = false)
-    private boolean revoked = false;
-
-    @Column(name = "ip_address")
+    @Column(name = "ip_address", length = 64)
     private String ipAddress;
 
-    @Column(name = "user_agent")
+    @Column(name = "user_agent", length = 512)
     private String userAgent;
+
+    @Column(length = 50)
+    private String status;
+
+    @Column(name = "last_activity_at")
+    private LocalDateTime lastActivityAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
 
-    public UserSession() {}
+    @Column(name = "revoked_at")
+    private LocalDateTime revokedAt;
 
-    public UserSession(User user, String refreshToken, LocalDateTime expiryDate, String ipAddress, String userAgent) {
-        this.user = user;
-        this.refreshToken = refreshToken;
-        this.expiryDate = expiryDate;
+    public UserSession() {
+    }
+
+    public UserSession(UUID userId, String refreshTokenHash, String deviceInfo, String ipAddress, String userAgent,
+            String status, LocalDateTime lastActivityAt, LocalDateTime expiredAt) {
+        this.userId = userId;
+        this.refreshTokenHash = refreshTokenHash;
+        this.deviceInfo = deviceInfo;
         this.ipAddress = ipAddress;
         this.userAgent = userAgent;
-        this.revoked = false;
+        this.status = status;
+        this.lastActivityAt = lastActivityAt;
+        this.expiredAt = expiredAt;
+    }
+
+    @PrePersist
+    void applyDefaults() {
+        if (status == null || status.isBlank()) {
+            status = "ACTIVE";
+        }
+        if (lastActivityAt == null) {
+            lastActivityAt = LocalDateTime.now();
+        }
     }
 
     public UUID getId() {
@@ -72,36 +94,28 @@ public class UserSession {
         this.id = id;
     }
 
-    public User getUser() {
-        return user;
+    public UUID getUserId() {
+        return userId;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(UUID userId) {
+        this.userId = userId;
     }
 
-    public String getRefreshToken() {
-        return refreshToken;
+    public String getRefreshTokenHash() {
+        return refreshTokenHash;
     }
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
+    public void setRefreshTokenHash(String refreshTokenHash) {
+        this.refreshTokenHash = refreshTokenHash;
     }
 
-    public LocalDateTime getExpiryDate() {
-        return expiryDate;
+    public String getDeviceInfo() {
+        return deviceInfo;
     }
 
-    public void setExpiryDate(LocalDateTime expiryDate) {
-        this.expiryDate = expiryDate;
-    }
-
-    public boolean isRevoked() {
-        return revoked;
-    }
-
-    public void setRevoked(boolean revoked) {
-        this.revoked = revoked;
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
     }
 
     public String getIpAddress() {
@@ -120,11 +134,39 @@ public class UserSession {
         this.userAgent = userAgent;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public void setLastActivityAt(LocalDateTime lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public LocalDateTime getExpiredAt() {
+        return expiredAt;
+    }
+
+    public void setExpiredAt(LocalDateTime expiredAt) {
+        this.expiredAt = expiredAt;
+    }
+
+    public LocalDateTime getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(LocalDateTime revokedAt) {
+        this.revokedAt = revokedAt;
     }
 }

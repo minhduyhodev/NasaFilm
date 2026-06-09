@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.user.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,10 +17,17 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        indexes = {
+                @Index(name = "idx_users_phone_number", columnList = "phone_number"),
+                @Index(name = "idx_users_status", columnList = "status")
+        })
 public class User {
 
     @Id
@@ -30,22 +38,33 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(length = 255)
     private String password;
 
-    @Column(name = "full_name", nullable = false)
+    @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
-    @Column(name = "avatar_url")
+    @Column(name = "username", unique = true, length = 100)
+    private String username;
+
+    @Column(name = "day_of_birth")
+    private LocalDate dayOfBirth;
+
+    @Column(length = 50)
+    private String gender;
+
+    @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
-    @Column(name = "phone_number")
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider")
-    private AuthProvider authProvider;
+    @Column(name = "auth_provider", nullable = false, length = 50)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private UserStatus status;
 
     private Integer score = 0;
@@ -57,27 +76,53 @@ public class User {
     private LocalDateTime verificationCodeExpiry;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Column(name = "created_by")
+    private UUID createdBy;
+
+    @Column(name = "updated_by")
+    private UUID updatedBy;
+
     public User() {
     }
 
-    public User(UUID id, String email, String password, String fullName, String avatarUrl,
-            AuthProvider authProvider, UserStatus status, Integer score, LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
+    public User(UUID id, String email, String password, String fullName, String username, LocalDate dayOfBirth,
+            String gender, String avatarUrl, String phoneNumber, AuthProvider authProvider, UserStatus status,
+            Integer score, String verificationCode, LocalDateTime verificationCodeExpiry, LocalDateTime createdAt,
+            LocalDateTime updatedAt, UUID createdBy, UUID updatedBy) {
         this.id = id;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
+        this.username = username;
+        this.dayOfBirth = dayOfBirth;
+        this.gender = gender;
         this.avatarUrl = avatarUrl;
+        this.phoneNumber = phoneNumber;
         this.authProvider = authProvider;
         this.status = status;
         this.score = score;
+        this.verificationCode = verificationCode;
+        this.verificationCodeExpiry = verificationCodeExpiry;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.createdBy = createdBy;
+        this.updatedBy = updatedBy;
+    }
+
+    @PrePersist
+    void applyDefaults() {
+        if (authProvider == null) {
+            authProvider = AuthProvider.LOCAL;
+        }
+        if (score == null) {
+            score = 0;
+        }
     }
 
     public UUID getId() {
@@ -110,6 +155,30 @@ public class User {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public LocalDate getDayOfBirth() {
+        return dayOfBirth;
+    }
+
+    public void setDayOfBirth(LocalDate dayOfBirth) {
+        this.dayOfBirth = dayOfBirth;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
     }
 
     public String getAvatarUrl() {
@@ -166,6 +235,22 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public UUID getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(UUID createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public UUID getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(UUID updatedBy) {
+        this.updatedBy = updatedBy;
     }
 
     public String getVerificationCode() {
