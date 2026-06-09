@@ -18,7 +18,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleLogout = useCallback(() => {
     logout();
-    navigate('/auth/login');
+    navigate('/login');
   }, [logout, navigate]);
 
   return (
@@ -93,7 +93,7 @@ const AdminLayout = ({ children }) => {
     <div className="min-h-screen bg-[#070709] text-on-surface overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="lg:ml-72 min-h-screen flex flex-col overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.04),_transparent_30%),_radial-gradient(circle_at_bottom_right,_rgba(220,38,38,0.08),_transparent_25%)]">
-        <div className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#09090f]/95 backdrop-blur-[16px] shadow-[0_10px_40px_rgba(0,0,0,0.2)]">
+        <div className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#09090f]/95 backdrop-blur-[16px] shadow-[0_10px_40px_rgba(0,0,0,0.2)] lg:hidden">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-center justify-between gap-4">
               <button
@@ -103,14 +103,6 @@ const AdminLayout = ({ children }) => {
               >
                 <span className="material-symbols-outlined">menu</span>
               </button>
-              <div className="relative w-full max-w-3xl">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-                <input
-                  className="w-full rounded-full bg-[#101118] border border-white/10 py-3 pl-14 pr-4 text-white placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-error/30"
-                  placeholder="Tìm kiếm thống kê, khách hàng hoặc phim..."
-                  type="text"
-                />
-              </div>
             </div>
           </div>
         </div>

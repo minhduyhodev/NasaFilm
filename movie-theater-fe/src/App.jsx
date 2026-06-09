@@ -5,7 +5,7 @@ import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
-import { UnauthorizedPage } from './features/auth';
+import { UnauthorizedPage, LoginPage, RegisterPage, PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
@@ -20,6 +20,26 @@ export default function App() {
         <AuthProvider>
           <NotificationProvider>
             <Routes>
+              {/* Login route */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Register route */}
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <RegisterPage />
+                  </PublicRoute>
+                }
+              />
+
               {/* Auth routes */}
               <Route path="/auth/*" element={<AuthRoutes />} />
 

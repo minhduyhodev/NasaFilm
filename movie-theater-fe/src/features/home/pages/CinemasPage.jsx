@@ -91,7 +91,7 @@ const CinemasPage = () => {
   const handleShowtimeClick = (cinemaName, movieTitle, time) => {
     if (!user) {
       notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
-      navigate('/auth/login');
+      navigate('/login');
       return;
     }
     addNotification(

@@ -34,7 +34,7 @@ const TicketFilters = () => {
   const handleBookNow = () => {
     if (!user) {
       notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
-      navigate('/auth/login');
+      navigate('/login');
       return;
     }
     if (!theater || !movie || !date || !showtime) {

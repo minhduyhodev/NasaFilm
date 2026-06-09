@@ -123,7 +123,7 @@ export const RegisterPage = () => {
     setIsLoading(true);
     try {
       await authService.verifyRegister(registeredEmail, code);
-      navigate("/auth/login", {
+      navigate("/login", {
         state: { message: "Đăng ký tài khoản thành công! Vui lòng đăng nhập." },
       });
     } catch (error) {
@@ -415,7 +415,7 @@ export const RegisterPage = () => {
             {/* Sign In Link */}
             <div className="auth-footer">
               <span className="auth-footer-text">Đã có tài khoản? </span>
-              <Link to="/auth/login" className="auth-footer-link">
+              <Link to="/login" className="auth-footer-link">
                 Đăng nhập
               </Link>
             </div>
