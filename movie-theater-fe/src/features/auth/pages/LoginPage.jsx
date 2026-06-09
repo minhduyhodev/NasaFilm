@@ -280,7 +280,7 @@ export const LoginPage = () => {
           <div className="auth-footer">
             <span className="auth-footer-text">Chưa có tài khoản? </span>
             <Link
-              to="/auth/register"
+              to="/register"
               className="auth-footer-link"
             >
               Đăng ký ngay

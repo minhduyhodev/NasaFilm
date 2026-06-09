@@ -35,12 +35,12 @@ export const ForgotPasswordPage = () => {
         `Recovery code sent to ${data.email}. Please check your email.`
       );
       setTimeout(() => {
-        navigate('/auth/login');
+        navigate('/login');
       }, 3000);
     } catch (error) {
       if (error instanceof Error && error.message === 'GOOGLE_SSO_ACCOUNT') {
         notificationService.info('Tài khoản của bạn đã được liên kết với Google. Vui lòng đăng nhập qua Google.');
-        navigate('/auth/login');
+        navigate('/login');
         return;
       }
       const errorMessage =
@@ -105,7 +105,7 @@ export const ForgotPasswordPage = () => {
 
             {/* Manual redirect button */}
             <Link
-              to="/auth/login"
+              to="/login"
               className="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 text-center"
             >
               Quay lại Đăng nhập
@@ -154,7 +154,7 @@ export const ForgotPasswordPage = () => {
 
             {/* Back to Login */}
             <Link
-              to="/auth/login"
+              to="/login"
               className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200"
             >
               <ArrowLeft size={20} />

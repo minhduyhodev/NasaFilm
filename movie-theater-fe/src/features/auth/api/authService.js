@@ -92,7 +92,7 @@ class AuthService {
             refreshSubscribers = [];
             tokenService.clear();
             sessionStorage.setItem('auth_expired', 'true');
-            window.location.href = '/auth/login';
+            window.location.href = '/login';
             return Promise.reject(refreshError);
           }
         }
@@ -100,7 +100,7 @@ class AuthService {
         if (error.response?.status === 401 && !isAuthRequest) {
           tokenService.clear();
           sessionStorage.setItem('auth_expired', 'true');
-          window.location.href = '/auth/login';
+          window.location.href = '/login';
         }
 
         return Promise.reject(error);

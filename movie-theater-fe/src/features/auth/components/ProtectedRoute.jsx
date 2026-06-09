@@ -23,7 +23,7 @@ export const ProtectedRoute = ({
 
   // Chưa đăng nhập → về trang login, lưu lại đường dẫn hiện tại
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   // Đã đăng nhập nhưng không có role phù hợp → về trang unauthorized

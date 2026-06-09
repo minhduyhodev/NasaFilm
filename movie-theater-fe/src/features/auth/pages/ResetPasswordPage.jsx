@@ -51,7 +51,7 @@ export const ResetPasswordPage = () => {
 
       setSuccessMessage('Password reset successfully! Redirecting to login...');
       setTimeout(() => {
-        navigate('/auth/login');
+        navigate('/login');
       }, 2000);
     } catch (error) {
       const errorMessage =
@@ -209,7 +209,7 @@ export const ResetPasswordPage = () => {
 
             {/* Back to Login */}
             <Link
-              to="/auth/login"
+              to="/login"
               className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200"
             >
               <ArrowLeft size={20} />

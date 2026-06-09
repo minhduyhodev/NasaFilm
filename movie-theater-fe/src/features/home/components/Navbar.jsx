@@ -15,7 +15,7 @@ const Navbar = () => {
   const handleBookingClick = () => {
     if (!user) {
       notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
-      navigate('/auth/login');
+      navigate('/login');
     } else {
       notificationService.info("Vui lòng chọn phim hoặc rạp để xem lịch chiếu & đặt vé.");
       navigate('/movies');
@@ -206,11 +206,11 @@ const AuthControls = () => {
     try {
       await logout();
       console.log("[Navbar] Đăng xuất thành công. Chuyển hướng người dùng về trang đăng nhập.");
-      navigate('/auth/login');
+      navigate('/login');
     } catch (err) {
       console.error('[Navbar] Lỗi khi đăng xuất:', err);
       notificationService.error("Có lỗi xảy ra khi đăng xuất. Vui lòng thử lại.");
-      navigate('/auth/login');
+      navigate('/login');
     } finally {
       setIsLoggingOut(false);
     }
@@ -220,7 +220,7 @@ const AuthControls = () => {
     return (
       <div className="auth-login-wrapper">
         <Link
-          to="/auth/login"
+          to="/login"
           className="auth-login-link"
         >
           Đăng Nhập

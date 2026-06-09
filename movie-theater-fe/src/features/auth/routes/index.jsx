@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { PublicRoute } from '../components/PublicRoute';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
@@ -10,19 +10,11 @@ export const AuthRoutes = () => {
     <Routes>
       <Route
         path="login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/login" replace />}
       />
       <Route
         path="register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/register" replace />}
       />
       <Route
         path="forgot-password"

@@ -13,7 +13,7 @@ export const UnauthorizedPage = () => {
 
   const handleSwitchAccount = async () => {
     await logout();
-    navigate('/auth/login');
+    navigate('/login');
   };
 
   return (
