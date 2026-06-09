@@ -59,15 +59,15 @@
 }
 
 .user-profile-trigger {
-  @apply flex items-center gap-3 rounded-full bg-white/5 border border-white/10 pl-2 pr-4 py-1.5 hover:bg-white/10 transition duration-200;
+  @apply flex items-center w-56 rounded-full bg-white/5 border border-white/10 pl-2 pr-4 py-2 hover:bg-white/10 transition duration-200;
 }
 
 .user-avatar {
-  @apply h-8 w-8 rounded-full overflow-hidden bg-red-600/30 border border-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0;
+  @apply h-10 w-10 rounded-full overflow-hidden bg-red-600/30 border border-white/20 flex items-center justify-center text-sm font-bold text-white flex-shrink-0;
 }
 
 .user-name {
-  @apply hidden sm:inline text-sm font-semibold text-white/90 max-w-[120px] truncate;
+  @apply hidden sm:inline text-base font-bold text-white/90 truncate ml-2.5 mr-auto text-left;
 }
 
 .dropdown-menu-list {
