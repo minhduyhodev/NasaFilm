@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.user.dto;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import com.thdpv.movietheater.user.enums.AuthProvider;
@@ -12,15 +13,20 @@ public class UserProfileResponse {
     private String avatarUrl;
     private AuthProvider authProvider;
     private String phoneNumber;
+    private LocalDate dayOfBirth;
+    private String gender;
 
     public UserProfileResponse(UUID id, String email, String fullName,
-            String avatarUrl, AuthProvider authProvider, String phoneNumber) {
+            String avatarUrl, AuthProvider authProvider, String phoneNumber,
+            LocalDate dayOfBirth, String gender) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
         this.avatarUrl = avatarUrl;
         this.authProvider = authProvider;
         this.phoneNumber = phoneNumber;
+        this.dayOfBirth = dayOfBirth;
+        this.gender = gender;
     }
 
     public UUID getId() {
@@ -45,5 +51,13 @@ public class UserProfileResponse {
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public LocalDate getDayOfBirth() {
+        return dayOfBirth;
+    }
+
+    public String getGender() {
+        return gender;
     }
 }

@@ -22,6 +22,8 @@ export const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [dayOfBirth, setDayOfBirth] = useState('');
+  const [gender, setGender] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
   const [authProvider, setAuthProvider] = useState('LOCAL');
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +40,8 @@ export const ProfilePage = () => {
           setPhoneNumber(data.phoneNumber || '');
           setAvatarUrl(data.avatarUrl || '');
           setAuthProvider(data.authProvider || 'LOCAL');
+          setDayOfBirth(data.dayOfBirth || '');
+          setGender(data.gender || '');
         }
       } catch (err) {
         notificationService.error('Không thể tải thông tin cá nhân từ máy chủ.');
@@ -121,17 +125,49 @@ export const ProfilePage = () => {
       notificationService.error('Họ tên không được để trống.');
       return;
     }
+
+    if (phoneNumber.trim() && !/^(0[35789][0-9]{8})$/.test(phoneNumber.trim())) {
+      notificationService.error('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09.');
+      return;
+    }
+
+    if (dayOfBirth) {
+      const birthDate = new Date(dayOfBirth);
+      const today = new Date();
+      if (birthDate >= today) {
+        notificationService.error('Ngày sinh phải ở quá khứ.');
+        return;
+      }
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 12) {
+        notificationService.error('Bạn phải từ 12 tuổi trở lên.');
+        return;
+      }
+    }
+
+    if (gender && !['MALE', 'FEMALE', 'OTHER'].includes(gender)) {
+      notificationService.error('Giới tính không hợp lệ.');
+      return;
+    }
     
     setIsSaving(true);
     try {
       const data = await authService.updateProfile({
         fullName: fullName.trim(),
-        phoneNumber: phoneNumber.trim() || null
+        phoneNumber: phoneNumber.trim() || '',
+        dayOfBirth: dayOfBirth || null,
+        gender: gender || null
       });
 
       if (data) {
         setFullName(data.fullName || '');
         setPhoneNumber(data.phoneNumber || '');
+        setDayOfBirth(data.dayOfBirth || '');
+        setGender(data.gender || '');
         
         // Update user context dynamically
         const updatedUser = {
@@ -395,13 +431,15 @@ export const ProfilePage = () => {
               <span className="sidebar-count-badge">{mockVouchers.length}</span>
             </button>
 
-            <button 
-              onClick={() => setActiveTab('security')} 
-              className={`sidebar-menu-item ${activeTab === 'security' ? 'active' : ''}`}
-            >
-              <Key size={18} />
-              <span>Cài đặt bảo mật</span>
-            </button>
+            {authProvider !== 'GOOGLE' && (
+              <button 
+                onClick={() => setActiveTab('security')} 
+                className={`sidebar-menu-item ${activeTab === 'security' ? 'active' : ''}`}
+              >
+                <Key size={18} />
+                <span>Cài đặt bảo mật</span>
+              </button>
+            )}
 
             <button 
               onClick={() => setShowHistoryModal(true)} 
@@ -486,6 +524,51 @@ export const ProfilePage = () => {
                           className={`info-row-input ${isEditing ? 'editable' : ''}`}
                           placeholder={isEditing ? "Nhập số điện thoại" : "Chưa cập nhật số điện thoại"}
                         />
+                      </div>
+                    </div>
+
+                    {/* Row: Ngày sinh */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <Calendar size={18} className="text-red-500" />
+                        <span className="info-row-label">Ngày sinh</span>
+                      </div>
+                      <div className="info-row-right">
+                        <input 
+                          type="date" 
+                          value={dayOfBirth} 
+                          onChange={(e) => setDayOfBirth(e.target.value)}
+                          disabled={!isEditing || isSaving}
+                          className={`info-row-input ${isEditing ? 'editable' : ''}`}
+                          placeholder={isEditing ? "Chọn ngày sinh" : "Chưa cập nhật ngày sinh"}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row: Giới tính */}
+                    <div className="profile-info-row">
+                      <div className="info-row-left">
+                        <User size={18} className="text-red-500" />
+                        <span className="info-row-label">Giới tính</span>
+                      </div>
+                      <div className="info-row-right">
+                        {isEditing ? (
+                          <select 
+                            value={gender} 
+                            onChange={(e) => setGender(e.target.value)}
+                            disabled={isSaving}
+                            className={`info-row-input editable cursor-pointer`}
+                          >
+                            <option value="" disabled>Chọn giới tính</option>
+                            <option value="MALE">Nam</option>
+                            <option value="FEMALE">Nữ</option>
+                            <option value="OTHER">Khác</option>
+                          </select>
+                        ) : (
+                          <span className="info-row-text">
+                            {gender === 'MALE' ? 'Nam' : gender === 'FEMALE' ? 'Nữ' : gender === 'OTHER' ? 'Khác' : 'Chưa cập nhật giới tính'}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -858,7 +941,7 @@ export const ProfilePage = () => {
               )}
 
               {/* TAB 4: Security Settings */}
-              {activeTab === 'security' && (
+              {activeTab === 'security' && authProvider !== 'GOOGLE' && (
                 <motion.div
                   key="security"
                   initial={{ opacity: 0, y: 15 }}

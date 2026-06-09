@@ -313,6 +313,9 @@ public class AuthService {
             }
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setDayOfBirth(request.getDayOfBirth());
+            user.setGender(request.getGender());
         } else {
             user = new User();
             user.setEmail(request.getEmail().trim());
@@ -320,6 +323,9 @@ public class AuthService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setStatus(UserStatus.PENDING_VERIFICATION);
             user.setAuthProvider(AuthProvider.LOCAL);
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setDayOfBirth(request.getDayOfBirth());
+            user.setGender(request.getGender());
         }
 
         // Generate 6-digit random code

@@ -161,6 +161,9 @@ class AuthService {
         email: credentials.email,
         password: credentials.password,
         fullName: credentials.fullName,
+        phoneNumber: credentials.phoneNumber || null,
+        dayOfBirth: credentials.dayOfBirth,
+        gender: credentials.gender,
       });
       return response.data;
     } catch (error) {
