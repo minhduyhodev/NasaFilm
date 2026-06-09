@@ -40,6 +40,9 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class AuthService {
@@ -84,7 +87,7 @@ public class AuthService {
     }
 
     @Transactional
-    public JwtResponse login(LoginRequest loginRequest) {
+    public JwtResponse login(LoginRequest loginRequest, HttpServletRequest httpServletRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
@@ -104,11 +107,11 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.generateToken(userDetails.getUsername());
-        return createSessionAndResponse(user, accessToken, roles);
+        return createSessionAndResponse(user, accessToken, roles, httpServletRequest);
     }
 
     @Transactional
-    public JwtResponse loginWithGoogle(GoogleLoginRequest googleLoginRequest) {
+    public JwtResponse loginWithGoogle(GoogleLoginRequest googleLoginRequest, HttpServletRequest httpServletRequest) {
         if (googleClientId == null || googleClientId.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Google login is not configured on the server");
         }
@@ -141,60 +144,87 @@ public class AuthService {
         ensureAccountIsActive(user);
 
         String accessToken = jwtUtils.generateToken(user.getEmail());
-        return createSessionAndResponse(user, accessToken, getRoleAuthorities(user));
+        return createSessionAndResponse(user, accessToken, getRoleAuthorities(user), httpServletRequest);
     }
 
     @Transactional
-    public JwtResponse refreshToken(TokenRefreshRequest request) {
+    public JwtResponse refreshToken(TokenRefreshRequest request, HttpServletRequest httpServletRequest) {
         String token = request.getRefreshToken();
-        UserSession session = userSessionRepository.findByRefreshToken(token)
+        String tokenHash = RefreshTokenHasher.hash(token);
+        UserSession session = userSessionRepository.findByRefreshTokenHash(tokenHash)
                 .orElseThrow(() -> new AppException(ErrorCode.TOKEN_INVALID));
 
-        if (session.isRevoked()) {
+        if (!"ACTIVE".equals(session.getStatus()) || session.getRevokedAt() != null) {
             throw new AppException(ErrorCode.TOKEN_INVALID);
         }
 
-        if (session.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (session.getExpiredAt().isBefore(LocalDateTime.now())) {
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        ensureAccountIsActive(session.getUser());
+        User user = userRepository.findById(session.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        ensureAccountIsActive(user);
 
-        String newRefreshToken = UUID.randomUUID().toString();
-        LocalDateTime newExpiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
+        String newRefreshToken = generateRefreshToken();
+        LocalDateTime newExpiryDate = calculateRefreshExpiry();
 
-        session.setRefreshToken(newRefreshToken);
-        session.setExpiryDate(newExpiryDate);
+        session.setRefreshTokenHash(RefreshTokenHasher.hash(newRefreshToken));
+        session.setExpiredAt(newExpiryDate);
+        session.setLastActivityAt(LocalDateTime.now());
+        session.setIpAddress(resolveIpAddress(httpServletRequest));
+        session.setUserAgent(resolveUserAgent(httpServletRequest));
+        session.setDeviceInfo(resolveUserAgent(httpServletRequest));
         userSessionRepository.save(session);
 
-        String newAccessToken = jwtUtils.generateToken(session.getUser().getEmail());
-        List<String> roles = getRoleAuthorities(session.getUser());
+        String newAccessToken = jwtUtils.generateToken(user.getEmail());
+        List<String> roles = getRoleAuthorities(user);
 
-        return new JwtResponse(newAccessToken, newRefreshToken, session.getUser().getEmail(), roles,
-                session.getUser().getId(), session.getUser().getFullName(), session.getUser().getAvatarUrl());
+        return new JwtResponse(newAccessToken, newRefreshToken, user.getEmail(), roles,
+                user.getId(), user.getFullName(), user.getAvatarUrl());
     }
 
     @Transactional
     public void logout(TokenRefreshRequest request) {
         if (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank()) {
-            userSessionRepository.findByRefreshToken(request.getRefreshToken())
+            userSessionRepository.findByRefreshTokenHash(RefreshTokenHasher.hash(request.getRefreshToken()))
                     .ifPresent(session -> {
-                        session.setRevoked(true);
+                        session.setStatus("REVOKED");
+                        session.setRevokedAt(LocalDateTime.now());
+                        session.setLastActivityAt(LocalDateTime.now());
                         userSessionRepository.save(session);
                     });
         }
         SecurityContextHolder.clearContext();
     }
 
-    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> roles) {
-        String refreshToken = UUID.randomUUID().toString();
-        LocalDateTime expiryDate = LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
+    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> roles,
+            HttpServletRequest httpServletRequest) {
+        String refreshToken = generateRefreshToken();
+        LocalDateTime expiryDate = calculateRefreshExpiry();
 
-        UserSession userSession = new UserSession(user, refreshToken, expiryDate, null, null);
+        String userAgent = resolveUserAgent(httpServletRequest);
+        UserSession userSession = new UserSession(
+                user.getId(),
+                RefreshTokenHasher.hash(refreshToken),
+                userAgent,
+                resolveIpAddress(httpServletRequest),
+                userAgent,
+                "ACTIVE",
+                LocalDateTime.now(),
+                expiryDate);
         userSessionRepository.save(userSession);
 
         return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
                 user.getFullName(), user.getAvatarUrl());
+    }
+
+    private String generateRefreshToken() {
+        return UUID.randomUUID().toString();
+    }
+
+    private LocalDateTime calculateRefreshExpiry() {
+        return LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
     }
 
     private void ensureAccountIsActive(User user) {
@@ -213,6 +243,26 @@ public class AuthService {
         return userRoleRepository.findByUserId(user.getId()).stream()
                 .map(userRole -> "ROLE_" + userRole.getRole().getName().name())
                 .toList();
+    }
+
+    private String resolveIpAddress(HttpServletRequest httpServletRequest) {
+        if (httpServletRequest == null) {
+            return null;
+        }
+
+        String forwardedFor = httpServletRequest.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+
+        return httpServletRequest.getRemoteAddr();
+    }
+
+    private String resolveUserAgent(HttpServletRequest httpServletRequest) {
+        if (httpServletRequest == null) {
+            return null;
+        }
+        return httpServletRequest.getHeader("User-Agent");
     }
 
     private User updateGoogleProfile(User user, String fullName, String avatarUrl) {

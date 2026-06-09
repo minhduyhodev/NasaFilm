@@ -18,6 +18,7 @@ import com.thdpv.movietheater.auth.service.AuthService;
 import com.thdpv.movietheater.auth.service.PasswordResetService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -33,19 +34,24 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(ApiResponse.success(authService.login(loginRequest)));
+    public ResponseEntity<ApiResponse<JwtResponse>> login(
+            @Valid @RequestBody LoginRequest loginRequest,
+            HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.login(loginRequest, httpServletRequest)));
     }
 
     @PostMapping("/google")
     public ResponseEntity<ApiResponse<JwtResponse>> loginWithGoogle(
-            @Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
-        return ResponseEntity.ok(ApiResponse.success(authService.loginWithGoogle(googleLoginRequest)));
+            @Valid @RequestBody GoogleLoginRequest googleLoginRequest,
+            HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.loginWithGoogle(googleLoginRequest, httpServletRequest)));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<JwtResponse>> refresh(@Valid @RequestBody TokenRefreshRequest refreshRequest) {
-        return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(refreshRequest)));
+    public ResponseEntity<ApiResponse<JwtResponse>> refresh(
+            @Valid @RequestBody TokenRefreshRequest refreshRequest,
+            HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(refreshRequest, httpServletRequest)));
     }
 
     @PostMapping("/logout")
@@ -63,18 +69,18 @@ public class AuthController {
     @PostMapping("/register/verify")
     public ResponseEntity<ApiResponse<Void>> verifyRegister(@Valid @RequestBody VerifyRequest verifyRequest) {
         authService.verifyRegister(verifyRequest);
-        return ResponseEntity.ok(ApiResponse.success(null, "Xac thuc dang ky thanh cong"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xác thực đăng ký thành công"));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         passwordResetService.requestPasswordReset(request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success(null, "Ma dat lai mat khau da duoc gui qua email"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Mã đặt lại mật khẩu đã được gửi qua email"));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-        return ResponseEntity.ok(ApiResponse.success(null, "Mat khau da duoc cap nhat thanh cong"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Mật khẩu đã được cập nhật thành công"));
     }
 }

@@ -1,5 +1,7 @@
 package com.thdpv.movietheater.auth.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,5 +12,9 @@ import com.thdpv.movietheater.auth.entity.UserSession;
 
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
-    Optional<UserSession> findByRefreshToken(String refreshToken);
+    Optional<UserSession> findByRefreshTokenHash(String refreshTokenHash);
+
+    List<UserSession> findByUserIdAndStatus(UUID userId, String status);
+
+    void deleteByExpiredAtBeforeOrRevokedAtBefore(LocalDateTime expiredAt, LocalDateTime revokedAt);
 }

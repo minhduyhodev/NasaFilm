@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -31,6 +32,7 @@ import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
+import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.security.JwtUtils;
 import com.thdpv.movietheater.user.entity.Role;
@@ -123,7 +125,11 @@ class AuthServiceTest {
         });
         when(userSessionRepository.save(any(UserSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        JwtResponse response = authService.loginWithGoogle(request);
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.addHeader("User-Agent", "JUnit");
+        httpServletRequest.setRemoteAddr("127.0.0.1");
+
+        JwtResponse response = authService.loginWithGoogle(request, httpServletRequest);
 
         assertEquals(email, response.getEmail());
         assertEquals(fullName, response.getFullName());
@@ -140,6 +146,15 @@ class AuthServiceTest {
         assertEquals(fullName, savedUser.getFullName());
         assertEquals(AuthProvider.GOOGLE, savedUser.getAuthProvider());
         assertEquals(UserStatus.ACTIVE, savedUser.getStatus());
+
+        ArgumentCaptor<UserSession> sessionCaptor = ArgumentCaptor.forClass(UserSession.class);
+        verify(userSessionRepository).save(sessionCaptor.capture());
+        UserSession savedSession = sessionCaptor.getValue();
+        assertEquals(userId, savedSession.getUserId());
+        assertEquals("ACTIVE", savedSession.getStatus());
+        assertEquals("JUnit", savedSession.getUserAgent());
+        assertEquals("127.0.0.1", savedSession.getIpAddress());
+        assertEquals(RefreshTokenHasher.hash(response.getRefreshToken()), savedSession.getRefreshTokenHash());
     }
 
     private GoogleIdToken createGoogleIdToken(String email, String fullName, String avatarUrl, boolean emailVerified) {
