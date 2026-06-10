@@ -5,7 +5,7 @@ import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
-import { UnauthorizedPage, LoginPage, RegisterPage, PublicRoute } from './features/auth';
+import { UnauthorizedPage, LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
@@ -36,6 +36,26 @@ export default function App() {
                 element={
                   <PublicRoute>
                     <RegisterPage />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Forgot password route */}
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPasswordPage />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Reset password route */}
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicRoute>
+                    <ResetPasswordPage />
                   </PublicRoute>
                 }
               />

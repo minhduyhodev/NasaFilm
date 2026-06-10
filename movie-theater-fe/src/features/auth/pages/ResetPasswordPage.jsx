@@ -79,7 +79,7 @@ export const ResetPasswordPage = () => {
               This password reset link is invalid or has expired. Please request a new one.
             </p>
             <Link
-              to="/auth/forgot-password"
+              to="/forgot-password"
               className="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 text-center"
             >
               Request New Reset Link

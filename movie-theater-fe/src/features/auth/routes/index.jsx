@@ -18,19 +18,11 @@ export const AuthRoutes = () => {
       />
       <Route
         path="forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPasswordPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/forgot-password" replace />}
       />
       <Route
         path="reset-password"
-        element={
-          <PublicRoute>
-            <ResetPasswordPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/reset-password" replace />}
       />
     </Routes>
   );
