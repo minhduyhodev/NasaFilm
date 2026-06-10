@@ -269,7 +269,9 @@ public class AuthService {
         if (fullName != null && !fullName.isBlank()) {
             user.setFullName(fullName);
         }
-        if (avatarUrl != null && !avatarUrl.isBlank()) {
+        if ((user.getAvatarUrl() == null || user.getAvatarUrl().isBlank())
+                && avatarUrl != null
+                && !avatarUrl.isBlank()) {
             user.setAvatarUrl(avatarUrl);
         }
         if (user.getAuthProvider() == null) {
