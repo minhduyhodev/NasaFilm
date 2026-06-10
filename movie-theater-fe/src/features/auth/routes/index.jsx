@@ -5,7 +5,23 @@ import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 
-export const AuthRoutes = () => {
+export const AuthRoutes = ({ mode }) => {
+  if (mode === 'forgot-password') {
+    return (
+      <PublicRoute>
+        <ForgotPasswordPage />
+      </PublicRoute>
+    );
+  }
+
+  if (mode === 'reset-password') {
+    return (
+      <PublicRoute>
+        <ResetPasswordPage />
+      </PublicRoute>
+    );
+  }
+
   return (
     <Routes>
       <Route
@@ -18,19 +34,11 @@ export const AuthRoutes = () => {
       />
       <Route
         path="forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPasswordPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/forgot-password" replace />}
       />
       <Route
         path="reset-password"
-        element={
-          <PublicRoute>
-            <ResetPasswordPage />
-          </PublicRoute>
-        }
+        element={<Navigate to="/reset-password" replace />}
       />
     </Routes>
   );

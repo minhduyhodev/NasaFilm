@@ -90,7 +90,7 @@ export const resetPasswordSchema = z
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Mật khẩu không trùng khớp',
     path: ['confirmPassword'],
   });
 

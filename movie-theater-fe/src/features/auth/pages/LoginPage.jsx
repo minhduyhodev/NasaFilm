@@ -230,7 +230,7 @@ export const LoginPage = () => {
             </motion.label>
 
             <Link
-              to="/auth/forgot-password"
+              to="/forgot-password"
               className="auth-forgot-link"
             >
               Quên mật khẩu?

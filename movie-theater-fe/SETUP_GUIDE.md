@@ -27,8 +27,8 @@ npm run dev
 
 ### 4. Access the Application
 
-- Login: http://localhost:5173/auth/login
-- Register: http://localhost:5173/auth/register
+- Login: http://localhost:5173/login
+- Register: http://localhost:5173/register
 - Home: http://localhost:5173
 
 ---
@@ -39,7 +39,7 @@ The frontend expects the following API endpoints on your backend:
 
 ### Authentication Endpoints
 
-#### POST /api/auth/login
+#### POST /api/login
 
 Request:
 
@@ -67,7 +67,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/register
+#### POST /api/register
 
 Request:
 
@@ -96,7 +96,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/forgot-password
+#### POST /api/forgot-password
 
 Request:
 
@@ -114,7 +114,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/reset-password
+#### POST /api/reset-password
 
 Request:
 
@@ -134,7 +134,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/refresh
+#### POST /api/refresh
 
 Request:
 
@@ -152,7 +152,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/google
+#### POST /api/google
 
 Request:
 
@@ -172,7 +172,7 @@ Response:
 }
 ```
 
-#### POST /api/auth/apple
+#### POST /api/apple
 
 Request:
 
@@ -327,14 +327,14 @@ keyframes: {
 
 ### 1. Test Login
 
-1. Navigate to http://localhost:5173/auth/login
+1. Navigate to http://localhost:5173/login
 2. Enter test credentials
 3. Should redirect to home page
 4. Token should be stored in localStorage
 
 ### 2. Test Registration
 
-1. Navigate to http://localhost:5173/auth/register
+1. Navigate to http://localhost:5173/register
 2. Fill in all fields
 3. Password should pass strength check
 4. Submit should call registration API
@@ -342,7 +342,7 @@ keyframes: {
 
 ### 3. Test Password Reset
 
-1. Go to /auth/login
+1. Go to /login
 2. Click "Forgot Password"
 3. Enter email
 4. Should show success message
@@ -353,7 +353,7 @@ keyframes: {
 ### 4. Test Protected Routes
 
 1. Try accessing /dashboard without logging in
-2. Should redirect to /auth/login
+2. Should redirect to /login
 3. Log in and access /dashboard
 4. Should show dashboard content
 

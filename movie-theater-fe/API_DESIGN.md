@@ -18,7 +18,7 @@ Tài liệu này định nghĩa chi tiết toàn bộ các API Endpoints cần t
 ## 🔑 1. Phân hệ Xác thực & Người dùng (Authentication & User Profile)
 
 ### **1.1. Đăng nhập (Login)**
-* **Endpoint:** `POST /api/auth/login`
+* **Endpoint:** `POST /api/login`
 * **Quyền truy cập:** Public
 * **Body Request:**
 ```json
@@ -41,7 +41,7 @@ Tài liệu này định nghĩa chi tiết toàn bộ các API Endpoints cần t
 ```
 
 ### **1.2. Đăng ký (Register)**
-* **Endpoint:** `POST /api/auth/register`
+* **Endpoint:** `POST /api/register`
 * **Quyền truy cập:** Public
 * **Body Request:**
 ```json
@@ -61,7 +61,7 @@ Tài liệu này định nghĩa chi tiết toàn bộ các API Endpoints cần t
 ```
 
 ### **1.3. Làm mới Token (Refresh Token)**
-* **Endpoint:** `POST /api/auth/refresh`
+* **Endpoint:** `POST /api/refresh`
 * **Quyền truy cập:** Public (kèm Refresh Token hợp lệ)
 * **Body Request:**
 ```json
@@ -79,7 +79,7 @@ Tài liệu này định nghĩa chi tiết toàn bộ các API Endpoints cần t
 ```
 
 ### **1.4. Yêu cầu Quên mật khẩu (Forgot Password)**
-* **Endpoint:** `POST /api/auth/forgot-password`
+* **Endpoint:** `POST /api/forgot-password`
 * **Body Request:**
 ```json
 {
@@ -94,7 +94,7 @@ Tài liệu này định nghĩa chi tiết toàn bộ các API Endpoints cần t
 ```
 
 ### **1.5. Đặt lại Mật khẩu (Reset Password)**
-* **Endpoint:** `POST /api/auth/reset-password`
+* **Endpoint:** `POST /api/reset-password`
 * **Body Request:**
 ```json
 {

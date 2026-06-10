@@ -9,7 +9,7 @@ Tài liệu này mô tả chi tiết các API Endpoints hiện tại (Module Xá
 Các API này phục vụ cho phân hệ Đăng nhập, Đăng ký và Phục hồi mật khẩu. Base URL: `/api`
 
 ### **1.1. Đăng nhập (Login)**
-* **Endpoint:** `POST /api/auth/login`
+* **Endpoint:** `POST /api/login`
 * **Mô tả:** Đăng nhập hệ thống bằng email và mật khẩu. Trả về mã JWT để xác thực cho các request tiếp theo.
 * **Quyền truy cập:** Công khai (Public).
 * **Body Request:**
@@ -45,7 +45,7 @@ Các API này phục vụ cho phân hệ Đăng nhập, Đăng ký và Phục h�
 ---
 
 ### **1.1.1. Gia hạn Access Token (Refresh Token)**
-* **Endpoint:** `POST /api/auth/refresh`
+* **Endpoint:** `POST /api/refresh`
 * **Mô tả:** Cấp mới Access Token khi Access Token hết hạn nhưng Refresh Token vẫn còn hiệu lực.
 * **Quyền truy cập:** Public.
 * **Body Request:**
@@ -64,7 +64,7 @@ Các API này phục vụ cho phân hệ Đăng nhập, Đăng ký và Phục h�
 ```
 
 ### **1.2. Đăng ký tài khoản (Register - Đang chờ triển khai ở BE)**
-* **Endpoint:** `POST /api/auth/register`
+* **Endpoint:** `POST /api/register`
 * **Mô tả:** Tạo mới một tài khoản khách hàng (`CUSTOMER`).
 * **Quyền truy cập:** Công khai (Public).
 * **Body Request:**
@@ -93,7 +93,7 @@ Các API này phục vụ cho phân hệ Đăng nhập, Đăng ký và Phục h�
 ---
 
 ### **1.3. Yêu cầu Quên mật khẩu (Forgot Password - Đang chờ triển khai ở BE)**
-* **Endpoint:** `POST /api/auth/forgot-password`
+* **Endpoint:** `POST /api/forgot-password`
 * **Mô tả:** Gửi email chứa liên kết phục hồi kèm theo mã OTP/Reset Token đến email của người dùng.
 * **Body Request:**
 ```json
@@ -111,7 +111,7 @@ Các API này phục vụ cho phân hệ Đăng nhập, Đăng ký và Phục h�
 ---
 
 ### **1.4. Đặt lại Mật khẩu (Reset Password - Đang chờ triển khai ở BE)**
-* **Endpoint:** `POST /api/auth/reset-password`
+* **Endpoint:** `POST /api/reset-password`
 * **Mô tả:** Người dùng nhập token được gửi trong email để thiết lập mật khẩu mới.
 * **Body Request:**
 ```json

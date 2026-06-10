@@ -203,7 +203,7 @@ Redirect authenticated users away from auth pages.
 import { PublicRoute } from "@/features/auth";
 
 <Route
-  path="/auth/login"
+  path="/login"
   element={
     <PublicRoute>
       <LoginPage />

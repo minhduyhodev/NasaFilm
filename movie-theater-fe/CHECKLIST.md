@@ -19,8 +19,8 @@
 
 - [ ] Run `npm run dev` to start dev server
 - [ ] Open http://localhost:5173 in browser
-- [ ] Test login page loads: http://localhost:5173/auth/login
-- [ ] Test register page loads: http://localhost:5173/auth/register
+- [ ] Test login page loads: http://localhost:5173/login
+- [ ] Test register page loads: http://localhost:5173/register
 - [ ] Verify animations work smoothly
 - [ ] Open browser console (no errors expected)
 
@@ -92,13 +92,13 @@
 ## Backend Integration
 
 - [ ] Backend API endpoints implemented
-  - [ ] POST /api/auth/login
-  - [ ] POST /api/auth/register
-  - [ ] POST /api/auth/forgot-password
-  - [ ] POST /api/auth/reset-password
-  - [ ] POST /api/auth/google
-  - [ ] POST /api/auth/apple
-  - [ ] POST /api/auth/refresh
+  - [ ] POST /api/login
+  - [ ] POST /api/register
+  - [ ] POST /api/forgot-password
+  - [ ] POST /api/reset-password
+  - [ ] POST /api/google
+  - [ ] POST /api/apple
+  - [ ] POST /api/refresh
 - [ ] API returns correct response format
 - [ ] CORS enabled on backend
 - [ ] Error responses properly formatted
@@ -129,7 +129,7 @@
 ## Protected Routes
 
 - [ ] Try accessing /dashboard without login
-  - [ ] Redirected to /auth/login
+  - [ ] Redirected to /login
 - [ ] Login and access protected route
   - [ ] Route accessible
   - [ ] User data available via context
