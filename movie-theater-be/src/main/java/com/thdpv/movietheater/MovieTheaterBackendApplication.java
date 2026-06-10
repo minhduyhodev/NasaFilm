@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 @SpringBootApplication
-public class    MovieTheaterBackendApplication {
+public class MovieTheaterBackendApplication {
 
 	public static void main(String[] args) {
 		loadEnv();
