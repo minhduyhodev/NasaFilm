@@ -58,11 +58,6 @@ public class UserService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Tài khoản Google không thể chỉnh sửa thông tin cá nhân");
-        }
-
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
             user.setFullName(request.getFullName().trim());
         }
@@ -96,11 +91,6 @@ public class UserService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Tài khoản Google không thể đổi ảnh đại diện");
-        }
-
         try {
             if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
                 String publicId = extractPublicId(user.getAvatarUrl());
@@ -128,7 +118,8 @@ public class UserService {
         try {
             String marker = "/upload/";
             int idx = avatarUrl.indexOf(marker);
-            if (idx == -1) return null;
+            if (idx == -1)
+                return null;
 
             String afterUpload = avatarUrl.substring(idx + marker.length());
 
