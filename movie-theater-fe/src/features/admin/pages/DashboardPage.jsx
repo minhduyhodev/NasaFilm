@@ -1,7 +1,43 @@
 import React from 'react';
+import { Coins, Percent, TrendingUp, CreditCard } from 'lucide-react';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
+  const cards = [
+    {
+      label: 'DOANH THU',
+      value: '142,5K',
+      badge: 'Tháng này',
+      Icon: Coins,
+      color: 'text-indigo-500',
+      bgIcon: 'text-indigo-500/10 group-hover:text-indigo-500/20 group-hover:scale-105',
+    },
+    {
+      label: 'TỶ LỆ CHUYỂN ĐỔI',
+      value: '32,8%',
+      badge: 'Tỷ lệ trung bình',
+      Icon: Percent,
+      color: 'text-emerald-500',
+      bgIcon: 'text-emerald-500/10 group-hover:text-emerald-500/20 group-hover:scale-105',
+    },
+    {
+      label: 'TĂNG TRƯỞNG',
+      value: '+8,4%',
+      badge: 'So với tháng trước',
+      Icon: TrendingUp,
+      color: 'text-amber-500',
+      bgIcon: 'text-amber-500/10 group-hover:text-amber-500/20 group-hover:scale-105',
+    },
+    {
+      label: 'GIAO DỊCH',
+      value: '3,480',
+      badge: 'Đã hoàn thành',
+      Icon: CreditCard,
+      color: 'text-sky-500',
+      bgIcon: 'text-sky-500/10 group-hover:text-sky-500/20 group-hover:scale-105',
+    },
+  ];
+
   return (
     <>
       <div className="dashboard-header-container">
@@ -16,20 +52,20 @@ const DashboardPage = () => {
       </div>
 
       <div className="dashboard-stats-grid">
-        {[
-          { label: 'DOANH THU', value: '142,5K', badge: 'Tháng này', icon: 'analytics' },
-          { label: 'TỶ LỆ CHUYỂN ĐỔI', value: '32,8%', badge: 'Tỷ lệ trung bình', icon: 'target' },
-          { label: 'TĂNG TRƯỞNG', value: '+8,4%', badge: 'So với tháng trước', icon: 'trending_up' },
-          { label: 'GIAO DỊCH', value: '3,480', badge: 'Đã hoàn thành', icon: 'analytics' },
-        ].map((card) => (
-          <div key={card.label} className="dashboard-stat-card">
-            <div className="dashboard-stat-card-top">
-              <span className="dashboard-stat-label">{card.label}</span>
-              <span className="material-symbols-outlined dashboard-stat-icon">{card.icon}</span>
-            </div>
-            <div>
-              <h3 className="dashboard-stat-value">{card.value}</h3>
-              <p className="dashboard-stat-badge">{card.badge}</p>
+        {cards.map((card) => (
+          <div key={card.label} className="dashboard-stat-card group">
+            {/* Watermark Icon */}
+            <card.Icon className={`absolute -right-4 -top-4 w-20 h-20 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
+
+            <div className="relative z-10 w-full flex flex-col justify-between h-full">
+              <div className="dashboard-stat-card-top">
+                <span className="dashboard-stat-label">{card.label}</span>
+                <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
+              </div>
+              <div className="mt-1">
+                <h3 className="dashboard-stat-value">{card.value}</h3>
+                <p className="dashboard-stat-badge">{card.badge}</p>
+              </div>
             </div>
           </div>
         ))}
