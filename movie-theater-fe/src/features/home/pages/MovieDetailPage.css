@@ -63,7 +63,12 @@
   opacity: 0.6;
   filter: blur(4px) brightness(0.5);
   transform: scale(1.03);
-  transition: transform 1s ease;
+  transition: transform 1s ease, opacity 1s ease;
   z-index: 0;
+}
+
+.movie-backdrop-img.video-active {
+  opacity: 0;
+  pointer-events: none;
 }
 
