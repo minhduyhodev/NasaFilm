@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -35,12 +34,3 @@ export default defineConfig({
     sourcemap: false,
   },
 });
-=======
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-})
->>>>>>> a4bac7dce1b3d5f10bd6d4c46c00bc60cac68786
