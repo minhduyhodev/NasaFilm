@@ -57,7 +57,7 @@ public class PasswordResetService {
         String resetToken = jwtUtils.generateResetToken(user.getEmail(), user.getPassword());
 
         // Build reset link
-        String resetLink = frontendUrl + "/auth/reset-password?token=" + resetToken;
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
         // Send email asynchronously
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);

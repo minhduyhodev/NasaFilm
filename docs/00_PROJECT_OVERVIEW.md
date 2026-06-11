@@ -90,7 +90,7 @@ movie-theater-be/
 ├── src/main/
 │   ├── java/com/thdpv/movietheater/
 │   │   ├── auth/            # Module xử lý Đăng nhập & Đăng ký
-│   │   │   ├── controller/  # AuthController (Định nghĩa endpoints /api/auth/*)
+│   │   │   ├── controller/  # AuthController (Định nghĩa endpoints /api/*)
 │   │   │   ├── dto/         # Đối tượng chuyển đổi dữ liệu (LoginRequest, JwtResponse)
 │   │   │   ├── repository/  # UserRoleRepository
 │   │   │   └── service/     # AuthService (Xử lý nghiệp vụ authenticate người dùng)

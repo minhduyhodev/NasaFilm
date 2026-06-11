@@ -7,7 +7,7 @@ Tài liệu này theo dõi sát sao tiến độ phát triển của dự án **
 ## 🚦 1. Tổng quan Trạng thái Hiện tại
 
 * **Frontend (Client):** Giao diện và luồng nghiệp vụ xác thực (Authentication UI/UX) đã hoàn thiện 100% (giao diện, animation, validate dữ liệu).
-* **Backend (Server):** Khung Spring Boot Security, kết nối PostgreSQL, phân quyền và dữ liệu hạt giống (DataSeeder) đã hoàn thiện. API Đăng nhập (`/api/auth/login`) đã sẵn sàng hoạt động.
+* **Backend (Server):** Khung Spring Boot Security, kết nối PostgreSQL, phân quyền và dữ liệu hạt giống (DataSeeder) đã hoàn thiện. API Đăng nhập (`/api/login`) đã sẵn sàng hoạt động.
 * **Tình trạng Tích hợp:** Đang ở giai đoạn kết nối các tính năng còn lại của hệ thống xác thực và chuẩn bị mở rộng sang phần nghiệp vụ chiếu phim.
 
 ---
@@ -37,7 +37,7 @@ Ký hiệu:
 * [x] Viết `DataSeeder` tự động sinh các vai trò (`ADMIN`, `STAFF`, `CUSTOMER`) và tài khoản quản trị mặc định.
 * [x] Cấu hình `SecurityConfig` (Spring Security 6) và cơ chế mã hóa mật khẩu `BCrypt`.
 * [x] Xây dựng bộ lọc `JwtAuthTokenFilter` và lớp tiện ích `JwtUtils` xử lý tạo, giải mã, validate JWT token.
-* [x] Hoàn thiện API đăng nhập: `POST /api/auth/login`.
+* [x] Hoàn thiện API đăng nhập: `POST /api/login`.
 * [ ] Bổ sung `userId` và `fullName` vào `JwtResponse` DTO trả về sau khi đăng nhập thành công. (Bổ sung)
 
 ---
@@ -45,10 +45,10 @@ Ký hiệu:
 ### **Giai đoạn 2: Kết nối & Hoàn thiện Xác thực (Integration Phase)**
 * [/] Khắc phục lỗi CORS trên Spring Boot để cho phép React App (Port 5173) gọi API an toàn.
 * [/] Cấu hình tệp tin `.env.local` ở Client trỏ URL API chính xác tới Server (`http://localhost:8080/api`).
-* [ ] Phát triển API đăng ký tài khoản `POST /api/auth/register` ở Backend.
-* [ ] Phát triển API gia hạn token `POST /api/auth/refresh` ở Backend.
+* [ ] Phát triển API đăng ký tài khoản `POST /api/register` ở Backend.
+* [ ] Phát triển API gia hạn token `POST /api/refresh` ở Backend.
 * [ ] Tích hợp cơ chế tự động refresh JWT phía Client thông qua Axios Response Interceptor.
-* [ ] Phát triển API quên mật khẩu `POST /api/auth/forgot-password` và đặt lại mật khẩu `POST /api/auth/reset-password` ở Backend.
+* [ ] Phát triển API quên mật khẩu `POST /api/forgot-password` và đặt lại mật khẩu `POST /api/reset-password` ở Backend.
 * [ ] Cập nhật `authService.ts` ở Client để kết nối trực tiếp các hàm `register()`, `forgotPassword()`, `resetPassword()` thực tế với Server (thay vì giả lập lỗi như hiện tại).
 * [ ] Phát triển API IPN/Callback `GET/POST /api/payments/callback` — cần cấu hình sớm để đối tác thanh toán có thể kiểm thử tích hợp song song với Giai đoạn 3. (Bổ sung)
 * [ ] Viết test tự động / kiểm thử thủ công toàn bộ luồng đăng ký → đăng nhập → nhận token → truy cập trang Dashboard bảo mật.

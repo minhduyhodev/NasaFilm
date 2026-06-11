@@ -40,27 +40,10 @@ export default function App() {
                 }
               />
 
-              {/* Forgot password route */}
-              <Route
-                path="/forgot-password"
-                element={
-                  <PublicRoute>
-                    <ForgotPasswordPage />
-                  </PublicRoute>
-                }
-              />
+              <Route path="/forgot-password" element={<AuthRoutes mode="forgot-password" />} />
+              <Route path="/reset-password" element={<AuthRoutes mode="reset-password" />} />
 
-              {/* Reset password route */}
-              <Route
-                path="/reset-password"
-                element={
-                  <PublicRoute>
-                    <ResetPasswordPage />
-                  </PublicRoute>
-                }
-              />
-
-              {/* Auth routes */}
+              {/* Legacy auth routes */}
               <Route path="/auth/*" element={<AuthRoutes />} />
 
               {/* Home routes */}

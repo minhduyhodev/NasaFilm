@@ -33,14 +33,16 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
 
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/auth/login",
-            "/api/auth/google",
-            "/api/auth/refresh",
-            "/api/auth/logout",
-            "/api/auth/register",
-            "/api/auth/register/verify",
-            "/api/auth/forgot-password",
-            "/api/auth/reset-password",
+            "/api/login",
+            "/api/google",
+            "/api/refresh",
+            "/api/logout",
+            "/api/register",
+            "/api/register/verify",
+            "/api/forgot-password",
+            "/api/reset-password",
+            "/api/movies",
+            "/api/movies/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"

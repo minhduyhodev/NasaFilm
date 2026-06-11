@@ -269,16 +269,22 @@ public class AuthService {
         if (fullName != null && !fullName.isBlank()) {
             user.setFullName(fullName);
         }
-        if (avatarUrl != null && !avatarUrl.isBlank()) {
+        if ((user.getAvatarUrl() == null || user.getAvatarUrl().isBlank())
+                && avatarUrl != null
+                && !avatarUrl.isBlank()) {
             user.setAvatarUrl(avatarUrl);
         }
         if (user.getAuthProvider() == null) {
-            user.setAuthProvider(AuthProvider.GOOGLE);
+            user.setAuthProvider(hasLocalCredentials(user) ? AuthProvider.LOCAL : AuthProvider.GOOGLE);
         }
         if (user.getStatus() == null) {
             user.setStatus(UserStatus.ACTIVE);
         }
         return userRepository.save(user);
+    }
+
+    private boolean hasLocalCredentials(User user) {
+        return user.getPassword() != null && !user.getPassword().isBlank();
     }
 
     private User createGoogleUser(String email, String fullName, String avatarUrl) {

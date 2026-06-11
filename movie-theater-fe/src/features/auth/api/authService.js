@@ -63,10 +63,10 @@ class AuthService {
         const originalRequest = error.config;
         const requestUrl = originalRequest?.url ?? '';
         const isAuthRequest =
-          requestUrl.includes('/api/auth/login') ||
-          requestUrl.includes('/api/auth/google') ||
-          requestUrl.includes('/api/auth/refresh') ||
-          requestUrl.includes('/api/auth/register');
+          requestUrl.includes('/api/login') ||
+          requestUrl.includes('/api/google') ||
+          requestUrl.includes('/api/refresh') ||
+          requestUrl.includes('/api/register');
 
         if (error.response?.status === 401 && !isAuthRequest && originalRequest && !originalRequest._retry) {
           if (isRefreshing) {
@@ -110,7 +110,7 @@ class AuthService {
 
   async login(credentials) {
     try {
-      const response = await this.api.post('/api/auth/login', {
+      const response = await this.api.post('/api/login', {
         email: credentials.email,
         password: credentials.password,
       });
@@ -138,7 +138,7 @@ class AuthService {
 
   async loginWithGoogle({ idToken }) {
     try {
-      const response = await this.api.post('/api/auth/google', { idToken });
+      const response = await this.api.post('/api/google', { idToken });
       const jwtData = response.data.data ?? response.data;
       const authResponse = buildAuthResponse(jwtData);
 
@@ -157,7 +157,7 @@ class AuthService {
   async register(credentials) {
     try {
       console.log("[AuthService] Gửi yêu cầu đăng ký cho email:", credentials.email);
-      const response = await this.api.post('/api/auth/register', {
+      const response = await this.api.post('/api/register', {
         email: credentials.email,
         password: credentials.password,
         fullName: credentials.fullName,
@@ -175,7 +175,7 @@ class AuthService {
   async verifyRegister(email, code) {
     try {
       console.log("[AuthService] Gửi yêu cầu xác thực OTP đăng ký cho email:", email);
-      const response = await this.api.post('/api/auth/register/verify', {
+      const response = await this.api.post('/api/register/verify', {
         email,
         code,
       });
@@ -192,7 +192,7 @@ class AuthService {
 
   async forgotPassword({ email }) {
     try {
-      const response = await this.api.post('/api/auth/forgot-password', { email });
+      const response = await this.api.post('/api/forgot-password', { email });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -201,7 +201,7 @@ class AuthService {
 
   async resetPassword({ token, password }) {
     try {
-      const response = await this.api.post('/api/auth/reset-password', {
+      const response = await this.api.post('/api/reset-password', {
         token,
         newPassword: password,
       });
@@ -219,7 +219,7 @@ class AuthService {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/auth/refresh`,
+        `${API_BASE_URL}/api/refresh`,
         { refreshToken: currentRefreshToken }
       );
 
@@ -240,7 +240,7 @@ class AuthService {
   async logout() {
     try {
       const refreshToken = tokenService.getRefreshToken();
-      await this.api.post('/api/auth/logout', { refreshToken });
+      await this.api.post('/api/logout', { refreshToken });
     } catch (error) {
       console.warn('Server logout failed, clearing local session anyway:', error);
     } finally {

@@ -255,8 +255,8 @@ npm run dev
 
 ### 4. Access the Application
 
-- **Login**: http://localhost:5173/auth/login
-- **Register**: http://localhost:5173/auth/register
+- **Login**: http://localhost:5173/login
+- **Register**: http://localhost:5173/register
 - **Home**: http://localhost:5173
 
 ---
@@ -344,13 +344,13 @@ Text Secondary:   #d1d5db (rgb(209, 213, 219))
 
 Ready to integrate with backend API. All endpoints documented in [SETUP_GUIDE.md](./SETUP_GUIDE.md):
 
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
-- `POST /api/auth/google`
-- `POST /api/auth/apple`
-- `POST /api/auth/refresh`
+- `POST /api/login`
+- `POST /api/register`
+- `POST /api/forgot-password`
+- `POST /api/reset-password`
+- `POST /api/google`
+- `POST /api/apple`
+- `POST /api/refresh`
 
 ---
 
@@ -364,7 +364,7 @@ import { useAuthContext } from "@/features/auth";
 function Dashboard() {
   const { user, isAuthenticated, logout } = useAuthContext();
 
-  if (!isAuthenticated) return <Navigate to="/auth/login" />;
+  if (!isAuthenticated) return <Navigate to="/login" />;
 
   return (
     <div>
