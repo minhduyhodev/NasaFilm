@@ -96,7 +96,7 @@ public class MovieService {
     public Page<MovieListResponse> getMovieList(
             String keyword,
             String status,
-            UUID genreUuid,
+            List<UUID> genreUuids,
             UUID countryUuid,
             int page,
             int size,
@@ -124,9 +124,9 @@ public class MovieService {
                 predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
             }
 
-            if (genreUuid != null) {
+            if (genreUuids != null && !genreUuids.isEmpty()) {
                 Join<Movie, MovieGenre> movieGenreJoin = root.join("movieGenres", JoinType.LEFT);
-                predicates.add(cb.equal(movieGenreJoin.get("genre").get("uuid"), genreUuid));
+                predicates.add(movieGenreJoin.get("genre").get("uuid").in(genreUuids));
             }
 
             if (countryUuid != null) {
@@ -144,10 +144,20 @@ public class MovieService {
     @Transactional(readOnly = true)
     public MovieDetailResponse getMovieDetail(UUID movieUuid) {
         Movie movie = getMovieOrThrow(movieUuid);
-        if ("DELETED".equalsIgnoreCase(movie.getStatus()) || "INACTIVE".equalsIgnoreCase(movie.getStatus())) {
+        if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
         return toMovieDetailResponse(movie);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Genre> getAllGenres() {
+        return genreRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Country> getAllCountries() {
+        return countryRepository.findAll();
     }
 
     @Transactional
@@ -202,40 +212,88 @@ public class MovieService {
     }
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
-        movie.getMovieGenres().clear();
-        if (genreUuids == null || genreUuids.isEmpty()) {
-            return;
+        if (genreUuids == null) {
+            genreUuids = new java.util.ArrayList<>();
         }
-
         validateNoDuplicateUuids(genreUuids, "Genre bi trung");
-        List<Genre> genres = genreRepository.findAllById(genreUuids);
-        if (genres.size() != new HashSet<>(genreUuids).size()) {
-            throw new AppException(ErrorCode.NOT_FOUND, "Genre khong ton tai");
+
+        // 1. Find and remove genres that are no longer selected
+        List<MovieGenre> toRemove = new java.util.ArrayList<>();
+        for (MovieGenre mg : movie.getMovieGenres()) {
+            if (!genreUuids.contains(mg.getGenre().getUuid())) {
+                toRemove.add(mg);
+            }
+        }
+        for (MovieGenre mg : toRemove) {
+            movie.getMovieGenres().remove(mg);
+            mg.setMovie(null);
         }
 
-        for (Genre genre : genres) {
-            MovieGenre movieGenre = new MovieGenre();
-            movieGenre.setGenre(genre);
-            movie.addMovieGenre(movieGenre);
+        // 2. Identify new genre UUIDs to be added
+        Set<UUID> currentGenreUuids = movie.getMovieGenres().stream()
+                .map(mg -> mg.getGenre().getUuid())
+                .collect(Collectors.toSet());
+
+        List<UUID> toAddUuids = new java.util.ArrayList<>();
+        for (UUID uuid : genreUuids) {
+            if (!currentGenreUuids.contains(uuid)) {
+                toAddUuids.add(uuid);
+            }
+        }
+
+        if (!toAddUuids.isEmpty()) {
+            List<Genre> genres = genreRepository.findAllById(toAddUuids);
+            if (genres.size() != toAddUuids.size()) {
+                throw new AppException(ErrorCode.NOT_FOUND, "Genre khong ton tai");
+            }
+            for (Genre genre : genres) {
+                MovieGenre movieGenre = new MovieGenre();
+                movieGenre.setGenre(genre);
+                movie.addMovieGenre(movieGenre);
+            }
         }
     }
 
     private void replaceCountries(Movie movie, List<UUID> countryUuids) {
-        movie.getMovieCountries().clear();
-        if (countryUuids == null || countryUuids.isEmpty()) {
-            return;
+        if (countryUuids == null) {
+            countryUuids = new java.util.ArrayList<>();
         }
-
         validateNoDuplicateUuids(countryUuids, "Country bi trung");
-        List<Country> countries = countryRepository.findAllById(countryUuids);
-        if (countries.size() != new HashSet<>(countryUuids).size()) {
-            throw new AppException(ErrorCode.NOT_FOUND, "Country khong ton tai");
+
+        // 1. Find and remove countries that are no longer selected
+        List<MovieCountry> toRemove = new java.util.ArrayList<>();
+        for (MovieCountry mc : movie.getMovieCountries()) {
+            if (!countryUuids.contains(mc.getCountry().getUuid())) {
+                toRemove.add(mc);
+            }
+        }
+        for (MovieCountry mc : toRemove) {
+            movie.getMovieCountries().remove(mc);
+            mc.setMovie(null);
         }
 
-        for (Country country : countries) {
-            MovieCountry movieCountry = new MovieCountry();
-            movieCountry.setCountry(country);
-            movie.addMovieCountry(movieCountry);
+        // 2. Identify new country UUIDs to be added
+        Set<UUID> currentCountryUuids = movie.getMovieCountries().stream()
+                .map(mc -> mc.getCountry().getUuid())
+                .collect(Collectors.toSet());
+
+        List<UUID> toAddUuids = new java.util.ArrayList<>();
+        for (UUID uuid : countryUuids) {
+            if (!currentCountryUuids.contains(uuid)) {
+                toAddUuids.add(uuid);
+            }
+        }
+
+        if (!toAddUuids.isEmpty()) {
+            List<Country> countries = countryRepository.findAllById(toAddUuids);
+            if (countries.size() != toAddUuids.size()) {
+                throw new AppException(ErrorCode.NOT_FOUND, "Country khong ton tai");
+            }
+            for (Country country : countries) {
+                MovieCountry movieCountry = new MovieCountry();
+                movieCountry.setCountry(country);
+                movie.addMovieCountry(movieCountry);
+            }
         }
     }
 

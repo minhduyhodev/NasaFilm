@@ -36,7 +36,7 @@ export const ResetPasswordPage = () => {
   const onSubmit = async (data) => {
     if (!resetToken) {
       setError('password', {
-        message: 'Invalid or missing reset token',
+        message: 'Mã token đặt lại mật khẩu không hợp lệ hoặc thiếu',
       });
       return;
     }
@@ -49,7 +49,7 @@ export const ResetPasswordPage = () => {
         confirmPassword: data.confirmPassword,
       });
 
-      setSuccessMessage('Password reset successfully! Redirecting to login...');
+      setSuccessMessage('Đặt lại mật khẩu thành công! Đang chuyển hướng đến trang đăng nhập...');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -57,7 +57,7 @@ export const ResetPasswordPage = () => {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to reset password. Please try again.';
+          : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.';
       setError('password', {
         message: errorMessage,
       });
@@ -69,20 +69,20 @@ export const ResetPasswordPage = () => {
   if (!resetToken) {
     return (
       <AuthLayout showHero={false}>
-        <AuthCard title="Invalid Token" subtitle="Reset token is missing or expired">
+        <AuthCard title="Mã Token Không Hợp Lệ" subtitle="Mã token đặt lại mật khẩu bị thiếu hoặc đã hết hạn">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
             <p className="text-center text-gray-400">
-              This password reset link is invalid or has expired. Please request a new one.
+              Đường liên kết đặt lại mật khẩu này không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu một liên kết mới.
             </p>
             <Link
               to="/forgot-password"
               className="block w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 text-center"
             >
-              Request New Reset Link
+              Yêu cầu liên kết đặt lại mật khẩu mới
             </Link>
           </motion.div>
         </AuthCard>

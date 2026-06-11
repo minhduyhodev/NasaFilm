@@ -32,7 +32,7 @@ export const ForgotPasswordPage = () => {
       await authService.forgotPassword({ email: data.email });
       setSubmittedEmail(data.email);
       setSuccessMessage(
-        `Recovery code sent to ${data.email}. Please check your email.`
+        `Mã khôi phục đã được gửi tới ${data.email}. Vui lòng kiểm tra email của bạn.`
       );
       setTimeout(() => {
         navigate('/login');
@@ -46,7 +46,7 @@ export const ForgotPasswordPage = () => {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to send recovery code. Please try again.';
+          : 'Không thể gửi mã khôi phục. Vui lòng thử lại.';
       setError('email', {
         message: errorMessage,
       });

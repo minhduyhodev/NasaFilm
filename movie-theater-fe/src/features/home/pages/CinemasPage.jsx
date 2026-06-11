@@ -234,7 +234,7 @@ const CinemasPage = () => {
                     <div key={cinema.id} className="space-y-4">
                       <div className="flex items-center gap-2 text-white border-b border-white/10 pb-3">
                         <Calendar className="h-5 w-5 text-red-500" />
-                        <h4 className="font-black uppercase tracking-wider text-base">Lịch Chiếu Suất Chiếu Tại {cinema.name}</h4>
+                        <h4 className="font-black uppercase tracking-wider text-base">Lịch Chiếu Tại {cinema.name}</h4>
                       </div>
 
                       <div className="space-y-1">

@@ -75,6 +75,10 @@ public class UserService {
         }
 
         if (request.getCurrentPassword() != null || request.getNewPassword() != null) {
+            if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản đăng nhập bằng Google không thể đổi mật khẩu");
+            }
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 throw new AppException(ErrorCode.BAD_REQUEST,
                         "Mật khẩu hiện tại không đúng");

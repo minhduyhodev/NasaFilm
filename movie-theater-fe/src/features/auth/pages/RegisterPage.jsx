@@ -74,7 +74,7 @@ export const RegisterPage = () => {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Registration failed. Please try again.";
+          : "Đăng ký thất bại. Vui lòng thử lại.";
       setError("email", {
         message: errorMessage,
       });
@@ -206,7 +206,7 @@ export const RegisterPage = () => {
           setIsLoading(true);
           try {
             await loginWithGoogle({ idToken: response.credential });
-            notificationService.success("Welcome to NASA FILM!");
+            notificationService.success("Chào mừng bạn đến với NASA FILM!");
             redirectAfterLogin();
           } catch (error) {
             const errorMessage =

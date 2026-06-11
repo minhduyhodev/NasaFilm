@@ -41,11 +41,14 @@ const TicketFilters = () => {
       notificationService.warning("Vui lòng chọn đầy đủ Rạp, Phim, Ngày và Suất chiếu để đặt vé.");
       return;
     }
-    addNotification(
-      "Đặt vé thành công",
-      `Đặt vé thành công tại ${theater} - Phim: ${movie} - Ngày: ${date} - Suất: ${showtime}`,
-      "success"
-    );
+    navigate('/booking', {
+      state: {
+        theater,
+        movie,
+        date,
+        showtime
+      }
+    });
   };
 
   const getSelectClass = (value) => {

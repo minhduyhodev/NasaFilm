@@ -26,7 +26,7 @@ export const LoginPage = () => {
   useEffect(() => {
     const isExpired = sessionStorage.getItem('auth_expired');
     if (isExpired === 'true') {
-      notificationService.warning('Phien dang nhap da het han. Vui long dang nhap lai.', {
+      notificationService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
         toastId: 'auth_expired_toast',
       });
       sessionStorage.removeItem('auth_expired');
@@ -91,7 +91,7 @@ export const LoginPage = () => {
           setIsLoading(true);
           try {
             await loginWithGoogle({ idToken: response.credential });
-            notificationService.success('Welcome to NASA FILM!');
+            notificationService.success('Chào mừng bạn đến với NASA FILM!');
             redirectAfterLogin();
           } catch (error) {
             const errorMessage =
@@ -148,11 +148,11 @@ export const LoginPage = () => {
         rememberMe: data.rememberMe,
       });
 
-      notificationService.success('Welcome to NASA FILM!');
+      notificationService.success('Chào mừng bạn đến với NASA FILM!');
       redirectAfterLogin();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Dang nhap that bai. Vui long thu lai.';
+        error instanceof Error ? error.message : 'Đăng nhập thất bại. Vui lòng thử lại.';
 
       notificationService.error(errorMessage);
       setError('email', {

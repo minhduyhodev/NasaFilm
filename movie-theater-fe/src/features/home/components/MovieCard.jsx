@@ -1,24 +1,38 @@
 import React from 'react';
 import { Star, Tag, Clock, Globe, MessageSquare } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const MovieCard = ({ title, genre, rating, poster, duration, format, hoverDetails }) => {
+const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails }) => {
+  const formatDuration = (mins) => {
+    if (!mins) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
+  };
+
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const linkTarget = uuid ? `/movie/${uuid}` : `/movie/${slug}`;
+  const displayPoster = primaryMediaUrl || poster;
+  const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
+  const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
+  const displayRating = rating ? rating : '0.0';
+
   // Format badge color mappings matching mockup styles
   const getFormatBadgeStyle = (fmt) => {
     const f = fmt?.toUpperCase() || '';
-    if (f === 'IMAX') return 'bg-[#dc2626]/85 text-white';
-    if (f === 'PREMIER') return 'bg-[#f3a092] text-neutral-900';
-    if (f === 'DOLBY') return 'bg-white/10 text-white border border-white/10';
-    if (f === '4DX') return 'bg-neutral-800/80 text-white border border-neutral-700/20';
-    return 'bg-white/10 text-white';
+    if (f.includes('IMAX')) return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500';
+    if (f.includes('4DX')) return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-500';
+    if (f.includes('DOLBY')) return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-500';
+    return 'bg-red-500/10 border-red-500/30 text-red-500';
   };
 
   return (
-    <div className="group relative w-full aspect-[2/3] overflow-hidden rounded-2xl border border-white/5 bg-[#0f121d] shadow-2xl transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 hover:shadow-red-500/5">
+    <Link to={linkTarget} className="group relative block w-full h-full aspect-[2/3] overflow-hidden rounded-2xl border border-white/5 bg-[#0f121d] shadow-2xl transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 hover:shadow-red-500/5">
       {/* Poster Image */}
       <img
-        src={poster}
+        src={displayPoster}
         alt={title}
-        className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
 
       {/* Dark gradient overlay */}
@@ -46,7 +60,7 @@ const MovieCard = ({ title, genre, rating, poster, duration, format, hoverDetail
 
         {/* Subtitle: Genre & Duration */}
         <p className="text-xs text-gray-400 font-medium truncate">
-          {genre} {duration && `• ${duration}`}
+          {displayGenre} {displayDuration && `• ${displayDuration}`}
         </p>
       </div>
 
@@ -84,7 +98,7 @@ const MovieCard = ({ title, genre, rating, poster, duration, format, hoverDetail
           </div>
         </div>
       )}
-    </div>
+    </Link>
   );
 };
 

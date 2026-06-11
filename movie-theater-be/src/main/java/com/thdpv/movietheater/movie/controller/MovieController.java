@@ -1,8 +1,11 @@
 package com.thdpv.movietheater.movie.controller;
 
 import java.util.UUID;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
+import com.thdpv.movietheater.movie.entity.Genre;
+import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,7 +61,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/movies/{movieUuid}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID movieUuid) {
         movieService.softDeleteMovie(movieUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa mem phim thanh cong"));
@@ -68,14 +71,14 @@ public class MovieController {
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) UUID genreUuid,
+            @RequestParam(required = false) List<UUID> genreUuids,
             @RequestParam(required = false) UUID countryUuid,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "releaseDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         Page<MovieListResponse> response = movieService.getMovieList(
-                keyword, status, genreUuid, countryUuid, page, size, sortBy, sortDir);
+                keyword, status, genreUuids, countryUuid, page, size, sortBy, sortDir);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -115,5 +118,15 @@ public class MovieController {
             @PathVariable UUID mediaUuid) {
         movieService.deleteMovieMedia(movieUuid, mediaUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa media phim thanh cong"));
+    }
+
+    @GetMapping("/genres")
+    public ResponseEntity<ApiResponse<List<Genre>>> getGenres() {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getAllGenres()));
+    }
+
+    @GetMapping("/countries")
+    public ResponseEntity<ApiResponse<List<Country>>> getCountries() {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getAllCountries()));
     }
 }

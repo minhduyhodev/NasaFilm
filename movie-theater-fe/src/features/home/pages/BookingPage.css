@@ -1,0 +1,132 @@
+.booking-wrapper {
+  background-color: #0A0A0C;
+  color: #e5e2e1;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  padding-top: 100px; /* Space for navbar */
+  overflow-x: hidden;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.seat {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  font-weight: 700;
+  border: 2px solid transparent;
+}
+
+.seat:hover:not(.occupied) {
+  transform: scale(1.15);
+}
+
+.seat.standard {
+  width: 44px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 11px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #a1a1aa;
+}
+
+.seat.standard:hover:not(.occupied) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.seat.vip {
+  width: 44px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 11px;
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  background: transparent;
+  color: #fbbf24;
+}
+
+.seat.vip:hover:not(.occupied) {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.seat.couple {
+  width: 96px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 11px;
+  border: 2px solid rgba(220, 38, 38, 0.35);
+  background: transparent;
+  color: #ef4444;
+}
+
+.seat.couple:hover:not(.occupied) {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.seat.selected {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 12px #ffffff;
+}
+
+.seat.occupied {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid transparent !important;
+  color: rgba(255, 255, 255, 0.2) !important;
+  cursor: not-allowed;
+  opacity: 0.25;
+}
+
+.screen-curve {
+  perspective: 1000px;
+}
+
+.screen-glow {
+  box-shadow: 0 -15px 45px -5px rgba(255, 255, 255, 0.08);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -6,21 +6,21 @@ const DashboardPage = () => {
     <>
       <div className="dashboard-header-container">
         <div className="dashboard-header-info">
-          <h1 className="dashboard-title">Admin Dashboard</h1>
-          <p className="dashboard-subtitle">Operations & Analytics at a glance</p>
+          <h1 className="dashboard-title">Bảng Điều Khiển Admin</h1>
+          <p className="dashboard-subtitle">Tổng quan vận hành & Phân tích</p>
         </div>
         <button className="dashboard-action-btn">
           <span className="material-symbols-outlined">add</span>
-          Add New Campaign
+          Thêm Chiến Dịch Mới
         </button>
       </div>
 
       <div className="dashboard-stats-grid">
         {[
-          { label: 'REVENUE', value: '142,5K', badge: 'This month', icon: 'analytics' },
-          { label: 'CONVERSATION', value: '32,8%', badge: 'Avg rate', icon: 'target' },
-          { label: 'GROWTH', value: '+8,4%', badge: 'vs last month', icon: 'trending_up' },
-          { label: 'TRANSACTIONS', value: '3,480', badge: 'Completed', icon: 'analytics' },
+          { label: 'DOANH THU', value: '142,5K', badge: 'Tháng này', icon: 'analytics' },
+          { label: 'TỶ LỆ CHUYỂN ĐỔI', value: '32,8%', badge: 'Tỷ lệ trung bình', icon: 'target' },
+          { label: 'TĂNG TRƯỞNG', value: '+8,4%', badge: 'So với tháng trước', icon: 'trending_up' },
+          { label: 'GIAO DỊCH', value: '3,480', badge: 'Đã hoàn thành', icon: 'analytics' },
         ].map((card) => (
           <div key={card.label} className="dashboard-stat-card">
             <div className="dashboard-stat-card-top">
@@ -39,12 +39,12 @@ const DashboardPage = () => {
         <div className="dashboard-main-chart-card">
           <div className="dashboard-chart-header">
             <div>
-              <h2 className="dashboard-chart-title">Revenue Overview</h2>
-              <p className="dashboard-chart-subtitle">Daily sales performance across all theaters</p>
+              <h2 className="dashboard-chart-title">Tổng Quan Doanh Thu</h2>
+              <p className="dashboard-chart-subtitle">Hiệu suất bán vé hàng ngày trên tất cả các rạp</p>
             </div>
             <div className="dashboard-chart-actions">
-              <button className="dashboard-chart-btn-outline">Daily</button>
-              <button className="dashboard-chart-btn-filled">Monthly</button>
+              <button className="dashboard-chart-btn-outline">Theo Ngày</button>
+              <button className="dashboard-chart-btn-filled">Theo Tháng</button>
             </div>
           </div>
           <div className="dashboard-chart-wrapper">
@@ -61,24 +61,24 @@ const DashboardPage = () => {
           </div>
           {/* X Axis labels */}
           <div className="dashboard-chart-axis">
-            <span>DAY 01</span>
-            <span>DAY 10</span>
-            <span>DAY 20</span>
-            <span>DAY 30</span>
+            <span>NGÀY 01</span>
+            <span>NGÀY 10</span>
+            <span>NGÀY 20</span>
+            <span>NGÀY 30</span>
           </div>
         </div>
 
         <div className="dashboard-occupancy-card">
           <div className="dashboard-occupancy-header">
             <div>
-              <h2 className="dashboard-occupancy-title">Occupancy Rate</h2>
-              <p className="dashboard-occupancy-subtitle">Capacity usage per genre</p>
+              <h2 className="dashboard-occupancy-title">Tỷ Lệ Lấp Đầy Ghế</h2>
+              <p className="dashboard-occupancy-subtitle">Hiệu suất sử dụng sức chứa theo thể loại</p>
             </div>
           </div>
           <div className="dashboard-occupancy-list">
             <div className="dashboard-occupancy-item">
               <div className="dashboard-occupancy-row">
-                <span className="dashboard-occupancy-label">Sci-Fi / Action</span>
+                <span className="dashboard-occupancy-label">Viễn Tưởng / Hành Động</span>
                 <span className="dashboard-occupancy-val-danger">92%</span>
               </div>
               <div className="dashboard-progress-bg">
@@ -87,7 +87,7 @@ const DashboardPage = () => {
             </div>
             <div className="dashboard-occupancy-item">
               <div className="dashboard-occupancy-row">
-                <span className="dashboard-occupancy-label">Drama</span>
+                <span className="dashboard-occupancy-label">Chính Kịch</span>
                 <span className="dashboard-occupancy-val-muted">64%</span>
               </div>
               <div className="dashboard-progress-bg">
@@ -96,7 +96,7 @@ const DashboardPage = () => {
             </div>
             <div className="dashboard-occupancy-item">
               <div className="dashboard-occupancy-row">
-                <span className="dashboard-occupancy-label">Horror</span>
+                <span className="dashboard-occupancy-label">Kinh Dị</span>
                 <span className="dashboard-occupancy-val-danger">88%</span>
               </div>
               <div className="dashboard-progress-bg">
@@ -105,7 +105,7 @@ const DashboardPage = () => {
             </div>
             <div className="dashboard-occupancy-item">
               <div className="dashboard-occupancy-row">
-                <span className="dashboard-occupancy-label">Animation</span>
+                <span className="dashboard-occupancy-label">Hoạt Hình</span>
                 <span className="dashboard-occupancy-val-warning">79%</span>
               </div>
               <div className="dashboard-progress-bg">
@@ -113,7 +113,7 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-          <button className="dashboard-occupancy-btn">View Detailed Breakdown</button>
+          <button className="dashboard-occupancy-btn">Xem Phân Tích Chi Tiết</button>
         </div>
       </div>
     </>

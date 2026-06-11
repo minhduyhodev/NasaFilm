@@ -1,23 +1,32 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
-import DashboardPage from '../pages/DashboardPage';
-import MoviesPage from '../pages/MoviesPage';
-import ShowtimesPage from '../pages/ShowtimesPage';
-import CinemasPage from '../pages/CinemasPage';
-import UsersPage from '../pages/UsersPage';
+
+const DashboardPage = lazy(() => import('../pages/DashboardPage'));
+const MoviesPage = lazy(() => import('../pages/MoviesPage'));
+const ShowtimesPage = lazy(() => import('../pages/ShowtimesPage'));
+const CinemasPage = lazy(() => import('../pages/CinemasPage'));
+const UsersPage = lazy(() => import('../pages/UsersPage'));
+
+const AdminPageLoader = () => (
+  <div className="flex items-center justify-center p-20">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+  </div>
+);
 
 export const AdminRoutes = () => {
   return (
-    <Routes>
-      <Route element={<AdminLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="movies" element={<MoviesPage />} />
-        <Route path="showtimes" element={<ShowtimesPage />} />
-        <Route path="cinemas" element={<CinemasPage />} />
-        <Route path="users" element={<UsersPage />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={<AdminPageLoader />}>
+      <Routes>
+        <Route element={<AdminLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="movies" element={<MoviesPage />} />
+          <Route path="showtimes" element={<ShowtimesPage />} />
+          <Route path="cinemas" element={<CinemasPage />} />
+          <Route path="users" element={<UsersPage />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 };
 

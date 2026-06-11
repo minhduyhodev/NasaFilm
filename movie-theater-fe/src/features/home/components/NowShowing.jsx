@@ -1,7 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import MovieCard from './MovieCard';
+import MovieCardSkeleton from './MovieCardSkeleton';
 import { notificationService } from '../../../shared/services/notificationService';
+import { movieService } from '../../../shared/services/movieService';
 import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
 import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
 import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
@@ -11,7 +13,7 @@ import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
 import baTronPoster from '../../../shared/assets/batron.webp';
 import khachPoster from '../../../shared/assets/khach.webp';
 
-const movies = [
+const staticMovies = [
   {
     title: 'Doraemon: Nobita và lâu đài dưới đáy biển',
     rating: 4.8,
@@ -113,6 +115,38 @@ const movies = [
 const NowShowing = () => {
   const scrollerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [moviesList, setMoviesList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNowShowing = async () => {
+      setIsLoading(true);
+      try {
+        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 20 });
+        if (data && data.content && data.content.length > 0) {
+          const mapped = data.content.map(m => ({
+            ...m,
+            hoverDetails: {
+              fullTitle: m.title,
+              genre: m.genres ? m.genres.join(', ') : '',
+              duration: m.durationMinutes ? `${m.durationMinutes}'` : '',
+              country: m.countries ? m.countries.join(', ') : '',
+              language: 'Phụ đề / Lồng tiếng'
+            }
+          }));
+          setMoviesList(mapped);
+        } else {
+          setMoviesList(staticMovies);
+        }
+      } catch (err) {
+        console.error("Failed to load now showing movies:", err);
+        setMoviesList(staticMovies);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchNowShowing();
+  }, []);
 
   const getScrollAmount = () => {
     const el = scrollerRef.current;
@@ -167,7 +201,7 @@ const NowShowing = () => {
   const handleNext = () => scroll('right');
 
   // Total pages = total movies / 4 (since we display 4 movies per page on desktop)
-  const totalPages = Math.ceil(movies.length / 4);
+  const totalPages = Math.ceil(moviesList.length / 4);
 
   return (
     <section className="relative">
@@ -198,40 +232,52 @@ const NowShowing = () => {
         onScroll={handleScroll}
         className="no-scrollbar flex gap-6 overflow-x-auto pb-4 pr-1 snap-x snap-mandatory"
       >
-        {movies.map((movie, index) => (
-          <div
-            key={movie.title}
-            className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col gap-4`}
-            style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
-          >
-            <MovieCard {...movie} />
-            
-            {/* Action buttons under the card */}
-            <div className="flex w-full items-center justify-between mt-auto px-1">
-              <button className="flex items-center gap-2 text-sm font-semibold text-white/90 hover:text-white transition-colors group/btn">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] p-[2px] transition-transform duration-200 group-hover/btn:scale-110">
-                  <span className="inline-flex h-full w-full items-center justify-center rounded-full bg-white">
-                    <Play className="h-3 w-3 text-red-500 fill-current" />
-                  </span>
-                </span>
-                <span className="underline underline-offset-4 decoration-white/30 hover:decoration-white">Xem Trailer</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  const el = document.getElementById('quick-booking');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth' });
-                  }
-                  notificationService.info(`Vui lòng hoàn tất thông tin để đặt vé cho phim: ${movie.title}`);
-                }}
-                className="rounded-md bg-yellow-400 px-6 py-2 text-sm font-bold text-black hover:brightness-95"
-              >
-                ĐẶT VÉ
-              </button>
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="flex flex-col gap-4"
+              style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
+            >
+              <MovieCardSkeleton />
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          moviesList.map((movie, index) => (
+            <div
+              key={movie.title}
+              className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col gap-4`}
+              style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
+            >
+              <MovieCard {...movie} />
+              
+              {/* Action buttons under the card */}
+              <div className="flex w-full items-center justify-between mt-auto px-1">
+                <button className="flex items-center gap-2 text-sm font-semibold text-white/90 hover:text-white transition-colors group/btn">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] p-[2px] transition-transform duration-200 group-hover/btn:scale-110">
+                    <span className="inline-flex h-full w-full items-center justify-center rounded-full bg-white">
+                      <Play className="h-3 w-3 text-red-500 fill-current" />
+                    </span>
+                  </span>
+                  <span className="underline underline-offset-4 decoration-white/30 hover:decoration-white">Xem Trailer</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('quick-booking');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    notificationService.info(`Vui lòng hoàn tất thông tin để đặt vé cho phim: ${movie.title}`);
+                  }}
+                  className="rounded-md bg-yellow-400 px-6 py-2 text-sm font-bold text-black hover:brightness-95"
+                >
+                  ĐẶT VÉ
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* dynamic pagination dots */}

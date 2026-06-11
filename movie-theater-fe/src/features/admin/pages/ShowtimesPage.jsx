@@ -5,30 +5,30 @@ import './ShowtimesPage.css';
 const ShowtimesPage = () => {
   const cards = [
     {
-      label: 'TODAY',
+      label: 'HÔM NAY',
       value: '48',
-      sub: 'Active sessions',
+      sub: 'Suất chiếu hoạt động',
       isGreen: true,
       Icon: Clock,
     },
     {
-      label: 'UPCOMING',
+      label: 'SẮP CHIẾU',
       value: '112',
-      sub: 'Next 3 days',
+      sub: 'Trong 3 ngày tới',
       isGreen: false,
       Icon: Calendar,
     },
     {
-      label: 'AUDITORIUMS',
+      label: 'PHÒNG CHIẾU',
       value: '18',
-      sub: 'Available screens',
+      sub: 'Số phòng khả dụng',
       isGreen: false,
       Icon: Tv,
     },
     {
-      label: 'FILL RATE',
+      label: 'TỶ LỆ LẤP ĐẦY',
       value: '76%',
-      sub: 'Average booking',
+      sub: 'Tỷ lệ đặt vé trung bình',
       isGreen: false,
       isItalic: true,
       Icon: Activity,
@@ -46,17 +46,17 @@ const ShowtimesPage = () => {
     <>
       <div className="admin-header-container">
         <div className="admin-header-info">
-          <p className="admin-subtitle">MANAGE SHOWTIMES</p>
-          <h1 className="admin-title">Screening Schedule</h1>
+          <p className="admin-subtitle">QUẢN LÝ LỊCH CHIẾU</p>
+          <h1 className="admin-title">Lịch Chiếu Phim</h1>
           <p className="admin-description">
-            Schedule screening sessions, update show timings, and monitor theater room occupancy levels in real-time.
+            Lên lịch các suất chiếu phim, cập nhật thời gian chiếu và theo dõi tỷ lệ lấp đầy phòng chiếu theo thời gian thực.
           </p>
         </div>
         <button className="admin-add-btn">
           <span className="admin-add-btn-plus">+</span>
           <div className="admin-add-btn-label-group">
-            <div className="admin-add-btn-sub">Add</div>
-            <div className="admin-add-btn-main">Showtime</div>
+            <div className="admin-add-btn-sub">Thêm</div>
+            <div className="admin-add-btn-main">Lịch Chiếu</div>
           </div>
         </button>
       </div>
@@ -85,17 +85,17 @@ const ShowtimesPage = () => {
             <Search className="admin-search-icon" />
             <input
               className="admin-search-input"
-              placeholder="Search showtimes, cinemas, or movies..."
+              placeholder="Tìm kiếm lịch chiếu, rạp chiếu hoặc phim..."
             />
           </div>
           <div className="admin-action-group">
             <button className="admin-action-btn">
               <SlidersHorizontal className="w-4 h-4" />
-              Filters
+              Bộ lọc
             </button>
             <button className="admin-action-btn">
               <Download className="w-4 h-4" />
-              Export
+              Xuất file
             </button>
           </div>
         </div>
@@ -104,12 +104,12 @@ const ShowtimesPage = () => {
           <table className="admin-table">
             <thead>
               <tr className="admin-table-thead-tr">
-                <th className="pb-3">MOVIE</th>
-                <th className="pb-3">CINEMA</th>
-                <th className="pb-3">TIME</th>
-                <th className="pb-3">SCREEN</th>
-                <th className="pb-3">STATUS</th>
-                <th className="pb-3 text-right">ACTION</th>
+                <th className="pb-3">PHIM</th>
+                <th className="pb-3">RẠP / PHÒNG</th>
+                <th className="pb-3">THỜI GIAN</th>
+                <th className="pb-3">MÀN HÌNH</th>
+                <th className="pb-3">TRẠNG THÁI</th>
+                <th className="pb-3 text-right">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -121,7 +121,7 @@ const ShowtimesPage = () => {
                     </div>
                     <div>
                       <div className="admin-showtime-name">{row.title}</div>
-                      <div className="admin-showtime-desc">Standard Release</div>
+                      <div className="admin-showtime-desc">Bản Chiếu Chuẩn</div>
                     </div>
                   </td>
                   <td className="admin-table-td-val">{row.cinema}</td>
@@ -137,7 +137,11 @@ const ShowtimesPage = () => {
                           : 'admin-badge-closed'
                       }
                     >
-                      {row.status}
+                      {row.status === 'Live'
+                        ? 'Đang Chiếu'
+                        : row.status === 'Scheduled'
+                        ? 'Đã Lên Lịch'
+                        : 'Nháp'}
                     </span>
                   </td>
                   <td className="admin-table-actions-td">

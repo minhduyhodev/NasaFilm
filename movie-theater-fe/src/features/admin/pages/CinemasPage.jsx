@@ -5,31 +5,31 @@ import './CinemasPage.css';
 const CinemasPage = () => {
   const cards = [
     {
-      label: 'LOCATIONS',
+      label: 'CHI NHÁNH',
       value: '14',
-      sub: 'Open theaters',
+      sub: 'Đang hoạt động',
       isGreen: true,
       Icon: MapPin,
     },
     {
-      label: 'SCREENS',
+      label: 'PHÒNG CHIẾU',
       value: '78',
-      sub: 'Total auditoriums',
+      sub: 'Tổng số phòng',
       isGreen: false,
       Icon: Tv,
     },
     {
-      label: 'VIP ROOMS',
+      label: 'PHÒNG VIP',
       value: '12',
-      sub: 'Premium seating',
+      sub: 'Ghế ngồi cao cấp',
       isGreen: false,
       isItalic: true,
       Icon: Crown,
     },
     {
-      label: 'OPEN TODAY',
+      label: 'MỞ CỬA HÔM NAY',
       value: '11',
-      sub: 'Now operating',
+      sub: 'Đang mở cửa',
       isGreen: true,
       Icon: Activity,
     },
@@ -63,17 +63,17 @@ const CinemasPage = () => {
     <>
       <div className="admin-header-container">
         <div className="admin-header-info">
-          <p className="admin-subtitle">MANAGE CINEMAS</p>
-          <h1 className="admin-title">Cinema Locations</h1>
+          <p className="admin-subtitle">QUẢN LÝ RẠP CHIẾU</p>
+          <h1 className="admin-title">Hệ Thống Chi Nhánh Rạp</h1>
           <p className="admin-description">
-            Manage theater locations, screen counts, and facility availability across your network. Optimize performance through detailed location oversight.
+            Quản lý các chi nhánh rạp, số lượng phòng chiếu và trạng thái hoạt động trên toàn hệ thống. Tối ưu hóa hiệu suất thông qua giám sát chi tiết.
           </p>
         </div>
         <button className="admin-add-btn">
           <span className="admin-add-btn-plus">+</span>
           <div className="admin-add-btn-label-group">
-            <div className="admin-add-btn-sub">Add</div>
-            <div className="admin-add-btn-main">Cinema</div>
+            <div className="admin-add-btn-sub">Thêm</div>
+            <div className="admin-add-btn-main">Rạp</div>
           </div>
         </button>
       </div>
@@ -102,17 +102,17 @@ const CinemasPage = () => {
             <Search className="admin-search-icon" />
             <input
               className="admin-search-input"
-              placeholder="Search cinema by location or capacity..."
+              placeholder="Tìm kiếm rạp theo tên, địa chỉ hoặc sức chứa..."
             />
           </div>
           <div className="admin-action-group">
             <button className="admin-action-btn">
               <SlidersHorizontal className="w-4 h-4" />
-              Filters
+              Bộ lọc
             </button>
             <button className="admin-action-btn">
               <Download className="w-4 h-4" />
-              Export
+              Xuất file
             </button>
           </div>
         </div>
@@ -121,11 +121,11 @@ const CinemasPage = () => {
           <table className="admin-table">
             <thead>
               <tr className="admin-table-thead-tr">
-                <th className="pb-3">LOCATION</th>
-                <th className="pb-3">SCREENS</th>
-                <th className="pb-3">VIP</th>
-                <th className="pb-3">STATUS</th>
-                <th className="pb-3 text-right">ACTION</th>
+                <th className="pb-3">TÊN RẠP / ĐỊA CHỈ</th>
+                <th className="pb-3">SỐ PHÒNG CHIẾU</th>
+                <th className="pb-3">SỐ PHÒNG VIP</th>
+                <th className="pb-3">TRẠNG THÁI</th>
+                <th className="pb-3 text-right">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -144,7 +144,7 @@ const CinemasPage = () => {
                   <td className="admin-table-td-val">{row.vip}</td>
                   <td className="py-4 pr-6">
                     <span className={row.status === 'Open' ? 'admin-badge-open' : 'admin-badge-closed'}>
-                      {row.status}
+                      {row.status === 'Open' ? 'Mở cửa' : 'Đóng cửa'}
                     </span>
                   </td>
                   <td className="admin-table-actions-td">

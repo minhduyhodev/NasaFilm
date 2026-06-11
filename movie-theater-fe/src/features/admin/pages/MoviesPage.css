@@ -157,3 +157,68 @@
 .admin-table-actions-td {
   @apply py-4 pr-6 text-[#8a8d9f];
 }
+
+/* Modal Styles */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto;
+}
+
+.modal-content {
+  @apply bg-[#11121a] border border-white/10 rounded-[32px] w-full max-w-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left;
+}
+
+.modal-header {
+  @apply flex items-center justify-between border-b border-white/5 pb-4;
+}
+
+.modal-title {
+  @apply text-xl font-bold text-white uppercase tracking-wider;
+}
+
+.modal-close-btn {
+  @apply text-[#6e7191] hover:text-white transition-colors bg-transparent border-0 cursor-pointer flex items-center;
+}
+
+.form-group {
+  @apply flex flex-col gap-2;
+}
+
+.form-label {
+  @apply text-xs font-bold uppercase tracking-[0.1em] text-[#8a8d9f];
+}
+
+.form-input {
+  @apply w-full rounded-xl bg-[#0f1117] px-4 py-3 text-white placeholder-[#6e7191] border border-white/10 focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm;
+}
+
+.form-textarea {
+  @apply w-full rounded-xl bg-[#0f1117] px-4 py-3 text-white placeholder-[#6e7191] border border-white/10 focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm h-28 resize-none;
+}
+
+.form-select {
+  @apply w-full rounded-xl bg-[#0f1117] px-4 py-3 text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-red-500/30 text-sm cursor-pointer;
+}
+
+.checkbox-grid {
+  @apply grid grid-cols-2 md:grid-cols-3 gap-3 bg-[#0f1117] p-4 rounded-xl border border-white/5;
+}
+
+.checkbox-label {
+  @apply flex items-center gap-2 text-xs text-[#c8c5ca] cursor-pointer hover:text-white transition-colors;
+}
+
+.checkbox-input {
+  @apply rounded border-white/20 bg-transparent text-red-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer;
+}
+
+.form-actions {
+  @apply flex justify-end gap-3 pt-4 border-t border-white/5;
+}
+
+.btn-cancel {
+  @apply rounded-full border border-white/10 bg-[#11131b] px-6 py-2.5 text-sm font-semibold text-[#8a8d9f] hover:bg-white/5 transition cursor-pointer;
+}
+
+.btn-submit {
+  @apply rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#d12c2c] transition shadow-[0_10px_30px_rgba(220,38,38,0.2)] cursor-pointer;
+}

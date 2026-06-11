@@ -29,4 +29,6 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
             )
             """, nativeQuery = true)
     boolean existsBookingByMovieUuid(@Param("movieUuid") UUID movieUuid);
+
+    boolean existsByTitleIgnoreCase(String title);
 }

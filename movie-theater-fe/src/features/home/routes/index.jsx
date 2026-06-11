@@ -1,40 +1,69 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import HomePage from '../pages/HomePage';
-import AboutPage from '../pages/AboutPage';
-import MoviesPage from '../pages/MoviesPage';
-import CinemasPage from '../pages/CinemasPage';
-import OffersPage from '../pages/OffersPage';
-import ProfilePage from '../pages/ProfilePage';
-import TermsPage from '../pages/TermsPage';
-import PrivacyPage from '../pages/PrivacyPage';
-import PaymentPolicyPage from '../pages/PaymentPolicyPage';
-import RefundPolicyPage from '../pages/RefundPolicyPage';
-import FaqPage from '../pages/FaqPage';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
+
+const HomePage = lazy(() => import('../pages/HomePage'));
+const AboutPage = lazy(() => import('../pages/AboutPage'));
+const MoviesPage = lazy(() => import('../pages/MoviesPage'));
+const CinemasPage = lazy(() => import('../pages/CinemasPage'));
+const OffersPage = lazy(() => import('../pages/OffersPage'));
+const ProfilePage = lazy(() => import('../pages/ProfilePage'));
+const TermsPage = lazy(() => import('../pages/TermsPage'));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const PaymentPolicyPage = lazy(() => import('../pages/PaymentPolicyPage'));
+const RefundPolicyPage = lazy(() => import('../pages/RefundPolicyPage'));
+const FaqPage = lazy(() => import('../pages/FaqPage'));
+const MovieDetailPage = lazy(() => import('../pages/MovieDetailPage'));
+const BookingPage = lazy(() => import('../pages/BookingPage'));
+const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
+
+const PageLoader = () => (
+  <div className="min-h-screen bg-[#090b11] flex items-center justify-center">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500"></div>
+  </div>
+);
 
 export const HomeRoutes = () => {
   return (
-    <Routes>
-      <Route index element={<HomePage />} />
-      <Route path="movies" element={<MoviesPage />} />
-      <Route path="cinemas" element={<CinemasPage />} />
-      <Route path="offers" element={<OffersPage />} />
-      <Route path="about" element={<AboutPage />} />
-      <Route path="terms" element={<TermsPage />} />
-      <Route path="privacy" element={<PrivacyPage />} />
-      <Route path="payment-policy" element={<PaymentPolicyPage />} />
-      <Route path="refund-policy" element={<RefundPolicyPage />} />
-      <Route path="faq" element={<FaqPage />} />
-      <Route
-        path="profile"
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route index element={<HomePage />} />
+        <Route path="movies" element={<MoviesPage />} />
+        <Route path="cinemas" element={<CinemasPage />} />
+        <Route path="offers" element={<OffersPage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="terms" element={<TermsPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="payment-policy" element={<PaymentPolicyPage />} />
+        <Route path="refund-policy" element={<RefundPolicyPage />} />
+        <Route path="faq" element={<FaqPage />} />
+        <Route path="movie/:id" element={<MovieDetailPage />} />
+        <Route
+          path="booking"
+          element={
+            <ProtectedRoute>
+              <BookingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 };
 

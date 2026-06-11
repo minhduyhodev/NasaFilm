@@ -42,7 +42,7 @@ export const UnauthorizedPage = () => {
 
           {/* Title and Headers */}
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400 mb-2 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full">
-            403 - ACCESS DENIED
+            403 - TRUY CẬP BỊ TỪ CHỐI
           </span>
           <h1 className="text-2xl font-black text-white tracking-tight leading-snug mb-3">
             Quyền Truy Cập Bị Từ Chối
