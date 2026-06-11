@@ -16,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -53,11 +54,23 @@ public class Movie {
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MovieGenre> movieGenres = new ArrayList<>();
 
+    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MovieCountry> movieCountries = new ArrayList<>();
+
+    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("castOrder ASC")
+    private List<MovieActor> movieActors = new ArrayList<>();
+
+    @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private List<MovieMedia> movieMedias = new ArrayList<>();
+
     public Movie() {
     }
 
     public Movie(UUID uuid, String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, OffsetDateTime createdAt, OffsetDateTime updatedAt, List<MovieGenre> movieGenres) {
+            String status, OffsetDateTime createdAt, OffsetDateTime updatedAt, List<MovieGenre> movieGenres,
+            List<MovieCountry> movieCountries, List<MovieActor> movieActors, List<MovieMedia> movieMedias) {
         this.uuid = uuid;
         this.title = title;
         this.description = description;
@@ -67,11 +80,29 @@ public class Movie {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.movieGenres = movieGenres != null ? movieGenres : new ArrayList<>();
+        this.movieCountries = movieCountries != null ? movieCountries : new ArrayList<>();
+        this.movieActors = movieActors != null ? movieActors : new ArrayList<>();
+        this.movieMedias = movieMedias != null ? movieMedias : new ArrayList<>();
     }
 
     public void addMovieGenre(MovieGenre movieGenre) {
         movieGenres.add(movieGenre);
         movieGenre.setMovie(this);
+    }
+
+    public void addMovieCountry(MovieCountry movieCountry) {
+        movieCountries.add(movieCountry);
+        movieCountry.setMovie(this);
+    }
+
+    public void addMovieActor(MovieActor movieActor) {
+        movieActors.add(movieActor);
+        movieActor.setMovie(this);
+    }
+
+    public void addMovieMedia(MovieMedia movieMedia) {
+        movieMedias.add(movieMedia);
+        movieMedia.setMovie(this);
     }
 
     public UUID getUuid() {
@@ -144,6 +175,30 @@ public class Movie {
 
     public void setMovieGenres(List<MovieGenre> movieGenres) {
         this.movieGenres = movieGenres;
+    }
+
+    public List<MovieCountry> getMovieCountries() {
+        return movieCountries;
+    }
+
+    public void setMovieCountries(List<MovieCountry> movieCountries) {
+        this.movieCountries = movieCountries;
+    }
+
+    public List<MovieActor> getMovieActors() {
+        return movieActors;
+    }
+
+    public void setMovieActors(List<MovieActor> movieActors) {
+        this.movieActors = movieActors;
+    }
+
+    public List<MovieMedia> getMovieMedias() {
+        return movieMedias;
+    }
+
+    public void setMovieMedias(List<MovieMedia> movieMedias) {
+        this.movieMedias = movieMedias;
     }
 
 }
