@@ -8,6 +8,16 @@ import { movieService } from '../../../shared/services/movieService';
 
 import './MovieDetailPage.css';
 
+const getEmbedUrl = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube.com/embed/${match[2]}?autoplay=1&rel=0`;
+  }
+  return url;
+};
+
 const MovieDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -81,6 +91,7 @@ const MovieDetailPage = () => {
     backdrop: dbMovie.medias?.find(m => m.mediaType === 'BACKDROP')?.mediaUrl 
               || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl 
               || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200',
+    trailer: dbMovie.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl || '',
     cast: dbMovie.actors?.map(act => ({
       name: act.fullName,
       role: act.characterName || 'Diễn viên',
@@ -156,16 +167,56 @@ const MovieDetailPage = () => {
 
       <main className="relative pt-0">
         {/* Hero Section */}
-        <section className="relative h-[650px] md:h-[780px] w-full overflow-hidden">
+        <section className="relative h-[650px] md:h-[780px] w-full overflow-hidden bg-black">
+          {/* Base Backdrop Image Layer (Always visible, z-index: 0) */}
           <img 
             alt="Movie backdrop" 
-            className="w-full h-full object-cover opacity-65 scale-105 transition-transform duration-1000" 
+            className="movie-backdrop-img" 
             src={movie.backdrop} 
           />
-          <div className="absolute inset-0 hero-gradient"></div>
           
-          {/* Detail Overlay */}
-          <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 lg:px-20 pb-12 md:pb-16 flex flex-col md:flex-row gap-8 items-end z-20">
+          {/* Video Trailer Background Layer (Absolute on top, z-index: 10) */}
+          {movie.trailer && (() => {
+            const isYouTube = movie.trailer.includes('youtube.com') || movie.trailer.includes('youtu.be');
+            if (isYouTube) {
+              const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+              const match = movie.trailer.match(regExp);
+              const videoId = match && match[2].length === 11 ? match[2] : '';
+              const bgYoutubeUrl = videoId 
+                ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1&enablejsapi=1`
+                : '';
+              if (bgYoutubeUrl) {
+                return (
+                  <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden scale-110 z-10">
+                    <iframe
+                      src={bgYoutubeUrl}
+                      title="Background Trailer"
+                      className="w-full h-full object-cover opacity-50 filter blur-[2px] brightness-[0.45]"
+                      style={{ border: 'none', transform: 'scale(1.35)', transformOrigin: 'center' }}
+                    ></iframe>
+                  </div>
+                );
+              }
+            } else {
+              return (
+                <video
+                  src={movie.trailer}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover opacity-50 filter blur-[2px] brightness-[0.45] scale-105 z-10"
+                />
+              );
+            }
+            return null;
+          })()}
+          
+          {/* Gradient Overlay Layer (z-index: 20) */}
+          <div className="absolute inset-0 hero-gradient z-20"></div>
+          
+          {/* Detail Overlay Content Layer (z-index: 30) */}
+          <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 lg:px-20 pb-12 md:pb-16 flex flex-col md:flex-row gap-8 items-end z-30">
             {/* Poster */}
             <div className="hidden lg:block w-64 h-[380px] rounded-2xl overflow-hidden shadow-2xl poster-hover flex-shrink-0 border border-white/10 bg-[#0f121d]">
               <img 
@@ -393,29 +444,55 @@ const MovieDetailPage = () => {
       {/* Trailer Modal */}
       {isTrailerOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setIsTrailerOpen(false)}></div>
-          <div className="relative w-full max-w-4xl aspect-video glass-panel rounded-3xl overflow-hidden border border-white/20 shadow-2xl flex items-center justify-center bg-black">
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsTrailerOpen(false)}></div>
+          <div className="relative w-full max-w-4xl aspect-video glass-panel rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
             <button 
-              className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-50 bg-black/50 p-2 rounded-full" 
+              className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-50 bg-black/70 p-2 rounded-full cursor-pointer" 
               onClick={() => setIsTrailerOpen(false)}
             >
               <X className="h-6 w-6" />
             </button>
-            <div className="text-center p-6">
-              <Play className="text-red-500 h-16 w-16 mx-auto mb-4 animate-pulse fill-current" />
-              <h2 className="text-2xl font-black text-white uppercase tracking-wider">Trailer Chính Thức</h2>
-              <p className="text-gray-400 mt-2 font-medium">Trải nghiệm bộ phim {movie.title} chất lượng 4K HDR</p>
-              
-              {/* Optional: we can put a real placeholder or embed here */}
-              <div className="mt-6 flex justify-center">
-                <button 
-                  onClick={() => setIsTrailerOpen(false)} 
-                  className="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-lg font-bold text-xs uppercase"
-                >
-                  Đóng
-                </button>
+            
+            {movie.trailer ? (
+              (() => {
+                const embedUrl = getEmbedUrl(movie.trailer);
+                const isYouTube = movie.trailer.includes('youtube.com') || movie.trailer.includes('youtu.be');
+                if (isYouTube) {
+                  return (
+                    <iframe
+                      src={embedUrl}
+                      title={`${movie.title} Trailer`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  );
+                } else {
+                  return (
+                    <video
+                      src={movie.trailer}
+                      controls
+                      autoPlay
+                      className="w-full h-full object-contain"
+                    />
+                  );
+                }
+              })()
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-[#0c0d12]">
+                <Play className="text-red-500 h-16 w-16 mb-4 animate-pulse fill-current" />
+                <h2 className="text-2xl font-black text-white uppercase tracking-wider">Chưa có Trailer</h2>
+                <p className="text-gray-400 mt-2 font-medium">Trailer chính thức của bộ phim {movie.title} đang được cập nhật.</p>
+                <div className="mt-6 flex justify-center">
+                  <button 
+                    onClick={() => setIsTrailerOpen(false)} 
+                    className="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
+                  >
+                    Quay lại
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

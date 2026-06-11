@@ -144,6 +144,10 @@ public class MovieService {
     @Transactional(readOnly = true)
     public MovieDetailResponse getMovieDetail(UUID movieUuid) {
         Movie movie = getMovieOrThrow(movieUuid);
+        System.out.println("DEBUG - Movie Detail: UUID=" + movieUuid + ", Title=" + movie.getTitle());
+        for (MovieMedia mm : movie.getMovieMedias()) {
+            System.out.println("DEBUG - Media: Type=" + mm.getMediaType() + ", URL=" + mm.getMediaUrl());
+        }
         if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }

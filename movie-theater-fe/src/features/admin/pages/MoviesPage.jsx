@@ -27,6 +27,7 @@ const MoviesPage = () => {
     genreUuids: [],
     countryUuids: [],
     posterUrl: '',
+    backdropUrl: '',
     trailerUrl: ''
   });
 
@@ -101,6 +102,7 @@ const MoviesPage = () => {
       const movieDetail = await movieService.getMovieDetail(movieUuid);
       
       const posterMedia = movieDetail.medias?.find(m => m.mediaType === 'POSTER');
+      const backdropMedia = movieDetail.medias?.find(m => m.mediaType === 'BACKDROP');
       const trailerMedia = movieDetail.medias?.find(m => m.mediaType === 'TRAILER');
       
       // Map names returned by API back to UUIDs
@@ -129,6 +131,7 @@ const MoviesPage = () => {
         genreUuids: matchedGenreUuids,
         countryUuids: matchedCountryUuids,
         posterUrl: posterMedia ? posterMedia.mediaUrl : '',
+        backdropUrl: backdropMedia ? backdropMedia.mediaUrl : '',
         trailerUrl: trailerMedia ? trailerMedia.mediaUrl : ''
       });
       setEditingMovie(movieDetail);
@@ -149,6 +152,7 @@ const MoviesPage = () => {
       genreUuids: [],
       countryUuids: [],
       posterUrl: '',
+      backdropUrl: '',
       trailerUrl: ''
     });
     setEditingMovie(null);
@@ -200,13 +204,22 @@ const MoviesPage = () => {
         sortOrder: 1
       });
     }
+    if (formData.backdropUrl.trim()) {
+      medias.push({
+        mediaUrl: formData.backdropUrl.trim(),
+        mediaType: 'BACKDROP',
+        title: `${formData.title.trim()} Backdrop`,
+        isPrimary: false,
+        sortOrder: 2
+      });
+    }
     if (formData.trailerUrl.trim()) {
       medias.push({
         mediaUrl: formData.trailerUrl.trim(),
         mediaType: 'TRAILER',
         title: `${formData.title.trim()} Trailer`,
         isPrimary: false,
-        sortOrder: 2
+        sortOrder: 3
       });
     }
 
@@ -465,7 +478,7 @@ const MoviesPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-group">
                   <label className="form-label">Poster URL (Ảnh)</label>
                   <input
@@ -474,6 +487,17 @@ const MoviesPage = () => {
                     placeholder="https://example.com/poster.jpg"
                     value={formData.posterUrl}
                     onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Backdrop URL (Ảnh nền)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="https://example.com/backdrop.jpg"
+                    value={formData.backdropUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, backdropUrl: e.target.value }))}
                   />
                 </div>
 

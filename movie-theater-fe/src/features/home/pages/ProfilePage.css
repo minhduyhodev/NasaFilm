@@ -496,7 +496,7 @@
 
 .profile-info-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding: 1.25rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -510,6 +510,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 240px;
+  flex-shrink: 0;
 }
 
 .info-row-label {
@@ -523,7 +525,7 @@
   max-width: 480px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .info-row-input {
@@ -533,7 +535,7 @@
   color: #ffffff;
   font-size: 0.95rem;
   font-weight: 500;
-  text-align: right;
+  text-align: left;
   padding: 0.25rem 0;
   border-bottom: 1px dashed transparent;
   transition: all 0.2s ease;
@@ -567,7 +569,27 @@ select.info-row-input option:disabled {
   color: #94a3b8;
   font-size: 0.95rem;
   font-weight: 500;
-  text-align: right;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .profile-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .info-row-left {
+    width: 100%;
+  }
+  .info-row-right {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  .info-row-input,
+  .info-row-text {
+    text-align: left;
+  }
 }
 
 .info-field-group {
