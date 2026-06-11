@@ -1,0 +1,418 @@
+package com.thdpv.movietheater.movie.service;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
+import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.dto.response.ActorResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.entity.Country;
+import com.thdpv.movietheater.movie.entity.Genre;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieActor;
+import com.thdpv.movietheater.movie.entity.MovieCountry;
+import com.thdpv.movietheater.movie.entity.MovieGenre;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.repository.CountryRepository;
+import com.thdpv.movietheater.movie.repository.GenreRepository;
+import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.user.entity.User;
+import com.thdpv.movietheater.user.repository.UserRepository;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class MovieService {
+
+    private final MovieRepository movieRepository;
+    private final GenreRepository genreRepository;
+    private final CountryRepository countryRepository;
+    private final MovieMediaRepository movieMediaRepository;
+    private final UserRepository userRepository;
+
+    @Transactional
+    public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
+        Movie movie = new Movie();
+        applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
+                request.getReleaseDate(), request.getStatus());
+        replaceGenres(movie, request.getGenreUuids());
+        replaceCountries(movie, request.getCountryUuids());
+        replaceMedias(movie, request.getMedias(), operatorEmail);
+        return toMovieDetailResponse(movieRepository.save(movie));
+    }
+
+    @Transactional
+    public MovieDetailResponse updateMovie(UUID movieUuid, UpdateMovieRequest request, String operatorEmail) {
+        Movie movie = getMovieOrThrow(movieUuid);
+        applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
+                request.getReleaseDate(), request.getStatus());
+
+        if (request.getGenreUuids() != null) {
+            replaceGenres(movie, request.getGenreUuids());
+        }
+        if (request.getCountryUuids() != null) {
+            replaceCountries(movie, request.getCountryUuids());
+        }
+        if (request.getMedias() != null) {
+            replaceMedias(movie, request.getMedias(), operatorEmail);
+        }
+
+        return toMovieDetailResponse(movieRepository.save(movie));
+    }
+
+    @Transactional
+    public void softDeleteMovie(UUID movieUuid) {
+        Movie movie = getMovieOrThrow(movieUuid);
+        boolean hasShowtime = movieRepository.existsShowtimeByMovieUuid(movieUuid);
+        boolean hasBooking = movieRepository.existsBookingByMovieUuid(movieUuid);
+        movie.setStatus(hasShowtime || hasBooking ? "INACTIVE" : "DELETED");
+        movieRepository.save(movie);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovieListResponse> getMovieList(
+            String keyword,
+            String status,
+            UUID genreUuid,
+            UUID countryUuid,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir) {
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                size > 0 ? size : 10,
+                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC, resolveSortBy(sortBy)));
+
+        Specification<Movie> specification = (root, query, cb) -> {
+            query.distinct(true);
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE")));
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)));
+            }
+
+            if (status != null && !status.isBlank()) {
+                predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
+            }
+
+            if (genreUuid != null) {
+                Join<Movie, MovieGenre> movieGenreJoin = root.join("movieGenres", JoinType.LEFT);
+                predicates.add(cb.equal(movieGenreJoin.get("genre").get("uuid"), genreUuid));
+            }
+
+            if (countryUuid != null) {
+                Join<Movie, MovieCountry> movieCountryJoin = root.join("movieCountries", JoinType.LEFT);
+                predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        return movieRepository.findAll(specification, pageable)
+                .map(this::toMovieListResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public MovieDetailResponse getMovieDetail(UUID movieUuid) {
+        Movie movie = getMovieOrThrow(movieUuid);
+        if ("DELETED".equalsIgnoreCase(movie.getStatus()) || "INACTIVE".equalsIgnoreCase(movie.getStatus())) {
+            throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+        }
+        return toMovieDetailResponse(movie);
+    }
+
+    @Transactional
+    public MovieMediaResponse addMovieMedia(UUID movieUuid, MovieMediaRequest request, String operatorEmail) {
+        Movie movie = getMovieOrThrow(movieUuid);
+        UUID operatorId = resolveOperatorId(operatorEmail);
+
+        if (Boolean.TRUE.equals(request.getIsPrimary())) {
+            clearPrimaryFlags(movie);
+        }
+
+        MovieMedia movieMedia = toMovieMediaEntity(request, operatorId);
+        movie.addMovieMedia(movieMedia);
+        movieRepository.save(movie);
+        return toMovieMediaResponse(movieMedia);
+    }
+
+    @Transactional
+    public MovieMediaResponse updateMovieMedia(UUID movieUuid, UUID mediaUuid, MovieMediaRequest request, String operatorEmail) {
+        MovieMedia movieMedia = movieMediaRepository.findByUuidAndMovie_Uuid(mediaUuid, movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Media phim khong ton tai"));
+
+        if (Boolean.TRUE.equals(request.getIsPrimary())) {
+            Movie movie = movieMedia.getMovie();
+            clearPrimaryFlags(movie);
+        }
+
+        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
+        movieMedia.setTitle(trimToNull(request.getTitle()));
+        movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
+        movieMedia.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+        movieMedia.setUpdatedBy(resolveOperatorId(operatorEmail));
+
+        return toMovieMediaResponse(movieMediaRepository.save(movieMedia));
+    }
+
+    @Transactional
+    public void deleteMovieMedia(UUID movieUuid, UUID mediaUuid) {
+        MovieMedia movieMedia = movieMediaRepository.findByUuidAndMovie_Uuid(mediaUuid, movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Media phim khong ton tai"));
+        movieMediaRepository.delete(movieMedia);
+    }
+
+    private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
+            java.time.LocalDate releaseDate, String status) {
+        movie.setTitle(trim(title));
+        movie.setDescription(trimToNull(description));
+        movie.setDurationMinutes(durationMinutes);
+        movie.setReleaseDate(releaseDate);
+        movie.setStatus(normalizeUpper(status));
+    }
+
+    private void replaceGenres(Movie movie, List<UUID> genreUuids) {
+        movie.getMovieGenres().clear();
+        if (genreUuids == null || genreUuids.isEmpty()) {
+            return;
+        }
+
+        validateNoDuplicateUuids(genreUuids, "Genre bi trung");
+        List<Genre> genres = genreRepository.findAllById(genreUuids);
+        if (genres.size() != new HashSet<>(genreUuids).size()) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Genre khong ton tai");
+        }
+
+        for (Genre genre : genres) {
+            MovieGenre movieGenre = new MovieGenre();
+            movieGenre.setGenre(genre);
+            movie.addMovieGenre(movieGenre);
+        }
+    }
+
+    private void replaceCountries(Movie movie, List<UUID> countryUuids) {
+        movie.getMovieCountries().clear();
+        if (countryUuids == null || countryUuids.isEmpty()) {
+            return;
+        }
+
+        validateNoDuplicateUuids(countryUuids, "Country bi trung");
+        List<Country> countries = countryRepository.findAllById(countryUuids);
+        if (countries.size() != new HashSet<>(countryUuids).size()) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Country khong ton tai");
+        }
+
+        for (Country country : countries) {
+            MovieCountry movieCountry = new MovieCountry();
+            movieCountry.setCountry(country);
+            movie.addMovieCountry(movieCountry);
+        }
+    }
+
+    private void replaceMedias(Movie movie, List<MovieMediaRequest> medias, String operatorEmail) {
+        movie.getMovieMedias().clear();
+        if (medias == null || medias.isEmpty()) {
+            return;
+        }
+
+        validatePrimaryMedia(medias);
+        UUID operatorId = resolveOperatorId(operatorEmail);
+        for (MovieMediaRequest mediaRequest : medias) {
+            movie.addMovieMedia(toMovieMediaEntity(mediaRequest, operatorId));
+        }
+    }
+
+    private MovieMedia toMovieMediaEntity(MovieMediaRequest request, UUID operatorId) {
+        MovieMedia movieMedia = new MovieMedia();
+        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
+        movieMedia.setTitle(trimToNull(request.getTitle()));
+        movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
+        movieMedia.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+        movieMedia.setCreatedBy(operatorId);
+        movieMedia.setUpdatedBy(operatorId);
+        return movieMedia;
+    }
+
+    private void clearPrimaryFlags(Movie movie) {
+        for (MovieMedia media : movie.getMovieMedias()) {
+            media.setIsPrimary(Boolean.FALSE);
+        }
+    }
+
+    private void validatePrimaryMedia(List<MovieMediaRequest> medias) {
+        long primaryCount = medias.stream()
+                .filter(Objects::nonNull)
+                .filter(media -> Boolean.TRUE.equals(media.getIsPrimary()))
+                .count();
+        if (primaryCount > 1) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chi duoc co mot media chinh");
+        }
+    }
+
+    private void validateNoDuplicateUuids(List<UUID> uuids, String message) {
+        Set<UUID> uniqueValues = new HashSet<>(uuids);
+        if (uniqueValues.size() != uuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, message);
+        }
+    }
+
+    private MovieListResponse toMovieListResponse(Movie movie) {
+        return new MovieListResponse(
+                movie.getUuid(),
+                movie.getTitle(),
+                movie.getDescription(),
+                movie.getDurationMinutes(),
+                movie.getReleaseDate(),
+                movie.getStatus(),
+                resolvePrimaryMediaUrl(movie),
+                movie.getMovieGenres().stream()
+                        .map(movieGenre -> movieGenre.getGenre().getName())
+                        .toList(),
+                movie.getMovieCountries().stream()
+                        .map(movieCountry -> movieCountry.getCountry().getName())
+                        .toList(),
+                movie.getCreatedAt(),
+                movie.getUpdatedAt());
+    }
+
+    private MovieDetailResponse toMovieDetailResponse(Movie movie) {
+        return new MovieDetailResponse(
+                movie.getUuid(),
+                movie.getTitle(),
+                movie.getDescription(),
+                movie.getDurationMinutes(),
+                movie.getReleaseDate(),
+                movie.getStatus(),
+                movie.getMovieGenres().stream()
+                        .map(movieGenre -> movieGenre.getGenre().getName())
+                        .toList(),
+                movie.getMovieCountries().stream()
+                        .map(movieCountry -> movieCountry.getCountry().getName())
+                        .toList(),
+                movie.getMovieActors().stream()
+                        .map(this::toActorResponse)
+                        .toList(),
+                movie.getMovieMedias().stream()
+                        .sorted((left, right) -> Integer.compare(
+                                left.getSortOrder() != null ? left.getSortOrder() : 0,
+                                right.getSortOrder() != null ? right.getSortOrder() : 0))
+                        .map(this::toMovieMediaResponse)
+                        .collect(Collectors.toList()),
+                movie.getCreatedAt(),
+                movie.getUpdatedAt());
+    }
+
+    private ActorResponse toActorResponse(MovieActor movieActor) {
+        String countryName = null;
+        if (movieActor.getActor() != null && movieActor.getActor().getCountry() != null) {
+            countryName = movieActor.getActor().getCountry().getName();
+        }
+        return new ActorResponse(
+                movieActor.getActor() != null ? movieActor.getActor().getUuid() : null,
+                movieActor.getActor() != null ? movieActor.getActor().getFullName() : null,
+                movieActor.getActor() != null ? movieActor.getActor().getAvatarUrl() : null,
+                countryName,
+                movieActor.getCharacterName(),
+                movieActor.getCastOrder(),
+                movieActor.getIsMain());
+    }
+
+    private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
+        return new MovieMediaResponse(
+                movieMedia.getUuid(),
+                movieMedia.getMediaUrl(),
+                movieMedia.getMediaType(),
+                movieMedia.getTitle(),
+                movieMedia.getIsPrimary(),
+                movieMedia.getSortOrder(),
+                movieMedia.getCreatedAt(),
+                movieMedia.getUpdatedAt());
+    }
+
+    private String resolvePrimaryMediaUrl(Movie movie) {
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
+    }
+
+    private Movie getMovieOrThrow(UUID movieUuid) {
+        return movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
+    }
+
+    private UUID resolveOperatorId(String operatorEmail) {
+        if (operatorEmail == null || operatorEmail.isBlank()) {
+            return null;
+        }
+        return userRepository.findByEmailIgnoreCase(operatorEmail)
+                .map(User::getId)
+                .orElse(null);
+    }
+
+    private String resolveSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "releaseDate";
+        }
+        return switch (sortBy) {
+            case "title" -> "title";
+            case "createdAt" -> "createdAt";
+            case "updatedAt" -> "updatedAt";
+            case "durationMinutes" -> "durationMinutes";
+            case "status" -> "status";
+            default -> "releaseDate";
+        };
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmedValue = value.trim();
+        return trimmedValue.isEmpty() ? null : trimmedValue;
+    }
+
+    private String normalizeUpper(String value) {
+        return value == null ? null : value.trim().toUpperCase();
+    }
+}
