@@ -7,145 +7,192 @@
 }
 
 .dashboard-title {
-  @apply text-3xl lg:text-4xl font-black text-gray-900 tracking-tight;
+  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
 }
 
 .dashboard-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.2em] text-gray-500;
+  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
 }
 
 .dashboard-action-btn {
-  @apply inline-flex items-center gap-2 rounded-lg bg-error px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#d12c2c] transition shadow-sm;
+  @apply inline-flex items-center gap-2.5 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
 }
 
-.dashboard-stats-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6;
+/* Unified stats panel styles */
+.dashboard-unified-stats-panel {
+  @apply bg-[#121826]/70 border border-[#1A2238] shadow-2xl backdrop-blur-md;
 }
 
-.dashboard-stat-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 flex flex-col justify-between h-[130px] shadow-sm hover:border-gray-300 transition-all duration-300 relative overflow-hidden;
+/* High-tech telemetry additions */
+.bg-scanlines {
+  background: linear-gradient(
+    rgba(18, 24, 38, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg, 
+    rgba(255, 0, 0, 0.03), 
+    rgba(0, 255, 0, 0.01), 
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 4px, 6px 100%;
 }
 
-.dashboard-stat-card-top {
-  @apply flex items-center justify-between;
+.bg-radial-glow {
+  background: radial-gradient(
+    circle at center, 
+    rgba(239, 68, 68, 0.05) 0%, 
+    rgba(11, 16, 32, 0) 70%
+  );
 }
 
-.dashboard-stat-label {
-  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400;
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.dashboard-stat-icon {
-  @apply text-gray-400 text-[20px];
+.animate-spin-slow {
+  animation: spin-slow 25s linear infinite;
 }
 
-.dashboard-stat-value {
-  @apply text-3xl font-bold text-gray-900 tracking-tight leading-none;
+/* Base custom resets for tables and forms in admin */
+.admin-header-container {
+  @apply flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between;
 }
 
-.dashboard-stat-badge {
-  @apply text-xs text-gray-500 mt-2 font-medium;
+.admin-header-info {
+  @apply space-y-1.5;
 }
 
-.dashboard-layout-grid {
-  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+.admin-title {
+  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
 }
 
-.dashboard-main-chart-card {
-  @apply lg:col-span-2 rounded-xl bg-white border border-gray-200 p-6 shadow-sm;
+.admin-subtitle {
+  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
 }
 
-.dashboard-chart-header {
+.admin-description {
+  @apply text-sm text-gray-400 max-w-2xl mt-1;
+}
+
+.admin-add-btn {
+  @apply inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
+}
+
+.admin-add-btn-plus {
+  @apply text-lg font-bold mr-1;
+}
+
+.admin-add-btn-label-group {
+  @apply flex flex-col items-start leading-none;
+}
+
+.admin-add-btn-sub {
+  @apply text-[9px] font-bold tracking-wider uppercase text-red-200;
+}
+
+.admin-add-btn-main {
+  @apply text-sm font-bold;
+}
+
+/* Custom Table/Card modifications */
+.admin-table-card {
+  @apply rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md;
+}
+
+.admin-table-controls {
   @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6;
 }
 
-.dashboard-chart-title {
-  @apply text-xl font-bold text-gray-900;
+.admin-search-wrapper {
+  @apply relative w-full lg:max-w-xl;
 }
 
-.dashboard-chart-subtitle {
-  @apply text-sm font-medium text-gray-500;
+.admin-search-icon {
+  @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5;
 }
 
-.dashboard-chart-actions {
-  @apply flex gap-3;
+.admin-search-input {
+  @apply w-full rounded-xl bg-[#0B1020] py-3 pl-12 pr-4 text-white placeholder-gray-500 border border-[#1A2238] focus:outline-none focus:border-red-500/50 text-sm transition-all duration-200;
 }
 
-.dashboard-chart-btn-outline {
-  @apply px-4 py-2 rounded-lg bg-white text-gray-600 text-xs font-semibold border border-gray-200 hover:bg-gray-50 transition;
+.admin-action-btn {
+  @apply rounded-xl border border-[#1A2238] bg-[#121826] px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-200 cursor-pointer flex items-center gap-2;
 }
 
-.dashboard-chart-btn-filled {
-  @apply px-4 py-2 rounded-lg bg-error text-white text-xs font-semibold hover:bg-[#d12c2c] transition;
+.admin-table {
+  @apply w-full text-left text-sm border-collapse;
 }
 
-.dashboard-chart-wrapper {
-  @apply flex-1 w-full relative rounded-lg bg-gray-50 p-6 h-72;
+.admin-table-thead-tr {
+  @apply text-gray-400 text-[10px] font-bold uppercase tracking-[0.25em] border-b border-[#1A2238];
 }
 
-.dashboard-chart-axis {
-  @apply flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-4 px-2;
+.admin-table th {
+  @apply pb-4 pt-2 font-bold text-gray-400;
 }
 
-.dashboard-occupancy-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 shadow-sm;
+.admin-table td {
+  @apply py-4 border-b border-[#1A2238]/50 text-gray-300 align-middle;
 }
 
-.dashboard-occupancy-header {
-  @apply flex items-center justify-between mb-6;
+.admin-table-tr {
+  @apply transition-colors duration-200;
 }
 
-.dashboard-occupancy-title {
-  @apply text-xl font-bold text-gray-900;
+.admin-table-tr:hover {
+  background-color: rgba(255, 255, 255, 0.015) !important;
 }
 
-.dashboard-occupancy-subtitle {
-  @apply text-sm font-medium text-gray-500;
+/* Modals */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto transition-all duration-300;
 }
 
-.dashboard-occupancy-list {
-  @apply space-y-6 flex-1;
+.modal-content {
+  @apply bg-[#121826] border border-[#1A2238] rounded-2xl w-full max-w-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
 }
 
-.dashboard-occupancy-item {
-  @apply space-y-2;
+.modal-header {
+  @apply flex items-center justify-between border-b border-[#1A2238] pb-4;
 }
 
-.dashboard-occupancy-row {
-  @apply flex justify-between text-sm font-semibold;
+.modal-title {
+  @apply text-xl font-bold text-white uppercase tracking-wider;
 }
 
-.dashboard-occupancy-label {
-  @apply text-gray-800;
+.modal-close-btn {
+  @apply text-gray-400 hover:text-white transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-white/5;
 }
 
-.dashboard-occupancy-val-danger {
-  @apply text-error;
+.form-group {
+  @apply flex flex-col gap-2;
 }
 
-.dashboard-occupancy-val-muted {
-  @apply text-gray-500;
+.form-label {
+  @apply text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mb-1;
 }
 
-.dashboard-occupancy-val-warning {
-  @apply text-amber-600;
+.form-input, .form-textarea, .form-select {
+  @apply w-full rounded-xl bg-[#0B1020] px-4 py-3 text-white placeholder-gray-600 border border-[#1A2238] focus:border-red-500/50 focus:outline-none text-sm transition-all duration-200;
 }
 
-.dashboard-progress-bg {
-  @apply w-full bg-gray-100 rounded-full h-2 overflow-hidden;
+.form-textarea {
+  @apply h-28 resize-none;
 }
 
-.dashboard-progress-fill-danger {
-  @apply bg-error h-full rounded-full;
+.form-actions {
+  @apply flex justify-end gap-3 pt-4 border-t border-[#1A2238];
 }
 
-.dashboard-progress-fill-muted {
-  @apply bg-[#9ca3af] h-full rounded-full;
+.btn-cancel {
+  @apply rounded-xl border border-[#1A2238] bg-[#121826] px-5 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer;
 }
 
-.dashboard-progress-fill-warning {
-  @apply bg-amber-500 h-full rounded-full;
-}
-
-.dashboard-occupancy-btn {
-  @apply w-full mt-6 py-2.5 rounded-lg bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors;
+.btn-submit {
+  @apply rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
 }

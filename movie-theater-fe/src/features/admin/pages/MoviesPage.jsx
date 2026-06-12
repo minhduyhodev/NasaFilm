@@ -8,39 +8,33 @@ const getStatusConfig = (status) => {
   switch (status) {
     case 'NOW_SHOWING':
       return {
-        label: 'Đang chiếu',
-        className: 'admin-status-badge status-now-showing',
-        icon: Play,
+        label: '🟢 Đang chiếu',
+        className: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400',
       };
     case 'COMING_SOON':
       return {
-        label: 'Sắp chiếu',
-        className: 'admin-status-badge status-coming-soon',
-        icon: Calendar,
+        label: '🔵 Sắp chiếu',
+        className: 'bg-blue-500/10 border-blue-500/25 text-blue-400',
       };
     case 'DRAFT':
       return {
-        label: 'Bản nháp',
-        className: 'admin-status-badge status-draft',
-        icon: FileText,
+        label: '⚫ Bản nháp',
+        className: 'bg-zinc-500/10 border-zinc-500/25 text-zinc-400',
       };
     case 'ENDED':
       return {
-        label: 'Đã kết thúc',
-        className: 'admin-status-badge status-ended',
-        icon: CheckCircle,
+        label: '🔴 Đã kết thúc',
+        className: 'bg-rose-500/10 border-rose-500/25 text-rose-400',
       };
     case 'INACTIVE':
       return {
-        label: 'Tạm ngưng',
-        className: 'admin-status-badge status-inactive',
-        icon: AlertCircle,
+        label: '🟡 Tạm ngưng',
+        className: 'bg-amber-500/10 border-amber-500/25 text-amber-400',
       };
     default:
       return {
         label: status || 'N/A',
-        className: 'admin-status-badge status-draft',
-        icon: FileText,
+        className: 'bg-zinc-500/10 border-zinc-500/25 text-zinc-400',
       };
   }
 };
@@ -345,8 +339,9 @@ const MoviesPage = () => {
     <>
       <div className="admin-header-container">
         <div className="admin-header-info">
+          <p className="admin-subtitle">NASAFilm Catalog Operations</p>
           <h1 className="admin-title">Quản lý Phim</h1>
-          <p className="admin-subtitle">Quản lý Kho phim & Danh mục</p>
+          <p className="admin-description">Danh mục kho phim, cấu trúc thể loại, thời lượng và phát sóng.</p>
         </div>
         <button className="admin-add-btn" onClick={handleAddClick}>
           <Plus className="w-4 h-4" />
@@ -354,36 +349,20 @@ const MoviesPage = () => {
         </button>
       </div>
 
-      <div className="admin-stats-grid">
+      {/* Unified Stats Insight Panel (No-Card Layout, reduced by 60% clutter) */}
+      <div className="dashboard-unified-stats-panel bg-[#121826]/70 border border-[#1A2238] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 divide-y md:divide-y-0 md:divide-x divide-[#1A2238] shadow-2xl backdrop-blur-md mb-8">
         {stats.map((card) => (
-          <div key={card.label} className="admin-stat-card group">
-            {/* Watermark Icon */}
-            <card.Icon className={`absolute -right-4 -top-4 w-24 h-24 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
-
-            <div className="relative z-10 w-full">
-              <div className="admin-stat-card-top">
-                <p className="admin-stat-label">{card.label}</p>
-                <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
-              </div>
-              <div className="admin-stat-value-group mt-1">
-                <h3 className="admin-stat-value">{card.value}</h3>
-              </div>
+          <div key={card.label} className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">{card.label}</span>
+              <h3 className="text-3xl font-black text-white tracking-tight leading-none mt-1">{card.value}</h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                {card.hasDot && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block mr-1.5" />}
+                {card.sub}
+              </p>
             </div>
-
-            <div className="admin-stat-footer relative z-10 w-full">
-              {card.hasProgress ? (
-                <div className="space-y-2">
-                  <div className="admin-progress-bg">
-                    <div className="admin-progress-fill" style={{ width: card.progressValue }} />
-                  </div>
-                  <p className="admin-progress-label">{card.sub}</p>
-                </div>
-              ) : (
-                <p className="admin-stat-desc">
-                  {card.hasDot && <span className="admin-stat-desc-dot" />}
-                  {card.sub}
-                </p>
-              )}
+            <div className={`p-3.5 rounded-xl bg-white/5 border border-white/5 ${card.color} shrink-0`}>
+              <card.Icon className="w-6 h-6" strokeWidth={1.5} />
             </div>
           </div>
         ))}
@@ -410,8 +389,9 @@ const MoviesPage = () => {
             <thead>
               <tr className="admin-table-thead-tr">
                 <th className="pb-3 text-left">Phim</th>
+                <th className="pb-3 text-center">Đánh giá / Thời lượng</th>
                 <th className="pb-3 text-center">Thể loại</th>
-                <th className="pb-3 text-center">Ngày khởi chiếu</th>
+                <th className="pb-3 text-center">Khởi chiếu</th>
                 <th className="pb-3 text-center">Trạng thái</th>
                 <th className="pb-3 text-center">Hành động</th>
               </tr>
@@ -419,7 +399,7 @@ const MoviesPage = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-10 text-gray-400">Đang tải danh sách phim...</td>
+                  <td colSpan="6" className="text-center py-10 text-gray-400">Đang tải danh sách phim...</td>
                 </tr>
               ) : movies.length > 0 ? (
                 movies.map((row) => {
@@ -429,31 +409,47 @@ const MoviesPage = () => {
                     <tr key={row.uuid} className="admin-table-tr group">
                       <td className="admin-table-td-name">
                         <div className="admin-table-name-group">
-                          <div className="admin-table-poster-wrapper">
+                          <div className="admin-table-poster-wrapper border border-[#1A2238] rounded-lg overflow-hidden w-12 h-16 shrink-0 bg-black/40">
                             <img 
                               src={posterUrl} 
                               alt={row.title} 
-                              className="admin-table-poster-img"
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
                               }}
                             />
                           </div>
-                          <div>
-                            <div className="admin-table-name group-hover:text-red-500 transition-colors duration-300">{row.title}</div>
-                            <div className="admin-table-desc">{row.description ? row.description.substring(0, 50) + '...' : 'Không có mô tả'}</div>
+                          <div className="text-left">
+                            <div className="text-white font-bold text-base leading-tight group-hover:text-red-500 transition-colors duration-300">{row.title}</div>
+                            <div className="text-xs text-gray-400 mt-1 font-medium max-w-[280px] truncate">{row.description || 'Không có mô tả'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="admin-table-td-genre text-center">{row.genres && row.genres.length > 0 ? row.genres.join(' / ') : 'N/A'}</td>
-                      <td className="admin-table-td-date text-center">{row.releaseDate || 'N/A'}</td>
+                      <td className="text-center py-4">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-amber-500 font-bold text-sm">⭐ 4.8</span>
+                          <span className="text-[11px] text-gray-400 font-mono">{row.durationMinutes} phút</span>
+                        </div>
+                      </td>
+                      <td className="text-center py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+                          {row.genres && row.genres.length > 0 ? (
+                            row.genres.map((g) => (
+                              <span key={g} className="px-2 py-0.5 rounded bg-[#1A2238]/60 border border-[#1A2238] text-[10px] text-gray-300 font-medium whitespace-nowrap">
+                                {g}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-500 text-xs">N/A</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-center text-gray-300 font-semibold text-xs py-4">{row.releaseDate || 'N/A'}</td>
                       <td className="text-center">
                         {(() => {
                           const statusConfig = getStatusConfig(row.status);
-                          const IconComponent = statusConfig.icon;
                           return (
-                            <span className={`inline-flex ${statusConfig.className}`}>
-                              {IconComponent && <IconComponent className="status-badge-icon w-3 h-3" />}
+                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusConfig.className}`}>
                               {statusConfig.label}
                             </span>
                           );
@@ -480,7 +476,7 @@ const MoviesPage = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center py-10 text-gray-400">Không tìm thấy bộ phim nào</td>
+                  <td colSpan="6" className="text-center py-10 text-gray-400">Không tìm thấy bộ phim nào</td>
                 </tr>
               )}
             </tbody>

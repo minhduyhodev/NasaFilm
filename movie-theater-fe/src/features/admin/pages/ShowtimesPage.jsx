@@ -64,38 +64,29 @@ const ShowtimesPage = () => {
       label: 'HÔM NAY',
       value: showtimesList.filter(s => s.status === 'Live').length.toString(),
       sub: 'Suất chiếu hoạt động',
-      isGreen: true,
       Icon: Clock,
-      color: 'text-indigo-500',
-      bgIcon: 'text-indigo-500/10 group-hover:text-indigo-500/20 group-hover:scale-105',
+      color: 'text-rose-500',
     },
     {
       label: 'SẮP CHIẾU',
       value: showtimesList.filter(s => s.status === 'Scheduled').length.toString(),
       sub: 'Trong 3 ngày tới',
-      isGreen: false,
       Icon: Calendar,
       color: 'text-emerald-500',
-      bgIcon: 'text-emerald-500/10 group-hover:text-emerald-500/20 group-hover:scale-105',
     },
     {
       label: 'PHÒNG CHIẾU',
       value: '18',
       sub: 'Số phòng khả dụng',
-      isGreen: false,
       Icon: Tv,
       color: 'text-amber-500',
-      bgIcon: 'text-amber-500/10 group-hover:text-amber-500/20 group-hover:scale-105',
     },
     {
       label: 'TỶ LỆ LẤP ĐẦY',
       value: '76%',
       sub: 'Tỷ lệ đặt vé trung bình',
-      isGreen: false,
-      isItalic: true,
       Icon: Activity,
       color: 'text-sky-500',
-      bgIcon: 'text-sky-500/10 group-hover:text-sky-500/20 group-hover:scale-105',
     },
   ];
 
@@ -183,7 +174,7 @@ const ShowtimesPage = () => {
     <>
       <div className="admin-header-container">
         <div className="admin-header-info">
-          <p className="admin-subtitle">QUẢN LÝ LỊCH CHIẾU</p>
+          <p className="admin-subtitle">NASAFilm Show Scheduling</p>
           <h1 className="admin-title">Lịch Chiếu Phim</h1>
           <p className="admin-description">
             Lên lịch các suất chiếu phim, cập nhật thời gian chiếu và theo dõi tỷ lệ lấp đầy phòng chiếu theo thời gian thực.
@@ -192,24 +183,26 @@ const ShowtimesPage = () => {
         <button className="admin-add-btn" onClick={handleAddClick}>
           <span className="admin-add-btn-plus">+</span>
           <div className="admin-add-btn-label-group">
-            <div className="admin-add-btn-sub">Thêm</div>
+            <div className="admin-add-btn-sub">Thêm mới</div>
             <div className="admin-add-btn-main">Lịch Chiếu</div>
           </div>
         </button>
       </div>
 
-      <div className="admin-stats-grid">
+      {/* Unified Stats Insight Panel (No-Card Layout, reduced by 60% clutter) */}
+      <div className="dashboard-unified-stats-panel bg-[#121826]/70 border border-[#1A2238] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 divide-y md:divide-y-0 md:divide-x divide-[#1A2238] shadow-2xl backdrop-blur-md mb-8">
         {cards.map((card) => (
-          <div key={card.label} className="admin-stat-card group">
-            <card.Icon className={`absolute -right-4 -top-4 w-20 h-20 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
-            <div className="admin-stat-card-top relative z-10">
-              <p className="admin-stat-label">{card.label}</p>
-              <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
+          <div key={card.label} className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">{card.label}</span>
+              <h3 className="text-3xl font-black text-white tracking-tight leading-none mt-1">{card.value}</h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                {card.sub}
+              </p>
             </div>
-            <h3 className="admin-stat-value relative z-10 mt-1">{card.value}</h3>
-            <p className={`relative z-10 ${card.isGreen ? 'admin-stat-badge-green' : 'admin-stat-badge-muted'} ${card.isItalic ? 'italic' : ''}`}>
-              {card.sub}
-            </p>
+            <div className={`p-3.5 rounded-xl bg-white/5 border border-white/5 ${card.color} shrink-0`}>
+              <card.Icon className="w-6 h-6" strokeWidth={1.5} />
+            </div>
           </div>
         ))}
       </div>
@@ -241,12 +234,12 @@ const ShowtimesPage = () => {
           <table className="admin-table">
             <thead>
               <tr className="admin-table-thead-tr">
-                <th className="pb-3">PHIM</th>
-                <th className="pb-3 text-center">RẠP / PHÒNG</th>
-                <th className="pb-3 text-center">THỜI GIAN</th>
-                <th className="pb-3 text-center">MÀN HÌNH</th>
-                <th className="pb-3 text-center">TRẠNG THÁI</th>
-                <th className="pb-3 text-center">HÀNH ĐỘNG</th>
+                <th className="pb-3 text-left">Phim</th>
+                <th className="pb-3 text-center">Rạp / Phòng</th>
+                <th className="pb-3 text-center">Thời gian</th>
+                <th className="pb-3 text-center">Màn hình</th>
+                <th className="pb-3 text-center">Trạng thái</th>
+                <th className="pb-3 text-center">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -256,51 +249,54 @@ const ShowtimesPage = () => {
                   const posterUrl = matchingMovie?.primaryMediaUrl || row.moviePoster || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
                   
                   return (
-                    <tr key={row.id || row.title} className="admin-table-tr">
-                      <td className="admin-table-td-showtime">
-                        <div className="admin-showtime-poster-wrapper">
-                          <img 
-                            src={posterUrl} 
-                            alt={row.title} 
-                            className="w-full h-full object-cover" 
-                            onError={(e) => {
-                              e.target.src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <div className="admin-showtime-name">{row.title}</div>
-                          <div className="admin-showtime-desc">Bản Chiếu Chuẩn</div>
+                    <tr key={row.id || row.title} className="admin-table-tr group">
+                      <td className="admin-table-td-showtime py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="admin-table-poster-wrapper border border-[#1A2238] rounded-lg overflow-hidden w-12 h-16 shrink-0 bg-black/40">
+                            <img 
+                              src={posterUrl} 
+                              alt={row.title} 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+                              }}
+                            />
+                          </div>
+                          <div className="text-left">
+                            <div className="text-white font-bold text-base leading-tight group-hover:text-red-500 transition-colors duration-300">{row.title}</div>
+                            <div className="text-xs text-gray-400 mt-1 font-medium">Bản Chiếu Chuẩn</div>
+                          </div>
                         </div>
                       </td>
-                      <td className="admin-table-td-val text-center">{row.cinema}</td>
-                      <td className="admin-table-td-val text-center">{row.time}</td>
-                      <td className="admin-table-td-val text-center">{row.screen}</td>
+                      <td className="text-center text-gray-300 font-bold py-4">{row.cinema}</td>
+                      <td className="text-center text-gray-300 font-bold py-4">{row.time}</td>
+                      <td className="text-center text-gray-300 py-4">
+                        <span className="px-2 py-0.5 rounded bg-[#1A2238]/60 border border-[#1A2238] text-xs text-gray-300 font-semibold">{row.screen}</span>
+                      </td>
                       <td className="py-4 text-center">
                         <span
-                          className={`inline-flex ${
+                          className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                             row.status === 'Live'
-                              ? 'admin-badge-live'
+                              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
                               : row.status === 'Scheduled'
-                              ? 'admin-badge-scheduled'
-                              : 'admin-badge-closed'
+                              ? 'bg-blue-500/10 border-blue-500/25 text-blue-400'
+                              : 'bg-zinc-500/10 border-zinc-500/25 text-zinc-400'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${row.status === 'Live' ? 'bg-emerald-500 animate-pulse' : row.status === 'Scheduled' ? 'bg-blue-500' : 'bg-gray-400'}`} />
                           {row.status === 'Live'
-                            ? 'Đang Chiếu'
+                            ? '🟢 Đang Chiếu'
                             : row.status === 'Scheduled'
-                            ? 'Đã Lên Lịch'
-                            : 'Nháp'}
+                            ? '🔵 Đã Lên Lịch'
+                            : '⚫ Nháp'}
                         </span>
                       </td>
                       <td className="text-center py-4">
                         <div className="flex items-center justify-center gap-3">
-                          <button className="admin-btn-edit" title="Edit" onClick={() => handleEditClick(row)}>
-                            <Edit2 className="w-4 h-4" />
+                          <button className="admin-btn-action-edit" title="Sửa" onClick={() => handleEditClick(row)}>
+                            Sửa
                           </button>
-                          <button className="admin-btn-delete" title="Delete" onClick={() => handleDeleteClick(row.id || row.title, row.title)}>
-                            <Trash2 className="w-4 h-4" />
+                          <button className="admin-btn-action-delete" title="Xóa" onClick={() => handleDeleteClick(row.id || row.title, row.title)}>
+                            Xóa
                           </button>
                         </div>
                       </td>
