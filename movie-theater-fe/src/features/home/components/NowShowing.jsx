@@ -246,35 +246,10 @@ const NowShowing = () => {
           moviesList.map((movie, index) => (
             <div
               key={movie.title}
-              className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col gap-4`}
+              className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
               style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
             >
               <MovieCard {...movie} />
-              
-              {/* Action buttons under the card */}
-              <div className="flex w-full items-center justify-between mt-auto px-1">
-                <button className="flex items-center gap-2 text-sm font-semibold text-white/90 hover:text-white transition-colors group/btn">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] p-[2px] transition-transform duration-200 group-hover/btn:scale-110">
-                    <span className="inline-flex h-full w-full items-center justify-center rounded-full bg-white">
-                      <Play className="h-3 w-3 text-red-500 fill-current" />
-                    </span>
-                  </span>
-                  <span className="underline underline-offset-4 decoration-white/30 hover:decoration-white">Xem Trailer</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('quick-booking');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    notificationService.info(`Vui lòng hoàn tất thông tin để đặt vé cho phim: ${movie.title}`);
-                  }}
-                  className="rounded-md bg-yellow-400 px-6 py-2 text-sm font-bold text-black hover:brightness-95"
-                >
-                  ĐẶT VÉ
-                </button>
-              </div>
             </div>
           ))
         )}

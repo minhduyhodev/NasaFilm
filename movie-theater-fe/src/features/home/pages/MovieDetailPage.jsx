@@ -137,7 +137,6 @@ const MovieDetailPage = () => {
 
   const handleShowtimeClick = (cinema, time) => {
     setSelectedShowtime({ cinema, time });
-    notificationService.success(`Đã chọn suất chiếu ${time}. Vui lòng nhấn nút "Đặt ghế ngay" bên dưới để tiếp tục.`);
   };
 
   const handleProceedToBooking = () => {
@@ -335,18 +334,21 @@ const MovieDetailPage = () => {
 
             <div className="space-y-6">
               {/* Cinema 1: CineStar IMAX */}
-              <div className="glass-panel p-6 rounded-2xl border-white/5">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <Film className="text-red-500 h-5 w-5" />
-                    <h4 className="text-base md:text-lg font-black text-white uppercase">CineStar IMAX - NASA Landmark 81</h4>
+              <div className="py-4 text-left">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <Film className="text-red-500 h-4 w-4" />
+                    <h4 className="text-base font-black text-white uppercase font-heading tracking-wide">CineStar IMAX - NASA Landmark 81</h4>
                   </div>
-                  <span className="text-xs text-gray-400 flex items-center gap-1 font-semibold">
-                    <MapPin className="h-3.5 w-3.5 text-red-500" /> Quận Bình Thạnh, HCM
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
+                    <MapPin className="h-3 w-3 text-red-500" /> Quận Bình Thạnh, HCM
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {/* Thin Editorial Divider */}
+                <div className="border-b border-white/5 my-4" />
+                
+                <div className="flex flex-wrap gap-2.5">
                   {['11:00', '13:45', '16:30', '19:15', '21:00', '22:45'].map((time) => {
                     const isSelected = selectedShowtime?.cinema === 'IMAX' && selectedShowtime?.time === time;
                     const isDisabled = time === '21:00'; // mock disabled
@@ -355,12 +357,12 @@ const MovieDetailPage = () => {
                         key={time}
                         onClick={() => !isDisabled && handleShowtimeClick('IMAX', time)}
                         disabled={isDisabled}
-                        className={`py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                           isSelected 
-                            ? 'bg-red-600 border-red-600 text-white font-black scale-105' 
+                            ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
                             : isDisabled
-                              ? 'border-white/5 text-gray-600 cursor-not-allowed opacity-30'
-                              : 'border-white/10 text-gray-300 hover:bg-red-600/10 hover:border-red-500/30'
+                              ? 'text-gray-700 cursor-not-allowed opacity-20'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                       >
                         {time}
@@ -371,28 +373,31 @@ const MovieDetailPage = () => {
               </div>
 
               {/* Cinema 2: CineStar Premium GOLD */}
-              <div className="glass-panel p-6 rounded-2xl border-white/5">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <Award className="text-yellow-500 h-5 w-5" />
-                    <h4 className="text-base md:text-lg font-black text-yellow-500 uppercase">CineStar Premium GOLD</h4>
+              <div className="py-4 text-left">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <Award className="text-yellow-500 h-4 w-4" />
+                    <h4 className="text-base font-black text-yellow-500 uppercase font-heading tracking-wide">CineStar Premium GOLD</h4>
                   </div>
-                  <span className="text-xs text-gray-400 flex items-center gap-1 font-semibold">
-                    <MapPin className="h-3.5 w-3.5 text-red-500" /> Quận 1, HCM
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
+                    <MapPin className="h-3 w-3 text-red-500" /> Quận 1, HCM
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {/* Thin Editorial Divider */}
+                <div className="border-b border-white/5 my-4" />
+                
+                <div className="flex flex-wrap gap-2.5">
                   {['12:30', '15:15', '18:00', '20:45'].map((time) => {
                     const isSelected = selectedShowtime?.cinema === 'GOLD' && selectedShowtime?.time === time;
                     return (
                       <button
                         key={time}
                         onClick={() => handleShowtimeClick('GOLD', time)}
-                        className={`py-2.5 rounded-lg border text-xs font-bold transition-all ${
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                           isSelected 
-                            ? 'bg-red-600 border-red-600 text-white font-black scale-105' 
-                            : 'border-yellow-500/20 text-yellow-500/80 hover:bg-yellow-500/10'
+                            ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
+                            : 'text-yellow-500/80 hover:text-yellow-500 hover:bg-yellow-500/5'
                         }`}
                       >
                         {time}

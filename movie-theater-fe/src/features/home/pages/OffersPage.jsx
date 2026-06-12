@@ -122,34 +122,41 @@ const OffersPage = () => {
           ))}
         </div>
 
-        {/* Offers Grid */}
-        <div className="offers-grid">
-          {filteredOffers.map(offer => (
-            <div key={offer.id} className="offer-card">
-              {/* Offer Image */}
-              <div className="offer-card-img-wrapper">
-                <img src={offer.image} alt={offer.title} className="offer-card-img" />
-                <span className="offer-card-badge">{offer.badge}</span>
+        {/* Offers List (Editorial Banners style) */}
+        <div className="flex flex-col gap-16">
+          {filteredOffers.map((offer, index) => (
+            <div 
+              key={offer.id} 
+              className={`flex flex-col md:flex-row gap-8 items-center md:items-stretch border-b border-white/5 pb-12 last:border-b-0 ${
+                index % 2 === 1 ? 'md:flex-row-reverse' : ''
+              }`}
+            >
+              {/* Image Frame */}
+              <div className="w-full md:w-[45%] aspect-[16/10] md:aspect-[16/9] overflow-hidden rounded-[24px] shadow-[0_15px_30px_rgba(0,0,0,0.5)] relative">
+                <img src={offer.image} alt={offer.title} className="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.02]" />
+                <span className="absolute top-4 left-4 px-3 py-1 bg-red-600/90 text-white text-[10px] font-black uppercase rounded tracking-wider">
+                  {offer.badge}
+                </span>
               </div>
 
-              {/* Offer Info */}
-              <div className="offer-card-content">
-                <div className="space-y-2">
-                  <h3 className="offer-card-title">{offer.title}</h3>
-                  <p className="offer-card-desc">{offer.description}</p>
+              {/* Offer Info Content */}
+              <div className="w-full md:w-[55%] flex flex-col justify-center text-left space-y-4 px-2">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-red-500">{offer.category}</span>
+                  <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-tight mt-1 font-heading">{offer.title}</h3>
                 </div>
-
-                {/* Footer of Card */}
-                <div className="offer-card-footer">
-                  <div className="offer-card-date flex items-center gap-1.5">
-                    <Calendar size={13} className="text-gray-600" />
+                <p className="text-sm text-gray-400 leading-relaxed font-medium">{offer.description}</p>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <div className="text-xs text-gray-500 font-bold flex items-center gap-1.5">
+                    <Calendar size={13} className="text-red-500" />
                     <span>HSD: {offer.expiry}</span>
                   </div>
                   <button 
                     onClick={() => setSelectedOffer(offer)}
-                    className="offer-btn-details"
+                    className="inline-block text-xs font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400"
                   >
-                    Chi tiết
+                    [Xem chi tiết]
                   </button>
                 </div>
               </div>

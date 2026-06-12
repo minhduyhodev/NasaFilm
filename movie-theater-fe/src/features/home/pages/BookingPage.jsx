@@ -180,36 +180,72 @@ const BookingPage = () => {
             {rows.map((row, rowIndex) => {
               const type = rowTypes[rowIndex];
               const count = type === 'couple' ? 6 : 12;
+
+              const renderSeat = (seatIndex) => {
+                const seatId = `${row}${seatIndex}`;
+                const isOccupied = occupiedSeats.has(seatId);
+                const isSelected = selectedSeats.some(s => s.id === seatId);
+                
+                let seatClass = `seat ${type}`;
+                
+                if (isOccupied) {
+                  seatClass += ' occupied';
+                } else if (isSelected) {
+                  seatClass += ' selected';
+                }
+
+                return (
+                  <div
+                    key={seatId}
+                    onClick={() => !isOccupied && handleSeatClick(seatId, row)}
+                    className={seatClass}
+                  >
+                    {isOccupied ? <X className="h-3 w-3" /> : seatIndex}
+                  </div>
+                );
+              };
+
+              if (type === 'couple') {
+                return (
+                  <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
+                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+                    <div className="flex gap-2">
+                      {Array.from({ length: count }).map((_, i) => renderSeat(i + 1))}
+                    </div>
+                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+                  </div>
+                );
+              }
+
+              const isCenterRow = ['C', 'D', 'E', 'F'].includes(row);
+              let centerClasses = "flex gap-2 px-1";
+              if (row === 'C') {
+                centerClasses += " border-t-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-t-xl py-0.5";
+              } else if (row === 'D' || row === 'E') {
+                centerClasses += " border-x-2 border-emerald-500/30 bg-emerald-500/5 py-0.5";
+              } else if (row === 'F') {
+                centerClasses += " border-b-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-b-xl py-0.5";
+              }
+
               return (
                 <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
                   {/* Row Label Left */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
                   
-                  {/* Seats mapping */}
-                  {Array.from({ length: count }).map((_, i) => {
-                    const seatIndex = i + 1;
-                    const seatId = `${row}${seatIndex}`;
-                    const isOccupied = occupiedSeats.has(seatId);
-                    const isSelected = selectedSeats.some(s => s.id === seatId);
-                    
-                    let seatClass = `seat ${type}`;
-                    
-                    if (isOccupied) {
-                      seatClass += ' occupied';
-                    } else if (isSelected) {
-                      seatClass += ' selected';
-                    }
+                  {/* Left Block */}
+                  <div className="flex gap-2">
+                    {[1, 2].map(seatIndex => renderSeat(seatIndex))}
+                  </div>
 
-                    return (
-                      <div
-                        key={seatId}
-                        onClick={() => !isOccupied && handleSeatClick(seatId, row)}
-                        className={seatClass}
-                      >
-                        {isOccupied ? <X className="h-3 w-3" /> : seatIndex}
-                      </div>
-                    );
-                  })}
+                  {/* Center Block with optional blue border */}
+                  <div className={centerClasses}>
+                    {[3, 4, 5, 6, 7, 8, 9, 10].map(seatIndex => renderSeat(seatIndex))}
+                  </div>
+
+                  {/* Right Block */}
+                  <div className="flex gap-2">
+                    {[11, 12].map(seatIndex => renderSeat(seatIndex))}
+                  </div>
                   
                   {/* Row Label Right */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
@@ -233,7 +269,7 @@ const BookingPage = () => {
               <span className="text-xs font-bold text-gray-300">Ghế Đôi (160k)</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-6 bg-white/10 border border-transparent rounded-lg flex items-center justify-center text-white/30">
+              <div className="w-9 h-6 bg-white/5 border-2 border-red-500/20 rounded-lg flex items-center justify-center text-red-500/25 opacity-60">
                 <X className="h-3 w-3" />
               </div>
               <span className="text-xs font-bold text-gray-300">Đã đặt</span>
@@ -241,6 +277,10 @@ const BookingPage = () => {
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-6 bg-white border border-white rounded-lg flex items-center justify-center text-[9px] font-bold text-black shadow-[0_0_10px_rgba(255,255,255,0.5)]">1</div>
               <span className="text-xs font-bold text-gray-300">Đang chọn</span>
+            </div>
+             <div className="flex items-center gap-2.5">
+              <div className="w-9 h-6 border-2 border-emerald-500/40 bg-emerald-500/10 rounded-lg"></div>
+              <span className="text-xs font-bold text-gray-300">Vùng trung tâm</span>
             </div>
           </div>
         </div>

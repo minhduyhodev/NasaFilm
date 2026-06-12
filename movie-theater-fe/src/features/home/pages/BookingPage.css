@@ -84,11 +84,11 @@
 }
 
 .seat.occupied {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 2px solid transparent !important;
-  color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 2px solid rgba(239, 68, 68, 0.2) !important;
+  color: rgba(239, 68, 68, 0.25) !important;
   cursor: not-allowed;
-  opacity: 0.25;
+  opacity: 0.55;
 }
 
 .screen-curve {
