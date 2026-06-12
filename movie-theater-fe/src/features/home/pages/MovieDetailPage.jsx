@@ -24,6 +24,7 @@ const MovieDetailPage = () => {
   const [activeDateTab, setActiveDateTab] = useState('today');
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [isVideoActive, setIsVideoActive] = useState(false);
 
   const [dbMovie, setDbMovie] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +37,7 @@ const MovieDetailPage = () => {
       try {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
+        setIsVideoActive(false);
       } catch (err) {
         console.error("Failed to fetch movie detail:", err);
         setError("Không thể tải chi tiết phim. Vui lòng thử lại sau.");
@@ -170,7 +172,7 @@ const MovieDetailPage = () => {
           {/* Base Backdrop Image Layer (Always visible, z-index: 0) */}
           <img 
             alt="Movie backdrop" 
-            className="movie-backdrop-img" 
+            className={`movie-backdrop-img ${isVideoActive ? 'video-active' : ''}`} 
             src={movie.backdrop} 
           />
           
@@ -190,8 +192,9 @@ const MovieDetailPage = () => {
                     <iframe
                       src={bgYoutubeUrl}
                       title="Background Trailer"
-                      className="w-full h-full object-cover opacity-50 filter blur-[2px] brightness-[0.45]"
+                      className="w-full h-full object-cover opacity-100"
                       style={{ border: 'none', transform: 'scale(1.35)', transformOrigin: 'center' }}
+                      onLoad={() => setIsVideoActive(true)}
                     ></iframe>
                   </div>
                 );
@@ -204,7 +207,8 @@ const MovieDetailPage = () => {
                   muted
                   loop
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover opacity-50 filter blur-[2px] brightness-[0.45] scale-105 z-10"
+                  onPlay={() => setIsVideoActive(true)}
+                  className="absolute inset-0 w-full h-full object-cover opacity-100 scale-105 z-10"
                 />
               );
             }

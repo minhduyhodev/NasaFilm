@@ -7,23 +7,23 @@
 }
 
 .admin-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.2em] text-[#ccbba3];
+  @apply text-xs font-bold uppercase tracking-[0.2em] text-gray-500;
 }
 
 .admin-title {
-  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
+  @apply text-3xl lg:text-4xl font-black text-gray-900 tracking-tight;
 }
 
 .admin-description {
-  @apply max-w-3xl text-sm text-[#8a8d9f] font-medium leading-relaxed mt-2;
+  @apply max-w-3xl text-sm text-gray-600 font-medium leading-relaxed mt-2;
 }
 
 .admin-add-btn {
-  @apply inline-flex items-center gap-5 rounded-[22px] bg-red-600 hover:bg-[#d12c2c] px-8 py-[18px] text-white shadow-[0_20px_50px_rgba(220,38,38,0.3)] transition shrink-0;
+  @apply inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-[#d12c2c] px-4 py-2.5 text-white transition shadow-sm shrink-0;
 }
 
 .admin-add-btn-plus {
-  @apply text-3xl font-light leading-none;
+  @apply text-xl font-light leading-none;
 }
 
 .admin-add-btn-label-group {
@@ -31,11 +31,11 @@
 }
 
 .admin-add-btn-sub {
-  @apply font-semibold text-xs text-white/80;
+  @apply font-semibold text-[10px] text-white/80 uppercase tracking-wider;
 }
 
 .admin-add-btn-main {
-  @apply font-bold text-sm;
+  @apply font-bold text-xs;
 }
 
 .admin-stats-grid {
@@ -43,7 +43,7 @@
 }
 
 .admin-stat-card {
-  @apply rounded-[20px] bg-[#11121a] border border-white/5 p-6 h-[140px] relative overflow-hidden flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:border-white/10 transition-all duration-300;
+  @apply rounded-xl bg-white border border-gray-200 p-6 h-[130px] relative overflow-hidden flex flex-col justify-between shadow-sm hover:border-gray-300 transition-all duration-300;
 }
 
 .admin-stat-card-top {
@@ -51,23 +51,23 @@
 }
 
 .admin-stat-label {
-  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-[#6e7191];
+  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400;
 }
 
 .admin-stat-value {
-  @apply text-4xl font-bold text-white tracking-tight leading-none z-10;
+  @apply text-3xl font-bold text-gray-900 tracking-tight leading-none z-10;
 }
 
 .admin-stat-badge-green {
-  @apply text-xs text-emerald-400 font-semibold;
+  @apply text-xs text-emerald-600 font-semibold;
 }
 
 .admin-stat-badge-muted {
-  @apply text-xs text-[#8a8d9f] font-medium;
+  @apply text-xs text-gray-500 font-medium;
 }
 
 .admin-table-card {
-  @apply rounded-[24px] bg-[#11121a] border border-white/5 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] mt-8;
+  @apply rounded-xl bg-white border border-gray-200 p-6 shadow-sm mt-8;
 }
 
 .admin-table-controls {
@@ -79,11 +79,11 @@
 }
 
 .admin-search-icon {
-  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6e7191] w-5 h-5;
+  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4;
 }
 
 .admin-search-input {
-  @apply w-full rounded-xl bg-[#161722] border border-white/5 pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#6e7191] focus:outline-none focus:border-red-500/50 transition-all duration-300;
+  @apply w-full rounded-full bg-gray-50 border border-gray-200 pl-10 pr-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 transition-all duration-300;
 }
 
 .admin-action-group {
@@ -91,7 +91,7 @@
 }
 
 .admin-action-btn {
-  @apply flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#161722] border border-white/5 text-[#8a8d9f] text-sm font-semibold hover:bg-white/5 transition-colors duration-300;
+  @apply flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors duration-300;
 }
 
 .admin-table-container {
@@ -103,11 +103,15 @@
 }
 
 .admin-table-thead-tr {
-  @apply text-[#6e7191] text-[11px] font-bold uppercase tracking-[0.2em] border-b border-white/5 pb-3;
+  @apply text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] border-b border-gray-200 pb-3;
 }
 
 .admin-table-tr {
-  @apply hover:bg-white/[0.01] transition-colors duration-300;
+  @apply hover:bg-black/[0.01] transition-colors duration-300;
+}
+
+.admin-table-tr:hover .admin-cinema-icon-wrapper {
+  @apply bg-red-50 text-red-500;
 }
 
 .admin-table-td-cinema {
@@ -115,27 +119,27 @@
 }
 
 .admin-cinema-icon-wrapper {
-  @apply w-10 h-10 rounded-[12px] bg-white/5 border border-white/10 flex items-center justify-center text-[#8a8d9f] mr-4 shrink-0;
+  @apply w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mr-4 shrink-0 transition-all duration-300;
 }
 
 .admin-cinema-name {
-  @apply font-bold text-white text-base leading-tight;
+  @apply font-bold text-gray-900 text-base leading-tight;
 }
 
 .admin-cinema-desc {
-  @apply text-xs text-[#6e7191] mt-1 font-medium;
+  @apply text-xs text-gray-400 mt-1 font-medium;
 }
 
 .admin-table-td-val {
-  @apply py-4 pr-6 font-bold text-white text-base;
+  @apply py-4 px-3 font-bold text-gray-800 text-base;
 }
 
 .admin-badge-open {
-  @apply inline-flex px-2.5 py-0.5 rounded-[6px] text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/10;
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/10;
 }
 
 .admin-badge-closed {
-  @apply inline-flex px-2.5 py-0.5 rounded-[6px] text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/40 border border-white/10;
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200;
 }
 
 .admin-table-actions-td {
@@ -147,9 +151,9 @@
 }
 
 .admin-btn-edit {
-  @apply text-[#8a8d9f] hover:text-white transition-colors duration-300;
+  @apply text-gray-400 hover:text-gray-700 transition-colors duration-300;
 }
 
 .admin-btn-delete {
-  @apply text-[#8a8d9f] hover:text-red-500 transition-colors duration-300;
+  @apply text-gray-400 hover:text-red-500 transition-colors duration-300;
 }

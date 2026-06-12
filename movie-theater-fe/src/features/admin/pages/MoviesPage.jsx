@@ -1,8 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Play, Calendar, Star } from 'lucide-react';
+import { Film, Play, Calendar, Star, Search, FileText, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import './MoviesPage.css';
+
+const getStatusConfig = (status) => {
+  switch (status) {
+    case 'NOW_SHOWING':
+      return {
+        label: 'Đang chiếu',
+        className: 'admin-status-badge status-now-showing',
+        icon: Play,
+      };
+    case 'COMING_SOON':
+      return {
+        label: 'Sắp chiếu',
+        className: 'admin-status-badge status-coming-soon',
+        icon: Calendar,
+      };
+    case 'DRAFT':
+      return {
+        label: 'Bản nháp',
+        className: 'admin-status-badge status-draft',
+        icon: FileText,
+      };
+    case 'ENDED':
+      return {
+        label: 'Đã kết thúc',
+        className: 'admin-status-badge status-ended',
+        icon: CheckCircle,
+      };
+    case 'INACTIVE':
+      return {
+        label: 'Tạm ngưng',
+        className: 'admin-status-badge status-inactive',
+        icon: AlertCircle,
+      };
+    default:
+      return {
+        label: status || 'N/A',
+        className: 'admin-status-badge status-draft',
+        icon: FileText,
+      };
+  }
+};
+
+const statusOptions = [
+  { value: 'NOW_SHOWING', label: 'Đang chiếu', icon: Play, colorClass: 'status-select-now-showing' },
+  { value: 'COMING_SOON', label: 'Sắp chiếu', icon: Calendar, colorClass: 'status-select-coming-soon' },
+  { value: 'DRAFT', label: 'Bản nháp', icon: FileText, colorClass: 'status-select-draft' },
+  { value: 'ENDED', label: 'Đã kết thúc', icon: CheckCircle, colorClass: 'status-select-ended' },
+  { value: 'INACTIVE', label: 'Tạm ngưng', icon: AlertCircle, colorClass: 'status-select-inactive' },
+];
 
 const MoviesPage = () => {
   const [movies, setMovies] = useState([]);
@@ -259,20 +308,26 @@ const MoviesPage = () => {
       label: 'TỔNG SỐ PHIM',
       value: String(totalMoviesCount),
       sub: 'Tất cả phim trong kho',
-      Icon: Film
+      Icon: Film,
+      color: 'text-indigo-500',
+      bgIcon: 'text-indigo-500/10 group-hover:text-indigo-500/20 group-hover:scale-105',
     },
     {
       label: 'ĐANG CHIẾU',
       value: String(liveMoviesCount),
       sub: 'Đang chiếu tại rạp',
       hasDot: true,
-      Icon: Play
+      Icon: Play,
+      color: 'text-emerald-500',
+      bgIcon: 'text-emerald-500/10 group-hover:text-emerald-500/20 group-hover:scale-105',
     },
     {
       label: 'SẮP CHIẾU',
       value: String(upcomingMoviesCount),
       sub: 'Đã lên lịch khởi chiếu',
-      Icon: Calendar
+      Icon: Calendar,
+      color: 'text-amber-500',
+      bgIcon: 'text-amber-500/10 group-hover:text-amber-500/20 group-hover:scale-105',
     },
     {
       label: 'ĐÁNH GIÁ TB',
@@ -280,7 +335,9 @@ const MoviesPage = () => {
       sub: 'Mục tiêu: Đạt 5.0',
       hasProgress: true,
       progressValue: '96%',
-      Icon: Star
+      Icon: Star,
+      color: 'text-rose-500',
+      bgIcon: 'text-rose-500/10 group-hover:text-rose-500/20 group-hover:scale-105',
     }
   ];
 
@@ -292,7 +349,7 @@ const MoviesPage = () => {
           <p className="admin-subtitle">Quản lý Kho phim & Danh mục</p>
         </div>
         <button className="admin-add-btn" onClick={handleAddClick}>
-          <span className="material-symbols-outlined">add</span>
+          <Plus className="w-4 h-4" />
           Thêm Phim Mới
         </button>
       </div>
@@ -301,19 +358,19 @@ const MoviesPage = () => {
         {stats.map((card) => (
           <div key={card.label} className="admin-stat-card group">
             {/* Watermark Icon */}
-            <card.Icon className="absolute -right-4 -top-4 w-24 h-24 text-white/5 group-hover:text-white/10 transition-colors duration-300" strokeWidth={1} />
+            <card.Icon className={`absolute -right-4 -top-4 w-24 h-24 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
 
-            <div>
+            <div className="relative z-10 w-full">
               <div className="admin-stat-card-top">
                 <p className="admin-stat-label">{card.label}</p>
-                <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
+                <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
               </div>
-              <div className="admin-stat-value-group">
+              <div className="admin-stat-value-group mt-1">
                 <h3 className="admin-stat-value">{card.value}</h3>
               </div>
             </div>
 
-            <div className="admin-stat-footer">
+            <div className="admin-stat-footer relative z-10 w-full">
               {card.hasProgress ? (
                 <div className="space-y-2">
                   <div className="admin-progress-bg">
@@ -335,7 +392,7 @@ const MoviesPage = () => {
       <div className="admin-table-card">
         <div className="admin-table-controls">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">search</span>
+            <Search className="admin-search-icon" />
             <input 
               className="admin-search-input" 
               placeholder="Lọc theo tên phim..." 
@@ -353,10 +410,10 @@ const MoviesPage = () => {
             <thead>
               <tr className="admin-table-thead-tr">
                 <th className="pb-3 text-left">Phim</th>
-                <th className="pb-3 text-left">Thể loại</th>
-                <th className="pb-3 text-left">Ngày khởi chiếu</th>
-                <th className="pb-3 text-left">Trạng thái</th>
-                <th className="pb-3 text-left">Hành động</th>
+                <th className="pb-3 text-center">Thể loại</th>
+                <th className="pb-3 text-center">Ngày khởi chiếu</th>
+                <th className="pb-3 text-center">Trạng thái</th>
+                <th className="pb-3 text-center">Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -365,35 +422,62 @@ const MoviesPage = () => {
                   <td colSpan="5" className="text-center py-10 text-gray-400">Đang tải danh sách phim...</td>
                 </tr>
               ) : movies.length > 0 ? (
-                movies.map((row) => (
-                  <tr key={row.uuid} className="admin-table-tr">
-                    <td className="admin-table-td-name">
-                      <div className="admin-table-name">{row.title}</div>
-                      <div className="admin-table-desc">{row.description ? row.description.substring(0, 50) + '...' : 'Không có mô tả'}</div>
-                    </td>
-                    <td className="admin-table-td-genre">{row.genres && row.genres.length > 0 ? row.genres.join(' / ') : 'N/A'}</td>
-                    <td className="admin-table-td-date">{row.releaseDate || 'N/A'}</td>
-                    <td className="py-4 pr-6">
-                      <span className={row.status === 'NOW_SHOWING' ? 'admin-badge-live' : 'admin-badge-draft'}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="admin-table-actions-td">
-                      <button 
-                        onClick={() => handleEditClick(row.uuid)}
-                        className="text-blue-500 hover:underline mr-3 bg-transparent border-0 cursor-pointer"
-                      >
-                        Sửa
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteMovie(row.uuid, row.title)}
-                        className="text-red-500 hover:underline bg-transparent border-0 cursor-pointer"
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                movies.map((row) => {
+                  const posterUrl = row.primaryMediaUrl 
+                                 || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+                  return (
+                    <tr key={row.uuid} className="admin-table-tr group">
+                      <td className="admin-table-td-name">
+                        <div className="admin-table-name-group">
+                          <div className="admin-table-poster-wrapper">
+                            <img 
+                              src={posterUrl} 
+                              alt={row.title} 
+                              className="admin-table-poster-img"
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <div className="admin-table-name group-hover:text-red-500 transition-colors duration-300">{row.title}</div>
+                            <div className="admin-table-desc">{row.description ? row.description.substring(0, 50) + '...' : 'Không có mô tả'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="admin-table-td-genre text-center">{row.genres && row.genres.length > 0 ? row.genres.join(' / ') : 'N/A'}</td>
+                      <td className="admin-table-td-date text-center">{row.releaseDate || 'N/A'}</td>
+                      <td className="text-center">
+                        {(() => {
+                          const statusConfig = getStatusConfig(row.status);
+                          const IconComponent = statusConfig.icon;
+                          return (
+                            <span className={`inline-flex ${statusConfig.className}`}>
+                              {IconComponent && <IconComponent className="status-badge-icon w-3 h-3" />}
+                              {statusConfig.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="text-center py-4">
+                        <div className="flex items-center justify-center gap-3">
+                          <button 
+                            onClick={() => handleEditClick(row.uuid)}
+                            className="admin-btn-action-edit"
+                          >
+                            Sửa
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteMovie(row.uuid, row.title)}
+                            className="admin-btn-action-delete"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan="5" className="text-center py-10 text-gray-400">Không tìm thấy bộ phim nào</td>
@@ -411,7 +495,7 @@ const MoviesPage = () => {
             <div className="modal-header">
               <h2 className="modal-title">{editingMovie ? 'Chỉnh sửa phim' : 'Thêm mới phim'}</h2>
               <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
-                <span className="material-symbols-outlined">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -455,17 +539,23 @@ const MoviesPage = () => {
 
               <div className="form-group">
                 <label className="form-label">Trạng thái *</label>
-                <select
-                  className="form-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                >
-                  <option value="NOW_SHOWING">NOW_SHOWING (Đang chiếu)</option>
-                  <option value="COMING_SOON">COMING_SOON (Sắp chiếu)</option>
-                  <option value="DRAFT">DRAFT (Nháp)</option>
-                  <option value="ENDED">ENDED (Đã kết thúc)</option>
-                  <option value="INACTIVE">INACTIVE (Tạm ngưng)</option>
-                </select>
+                <div className="status-select-grid">
+                  {statusOptions.map((opt) => {
+                    const IconComponent = opt.icon;
+                    const isActive = formData.status === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={`status-select-item ${opt.colorClass} ${isActive ? 'active' : ''}`}
+                        onClick={() => setFormData(prev => ({ ...prev, status: opt.value }))}
+                      >
+                        {IconComponent && <IconComponent className="w-4 h-4" />}
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="form-group">

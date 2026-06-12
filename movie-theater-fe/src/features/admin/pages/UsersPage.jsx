@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, SlidersHorizontal, Search, Edit2, Users, Crown, Activity, X, Loader2 } from 'lucide-react';
+import { User, SlidersHorizontal, Search, Edit2, Users, Crown, Activity, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import { adminUserService } from '../api/adminUserService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useNotification } from '../../../shared/context/NotificationContext';
@@ -12,8 +12,11 @@ const UsersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [openStatusDropdownId, setOpenStatusDropdownId] = useState(null);
   
   const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
 
   // Fetch users from Backend
   const fetchUsers = useCallback(async () => {
@@ -70,6 +73,8 @@ const UsersPage = () => {
       sub: 'Tài khoản khách hàng đã đăng ký',
       isGreen: true,
       Icon: Users,
+      color: 'text-indigo-500',
+      bgIcon: 'text-indigo-500/10 group-hover:text-indigo-500/20 group-hover:scale-105',
     },
     {
       label: 'ĐANG HOẠT ĐỘNG',
@@ -77,6 +82,8 @@ const UsersPage = () => {
       sub: 'Tài khoản hoạt động bình thường',
       isGreen: true,
       Icon: Activity,
+      color: 'text-emerald-500',
+      bgIcon: 'text-emerald-500/10 group-hover:text-emerald-500/20 group-hover:scale-105',
     },
     {
       label: 'ADMIN & NHÂN VIÊN',
@@ -84,6 +91,8 @@ const UsersPage = () => {
       sub: 'Ban quản trị hệ thống',
       isGreen: false,
       Icon: Crown,
+      color: 'text-amber-500',
+      bgIcon: 'text-amber-500/10 group-hover:text-amber-500/20 group-hover:scale-105',
     },
     {
       label: 'LIÊN KẾT GOOGLE',
@@ -91,6 +100,8 @@ const UsersPage = () => {
       sub: 'Tài khoản đăng nhập nhanh',
       isGreen: false,
       Icon: User,
+      color: 'text-sky-500',
+      bgIcon: 'text-sky-500/10 group-hover:text-sky-500/20 group-hover:scale-105',
     },
   ];
 
@@ -129,13 +140,13 @@ const UsersPage = () => {
       <div className="admin-stats-grid">
         {cards.map((card) => (
           <div key={card.label} className="admin-stat-card group">
-            <card.Icon className="absolute -right-4 -top-4 w-20 h-20 text-white/5 group-hover:text-white/10 transition-colors duration-300" strokeWidth={1} />
-            <div className="admin-stat-card-top">
+            <card.Icon className={`absolute -right-4 -top-4 w-20 h-20 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
+            <div className="admin-stat-card-top relative z-10">
               <p className="admin-stat-label">{card.label}</p>
-              <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
+              <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
             </div>
-            <h3 className="admin-stat-value">{isLoading ? '...' : card.value}</h3>
-            <p className={`${card.isGreen ? 'admin-stat-badge-green' : 'admin-stat-badge-muted'}`}>
+            <h3 className="admin-stat-value relative z-10 mt-1">{isLoading ? '...' : card.value}</h3>
+            <p className={`relative z-10 ${card.isGreen ? 'admin-stat-badge-green' : 'admin-stat-badge-muted'}`}>
               {card.sub}
             </p>
           </div>
@@ -154,19 +165,57 @@ const UsersPage = () => {
             />
           </div>
           
-          <div className="admin-action-group">
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="admin-action-btn focus:outline-none bg-[#161722] border border-white/5 rounded-xl text-sm text-[#8a8d9f]"
-              style={{ appearance: 'none', paddingRight: '2rem', backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238a8d9f\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem', backgroundRepeat: 'no-repeat' }}
+          <div className="admin-action-group relative">
+            {/* Custom Animated Status Filter Dropdown */}
+            <button
+              type="button"
+              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+              className="admin-action-btn flex items-center justify-between gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 focus:outline-none transition-all duration-200 cursor-pointer min-w-[175px]"
             >
-              <option value="all">Tất cả Trạng thái</option>
-              <option value="ACTIVE">Hoạt động</option>
-              <option value="SUSPENDED">Bị khóa</option>
-              <option value="INACTIVE">Chưa kích hoạt</option>
-            </select>
+              <span>
+                {statusFilter === 'all' && 'Tất cả Trạng thái'}
+                {statusFilter === 'ACTIVE' && 'Hoạt động'}
+                {statusFilter === 'SUSPENDED' && 'Bị khóa'}
+                {statusFilter === 'INACTIVE' && 'Chưa kích hoạt'}
+              </span>
+              <span className={`material-symbols-outlined text-gray-400 text-base transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`}>
+                expand_more
+              </span>
+            </button>
+            
+            {isFilterDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40 bg-transparent" 
+                  onClick={() => setIsFilterDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-12 w-52 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-1.5 origin-top-right transition-all duration-300 animate-dropdown-fade-in space-y-0.5">
+                  {[
+                    { value: 'all', label: 'Tất cả Trạng thái', color: 'bg-gray-400' },
+                    { value: 'ACTIVE', label: 'Hoạt động', color: 'bg-emerald-500' },
+                    { value: 'SUSPENDED', label: 'Bị khóa', color: 'bg-rose-500' },
+                    { value: 'INACTIVE', label: 'Chưa kích hoạt', color: 'bg-gray-400' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(option.value);
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left text-sm font-bold transition-all duration-200 cursor-pointer ${
+                        statusFilter === option.value 
+                          ? 'bg-red-50 text-red-600' 
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${option.color}`} />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -181,66 +230,161 @@ const UsersPage = () => {
               <thead>
                 <tr className="admin-table-thead-tr">
                   <th className="pb-3">KHÁCH HÀNG</th>
-                  <th className="pb-3">VAI TRÒ</th>
-                  <th className="pb-3">SỐ ĐIỆN THOẠI</th>
-                  <th className="pb-3">ĐIỂM TÍCH LŨY</th>
-                  <th className="pb-3">NGÀY THAM GIA</th>
-                  <th className="pb-3 text-right">TRẠNG THÁI</th>
+                  <th className="pb-3 text-center">HẠNG THÀNH VIÊN</th>
+                  <th className="pb-3 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span>SỐ ĐIỆN THOẠI</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPhoneNumbers(!showPhoneNumbers)}
+                        className="p-1 hover:bg-gray-100 rounded-md text-gray-400 hover:text-gray-600 transition-colors duration-200 cursor-pointer inline-flex items-center justify-center focus:outline-none"
+                        title={showPhoneNumbers ? "Ẩn số điện thoại" : "Hiện số điện thoại"}
+                      >
+                        {showPhoneNumbers ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </th>
+                  <th className="pb-3 text-center">ĐIỂM TÍCH LŨY</th>
+                  <th className="pb-3 text-center">NGÀY THAM GIA</th>
+                  <th className="pb-3 text-center">TRẠNG THÁI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredUsers.map((row) => (
-                  <tr key={row.id} className="admin-table-tr">
-                    <td className="admin-table-td-user">
-                      <div className="admin-user-icon-wrapper overflow-hidden animate-pulse-none">
-                        {row.avatarUrl ? (
-                          <img src={row.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {filteredUsers.map((row, index) => {
+                  // Dynamic Member Tier calculation
+                  const getMemberTier = (score) => {
+                    const points = score || 0;
+                    if (points >= 1000) return { label: 'VIP Member', class: 'bg-amber-500/10 border-amber-500/20 text-amber-600' };
+                    if (points >= 500) return { label: 'Gold Member', class: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600' };
+                    if (points >= 100) return { label: 'Silver Member', class: 'bg-slate-400/10 border-slate-400/20 text-slate-600' };
+                    return { label: 'Standard', class: 'bg-gray-100 border-gray-200 text-gray-500' };
+                  };
+                  const tier = getMemberTier(row.score);
+                  const isLastRow = index >= filteredUsers.length - 2 && index > 0;
+
+                  return (
+                    <tr key={row.id} className="admin-table-tr">
+                      <td className="admin-table-td-user">
+                        <div className="admin-user-icon-wrapper overflow-hidden">
+                          {row.avatarUrl ? (
+                            <img src={row.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <div className="admin-user-name flex items-center gap-1.5">
+                            {row.fullName}
+                            {row.authProvider === 'GOOGLE' && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-bold uppercase tracking-wider border border-blue-100 shrink-0">
+                                Google
+                              </span>
+                            )}
+                          </div>
+                          <div className="admin-user-email">{row.email}</div>
+                        </div>
+                      </td>
+                      <td className="admin-table-td-val text-center py-4">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${tier.class}`}>
+                          {tier.label}
+                        </span>
+                      </td>
+                      <td className="admin-table-td-val text-center text-[#6e7191] font-semibold text-sm py-4">
+                        {row.phoneNumber ? (
+                          showPhoneNumbers ? (
+                            row.phoneNumber
+                          ) : row.phoneNumber.length >= 6 ? (
+                            `${row.phoneNumber.slice(0, 3)}••••${row.phoneNumber.slice(-3)}`
+                          ) : (
+                            '••••'
+                          )
                         ) : (
-                          <User className="w-5 h-5" />
+                          '—'
                         )}
-                      </div>
-                      <div>
-                        <div className="admin-user-name">{row.fullName}</div>
-                        <div className="admin-user-email">{row.email}</div>
-                      </div>
-                    </td>
-                    <td className="admin-table-td-val">
-                      <span className="text-xs font-bold text-slate-300">
-                        {row.roles && row.roles.join(', ')}
-                      </span>
-                    </td>
-                    <td className="admin-table-td-val text-[#8a8d9f] text-sm">
-                      {row.phoneNumber || '—'}
-                    </td>
-                    <td className="admin-table-td-val text-yellow-400 text-sm">
-                      {row.score} điểm
-                    </td>
-                    <td className="admin-table-td-active">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString('vi-VN') : '—'}
-                    </td>
-                    <td className="admin-table-actions-td text-right">
-                      <select
-                        value={row.status}
-                        onChange={(e) => handleStatusChange(row.id, row.email, e.target.value)}
-                        disabled={updatingUserId === row.id}
-                        className={`focus:outline-none bg-[#161722] border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold transition duration-200 cursor-pointer ${
-                          row.status === 'ACTIVE'
-                            ? 'text-emerald-400 border-emerald-500/20'
-                            : row.status === 'SUSPENDED'
-                            ? 'text-rose-400 border-rose-500/20'
-                            : 'text-slate-400 border-slate-500/20'
-                        }`}
-                      >
-                        <option value="ACTIVE">Hoạt động</option>
-                        <option value="SUSPENDED">Bị khóa</option>
-                        <option value="INACTIVE">Chưa kích hoạt</option>
-                        {row.status === 'PENDING_VERIFICATION' && (
-                          <option value="PENDING_VERIFICATION">Chờ xác minh</option>
-                        )}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="admin-table-td-val text-center py-4">
+                        <span className="font-mono text-gray-800 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md text-xs font-bold">
+                          {row.score || 0}
+                        </span>
+                        <span className="text-gray-400 text-xs font-normal ml-1">Pts</span>
+                      </td>
+                      <td className="admin-table-td-active text-center text-gray-500 font-semibold text-xs py-4">
+                        {row.createdAt ? (() => {
+                          const date = new Date(row.createdAt);
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const month = date.getMonth() + 1;
+                          const year = date.getFullYear();
+                          return `${day} thg ${month}, ${year}`;
+                        })() : '—'}
+                      </td>
+                      <td className="text-center py-4">
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            disabled={updatingUserId === row.id}
+                            onClick={() => setOpenStatusDropdownId(openStatusDropdownId === row.id ? null : row.id)}
+                            className={`focus:outline-none border rounded-full px-3.5 py-1 text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+                              row.status === 'ACTIVE'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/70'
+                                : row.status === 'SUSPENDED'
+                                ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100/70'
+                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${row.status === 'ACTIVE' ? 'bg-emerald-500' : row.status === 'SUSPENDED' ? 'bg-rose-500' : 'bg-gray-400'}`} />
+                            <span>
+                              {row.status === 'ACTIVE' && 'Hoạt động'}
+                              {row.status === 'SUSPENDED' && 'Bị khóa'}
+                              {row.status === 'INACTIVE' && 'Chưa kích hoạt'}
+                              {row.status === 'PENDING_VERIFICATION' && 'Chờ xác minh'}
+                            </span>
+                            <span className={`material-symbols-outlined text-[11px] text-current transition-transform duration-200 ${openStatusDropdownId === row.id ? 'rotate-180' : ''}`}>
+                              expand_more
+                            </span>
+                          </button>
+                          
+                          {openStatusDropdownId === row.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-40 bg-transparent" 
+                                onClick={() => setOpenStatusDropdownId(null)}
+                              />
+                              <div className={`absolute right-0 w-44 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-1 transition-all duration-300 space-y-0.5 ${
+                                isLastRow 
+                                  ? 'bottom-full mb-1.5 origin-bottom-right animate-dropdown-fade-in-up' 
+                                  : 'mt-1.5 top-full origin-top-right animate-dropdown-fade-in'
+                              }`}>
+                                {[
+                                  { value: 'ACTIVE', label: 'Hoạt động', color: 'bg-emerald-500' },
+                                  { value: 'SUSPENDED', label: 'Bị khóa', color: 'bg-rose-500' },
+                                  { value: 'INACTIVE', label: 'Chưa kích hoạt', color: 'bg-gray-400' },
+                                  ...(row.status === 'PENDING_VERIFICATION' ? [{ value: 'PENDING_VERIFICATION', label: 'Chờ xác minh', color: 'bg-amber-500' }] : [])
+                                ].map((option) => (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => {
+                                      handleStatusChange(row.id, row.email, option.value);
+                                      setOpenStatusDropdownId(null);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left text-xs font-bold transition-all duration-200 cursor-pointer ${
+                                      row.status === option.value 
+                                        ? 'bg-red-50 text-red-600' 
+                                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                    }`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${option.color}`} />
+                                    <span>{option.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (

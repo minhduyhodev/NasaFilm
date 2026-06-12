@@ -10,6 +10,8 @@ const CinemasPage = () => {
       sub: 'Đang hoạt động',
       isGreen: true,
       Icon: MapPin,
+      color: 'text-indigo-500',
+      bgIcon: 'text-indigo-500/10 group-hover:text-indigo-500/20 group-hover:scale-105',
     },
     {
       label: 'PHÒNG CHIẾU',
@@ -17,6 +19,8 @@ const CinemasPage = () => {
       sub: 'Tổng số phòng',
       isGreen: false,
       Icon: Tv,
+      color: 'text-emerald-500',
+      bgIcon: 'text-emerald-500/10 group-hover:text-emerald-500/20 group-hover:scale-105',
     },
     {
       label: 'PHÒNG VIP',
@@ -25,6 +29,8 @@ const CinemasPage = () => {
       isGreen: false,
       isItalic: true,
       Icon: Crown,
+      color: 'text-amber-500',
+      bgIcon: 'text-amber-500/10 group-hover:text-amber-500/20 group-hover:scale-105',
     },
     {
       label: 'MỞ CỬA HÔM NAY',
@@ -32,6 +38,8 @@ const CinemasPage = () => {
       sub: 'Đang mở cửa',
       isGreen: true,
       Icon: Activity,
+      color: 'text-sky-500',
+      bgIcon: 'text-sky-500/10 group-hover:text-sky-500/20 group-hover:scale-105',
     },
   ];
 
@@ -82,16 +90,18 @@ const CinemasPage = () => {
         {cards.map((card) => (
           <div key={card.label} className="admin-stat-card group">
             {/* Watermark Icon */}
-            <card.Icon className="absolute -right-4 -top-4 w-20 h-20 text-white/5 group-hover:text-white/10 transition-colors duration-300" strokeWidth={1} />
+            <card.Icon className={`absolute -right-4 -top-4 w-20 h-20 transition-all duration-300 z-0 ${card.bgIcon}`} strokeWidth={1} />
 
-            <div className="admin-stat-card-top">
-              <p className="admin-stat-label">{card.label}</p>
-              <card.Icon className="text-[#6e7191] w-5 h-5" strokeWidth={2} />
+            <div className="relative z-10 w-full">
+              <div className="admin-stat-card-top">
+                <p className="admin-stat-label">{card.label}</p>
+                <card.Icon className={`w-5 h-5 ${card.color}`} strokeWidth={2} />
+              </div>
+              <h3 className="admin-stat-value mt-1">{card.value}</h3>
+              <p className={`${card.isGreen ? 'admin-stat-badge-green' : 'admin-stat-badge-muted'} ${card.isItalic ? 'italic' : ''}`}>
+                {card.sub}
+              </p>
             </div>
-            <h3 className="admin-stat-value">{card.value}</h3>
-            <p className={`${card.isGreen ? 'admin-stat-badge-green' : 'admin-stat-badge-muted'} ${card.isItalic ? 'italic' : ''}`}>
-              {card.sub}
-            </p>
           </div>
         ))}
       </div>
@@ -122,10 +132,10 @@ const CinemasPage = () => {
             <thead>
               <tr className="admin-table-thead-tr">
                 <th className="pb-3">TÊN RẠP / ĐỊA CHỈ</th>
-                <th className="pb-3">SỐ PHÒNG CHIẾU</th>
-                <th className="pb-3">SỐ PHÒNG VIP</th>
-                <th className="pb-3">TRẠNG THÁI</th>
-                <th className="pb-3 text-right">HÀNH ĐỘNG</th>
+                <th className="pb-3 text-center">SỐ PHÒNG CHIẾU</th>
+                <th className="pb-3 text-center">SỐ PHÒNG VIP</th>
+                <th className="pb-3 text-center">TRẠNG THÁI</th>
+                <th className="pb-3 text-center">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -140,15 +150,16 @@ const CinemasPage = () => {
                       <div className="admin-cinema-desc">{row.desc}</div>
                     </div>
                   </td>
-                  <td className="admin-table-td-val">{row.screens}</td>
-                  <td className="admin-table-td-val">{row.vip}</td>
-                  <td className="py-4 pr-6">
-                    <span className={row.status === 'Open' ? 'admin-badge-open' : 'admin-badge-closed'}>
+                  <td className="admin-table-td-val text-center">{row.screens}</td>
+                  <td className="admin-table-td-val text-center">{row.vip}</td>
+                  <td className="py-4 text-center">
+                    <span className={`inline-flex ${row.status === 'Open' ? 'admin-badge-open' : 'admin-badge-closed'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${row.status === 'Open' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
                       {row.status === 'Open' ? 'Mở cửa' : 'Đóng cửa'}
                     </span>
                   </td>
-                  <td className="admin-table-actions-td">
-                    <div className="admin-table-actions-group">
+                  <td className="text-center py-4">
+                    <div className="flex items-center justify-center gap-3">
                       <button className="admin-btn-edit" title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
