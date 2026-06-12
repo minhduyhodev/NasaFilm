@@ -14,9 +14,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.booking.dto.request.SyncSeatLockRequest;
+import com.thdpv.movietheater.booking.dto.response.SeatLockSyncResponse;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -124,6 +127,43 @@ public class ShowtimeSeatService {
                 responseRows);
     }
 
+    @Transactional
+    public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
+        UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
+        List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
+
+        assertShowtimeExists(request.getShowtimeUuid());
+        cleanupExpiredLocks(request.getShowtimeUuid(), now);
+        validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
+        validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
+        validateSeatsNotLockedByOther(request.getShowtimeUuid(), requestedSeatUuids, currentUserUuid, now);
+
+        Set<UUID> currentLockedSeatUuids = findCurrentLockedSeatUuids(request.getShowtimeUuid(), currentUserUuid, now);
+        Set<UUID> requestedSeatUuidSet = new LinkedHashSet<>(requestedSeatUuids);
+
+        List<UUID> seatUuidsToRelease = currentLockedSeatUuids.stream()
+                .filter(seatUuid -> !requestedSeatUuidSet.contains(seatUuid))
+                .toList();
+        List<UUID> seatUuidsToKeep = currentLockedSeatUuids.stream()
+                .filter(requestedSeatUuidSet::contains)
+                .toList();
+        List<UUID> seatUuidsToInsert = requestedSeatUuids.stream()
+                .filter(seatUuid -> !currentLockedSeatUuids.contains(seatUuid))
+                .toList();
+
+        releaseSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToRelease);
+        refreshSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToKeep, now, expiresAt);
+        insertSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToInsert, now, expiresAt);
+
+        return new SeatLockSyncResponse(
+                request.getShowtimeUuid(),
+                LOCK_TTL_SECONDS,
+                requestedSeatUuids.isEmpty() ? null : expiresAt,
+                requestedSeatUuids);
+    }
+
     private SeatView mapSeatRow(Object[] row, UUID currentUserUuid, Set<UUID> selectedSet) {
         UUID seatUuid = toUuid(row[4]);
         String rowName = stringValue(row[5]);
@@ -199,11 +239,181 @@ public class ShowtimeSeatService {
         return "AVAILABLE";
     }
 
+    private void assertShowtimeExists(UUID showtimeUuid) {
+        Number count = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        if (count == null || count.longValue() == 0L) {
+            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+    }
+
+    private void cleanupExpiredLocks(UUID showtimeUuid, OffsetDateTime now) {
+        entityManager.createNativeQuery("""
+                delete from seat_locked
+                where showtime_uuid = :showtimeUuid
+                  and expired_at <= :now
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("now", now)
+                .executeUpdate();
+    }
+
+    private void validateRequestedSeatsBelongToShowtime(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        Number count = (Number) entityManager.createNativeQuery("""
+                select count(1)
+                from showtime st
+                join seat s on s.cinema_room_uuid = st.cinema_room_uuid
+                where st.uuid = :showtimeUuid
+                  and s.uuid in (:seatUuids)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("seatUuids", requestedSeatUuids)
+                .getSingleResult();
+        if (count == null || count.longValue() != requestedSeatUuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Co ghe khong thuoc suat chieu nay");
+        }
+    }
+
+    private void validateSeatsNotBooked(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        Number count = (Number) entityManager.createNativeQuery("""
+                select count(1)
+                from booking_seat
+                where showtime_uuid = :showtimeUuid
+                  and seat_uuid in (:seatUuids)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("seatUuids", requestedSeatUuids)
+                .getSingleResult();
+        if (count != null && count.longValue() > 0L) {
+            throw new AppException(ErrorCode.CONFLICT, "Co ghe da duoc dat");
+        }
+    }
+
+    private void validateSeatsNotLockedByOther(UUID showtimeUuid, List<UUID> requestedSeatUuids, UUID currentUserUuid,
+            OffsetDateTime now) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        Number count = (Number) entityManager.createNativeQuery("""
+                select count(1)
+                from seat_locked
+                where showtime_uuid = :showtimeUuid
+                  and seat_uuid in (:seatUuids)
+                  and user_uuid <> :userUuid
+                  and expired_at > :now
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("seatUuids", requestedSeatUuids)
+                .setParameter("userUuid", currentUserUuid)
+                .setParameter("now", now)
+                .getSingleResult();
+        if (count != null && count.longValue() > 0L) {
+            throw new AppException(ErrorCode.CONFLICT, "Co ghe dang duoc nguoi khac giu");
+        }
+    }
+
+    private Set<UUID> findCurrentLockedSeatUuids(UUID showtimeUuid, UUID currentUserUuid, OffsetDateTime now) {
+        @SuppressWarnings("unchecked")
+        List<Object> rows = entityManager.createNativeQuery("""
+                select seat_uuid
+                from seat_locked
+                where showtime_uuid = :showtimeUuid
+                  and user_uuid = :userUuid
+                  and expired_at > :now
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("userUuid", currentUserUuid)
+                .setParameter("now", now)
+                .getResultList();
+
+        Set<UUID> seatUuids = new LinkedHashSet<>();
+        for (Object row : rows) {
+            seatUuids.add(toUuid(row));
+        }
+        return seatUuids;
+    }
+
+    private void releaseSeatLocks(UUID showtimeUuid, UUID currentUserUuid, List<UUID> seatUuidsToRelease) {
+        if (seatUuidsToRelease.isEmpty()) {
+            return;
+        }
+        entityManager.createNativeQuery("""
+                delete from seat_locked
+                where showtime_uuid = :showtimeUuid
+                  and user_uuid = :userUuid
+                  and seat_uuid in (:seatUuids)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("userUuid", currentUserUuid)
+                .setParameter("seatUuids", seatUuidsToRelease)
+                .executeUpdate();
+    }
+
+    private void refreshSeatLocks(UUID showtimeUuid, UUID currentUserUuid, List<UUID> seatUuidsToKeep,
+            OffsetDateTime now, OffsetDateTime expiresAt) {
+        if (seatUuidsToKeep.isEmpty()) {
+            return;
+        }
+        entityManager.createNativeQuery("""
+                update seat_locked
+                set locked_at = :now,
+                    expired_at = :expiresAt
+                where showtime_uuid = :showtimeUuid
+                  and user_uuid = :userUuid
+                  and seat_uuid in (:seatUuids)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("userUuid", currentUserUuid)
+                .setParameter("seatUuids", seatUuidsToKeep)
+                .setParameter("now", now)
+                .setParameter("expiresAt", expiresAt)
+                .executeUpdate();
+    }
+
+    private void insertSeatLocks(UUID showtimeUuid, UUID currentUserUuid, List<UUID> seatUuidsToInsert,
+            OffsetDateTime now, OffsetDateTime expiresAt) {
+        for (UUID seatUuid : seatUuidsToInsert) {
+            try {
+                entityManager.createNativeQuery("""
+                        insert into seat_locked (uuid, showtime_uuid, seat_uuid, user_uuid, locked_at, expired_at)
+                        values (:uuid, :showtimeUuid, :seatUuid, :userUuid, :now, :expiresAt)
+                        """)
+                        .setParameter("uuid", UUID.randomUUID())
+                        .setParameter("showtimeUuid", showtimeUuid)
+                        .setParameter("seatUuid", seatUuid)
+                        .setParameter("userUuid", currentUserUuid)
+                        .setParameter("now", now)
+                        .setParameter("expiresAt", expiresAt)
+                        .executeUpdate();
+            } catch (DataIntegrityViolationException ex) {
+                throw new AppException(ErrorCode.CONFLICT, "Ghe dang duoc nguoi khac giu");
+            }
+        }
+    }
+
     private Set<UUID> normalizeSelectedSeatUuids(Collection<UUID> selectedSeatUuids) {
         if (selectedSeatUuids == null || selectedSeatUuids.isEmpty()) {
             return Set.of();
         }
         return new LinkedHashSet<>(selectedSeatUuids);
+    }
+
+    private List<UUID> normalizeRequestedSeatUuids(Collection<UUID> seatUuids) {
+        if (seatUuids == null || seatUuids.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<UUID> normalized = new LinkedHashSet<>(seatUuids);
+        if (normalized.size() != seatUuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
+        }
+        return new ArrayList<>(normalized);
     }
 
     private UUID resolveCurrentUserUuid(String currentUserEmail) {
@@ -213,6 +423,14 @@ public class ShowtimeSeatService {
         return userRepository.findByEmailIgnoreCase(currentUserEmail)
                 .map(user -> user.getId())
                 .orElse(null);
+    }
+
+    private UUID resolveRequiredCurrentUserUuid(String currentUserEmail) {
+        UUID currentUserUuid = resolveCurrentUserUuid(currentUserEmail);
+        if (currentUserUuid == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        return currentUserUuid;
     }
 
     private UUID toUuid(Object value) {
