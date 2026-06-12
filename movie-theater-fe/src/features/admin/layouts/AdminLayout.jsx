@@ -27,7 +27,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     <aside 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`fixed inset-y-0 left-0 z-50 bg-[#0c1020]/95 border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl ${isHovered ? 'lg:w-[220px]' : 'lg:w-[70px]'} w-72`}
+      className={`fixed inset-y-0 left-0 z-50 bg-[#0c1020]/95 border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 shadow-2xl ${isHovered ? 'lg:w-[240px]' : 'lg:w-[70px]'} w-72`}
     >
       {/* Subtle background texture */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/70 pointer-events-none z-0" />
@@ -46,6 +46,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {[
           { to: '/admin', icon: 'dashboard', label: 'Tổng quan' },
           { to: '/admin/movies', icon: 'movie', label: 'Phim' },
+          { to: '/admin/actors', icon: 'person', label: 'Diễn viên' },
           { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
           { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
           { to: '/admin/users', icon: 'group', label: 'Khách hàng' },
@@ -77,9 +78,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         ))}
       </nav>
 
-      <div className={`relative z-10 mt-auto transition-all duration-300 ${isHovered ? 'p-4' : 'p-4 lg:p-2'}`}>
-        <div className={`bg-white/5 rounded-xl border border-white/10 flex items-center backdrop-blur-md transition-all duration-300 ${isHovered ? 'p-4 gap-3' : 'p-4 gap-3 lg:p-2 lg:gap-0 lg:justify-center'}`}>
-          <div className="w-10 h-10 rounded-full bg-black/40 border border-white/15 flex items-center justify-center overflow-hidden shrink-0">
+      <div className={`relative z-10 mt-auto transition-all duration-300 ${isHovered ? 'p-3' : 'p-3 lg:p-2'}`}>
+        <div className={`bg-white/5 rounded-xl border border-white/10 flex items-center backdrop-blur-md transition-all duration-300 ${isHovered ? 'p-2.5 gap-2.5' : 'p-2.5 gap-2.5 lg:p-2 lg:gap-0 lg:justify-center'}`}>
+          <div className="w-9 h-9 rounded-full bg-black/40 border border-white/15 flex items-center justify-center overflow-hidden shrink-0">
             <img
               alt="Admin Profile"
               className="w-full h-full object-cover"
@@ -88,13 +89,13 @@ const Sidebar = ({ isOpen, onClose }) => {
               onError={() => setAvatarLoadFailed(true)}
             />
           </div>
-          <div className={`transition-all duration-300 ${isHovered ? 'opacity-100 max-w-[100px] ml-2.5' : 'lg:opacity-0 lg:max-w-0 lg:overflow-hidden lg:ml-0'}`}>
-            <p className="font-label-md text-white font-bold truncate leading-tight">{displayName}</p>
-            <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase mt-0.5">Quản trị</p>
+          <div className={`transition-all duration-300 min-w-0 flex-1 text-left ${isHovered ? 'opacity-100 max-w-[120px] ml-2' : 'opacity-100 max-w-[120px] ml-2 lg:opacity-0 lg:max-w-0 lg:overflow-hidden lg:ml-0'}`}>
+            <p className="font-label-md text-white font-bold truncate leading-tight whitespace-nowrap">{displayName}</p>
+            <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase mt-0.5 whitespace-nowrap">Quản trị</p>
           </div>
           <button 
             onClick={handleLogout} 
-            className={`rounded-full border border-white/10 p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/10 transition-colors ${isHovered ? 'ml-auto block' : 'ml-auto block lg:hidden'}`}
+            className={`rounded-full border border-white/10 p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/10 transition-colors shrink-0 cursor-pointer ${isHovered ? 'ml-auto block' : 'ml-auto block lg:hidden'}`}
           >
             <span className="material-symbols-outlined text-base">logout</span>
           </button>

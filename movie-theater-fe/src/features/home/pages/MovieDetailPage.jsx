@@ -149,11 +149,31 @@ const MovieDetailPage = () => {
     const dateText = dateMap[activeDateTab];
     const showtimeText = selectedShowtime.time;
     
+    // Map mock selection to real seeded showtime UUIDs
+    let showtimeUuid = '11111111-1111-1111-1111-111111111111';
+    if (selectedShowtime.cinema === 'IMAX') {
+      if (showtimeText === '19:15' || showtimeText === '19:30') {
+        showtimeUuid = '11111111-1111-1111-1111-111111111111';
+      } else {
+        showtimeUuid = '22222222-2222-2222-2222-222222222222';
+      }
+    } else {
+      if (showtimeText === '18:00') {
+        showtimeUuid = '33333333-3333-3333-3333-333333333333';
+      } else {
+        showtimeUuid = '44444444-4444-4444-4444-444444444444';
+      }
+    }
+
     // Redirect to seat booking with routing state
     navigate('/booking', {
       state: {
+        showtimeUuid,
         theater,
         movie: movie.title,
+        moviePoster: movie.poster,
+        movieRating: movie.rating,
+        movieFormat: movie.format,
         date: dateText,
         showtime: showtimeText
       }

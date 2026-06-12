@@ -4,6 +4,7 @@ import AdminLayout from '../layouts/AdminLayout';
 
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const MoviesPage = lazy(() => import('../pages/MoviesPage'));
+const ActorsPage = lazy(() => import('../pages/ActorsPage'));
 const ShowtimesPage = lazy(() => import('../pages/ShowtimesPage'));
 const CinemasPage = lazy(() => import('../pages/CinemasPage'));
 const UsersPage = lazy(() => import('../pages/UsersPage'));
@@ -21,6 +22,7 @@ export const AdminRoutes = () => {
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="movies" element={<MoviesPage />} />
+          <Route path="actors" element={<ActorsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="users" element={<UsersPage />} />

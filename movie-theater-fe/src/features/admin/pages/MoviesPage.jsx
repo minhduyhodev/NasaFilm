@@ -61,6 +61,23 @@ const MoviesPage = () => {
   const [countriesList, setCountriesList] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
 
+  // Movie Detail Modal States
+  const [selectedDetailMovie, setSelectedDetailMovie] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  const handleViewDetail = async (movieUuid) => {
+    if (!movieUuid) return;
+    try {
+      notificationService.info("Đang tải thông tin chi tiết phim...");
+      const detail = await movieService.getMovieDetail(movieUuid);
+      setSelectedDetailMovie(detail);
+      setIsDetailModalOpen(true);
+    } catch (err) {
+      console.error("Failed to load movie details:", err);
+      notificationService.error("Không thể lấy chi tiết phim");
+    }
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -409,7 +426,10 @@ const MoviesPage = () => {
                     <tr key={row.uuid} className="admin-table-tr group">
                       <td className="admin-table-td-name">
                         <div className="admin-table-name-group">
-                          <div className="admin-table-poster-wrapper border border-[#1A2238] rounded-lg overflow-hidden w-12 h-16 shrink-0 bg-black/40">
+                          <div 
+                            onClick={() => handleViewDetail(row.uuid)}
+                            className="admin-table-poster-wrapper border border-[#1A2238] rounded-lg overflow-hidden w-12 h-16 shrink-0 bg-black/40 cursor-pointer"
+                          >
                             <img 
                               src={posterUrl} 
                               alt={row.title} 
@@ -420,7 +440,12 @@ const MoviesPage = () => {
                             />
                           </div>
                           <div className="text-left">
-                            <div className="text-white font-bold text-base leading-tight group-hover:text-red-500 transition-colors duration-300">{row.title}</div>
+                            <div 
+                              onClick={() => handleViewDetail(row.uuid)}
+                              className="text-white font-bold text-base leading-tight group-hover:text-red-500 transition-colors duration-300 cursor-pointer"
+                            >
+                              {row.title}
+                            </div>
                             <div className="text-xs text-gray-400 mt-1 font-medium max-w-[280px] truncate">{row.description || 'Không có mô tả'}</div>
                           </div>
                         </div>
@@ -642,6 +667,111 @@ const MoviesPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Movie Detail Modal */}
+      {isDetailModalOpen && selectedDetailMovie && (
+        <div className="modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
+          <div className="modal-content max-w-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Backdrop Header */}
+            <div className="absolute top-0 left-0 w-full h-48 z-0">
+              <img 
+                src={selectedDetailMovie.medias?.find(m => m.mediaType === 'BACKDROP')?.mediaUrl || selectedDetailMovie.primaryMediaUrl || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=600'} 
+                alt="Backdrop" 
+                className="w-full h-full object-cover brightness-[0.25]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#121826]" />
+            </div>
+
+            {/* Close button */}
+            <button 
+              className="absolute top-4 right-4 z-20 text-gray-400 hover:text-white p-2 bg-black/40 rounded-full border border-white/10 hover:bg-black/60 transition-colors cursor-pointer"
+              onClick={() => setIsDetailModalOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="relative z-10 pt-24 px-2 space-y-6">
+              <div className="flex flex-col sm:flex-row gap-5 items-start">
+                {/* Poster */}
+                <div className="w-32 h-44 rounded-xl overflow-hidden border-2 border-[#1A2238] shadow-2xl bg-black/40 shrink-0">
+                  <img 
+                    src={selectedDetailMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || selectedDetailMovie.primaryMediaUrl || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120'} 
+                    alt={selectedDetailMovie.title} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+                    }}
+                  />
+                </div>
+
+                {/* Title & Metadata */}
+                <div className="space-y-3 text-left">
+                  <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">{selectedDetailMovie.title}</h2>
+                  <div className="flex flex-wrap gap-2 items-center text-xs text-gray-300">
+                    <span className="text-amber-500 font-bold">⭐ 4.8</span>
+                    <span>•</span>
+                    <span className="font-mono">{selectedDetailMovie.durationMinutes} phút</span>
+                    <span>•</span>
+                    <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-400 font-bold uppercase">
+                      {selectedDetailMovie.status === 'NOW_SHOWING' ? 'Đang chiếu' : selectedDetailMovie.status === 'COMING_SOON' ? 'Sắp chiếu' : 'Bản nháp'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {selectedDetailMovie.genres?.map(g => (
+                      <span key={g} className="px-2.5 py-0.5 rounded-md bg-[#1A2238] border border-white/5 text-[10px] text-gray-300 font-bold">
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2 text-left">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Mô tả chi tiết</h3>
+                <p className="text-gray-300 text-sm leading-relaxed bg-black/20 p-4 rounded-xl border border-[#1A2238] max-h-32 overflow-y-auto custom-scrollbar">
+                  {selectedDetailMovie.description || 'Không có mô tả chi tiết cho bộ phim này.'}
+                </p>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4 text-left bg-[#0B1020]/50 border border-[#1A2238] p-4 rounded-xl">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Ngày khởi chiếu</span>
+                  <span className="text-white text-sm font-semibold">{selectedDetailMovie.releaseDate || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Quốc gia</span>
+                  <span className="text-white text-sm font-semibold">{selectedDetailMovie.countries?.join(', ') || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Action Footer */}
+              <div className="flex justify-end gap-3 pt-2">
+                {selectedDetailMovie.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl && (
+                  <a 
+                    href={selectedDetailMovie.medias.find(m => m.mediaType === 'TRAILER').mediaUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 bg-[#1a2238] hover:bg-white/5 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    Xem Trailer
+                  </a>
+                )}
+                <button 
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    handleEditClick(selectedDetailMovie.uuid);
+                  }}
+                  className="px-4 py-2.5 bg-red-600 hover:bg-[#d12c2c] text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Chỉnh sửa thông tin
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
+import { bookingService } from '../../../shared/services/bookingService';
 
 // Import movie poster assets
 import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
@@ -32,7 +33,12 @@ const movieLookup = {
   'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
   'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
   'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' }
+  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
+  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
+  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
+  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
+  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
+  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
 };
 
 const getMovieInfo = (title) => {
@@ -57,8 +63,12 @@ const CheckoutPage = () => {
 
   // Extract payment details from state, or fallback to mock data
   const {
+    showtimeUuid = '11111111-1111-1111-1111-111111111111',
     theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
     movie = 'GALACTIC VANGUARD: RISING TIDE',
+    moviePoster = '',
+    movieRating = null,
+    movieFormat = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
     selectedSeats = [
@@ -116,14 +126,25 @@ const CheckoutPage = () => {
     }
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setIsPaying(true);
-    setTimeout(() => {
+    try {
+      const seatUuids = selectedSeats.map(s => s.seatUuid);
+      const combos = hasCombo ? [{ comboUuid: '55555555-5555-5555-5555-555555555555', quantity: 1 }] : [];
+      
+      await bookingService.confirmBooking(showtimeUuid, seatUuids, combos);
+      
       notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
+      
       navigate('/profile');
-    }, 1500);
+    } catch (error) {
+      console.error("Payment confirmation failed:", error);
+      notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -147,7 +168,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={movieInfo.poster} />
+                  <img className="w-full h-full object-cover" alt="Movie Poster" src={moviePoster || movieInfo.poster} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -168,7 +189,7 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
-                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieInfo.format}</span>
+                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
                     <span className="bg-red-600/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">{movieInfo.age}</span>
                   </div>
                 </div>
