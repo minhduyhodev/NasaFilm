@@ -18,13 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.movie.dto.request.ActorRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
+import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Movie;
@@ -32,6 +36,7 @@ import com.thdpv.movietheater.movie.entity.MovieActor;
 import com.thdpv.movietheater.movie.entity.MovieCountry;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.repository.ActorRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
@@ -50,6 +55,7 @@ public class MovieService {
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final CountryRepository countryRepository;
+    private final ActorRepository actorRepository;
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
 
@@ -60,6 +66,7 @@ public class MovieService {
                 request.getReleaseDate(), request.getStatus());
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
+        replaceActors(movie, request.getActors());
         replaceMedias(movie, request.getMedias(), operatorEmail);
         return toMovieDetailResponse(movieRepository.save(movie));
     }
@@ -75,6 +82,9 @@ public class MovieService {
         }
         if (request.getCountryUuids() != null) {
             replaceCountries(movie, request.getCountryUuids());
+        }
+        if (request.getActors() != null) {
+            replaceActors(movie, request.getActors());
         }
         if (request.getMedias() != null) {
             replaceMedias(movie, request.getMedias(), operatorEmail);
@@ -162,6 +172,45 @@ public class MovieService {
     @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActorSummaryResponse> getAllActors() {
+        return actorRepository.findAll().stream()
+                .map(this::toActorSummaryResponse)
+                .toList();
+    }
+
+    @Transactional
+    public ActorSummaryResponse createActor(ActorRequest request) {
+        String fullName = trim(request.getFullName());
+        if (actorRepository.existsByFullNameIgnoreCase(fullName)) {
+            throw new AppException(ErrorCode.CONFLICT, "Dien vien da ton tai");
+        }
+
+        Actor actor = new Actor();
+        actor.setFullName(fullName);
+        actor.setAvatarUrl(trimToNull(request.getAvatarUrl()));
+        actor.setCountry(resolveCountry(request.getCountryUuid()));
+        return toActorSummaryResponse(actorRepository.save(actor));
+    }
+
+    @Transactional
+    public ActorSummaryResponse updateActor(UUID actorUuid, ActorRequest request) {
+        Actor actor = actorRepository.findById(actorUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Dien vien khong ton tai"));
+
+        String fullName = trim(request.getFullName());
+        actorRepository.findByFullNameIgnoreCase(fullName)
+                .filter(existing -> !existing.getUuid().equals(actorUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "Dien vien da ton tai");
+                });
+
+        actor.setFullName(fullName);
+        actor.setAvatarUrl(trimToNull(request.getAvatarUrl()));
+        actor.setCountry(resolveCountry(request.getCountryUuid()));
+        return toActorSummaryResponse(actorRepository.save(actor));
     }
 
     @Transactional
@@ -314,6 +363,37 @@ public class MovieService {
         }
     }
 
+    private void replaceActors(Movie movie, List<MovieActorRequest> actorRequests) {
+        movie.getMovieActors().clear();
+        if (actorRequests == null || actorRequests.isEmpty()) {
+            return;
+        }
+
+        validateNoDuplicateUuids(actorRequests.stream()
+                .map(MovieActorRequest::getActorUuid)
+                .toList(), "Actor bi trung");
+
+        List<UUID> actorUuids = actorRequests.stream()
+                .map(MovieActorRequest::getActorUuid)
+                .toList();
+        List<Actor> actors = actorRepository.findAllById(actorUuids);
+        if (actors.size() != actorUuids.size()) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Dien vien khong ton tai");
+        }
+
+        java.util.Map<UUID, Actor> actorMap = actors.stream()
+                .collect(Collectors.toMap(Actor::getUuid, actor -> actor));
+
+        for (MovieActorRequest request : actorRequests) {
+            MovieActor movieActor = new MovieActor();
+            movieActor.setActor(actorMap.get(request.getActorUuid()));
+            movieActor.setCharacterName(trimToNull(request.getCharacterName()));
+            movieActor.setCastOrder(request.getCastOrder() != null ? request.getCastOrder() : 0);
+            movieActor.setIsMain(Boolean.TRUE.equals(request.getIsMain()));
+            movie.addMovieActor(movieActor);
+        }
+    }
+
     private MovieMedia toMovieMediaEntity(MovieMediaRequest request, UUID operatorId) {
         MovieMedia movieMedia = new MovieMedia();
         movieMedia.setMediaUrl(trim(request.getMediaUrl()));
@@ -410,6 +490,21 @@ public class MovieService {
                 movieActor.getIsMain());
     }
 
+    private ActorSummaryResponse toActorSummaryResponse(Actor actor) {
+        UUID countryUuid = null;
+        String countryName = null;
+        if (actor.getCountry() != null) {
+            countryUuid = actor.getCountry().getUuid();
+            countryName = actor.getCountry().getName();
+        }
+        return new ActorSummaryResponse(
+                actor.getUuid(),
+                actor.getFullName(),
+                actor.getAvatarUrl(),
+                countryUuid,
+                countryName);
+    }
+
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
         return new MovieMediaResponse(
                 movieMedia.getUuid(),
@@ -446,6 +541,14 @@ public class MovieService {
         return userRepository.findByEmailIgnoreCase(operatorEmail)
                 .map(User::getId)
                 .orElse(null);
+    }
+
+    private Country resolveCountry(UUID countryUuid) {
+        if (countryUuid == null) {
+            return null;
+        }
+        return countryRepository.findById(countryUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Country khong ton tai"));
     }
 
     private String resolveSortBy(String sortBy) {

@@ -36,6 +36,9 @@ public class CreateMovieRequest {
     private List<UUID> countryUuids;
 
     @Valid
+    private List<MovieActorRequest> actors;
+
+    @Valid
     private List<MovieMediaRequest> medias;
 
     public CreateMovieRequest() {
@@ -107,6 +110,14 @@ public class CreateMovieRequest {
 
     public void setCountryUuids(List<UUID> countryUuids) {
         this.countryUuids = countryUuids;
+    }
+
+    public List<MovieActorRequest> getActors() {
+        return actors;
+    }
+
+    public void setActors(List<MovieActorRequest> actors) {
+        this.actors = actors;
     }
 
     public List<MovieMediaRequest> getMedias() {
