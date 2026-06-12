@@ -38,6 +38,28 @@ class BookingService {
       throw authService.handleError(error);
     }
   }
+
+  async getMyBookings() {
+    try {
+      const response = await authService.api.get('/api/bookings/my-bookings');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getAdminBookings(keyword = '') {
+    try {
+      const params = {};
+      if (keyword) {
+        params.keyword = keyword;
+      }
+      const response = await authService.api.get('/api/bookings/admin', { params });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const bookingService = new BookingService();

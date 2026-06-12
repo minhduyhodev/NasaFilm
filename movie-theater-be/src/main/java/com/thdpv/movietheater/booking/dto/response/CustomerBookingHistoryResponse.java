@@ -1,0 +1,92 @@
+package com.thdpv.movietheater.booking.dto.response;
+
+import java.util.UUID;
+
+public class CustomerBookingHistoryResponse {
+    private String id; // ticket code
+    private String movieTitle;
+    private String cinema;
+    private String showtime;
+    private String seats;
+    private String combo;
+    private String price;
+    private String status;
+
+    public CustomerBookingHistoryResponse() {
+    }
+
+    public CustomerBookingHistoryResponse(String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status) {
+        this.id = id;
+        this.movieTitle = movieTitle;
+        this.cinema = cinema;
+        this.showtime = showtime;
+        this.seats = seats;
+        this.combo = combo;
+        this.price = price;
+        this.status = status;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getMovieTitle() {
+        return movieTitle;
+    }
+
+    public void setMovieTitle(String movieTitle) {
+        this.movieTitle = movieTitle;
+    }
+
+    public String getCinema() {
+        return cinema;
+    }
+
+    public void setCinema(String cinema) {
+        this.cinema = cinema;
+    }
+
+    public String getShowtime() {
+        return showtime;
+    }
+
+    public void setShowtime(String showtime) {
+        this.showtime = showtime;
+    }
+
+    public String getSeats() {
+        return seats;
+    }
+
+    public void setSeats(String seats) {
+        this.seats = seats;
+    }
+
+    public String getCombo() {
+        return combo;
+    }
+
+    public void setCombo(String combo) {
+        this.combo = combo;
+    }
+
+    public String getPrice() {
+        return price;
+    }
+
+    public void setPrice(String price) {
+        this.price = price;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}

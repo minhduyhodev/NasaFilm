@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
+import { bookingService } from "../../../shared/services/bookingService";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
@@ -46,7 +47,26 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setIsLoadingBookings(true);
+      try {
+        const data = await bookingService.getMyBookings();
+        setBookings(data || []);
+      } catch (err) {
+        console.error("Failed to load user bookings:", err);
+      } finally {
+        setIsLoadingBookings(false);
+      }
+    };
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -543,7 +563,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Ticket size={20} />
-                    <span className="rail-badge">1</span>
+                    <span className="rail-badge">{bookings.length}</span>
                   </div>
                   <span className="rail-label">Vé của tôi</span>
                 </button>
@@ -1135,66 +1155,73 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="tickets-list">
-                      {mockBookings.map((tkt) => {
-                        const getMovieGlowClass = (title) => {
-                          if (title.toUpperCase().includes("STELLAR")) return "glow-gold";
-                          if (title.toUpperCase().includes("AETHERIA")) return "glow-purple";
-                          return "glow-cyan";
-                        };
-                        const glowClass = getMovieGlowClass(tkt.movieTitle);
-                        return (
-                          <div
-                            key={tkt.id}
-                            className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
-                          >
-                            <div className="ticket-notch-top" />
-                            <div className="ticket-notch-bottom" />
+                      {bookings.length === 0 ? (
+                        <div className="text-center py-12 text-zinc-500 font-medium w-full">
+                          <Ticket size={48} className="mx-auto mb-4 opacity-30 text-red-500" />
+                          <p>Bạn chưa có lịch sử đặt vé nào.</p>
+                        </div>
+                      ) : (
+                        bookings.map((tkt) => {
+                          const getMovieGlowClass = (title) => {
+                            if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
+                            if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
+                            return "glow-cyan";
+                          };
+                          const glowClass = getMovieGlowClass(tkt.movieTitle);
+                          return (
+                            <div
+                              key={tkt.id}
+                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
+                            >
+                              <div className="ticket-notch-top" />
+                              <div className="ticket-notch-bottom" />
 
-                            <div className="ticket-body-left">
-                              <span className="ticket-format-badge">
-                                {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
-                              </span>
+                              <div className="ticket-body-left">
+                                <span className="ticket-format-badge">
+                                  {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
+                                </span>
 
-                              <h3 className="ticket-movie-title-text">
-                                {tkt.movieTitle}
-                              </h3>
+                                <h3 className="ticket-movie-title-text">
+                                  {tkt.movieTitle}
+                                </h3>
 
-                              <div className="ticket-grid-details">
-                                <div className="ticket-info-unit">
-                                  <span className="label-text">Rạp Chiếu</span>
-                                  <span className="value-text">{tkt.cinema}</span>
-                                </div>
-                                <div className="ticket-info-unit">
-                                  <span className="label-text">Suất Chiếu</span>
-                                  <span className="value-text text-amber-500">{tkt.showtime}</span>
-                                </div>
-                                <div className="ticket-info-unit">
-                                  <span className="label-text">Đồ ăn & Nước</span>
-                                  <span className="value-text">{tkt.combo}</span>
+                                <div className="ticket-grid-details">
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Rạp Chiếu</span>
+                                    <span className="value-text">{tkt.cinema}</span>
+                                  </div>
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Suất Chiếu</span>
+                                    <span className="value-text text-amber-500">{tkt.showtime}</span>
+                                  </div>
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Đồ ăn & Nước</span>
+                                    <span className="value-text">{tkt.combo}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="ticket-divider-line-container">
-                              <div className="dashed-perforation" />
-                            </div>
-
-                            <div className="ticket-body-right">
-                              <div className="stub-seats-info">
-                                <span className="seats-title">Ghế</span>
-                                <div className="seats-numbers">{tkt.seats}</div>
+                              <div className="ticket-divider-line-container">
+                                <div className="dashed-perforation" />
                               </div>
 
-                              <div className="barcode-wrapper-box">
-                                <div className="barcode-lines" />
-                                <span className="ticket-id">{tkt.id}</span>
-                              </div>
+                              <div className="ticket-body-right">
+                                <div className="stub-seats-info">
+                                  <span className="seats-title">Ghế</span>
+                                  <div className="seats-numbers">{tkt.seats}</div>
+                                </div>
 
-                              <span className="stub-price-tag">{tkt.price}</span>
+                                <div className="barcode-wrapper-box">
+                                  <div className="barcode-lines" />
+                                  <span className="ticket-id">{tkt.id}</span>
+                                </div>
+
+                                <span className="stub-price-tag">{tkt.price}</span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   </motion.div>
                 )}

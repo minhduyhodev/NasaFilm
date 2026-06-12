@@ -134,6 +134,12 @@ const CheckoutPage = () => {
       
       await bookingService.confirmBooking(showtimeUuid, seatUuids, combos);
       
+      notificationService.addNotification(
+        "Đặt vé thành công",
+        `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`,
+        "success"
+      );
+      
       notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);

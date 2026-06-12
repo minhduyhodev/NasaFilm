@@ -47,6 +47,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           { to: '/admin', icon: 'dashboard', label: 'Tổng quan' },
           { to: '/admin/movies', icon: 'movie', label: 'Phim' },
           { to: '/admin/actors', icon: 'person', label: 'Diễn viên' },
+          { to: '/admin/bookings', icon: 'confirmation_number', label: 'Đơn hàng' },
           { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
           { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
           { to: '/admin/users', icon: 'group', label: 'Khách hàng' },

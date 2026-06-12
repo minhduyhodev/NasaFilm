@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
+import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
+import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.BookingCombo;
 import com.thdpv.movietheater.booking.entity.BookingSeat;
@@ -247,6 +249,149 @@ public class BookingService {
     private String generateTicketCode() {
         return "TK" + OffsetDateTime.now(ZoneOffset.UTC).toInstant().toEpochMilli()
                 + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerBookingHistoryResponse> getMyBookings(String email) {
+        UUID userUuid = resolveRequiredUserUuid(email);
+        List<Object[]> rows = bookingRepository.loadUserBookings(userUuid);
+        List<CustomerBookingHistoryResponse> responses = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            BigDecimal totalPrice = toBigDecimal(row[1]);
+            String bookingStatus = stringValue(row[2]);
+            OffsetDateTime startTime = bookingRepository.toOffsetDateTime(row[4]);
+            String movieTitle = stringValue(row[5]);
+            String roomName = stringValue(row[6]);
+
+            // Load seats
+            List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
+            List<String> seatNames = new ArrayList<>();
+            for (Object[] seatRow : seatsRows) {
+                seatNames.add(stringValue(seatRow[0]) + seatRow[1]);
+            }
+            String seatsStr = String.join(", ", seatNames);
+
+            // Load combos
+            List<Object[]> comboRows = bookingRepository.loadCombosForBooking(bookingUuid);
+            List<String> comboNames = new ArrayList<>();
+            for (Object[] comboRow : comboRows) {
+                comboNames.add(comboRow[1] + "x " + comboRow[0]);
+            }
+            String combosStr = comboNames.isEmpty() ? "Không kèm bắp nước" : String.join(", ", comboNames);
+
+            // Load ticket code (first code)
+            List<String> ticketCodes = bookingRepository.loadTicketCodesForBooking(bookingUuid);
+            String ticketCode = ticketCodes.isEmpty() ? "" : ticketCodes.get(0);
+
+            // Price format
+            String priceStr = formatPrice(totalPrice);
+
+            // Status: active if movie hasn't started yet, completed if movie has started/finished
+            String status = startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
+            if ("CANCELLED".equalsIgnoreCase(bookingStatus)) {
+                status = "completed";
+            }
+
+            responses.add(new CustomerBookingHistoryResponse(
+                    ticketCode,
+                    movieTitle,
+                    roomName,
+                    startTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy")),
+                    seatsStr,
+                    combosStr,
+                    priceStr,
+                    status
+            ));
+        }
+
+        return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminBookingListResponse> getAdminBookings(String keyword) {
+        List<Object[]> rows = bookingRepository.loadAdminBookings(keyword);
+        List<AdminBookingListResponse> responses = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            String customerName = stringValue(row[1]);
+            String customerEmail = stringValue(row[2]);
+            String movieTitle = stringValue(row[3]);
+            String roomName = stringValue(row[4]);
+            BigDecimal totalPrice = toBigDecimal(row[5]);
+            String status = stringValue(row[6]);
+            OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
+
+            // Load seats
+            List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
+            List<String> seatNames = new ArrayList<>();
+            for (Object[] seatRow : seatsRows) {
+                seatNames.add(stringValue(seatRow[0]) + seatRow[1]);
+            }
+            String seatsStr = String.join(", ", seatNames);
+
+            // Load combos
+            List<Object[]> comboRows = bookingRepository.loadCombosForBooking(bookingUuid);
+            List<String> comboNames = new ArrayList<>();
+            for (Object[] comboRow : comboRows) {
+                comboNames.add(comboRow[1] + "x " + comboRow[0]);
+            }
+            String combosStr = comboNames.isEmpty() ? "" : String.join(", ", comboNames);
+
+            responses.add(new AdminBookingListResponse(
+                    bookingUuid,
+                    customerName,
+                    customerEmail,
+                    movieTitle,
+                    roomName,
+                    seatsStr,
+                    combosStr,
+                    totalPrice,
+                    status,
+                    createdAt
+            ));
+        }
+
+        return responses;
+    }
+
+    private UUID toUuid(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof UUID uuid) {
+            return uuid;
+        }
+        return UUID.fromString(value.toString());
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? null : value.toString();
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        if (value instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        return new BigDecimal(value.toString());
+    }
+
+    private String formatPrice(BigDecimal price) {
+        if (price == null) {
+            return "0đ";
+        }
+        java.text.DecimalFormatSymbols symbols = new java.text.DecimalFormatSymbols(new java.util.Locale("vi", "VN"));
+        symbols.setGroupingSeparator('.');
+        java.text.DecimalFormat formatter = new java.text.DecimalFormat("#,###", symbols);
+        return formatter.format(price) + "đ";
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
