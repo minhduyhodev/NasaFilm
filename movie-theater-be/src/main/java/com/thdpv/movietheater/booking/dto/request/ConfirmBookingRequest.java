@@ -1,0 +1,88 @@
+package com.thdpv.movietheater.booking.dto.request;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public class ConfirmBookingRequest {
+
+    @NotNull(message = "Showtime uuid khong duoc de trong")
+    private UUID showtimeUuid;
+
+    @NotEmpty(message = "Danh sach ghe khong duoc de trong")
+    private List<UUID> seatUuids = new ArrayList<>();
+
+    @Valid
+    private List<ComboItem> combos = new ArrayList<>();
+
+    public ConfirmBookingRequest() {
+    }
+
+    public ConfirmBookingRequest(UUID showtimeUuid, List<UUID> seatUuids, List<ComboItem> combos) {
+        this.showtimeUuid = showtimeUuid;
+        this.seatUuids = seatUuids;
+        this.combos = combos;
+    }
+
+    public UUID getShowtimeUuid() {
+        return showtimeUuid;
+    }
+
+    public void setShowtimeUuid(UUID showtimeUuid) {
+        this.showtimeUuid = showtimeUuid;
+    }
+
+    public List<UUID> getSeatUuids() {
+        return seatUuids;
+    }
+
+    public void setSeatUuids(List<UUID> seatUuids) {
+        this.seatUuids = seatUuids;
+    }
+
+    public List<ComboItem> getCombos() {
+        return combos;
+    }
+
+    public void setCombos(List<ComboItem> combos) {
+        this.combos = combos;
+    }
+
+    public static class ComboItem {
+
+        @NotNull(message = "Combo uuid khong duoc de trong")
+        private UUID comboUuid;
+
+        @Positive(message = "So luong combo phai lon hon 0")
+        private Integer quantity;
+
+        public ComboItem() {
+        }
+
+        public ComboItem(UUID comboUuid, Integer quantity) {
+            this.comboUuid = comboUuid;
+            this.quantity = quantity;
+        }
+
+        public UUID getComboUuid() {
+            return comboUuid;
+        }
+
+        public void setComboUuid(UUID comboUuid) {
+            this.comboUuid = comboUuid;
+        }
+
+        public Integer getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
+        }
+    }
+}

@@ -170,7 +170,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedGenres() {
-        String[] genres = {"Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình", "Phiêu lưu"};
+        String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
+                "Phiêu lưu" };
         for (String name : genres) {
             if (!genreRepository.existsByNameIgnoreCase(name)) {
                 Genre genre = new Genre();
@@ -183,10 +184,10 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedCountries() {
         Object[][] countries = {
-            {"VN", "Việt Nam"},
-            {"US", "Mỹ"},
-            {"JP", "Nhật Bản"},
-            {"CN", "Trung Quốc"}
+                { "VN", "Việt Nam" },
+                { "US", "Mỹ" },
+                { "JP", "Nhật Bản" },
+                { "CN", "Trung Quốc" }
         };
         for (Object[] countryData : countries) {
             String code = (String) countryData[0];
@@ -202,7 +203,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedMovies() {
-        // Tự động chuyển đổi các phim cũ có status "LIVE" thành "NOW_SHOWING" để đồng bộ hóa
+        // Tự động chuyển đổi các phim cũ có status "LIVE" thành "NOW_SHOWING" để đồng
+        // bộ hóa
         List<Movie> existingMovies = movieRepository.findAll();
         for (Movie m : existingMovies) {
             if ("LIVE".equalsIgnoreCase(m.getStatus())) {
@@ -214,79 +216,85 @@ public class DataSeeder implements CommandLineRunner {
 
         // 1. Kẻ Ẩn Danh
         createMovieIfNotExists(
-            "Kẻ Ẩn Danh",
-            "Lâm - một cựu giang hồ ẩn danh muốn sống yên bình bên gia đình, nhưng số phận đẩy anh vào một cuộc chiến sinh tử để cứu con gái.",
-            110,
-            LocalDate.of(2023, 8, 25),
-            "NOW_SHOWING",
-            List.of("Hành động", "Kịch tính"),
-            List.of("VN"),
-            List.of(
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg", "POSTER", "KeAnDanh Poster", true, 1),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4", "TRAILER", "KeAnDanh Trailer", false, 2)
-            )
-        );
+                "Kẻ Ẩn Danh",
+                "Lâm - một cựu giang hồ ẩn danh muốn sống yên bình bên gia đình, nhưng số phận đẩy anh vào một cuộc chiến sinh tử để cứu con gái.",
+                110,
+                LocalDate.of(2023, 8, 25),
+                "NOW_SHOWING",
+                List.of("Hành động", "Kịch tính"),
+                List.of("VN"),
+                List.of(
+                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg",
+                                "POSTER", "KeAnDanh Poster", true, 1),
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
+                                "TRAILER", "KeAnDanh Trailer", false, 2)));
 
         // 2. Mortal Kombat 2
         createMovieIfNotExists(
-            "Mortal Kombat 2",
-            "Cuộc chiến giành số phận Earthrealm tiếp tục diễn ra với những võ sĩ huyền thoại chống lại các thế lực Outworld.",
-            125,
-            LocalDate.of(2025, 10, 24),
-            "NOW_SHOWING",
-            List.of("Hành động", "Viễn tưởng"),
-            List.of("US"),
-            List.of(
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg", "POSTER", "MortalKombat2 Poster", true, 1),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4", "TRAILER", "MortalKombat2 Trailer", false, 2),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/movie/MortalKombat2_FIlm.mp4", "VIDEO", "MortalKombat2 Full Film", false, 3)
-            )
-        );
+                "Mortal Kombat 2",
+                "Cuộc chiến giành số phận Earthrealm tiếp tục diễn ra với những võ sĩ huyền thoại chống lại các thế lực Outworld.",
+                125,
+                LocalDate.of(2025, 10, 24),
+                "NOW_SHOWING",
+                List.of("Hành động", "Viễn tưởng"),
+                List.of("US"),
+                List.of(
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg",
+                                "POSTER", "MortalKombat2 Poster", true, 1),
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
+                                "TRAILER", "MortalKombat2 Trailer", false, 2)));
 
         // 3. Mưa Đỏ
         createMovieIfNotExists(
-            "Mưa Đỏ",
-            "Tác phẩm nghệ thuật đầy bi tráng về tình yêu và lòng quả cảm trong những năm tháng chiến tranh khốc liệt.",
-            95,
-            LocalDate.of(2024, 4, 30),
-            "NOW_SHOWING",
-            List.of("Tình cảm", "Chiến tranh"),
-            List.of("VN"),
-            List.of(
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg", "POSTER", "MuaDo Poster", true, 1),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4", "TRAILER", "MuaDo Trailer", false, 2)
-            )
-        );
+                "Mưa Đỏ",
+                "Tác phẩm nghệ thuật đầy bi tráng về tình yêu và lòng quả cảm trong những năm tháng chiến tranh khốc liệt.",
+                95,
+                LocalDate.of(2024, 4, 30),
+                "NOW_SHOWING",
+                List.of("Tình cảm", "Chiến tranh"),
+                List.of("VN"),
+                List.of(
+                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg",
+                                "POSTER", "MuaDo Poster", true, 1),
+                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
+                                "TRAILER", "MuaDo Trailer", false, 2)));
 
         // 4. Thanh Gươm Diệt Quỷ
         createMovieIfNotExists(
-            "Thanh Gươm Diệt Quỷ",
-            "Tanjirou cùng các trụ cột bước vào cuộc chiến sinh tử chống lại chúa quỷ Muzan trong pháo đài vô tận.",
-            105,
-            LocalDate.of(2024, 2, 23),
-            "NOW_SHOWING",
-            List.of("Hoạt hình", "Hành động"),
-            List.of("JP"),
-            List.of(
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif", "POSTER", "ThanhGuongDietQuy Poster", true, 1),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4", "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)
-            )
-        );
+                "Thanh Gươm Diệt Quỷ",
+                "Tanjirou cùng các trụ cột bước vào cuộc chiến sinh tử chống lại chúa quỷ Muzan trong pháo đài vô tận.",
+                105,
+                LocalDate.of(2024, 2, 23),
+                "NOW_SHOWING",
+                List.of("Hoạt hình", "Hành động"),
+                List.of("JP"),
+                List.of(
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif",
+                                "POSTER", "ThanhGuongDietQuy Poster", true, 1),
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
+                                "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)));
 
         // 5. Truy Tìm Long Diên Hương
         createMovieIfNotExists(
-            "Truy Tìm Long Diên Hương",
-            "Cuộc phiêu lưu mạo hiểm tìm kiếm báu vật vô giá Long Diên Hương dưới đáy biển sâu thẳm.",
-            100,
-            LocalDate.of(2024, 6, 1),
-            "NOW_SHOWING",
-            List.of("Phiêu lưu", "Kịch tính"),
-            List.of("CN"),
-            List.of(
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg", "POSTER", "TruyTimLongDienHuong Poster", true, 1),
-                new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4", "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)
-            )
-        );
+                "Truy Tìm Long Diên Hương",
+                "Cuộc phiêu lưu mạo hiểm tìm kiếm báu vật vô giá Long Diên Hương dưới đáy biển sâu thẳm.",
+                100,
+                LocalDate.of(2024, 6, 1),
+                "NOW_SHOWING",
+                List.of("Phiêu lưu", "Kịch tính"),
+                List.of("CN"),
+                List.of(
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg",
+                                "POSTER", "TruyTimLongDienHuong Poster", true, 1),
+                        new MovieMediaData(
+                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
+                                "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)));
     }
 
     private void createMovieIfNotExists(

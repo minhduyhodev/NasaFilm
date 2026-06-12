@@ -22,9 +22,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.movie.dto.request.ActorRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
@@ -128,5 +130,26 @@ public class MovieController {
     @GetMapping("/countries")
     public ResponseEntity<ApiResponse<List<Country>>> getCountries() {
         return ResponseEntity.ok(ApiResponse.success(movieService.getAllCountries()));
+    }
+
+    @GetMapping("/actors")
+    public ResponseEntity<ApiResponse<List<ActorSummaryResponse>>> getActors() {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getAllActors()));
+    }
+
+    @PostMapping("/admin/actors")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<ActorSummaryResponse>> createActor(@Valid @RequestBody ActorRequest request) {
+        ActorSummaryResponse response = movieService.createActor(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
+    }
+
+    @PutMapping("/admin/actors/{actorUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<ActorSummaryResponse>> updateActor(
+            @PathVariable UUID actorUuid,
+            @Valid @RequestBody ActorRequest request) {
+        ActorSummaryResponse response = movieService.updateActor(actorUuid, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
