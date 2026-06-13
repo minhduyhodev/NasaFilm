@@ -14,7 +14,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,9 @@ public class ShowtimeSeatService {
 
     private static final int LOCK_TTL_SECONDS = 300;
 
+    @Value("${app.showtime.auto-slide-enabled:false}")
+    private boolean autoSlideEnabled;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -46,7 +51,9 @@ public class ShowtimeSeatService {
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
         OffsetDateTime now = OffsetDateTime.now();
-        autoSlideShowtimeIfPast(showtimeUuid, now);
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(showtimeUuid, now);
+        }
         UUID currentUserUuid = resolveCurrentUserUuid(currentUserEmail);
         Set<UUID> selectedSet = normalizeSelectedSeatUuids(selectedSeatUuids);
 
@@ -102,7 +109,9 @@ public class ShowtimeSeatService {
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
-        autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        }
         OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
@@ -177,17 +186,18 @@ public class ShowtimeSeatService {
                     segmentEnd++;
                 }
 
-                for (int i = segmentStart + 1; i < segmentEnd; i++) {
+                for (int i = segmentStart; i <= segmentEnd; i++) {
                     SeatView current = seats.get(i);
                     if (!current.isPlainAvailable()) {
                         continue;
                     }
 
-                    boolean leftUnavailable = seats.get(i - 1).isUnavailableForGapRule();
-                    boolean rightUnavailable = seats.get(i + 1).isUnavailableForGapRule();
+                    boolean leftUnavailable = (i == segmentStart) || seats.get(i - 1).isUnavailableForGapRule();
+                    boolean rightUnavailable = (i == segmentEnd) || seats.get(i + 1).isUnavailableForGapRule();
+
                     if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByMe = seats.get(i - 1).selected() || "LOCKED_BY_ME".equals(seats.get(i - 1).availabilityStatus());
-                        boolean rightSelectedByMe = seats.get(i + 1).selected() || "LOCKED_BY_ME".equals(seats.get(i + 1).availabilityStatus());
+                        boolean leftSelectedByMe = (i != segmentStart) && (seats.get(i - 1).selected() || "LOCKED_BY_ME".equals(seats.get(i - 1).availabilityStatus()));
+                        boolean rightSelectedByMe = (i != segmentEnd) && (seats.get(i + 1).selected() || "LOCKED_BY_ME".equals(seats.get(i + 1).availabilityStatus()));
                         if (leftSelectedByMe || rightSelectedByMe) {
                             seats.set(i, current.withBlocked(true));
                         }
@@ -276,6 +286,18 @@ public class ShowtimeSeatService {
                   and expired_at <= :now
                 """)
                 .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("now", now)
+                .executeUpdate();
+    }
+
+    @Transactional
+    @Scheduled(fixedDelay = 30000)
+    public void cleanupExpiredLocksScheduled() {
+        OffsetDateTime now = OffsetDateTime.now();
+        entityManager.createNativeQuery("""
+                delete from seat_locked
+                where expired_at <= :now
+                """)
                 .setParameter("now", now)
                 .executeUpdate();
     }

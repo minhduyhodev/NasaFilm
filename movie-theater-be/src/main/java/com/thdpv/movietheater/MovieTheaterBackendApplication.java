@@ -7,7 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @SpringBootApplication
+@EnableScheduling
 public class MovieTheaterBackendApplication {
 
 	public static void main(String[] args) {

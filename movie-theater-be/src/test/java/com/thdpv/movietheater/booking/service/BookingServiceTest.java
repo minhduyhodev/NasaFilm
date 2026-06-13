@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.repository.BookingComboRepository;
@@ -69,6 +70,7 @@ class BookingServiceTest {
         mockUser = new User();
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
+        ReflectionTestUtils.setField(bookingService, "autoSlideEnabled", true);
     }
 
     @Test
@@ -141,6 +143,36 @@ class BookingServiceTest {
         SeatGapState s1 = new SeatGapState(seat1, "A", 1, "ACTIVE", false, false);
         SeatGapState s2 = new SeatGapState(seat2, "A", 2, "ACTIVE", false, false);
         SeatGapState s3 = new SeatGapState(seat3, "A", 3, "ACTIVE", true, false);
+
+        when(bookingRepository.loadSeatGapStates(eq(showtimeUuid), any())).thenReturn(List.of(s1, s2, s3));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.confirmBooking("customer@example.com", request);
+        });
+
+        assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+        assertEquals("Khong duoc de trong 1 ghe le bi kep giua", exception.getMessage());
+    }
+
+    @Test
+    void confirmBookingShouldFailIfUserCausedSingleSeatGapAtBoundary() {
+        UUID seat1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of());
+
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+        when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().plusHours(2));
+        when(bookingRepository.existsShowtime(showtimeUuid)).thenReturn(true);
+
+        LockedSeat mockLocked = new LockedSeat(seat2, "A", 2, BigDecimal.valueOf(80000));
+        when(bookingRepository.lockActiveSeatsForConfirm(eq(showtimeUuid), eq(userUuid), any(), any()))
+            .thenReturn(List.of(mockLocked));
+
+        SeatGapState s1 = new SeatGapState(seat1, "A", 1, "ACTIVE", false, false);
+        SeatGapState s2 = new SeatGapState(seat2, "A", 2, "ACTIVE", false, false);
+        SeatGapState s3 = new SeatGapState(seat3, "A", 3, "ACTIVE", false, false);
 
         when(bookingRepository.loadSeatGapStates(eq(showtimeUuid), any())).thenReturn(List.of(s1, s2, s3));
 

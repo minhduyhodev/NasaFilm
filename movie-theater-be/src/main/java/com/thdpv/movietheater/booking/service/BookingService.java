@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,9 @@ public class BookingService {
     private static final String BOOKING_STATUS_CONFIRMED = "CONFIRMED";
     private static final String TICKET_STATUS_ISSUED = "ISSUED";
 
+    @Value("${app.showtime.auto-slide-enabled:false}")
+    private boolean autoSlideEnabled;
+
     private final UserRepository userRepository;
     private final BookingRepository bookingJpaRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -61,7 +65,9 @@ public class BookingService {
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
         Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
 
-        autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
@@ -221,13 +227,19 @@ public class BookingService {
                     segmentEnd++;
                 }
 
-                for (int i = segmentStart + 1; i < segmentEnd; i++) {
+                for (int i = segmentStart; i <= segmentEnd; i++) {
                     GapSeat current = rowSeats.get(i);
-                    if (!current.unavailable()
-                            && rowSeats.get(i - 1).unavailable()
-                            && rowSeats.get(i + 1).unavailable()) {
-                        boolean userCaused = rowSeats.get(i - 1).selectedByUser() || rowSeats.get(i + 1).selectedByUser();
-                        if (userCaused) {
+                    if (current.unavailable()) {
+                        continue;
+                    }
+
+                    boolean leftUnavailable = (i == segmentStart) || rowSeats.get(i - 1).unavailable();
+                    boolean rightUnavailable = (i == segmentEnd) || rowSeats.get(i + 1).unavailable();
+
+                    if (leftUnavailable && rightUnavailable) {
+                        boolean leftSelectedByUser = (i != segmentStart) && rowSeats.get(i - 1).selectedByUser();
+                        boolean rightSelectedByUser = (i != segmentEnd) && rowSeats.get(i + 1).selectedByUser();
+                        if (leftSelectedByUser || rightSelectedByUser) {
                             throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
                         }
                     }

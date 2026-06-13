@@ -64,6 +64,7 @@ class ShowtimeSeatServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(showtimeSeatService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(showtimeSeatService, "autoSlideEnabled", true);
     }
 
     @Test
@@ -132,6 +133,37 @@ class ShowtimeSeatServiceTest {
 
         assertEquals(false, s3.getSelected());
         assertEquals(false, s3.getBlocked());
+    }
+
+    @Test
+    void getSeatMapShouldBlockSeatsAtBoundaries() {
+        UUID seat1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+
+        Query mockQuery = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
+        when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
+        when(mockQuery.getResultList()).thenReturn(Collections.emptyList());
+
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        SeatViewDto row1 = createSeatViewDto(showtimeUuid, seat1, "A", 1, "ACTIVE", false, null);
+        SeatViewDto row2 = createSeatViewDto(showtimeUuid, seat2, "A", 2, "ACTIVE", false, null);
+        SeatViewDto row3 = createSeatViewDto(showtimeUuid, seat3, "A", 3, "ACTIVE", false, null);
+
+        when(showtimeRepository.getShowtimeSeatViews(eq(showtimeUuid), any())).thenReturn(List.of(row1, row2, row3));
+
+        // When user selects middle seat (seat2)
+        ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat2), "customer@example.com");
+
+        ShowtimeSeatMapResponse.SeatItem s1 = response.getRows().get(0).getSeats().get(0);
+        ShowtimeSeatMapResponse.SeatItem s2 = response.getRows().get(0).getSeats().get(1);
+        ShowtimeSeatMapResponse.SeatItem s3 = response.getRows().get(0).getSeats().get(2);
+
+        // seat 1 and seat 3 should be blocked because selecting seat 2 leaves them as single gaps at the boundaries!
+        assertEquals(true, s1.getBlocked());
+        assertEquals(true, s3.getBlocked());
     }
 
     private SeatViewDto createSeatViewDto(UUID showtimeUuid, UUID seatUuid, String rowName, Integer seatNumber,
