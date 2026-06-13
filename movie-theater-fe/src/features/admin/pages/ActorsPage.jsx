@@ -89,6 +89,19 @@ const ActorsPage = () => {
     }
   };
 
+  const handleDeleteActor = async (uuid, fullName) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa diễn viên "${fullName}" không?`)) {
+      try {
+        await movieService.deleteActor(uuid);
+        notificationService.success(`Xóa thành công diễn viên "${fullName}"`);
+        fetchActorsAndCountries();
+      } catch (err) {
+        console.error("Failed to delete actor:", err);
+        notificationService.error(err.message || "Xóa diễn viên thất bại");
+      }
+    }
+  };
+
   const filteredActors = actors.filter(actor =>
     actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (actor.countryName && actor.countryName.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -225,12 +238,20 @@ const ActorsPage = () => {
                       </span>
                     </td>
                     <td className="py-4 text-center">
-                      <button
-                        onClick={() => handleEditClick(actor)}
-                        className="admin-btn-action-edit"
-                      >
-                        Chỉnh sửa
-                      </button>
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => handleEditClick(actor)}
+                          className="admin-btn-action-edit"
+                        >
+                          Chỉnh sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteActor(actor.uuid, actor.fullName)}
+                          className="admin-btn-action-delete"
+                        >
+                          Xóa
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -279,6 +300,21 @@ const ActorsPage = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, avatarUrl: e.target.value }))}
                   className="w-full bg-black/40 border border-[#1A2238] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
                 />
+                {formData.avatarUrl && formData.avatarUrl.trim().startsWith("http") && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Xem trước:</span>
+                    <div className="w-16 h-16 rounded-full overflow-hidden border border-[#1A2238] bg-slate-900 flex items-center justify-center">
+                      <img
+                        src={formData.avatarUrl.trim()}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

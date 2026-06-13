@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Play, Calendar, Star, Search, FileText, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
+import { Film, Play, Calendar, Star, Search, FileText, CheckCircle, AlertCircle, X, Plus, User } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import './MoviesPage.css';
@@ -59,7 +59,14 @@ const MoviesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [genresList, setGenresList] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
+  const [actorsList, setActorsList] = useState([]);
   const [editingMovie, setEditingMovie] = useState(null);
+
+  // Actor Selector Pop-out States
+  const [activeCastIndex, setActiveCastIndex] = useState(null);
+  const [isActorSelectorOpen, setIsActorSelectorOpen] = useState(false);
+  const [actorSearchTerm, setActorSearchTerm] = useState('');
+  const [actorCountryFilter, setActorCountryFilter] = useState('');
 
   // Movie Detail Modal States
   const [selectedDetailMovie, setSelectedDetailMovie] = useState(null);
@@ -88,7 +95,8 @@ const MoviesPage = () => {
     countryUuids: [],
     posterUrl: '',
     backdropUrl: '',
-    trailerUrl: ''
+    trailerUrl: '',
+    actors: []
   });
 
   const fetchMovies = async () => {
@@ -126,12 +134,14 @@ const MoviesPage = () => {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [genresData, countriesData] = await Promise.all([
+        const [genresData, countriesData, actorsData] = await Promise.all([
           movieService.getGenres(),
-          movieService.getCountries()
+          movieService.getCountries(),
+          movieService.getActors()
         ]);
         setGenresList(genresData);
         setCountriesList(countriesData);
+        setActorsList(actorsData || []);
       } catch (err) {
         console.error("Failed to load metadata in admin movies page:", err);
       }
@@ -192,7 +202,13 @@ const MoviesPage = () => {
         countryUuids: matchedCountryUuids,
         posterUrl: posterMedia ? posterMedia.mediaUrl : '',
         backdropUrl: backdropMedia ? backdropMedia.mediaUrl : '',
-        trailerUrl: trailerMedia ? trailerMedia.mediaUrl : ''
+        trailerUrl: trailerMedia ? trailerMedia.mediaUrl : '',
+        actors: movieDetail.actors ? movieDetail.actors.map(act => ({
+          actorUuid: act.uuid,
+          characterName: act.characterName || '',
+          castOrder: act.castOrder || 0,
+          isMain: act.isMain || false
+        })) : []
       });
       setEditingMovie(movieDetail);
       setIsModalOpen(true);
@@ -213,7 +229,8 @@ const MoviesPage = () => {
       countryUuids: [],
       posterUrl: '',
       backdropUrl: '',
-      trailerUrl: ''
+      trailerUrl: '',
+      actors: []
     });
     setEditingMovie(null);
     setIsModalOpen(true);
@@ -239,6 +256,58 @@ const MoviesPage = () => {
     });
   };
 
+  const handleAddActorToCast = () => {
+    setFormData(prev => ({
+      ...prev,
+      actors: [
+        ...prev.actors,
+        {
+          actorUuid: '',
+          characterName: '',
+          castOrder: prev.actors.length,
+          isMain: false
+        }
+      ]
+    }));
+  };
+
+  const handleRemoveActorFromCast = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      actors: prev.actors.filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleCastFieldChange = (index, field, value) => {
+    setFormData(prev => {
+      const updatedActors = prev.actors.map((actor, idx) => {
+        if (idx === index) {
+          return { ...actor, [field]: value };
+        }
+        return actor;
+      });
+      return { ...prev, actors: updatedActors };
+    });
+  };
+
+  const handleOpenActorSelector = (index) => {
+    setActiveCastIndex(index);
+    setActorSearchTerm('');
+    setActorCountryFilter('');
+    setIsActorSelectorOpen(true);
+  };
+
+  const handleSelectActorForCast = (actorUuid) => {
+    handleCastFieldChange(activeCastIndex, 'actorUuid', actorUuid);
+    setIsActorSelectorOpen(false);
+  };
+
+  const filteredActorsForSelector = actorsList.filter(a => {
+    const matchesSearch = a.fullName.toLowerCase().includes(actorSearchTerm.toLowerCase());
+    const matchesCountry = !actorCountryFilter || a.countryUuid === actorCountryFilter;
+    return matchesSearch && matchesCountry;
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
@@ -251,6 +320,21 @@ const MoviesPage = () => {
     }
     if (!formData.releaseDate) {
       notificationService.error("Vui lòng nhập ngày khởi chiếu");
+      return;
+    }
+
+    // Validate all actor fields are selected
+    const hasUnselectedActors = formData.actors.some(a => !a.actorUuid);
+    if (hasUnselectedActors) {
+      notificationService.error("Vui lòng chọn diễn viên cho tất cả các dòng vai diễn");
+      return;
+    }
+
+    // Validate no duplicate actor selections
+    const selectedActorUuids = formData.actors.map(a => a.actorUuid).filter(id => id);
+    const uniqueUuids = new Set(selectedActorUuids);
+    if (selectedActorUuids.length !== uniqueUuids.size) {
+      notificationService.error("Một diễn viên không thể được chọn nhiều lần trong cùng một bộ phim");
       return;
     }
 
@@ -291,7 +375,8 @@ const MoviesPage = () => {
       status: formData.status,
       genreUuids: formData.genreUuids,
       countryUuids: formData.countryUuids,
-      medias: medias
+      medias: medias,
+      actors: formData.actors.filter(a => a.actorUuid)
     };
 
     try {
@@ -658,6 +743,101 @@ const MoviesPage = () => {
                 </div>
               </div>
 
+              <div className="form-group border-t border-white/5 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="form-label mb-0">Dàn diễn viên (Cast)</label>
+                  <button
+                    type="button"
+                    onClick={handleAddActorToCast}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Thêm diễn viên
+                  </button>
+                </div>
+
+                {formData.actors.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">Chưa có diễn viên nào được thêm vào phim này.</p>
+                ) : (
+                  <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                    {formData.actors.map((cast, index) => (
+                      <div key={index} className="flex flex-col md:flex-row items-start md:items-center gap-3 p-3 rounded-xl bg-black/40 border border-[#1A2238]">
+                        <div className="w-full md:flex-1">
+                          <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">Diễn viên</label>
+                          <div
+                            onClick={() => handleOpenActorSelector(index)}
+                            className="w-full bg-[#0F1322] border border-[#1A2238] hover:border-red-500/30 rounded-lg px-3 py-2 text-xs text-white cursor-pointer flex items-center justify-between min-h-[38px] transition-colors"
+                          >
+                            {cast.actorUuid ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center border border-white/5">
+                                  {actorsList.find(a => a.uuid === cast.actorUuid)?.avatarUrl ? (
+                                    <img
+                                      src={actorsList.find(a => a.uuid === cast.actorUuid).avatarUrl}
+                                      alt="actor"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <User className="w-3.5 h-3.5 text-gray-500" />
+                                  )}
+                                </div>
+                                <span className="truncate font-medium">
+                                  {actorsList.find(a => a.uuid === cast.actorUuid)?.fullName || 'Không xác định'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 font-medium">-- Click để chọn diễn viên --</span>
+                            )}
+                            <span className="text-gray-500 text-[10px]">▼</span>
+                          </div>
+                        </div>
+
+                        <div className="w-full md:w-44">
+                          <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">Tên vai diễn</label>
+                          <input
+                            type="text"
+                            placeholder="Ví dụ: Cooper..."
+                            value={cast.characterName}
+                            onChange={(e) => handleCastFieldChange(index, 'characterName', e.target.value)}
+                            className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="w-full md:w-20">
+                          <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">Thứ tự</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            min="0"
+                            value={cast.castOrder}
+                            onChange={(e) => handleCastFieldChange(index, 'castOrder', Number(e.target.value))}
+                            className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 pt-4 md:pt-0 mt-1 md:mt-4">
+                          <input
+                            type="checkbox"
+                            id={`isMain-${index}`}
+                            checked={cast.isMain}
+                            onChange={(e) => handleCastFieldChange(index, 'isMain', e.target.checked)}
+                            className="w-4 h-4 rounded border-[#1A2238] text-red-600 focus:ring-0 focus:ring-offset-0 bg-[#0F1322] cursor-pointer"
+                          />
+                          <label htmlFor={`isMain-${index}`} className="text-xs text-gray-300 font-bold uppercase select-none cursor-pointer">Vai chính</label>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveActorFromCast(index)}
+                          className="p-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition mt-1 md:mt-4 cursor-pointer align-middle self-stretch md:self-auto flex items-center justify-center"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="form-actions">
                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>
                   Hủy
@@ -749,6 +929,38 @@ const MoviesPage = () => {
                 </div>
               </div>
 
+              {/* Cast List */}
+              <div className="space-y-3 text-left">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Dàn diễn viên (Cast)</h3>
+                {selectedDetailMovie.actors && selectedDetailMovie.actors.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                    {selectedDetailMovie.actors.map((actor, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-[#1A2238]">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-white/5 bg-[#121826] shrink-0 flex items-center justify-center">
+                          {actor.avatarUrl ? (
+                            <img src={actor.avatarUrl} alt={actor.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-5 h-5 text-gray-500" />
+                          )}
+                        </div>
+                        <div className="space-y-0.5 leading-tight">
+                          <p className="text-white font-bold text-sm">
+                            {actor.fullName}
+                            {actor.isMain && (
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 text-[8px] text-amber-400 font-bold uppercase">Vai chính</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-400 font-medium">vai {actor.characterName || 'N/A'}</p>
+                          <p className="text-[9px] text-gray-500 font-semibold uppercase">{actor.countryName || 'Không xác định'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 italic bg-black/10 p-3 rounded-xl border border-white/5 text-center">Chưa có thông tin diễn viên cho phim này.</p>
+                )}
+              </div>
+
               {/* Action Footer */}
               <div className="flex justify-end gap-3 pt-2">
                 {selectedDetailMovie.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl && (
@@ -771,6 +983,96 @@ const MoviesPage = () => {
                   Chỉnh sửa thông tin
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actor Selector Pop-out Modal */}
+      {isActorSelectorOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsActorSelectorOpen(false)}></div>
+          <div className="relative w-full max-w-lg bg-[#0F1322] border border-[#1A2238] rounded-2xl overflow-hidden shadow-2xl p-6 text-left flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center mb-5 border-b border-white/5 pb-3">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">Chọn diễn viên</h3>
+              <button 
+                type="button"
+                onClick={() => setIsActorSelectorOpen(false)}
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selector Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+                <input
+                  type="text"
+                  placeholder="Tìm diễn viên..."
+                  value={actorSearchTerm}
+                  onChange={(e) => setActorSearchTerm(e.target.value)}
+                  className="w-full bg-[#0B1020] border border-[#1A2238] rounded-xl pl-10 pr-3 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50"
+                />
+              </div>
+              <div>
+                <select
+                  value={actorCountryFilter}
+                  onChange={(e) => setActorCountryFilter(e.target.value)}
+                  className="w-full bg-[#0B1020] border border-[#1A2238] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 cursor-pointer"
+                >
+                  <option value="">-- Tất cả quốc gia --</option>
+                  {countriesList.map((c) => (
+                    <option key={c.uuid} value={c.uuid}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 min-h-[250px]">
+              {filteredActorsForSelector.length === 0 ? (
+                <p className="text-center text-xs text-gray-500 py-10 italic">Không tìm thấy diễn viên nào phù hợp.</p>
+              ) : (
+                filteredActorsForSelector.map((a) => {
+                  const isAlreadySelected = formData.actors.some(
+                    (cast, idx) => cast.actorUuid === a.uuid && idx !== activeCastIndex
+                  );
+                  return (
+                    <div
+                      key={a.uuid}
+                      onClick={() => !isAlreadySelected && handleSelectActorForCast(a.uuid)}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                        isAlreadySelected
+                          ? 'bg-black/10 border-white/5 opacity-40 cursor-not-allowed'
+                          : 'bg-[#121826]/40 border-white/5 hover:border-red-500/20 hover:bg-[#121826]/70 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-white/5 bg-[#0B1020] shrink-0 flex items-center justify-center">
+                          {a.avatarUrl ? (
+                            <img src={a.avatarUrl} alt={a.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-5 h-5 text-gray-500" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-white font-bold text-xs">{a.fullName}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{a.countryName || 'Không xác định'}</p>
+                        </div>
+                      </div>
+                      {isAlreadySelected ? (
+                        <span className="text-[9px] bg-red-500/10 border border-red-500/25 px-2 py-1 rounded text-red-400 font-bold uppercase">Đã chọn</span>
+                      ) : (
+                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/25 px-2 py-1 rounded text-emerald-400 font-bold uppercase">Chọn</span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

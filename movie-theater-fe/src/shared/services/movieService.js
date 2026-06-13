@@ -136,6 +136,15 @@ class MovieService {
       throw authService.handleError(error);
     }
   }
+
+  async deleteActor(uuid) {
+    try {
+      const response = await authService.api.delete(`/api/admin/actors/${uuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const movieService = new MovieService();

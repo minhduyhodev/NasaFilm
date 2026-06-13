@@ -41,6 +41,7 @@ import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.repository.MovieActorRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -58,6 +59,7 @@ public class MovieService {
     private final ActorRepository actorRepository;
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
+    private final MovieActorRepository movieActorRepository;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
@@ -211,6 +213,18 @@ public class MovieService {
         actor.setAvatarUrl(trimToNull(request.getAvatarUrl()));
         actor.setCountry(resolveCountry(request.getCountryUuid()));
         return toActorSummaryResponse(actorRepository.save(actor));
+    }
+
+    @Transactional
+    public void deleteActor(UUID actorUuid) {
+        Actor actor = actorRepository.findById(actorUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Dien vien khong ton tai"));
+
+        if (movieActorRepository.existsByActor_Uuid(actorUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Dien vien dang tham gia phim, khong the xoa");
+        }
+
+        actorRepository.delete(actor);
     }
 
     @Transactional

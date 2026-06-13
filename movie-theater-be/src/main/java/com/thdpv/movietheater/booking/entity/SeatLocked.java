@@ -9,9 +9,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "seat_locked")
+@Table(
+        name = "seat_locked",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_seatlocked_showtime_seat", columnNames = {"showtime_uuid", "seat_uuid"})
+        })
 public class SeatLocked {
 
     @Id

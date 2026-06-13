@@ -162,6 +162,7 @@ class MovieControllerTest {
                 "DRAFT",
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         mockMvc.perform(post("/api/admin/movies")
@@ -198,6 +199,7 @@ class MovieControllerTest {
                 171,
                 LocalDate.of(2014, 11, 7),
                 "COMING_SOON",
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of());
