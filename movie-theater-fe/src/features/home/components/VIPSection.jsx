@@ -32,16 +32,16 @@ const VIPSection = () => {
         </button>
       </div>
 
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#131722] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.4)]">
+      <div className="relative overflow-hidden rounded-[32px] shadow-[0_25px_50px_rgba(0,0,0,0.5)]">
         <img
           src={memberRatingImg}
           alt="VIP cinema seats"
-          className="h-[320px] w-full rounded-[22px] object-cover md:h-[420px]"
+          className="h-[320px] w-full object-cover md:h-[420px] transition-transform duration-1000 hover:scale-[1.02]"
         />
 
-        <div className="absolute bottom-7 left-7 rounded-2xl border border-white/10 bg-black/55 px-4 py-3 backdrop-blur-xl">
-          <div className="text-2xl font-black text-white">4.9/5</div>
-          <div className="text-xs uppercase tracking-[0.22em] text-white/55">Đánh Giá Thành Viên</div>
+        <div className="absolute bottom-7 left-7 rounded-2xl bg-black/60 px-5 py-3.5 backdrop-blur-xl border border-white/10 text-left">
+          <div className="text-2xl font-black text-white font-heading">4.9/5</div>
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/60 font-bold mt-0.5">Đánh Giá Thành Viên</div>
         </div>
       </div>
     </section>

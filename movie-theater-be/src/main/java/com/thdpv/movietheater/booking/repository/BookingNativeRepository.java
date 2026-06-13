@@ -106,6 +106,22 @@ public class BookingNativeRepository {
         return combos;
     }
 
+    @SuppressWarnings("unchecked")
+    public List<ComboPrice> loadActiveCombos() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+                select uuid, name, price, status
+                from combo
+                where status = 'ACTIVE'
+                """)
+                .getResultList();
+
+        List<ComboPrice> combos = new ArrayList<>();
+        for (Object[] row : rows) {
+            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+        }
+        return combos;
+    }
+
     public List<SeatGapState> loadSeatGapStates(UUID showtimeUuid, OffsetDateTime now) {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery("""
@@ -223,8 +239,95 @@ public class BookingNativeRepository {
         return new BigDecimal(value.toString());
     }
 
-    @SuppressWarnings("unused")
-    private OffsetDateTime toOffsetDateTime(Object value) {
+    @SuppressWarnings("unchecked")
+    public List<Object[]> loadUserBookings(UUID userUuid) {
+        return entityManager.createNativeQuery("""
+                select
+                    b.uuid,
+                    b.total_price,
+                    b.status,
+                    b.created_at,
+                    st.start_time,
+                    m.title,
+                    cr.name
+                from booking b
+                join showtime st on st.uuid = b.showtime_uuid
+                join movie m on m.uuid = st.movie_uuid
+                join cinema_room cr on cr.uuid = st.cinema_room_uuid
+                where b.user_uuid = :userUuid
+                order by b.created_at desc
+                """)
+                .setParameter("userUuid", userUuid)
+                .getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> loadAdminBookings(String keyword) {
+        String queryStr = """
+                select
+                    b.uuid,
+                    u.full_name,
+                    u.email,
+                    m.title,
+                    cr.name,
+                    b.total_price,
+                    b.status,
+                    b.created_at
+                from booking b
+                join users u on u.id = b.user_uuid
+                join showtime st on st.uuid = b.showtime_uuid
+                join movie m on m.uuid = st.movie_uuid
+                join cinema_room cr on cr.uuid = st.cinema_room_uuid
+                """;
+        if (keyword != null && !keyword.isBlank()) {
+            queryStr += " where upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword ";
+        }
+        queryStr += " order by b.created_at desc ";
+
+        var nativeQuery = entityManager.createNativeQuery(queryStr);
+        if (keyword != null && !keyword.isBlank()) {
+            nativeQuery.setParameter("keyword", "%" + keyword.toUpperCase() + "%");
+        }
+        return nativeQuery.getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> loadSeatsForBooking(UUID bookingUuid) {
+        return entityManager.createNativeQuery("""
+                select s.row_name, s.seat_number
+                from booking_seat bs
+                join seat s on s.uuid = bs.seat_uuid
+                where bs.booking_uuid = :bookingUuid
+                order by s.row_name asc, s.seat_number asc
+                """)
+                .setParameter("bookingUuid", bookingUuid)
+                .getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> loadCombosForBooking(UUID bookingUuid) {
+        return entityManager.createNativeQuery("""
+                select c.name, bc.quantity
+                from booking_combo bc
+                join combo c on c.uuid = bc.combo_uuid
+                where bc.booking_uuid = :bookingUuid
+                """)
+                .setParameter("bookingUuid", bookingUuid)
+                .getResultList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> loadTicketCodesForBooking(UUID bookingUuid) {
+        return entityManager.createNativeQuery("""
+                select ticket_code
+                from ticket
+                where booking_uuid = :bookingUuid
+                """)
+                .setParameter("bookingUuid", bookingUuid)
+                .getResultList();
+    }
+
+    public OffsetDateTime toOffsetDateTime(Object value) {
         if (value == null) {
             return null;
         }

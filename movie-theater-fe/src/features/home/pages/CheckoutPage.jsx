@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
+import { bookingService } from '../../../shared/services/bookingService';
+import { authService } from '../../auth/api/authService';
+import { comboService } from '../../../shared/services/comboService';
 
 // Import movie poster assets
 import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
@@ -32,7 +35,12 @@ const movieLookup = {
   'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
   'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
   'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' }
+  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
+  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
+  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
+  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
+  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
+  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
 };
 
 const getMovieInfo = (title) => {
@@ -57,8 +65,12 @@ const CheckoutPage = () => {
 
   // Extract payment details from state, or fallback to mock data
   const {
+    showtimeUuid = '11111111-1111-1111-1111-111111111111',
     theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
     movie = 'GALACTIC VANGUARD: RISING TIDE',
+    moviePoster = '',
+    movieRating = null,
+    movieFormat = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
     selectedSeats = [
@@ -76,13 +88,63 @@ const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
+  const [userScore, setUserScore] = useState(0);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [combosList, setCombosList] = useState([]);
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    const fetchProfile = async () => {
+      try {
+        const data = await authService.getProfile();
+        if (data) {
+          setUserScore(data.score || 0);
+        }
+      } catch (err) {
+        console.error("Failed to load user profile in CheckoutPage:", err);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    const fetchCombos = async () => {
+      try {
+        const data = await comboService.getActiveCombos();
+        setCombosList(data || []);
+      } catch (err) {
+        console.error("Failed to load combos in CheckoutPage:", err);
+      }
+    };
+    const fetchVouchers = async () => {
+      try {
+        const response = await authService.api.get('/api/promotions/my-vouchers');
+        const data = response.data.data ?? response.data;
+        if (Array.isArray(data)) {
+          setMyVouchers(data.filter(v => v.remainingUsage > 0));
+        }
+      } catch (err) {
+        console.error("Failed to load user vouchers in CheckoutPage:", err);
+      } finally {
+        setLoadingVouchers(false);
+      }
+    };
+    fetchProfile();
+    fetchCombos();
+    fetchVouchers();
   }, []);
 
   const bookingFee = 15000; // 15,000 đ internet fee
-  const comboPrice = 90000; // 90,000 đ combo price
+  const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
+    uuid: "55555555-5555-5555-5555-555555555555",
+    name: "Combo Bắp Nước",
+    price: 90000
+  };
+  const comboOriginalPrice = activeCombo.price;
+  const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
+  const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const comboDiscountAmount = hasCombo ? Math.round(comboOriginalPrice * memberDiscountRate) : 0;
+  const comboPrice = comboOriginalPrice - comboDiscountAmount;
   
   const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
   const subtotal = ticketSum + bookingFee + (hasCombo ? comboPrice : 0);
@@ -98,32 +160,76 @@ const CheckoutPage = () => {
     return acc;
   }, {});
 
-  const handleApplyVoucher = () => {
-    const code = voucherInput.trim().toUpperCase();
-    if (code === 'THDPV50') {
-      setDiscount(Math.floor(ticketSum * 0.5));
-      setVoucherError('');
-      notificationService.success('Áp dụng mã giảm giá 50% tiền vé thành công!');
-    } else if (code === 'CINELUXE') {
-      setDiscount(30000);
-      setVoucherError('');
-      notificationService.success('Áp dụng mã giảm giá 30.000 đ thành công!');
-    } else if (code === '') {
-      setVoucherError('Vui lòng nhập mã giảm giá.');
-    } else {
-      setVoucherError('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
-      notificationService.error('Mã giảm giá không hợp lệ.');
+  const applyVoucherByCode = async (code, showNotification = true) => {
+    try {
+      const response = await authService.api.get(`/api/promotions/validate?code=${encodeURIComponent(code)}`);
+      const promo = response.data.data ?? response.data;
+
+      if (promo.valid) {
+        let calculatedDiscount = 0;
+        if (promo.discountType === 'PERCENTAGE') {
+          calculatedDiscount = Math.round(ticketSum * promo.discountValue);
+        } else if (promo.discountType === 'FIXED_AMOUNT') {
+          calculatedDiscount = Math.round(promo.discountValue);
+        }
+
+        setDiscount(calculatedDiscount);
+        setVoucherError('');
+        if (showNotification) {
+          notificationService.success(`Áp dụng mã giảm giá thành công: ${promo.description}`);
+        }
+      } else {
+        setDiscount(0);
+        setVoucherError(promo.errorMessage || 'Mã giảm giá không hợp lệ.');
+        notificationService.error(promo.errorMessage || 'Mã giảm giá không hợp lệ.');
+      }
+    } catch (error) {
+      setDiscount(0);
+      const errorMsg = error.message || 'Lỗi hệ thống khi xác thực mã giảm giá.';
+      setVoucherError(errorMsg);
+      notificationService.error(errorMsg);
     }
   };
 
-  const handlePay = () => {
+  const handleApplyVoucher = async () => {
+    const code = voucherInput.trim();
+    if (code === '') {
+      setVoucherError('Vui lòng nhập mã giảm giá.');
+      return;
+    }
+    await applyVoucherByCode(code, true);
+  };
+
+  const handleSelectVoucher = (code) => {
+    setVoucherInput(code);
+    applyVoucherByCode(code, false);
+  };
+
+  const handlePay = async () => {
     setIsPaying(true);
-    setTimeout(() => {
+    try {
+      const seatUuids = selectedSeats.map(s => s.seatUuid);
+      const combos = hasCombo ? [{ comboUuid: activeCombo.uuid, quantity: 1 }] : [];
+      
+      await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      
+      notificationService.addNotification(
+        "Đặt vé thành công",
+        `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`,
+        "success"
+      );
+      
       notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
+      
       navigate('/profile');
-    }, 1500);
+    } catch (error) {
+      console.error("Payment confirmation failed:", error);
+      notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -147,7 +253,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={movieInfo.poster} />
+                  <img className="w-full h-full object-cover" alt="Movie Poster" src={moviePoster || movieInfo.poster} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -168,7 +274,7 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
-                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieInfo.format}</span>
+                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
                     <span className="bg-red-600/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">{movieInfo.age}</span>
                   </div>
                 </div>
@@ -203,13 +309,27 @@ const CheckoutPage = () => {
                         className="rounded border-white/20 bg-transparent text-red-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer"
                       />
                       <div>
-                        <span className="text-xs font-bold text-white block">Thêm Combo Bắp Nước</span>
-                        <span className="text-[10px] font-semibold text-gray-400">1 Bắp lớn + 2 Nước ngọt cỡ vừa</span>
+                        <span className="text-xs font-bold text-white block">Thêm {activeCombo.name}</span>
+                        <span className="text-[10px] font-semibold text-gray-400">
+                          1 Bắp lớn + 2 Nước ngọt cỡ vừa (Thành viên: {memberTier} -{memberDiscountRate * 100}%)
+                        </span>
                       </div>
                     </div>
-                    <span className="text-xs font-extrabold text-yellow-400">{(comboPrice).toLocaleString('vi-VN')} đ</span>
+                    <div className="text-right">
+                      {hasCombo && (
+                        <span className="text-[10px] line-through text-gray-500 block">{(comboOriginalPrice).toLocaleString('vi-VN')} đ</span>
+                      )}
+                      <span className="text-xs font-extrabold text-yellow-400">{(comboPrice).toLocaleString('vi-VN')} đ</span>
+                    </div>
                   </label>
                 </div>
+
+                {hasCombo && (
+                  <div className="flex justify-between items-center text-[#c8c5ca]">
+                    <span className="text-xs font-semibold">Ưu đãi thành viên ({memberTier})</span>
+                    <span className="text-xs font-bold text-green-500">-{comboDiscountAmount.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
 
                 {/* Voucher discount */}
                 {discount > 0 && (
@@ -312,7 +432,7 @@ const CheckoutPage = () => {
                     placeholder="Nhập mã KM (Ví dụ: THDPV50, CINELUXE)"
                     value={voucherInput}
                     onChange={(e) => setVoucherInput(e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:outline-none focus:border-red-500/50 text-xs text-white transition-colors uppercase tracking-wider"
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:outline-none focus:border-red-500/50 text-xs text-white transition-colors uppercase tracking-wider font-bold"
                   />
                   <button 
                     onClick={handleApplyVoucher}
@@ -325,6 +445,54 @@ const CheckoutPage = () => {
                   <p className="text-[10px] text-red-500 font-semibold mt-2 ml-1 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">info</span> {voucherError}
                   </p>
+                )}
+
+                {/* Selectable vouchers list */}
+                {myVouchers.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-wider">Voucher của bạn:</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                      {myVouchers.map((v) => {
+                        const isSelected = voucherInput.trim().toUpperCase() === v.code.toUpperCase() && discount > 0;
+                        return (
+                          <div 
+                            key={v.id}
+                            onClick={() => handleSelectVoucher(v.code)}
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                              isSelected 
+                                ? 'border-red-500/50 bg-red-500/10' 
+                                : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'
+                            }`}
+                          >
+                            <div className="pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-red-400">{v.code}</span>
+                                {v.oncePerUser && (
+                                  <span className="bg-red-500/10 text-red-400 text-[8px] font-bold px-1 py-0.5 rounded uppercase border border-red-500/20">1 lần/user</span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-400 block mt-0.5">{v.description}</span>
+                              {v.endDate && (
+                                <span className="text-[8px] text-gray-500 block mt-0.5">
+                                  Hạn dùng: {new Date(v.endDate).toLocaleDateString('vi-VN')}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-red-600 text-white shadow-md shadow-red-600/25' 
+                                  : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
+                              }`}
+                            >
+                              {isSelected ? 'Đang áp dụng' : 'Chọn'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -113,15 +113,266 @@ public class DataSeeder implements CommandLineRunner {
         seedCountries();
         seedMovies();
         seedCinemasAndRooms();
+        seedBookingData();
     }
 
     private void createDummyTables() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS showtime (uuid UUID PRIMARY KEY, movie_uuid UUID)");
+            // Drop showtime if it does not have the required columns
+            jdbcTemplate.execute("DROP TABLE IF EXISTS showtime CASCADE");
+            jdbcTemplate.execute("""
+                        CREATE TABLE showtime (
+                            uuid UUID PRIMARY KEY,
+                            movie_uuid UUID NOT NULL,
+                            cinema_room_uuid UUID NOT NULL,
+                            start_time TIMESTAMPTZ NOT NULL,
+                            end_time TIMESTAMPTZ NOT NULL
+                        )
+                    """);
+
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS booking (uuid UUID PRIMARY KEY, showtime_uuid UUID)");
-            logger.info("Created dummy tables 'showtime' and 'booking' successfully.");
+
+            // Drop old tables to avoid conflicts when switching branches
+            jdbcTemplate.execute("DROP TABLE IF EXISTS seat CASCADE");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS seat_type CASCADE");
+            jdbcTemplate.execute("DROP TABLE IF EXISTS cinema_room CASCADE");
+
+            jdbcTemplate.execute("""
+                        CREATE TABLE cinema_room (
+                            uuid UUID PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL
+                        )
+                    """);
+
+            jdbcTemplate.execute("""
+                        CREATE TABLE seat_type (
+                            uuid UUID PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            base_price NUMERIC(10, 2) NOT NULL,
+                            price_modifier NUMERIC(10, 2) DEFAULT 1.00
+                        )
+                    """);
+
+            jdbcTemplate.execute("""
+                        CREATE TABLE seat (
+                            uuid UUID PRIMARY KEY,
+                            cinema_room_uuid UUID NOT NULL,
+                            row_name VARCHAR(5) NOT NULL,
+                            seat_number INTEGER NOT NULL,
+                            status VARCHAR(50) DEFAULT 'ACTIVE',
+                            seat_type_uuid UUID NOT NULL
+                        )
+                    """);
+
+            jdbcTemplate.execute("DROP TABLE IF EXISTS seat_locked CASCADE");
+            jdbcTemplate.execute("""
+                        CREATE TABLE seat_locked (
+                            uuid UUID,
+                            showtime_uuid UUID NOT NULL,
+                            seat_uuid UUID NOT NULL,
+                            user_uuid UUID NOT NULL,
+                            locked_at TIMESTAMPTZ,
+                            expired_at TIMESTAMPTZ NOT NULL,
+                            PRIMARY KEY (showtime_uuid, seat_uuid)
+                        )
+                    """);
+
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS combo (
+                            uuid UUID PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            price NUMERIC(10, 2) NOT NULL,
+                            status VARCHAR(50) DEFAULT 'ACTIVE'
+                        )
+                    """);
+
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS score_history (
+                            uuid UUID PRIMARY KEY,
+                            user_uuid UUID NOT NULL,
+                            score_amount INTEGER NOT NULL,
+                            type VARCHAR(50) NOT NULL,
+                            description VARCHAR(255),
+                            created_at TIMESTAMPTZ NOT NULL
+                        )
+                    """);
+
+            jdbcTemplate.execute("DROP TABLE IF EXISTS promotions CASCADE");
+            jdbcTemplate.execute("""
+                        CREATE TABLE promotions (
+                            uuid UUID PRIMARY KEY,
+                            code VARCHAR(255) NOT NULL UNIQUE,
+                            discount_value NUMERIC(15, 2) NOT NULL,
+                            discount_type VARCHAR(50) NOT NULL,
+                            max_usage INTEGER,
+                            used_count INTEGER DEFAULT 0,
+                            once_per_user BOOLEAN DEFAULT FALSE,
+                            start_date TIMESTAMPTZ,
+                            end_date TIMESTAMPTZ,
+                            status VARCHAR(50) DEFAULT 'ACTIVE',
+                            created_at TIMESTAMPTZ,
+                            updated_at TIMESTAMPTZ,
+                            created_by UUID,
+                            updated_by UUID
+                        )
+                    """);
+
+            logger.info("Created booking database tables successfully.");
         } catch (Exception e) {
-            logger.error("Failed to create dummy tables 'showtime' and 'booking'", e);
+            logger.error("Failed to create booking database tables", e);
+        }
+    }
+
+    private void seedBookingData() {
+        try {
+            java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+            // Clean old data to avoid duplicate key issues on restart
+            jdbcTemplate.execute("TRUNCATE TABLE seat_locked CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE seat CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE seat_type CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE cinema_room CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE showtime CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE combo CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE promotions CASCADE");
+
+            logger.info("Truncated existing seat, showtime, combo, and promotion data for seeding.");
+
+            // 1. Seed Cinema Rooms
+            java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
+            java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
+            jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room1Uuid, "Phòng chiếu IMAX");
+            jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room2Uuid, "Phòng chiếu VIP");
+
+            // 2. Seed Seat Types
+            java.util.UUID stdType = java.util.UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+            java.util.UUID vipType = java.util.UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+            java.util.UUID cplType = java.util.UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+            jdbcTemplate.update("INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
+                    stdType, "STANDARD", java.math.BigDecimal.valueOf(85000), java.math.BigDecimal.valueOf(1.0));
+            jdbcTemplate.update("INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
+                    vipType, "VIP", java.math.BigDecimal.valueOf(120000), java.math.BigDecimal.valueOf(1.0));
+            jdbcTemplate.update("INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
+                    cplType, "COUPLE", java.math.BigDecimal.valueOf(160000), java.math.BigDecimal.valueOf(1.0));
+
+            // 3. Seed Seats for Room 1 and Room 2
+            String[] rows = { "A", "B", "C", "D", "E", "F", "G", "H" };
+            for (String rowName : rows) {
+                java.util.UUID seatTypeUuid;
+                if ("G".equals(rowName) || "H".equals(rowName)) {
+                    seatTypeUuid = cplType;
+                } else if ("E".equals(rowName) || "F".equals(rowName)) {
+                    seatTypeUuid = vipType;
+                } else {
+                    seatTypeUuid = stdType;
+                }
+
+                int maxSeats = ("G".equals(rowName) || "H".equals(rowName)) ? 6 : 12;
+                for (int num = 1; num <= maxSeats; num++) {
+                    jdbcTemplate.update(
+                            "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid) VALUES (?, ?, ?, ?, ?, ?)",
+                            java.util.UUID.randomUUID(), room1Uuid, rowName, num, "ACTIVE", seatTypeUuid);
+                    jdbcTemplate.update(
+                            "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid) VALUES (?, ?, ?, ?, ?, ?)",
+                            java.util.UUID.randomUUID(), room2Uuid, rowName, num, "ACTIVE", seatTypeUuid);
+                }
+            }
+
+            // 4. Seed Combos
+            jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
+                    java.util.UUID.fromString("55555555-5555-5555-5555-555555555555"), "Combo Bắp Nước",
+                    java.math.BigDecimal.valueOf(90000), "ACTIVE");
+
+            // 5. Seed Showtimes for movies
+            List<Movie> dbMovies = movieRepository.findAll();
+            if (!dbMovies.isEmpty()) {
+                java.util.UUID movie1 = dbMovies.get(0).getUuid();
+                java.util.UUID movie2 = dbMovies.size() > 1 ? dbMovies.get(1).getUuid() : movie1;
+                java.util.UUID movie3 = dbMovies.size() > 2 ? dbMovies.get(2).getUuid() : movie1;
+                java.util.UUID movie4 = dbMovies.size() > 3 ? dbMovies.get(3).getUuid() : movie1;
+
+                jdbcTemplate.update(
+                        "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                        java.util.UUID.fromString("11111111-1111-1111-1111-111111111111"), movie1, room1Uuid,
+                        now.withHour(19).withMinute(30).withSecond(0).withNano(0),
+                        now.withHour(21).withMinute(30).withSecond(0).withNano(0));
+
+                jdbcTemplate.update(
+                        "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                        java.util.UUID.fromString("22222222-2222-2222-2222-222222222222"), movie2, room1Uuid,
+                        now.withHour(21).withMinute(0).withSecond(0).withNano(0),
+                        now.withHour(23).withMinute(0).withSecond(0).withNano(0));
+
+                jdbcTemplate.update(
+                        "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                        java.util.UUID.fromString("33333333-3333-3333-3333-333333333333"), movie3, room2Uuid,
+                        now.withHour(18).withMinute(0).withSecond(0).withNano(0),
+                        now.withHour(20).withMinute(0).withSecond(0).withNano(0));
+
+                jdbcTemplate.update(
+                        "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                        java.util.UUID.fromString("44444444-4444-4444-4444-444444444444"), movie4, room2Uuid,
+                        now.withHour(20).withMinute(45).withSecond(0).withNano(0),
+                        now.withHour(22).withMinute(45).withSecond(0).withNano(0));
+            }
+
+            // 6. Seed Vouchers
+            jdbcTemplate.update(
+                    """
+                                INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    java.util.UUID.fromString("11111111-1111-1111-1111-aaaaaaaaaaaa"),
+                    "THDPV50",
+                    java.math.BigDecimal.valueOf(0.50),
+                    "PERCENTAGE",
+                    100,
+                    0,
+                    false,
+                    now.minusDays(1),
+                    now.plusDays(30),
+                    "ACTIVE",
+                    now,
+                    now);
+
+            jdbcTemplate.update(
+                    """
+                                INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    java.util.UUID.fromString("22222222-2222-2222-2222-bbbbbbbbbbbb"),
+                    "CINELUXE",
+                    java.math.BigDecimal.valueOf(30000.00),
+                    "FIXED_AMOUNT",
+                    200,
+                    0,
+                    false,
+                    now.minusDays(1),
+                    now.plusDays(30),
+                    "ACTIVE",
+                    now,
+                    now);
+
+            jdbcTemplate.update(
+                    """
+                                INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    java.util.UUID.fromString("33333333-3333-3333-3333-cccccccccccc"),
+                    "NASAFIRST",
+                    java.math.BigDecimal.valueOf(50000.00),
+                    "FIXED_AMOUNT",
+                    500,
+                    0,
+                    true,
+                    now.minusDays(1),
+                    now.plusDays(30),
+                    "ACTIVE",
+                    now,
+                    now);
+
+            logger.info("Successfully seeded cinema rooms, seats, showtimes, combos, and promotions.");
+        } catch (Exception e) {
+            logger.error("Failed to seed booking database data", e);
         }
     }
 

@@ -108,6 +108,34 @@ class MovieService {
       throw authService.handleError(error);
     }
   }
+
+  // Actor APIs
+  async getActors() {
+    try {
+      const response = await authService.api.get('/api/actors');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createActor(data) {
+    try {
+      const response = await authService.api.post('/api/admin/actors', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateActor(uuid, data) {
+    try {
+      const response = await authService.api.put(`/api/admin/actors/${uuid}`, data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const movieService = new MovieService();

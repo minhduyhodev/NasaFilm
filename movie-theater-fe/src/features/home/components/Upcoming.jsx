@@ -43,67 +43,97 @@ const Upcoming = () => {
     return () => window.clearInterval(timerId);
   }, [targetDate]);
 
-  const format = (milliseconds) => {
-    if (milliseconds <= 0) return '00:00:00';
+  const formatCountdown = (milliseconds) => {
+    if (milliseconds <= 0) return 'Đang chiếu';
 
     const totalSeconds = Math.floor(milliseconds / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
 
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    if (days > 0) {
+      return `${String(days).padStart(2, '0')} ngày ${String(hours).padStart(2, '0')} giờ`;
+    }
+    return `${String(hours).padStart(2, '0')} giờ ${String(minutes).padStart(2, '0')} phút`;
   };
 
+  const displayPoster = (upcomingMovie && upcomingMovie.primaryMediaUrl) ? upcomingMovie.primaryMediaUrl : xebayImg;
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+    <section className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] items-start text-left">
+      {/* Left Column: Asymmetrical Editorial Upcoming Showcase */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 25 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.25 }}
-        className="overflow-hidden rounded-[28px] border border-white/10 bg-[#121521] shadow-[0_24px_70px_rgba(0,0,0,0.45)]"
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.7 }}
+        className="relative group flex flex-col md:flex-row gap-8 items-center md:items-stretch"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-white/5 px-5 py-4 md:px-6">
+        {/* Asymmetrical Big Poster Frame with Gradient Mask */}
+        <div className="w-full md:w-3/5 aspect-[16/10] md:aspect-[3/4] overflow-hidden rounded-[32px] shadow-[0_25px_60px_rgba(0,0,0,0.5)] relative">
+          <img
+            src={displayPoster}
+            alt="Upcoming movie"
+            className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
+          />
+          {/* Subtle vignette gradient mask */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+        </div>
+
+        {/* Content details offset to the right */}
+        <div className="w-full md:w-2/5 flex flex-col justify-center space-y-6 md:py-4">
           <div>
-            <div className="text-xs font-bold uppercase tracking-[0.3em] text-red-300/90">Phim Sắp Chiếu</div>
-            <h3 className="mt-2 text-2xl font-black text-white md:text-4xl">
+            <span className="text-xs font-black uppercase tracking-[0.3em] text-red-500">Phim Sắp Chiếu</span>
+            <h3 className="mt-2 text-3xl md:text-4xl font-black text-white uppercase tracking-tight leading-tight font-heading">
               {upcomingMovie ? upcomingMovie.title : 'Đường Đua Nghẹt Thở'}
             </h3>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
-            <div className="text-[11px] uppercase tracking-[0.25em] text-white/55">Công chiếu sau</div>
-            <div className="mt-1 font-mono text-xl font-black text-white md:text-2xl">{format(diff)}</div>
+          {/* Large Editorial Countdown */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500 block">Công chiếu sau</span>
+            <span className="text-3xl md:text-4.5xl font-black text-white bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent font-heading">
+              {formatCountdown(diff)}
+            </span>
           </div>
-        </div>
 
-        <div className="p-5 md:p-6">
-          <img
-            src={(upcomingMovie && upcomingMovie.primaryMediaUrl) ? upcomingMovie.primaryMediaUrl : xebayImg}
-            alt="Upcoming movie"
-            className="h-[240px] w-full rounded-[22px] object-cover md:h-[320px]"
-          />
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-[#111827] transition hover:-translate-y-0.5">
+          <div className="flex flex-wrap gap-4 pt-2">
+            <button className="rounded-full bg-red-600 hover:bg-red-700 px-6 py-3 text-xs font-black uppercase tracking-wider text-white transition-all shadow-[0_10px_25px_rgba(220,38,38,0.25)] hover:scale-105 active:scale-95">
               Nhắc Tôi
             </button>
-            <button className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
+            <button className="rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black uppercase tracking-wider text-white transition-all hover:scale-105">
               Xem Trailer
             </button>
           </div>
         </div>
       </motion.div>
 
-      <div className="grid gap-6">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#171b29] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
-          <div className="text-sm uppercase tracking-[0.28em] text-white/50">GÓI GIA ĐÌNH</div>
-          <div className="mt-3 text-3xl font-black text-white">350.000 đ</div>
-          <p className="mt-3 max-w-xs text-sm leading-6 text-white/60">4 Vé, 2 Bắp lớn, 4 Nước ngọt. Ưu đãi dành cho gia đình và nhóm bạn.</p>
+      {/* Right Column: Premium Borderless Packages */}
+      <div className="grid gap-6 w-full">
+        {/* Family Combo Promo Block */}
+        <div className="p-8 rounded-[28px] bg-[#111216]/40 backdrop-blur-xl border border-white/5 hover:border-red-500/10 transition-all duration-300">
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">Gói Ưu Đãi</span>
+          <h4 className="mt-1.5 text-xl font-black text-white uppercase font-heading">Gói Gia Đình</h4>
+          <div className="mt-3 text-3xl font-black text-white font-heading">350.000 đ</div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-xs font-black text-gray-400">
+            <span>4 vé</span>
+            <span>•</span>
+            <span>2 bắp</span>
+            <span>•</span>
+            <span>4 nước</span>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-gray-400 font-medium">
+            Tận hưởng trọn vẹn từng khoảnh khắc cùng người thân. Áp dụng cho đặt vé trực tuyến.
+          </p>
         </div>
 
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#171b29] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
-          <div className="text-sm uppercase tracking-[0.28em] text-white/50">Đêm Công Chiếu</div>
-          <p className="mt-3 text-sm leading-6 text-white/60">Giữ chỗ sớm cho suất chiếu giới hạn với trải nghiệm VIP và quà tặng độc quyền.</p>
+        {/* Premiere Night Promo Block */}
+        <div className="p-8 rounded-[28px] bg-[#111216]/40 backdrop-blur-xl border border-white/5 hover:border-amber-500/10 transition-all duration-300">
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Độc Quyền</span>
+          <h4 className="mt-1.5 text-xl font-black text-white uppercase font-heading">Đêm Công Chiếu</h4>
+          <p className="mt-3 text-sm leading-relaxed text-gray-300">
+            Giữ chỗ sớm cho suất chiếu giới hạn với trải nghiệm VIP và quà tặng độc quyền dành riêng cho thành viên.
+          </p>
         </div>
       </div>
     </section>

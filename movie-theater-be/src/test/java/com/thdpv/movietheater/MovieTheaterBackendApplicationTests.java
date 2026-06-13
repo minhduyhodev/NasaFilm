@@ -1,11 +1,7 @@
 package com.thdpv.movietheater;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import com.thdpv.movietheater.user.repository.UserRepository;
-import com.thdpv.movietheater.user.entity.User;
-import java.util.List;
 
 @SpringBootTest
 class MovieTheaterBackendApplicationTests {
@@ -38,18 +34,9 @@ class MovieTheaterBackendApplicationTests {
 		}
 	}
 
-	@Autowired
-	private UserRepository userRepository;
-
 	@Test
 	void contextLoads() {
-		System.out.println("====== DB USERS DUMP ======");
-		List<User> users = userRepository.findAll();
-		for (User u : users) {
-			System.out.println(
-					"USER: email=" + u.getEmail() + ", fullName=" + u.getFullName() + ", status=" + u.getStatus());
-		}
-		System.out.println("===========================");
 	}
 
 }
+

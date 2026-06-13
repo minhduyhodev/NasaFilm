@@ -1,5 +1,5 @@
 .offers-page-wrapper {
-  @apply bg-[#0b0f19] text-gray-400 min-h-screen pt-20;
+  @apply text-gray-400 min-h-screen pt-20;
 }
 
 .offers-hero {
@@ -31,11 +31,11 @@
 }
 
 .offers-tab-btn {
-  @apply px-6 py-2.5 text-xs font-bold text-gray-400 bg-[#171c2a] border border-white/5 rounded-full transition-all duration-200 hover:text-white;
+  @apply px-6 py-2.5 text-xs font-black uppercase tracking-wider text-gray-400 bg-white/5 border border-white/5 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10;
 }
 
 .offers-tab-btn-active {
-  @apply bg-[#f3a092] text-neutral-900 border-[#f3a092] shadow-lg shadow-red-500/5;
+  @apply bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20;
 }
 
 .offers-grid {
@@ -87,7 +87,7 @@
 }
 
 .offer-modal-card {
-  @apply bg-[#0f121d] border border-white/10 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl p-6 md:p-8 space-y-6 relative;
+  @apply bg-[#0b0c10] border border-white/5 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl p-6 md:p-8 space-y-6 relative;
 }
 
 .offer-modal-close {
@@ -107,9 +107,9 @@
 }
 
 .offer-coupon-code {
-  @apply font-mono text-lg font-black text-[#f3a092] tracking-wider;
+  @apply font-mono text-lg font-black text-red-500 tracking-wider;
 }
 
 .offer-btn-copy {
-  @apply px-4 py-2 bg-[#f3a092] hover:bg-[#e28e80] text-neutral-900 text-xs font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer;
+  @apply px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer;
 }

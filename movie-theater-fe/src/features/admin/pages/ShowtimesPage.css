@@ -7,19 +7,19 @@
 }
 
 .admin-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.2em] text-gray-500;
+  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
 }
 
 .admin-title {
-  @apply text-3xl lg:text-4xl font-black text-gray-900 tracking-tight;
+  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
 }
 
 .admin-description {
-  @apply max-w-3xl text-sm text-gray-600 font-medium leading-relaxed mt-2;
+  @apply max-w-3xl text-sm text-gray-400 leading-relaxed mt-2;
 }
 
 .admin-add-btn {
-  @apply inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-[#d12c2c] px-4 py-2.5 text-white transition shadow-sm shrink-0;
+  @apply inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-[#d12c2c] px-4 py-2.5 text-white transition shadow-lg shadow-red-600/10 shrink-0 cursor-pointer;
 }
 
 .admin-add-btn-plus {
@@ -38,36 +38,9 @@
   @apply font-bold text-xs;
 }
 
-.admin-stats-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6;
-}
-
-.admin-stat-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 h-[130px] relative overflow-hidden flex flex-col justify-between shadow-sm hover:border-gray-300 transition-all duration-300;
-}
-
-.admin-stat-card-top {
-  @apply flex items-center justify-between z-10;
-}
-
-.admin-stat-label {
-  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400;
-}
-
-.admin-stat-value {
-  @apply text-3xl font-bold text-gray-900 tracking-tight leading-none z-10;
-}
-
-.admin-stat-badge-green {
-  @apply text-xs text-emerald-600 font-semibold;
-}
-
-.admin-stat-badge-muted {
-  @apply text-xs text-gray-500 font-medium;
-}
-
+/* Table Card */
 .admin-table-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 shadow-sm mt-8;
+  @apply rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md mt-8;
 }
 
 .admin-table-controls {
@@ -83,7 +56,7 @@
 }
 
 .admin-search-input {
-  @apply w-full rounded-full bg-gray-50 border border-gray-200 pl-10 pr-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 transition-all duration-300;
+  @apply w-full rounded-xl bg-[#0B1020] border border-[#1A2238] pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-all duration-300;
 }
 
 .admin-action-group {
@@ -91,7 +64,7 @@
 }
 
 .admin-action-btn {
-  @apply flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors duration-300;
+  @apply flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#121826] border border-[#1A2238] text-gray-300 text-sm font-semibold hover:text-white hover:bg-white/5 transition-colors duration-300 cursor-pointer;
 }
 
 .admin-table-container {
@@ -103,80 +76,49 @@
 }
 
 .admin-table-thead-tr {
-  @apply text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] border-b border-gray-200 pb-3;
+  @apply text-gray-400 text-[10px] font-bold uppercase tracking-[0.25em] border-b border-[#1A2238] pb-3;
 }
 
 .admin-table-tr {
-  @apply hover:bg-black/[0.01] transition-colors duration-300;
+  @apply transition-colors duration-300;
 }
 
-.admin-table-td-showtime {
-  @apply py-4 pr-6 flex items-center;
+.admin-table-tr:hover {
+  background-color: rgba(255, 255, 255, 0.015) !important;
 }
 
-.admin-showtime-icon-wrapper {
-  @apply w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 mr-4 shrink-0;
+.admin-table-tr:hover .admin-table-poster-wrapper {
+  @apply border-red-500/30;
 }
 
-.admin-showtime-name {
-  @apply font-bold text-gray-900 text-base leading-tight;
+/* Action Buttons */
+.admin-btn-action-edit {
+  @apply inline-flex items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/5 px-3.5 py-2 text-xs font-bold text-blue-400 hover:bg-blue-500/15 hover:border-blue-500/30 transition duration-200 cursor-pointer mr-2;
 }
 
-.admin-showtime-desc {
-  @apply text-xs text-gray-400 mt-1 font-medium;
+.admin-btn-action-delete {
+  @apply inline-flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 px-3.5 py-2 text-xs font-bold text-red-400 hover:bg-red-500/15 hover:border-red-500/30 transition duration-200 cursor-pointer;
 }
 
-.admin-table-td-val {
-  @apply py-4 px-3 font-bold text-gray-800 text-base;
-}
-
-.admin-badge-live {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/10;
-}
-
-.admin-badge-scheduled {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/10;
-}
-
-.admin-badge-closed {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200;
-}
-
-.admin-table-actions-td {
-  @apply py-4 text-right;
-}
-
-.admin-table-actions-group {
-  @apply inline-flex items-center gap-3;
-}
-
-.admin-btn-edit {
-  @apply text-gray-400 hover:text-gray-700 transition-colors duration-300;
-}
-
-.admin-btn-delete {
-  @apply text-gray-400 hover:text-red-500 transition-colors duration-300;
-}
-
-/* Modal & Form Styles for ShowtimesPage */
+/* Modal styles overrides for Showtimes */
 .modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto transition-all duration-300;
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto transition-all duration-300;
 }
 
 .modal-content {
-  @apply bg-white border border-gray-200 rounded-lg w-full max-w-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-xl space-y-6 text-left transition-all duration-300 transform scale-100;
+  @apply bg-[#121826] border border-[#1A2238] rounded-2xl w-full max-w-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
 }
 
 .modal-header {
-  @apply flex items-center justify-between border-b border-gray-100 pb-4;
+  @apply flex items-center justify-between border-b border-[#1A2238] pb-4;
 }
 
 .modal-title {
-  @apply text-xl font-black text-gray-900 uppercase tracking-wider;
+  @apply text-xl font-bold text-white uppercase tracking-wider;
 }
 
 .modal-close-btn {
-  @apply text-gray-400 hover:text-gray-700 transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-lg hover:bg-gray-100;
+  @apply text-gray-400 hover:text-white transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-white/5;
 }
 
 .form-group {
@@ -184,30 +126,21 @@
 }
 
 .form-label {
-  @apply text-xs font-bold uppercase tracking-[0.12em] text-gray-600 mb-1;
+  @apply text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mb-1;
 }
 
 .form-input, .form-textarea, .form-select {
-  @apply w-full rounded-lg bg-gray-50 px-3.5 py-2.5 text-gray-950 placeholder-gray-400 border border-gray-200 focus:border-red-500/60 focus:bg-white focus:outline-none text-sm transition-all duration-200;
+  @apply w-full rounded-xl bg-[#0B1020] px-4 py-3 text-white placeholder-gray-600 border border-[#1A2238] focus:border-red-500/60 focus:outline-none text-sm transition-all duration-200;
 }
 
 .form-actions {
-  @apply flex justify-end gap-3 pt-4 border-t border-gray-100;
+  @apply flex justify-end gap-3 pt-4 border-t border-[#1A2238];
 }
 
 .btn-cancel {
-  @apply rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition cursor-pointer;
+  @apply rounded-xl border border-[#1A2238] bg-[#121826] px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer;
 }
 
 .btn-submit {
-  @apply rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-[#d12c2c] transition cursor-pointer;
-}
-
-/* Showtime Poster Styling in table */
-.admin-showtime-poster-wrapper {
-  @apply w-10 h-14 rounded-lg overflow-hidden border border-gray-200 shadow-sm bg-gray-50 flex-shrink-0 mr-4;
-}
-
-.admin-showtime-poster-img {
-  @apply w-full h-full object-cover;
+  @apply rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
 }

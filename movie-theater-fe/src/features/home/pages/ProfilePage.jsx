@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
+import { bookingService } from "../../../shared/services/bookingService";
+import { promotionService } from "../../../shared/services/promotionService";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
@@ -46,7 +48,28 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [vouchers, setVouchers] = useState([]);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setIsLoadingBookings(true);
+      try {
+        const data = await bookingService.getMyBookings();
+        setBookings(data || []);
+      } catch (err) {
+        console.error("Failed to load user bookings:", err);
+      } finally {
+        setIsLoadingBookings(false);
+      }
+    };
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -79,6 +102,23 @@ export const ProfilePage = () => {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      setIsLoadingVouchers(true);
+      try {
+        const data = await promotionService.getMyVouchers();
+        setVouchers(data || []);
+      } catch (err) {
+        console.error("Failed to load user vouchers:", err);
+      } finally {
+        setIsLoadingVouchers(false);
+      }
+    };
+    if (user) {
+      fetchVouchers();
+    }
+  }, [user]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -150,16 +190,14 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  // Mock points/loyalty
-  const loyaltyPoints = user?.score || 1250;
-  const nextTierPoints = 2000;
-  const progressPercent = Math.min((loyaltyPoints / nextTierPoints) * 100, 100);
-  const loyaltyTier =
-    loyaltyPoints >= 2000
-      ? "Platinum Explorer"
-      : loyaltyPoints >= 1000
-        ? "Gold Navigator"
-        : "Silver Crew";
+  // Loyalty levels based on ERD/UI standard (NASA'FRIEND and NASA'VIP)
+  const loyaltyPoints = profileData && typeof profileData.score === 'number'
+    ? profileData.score
+    : (user && typeof user.score === 'number' ? user.score : 0);
+  const nextTierPoints = 10000;
+  const rawProgress = (loyaltyPoints / nextTierPoints) * 100;
+  const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
+  const loyaltyTier = loyaltyPoints >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -329,23 +367,7 @@ export const ProfilePage = () => {
     },
   ];
 
-  // Predefined Mock Vouchers
-  const mockVouchers = [
-    {
-      code: "NASAFIRST",
-      title: "Giảm 50k cho vé đầu tiên",
-      desc: "Áp dụng cho tất cả các suất chiếu IMAX và 3D.",
-      expiry: "Hạn dùng: 30/06/2026",
-      type: "discount",
-    },
-    {
-      code: "SWEETCOMBO",
-      title: "Miễn phí 1 bắp ngọt vừa",
-      desc: "Nhận kèm khi mua từ 2 vé xem phim bất kỳ.",
-      expiry: "Hạn dùng: 15/07/2026",
-      type: "freebie",
-    },
-  ];
+  // Cleaned up mockVouchers array
 
   // Predefined Mock Transactions
   const mockTransactions = [];
@@ -372,158 +394,221 @@ export const ProfilePage = () => {
       <Navbar />
       <div className="profile-wrapper">
         <div className="profile-container">
-          {/* Profile Header Block */}
-          <div className="profile-header-card">
-            <div className="profile-header-cover">
-              <div className="profile-header-stars" />
-            </div>
-            <div className="profile-header-info-bar">
-              {/* Avatar block */}
-              <div className="profile-avatar-wrapper">
-                <div
-                  onClick={() => !isSaving && fileInputRef.current.click()}
-                  className={`profile-avatar-frame cursor-pointer hover:scale-105 transition-all duration-300 ${isSaving ? "opacity-50" : ""}`}
-                  title="Thay đổi ảnh đại diện"
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Avatar"
-                      className="profile-avatar-image"
-                    />
-                  ) : (
-                    <div className="profile-avatar-placeholder">
-                      {fullName ? fullName.charAt(0).toUpperCase() : "?"}
-                    </div>
-                  )}
-                  {isSaving ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
-                      <div className="w-6 h-6 border-2 border-t-red-600 border-white/20 rounded-full animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="profile-avatar-edit-btn">
-                      <Camera size={16} />
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  style={{ display: "none" }}
-                />
-              </div>
-
-              {/* Profile Brief Info */}
-              <div className="profile-brief-details">
-                <div className="profile-name-row">
-                  <h1 className="profile-full-name">
-                    {user?.fullName || "Khách hàng"}
-                  </h1>
-                  <span className={`profile-role-badge ${roleColor}`}>
-                    {displayRole}
-                  </span>
-                </div>
-                <p className="profile-email-text">{user?.email}</p>
-
-                <div className="profile-badges-row">
-                  <div className="profile-badge-item">
-                    <MapPin size={14} className="text-red-500" />
-                    <span>TP. Hồ Chí Minh</span>
-                  </div>
-                  <div className="profile-badge-item">
-                    <Calendar size={14} className="text-amber-500" />
-                    <span>Thành viên từ 2026</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Loyalty Points Card */}
-              <div className="profile-loyalty-card">
-                <div className="loyalty-card-glow" />
-                <div className="loyalty-header">
-                  <div className="loyalty-title-group">
-                    <Award size={18} className="text-yellow-400" />
-                    <span className="loyalty-tier-name">{loyaltyTier}</span>
-                  </div>
-                  <span className="loyalty-points-label">
-                    {loyaltyPoints} / {nextTierPoints} Pts
-                  </span>
-                </div>
-
-                <div className="loyalty-progress-container">
+          {/* Space Hub Header (Hero Section) */}
+          <div className="space-hub-header">
+            <div className="cosmic-nebula-bg" />
+            <div className="twinkling-stars-bg" />
+            
+            <div className="space-hub-content grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              
+              {/* Left Column: User details with Orbit System around avatar */}
+              <div className="lg:col-span-5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                <div className="avatar-orbit-container">
+                  <div className="orbit-ring orbit-ring-outer" />
+                  <div className="orbit-ring orbit-ring-middle" />
+                  <div className="orbit-ring orbit-ring-inner" />
+                  
+                  <div className="orbit-node node-gold-1" />
+                  <div className="orbit-node node-purple-1" />
+                  
                   <div
-                    className="loyalty-progress-bar"
-                    style={{ width: `${progressPercent}%` }}
-                  />
+                    onClick={() => !isSaving && fileInputRef.current.click()}
+                    className={`profile-avatar-frame cursor-pointer ${isSaving ? "opacity-50" : ""}`}
+                    title="Thay đổi ảnh đại diện"
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="profile-avatar-image"
+                      />
+                    ) : (
+                      <div className="profile-avatar-placeholder">
+                        {fullName ? fullName.charAt(0).toUpperCase() : "?"}
+                      </div>
+                    )}
+                    {isSaving ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                        <div className="w-6 h-6 border-2 border-t-amber-500 border-white/20 rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="profile-avatar-edit-btn">
+                        <Camera size={14} />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <p className="loyalty-footer-text">
-                  Còn {nextTierPoints - loyaltyPoints} điểm nữa để nâng cấp hạng
-                  thành viên tiếp theo.
-                </p>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                    <h1 className="profile-full-name-text text-3xl font-extrabold tracking-tight">
+                      {user?.fullName || "Khách hàng"}
+                    </h1>
+                    <span className={`profile-role-badge ${roleColor}`}>
+                      {displayRole}
+                    </span>
+                  </div>
+                  <p className="text-zinc-400 text-sm font-semibold">{user?.email}</p>
+                  
+                  <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-1">
+                    <div className="profile-badge-item">
+                      <MapPin size={12} className="text-amber-500" />
+                      <span className="font-semibold">TP. Hồ Chí Minh</span>
+                    </div>
+                    <div className="profile-badge-item">
+                      <Calendar size={12} className="text-amber-500" />
+                      <span className="font-semibold">Thành viên từ 2026</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Right Column: Grand Gold Navigator Membership Panel */}
+              <div className="lg:col-span-7 flex flex-col md:flex-row items-center gap-8 bg-black/35 backdrop-blur-xl border border-white/5 p-8 rounded-3xl relative overflow-hidden group">
+                <div className="absolute -right-20 -top-20 w-60 h-60 bg-yellow-500/10 rounded-full blur-[80px] group-hover:bg-yellow-500/15 transition-all duration-700" />
+                
+                <div className="relative flex-shrink-0 w-28 h-28 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="56"
+                      cy="56"
+                      r="48"
+                      className="text-white/5 stroke-current"
+                      strokeWidth="5"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="56"
+                      cy="56"
+                      r="48"
+                      className="text-amber-500 stroke-current"
+                      strokeWidth="5"
+                      fill="transparent"
+                      strokeDasharray={2 * Math.PI * 48}
+                      strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  
+                  <div className="absolute flex flex-col items-center justify-center">
+                    <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Điểm</span>
+                    <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{loyaltyPoints}</span>
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-2 text-center md:text-left">
+                  <span className="text-[9px] tracking-widest text-amber-400 font-black uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
+                    ★ Hạng thành viên
+                  </span>
+                  
+                  <h2 className="text-xl font-black text-white uppercase tracking-wider mt-2">
+                    {loyaltyTier}
+                  </h2>
+                  
+                  <div className="flex justify-center md:justify-start gap-0.5 text-amber-400">
+                    <Star size={14} className="fill-current" />
+                    <Star size={14} className="fill-current" />
+                    <Star size={14} className="fill-current" />
+                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                  </div>
+                  
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    {loyaltyPoints >= 10000 ? (
+                      <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
+                    ) : (
+                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - loyaltyPoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
             </div>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              style={{ display: "none" }}
+            />
           </div>
 
           {/* Profile Main Content Layout */}
           <div className="profile-content-grid">
-            {/* Left Menu / Tabs Switcher */}
-            <div className="profile-sidebar-menu">
-              <button
-                onClick={() => setActiveTab("info")}
-                className={`sidebar-menu-item ${activeTab === "info" ? "active" : ""}`}
-              >
-                <User size={18} />
-                <span>Thông tin khách hàng</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("member")}
-                className={`sidebar-menu-item ${activeTab === "member" ? "active" : ""}`}
-              >
-                <Award size={18} />
-                <span>Thành viên NASAFilm</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("tickets")}
-                className={`sidebar-menu-item ${activeTab === "tickets" ? "active" : ""}`}
-              >
-                <Ticket size={18} />
-                <span>Vé của tôi</span>
-                <span className="sidebar-count-badge">1</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("vouchers")}
-                className={`sidebar-menu-item ${activeTab === "vouchers" ? "active" : ""}`}
-              >
-                <Gift size={18} />
-                <span>Ưu đãi của tôi</span>
-                <span className="sidebar-count-badge">
-                  {mockVouchers.length}
-                </span>
-              </button>
-
-              {authProvider !== "GOOGLE" && (
+            {/* Left Menu / Navigation Rail */}
+            <div className="navigation-rail">
+              <div className="rail-container">
                 <button
-                  onClick={() => setActiveTab("security")}
-                  className={`sidebar-menu-item ${activeTab === "security" ? "active" : ""}`}
+                  onClick={() => setActiveTab("info")}
+                  className={`rail-item ${activeTab === "info" ? "active" : ""}`}
+                  title="Thông tin khách hàng"
                 >
-                  <Key size={18} />
-                  <span>Cài đặt bảo mật</span>
+                  <div className="rail-icon-wrapper">
+                    <User size={20} />
+                  </div>
+                  <span className="rail-label">Thông tin cá nhân</span>
                 </button>
-              )}
 
-              <button
-                onClick={() => setShowHistoryModal(true)}
-                className="sidebar-menu-item text-slate-400 hover:text-white"
-              >
-                <History size={18} />
-                <span>Lịch sử mua hàng</span>
-              </button>
+                <button
+                  onClick={() => setActiveTab("member")}
+                  className={`rail-item ${activeTab === "member" ? "active" : ""}`}
+                  title="Thành viên NASAFilm"
+                >
+                  <div className="rail-icon-wrapper">
+                    <Award size={20} />
+                  </div>
+                  <span className="rail-label">Thành viên</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("tickets")}
+                  className={`rail-item ${activeTab === "tickets" ? "active" : ""}`}
+                  title="Vé của tôi"
+                >
+                  <div className="rail-icon-wrapper relative">
+                    <Ticket size={20} />
+                    <span className="rail-badge">{bookings.length}</span>
+                  </div>
+                  <span className="rail-label">Vé của tôi</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("vouchers")}
+                  className={`rail-item ${activeTab === "vouchers" ? "active" : ""}`}
+                  title="Ưu đãi của tôi"
+                >
+                  <div className="rail-icon-wrapper relative">
+                    <Gift size={20} />
+                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
+                  </div>
+                  <span className="rail-label">Ưu đãi của tôi</span>
+                </button>
+
+                {authProvider !== "GOOGLE" && (
+                  <button
+                    onClick={() => setActiveTab("security")}
+                    className={`rail-item ${activeTab === "security" ? "active" : ""}`}
+                    title="Cài đặt bảo mật"
+                  >
+                    <div className="rail-icon-wrapper">
+                      <Key size={20} />
+                    </div>
+                    <span className="rail-label">Cài đặt bảo mật</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowHistoryModal(true)}
+                  className="rail-item text-slate-400 hover:text-white"
+                  title="Lịch sử mua hàng"
+                >
+                  <div className="rail-icon-wrapper">
+                    <History size={20} />
+                  </div>
+                  <span className="rail-label">Lịch sử mua hàng</span>
+                </button>
+              </div>
             </div>
 
             {/* Right Content Area */}
@@ -824,9 +909,15 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
-                            BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
-                          </button>
+                          {loyaltyPoints >= 10000 ? (
+                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                              HẠNG HIỆN TẠI: NASA'VIP
+                            </div>
+                          ) : (
+                            <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
+                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -906,9 +997,15 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                            CẦN TÍCH LŨY 10.000 ĐIỂM
-                          </div>
+                          {loyaltyPoints >= 10000 ? (
+                            <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
+                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
+                            </button>
+                          ) : (
+                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                              CẦN TÍCH LŨY 10.000 ĐIỂM
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1075,62 +1172,73 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="tickets-list">
-                      {mockBookings.map((tkt) => (
-                        <div
-                          key={tkt.id}
-                          className={`ticket-stub-card ${tkt.status}`}
-                        >
-                          <div className="ticket-cutout-left" />
-                          <div className="ticket-cutout-right" />
-
-                          <div className="ticket-main-section">
-                            <span
-                              className={`ticket-status-badge ${tkt.status}`}
+                      {bookings.length === 0 ? (
+                        <div className="text-center py-12 text-zinc-500 font-medium w-full">
+                          <Ticket size={48} className="mx-auto mb-4 opacity-30 text-red-500" />
+                          <p>Bạn chưa có lịch sử đặt vé nào.</p>
+                        </div>
+                      ) : (
+                        bookings.map((tkt) => {
+                          const getMovieGlowClass = (title) => {
+                            if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
+                            if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
+                            return "glow-cyan";
+                          };
+                          const glowClass = getMovieGlowClass(tkt.movieTitle);
+                          return (
+                            <div
+                              key={tkt.id}
+                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
                             >
-                              {tkt.status === "active"
-                                ? "Chưa chiếu"
-                                : "Đã xem"}
-                            </span>
+                              <div className="ticket-notch-top" />
+                              <div className="ticket-notch-bottom" />
 
-                            <h3 className="ticket-movie-title">
-                              {tkt.movieTitle}
-                            </h3>
+                              <div className="ticket-body-left">
+                                <span className="ticket-format-badge">
+                                  {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
+                                </span>
 
-                            <div className="ticket-details-grid">
-                              <div className="ticket-detail">
-                                <span className="label">Rạp chiếu</span>
-                                <span className="value">{tkt.cinema}</span>
+                                <h3 className="ticket-movie-title-text">
+                                  {tkt.movieTitle}
+                                </h3>
+
+                                <div className="ticket-grid-details">
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Rạp Chiếu</span>
+                                    <span className="value-text">{tkt.cinema}</span>
+                                  </div>
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Suất Chiếu</span>
+                                    <span className="value-text text-amber-500">{tkt.showtime}</span>
+                                  </div>
+                                  <div className="ticket-info-unit">
+                                    <span className="label-text">Đồ ăn & Nước</span>
+                                    <span className="value-text">{tkt.combo}</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="ticket-detail">
-                                <span className="label">Suất chiếu</span>
-                                <span className="value text-red-500">
-                                  {tkt.showtime}
-                                </span>
+
+                              <div className="ticket-divider-line-container">
+                                <div className="dashed-perforation" />
                               </div>
-                              <div className="ticket-detail">
-                                <span className="label">Ghế</span>
-                                <span className="value text-amber-500">
-                                  {tkt.seats}
-                                </span>
-                              </div>
-                              <div className="ticket-detail">
-                                <span className="label">Đồ ăn & Nước</span>
-                                <span className="value">{tkt.combo}</span>
+
+                              <div className="ticket-body-right">
+                                <div className="stub-seats-info">
+                                  <span className="seats-title">Ghế</span>
+                                  <div className="seats-numbers">{tkt.seats}</div>
+                                </div>
+
+                                <div className="barcode-wrapper-box">
+                                  <div className="barcode-lines" />
+                                  <span className="ticket-id">{tkt.id}</span>
+                                </div>
+
+                                <span className="stub-price-tag">{tkt.price}</span>
                               </div>
                             </div>
-                          </div>
-
-                          <div className="ticket-separator">
-                            <div className="dashed-line" />
-                          </div>
-
-                          <div className="ticket-barcode-section">
-                            <span className="ticket-id">{tkt.id}</span>
-                            <div className="barcode-mock" />
-                            <span className="ticket-price">{tkt.price}</span>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -1150,22 +1258,44 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="vouchers-grid">
-                      {mockVouchers.map((voucher) => (
-                        <div key={voucher.code} className="voucher-card">
-                          <div className="voucher-glow-dot" />
-                          <div className="voucher-icon-box">
-                            <Gift size={24} className="text-amber-500" />
+                      {vouchers.map((voucher) => {
+                        const formattedExpiry = voucher.endDate 
+                          ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}` 
+                          : 'Hạn dùng: Không thời hạn';
+                        
+                        return (
+                          <div key={voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
+                            <div className="voucher-glow-dot" />
+                            <div className="voucher-icon-box">
+                              <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                            </div>
+                            <div className="voucher-body text-left">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="voucher-code">{voucher.code}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  voucher.used 
+                                    ? 'bg-gray-800 text-gray-400' 
+                                    : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                }`}>
+                                  {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
+                                </span>
+                              </div>
+                              <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
+                              <p className="voucher-desc">
+                                {voucher.oncePerUser ? 'Áp dụng cho tài khoản đăng ký mới (1 lần duy nhất).' : 'Áp dụng cho tất cả các tài khoản.'}
+                              </p>
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                <span className="voucher-expiry">
+                                  {formattedExpiry}
+                                </span>
+                                <span className="font-semibold text-amber-500">
+                                  Còn lại: {voucher.oncePerUser ? (voucher.used ? 0 : 1) : (voucher.remainingUsage === 999 ? 'Nhiều' : voucher.remainingUsage)} lượt
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="voucher-body">
-                            <span className="voucher-code">{voucher.code}</span>
-                            <h4 className="voucher-title">{voucher.title}</h4>
-                            <p className="voucher-desc">{voucher.desc}</p>
-                            <span className="voucher-expiry">
-                              {voucher.expiry}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}

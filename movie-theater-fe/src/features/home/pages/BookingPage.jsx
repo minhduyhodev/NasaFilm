@@ -33,7 +33,12 @@ const movieLookup = {
   'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, rating: 8.9, format: '2D Lồng Tiếng' },
   'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, rating: 4.7, format: '2D Phụ Đề' },
   'Ốc Mượn Hồn': { poster: ocMuonHonPoster, rating: 4.6, format: '2D VN' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', rating: 8.5, format: 'IMAX 3D' }
+  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', rating: 8.5, format: 'IMAX 3D' },
+  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', rating: 8.5, format: 'IMAX 3D' },
+  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', rating: 8.2, format: '2D Phụ Đề' },
+  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', rating: 7.8, format: '2D Phụ Đề' },
+  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', rating: 9.0, format: '2D Lồng Tiếng' },
+  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', rating: 7.5, format: '2D Phụ Đề' }
 };
 
 const getMovieInfo = (title) => {
@@ -52,92 +57,103 @@ const getMovieInfo = (title) => {
   };
 };
 
+import { bookingService } from '../../../shared/services/bookingService';
+
 const BookingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   // Extract booking details from routing state
   const { 
+    showtimeUuid = '11111111-1111-1111-1111-111111111111',
     theater = 'NASA Landmark 81 - Phòng chiếu IMAX', 
     movie = 'GALACTIC VANGUARD: RISING TIDE', 
+    moviePoster = '',
+    movieRating = null,
+    movieFormat = '',
     date = 'Hôm nay, 10/06', 
     showtime = '19:30' 
   } = location.state || {};
 
   const movieInfo = getMovieInfo(movie);
 
-  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  const rowTypes = ['standard', 'standard', 'standard', 'standard', 'vip', 'vip', 'couple', 'couple'];
-
-  const [occupiedSeats, setOccupiedSeats] = useState(new Set());
+  const [seatRows, setSeatRows] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Generate mock occupied seats on mount
+  const selectedSeatsRef = React.useRef([]);
   useEffect(() => {
-    window.scrollTo(0, 0);
-    
-    // Hash code based on theater, showtime, movie
-    const seedStr = `${theater}-${showtime}-${movie}`;
-    let hash = 0;
-    for (let i = 0; i < seedStr.length; i++) {
-      hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+    selectedSeatsRef.current = selectedSeats;
+  }, [selectedSeats]);
+
+  const fetchSeatMap = async (overrideSelectedUuids) => {
+    try {
+      const currentSelectedUuids = overrideSelectedUuids !== undefined 
+        ? overrideSelectedUuids 
+        : selectedSeatsRef.current.map(s => s.seatUuid);
+      const data = await bookingService.getSeatMap(showtimeUuid, currentSelectedUuids);
+      if (data && data.rows) {
+        setSeatRows(data.rows);
+        
+        // Synchronize selected seats from BE response (seats marked selected: true or locked by me)
+        const newSelected = [];
+        data.rows.forEach(row => {
+          row.seats.forEach(seat => {
+            if (seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME') {
+              let vietnameseType = 'Ghế Thường';
+              if (seat.seatTypeName === 'VIP') vietnameseType = 'Ghế VIP';
+              if (seat.seatTypeName === 'COUPLE') vietnameseType = 'Ghế Đôi';
+              
+              newSelected.push({
+                seatUuid: seat.seatUuid,
+                id: `${row.rowName}${seat.seatNumber}`,
+                rowName: row.rowName,
+                seatNumber: seat.seatNumber,
+                price: seat.price,
+                type: vietnameseType
+              });
+            }
+          });
+        });
+        setSelectedSeats(newSelected);
+      }
+    } catch (err) {
+      console.error("Failed to fetch seat map:", err);
+      notificationService.error("Không thể tải sơ đồ ghế");
+    } finally {
+      setIsLoading(false);
     }
-    hash = Math.abs(hash);
-
-    const occupiedStandardCount = (hash % 26) + 10; // 10 to 35 standard seats occupied
-    const occupiedVipCount = ((hash >> 1) % 14) + 5; // 5 to 18 VIP seats occupied
-    const occupiedCoupleCount = ((hash >> 2) % 8) + 2; // 2 to 9 couple seats occupied
-
-    const standardSeatsList = [];
-    const vipSeatsList = [];
-    const coupleSeatsList = [];
-    
-    rows.forEach((row, rowIndex) => {
-      const type = rowTypes[rowIndex];
-      const count = type === 'couple' ? 6 : 12;
-      for (let i = 1; i <= count; i++) {
-        const id = `${row}${i}`;
-        if (type === 'standard') standardSeatsList.push(id);
-        else if (type === 'vip') vipSeatsList.push(id);
-        else coupleSeatsList.push(id);
-      }
-    });
-
-    const pickSeats = (list, count, seed) => {
-      const picked = new Set();
-      let indexSeed = seed;
-      while (picked.size < count && picked.size < list.length) {
-        indexSeed = (indexSeed * 9301 + 49297) % 233280;
-        const index = indexSeed % list.length;
-        picked.add(list[index]);
-      }
-      return picked;
-    };
-
-    const occupiedStandard = pickSeats(standardSeatsList, occupiedStandardCount, hash);
-    const occupiedVip = pickSeats(vipSeatsList, occupiedVipCount, hash + 1);
-    const occupiedCouple = pickSeats(coupleSeatsList, occupiedCoupleCount, hash + 2);
-
-    const occupied = new Set([...occupiedStandard, ...occupiedVip, ...occupiedCouple]);
-    setOccupiedSeats(occupied);
-  }, [theater, showtime, movie]);
-
-  const getSeatPriceAndType = (rowLetter) => {
-    const rowIndex = rows.indexOf(rowLetter);
-    const type = rowTypes[rowIndex];
-    if (type === 'couple') return { price: 160000, typeName: 'Ghế Đôi' };
-    if (type === 'vip') return { price: 120000, typeName: 'Ghế VIP' };
-    return { price: 85000, typeName: 'Ghế Thường' };
   };
 
-  const handleSeatClick = (seatId, rowLetter) => {
-    const isSelected = selectedSeats.some(s => s.id === seatId);
-    if (isSelected) {
-      setSelectedSeats(prev => prev.filter(s => s.id !== seatId));
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchSeatMap();
+
+    // Poll the seat map every 10 seconds to keep seating map fresh
+    const interval = setInterval(() => {
+      fetchSeatMap();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [showtimeUuid]);
+
+  const handleSeatClick = async (seat, rowName) => {
+    const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
+    let nextSelectedUuids = [];
+    if (isAlreadySelected) {
+      nextSelectedUuids = selectedSeats.filter(s => s.seatUuid !== seat.seatUuid).map(s => s.seatUuid);
     } else {
-      const { price, typeName } = getSeatPriceAndType(rowLetter);
-      setSelectedSeats(prev => [...prev, { id: seatId, price, type: typeName }]);
+      nextSelectedUuids = [...selectedSeats.map(s => s.seatUuid), seat.seatUuid];
+    }
+
+    try {
+      await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
+      // Reload seat map after successful lock request with the next selection list
+      await fetchSeatMap(nextSelectedUuids);
+    } catch (err) {
+      console.error("Failed to sync seat locks:", err);
+      notificationService.error(err.message || "Không thể giữ ghế này. Vui lòng chọn ghế khác.");
     }
   };
 
@@ -147,8 +163,12 @@ const BookingPage = () => {
       setIsConfirming(false);
       navigate('/checkout', {
         state: {
+          showtimeUuid,
           theater,
           movie,
+          moviePoster,
+          movieRating,
+          movieFormat,
           date,
           showtime,
           selectedSeats,
@@ -159,6 +179,40 @@ const BookingPage = () => {
   };
 
   const totalAmount = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
+
+  const renderSeatElement = (seat, rowName) => {
+    const isOccupied = seat.availabilityStatus === 'BOOKED' || seat.availabilityStatus === 'LOCKED_BY_OTHER' || seat.availabilityStatus === 'UNAVAILABLE';
+    const isSelected = seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME';
+    const type = seat.seatTypeName.toLowerCase();
+    
+    let seatClass = `seat ${type}`;
+    
+    if (isOccupied) {
+      seatClass += ' occupied';
+    } else if (isSelected) {
+      seatClass += ' selected';
+    }
+
+    return (
+      <div
+        key={seat.seatUuid}
+        onClick={() => !isOccupied && handleSeatClick(seat, rowName)}
+        className={seatClass}
+      >
+        {isOccupied ? <X className="h-3 w-3" /> : seat.seatNumber}
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="booking-wrapper min-h-screen bg-[#0f121d] flex items-center justify-center text-white">
+        <Navbar />
+        <p className="text-xl font-bold animate-pulse">Đang tải sơ đồ ghế...</p>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="booking-wrapper">
@@ -177,39 +231,57 @@ const BookingPage = () => {
           
           {/* Seat Grid */}
           <div className="flex flex-col gap-2.5 overflow-x-auto w-full items-center pb-4 scrollbar-hide select-none">
-            {rows.map((row, rowIndex) => {
-              const type = rowTypes[rowIndex];
-              const count = type === 'couple' ? 6 : 12;
+            {seatRows.map((rowItem) => {
+              const row = rowItem.rowName;
+              const seatsList = rowItem.seats || [];
+              const type = seatsList[0]?.seatTypeName?.toLowerCase() || 'standard';
+
+              if (type === 'couple') {
+                return (
+                  <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
+                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+                    <div className="flex gap-2">
+                      {seatsList.map((seat) => renderSeatElement(seat, row))}
+                    </div>
+                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+                  </div>
+                );
+              }
+
+              const isCenterRow = ['C', 'D', 'E', 'F'].includes(row);
+              let centerClasses = "flex gap-2 px-1";
+              if (row === 'C') {
+                centerClasses += " border-t-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-t-xl py-0.5";
+              } else if (row === 'D' || row === 'E') {
+                centerClasses += " border-x-2 border-emerald-500/30 bg-emerald-500/5 py-0.5";
+              } else if (row === 'F') {
+                centerClasses += " border-b-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-b-xl py-0.5";
+              }
+
+              // Partition 12 seats: 2 left, 8 center, 2 right
+              const leftSeats = seatsList.slice(0, 2);
+              const centerSeats = seatsList.slice(2, 10);
+              const rightSeats = seatsList.slice(10, 12);
+
               return (
                 <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
                   {/* Row Label Left */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
                   
-                  {/* Seats mapping */}
-                  {Array.from({ length: count }).map((_, i) => {
-                    const seatIndex = i + 1;
-                    const seatId = `${row}${seatIndex}`;
-                    const isOccupied = occupiedSeats.has(seatId);
-                    const isSelected = selectedSeats.some(s => s.id === seatId);
-                    
-                    let seatClass = `seat ${type}`;
-                    
-                    if (isOccupied) {
-                      seatClass += ' occupied';
-                    } else if (isSelected) {
-                      seatClass += ' selected';
-                    }
+                  {/* Left Block */}
+                  <div className="flex gap-2">
+                    {leftSeats.map(seat => renderSeatElement(seat, row))}
+                  </div>
 
-                    return (
-                      <div
-                        key={seatId}
-                        onClick={() => !isOccupied && handleSeatClick(seatId, row)}
-                        className={seatClass}
-                      >
-                        {isOccupied ? <X className="h-3 w-3" /> : seatIndex}
-                      </div>
-                    );
-                  })}
+                  {/* Center Block with optional border */}
+                  <div className={centerClasses}>
+                    {centerSeats.map(seat => renderSeatElement(seat, row))}
+                  </div>
+
+                  {/* Right Block */}
+                  <div className="flex gap-2">
+                    {rightSeats.map(seat => renderSeatElement(seat, row))}
+                  </div>
                   
                   {/* Row Label Right */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
@@ -233,7 +305,7 @@ const BookingPage = () => {
               <span className="text-xs font-bold text-gray-300">Ghế Đôi (160k)</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-6 bg-white/10 border border-transparent rounded-lg flex items-center justify-center text-white/30">
+              <div className="w-9 h-6 bg-white/5 border-2 border-red-500/20 rounded-lg flex items-center justify-center text-red-500/25 opacity-60">
                 <X className="h-3 w-3" />
               </div>
               <span className="text-xs font-bold text-gray-300">Đã đặt</span>
@@ -241,6 +313,10 @@ const BookingPage = () => {
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-6 bg-white border border-white rounded-lg flex items-center justify-center text-[9px] font-bold text-black shadow-[0_0_10px_rgba(255,255,255,0.5)]">1</div>
               <span className="text-xs font-bold text-gray-300">Đang chọn</span>
+            </div>
+             <div className="flex items-center gap-2.5">
+              <div className="w-9 h-6 border-2 border-emerald-500/40 bg-emerald-500/10 rounded-lg"></div>
+              <span className="text-xs font-bold text-gray-300">Vùng trung tâm</span>
             </div>
           </div>
         </div>
@@ -253,15 +329,15 @@ const BookingPage = () => {
               <img 
                 alt="Movie Poster" 
                 className="w-20 h-28 rounded-lg object-cover shadow-xl border border-white/5 bg-[#0f121d]" 
-                src={movieInfo.poster} 
+                src={moviePoster || movieInfo.poster} 
               />
               <div className="text-left space-y-1">
                 <h2 className="text-base font-black text-white uppercase tracking-wide leading-tight line-clamp-2">{movie}</h2>
                 <div className="flex items-center gap-1.5 text-yellow-400 font-bold text-xs">
                   <Star className="h-3.5 w-3.5 fill-current" />
-                  <span>{movieInfo.rating.toFixed(1)} IMDb</span>
+                  <span>{(movieRating || movieInfo.rating).toFixed(1)} IMDb</span>
                 </div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{movieInfo.format}</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat || movieInfo.format}</p>
                 <p className="text-[11px] font-bold text-red-500 mt-1">{showtime} • {date}</p>
                 <p className="text-[10px] font-semibold text-gray-500">{theater}</p>
               </div>

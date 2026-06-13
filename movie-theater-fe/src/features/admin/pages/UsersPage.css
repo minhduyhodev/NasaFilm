@@ -7,67 +7,25 @@
 }
 
 .admin-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.2em] text-gray-500;
+  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
 }
 
 .admin-title {
-  @apply text-3xl lg:text-4xl font-black text-gray-900 tracking-tight;
+  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
 }
 
 .admin-description {
-  @apply max-w-3xl text-sm text-gray-600 font-medium leading-relaxed mt-2;
+  @apply max-w-3xl text-sm text-gray-400 leading-relaxed mt-2;
 }
 
-.admin-add-btn {
-  @apply inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-[#d12c2c] px-4 py-2.5 text-white transition shadow-sm shrink-0;
+/* Unified Stat Panel Background Override */
+.dashboard-unified-stats-panel {
+  @apply bg-[#121826]/70 border border-[#1A2238] shadow-2xl backdrop-blur-md;
 }
 
-.admin-add-btn-plus {
-  @apply text-xl font-light leading-none;
-}
-
-.admin-add-btn-label-group {
-  @apply text-left leading-tight;
-}
-
-.admin-add-btn-sub {
-  @apply font-semibold text-[10px] text-white/80 uppercase tracking-wider;
-}
-
-.admin-add-btn-main {
-  @apply font-bold text-xs;
-}
-
-.admin-stats-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6;
-}
-
-.admin-stat-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 h-[130px] relative overflow-hidden flex flex-col justify-between shadow-sm hover:border-gray-300 transition-all duration-300;
-}
-
-.admin-stat-card-top {
-  @apply flex items-center justify-between z-10;
-}
-
-.admin-stat-label {
-  @apply text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400;
-}
-
-.admin-stat-value {
-  @apply text-3xl font-bold text-gray-900 tracking-tight leading-none z-10;
-}
-
-.admin-stat-badge-green {
-  @apply text-xs text-emerald-600 font-semibold;
-}
-
-.admin-stat-badge-muted {
-  @apply text-xs text-gray-500 font-medium;
-}
-
+/* Table Card */
 .admin-table-card {
-  @apply rounded-xl bg-white border border-gray-200 p-6 shadow-sm mt-8;
+  @apply rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md mt-8;
 }
 
 .admin-table-controls {
@@ -83,7 +41,7 @@
 }
 
 .admin-search-input {
-  @apply w-full rounded-full bg-gray-50 border border-gray-200 pl-10 pr-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 transition-all duration-300;
+  @apply w-full rounded-xl bg-[#0B1020] border border-[#1A2238] pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-all duration-300;
 }
 
 .admin-action-group {
@@ -91,7 +49,7 @@
 }
 
 .admin-action-btn {
-  @apply flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors duration-300;
+  @apply flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#121826] border border-[#1A2238] text-gray-300 text-sm font-semibold hover:text-white hover:bg-white/5 transition-colors duration-300 cursor-pointer;
 }
 
 .admin-table-container {
@@ -103,123 +61,47 @@
 }
 
 .admin-table-thead-tr {
-  @apply text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] border-b border-gray-200 pb-3;
+  @apply text-gray-400 text-[10px] font-bold uppercase tracking-[0.25em] border-b border-[#1A2238] pb-3;
 }
 
 .admin-table-tr {
-  @apply hover:bg-black/[0.01] transition-colors duration-300;
+  @apply transition-colors duration-300;
+}
+
+.admin-table-tr:hover {
+  background-color: rgba(255, 255, 255, 0.015) !important;
 }
 
 .admin-table-tr:hover .admin-user-icon-wrapper {
-  @apply bg-red-50 text-red-500;
-}
-
-.admin-table-td-user {
-  @apply py-4 pr-6 flex items-center;
+  @apply bg-red-600/10 border-red-500/30 text-red-500;
 }
 
 .admin-user-icon-wrapper {
-  @apply w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mr-4 shrink-0 transition-all duration-300;
+  @apply w-10 h-10 rounded-xl bg-[#0B1020] border border-[#1A2238] flex items-center justify-center text-gray-500 mr-4 shrink-0 transition-all duration-300;
 }
 
-.admin-user-name {
-  @apply font-bold text-gray-900 text-base leading-tight;
+/* Modal styles overrides for users features */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto transition-all duration-300;
 }
 
-.admin-user-email {
-  @apply text-xs text-gray-400 mt-1 font-medium;
+.modal-content {
+  @apply bg-[#121826] border border-[#1A2238] rounded-2xl w-full max-w-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
 }
 
-.admin-table-td-val {
-  @apply py-4 px-3 font-bold text-gray-800 text-sm;
+.modal-header {
+  @apply flex items-center justify-between border-b border-[#1A2238] pb-4;
 }
 
-.admin-table-td-active {
-  @apply py-4 px-3 font-bold text-gray-600 text-sm;
+.modal-title {
+  @apply text-xl font-bold text-white uppercase tracking-wider;
 }
 
-.admin-badge-active {
-  @apply inline-flex px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/10;
+.modal-close-btn {
+  @apply text-gray-400 hover:text-white transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-white/5;
 }
 
-.admin-badge-suspended {
-  @apply inline-flex px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-600 border border-rose-500/10;
-}
-
-.admin-badge-inactive {
-  @apply inline-flex px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200;
-}
-
-.admin-table-actions-td {
-  @apply py-4 pr-6 text-right;
-}
-
-.admin-table-actions-group {
-  @apply inline-flex items-center gap-3;
-}
-
-.admin-btn-edit {
-  @apply text-gray-400 hover:text-gray-700 transition-colors duration-300;
-}
-
-.admin-btn-delete {
-  @apply text-gray-400 hover:text-red-500 transition-colors duration-300;
-}
-
-/* Modal Styling */
-.admin-modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm;
-}
-
-.admin-modal-container {
-  @apply bg-white border border-gray-200 rounded-lg max-w-md w-full overflow-hidden flex flex-col shadow-xl;
-}
-
-.admin-modal-header {
-  @apply flex justify-between items-center px-6 py-4 border-b border-gray-100;
-}
-
-.admin-modal-title {
-  @apply text-xl font-black text-gray-900 uppercase tracking-wider;
-}
-
-.admin-modal-close-btn {
-  @apply text-gray-400 hover:text-gray-700 transition duration-200;
-}
-
-.admin-modal-body {
-  @apply p-6 space-y-5;
-}
-
-.admin-form-group {
-  @apply flex flex-col gap-2;
-}
-
-.admin-form-label {
-  @apply text-xs font-bold uppercase tracking-[0.1em] text-gray-600;
-}
-
-.admin-form-input-wrapper {
-  @apply relative;
-}
-
-.admin-form-select {
-  @apply w-full rounded-lg bg-gray-50 border border-gray-200 px-3.5 py-2.5 text-sm text-gray-950 placeholder-gray-400 focus:outline-none focus:border-red-500/50 transition-all duration-200;
-}
-
-.admin-modal-footer {
-  @apply flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50;
-}
-
-.admin-modal-cancel-btn {
-  @apply px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-950 font-bold text-xs rounded-lg transition duration-200;
-}
-
-.admin-modal-save-btn {
-  @apply px-5 py-2.5 bg-red-600 hover:bg-[#d12c2c] text-white font-bold text-xs rounded-lg transition duration-200 flex items-center gap-2;
-}
-
-/* Custom cubic-bezier dropdown slide-down animation */
+/* Animations */
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
@@ -235,7 +117,6 @@
   animation: dropdownFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Custom cubic-bezier dropdown slide-up animation for bottom rows */
 @keyframes dropdownFadeInUp {
   from {
     opacity: 0;

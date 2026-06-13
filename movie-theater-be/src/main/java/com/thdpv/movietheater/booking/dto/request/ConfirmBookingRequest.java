@@ -20,13 +20,24 @@ public class ConfirmBookingRequest {
     @Valid
     private List<ComboItem> combos = new ArrayList<>();
 
+    private String promotionCode;
+
     public ConfirmBookingRequest() {
     }
 
-    public ConfirmBookingRequest(UUID showtimeUuid, List<UUID> seatUuids, List<ComboItem> combos) {
+    public ConfirmBookingRequest(UUID showtimeUuid, List<UUID> seatUuids, List<ComboItem> combos, String promotionCode) {
         this.showtimeUuid = showtimeUuid;
         this.seatUuids = seatUuids;
         this.combos = combos;
+        this.promotionCode = promotionCode;
+    }
+
+    public String getPromotionCode() {
+        return promotionCode;
+    }
+
+    public void setPromotionCode(String promotionCode) {
+        this.promotionCode = promotionCode;
     }
 
     public UUID getShowtimeUuid() {
