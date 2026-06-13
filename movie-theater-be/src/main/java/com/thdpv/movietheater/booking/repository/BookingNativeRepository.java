@@ -256,7 +256,8 @@ public class BookingNativeRepository {
                     cr.name,
                     b.total_price,
                     b.status,
-                    b.created_at
+                    b.created_at,
+                    u.avatar_url
                 from booking b
                 join users u on u.id = b.user_uuid
                 join showtime st on st.uuid = b.showtime_uuid

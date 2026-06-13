@@ -338,6 +338,7 @@ public class BookingService {
         return responses;
     }
 
+
     @Transactional(readOnly = true)
     public List<AdminBookingListResponse> getAdminBookings(String keyword) {
         List<Object[]> rows = bookingRepository.loadAdminBookings(keyword);
@@ -352,6 +353,7 @@ public class BookingService {
             BigDecimal totalPrice = toBigDecimal(row[5]);
             String status = stringValue(row[6]);
             OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
+            String customerAvatarUrl = stringValue(row[8]);
 
             // Load seats
             List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
@@ -379,7 +381,8 @@ public class BookingService {
                     combosStr,
                     totalPrice,
                     status,
-                    createdAt
+                    createdAt,
+                    customerAvatarUrl
             ));
         }
 
