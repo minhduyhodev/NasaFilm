@@ -18,6 +18,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Index;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 
 @Entity
 @Table(name = "cinema_room", indexes = {
@@ -36,8 +39,9 @@ public class CinemaRoom {
     @Column(name = "capacity")
     private Integer capacity;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private CinemaRoomStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cinema_uuid", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
@@ -49,7 +53,7 @@ public class CinemaRoom {
     public CinemaRoom() {
     }
 
-    public CinemaRoom(UUID uuid, String name, Integer capacity, String status, Cinema cinema) {
+    public CinemaRoom(UUID uuid, String name, Integer capacity, CinemaRoomStatus status, Cinema cinema) {
         this.uuid = uuid;
         this.name = name;
         this.capacity = capacity;
@@ -81,11 +85,11 @@ public class CinemaRoom {
         this.capacity = capacity;
     }
 
-    public String getStatus() {
+    public CinemaRoomStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(CinemaRoomStatus status) {
         this.status = status;
     }
 

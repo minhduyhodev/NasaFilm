@@ -27,6 +27,7 @@ import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRepository;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
@@ -402,7 +403,7 @@ public class DataSeeder implements CommandLineRunner {
         CinemaRoom room1 = new CinemaRoom();
         room1.setCinema(savedCinema);
         room1.setName("Phòng chiếu IMAX");
-        room1.setStatus("ACTIVE");
+        room1.setStatus(CinemaRoomStatus.ACTIVE);
         room1.setCapacity(0);
         CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
         logger.info("Seeded room: {}", savedRoom1.getName());
@@ -415,7 +416,7 @@ public class DataSeeder implements CommandLineRunner {
         CinemaRoom room2 = new CinemaRoom();
         room2.setCinema(savedCinema);
         room2.setName("Phòng chiếu 2");
-        room2.setStatus("ACTIVE");
+        room2.setStatus(CinemaRoomStatus.ACTIVE);
         room2.setCapacity(0);
         CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);
         logger.info("Seeded room: {}", savedRoom2.getName());

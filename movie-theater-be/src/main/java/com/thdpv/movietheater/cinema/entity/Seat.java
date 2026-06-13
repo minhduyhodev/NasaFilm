@@ -15,6 +15,9 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Index;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 
 @Entity
 @Table(
@@ -47,13 +50,14 @@ public class Seat {
     @Column(name = "seat_number", nullable = false)
     private Integer seatNumber;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private SeatStatus status;
 
     public Seat() {
     }
 
-    public Seat(UUID uuid, CinemaRoom cinemaRoom, SeatType seatType, String rowName, Integer seatNumber, String status) {
+    public Seat(UUID uuid, CinemaRoom cinemaRoom, SeatType seatType, String rowName, Integer seatNumber, SeatStatus status) {
         this.uuid = uuid;
         this.cinemaRoom = cinemaRoom;
         this.seatType = seatType;
@@ -102,11 +106,11 @@ public class Seat {
         this.seatNumber = seatNumber;
     }
 
-    public String getStatus() {
+    public SeatStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SeatStatus status) {
         this.status = status;
     }
 }

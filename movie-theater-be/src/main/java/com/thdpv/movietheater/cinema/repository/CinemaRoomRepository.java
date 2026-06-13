@@ -11,7 +11,7 @@ import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 @Repository
 public interface CinemaRoomRepository extends JpaRepository<CinemaRoom, UUID> {
     
-    List<CinemaRoom> findByCinema_UuidOrderByCreatedAtAsc(UUID cinemaUuid);
+    List<CinemaRoom> findByCinema_UuidOrderByNameAsc(UUID cinemaUuid);
 
     boolean existsByCinema_UuidAndNameIgnoreCase(UUID cinemaUuid, String name);
 }

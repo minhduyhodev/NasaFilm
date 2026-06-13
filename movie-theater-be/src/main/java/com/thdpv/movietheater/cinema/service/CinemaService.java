@@ -30,6 +30,8 @@ import com.thdpv.movietheater.cinema.repository.SeatRepository;
 import com.thdpv.movietheater.cinema.repository.SeatTypeRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -115,7 +117,7 @@ public class CinemaService {
         room.setCinema(cinema);
         room.setName(roomNameTrimmed);
         room.setCapacity(request.getCapacity() != null ? request.getCapacity() : 0);
-        room.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
+        room.setStatus(request.getStatus() != null ? request.getStatus() : CinemaRoomStatus.ACTIVE);
 
         CinemaRoom savedRoom = cinemaRoomRepository.save(room);
         return toCinemaRoomResponse(savedRoom);
@@ -129,7 +131,7 @@ public class CinemaService {
         String roomNameTrimmed = request.getName().trim();
         UUID cinemaUuid = room.getCinema().getUuid();
 
-        cinemaRoomRepository.findByCinema_UuidOrderByCreatedAtAsc(cinemaUuid).stream()
+        cinemaRoomRepository.findByCinema_UuidOrderByNameAsc(cinemaUuid).stream()
                 .filter(r -> r.getName().equalsIgnoreCase(roomNameTrimmed) && !r.getUuid().equals(roomUuid))
                 .findFirst()
                 .ifPresent(r -> {
@@ -139,7 +141,7 @@ public class CinemaService {
         room.setName(roomNameTrimmed);
         room.setCapacity(request.getCapacity() != null ? request.getCapacity() : room.getCapacity());
         if (request.getStatus() != null) {
-            room.setStatus(request.getStatus().trim().toUpperCase());
+            room.setStatus(request.getStatus());
         }
 
         CinemaRoom updatedRoom = cinemaRoomRepository.save(room);
@@ -151,7 +153,7 @@ public class CinemaService {
         if (!cinemaRepository.existsById(cinemaUuid)) {
             throw new AppException(ErrorCode.NOT_FOUND, "Rap phim khong ton tai");
         }
-        return cinemaRoomRepository.findByCinema_UuidOrderByCreatedAtAsc(cinemaUuid).stream()
+        return cinemaRoomRepository.findByCinema_UuidOrderByNameAsc(cinemaUuid).stream()
                 .map(this::toCinemaRoomResponse)
                 .collect(Collectors.toList());
     }
@@ -210,7 +212,7 @@ public class CinemaService {
                 seat.setSeatType(type);
                 seat.setRowName(rowStr);
                 seat.setSeatNumber(i);
-                seat.setStatus("AVAILABLE");
+                seat.setStatus(SeatStatus.ACTIVE);
                 seatsToSave.add(seat);
             }
         }
@@ -234,7 +236,7 @@ public class CinemaService {
         }
 
         if (request.getStatus() != null) {
-            seat.setStatus(request.getStatus().trim().toUpperCase());
+            seat.setStatus(request.getStatus());
         }
 
         Seat updatedSeat = seatRepository.save(seat);

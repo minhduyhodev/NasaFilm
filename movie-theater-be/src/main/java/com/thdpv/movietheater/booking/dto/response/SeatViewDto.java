@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.booking.dto.response;
 
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,7 +14,7 @@ public class SeatViewDto {
     private UUID seatUuid;
     private String rowName;
     private Integer seatNumber;
-    private String seatDbStatus;
+    private SeatStatus seatDbStatus;
     private UUID seatTypeUuid;
     private String seatTypeName;
     private BigDecimal basePrice;
@@ -26,7 +27,7 @@ public class SeatViewDto {
     }
 
     public SeatViewDto(UUID showtimeUuid, UUID cinemaRoomUuid, OffsetDateTime startTime, OffsetDateTime endTime,
-                       UUID seatUuid, String rowName, Integer seatNumber, String seatDbStatus, UUID seatTypeUuid,
+                       UUID seatUuid, String rowName, Integer seatNumber, SeatStatus seatDbStatus, UUID seatTypeUuid,
                        String seatTypeName, BigDecimal basePrice, BigDecimal priceModifier, UUID bookingSeatUuid,
                        UUID lockedUserUuid, OffsetDateTime lockedUntil) {
         this.showtimeUuid = showtimeUuid;
@@ -102,11 +103,11 @@ public class SeatViewDto {
         this.seatNumber = seatNumber;
     }
 
-    public String getSeatDbStatus() {
+    public SeatStatus getSeatDbStatus() {
         return seatDbStatus;
     }
 
-    public void setSeatDbStatus(String seatDbStatus) {
+    public void setSeatDbStatus(SeatStatus seatDbStatus) {
         this.seatDbStatus = seatDbStatus;
     }
 

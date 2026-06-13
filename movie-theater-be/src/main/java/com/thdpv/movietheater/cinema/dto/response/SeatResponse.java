@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.cinema.dto.response;
 
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 import java.util.UUID;
 
 public class SeatResponse {
@@ -7,14 +8,14 @@ public class SeatResponse {
     private UUID uuid;
     private String rowName;
     private Integer seatNumber;
-    private String status;
+    private SeatStatus status;
     private UUID seatTypeUuid;
     private String seatTypeName;
 
     public SeatResponse() {
     }
 
-    public SeatResponse(UUID uuid, String rowName, Integer seatNumber, String status, UUID seatTypeUuid, String seatTypeName) {
+    public SeatResponse(UUID uuid, String rowName, Integer seatNumber, SeatStatus status, UUID seatTypeUuid, String seatTypeName) {
         this.uuid = uuid;
         this.rowName = rowName;
         this.seatNumber = seatNumber;
@@ -47,11 +48,11 @@ public class SeatResponse {
         this.seatNumber = seatNumber;
     }
 
-    public String getStatus() {
+    public SeatStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SeatStatus status) {
         this.status = status;
     }
 

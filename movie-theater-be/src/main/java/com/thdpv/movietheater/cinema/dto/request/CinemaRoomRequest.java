@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.cinema.dto.request;
 
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -11,12 +12,12 @@ public class CinemaRoomRequest {
 
     private Integer capacity;
     
-    private String status;
+    private CinemaRoomStatus status;
 
     public CinemaRoomRequest() {
     }
 
-    public CinemaRoomRequest(String name, Integer capacity, String status) {
+    public CinemaRoomRequest(String name, Integer capacity, CinemaRoomStatus status) {
         this.name = name;
         this.capacity = capacity;
         this.status = status;
@@ -38,11 +39,11 @@ public class CinemaRoomRequest {
         this.capacity = capacity;
     }
 
-    public String getStatus() {
+    public CinemaRoomStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(CinemaRoomStatus status) {
         this.status = status;
     }
 }

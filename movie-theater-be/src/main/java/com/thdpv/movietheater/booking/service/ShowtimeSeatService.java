@@ -27,6 +27,8 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,6 +36,9 @@ import lombok.RequiredArgsConstructor;
 public class ShowtimeSeatService {
 
     private static final int LOCK_TTL_SECONDS = 300;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
@@ -133,7 +138,7 @@ public class ShowtimeSeatService {
         UUID seatUuid = row.getSeatUuid();
         String rowName = row.getRowName();
         Integer seatNumber = row.getSeatNumber();
-        String seatDbStatus = row.getSeatDbStatus();
+        String seatDbStatus = row.getSeatDbStatus() != null ? row.getSeatDbStatus().name() : null;
         UUID seatTypeUuid = row.getSeatTypeUuid();
         String seatTypeName = row.getSeatTypeName();
         BigDecimal basePrice = row.getBasePrice();

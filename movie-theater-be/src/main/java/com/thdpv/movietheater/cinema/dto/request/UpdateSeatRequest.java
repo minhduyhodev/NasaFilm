@@ -1,16 +1,17 @@
 package com.thdpv.movietheater.cinema.dto.request;
 
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 import java.util.UUID;
 
 public class UpdateSeatRequest {
 
     private UUID seatTypeUuid;
-    private String status;
+    private SeatStatus status;
 
     public UpdateSeatRequest() {
     }
 
-    public UpdateSeatRequest(UUID seatTypeUuid, String status) {
+    public UpdateSeatRequest(UUID seatTypeUuid, SeatStatus status) {
         this.seatTypeUuid = seatTypeUuid;
         this.status = status;
     }
@@ -23,11 +24,11 @@ public class UpdateSeatRequest {
         this.seatTypeUuid = seatTypeUuid;
     }
 
-    public String getStatus() {
+    public SeatStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SeatStatus status) {
         this.status = status;
     }
 }
