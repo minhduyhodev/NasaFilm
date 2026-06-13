@@ -25,6 +25,11 @@ import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
+import com.thdpv.movietheater.cinema.entity.Cinema;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.repository.CinemaRepository;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
+import com.thdpv.movietheater.cinema.service.CinemaService;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -41,6 +46,9 @@ public class DataSeeder implements CommandLineRunner {
     private final GenreRepository genreRepository;
     private final CountryRepository countryRepository;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final CinemaRepository cinemaRepository;
+    private final CinemaRoomRepository cinemaRoomRepository;
+    private final CinemaService cinemaService;
 
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
@@ -76,7 +84,10 @@ public class DataSeeder implements CommandLineRunner {
             MovieRepository movieRepository,
             GenreRepository genreRepository,
             CountryRepository countryRepository,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+            CinemaRepository cinemaRepository,
+            CinemaRoomRepository cinemaRoomRepository,
+            CinemaService cinemaService) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -85,6 +96,9 @@ public class DataSeeder implements CommandLineRunner {
         this.genreRepository = genreRepository;
         this.countryRepository = countryRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.cinemaRepository = cinemaRepository;
+        this.cinemaRoomRepository = cinemaRoomRepository;
+        this.cinemaService = cinemaService;
     }
 
     @Override
@@ -97,6 +111,7 @@ public class DataSeeder implements CommandLineRunner {
         seedGenres();
         seedCountries();
         seedMovies();
+        seedCinemasAndRooms();
     }
 
     private void createDummyTables() {
@@ -368,5 +383,45 @@ public class DataSeeder implements CommandLineRunner {
             this.isPrimary = isPrimary;
             this.sortOrder = sortOrder;
         }
+    }
+
+    private void seedCinemasAndRooms() {
+        if (cinemaRepository.count() > 0) {
+            return;
+        }
+
+        // Create Cinema
+        Cinema cinema = new Cinema();
+        cinema.setName("NASA Landmark 81");
+        cinema.setAddress("Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM");
+        cinema.setPhoneNumber("19001080");
+        Cinema savedCinema = cinemaRepository.save(cinema);
+        logger.info("Seeded cinema: {}", savedCinema.getName());
+
+        // Create Room 1 (matching default FE name)
+        CinemaRoom room1 = new CinemaRoom();
+        room1.setCinema(savedCinema);
+        room1.setName("Phòng chiếu IMAX");
+        room1.setStatus("ACTIVE");
+        room1.setCapacity(0);
+        CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
+        logger.info("Seeded room: {}", savedRoom1.getName());
+
+        // Auto-generate seats for Room 1 (NASA Standard Layout)
+        cinemaService.generateSeats(savedRoom1.getUuid(), null);
+        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom1.getName());
+
+        // Create Room 2
+        CinemaRoom room2 = new CinemaRoom();
+        room2.setCinema(savedCinema);
+        room2.setName("Phòng chiếu 2");
+        room2.setStatus("ACTIVE");
+        room2.setCapacity(0);
+        CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);
+        logger.info("Seeded room: {}", savedRoom2.getName());
+
+        // Auto-generate seats for Room 2 (NASA Standard Layout)
+        cinemaService.generateSeats(savedRoom2.getUuid(), null);
+        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom2.getName());
     }
 }

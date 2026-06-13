@@ -19,8 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRoomRequest;
+import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
+import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 
 import jakarta.validation.Valid;
@@ -90,8 +93,25 @@ public class CinemaController {
 
     @PostMapping("/admin/rooms/{roomUuid}/seats/generate")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    public ResponseEntity<ApiResponse<Void>> generateSeats(@PathVariable UUID roomUuid) {
-        cinemaService.generateNasaStandardSeats(roomUuid);
-        return ResponseEntity.ok(ApiResponse.success(null, "Sinh sơ đồ ghế chuẩn NASA thành công"));
+    public ResponseEntity<ApiResponse<Void>> generateSeats(
+            @PathVariable UUID roomUuid,
+            @RequestBody(required = false) GenerateSeatMapRequest request) {
+        cinemaService.generateSeats(roomUuid, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Sinh sơ đồ ghế thành công"));
+    }
+
+    @PutMapping("/admin/seats/{seatUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<SeatResponse>> updateSeat(
+            @PathVariable UUID seatUuid,
+            @Valid @RequestBody UpdateSeatRequest request) {
+        SeatResponse response = cinemaService.updateSeat(seatUuid, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/rooms/{roomUuid}/seats")
+    public ResponseEntity<ApiResponse<List<SeatResponse>>> getSeatsByRoom(@PathVariable UUID roomUuid) {
+        List<SeatResponse> response = cinemaService.getSeatsByRoom(roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

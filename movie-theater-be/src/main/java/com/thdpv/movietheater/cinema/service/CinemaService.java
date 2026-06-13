@@ -15,8 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRoomRequest;
+import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
+import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.entity.Seat;
@@ -154,7 +157,7 @@ public class CinemaService {
     }
 
     @Transactional
-    public void generateNasaStandardSeats(UUID roomUuid) {
+    public void generateSeats(UUID roomUuid, GenerateSeatMapRequest request) {
         CinemaRoom room = cinemaRoomRepository.findById(roomUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
 
@@ -162,25 +165,43 @@ public class CinemaService {
         seatRepository.deleteByCinemaRoomUuid(roomUuid);
 
         // Fetch or create standard seat types matching UI defaults
-        SeatType normalType = getOrCreateSeatType("Ghế Thường", "Ghe standard cho rap phim", new BigDecimal("85000"),
-                1.0);
+        SeatType normalType = getOrCreateSeatType("Ghế Thường", "Ghe standard cho rap phim", new BigDecimal("85000"), 1.0);
         SeatType vipType = getOrCreateSeatType("Ghế VIP", "Ghe VIP cho rap phim", new BigDecimal("120000"), 1.0);
         SeatType coupleType = getOrCreateSeatType("Ghế Đôi", "Ghe doi cho rap phim", new BigDecimal("160000"), 1.0);
 
-        char[] rows = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
+        int rowCount = (request != null && request.getRowCount() != null) ? request.getRowCount() : 8;
+        int seatsPerRow = (request != null && request.getSeatsPerRow() != null) ? request.getSeatsPerRow() : 12;
+
+        // Ensure reasonable limits
+        if (rowCount <= 0 || rowCount > 26 || seatsPerRow <= 0 || seatsPerRow > 30) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "So hang (1-26) hoac so ghe moi hang (1-30) khong hop le");
+        }
+
         List<Seat> seatsToSave = new ArrayList<>();
 
-        for (char row : rows) {
-            String rowStr = String.valueOf(row);
-            int count = (row == 'G' || row == 'H') ? 6 : 12; // 6 for couples, 12 for standard/VIP
-            SeatType type;
+        // Proportional layout configuration:
+        // - Last 1 row (or 2 rows if total rows >= 8) will be Couple seats
+        // - Middle rows (from 50% to the Couple rows) will be VIP seats
+        // - First rows will be Standard seats
+        int coupleRowsCount = (rowCount >= 8) ? 2 : 1;
+        int vipStartRowIndex = rowCount / 2; // e.g. 8 / 2 = row index 4 (E)
+        int coupleStartRowIndex = rowCount - coupleRowsCount; // e.g. 8 - 2 = row index 6 (G)
 
-            if (row >= 'A' && row <= 'D') {
-                type = normalType;
-            } else if (row >= 'E' && row <= 'F') {
+        for (int r = 0; r < rowCount; r++) {
+            char rowChar = (char) ('A' + r);
+            String rowStr = String.valueOf(rowChar);
+
+            SeatType type;
+            int count = seatsPerRow;
+
+            if (r >= coupleStartRowIndex) {
+                type = coupleType;
+                count = seatsPerRow / 2; // Couple seats take twice the width, so we generate half as many
+                if (count == 0) count = 1; // Ensure at least 1 seat
+            } else if (r >= vipStartRowIndex) {
                 type = vipType;
             } else {
-                type = coupleType;
+                type = normalType;
             }
 
             for (int i = 1; i <= count; i++) {
@@ -199,6 +220,46 @@ public class CinemaService {
         // Update capacity of room to reflect the actual generated count
         room.setCapacity(seatsToSave.size());
         cinemaRoomRepository.save(room);
+    }
+
+    @Transactional
+    public SeatResponse updateSeat(UUID seatUuid, UpdateSeatRequest request) {
+        Seat seat = seatRepository.findById(seatUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Ghe khong ton tai"));
+
+        if (request.getSeatTypeUuid() != null) {
+            SeatType seatType = seatTypeRepository.findById(request.getSeatTypeUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Loai ghe khong ton tai"));
+            seat.setSeatType(seatType);
+        }
+
+        if (request.getStatus() != null) {
+            seat.setStatus(request.getStatus().trim().toUpperCase());
+        }
+
+        Seat updatedSeat = seatRepository.save(seat);
+        return toSeatResponse(updatedSeat);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SeatResponse> getSeatsByRoom(UUID roomUuid) {
+        if (!cinemaRoomRepository.existsById(roomUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai");
+        }
+        return seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(roomUuid).stream()
+                .map(this::toSeatResponse)
+                .collect(Collectors.toList());
+    }
+
+    private SeatResponse toSeatResponse(Seat seat) {
+        return new SeatResponse(
+                seat.getUuid(),
+                seat.getRowName(),
+                seat.getSeatNumber(),
+                seat.getStatus(),
+                seat.getSeatType().getUuid(),
+                seat.getSeatType().getName()
+        );
     }
 
     private SeatType getOrCreateSeatType(String name, String description, BigDecimal basePrice, Double modifier) {
