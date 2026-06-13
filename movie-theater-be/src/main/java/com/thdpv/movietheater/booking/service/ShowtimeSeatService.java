@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thdpv.movietheater.booking.dto.request.SyncSeatLockRequest;
 import com.thdpv.movietheater.booking.dto.response.SeatLockSyncResponse;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
+import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -39,6 +41,7 @@ public class ShowtimeSeatService {
     private EntityManager entityManager;
 
     private final UserRepository userRepository;
+    private final ShowtimeRepository showtimeRepository;
 
     @Transactional(readOnly = true)
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -46,52 +49,19 @@ public class ShowtimeSeatService {
         UUID currentUserUuid = resolveCurrentUserUuid(currentUserEmail);
         Set<UUID> selectedSet = normalizeSelectedSeatUuids(selectedSeatUuids);
 
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery("""
-                select
-                    st.uuid as showtime_uuid,
-                    st.cinema_room_uuid,
-                    st.start_time,
-                    st.end_time,
-                    s.uuid as seat_uuid,
-                    s.row_name,
-                    s.seat_number,
-                    s.status as seat_db_status,
-                    stt.uuid as seat_type_uuid,
-                    stt.name as seat_type_name,
-                    stt.base_price,
-                    coalesce(stt.price_modifier, 1),
-                    bs.uuid as booking_seat_uuid,
-                    sl.user_uuid as locked_user_uuid,
-                    sl.expired_at as locked_until
-                from showtime st
-                join seat s on s.cinema_room_uuid = st.cinema_room_uuid
-                join seat_type stt on stt.uuid = s.seat_type_uuid
-                left join booking_seat bs
-                    on bs.showtime_uuid = st.uuid
-                   and bs.seat_uuid = s.uuid
-                left join seat_locked sl
-                    on sl.showtime_uuid = st.uuid
-                   and sl.seat_uuid = s.uuid
-                   and sl.expired_at > :now
-                where st.uuid = :showtimeUuid
-                order by s.row_name asc, s.seat_number asc
-                """)
-                .setParameter("showtimeUuid", showtimeUuid)
-                .setParameter("now", now)
-                .getResultList();
+        List<SeatViewDto> rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
 
         if (rows.isEmpty()) {
             throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
         }
 
-        UUID responseShowtimeUuid = toUuid(rows.get(0)[0]);
-        UUID cinemaRoomUuid = toUuid(rows.get(0)[1]);
-        OffsetDateTime startTime = toOffsetDateTime(rows.get(0)[2]);
-        OffsetDateTime endTime = toOffsetDateTime(rows.get(0)[3]);
+        UUID responseShowtimeUuid = rows.get(0).getShowtimeUuid();
+        UUID cinemaRoomUuid = rows.get(0).getCinemaRoomUuid();
+        OffsetDateTime startTime = rows.get(0).getStartTime();
+        OffsetDateTime endTime = rows.get(0).getEndTime();
 
         Map<String, List<SeatView>> seatRows = new LinkedHashMap<>();
-        for (Object[] row : rows) {
+        for (SeatViewDto row : rows) {
             SeatView seatView = mapSeatRow(row, currentUserUuid, selectedSet);
             seatRows.computeIfAbsent(seatView.rowName(), ignored -> new ArrayList<>())
                     .add(seatView);
@@ -164,18 +134,18 @@ public class ShowtimeSeatService {
                 requestedSeatUuids);
     }
 
-    private SeatView mapSeatRow(Object[] row, UUID currentUserUuid, Set<UUID> selectedSet) {
-        UUID seatUuid = toUuid(row[4]);
-        String rowName = stringValue(row[5]);
-        Integer seatNumber = toInteger(row[6]);
-        String seatDbStatus = stringValue(row[7]);
-        UUID seatTypeUuid = toUuid(row[8]);
-        String seatTypeName = stringValue(row[9]);
-        BigDecimal basePrice = toBigDecimal(row[10]);
-        BigDecimal priceModifier = toBigDecimal(row[11]);
-        boolean booked = row[12] != null;
-        UUID lockedUserUuid = toUuid(row[13]);
-        OffsetDateTime lockedUntil = toOffsetDateTime(row[14]);
+    private SeatView mapSeatRow(SeatViewDto row, UUID currentUserUuid, Set<UUID> selectedSet) {
+        UUID seatUuid = row.getSeatUuid();
+        String rowName = row.getRowName();
+        Integer seatNumber = row.getSeatNumber();
+        String seatDbStatus = row.getSeatDbStatus();
+        UUID seatTypeUuid = row.getSeatTypeUuid();
+        String seatTypeName = row.getSeatTypeName();
+        BigDecimal basePrice = row.getBasePrice();
+        BigDecimal priceModifier = row.getPriceModifier();
+        boolean booked = row.getBookingSeatUuid() != null;
+        UUID lockedUserUuid = row.getLockedUserUuid();
+        OffsetDateTime lockedUntil = row.getLockedUntil();
         boolean selected = selectedSet.contains(seatUuid);
 
         String availabilityStatus = resolveAvailabilityStatus(seatDbStatus, booked, lockedUserUuid, currentUserUuid);

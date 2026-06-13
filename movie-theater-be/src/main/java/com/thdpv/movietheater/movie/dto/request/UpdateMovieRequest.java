@@ -45,7 +45,7 @@ public class UpdateMovieRequest {
     }
 
     public UpdateMovieRequest(String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieMediaRequest> medias) {
+            String status, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieActorRequest> actors, List<MovieMediaRequest> medias) {
         this.title = title;
         this.description = description;
         this.durationMinutes = durationMinutes;
@@ -53,6 +53,7 @@ public class UpdateMovieRequest {
         this.status = status;
         this.genreUuids = genreUuids;
         this.countryUuids = countryUuids;
+        this.actors = actors;
         this.medias = medias;
     }
 
