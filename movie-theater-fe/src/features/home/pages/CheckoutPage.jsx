@@ -153,7 +153,6 @@ const CheckoutPage = () => {
     }
   }, [location.state?.lockExpiresAt]);
 
-  const bookingFee = 15000; // 15,000 đ internet fee
   const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
     uuid: "55555555-5555-5555-5555-555555555555",
     name: "Combo Bắp Nước",
@@ -166,7 +165,7 @@ const CheckoutPage = () => {
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
   
   const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + bookingFee + (hasCombo ? comboPrice : 0);
+  const subtotal = ticketSum + (hasCombo ? comboPrice : 0);
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -315,11 +314,7 @@ const CheckoutPage = () => {
                   </div>
                 ))}
 
-                {/* Booking Fee */}
-                <div className="flex justify-between items-center text-[#c8c5ca]">
-                  <span className="text-xs font-semibold">Phí giao dịch trực tuyến</span>
-                  <span className="text-xs font-bold text-white">{(bookingFee).toLocaleString('vi-VN')} đ</span>
-                </div>
+
 
                 {/* Combo pack selection toggle */}
                 <div className="pt-4 border-t border-white/5 space-y-3">
