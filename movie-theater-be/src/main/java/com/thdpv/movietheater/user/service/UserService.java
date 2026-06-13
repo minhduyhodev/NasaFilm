@@ -151,7 +151,8 @@ public class UserService {
                 user.getAuthProvider(),
                 user.getPhoneNumber(),
                 user.getDayOfBirth(),
-                user.getGender());
+                user.getGender(),
+                user.getScore());
     }
 
     @Transactional(readOnly = true)
@@ -199,5 +200,13 @@ public class UserService {
         newUserRole.setUser(user);
         newUserRole.setRole(role);
         userRoleRepository.save(newUserRole);
+    }
+
+    @Transactional
+    public void updateUserScore(UUID userId, Integer score) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        user.setScore(score);
+        userRepository.save(user);
     }
 }

@@ -15,10 +15,11 @@ public class UserProfileResponse {
     private String phoneNumber;
     private LocalDate dayOfBirth;
     private String gender;
+    private Integer score;
 
     public UserProfileResponse(UUID id, String email, String fullName,
             String avatarUrl, AuthProvider authProvider, String phoneNumber,
-            LocalDate dayOfBirth, String gender) {
+            LocalDate dayOfBirth, String gender, Integer score) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
@@ -27,6 +28,7 @@ public class UserProfileResponse {
         this.phoneNumber = phoneNumber;
         this.dayOfBirth = dayOfBirth;
         this.gender = gender;
+        this.score = score;
     }
 
     public UUID getId() {
@@ -59,5 +61,9 @@ public class UserProfileResponse {
 
     public String getGender() {
         return gender;
+    }
+
+    public Integer getScore() {
+        return score;
     }
 }

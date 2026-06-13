@@ -51,6 +51,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
           { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
           { to: '/admin/users', icon: 'group', label: 'Khách hàng' },
+          { to: '/admin/vouchers', icon: 'local_activity', label: 'Khuyến mãi' },
         ].map((item) => (
           <NavLink
             key={item.to}

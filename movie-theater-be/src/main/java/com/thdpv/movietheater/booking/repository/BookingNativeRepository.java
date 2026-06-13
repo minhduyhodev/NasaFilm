@@ -106,6 +106,22 @@ public class BookingNativeRepository {
         return combos;
     }
 
+    @SuppressWarnings("unchecked")
+    public List<ComboPrice> loadActiveCombos() {
+        List<Object[]> rows = entityManager.createNativeQuery("""
+                select uuid, name, price, status
+                from combo
+                where status = 'ACTIVE'
+                """)
+                .getResultList();
+
+        List<ComboPrice> combos = new ArrayList<>();
+        for (Object[] row : rows) {
+            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+        }
+        return combos;
+    }
+
     public List<SeatGapState> loadSeatGapStates(UUID showtimeUuid, OffsetDateTime now) {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery("""

@@ -31,6 +31,7 @@ import {
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
+import { promotionService } from "../../../shared/services/promotionService";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
@@ -49,6 +50,8 @@ export const ProfilePage = () => {
   const [profileData, setProfileData] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [vouchers, setVouchers] = useState([]);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -99,6 +102,23 @@ export const ProfilePage = () => {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      setIsLoadingVouchers(true);
+      try {
+        const data = await promotionService.getMyVouchers();
+        setVouchers(data || []);
+      } catch (err) {
+        console.error("Failed to load user vouchers:", err);
+      } finally {
+        setIsLoadingVouchers(false);
+      }
+    };
+    if (user) {
+      fetchVouchers();
+    }
+  }, [user]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -170,17 +190,14 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  // Mock points/loyalty
-  const loyaltyPoints = typeof user?.score === 'number' ? user.score : 1250;
-  const nextTierPoints = 2000;
+  // Loyalty levels based on ERD/UI standard (NASA'FRIEND and NASA'VIP)
+  const loyaltyPoints = profileData && typeof profileData.score === 'number'
+    ? profileData.score
+    : (user && typeof user.score === 'number' ? user.score : 0);
+  const nextTierPoints = 10000;
   const rawProgress = (loyaltyPoints / nextTierPoints) * 100;
-  const progressPercent = isNaN(rawProgress) ? 62.5 : Math.min(rawProgress, 100);
-  const loyaltyTier =
-    loyaltyPoints >= 2000
-      ? "Platinum Explorer"
-      : loyaltyPoints >= 1000
-        ? "Gold Navigator"
-        : "Silver Crew";
+  const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
+  const loyaltyTier = loyaltyPoints >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -350,23 +367,7 @@ export const ProfilePage = () => {
     },
   ];
 
-  // Predefined Mock Vouchers
-  const mockVouchers = [
-    {
-      code: "NASAFIRST",
-      title: "Giảm 50k cho vé đầu tiên",
-      desc: "Áp dụng cho tất cả các suất chiếu IMAX và 3D.",
-      expiry: "Hạn dùng: 30/06/2026",
-      type: "discount",
-    },
-    {
-      code: "SWEETCOMBO",
-      title: "Miễn phí 1 bắp ngọt vừa",
-      desc: "Nhận kèm khi mua từ 2 vé xem phim bất kỳ.",
-      expiry: "Hạn dùng: 15/07/2026",
-      type: "freebie",
-    },
-  ];
+  // Cleaned up mockVouchers array
 
   // Predefined Mock Transactions
   const mockTransactions = [];
@@ -508,12 +509,16 @@ export const ProfilePage = () => {
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
-                    <Star size={14} className="fill-current" />
-                    <Star size={14} className="text-zinc-800" />
+                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
                   </div>
                   
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Còn <span className="text-amber-400 font-bold">{nextTierPoints - loyaltyPoints} điểm</span> nữa để nâng cấp lên hạng thành viên Platinum Explorer.
+                    {loyaltyPoints >= 10000 ? (
+                      <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
+                    ) : (
+                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - loyaltyPoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -575,7 +580,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Gift size={20} />
-                    <span className="rail-badge">{mockVouchers.length}</span>
+                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
                   </div>
                   <span className="rail-label">Ưu đãi của tôi</span>
                 </button>
@@ -904,9 +909,15 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
-                            BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
-                          </button>
+                          {loyaltyPoints >= 10000 ? (
+                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                              HẠNG HIỆN TẠI: NASA'VIP
+                            </div>
+                          ) : (
+                            <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
+                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -986,9 +997,15 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                            CẦN TÍCH LŨY 10.000 ĐIỂM
-                          </div>
+                          {loyaltyPoints >= 10000 ? (
+                            <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
+                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
+                            </button>
+                          ) : (
+                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                              CẦN TÍCH LŨY 10.000 ĐIỂM
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1241,22 +1258,44 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="vouchers-grid">
-                      {mockVouchers.map((voucher) => (
-                        <div key={voucher.code} className="voucher-card">
-                          <div className="voucher-glow-dot" />
-                          <div className="voucher-icon-box">
-                            <Gift size={24} className="text-amber-500" />
+                      {vouchers.map((voucher) => {
+                        const formattedExpiry = voucher.endDate 
+                          ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}` 
+                          : 'Hạn dùng: Không thời hạn';
+                        
+                        return (
+                          <div key={voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
+                            <div className="voucher-glow-dot" />
+                            <div className="voucher-icon-box">
+                              <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                            </div>
+                            <div className="voucher-body text-left">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="voucher-code">{voucher.code}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  voucher.used 
+                                    ? 'bg-gray-800 text-gray-400' 
+                                    : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                }`}>
+                                  {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
+                                </span>
+                              </div>
+                              <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
+                              <p className="voucher-desc">
+                                {voucher.oncePerUser ? 'Áp dụng cho tài khoản đăng ký mới (1 lần duy nhất).' : 'Áp dụng cho tất cả các tài khoản.'}
+                              </p>
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                <span className="voucher-expiry">
+                                  {formattedExpiry}
+                                </span>
+                                <span className="font-semibold text-amber-500">
+                                  Còn lại: {voucher.oncePerUser ? (voucher.used ? 0 : 1) : (voucher.remainingUsage === 999 ? 'Nhiều' : voucher.remainingUsage)} lượt
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="voucher-body">
-                            <span className="voucher-code">{voucher.code}</span>
-                            <h4 className="voucher-title">{voucher.title}</h4>
-                            <p className="voucher-desc">{voucher.desc}</p>
-                            <span className="voucher-expiry">
-                              {voucher.expiry}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </motion.div>
                 )}

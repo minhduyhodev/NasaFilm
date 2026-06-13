@@ -17,6 +17,10 @@ const UsersPage = () => {
   
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [showPhoneNumbers, setShowPhoneNumbers] = useState(false);
+  const [selectedUserForScore, setSelectedUserForScore] = useState(null);
+  const [newScore, setNewScore] = useState(0);
+  const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
+  const [isUpdatingScore, setIsUpdatingScore] = useState(false);
 
   // Fetch users from Backend
   const fetchUsers = useCallback(async () => {
@@ -56,6 +60,39 @@ const UsersPage = () => {
       );
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  // Handle Score Change
+  const handleScoreChange = async (e) => {
+    e.preventDefault();
+    if (!selectedUserForScore) return;
+    
+    const scoreVal = parseInt(newScore, 10);
+    if (isNaN(scoreVal) || scoreVal < 0) {
+      addNotification('Lỗi', 'Điểm tích lũy phải là số nguyên lớn hơn hoặc bằng 0', 'error');
+      return;
+    }
+    
+    setIsUpdatingScore(true);
+    try {
+      await adminUserService.updateUserScore(selectedUserForScore.id, scoreVal);
+      addNotification(
+        'Cập nhật thành công',
+        `Cập nhật điểm thành công cho khách hàng: ${selectedUserForScore.fullName}`,
+        'success'
+      );
+      setIsScoreModalOpen(false);
+      setSelectedUserForScore(null);
+      fetchUsers(); // Refresh list
+    } catch (error) {
+      addNotification(
+        'Cập nhật thất bại',
+        error.message || 'Đã xảy ra lỗi khi cập nhật điểm người dùng.',
+        'error'
+      );
+    } finally {
+      setIsUpdatingScore(false);
     }
   };
 
@@ -256,10 +293,8 @@ const UsersPage = () => {
                   // Dynamic Member Tier calculation with glowing metallic badges
                   const getMemberTier = (score) => {
                     const points = score || 0;
-                    if (points >= 1000) return { label: 'VIP Member', class: 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' };
-                    if (points >= 500) return { label: 'Gold Member', class: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.1)]' };
-                    if (points >= 100) return { label: 'Silver Member', class: 'bg-slate-400/10 border-slate-400/30 text-slate-300' };
-                    return { label: 'Standard', class: 'bg-gray-800/60 border-gray-700 text-gray-400' };
+                    if (points >= 10000) return { label: "NASA'VIP", class: 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' };
+                    return { label: "NASA'FRIEND", class: 'bg-gray-800/60 border-gray-700 text-gray-400' };
                   };
                   const tier = getMemberTier(row.score);
                   const isLastRow = index >= filteredUsers.length - 2 && index > 0;
@@ -307,10 +342,24 @@ const UsersPage = () => {
                         )}
                       </td>
                       <td className="text-center py-4">
-                        <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-2 py-0.5 rounded-md text-xs font-bold">
-                          {row.score || 0}
-                        </span>
-                        <span className="text-gray-400 text-xs font-normal ml-1">Pts</span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-2 py-0.5 rounded-md text-xs font-bold">
+                            {row.score || 0}
+                          </span>
+                          <span className="text-gray-400 text-xs font-normal">Pts</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedUserForScore(row);
+                              setNewScore(row.score || 0);
+                              setIsScoreModalOpen(true);
+                            }}
+                            className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer inline-flex items-center justify-center focus:outline-none"
+                            title="Sửa điểm tích lũy"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                       <td className="text-center text-gray-400 font-semibold text-xs py-4">
                         {row.createdAt ? (() => {
@@ -399,6 +448,70 @@ const UsersPage = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Cập nhật Điểm */}
+      {isScoreModalOpen && selectedUserForScore && (
+        <div className="modal-overlay">
+          <div className="modal-content max-w-md animate-dropdown-fade-in">
+            <div className="modal-header">
+              <h2 className="modal-title">Cập nhật điểm</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsScoreModalOpen(false);
+                  setSelectedUserForScore(null);
+                }}
+                className="modal-close-btn"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleScoreChange} className="space-y-6">
+              <div>
+                <p className="text-sm text-gray-400 mb-2">
+                  Khách hàng: <strong className="text-white">{selectedUserForScore.fullName}</strong>
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Email: {selectedUserForScore.email}
+                </p>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  Điểm tích lũy mới
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                  value={newScore}
+                  onChange={(e) => setNewScore(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#1A2238]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsScoreModalOpen(false);
+                    setSelectedUserForScore(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-[#1A2238] text-gray-300 text-sm font-semibold hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingScore}
+                  className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdatingScore && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Lưu thay đổi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

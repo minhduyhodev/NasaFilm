@@ -26,13 +26,17 @@ class BookingService {
     }
   }
 
-  async confirmBooking(showtimeUuid, seatUuids, combos = []) {
+  async confirmBooking(showtimeUuid, seatUuids, combos = [], promotionCode = null) {
     try {
-      const response = await authService.api.post('/api/bookings/confirm', {
+      const payload = {
         showtimeUuid,
         seatUuids,
         combos
-      });
+      };
+      if (promotionCode) {
+        payload.promotionCode = promotionCode;
+      }
+      const response = await authService.api.post('/api/bookings/confirm', payload);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

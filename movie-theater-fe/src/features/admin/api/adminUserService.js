@@ -29,6 +29,15 @@ class AdminUserService {
       throw authService.handleError(error);
     }
   }
+
+  async updateUserScore(userId, score) {
+    try {
+      const response = await authService.api.put(`/api/admin/users/${userId}/score`, { score });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const adminUserService = new AdminUserService();

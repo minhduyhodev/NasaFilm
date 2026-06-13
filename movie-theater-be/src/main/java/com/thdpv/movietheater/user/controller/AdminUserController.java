@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
 import com.thdpv.movietheater.user.dto.UpdateRoleRequest;
+import com.thdpv.movietheater.user.dto.UpdateScoreRequest;
 import com.thdpv.movietheater.user.dto.UpdateStatusRequest;
 import com.thdpv.movietheater.user.service.UserService;
 
@@ -53,5 +54,13 @@ public class AdminUserController {
             @Valid @RequestBody UpdateRoleRequest request) {
         userService.updateUserRole(id, request.getRoleName());
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật vai trò người dùng thành công"));
+    }
+
+    @PutMapping("/{id}/score")
+    public ResponseEntity<ApiResponse<Void>> updateUserScore(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody UpdateScoreRequest request) {
+        userService.updateUserScore(id, request.getScore());
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật điểm tích lũy thành công"));
     }
 }

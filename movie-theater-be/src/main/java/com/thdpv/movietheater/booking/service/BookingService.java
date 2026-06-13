@@ -36,6 +36,9 @@ import com.thdpv.movietheater.booking.repository.TicketRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.booking.entity.Promotion;
+import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.user.entity.User;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +56,7 @@ public class BookingService {
     private final BookingComboRepository bookingComboRepository;
     private final TicketRepository ticketRepository;
     private final BookingNativeRepository bookingRepository;
+    private final PromotionRepository promotionRepository;
 
     @Transactional
     public BookingResponse confirmBooking(String currentUserEmail, ConfirmBookingRequest request) {
@@ -77,13 +81,70 @@ public class BookingService {
         BigDecimal seatTotal = lockedSeats.stream()
                 .map(LockedSeat::price)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal comboTotal = combos.stream()
-                .map(ResolvedCombo::lineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalPrice = seatTotal.add(comboTotal);
+
+        // Calculate combo discount based on member loyalty points (NASA'VIP >= 10000 gets 15% off, NASA'FRIEND gets 10% off)
+        Integer userScore = userRepository.findById(userUuid)
+                .map(User::getScore)
+                .orElse(0);
+        BigDecimal comboDiscountRate = userScore >= 10000 ? BigDecimal.valueOf(0.85) : BigDecimal.valueOf(0.90);
+
+        BigDecimal comboTotal = BigDecimal.ZERO;
+        List<ResolvedCombo> discountedResolvedCombos = new ArrayList<>();
+        for (ResolvedCombo combo : combos) {
+            BigDecimal discountedLineTotal = combo.lineTotal().multiply(comboDiscountRate).setScale(0, RoundingMode.HALF_UP);
+            comboTotal = comboTotal.add(discountedLineTotal);
+            discountedResolvedCombos.add(new ResolvedCombo(combo.comboUuid(), combo.name(), combo.quantity(), discountedLineTotal));
+        }
+
+        // Apply Promotion Code
+        UUID promotionUuid = null;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
+            Promotion promotion = promotionRepository.findByCodeIgnoreCase(request.getPromotionCode().trim())
+                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
+
+            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
+            }
+
+            if (promotion.getStartDate() != null && now.isBefore(promotion.getStartDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
+            }
+
+            if (promotion.getEndDate() != null && now.isAfter(promotion.getEndDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
+            }
+
+            if (promotion.getMaxUsage() != null && promotion.getUsedCount() != null
+                    && promotion.getUsedCount() >= promotion.getMaxUsage()) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
+            }
+
+            if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
+                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+                if (alreadyUsed) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
+                }
+            }
+
+            promotionUuid = promotion.getId();
+            if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
+                // Percentage discount applies to ticket sum (seatTotal)
+                discountAmount = seatTotal.multiply(promotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(promotion.getDiscountType())) {
+                // Fixed amount discount applies directly
+                discountAmount = promotion.getDiscountValue();
+            }
+        }
+
+        BigDecimal subtotal = seatTotal.add(comboTotal);
+        BigDecimal totalPrice = subtotal.subtract(discountAmount);
+        if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            totalPrice = BigDecimal.ZERO;
+        }
 
         UUID bookingUuid = UUID.randomUUID();
-        bookingJpaRepository.save(new Booking(
+        Booking booking = new Booking(
                 bookingUuid,
                 userUuid,
                 request.getShowtimeUuid(),
@@ -93,7 +154,17 @@ public class BookingService {
                 now,
                 now,
                 userUuid,
-                userUuid));
+                userUuid);
+        booking.setPromotionUuid(promotionUuid);
+        bookingJpaRepository.save(booking);
+
+        if (promotionUuid != null) {
+            Promotion promotion = promotionRepository.findById(promotionUuid).orElse(null);
+            if (promotion != null) {
+                promotion.setUsedCount(promotion.getUsedCount() + 1);
+                promotionRepository.save(promotion);
+            }
+        }
 
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
         List<BookingResponse.TicketLine> ticketLines = new ArrayList<>();
@@ -117,7 +188,7 @@ public class BookingService {
         }
 
         List<BookingResponse.ComboLine> comboLines = new ArrayList<>();
-        for (ResolvedCombo combo : combos) {
+        for (ResolvedCombo combo : discountedResolvedCombos) {
             bookingComboRepository.save(new BookingCombo(
                     UUID.randomUUID(), bookingUuid, combo.comboUuid(), combo.quantity(), combo.lineTotal()));
             comboLines.add(new BookingResponse.ComboLine(

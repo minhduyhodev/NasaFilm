@@ -9,6 +9,7 @@ const BookingsPage = lazy(() => import('../pages/BookingsPage'));
 const ShowtimesPage = lazy(() => import('../pages/ShowtimesPage'));
 const CinemasPage = lazy(() => import('../pages/CinemasPage'));
 const UsersPage = lazy(() => import('../pages/UsersPage'));
+const VouchersPage = lazy(() => import('../pages/VouchersPage'));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -28,6 +29,7 @@ export const AdminRoutes = () => {
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="vouchers" element={<VouchersPage />} />
         </Route>
       </Routes>
     </Suspense>
