@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +51,9 @@ public class BookingService {
     private static final String BOOKING_STATUS_CONFIRMED = "CONFIRMED";
     private static final String TICKET_STATUS_ISSUED = "ISSUED";
 
+    @Value("${app.showtime.auto-slide-enabled:false}")
+    private boolean autoSlideEnabled;
+
     private final UserRepository userRepository;
     private final BookingRepository bookingJpaRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -65,7 +69,10 @@ public class BookingService {
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
         Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
 
-        assertShowtimeExists(request.getShowtimeUuid());
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        }
+        assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
         List<LockedSeat> lockedSeats = bookingRepository.lockActiveSeatsForConfirm(
@@ -215,9 +222,27 @@ public class BookingService {
                 ticketLines);
     }
 
-    private void assertShowtimeExists(UUID showtimeUuid) {
+    private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
         if (!bookingRepository.existsShowtime(showtimeUuid)) {
             throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(showtimeUuid);
+        if (startTime != null && startTime.isBefore(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
+        }
+    }
+
+    private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
+        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(showtimeUuid);
+        if (startTime != null && startTime.isBefore(now)) {
+            long daysToAdd = 0;
+            OffsetDateTime temp = startTime;
+            while (temp.isBefore(now)) {
+                temp = temp.plusDays(1);
+                daysToAdd++;
+            }
+            OffsetDateTime newStart = startTime.plusDays(daysToAdd);
+            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
         }
     }
 
@@ -255,11 +280,12 @@ public class BookingService {
         Map<String, List<GapSeat>> seatsByRow = new LinkedHashMap<>();
 
         for (SeatGapState state : bookingRepository.loadSeatGapStates(showtimeUuid, now)) {
-            boolean unavailable = selectedSeatUuidSet.contains(state.seatUuid())
+            boolean selectedByUser = selectedSeatUuidSet.contains(state.seatUuid());
+            boolean unavailable = selectedByUser
                     || state.booked()
                     || state.locked()
                     || (state.seatStatus() != null && !"ACTIVE".equalsIgnoreCase(state.seatStatus()));
-            GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable);
+            GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable, selectedByUser);
             seatsByRow.computeIfAbsent(gapSeat.rowName(), ignored -> new ArrayList<>()).add(gapSeat);
         }
 
@@ -272,12 +298,21 @@ public class BookingService {
                     segmentEnd++;
                 }
 
-                for (int i = segmentStart + 1; i < segmentEnd; i++) {
+                for (int i = segmentStart; i <= segmentEnd; i++) {
                     GapSeat current = rowSeats.get(i);
-                    if (!current.unavailable()
-                            && rowSeats.get(i - 1).unavailable()
-                            && rowSeats.get(i + 1).unavailable()) {
-                        throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
+                    if (current.unavailable()) {
+                        continue;
+                    }
+
+                    boolean leftUnavailable = (i == segmentStart) || rowSeats.get(i - 1).unavailable();
+                    boolean rightUnavailable = (i == segmentEnd) || rowSeats.get(i + 1).unavailable();
+
+                    if (leftUnavailable && rightUnavailable) {
+                        boolean leftSelectedByUser = (i != segmentStart) && rowSeats.get(i - 1).selectedByUser();
+                        boolean rightSelectedByUser = (i != segmentEnd) && rowSeats.get(i + 1).selectedByUser();
+                        if (leftSelectedByUser || rightSelectedByUser) {
+                            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
+                        }
                     }
                 }
                 segmentStart = segmentEnd + 1;
@@ -299,6 +334,9 @@ public class BookingService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
+        if (normalized.size() > 8) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        }
         return new ArrayList<>(normalized);
     }
 
@@ -308,6 +346,9 @@ public class BookingService {
         }
         Map<UUID, Integer> comboQuantities = new LinkedHashMap<>();
         for (ConfirmBookingRequest.ComboItem item : comboItems) {
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "So luong combo phai lon hon 0");
+            }
             comboQuantities.merge(item.getComboUuid(), item.getQuantity(), Integer::sum);
         }
         return comboQuantities;
@@ -380,6 +421,7 @@ public class BookingService {
         return responses;
     }
 
+
     @Transactional(readOnly = true)
     public List<AdminBookingListResponse> getAdminBookings(String keyword) {
         List<Object[]> rows = bookingRepository.loadAdminBookings(keyword);
@@ -394,6 +436,7 @@ public class BookingService {
             BigDecimal totalPrice = toBigDecimal(row[5]);
             String status = stringValue(row[6]);
             OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
+            String customerAvatarUrl = stringValue(row[8]);
 
             // Load seats
             List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
@@ -421,7 +464,8 @@ public class BookingService {
                     combosStr,
                     totalPrice,
                     status,
-                    createdAt
+                    createdAt,
+                    customerAvatarUrl
             ));
         }
 
@@ -468,6 +512,6 @@ public class BookingService {
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
     }
 
-    private record GapSeat(String rowName, Integer seatNumber, boolean unavailable) {
+    private record GapSeat(String rowName, Integer seatNumber, boolean unavailable, boolean selectedByUser) {
     }
 }

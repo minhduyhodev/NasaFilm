@@ -15,6 +15,7 @@ public class AdminBookingListResponse {
     private BigDecimal totalPrice;
     private String status;
     private OffsetDateTime createdAt;
+    private String customerAvatarUrl;
 
     public AdminBookingListResponse() {
     }
@@ -31,6 +32,21 @@ public class AdminBookingListResponse {
         this.totalPrice = totalPrice;
         this.status = status;
         this.createdAt = createdAt;
+    }
+
+    public AdminBookingListResponse(UUID bookingUuid, String customerName, String customerEmail, String movieTitle,
+            String cinemaRoomName, String seats, String combos, BigDecimal totalPrice, String status, OffsetDateTime createdAt, String customerAvatarUrl) {
+        this.bookingUuid = bookingUuid;
+        this.customerName = customerName;
+        this.customerEmail = customerEmail;
+        this.movieTitle = movieTitle;
+        this.cinemaRoomName = cinemaRoomName;
+        this.seats = seats;
+        this.combos = combos;
+        this.totalPrice = totalPrice;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.customerAvatarUrl = customerAvatarUrl;
     }
 
     public UUID getBookingUuid() {
@@ -111,5 +127,13 @@ public class AdminBookingListResponse {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCustomerAvatarUrl() {
+        return customerAvatarUrl;
+    }
+
+    public void setCustomerAvatarUrl(String customerAvatarUrl) {
+        this.customerAvatarUrl = customerAvatarUrl;
     }
 }

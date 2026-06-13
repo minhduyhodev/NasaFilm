@@ -55,11 +55,50 @@ const MovieDetailPage = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  const getDynamicDates = () => {
+    const dates = [];
+    const daysOfWeek = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const now = new Date();
+    
+    for (let i = 0; i < 4; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() + i);
+      
+      const dayName = i === 0 ? 'Hôm nay' : daysOfWeek[d.getDay()];
+      const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+      
+      dates.push({
+        id: i === 0 ? 'today' : i === 1 ? 'fri' : i === 2 ? 'sat' : 'sun',
+        label: `${dayName}, ${dateStr}`,
+        fullDateText: `${dayName}, ${dateStr}`
+      });
+    }
+    return dates;
+  };
+
+  const dynamicDates = getDynamicDates();
+
   const dateMap = {
-    today: 'Hôm nay, 10/06',
-    fri: 'Thứ 5, 11/06',
-    sat: 'Thứ 6, 12/06',
-    sun: 'Thứ 7, 13/06'
+    today: dynamicDates[0].fullDateText,
+    fri: dynamicDates[1].fullDateText,
+    sat: dynamicDates[2].fullDateText,
+    sun: dynamicDates[3].fullDateText
+  };
+
+  const checkIfTimeInPastForTab = (timeStr, tabId) => {
+    if (tabId !== 'today') return false;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    
+    if (currentHours > hours) return true;
+    if (currentHours === hours && currentMinutes >= minutes) return true;
+    return false;
+  };
+
+  const isTimeInPast = (timeStr) => {
+    return checkIfTimeInPastForTab(timeStr, activeDateTab);
   };
 
   if (isLoading) {
@@ -335,15 +374,18 @@ const MovieDetailPage = () => {
               
               {/* Date Tabs */}
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {[
-                  { id: 'today', label: 'Hôm nay, 10/06' },
-                  { id: 'fri', label: 'Thứ 5, 11/06' },
-                  { id: 'sat', label: 'Thứ 6, 12/06' },
-                  { id: 'sun', label: 'Thứ 7, 13/06' }
-                ].map((date) => (
+                {dynamicDates.map((date) => (
                   <button
                     key={date.id}
-                    onClick={() => setActiveDateTab(date.id)}
+                    onClick={() => {
+                      setActiveDateTab(date.id);
+                      if (selectedShowtime) {
+                        const isPast = checkIfTimeInPastForTab(selectedShowtime.time, date.id);
+                        if (isPast) {
+                          setSelectedShowtime(null);
+                        }
+                      }
+                    }}
                     className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                       activeDateTab === date.id 
                         ? 'bg-red-600 text-white shadow-lg shadow-red-600/15' 
@@ -375,7 +417,7 @@ const MovieDetailPage = () => {
                 <div className="flex flex-wrap gap-2.5">
                   {['11:00', '13:45', '16:30', '19:15', '21:00', '22:45'].map((time) => {
                     const isSelected = selectedShowtime?.cinema === 'IMAX' && selectedShowtime?.time === time;
-                    const isDisabled = time === '21:00'; // mock disabled
+                    const isDisabled = isTimeInPast(time) || time === '21:00';
                     return (
                       <button
                         key={time}
@@ -414,14 +456,18 @@ const MovieDetailPage = () => {
                 <div className="flex flex-wrap gap-2.5">
                   {['12:30', '15:15', '18:00', '20:45'].map((time) => {
                     const isSelected = selectedShowtime?.cinema === 'GOLD' && selectedShowtime?.time === time;
+                    const isDisabled = isTimeInPast(time);
                     return (
                       <button
                         key={time}
-                        onClick={() => handleShowtimeClick('GOLD', time)}
+                        onClick={() => !isDisabled && handleShowtimeClick('GOLD', time)}
+                        disabled={isDisabled}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                           isSelected 
                             ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
-                            : 'text-yellow-500/80 hover:text-yellow-500 hover:bg-yellow-500/5'
+                            : isDisabled
+                              ? 'text-gray-700 cursor-not-allowed opacity-20'
+                              : 'text-yellow-500/80 hover:text-yellow-500 hover:bg-yellow-500/5'
                         }`}
                       >
                         {time}

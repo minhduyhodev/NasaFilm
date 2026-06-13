@@ -81,6 +81,8 @@ const BookingPage = () => {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasGapViolation, setHasGapViolation] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
 
   const selectedSeatsRef = React.useRef([]);
   useEffect(() => {
@@ -96,11 +98,23 @@ const BookingPage = () => {
       if (data && data.rows) {
         setSeatRows(data.rows);
         
+        let gapFound = false;
+        let expiresAtVal = null;
+        
         // Synchronize selected seats from BE response (seats marked selected: true or locked by me)
         const newSelected = [];
         data.rows.forEach(row => {
           row.seats.forEach(seat => {
+            if (seat.blocked) {
+              gapFound = true;
+            }
             if (seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME') {
+              if (seat.lockedUntil) {
+                const seatExpire = new Date(seat.lockedUntil).getTime();
+                if (!expiresAtVal || seatExpire > expiresAtVal) {
+                  expiresAtVal = seatExpire;
+                }
+              }
               let vietnameseType = 'Ghế Thường';
               if (seat.seatTypeName === 'VIP') vietnameseType = 'Ghế VIP';
               if (seat.seatTypeName === 'COUPLE') vietnameseType = 'Ghế Đôi';
@@ -117,6 +131,14 @@ const BookingPage = () => {
           });
         });
         setSelectedSeats(newSelected);
+        setHasGapViolation(gapFound);
+        
+        if (expiresAtVal) {
+          const secondsLeft = Math.max(0, Math.floor((expiresAtVal - Date.now()) / 1000));
+          setTimeLeft(secondsLeft);
+        } else {
+          setTimeLeft(null);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch seat map:", err);
@@ -125,6 +147,29 @@ const BookingPage = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (timeLeft === null) return;
+    if (timeLeft === 0) {
+      const handleTimeout = async () => {
+        try {
+          await bookingService.syncSeatLocks(showtimeUuid, []);
+          setSelectedSeats([]);
+          setHasGapViolation(false);
+          setTimeLeft(null);
+          notificationService.error("Hết thời gian giữ ghế. Vui lòng chọn lại.");
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      handleTimeout();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [timeLeft, showtimeUuid]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -140,6 +185,11 @@ const BookingPage = () => {
 
   const handleSeatClick = async (seat, rowName) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
+    if (!isAlreadySelected && selectedSeats.length >= 8) {
+      notificationService.error("Bạn chỉ được chọn tối đa 8 ghế trong một lần đặt.");
+      return;
+    }
+
     let nextSelectedUuids = [];
     if (isAlreadySelected) {
       nextSelectedUuids = selectedSeats.filter(s => s.seatUuid !== seat.seatUuid).map(s => s.seatUuid);
@@ -172,7 +222,8 @@ const BookingPage = () => {
           date,
           showtime,
           selectedSeats,
-          totalAmount
+          totalAmount,
+          lockExpiresAt: timeLeft !== null ? Date.now() + (timeLeft * 1000) : null
         }
       });
     }, 800);
@@ -191,6 +242,8 @@ const BookingPage = () => {
       seatClass += ' occupied';
     } else if (isSelected) {
       seatClass += ' selected';
+    } else if (seat.blocked) {
+      seatClass += ' blocked';
     }
 
     return (
@@ -290,6 +343,14 @@ const BookingPage = () => {
             })}
           </div>
 
+          {/* Gap Violation Warning */}
+          {hasGapViolation && (
+            <div className="w-full mt-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in">
+              <span className="material-symbols-outlined text-sm">warning</span>
+              <span>Không được để trống 1 ghế đơn bị kẹp giữa các ghế đã chọn/đã đặt. Vui lòng chọn ghế trống đó hoặc thay đổi vị trí ghế.</span>
+            </div>
+          )}
+
           {/* Legend */}
           <div className="flex flex-wrap justify-center gap-6 mt-8 glass-panel p-6 rounded-xl w-full border border-white/5 bg-[#121215]/50">
             <div className="flex items-center gap-2.5">
@@ -314,6 +375,10 @@ const BookingPage = () => {
               <div className="w-9 h-6 bg-white border border-white rounded-lg flex items-center justify-center text-[9px] font-bold text-black shadow-[0_0_10px_rgba(255,255,255,0.5)]">1</div>
               <span className="text-xs font-bold text-gray-300">Đang chọn</span>
             </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-6 border-2 border-dashed border-red-500 bg-red-500/5 rounded-lg flex items-center justify-center text-[9px] font-bold text-red-500">1</div>
+              <span className="text-xs font-bold text-gray-300">Cảnh báo khe hở</span>
+            </div>
              <div className="flex items-center gap-2.5">
               <div className="w-9 h-6 border-2 border-emerald-500/40 bg-emerald-500/10 rounded-lg"></div>
               <span className="text-xs font-bold text-gray-300">Vùng trung tâm</span>
@@ -324,6 +389,18 @@ const BookingPage = () => {
         {/* Right Column: Summary Panel */}
         <aside className="lg:col-span-4">
           <div className="glass-panel p-6 rounded-2xl flex flex-col h-full sticky top-28 border border-white/5 bg-[#111215]/40 shadow-2xl">
+            {timeLeft !== null && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold mb-4 animate-pulse">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  <span>Thời gian giữ ghế:</span>
+                </div>
+                <span className="font-mono text-sm font-black">
+                  {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            )}
+
             {/* Movie Details */}
             <div className="flex gap-4 mb-6 border-b border-white/10 pb-6 items-start">
               <img 
@@ -374,16 +451,22 @@ const BookingPage = () => {
               
               <button 
                 onClick={handleConfirm}
-                disabled={selectedSeats.length === 0 || isConfirming}
+                disabled={selectedSeats.length === 0 || hasGapViolation || isConfirming}
                 className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
-                  selectedSeats.length === 0 
+                  selectedSeats.length === 0 || hasGapViolation
                     ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5' 
                     : isConfirming
                       ? 'bg-red-700 text-white cursor-wait opacity-80'
                       : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] cursor-pointer active:scale-[0.98]'
                 }`}
               >
-                {isConfirming ? 'Đang xử lý...' : selectedSeats.length === 0 ? 'Xác nhận ghế' : `Xác nhận đặt (${selectedSeats.length} ghế)`}
+                {isConfirming 
+                  ? 'Đang xử lý...' 
+                  : hasGapViolation 
+                    ? 'Lỗi khoảng trống ghế' 
+                    : selectedSeats.length === 0 
+                      ? 'Xác nhận ghế' 
+                      : `Xác nhận đặt (${selectedSeats.length} ghế)`}
               </button>
             </div>
           </div>

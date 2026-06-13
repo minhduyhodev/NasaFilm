@@ -272,7 +272,8 @@ public class BookingNativeRepository {
                     cr.name,
                     b.total_price,
                     b.status,
-                    b.created_at
+                    b.created_at,
+                    u.avatar_url
                 from booking b
                 join users u on u.id = b.user_uuid
                 join showtime st on st.uuid = b.showtime_uuid
@@ -341,6 +342,37 @@ public class BookingNativeRepository {
             return date.toInstant().atOffset(ZoneOffset.UTC);
         }
         return OffsetDateTime.parse(value.toString());
+    }
+
+    public OffsetDateTime getShowtimeStartTime(UUID showtimeUuid) {
+        @SuppressWarnings("unchecked")
+        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getResultList();
+        if (rows.isEmpty()) {
+            return null;
+        }
+        return toOffsetDateTime(rows.get(0));
+    }
+
+    public void slideShowtime(UUID showtimeUuid, OffsetDateTime newStart, long daysToAdd) {
+        entityManager.createNativeQuery("""
+                update showtime
+                set start_time = :newStart,
+                    end_time = end_time + interval '1 day' * :daysToAdd
+                where uuid = :showtimeUuid
+                """)
+                .setParameter("newStart", newStart)
+                .setParameter("daysToAdd", daysToAdd)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+        entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
     }
 
     public record LockedSeat(UUID seatUuid, String rowName, Integer seatNumber, BigDecimal price) {

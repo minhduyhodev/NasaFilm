@@ -6,13 +6,10 @@ export const sleep = (ms) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-export const debounce = <T extends (...args[]) => any>(
-  func: T,
-  wait
-): ((...args: Parameters<T>) => void) => {
-  let timeout: NodeJS.Timeout;
+export const debounce = (func, wait) => {
+  let timeout;
 
-  return function executedFunction(...args: Parameters<T>) {
+  return function executedFunction(...args) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -23,13 +20,10 @@ export const debounce = <T extends (...args[]) => any>(
   };
 };
 
-export const throttle = <T extends (...args[]) => any>(
-  func: T,
-  limit
-): ((...args: Parameters<T>) => void) => {
+export const throttle = (func, limit) => {
   let inThrottle;
 
-  return function executedFunction(...args: Parameters<T>) {
+  return function executedFunction(...args) {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;

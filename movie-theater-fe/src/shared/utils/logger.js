@@ -18,7 +18,7 @@ const getTimestamp = () => {
   return new Date().toLocaleTimeString();
 };
 
-const formatMessage = (level: LogLevel, message, data?) => {
+const formatMessage = (level, message, data) => {
   const timestamp = getTimestamp();
   const color = colors[level];
   const prefix = `${color}[${timestamp}] [${level.toUpperCase()}]${colors.reset}`;
@@ -30,21 +30,21 @@ const formatMessage = (level: LogLevel, message, data?) => {
 };
 
 export const logger = {
-  debug: (message, data?) => {
+  debug: (message, data) => {
     if (isDevelopment) {
       console.debug(formatMessage('debug', message, data), data);
     }
   },
 
-  info: (message, data?) => {
+  info: (message, data) => {
     console.log(formatMessage('info', message, data), data);
   },
 
-  warn: (message, data?) => {
+  warn: (message, data) => {
     console.warn(formatMessage('warn', message, data), data);
   },
 
-  error: (message, error?: Error | any) => {
+  error: (message, error) => {
     console.error(formatMessage('error', message, error), error);
   },
 };

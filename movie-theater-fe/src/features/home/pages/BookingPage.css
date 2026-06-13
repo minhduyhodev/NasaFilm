@@ -91,6 +91,25 @@
   opacity: 0.55;
 }
 
+.seat.blocked {
+  border: 2px dashed #ef4444 !important;
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+  animation: pulse-border 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 1) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  }
+}
+
 .screen-curve {
   perspective: 1000px;
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, User, Film, Layers, SlidersHorizontal, Download } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import './BookingsPage.css';
 
 const BookingsPage = () => {
@@ -32,7 +33,6 @@ const BookingsPage = () => {
   }, [searchTerm]);
 
   const handleExport = () => {
-    // Fake export action
     notificationService.info('Tính năng xuất báo cáo đang được chuẩn bị.');
   };
 
@@ -85,193 +85,158 @@ const BookingsPage = () => {
 
   return (
     <>
-      <div className="admin-header-container">
-        <div className="admin-header-info">
-          <p className="admin-subtitle">NASAFilm Operations Control</p>
-          <h1 className="admin-title">Quản Lý Đơn Hàng</h1>
-          <p className="admin-description">
-            Tra cứu và giám sát toàn bộ các đơn đặt vé xem phim, suất chiếu, ghế ngồi và gói combo bắp nước đi kèm trên toàn hệ thống.
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="text-left">
+          <h1 className="text-2xl font-black text-white tracking-tight">Quản lý Đơn Hàng</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Doanh thu: <span className="text-amber-500 font-bold">{formatPrice(stats.totalRevenue)}</span> · 
+            Thành công: <span className="text-emerald-400 font-bold">{stats.confirmedCount}</span> · 
+            Đã hủy: <span className="text-rose-400 font-bold">{stats.cancelledCount}</span> · 
+            Tổng đơn: <span className="text-sky-400 font-bold">{stats.totalCount}</span>
           </p>
         </div>
-        <button className="admin-add-btn bg-yellow-600 hover:bg-yellow-700 shadow-yellow-600/10 cursor-pointer" onClick={handleExport}>
-          <Download className="w-4 h-4 text-white" />
-          <div className="admin-add-btn-label-group">
-            <div className="admin-add-btn-sub">Báo cáo</div>
-            <div className="admin-add-btn-main">Xuất File Excel</div>
-          </div>
+        <button 
+          className="inline-flex items-center gap-1.5 rounded-lg bg-yellow-600 hover:bg-yellow-700 px-3.5 py-1.5 text-xs text-white font-bold transition shadow-md cursor-pointer" 
+          onClick={handleExport}
+        >
+          <Download className="w-3.5 h-3.5 text-white" />
+          Xuất File Excel
         </button>
       </div>
 
-      {/* Unified Stats Insight Panel */}
-      <div className="dashboard-unified-stats-panel bg-[#121826]/70 border border-[#1A2238] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 divide-y md:divide-y-0 md:divide-x divide-[#1A2238] shadow-2xl backdrop-blur-md mb-8">
-        <div className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">TỔNG DOANH THU</span>
-            <h3 className="text-2xl font-black text-amber-500 tracking-tight leading-none mt-1">{formatPrice(stats.totalRevenue)}</h3>
-            <p className="text-xs text-gray-500 font-medium mt-1">Giao dịch thành công</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-amber-500 shrink-0">
-            <DollarSign className="w-6 h-6" strokeWidth={1.5} />
-          </div>
-        </div>
-
-        <div className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">ĐƠN THÀNH CÔNG</span>
-            <h3 className="text-3xl font-black text-emerald-500 tracking-tight leading-none mt-1">{stats.confirmedCount}</h3>
-            <p className="text-xs text-gray-500 font-medium mt-1">Đã xuất vé thành công</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-emerald-500 shrink-0">
-            <CheckCircle2 className="w-6 h-6" strokeWidth={1.5} />
-          </div>
-        </div>
-
-        <div className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">ĐƠN ĐÃ HỦY</span>
-            <h3 className="text-3xl font-black text-rose-500 tracking-tight leading-none mt-1">{stats.cancelledCount}</h3>
-            <p className="text-xs text-gray-500 font-medium mt-1">Hoàn tiền hoặc thất bại</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-rose-500 shrink-0">
-            <XCircle className="w-6 h-6" strokeWidth={1.5} />
-          </div>
-        </div>
-
-        <div className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">TỔNG GIAO DỊCH</span>
-            <h3 className="text-3xl font-black text-sky-400 tracking-tight leading-none mt-1">{stats.totalCount}</h3>
-            <p className="text-xs text-gray-500 font-medium mt-1">Lượt đặt vé hệ thống</p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-sky-500 shrink-0">
-            <Ticket className="w-6 h-6" strokeWidth={1.5} />
-          </div>
-        </div>
-      </div>
-
-      <div className="admin-table-card">
+      <div className="rounded-xl bg-[#0B0F19]/50 border border-[#1A2238] overflow-hidden shadow-xl backdrop-blur-md">
         {/* Controls Section */}
-        <div className="admin-table-controls">
-          <div className="admin-search-wrapper">
-            <Search className="admin-search-icon" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 gap-3 border-b border-[#1A2238]">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
             <input
-              className="admin-search-input"
+              className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo tên khách, email, phim..."
+              placeholder="Tìm theo khách, email, phim..."
             />
           </div>
-          <div className="admin-action-group">
-            <div className="flex bg-[#0B1020] border border-[#1A2238] rounded-xl p-1">
-              <button
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'ALL' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-                onClick={() => setStatusFilter('ALL')}
-              >
-                Tất cả
-              </button>
-              <button
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'CONFIRMED' ? 'bg-emerald-600/80 text-white shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-                onClick={() => setStatusFilter('CONFIRMED')}
-              >
-                Thành công
-              </button>
-              <button
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === 'CANCELLED' ? 'bg-rose-600/80 text-white shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-                onClick={() => setStatusFilter('CANCELLED')}
-              >
-                Đã hủy
-              </button>
-            </div>
+          <div className="flex bg-[#070A13] border border-[#1A2238] rounded-lg p-0.5">
+            <button
+              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                statusFilter === 'ALL' ? 'bg-red-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setStatusFilter('ALL')}
+            >
+              Tất cả
+            </button>
+            <button
+              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                statusFilter === 'CONFIRMED' ? 'bg-emerald-600/80 text-white shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setStatusFilter('CONFIRMED')}
+            >
+              Thành công
+            </button>
+            <button
+              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                statusFilter === 'CANCELLED' ? 'bg-rose-600/80 text-white shadow-sm' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setStatusFilter('CANCELLED')}
+            >
+              Đã hủy
+            </button>
           </div>
         </div>
 
         {/* Table Section */}
-        <div className="admin-table-container">
+        <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-10 h-10 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
-              <p className="text-gray-400 font-semibold text-xs uppercase tracking-widest">Đang tải dữ liệu đơn hàng...</p>
+              <div className="w-8 h-8 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
+              <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-widest">Đang tải dữ liệu...</p>
             </div>
           ) : filteredBookings.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
-              <Ticket className="w-12 h-12 mx-auto mb-4 opacity-25 text-red-500" />
-              <p className="text-sm font-semibold uppercase tracking-wider">Không tìm thấy đơn đặt vé nào</p>
+              <Ticket className="w-10 h-10 mx-auto mb-3 opacity-25 text-red-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider">Không tìm thấy đơn đặt vé nào</p>
             </div>
           ) : (
-            <table className="admin-table">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="admin-table-thead-tr">
-                  <th className="pb-3 text-left">Mã vé</th>
-                  <th className="pb-3 text-left">Khách hàng</th>
-                  <th className="pb-3 text-left">Phim / Phòng</th>
-                  <th className="pb-3 text-center">Ghế ngồi</th>
-                  <th className="pb-3 text-left">Combo đi kèm</th>
-                  <th className="pb-3 text-right">Tổng tiền</th>
-                  <th className="pb-3 text-center">Trạng thái</th>
-                  <th className="pb-3 text-center">Ngày mua</th>
+                <tr className="text-gray-400 text-[9px] font-bold uppercase tracking-wider border-b border-[#1A2238] bg-white/[0.02]">
+                  <th className="py-2.5 px-4 text-left">Mã vé</th>
+                  <th className="py-2.5 px-4 text-left">Khách hàng</th>
+                  <th className="py-2.5 px-4 text-left">Phim / Phòng</th>
+                  <th className="py-2.5 px-4 text-center">Ghế ngồi</th>
+                  <th className="py-2.5 px-4 text-left">Combo đi kèm</th>
+                  <th className="py-2.5 px-4 text-right">Tổng tiền</th>
+                  <th className="py-2.5 px-4 text-center">Trạng thái</th>
+                  <th className="py-2.5 px-4 text-center">Ngày mua</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-[#1A2238]/40">
                 {filteredBookings.map((row) => (
-                  <tr key={row.bookingUuid} className="admin-table-tr">
+                  <tr key={row.bookingUuid} className="border-b border-[#1A2238]/60 hover:bg-white/[0.015] transition-colors align-middle group">
                     {/* Booking UUID Short */}
-                    <td className="py-4 text-left font-mono text-xs text-red-400 font-bold">
+                    <td className="py-2.5 px-4 text-left font-mono text-xs text-red-400 font-bold">
                       {row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}
                     </td>
                     
-                    {/* Customer Info */}
-                    <td className="py-4 text-left">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-[#1A2238] border border-white/5 flex items-center justify-center text-gray-400 shrink-0">
-                          <User className="w-4 h-4 text-gray-300" />
+                    {/* Customer Info with Avatar */}
+                    <td className="py-2.5 px-4 text-left">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#1A2238] border border-white/5 flex items-center justify-center text-gray-400 shrink-0 overflow-hidden">
+                          {row.customerAvatarUrl ? (
+                            <img
+                              src={normalizeAvatarUrl(row.customerAvatarUrl)}
+                              alt="Avatar"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentNode.innerHTML = '<span class="text-xs text-gray-300">👤</span>';
+                              }}
+                            />
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-gray-300" />
+                          )}
                         </div>
                         <div>
-                          <div className="text-white font-bold text-sm leading-tight">{row.customerName || 'N/A'}</div>
-                          <div className="text-[10px] text-gray-500 font-semibold leading-tight mt-1">{row.customerEmail || 'N/A'}</div>
+                          <div className="text-white font-bold text-xs leading-tight">{row.customerName || 'N/A'}</div>
+                          <div className="text-[10px] text-gray-500 font-semibold leading-tight mt-0.5">{row.customerEmail || 'N/A'}</div>
                         </div>
                       </div>
                     </td>
 
                     {/* Movie / Room Info */}
-                    <td className="py-4 text-left">
+                    <td className="py-2.5 px-4 text-left">
                       <div className="max-w-[180px]">
-                        <div className="text-white font-bold text-sm truncate leading-tight uppercase" title={row.movieTitle}>
+                        <div className="text-white font-bold text-xs truncate leading-tight uppercase" title={row.movieTitle}>
                           {row.movieTitle || 'N/A'}
                         </div>
-                        <div className="text-[10px] text-gray-500 font-semibold leading-tight mt-1">
+                        <div className="text-[10px] text-gray-500 font-semibold leading-tight mt-0.5">
                           {row.cinemaRoomName || 'N/A'}
                         </div>
                       </div>
                     </td>
 
                     {/* Seats */}
-                    <td className="py-4 text-center">
-                      <span className="inline-flex px-2 py-0.5 rounded-lg bg-yellow-500/10 border border-yellow-500/25 text-yellow-400 font-mono font-black text-xs uppercase tracking-wide">
+                    <td className="py-2.5 px-4 text-center">
+                      <span className="inline-flex px-1.5 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-mono font-bold text-[10px] uppercase">
                         {row.seats || 'None'}
                       </span>
                     </td>
 
                     {/* Combos */}
-                    <td className="py-4 text-left text-xs font-semibold text-gray-300">
+                    <td className="py-2.5 px-4 text-left text-xs font-semibold text-gray-300">
                       <div className="max-w-[150px] truncate" title={row.combos || 'Không kèm bắp nước'}>
                         {row.combos || 'Không kèm bắp nước'}
                       </div>
                     </td>
 
                     {/* Total Price */}
-                    <td className="py-4 text-right text-sm font-mono font-black text-amber-500">
+                    <td className="py-2.5 px-4 text-right text-xs font-mono font-black text-amber-500">
                       {formatPrice(row.totalPrice)}
                     </td>
 
                     {/* Status */}
-                    <td className="py-4 text-center">
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                    <td className="py-2.5 px-4 text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
                         row.status?.toUpperCase() === 'CONFIRMED'
                           ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                           : row.status?.toUpperCase() === 'CANCELLED'
@@ -283,7 +248,7 @@ const BookingsPage = () => {
                     </td>
 
                     {/* Purchase Date */}
-                    <td className="py-4 text-center text-xs text-gray-400 font-semibold font-mono">
+                    <td className="py-2.5 px-4 text-center text-[10px] text-gray-400 font-semibold font-mono">
                       {formatDateTime(row.createdAt)}
                     </td>
                   </tr>
