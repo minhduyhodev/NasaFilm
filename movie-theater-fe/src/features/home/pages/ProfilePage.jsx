@@ -1294,8 +1294,7 @@ export const ProfilePage = () => {
                       <form
                         onSubmit={handlePasswordChange}
                         className="password-change-form"
-                      >
-                        <div className="info-field-group">
+                      >                        <div className="info-field-group">
                           <label>Mật khẩu hiện tại</label>
                           <AuthInput
                             placeholder="••••••••"
@@ -1310,21 +1309,7 @@ export const ProfilePage = () => {
                               setShowCurrentPassword((prev) => !prev)
                             }
                           />
-                          <div className="info-input-wrapper hidden">
-                            <Lock size={16} className="input-icon" />
-                            <input
-                              type="password"
-                              placeholder="••••••••"
-                              value={currentPassword}
-                              onChange={(e) =>
-                                setCurrentPassword(e.target.value)
-                              }
-                              disabled={isChangingPass}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="info-field-group">
+                        </div>                        <div className="info-field-group">
                           <label>Mật khẩu mới</label>
                           <AuthInput
                             placeholder="Mật khẩu tối thiểu 6 ký tự"
@@ -1339,19 +1324,7 @@ export const ProfilePage = () => {
                               setShowNewPassword((prev) => !prev)
                             }
                           />
-                          <div className="info-input-wrapper hidden">
-                            <Key size={16} className="input-icon" />
-                            <input
-                              type="password"
-                              placeholder="Mật khẩu tối thiểu 6 ký tự"
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              disabled={isChangingPass}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="info-field-group">
+                        </div>                        <div className="info-field-group">
                           <label>Xác nhận mật khẩu mới</label>
                           <AuthInput
                             placeholder="Nhập lại mật khẩu mới"
@@ -1366,18 +1339,6 @@ export const ProfilePage = () => {
                               setShowConfirmPassword((prev) => !prev)
                             }
                           />
-                          <div className="info-input-wrapper hidden">
-                            <Key size={16} className="input-icon" />
-                            <input
-                              type="password"
-                              placeholder="Nhập lại mật khẩu mới"
-                              value={confirmPassword}
-                              onChange={(e) =>
-                                setConfirmPassword(e.target.value)
-                              }
-                              disabled={isChangingPass}
-                            />
-                          </div>
                         </div>
 
                         <button
