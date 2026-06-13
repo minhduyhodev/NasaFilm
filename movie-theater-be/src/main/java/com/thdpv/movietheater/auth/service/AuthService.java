@@ -204,15 +204,34 @@ public class AuthService {
         LocalDateTime expiryDate = calculateRefreshExpiry();
 
         String userAgent = resolveUserAgent(httpServletRequest);
-        UserSession userSession = new UserSession(
-                user.getId(),
-                RefreshTokenHasher.hash(refreshToken),
-                userAgent,
-                resolveIpAddress(httpServletRequest),
-                userAgent,
-                "ACTIVE",
-                LocalDateTime.now(),
-                expiryDate);
+        String ipAddress = resolveIpAddress(httpServletRequest);
+
+        java.util.Optional<UserSession> existingSessionOpt = java.util.Optional.empty();
+        if (userAgent != null && !userAgent.isBlank()) {
+            existingSessionOpt = userSessionRepository.findFirstByUserIdAndUserAgent(
+                    user.getId(), userAgent);
+        }
+
+        UserSession userSession;
+        if (existingSessionOpt.isPresent()) {
+            userSession = existingSessionOpt.get();
+            userSession.setRefreshTokenHash(RefreshTokenHasher.hash(refreshToken));
+            userSession.setExpiredAt(expiryDate);
+            userSession.setStatus("ACTIVE");
+            userSession.setRevokedAt(null);
+            userSession.setLastActivityAt(LocalDateTime.now());
+            userSession.setIpAddress(ipAddress);
+        } else {
+            userSession = new UserSession(
+                    user.getId(),
+                    RefreshTokenHasher.hash(refreshToken),
+                    userAgent,
+                    ipAddress,
+                    userAgent,
+                    "ACTIVE",
+                    LocalDateTime.now(),
+                    expiryDate);
+        }
         userSessionRepository.save(userSession);
 
         return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
