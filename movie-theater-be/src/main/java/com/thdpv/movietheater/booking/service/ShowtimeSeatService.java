@@ -25,6 +25,7 @@ import com.thdpv.movietheater.booking.dto.response.SeatLockSyncResponse;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -47,6 +48,7 @@ public class ShowtimeSeatService {
 
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final BookingNativeRepository bookingRepository;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -102,6 +104,7 @@ public class ShowtimeSeatService {
                 startTime,
                 endTime,
                 LOCK_TTL_SECONDS,
+                now,
                 responseRows);
     }
 
@@ -142,6 +145,7 @@ public class ShowtimeSeatService {
                 request.getShowtimeUuid(),
                 LOCK_TTL_SECONDS,
                 requestedSeatUuids.isEmpty() ? null : expiresAt,
+                now,
                 requestedSeatUuids);
     }
 
@@ -240,6 +244,9 @@ public class ShowtimeSeatService {
     }
 
     private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
+        if (bookingRepository.hasConfirmedBookings(showtimeUuid)) {
+            return;
+        }
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery("select start_time, end_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
@@ -257,25 +264,7 @@ public class ShowtimeSeatService {
                 daysToAdd++;
             }
             OffsetDateTime newStart = startTime.plusDays(daysToAdd);
-            OffsetDateTime newEnd = endTime.plusDays(daysToAdd);
-
-            entityManager.createNativeQuery("""
-                    update showtime
-                    set start_time = :newStart,
-                        end_time = :newEnd
-                    where uuid = :showtimeUuid
-                    """)
-                    .setParameter("newStart", newStart)
-                    .setParameter("newEnd", newEnd)
-                    .setParameter("showtimeUuid", showtimeUuid)
-                    .executeUpdate();
-
-            entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
-                    .setParameter("showtimeUuid", showtimeUuid)
-                    .executeUpdate();
-            entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
-                    .setParameter("showtimeUuid", showtimeUuid)
-                    .executeUpdate();
+            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
         }
     }
 

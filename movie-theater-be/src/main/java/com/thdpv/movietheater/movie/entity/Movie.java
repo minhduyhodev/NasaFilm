@@ -51,17 +51,24 @@ public class Movie {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
+    @Column(name = "streaming_url")
+    private String streamingUrl;
+
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 20)
     private List<MovieGenre> movieGenres = new ArrayList<>();
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 20)
     private List<MovieCountry> movieCountries = new ArrayList<>();
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 20)
     @OrderBy("castOrder ASC")
     private List<MovieActor> movieActors = new ArrayList<>();
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 20)
     @OrderBy("sortOrder ASC")
     private List<MovieMedia> movieMedias = new ArrayList<>();
 
@@ -199,6 +206,14 @@ public class Movie {
 
     public void setMovieMedias(List<MovieMedia> movieMedias) {
         this.movieMedias = movieMedias;
+    }
+
+    public String getStreamingUrl() {
+        return streamingUrl;
+    }
+
+    public void setStreamingUrl(String streamingUrl) {
+        this.streamingUrl = streamingUrl;
     }
 
 }

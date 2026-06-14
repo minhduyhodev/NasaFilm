@@ -212,15 +212,25 @@ const CheckoutPage = () => {
   const handleApplyVoucher = async () => {
     const code = voucherInput.trim();
     if (code === '') {
-      setVoucherError('Vui lòng nhập mã giảm giá.');
+      setDiscount(0);
+      setVoucherError('');
+      notificationService.success('Đã hủy áp dụng mã giảm giá.');
       return;
     }
     await applyVoucherByCode(code, true);
   };
 
   const handleSelectVoucher = (code) => {
-    setVoucherInput(code);
-    applyVoucherByCode(code, false);
+    const isAlreadySelected = voucherInput.trim().toUpperCase() === code.toUpperCase() && discount > 0;
+    if (isAlreadySelected) {
+      setVoucherInput('');
+      setDiscount(0);
+      setVoucherError('');
+      notificationService.success('Đã bỏ chọn mã giảm giá.');
+    } else {
+      setVoucherInput(code);
+      applyVoucherByCode(code, false);
+    }
   };
 
   const handlePay = async () => {

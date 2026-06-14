@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.thdpv.movietheater.booking.entity.BookingSeat;
 
 public interface BookingSeatRepository extends JpaRepository<BookingSeat, UUID> {
+    void deleteByBookingUuid(UUID bookingUuid);
 }

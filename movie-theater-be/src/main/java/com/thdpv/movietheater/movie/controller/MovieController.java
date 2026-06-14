@@ -159,4 +159,12 @@ public class MovieController {
         movieService.deleteActor(actorUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
     }
+
+    @GetMapping("/movies/{movieUuid}/stream")
+    public ResponseEntity<ApiResponse<String>> getMovieStream(
+            @PathVariable UUID movieUuid,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String streamUrl = movieService.getMovieStreamUrl(movieUuid, userDetails != null ? userDetails.getUsername() : null);
+        return ResponseEntity.ok(ApiResponse.success(streamUrl));
+    }
 }

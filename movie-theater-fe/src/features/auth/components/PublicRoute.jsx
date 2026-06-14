@@ -5,7 +5,7 @@ import { useAuthContext } from '../hooks/useAuthContext';
 
 
 export const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuthContext();
+  const { isAuthenticated, loading, user } = useAuthContext();
   const location = useLocation();
 
   if (loading) {
@@ -17,7 +17,25 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    const to = (location.state)?.from?.pathname || '/';
+    const roles = user?.roles || [];
+    const isAdminOrStaff = roles.some((r) => {
+      if (!r) return false;
+      const roleLower = r.toLowerCase();
+      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
+    });
+
+    const defaultTarget = isAdminOrStaff ? '/admin' : '/';
+    let to = (location.state)?.from?.pathname;
+    if (isAdminOrStaff) {
+      if (!to || !to.startsWith('/admin')) {
+        to = '/admin';
+      }
+    } else {
+      if (!to) {
+        to = '/';
+      }
+    }
+
     return <Navigate to={to} replace />;
   }
 

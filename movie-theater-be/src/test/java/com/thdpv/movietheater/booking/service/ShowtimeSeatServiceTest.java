@@ -27,12 +27,14 @@ import com.thdpv.movietheater.booking.dto.request.SyncSeatLockRequest;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -48,6 +50,9 @@ class ShowtimeSeatServiceTest {
 
     @Mock
     private ShowtimeRepository showtimeRepository;
+
+    @Mock
+    private BookingNativeRepository bookingRepository;
 
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;
@@ -176,7 +181,7 @@ class ShowtimeSeatServiceTest {
             @Override public UUID getSeatUuid() { return seatUuid; }
             @Override public String getRowName() { return rowName; }
             @Override public Integer getSeatNumber() { return seatNumber; }
-            @Override public String getSeatDbStatus() { return seatStatus; }
+            @Override public SeatStatus getSeatDbStatus() { return SeatStatus.valueOf(seatStatus); }
             @Override public UUID getSeatTypeUuid() { return UUID.randomUUID(); }
             @Override public String getSeatTypeName() { return "STANDARD"; }
             @Override public BigDecimal getBasePrice() { return BigDecimal.valueOf(80000); }

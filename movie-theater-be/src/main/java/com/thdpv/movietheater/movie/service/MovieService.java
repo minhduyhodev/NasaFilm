@@ -594,4 +594,29 @@ public class MovieService {
     private String normalizeUpper(String value) {
         return value == null ? null : value.trim().toUpperCase();
     }
+
+    @Transactional(readOnly = true)
+    public String getMovieStreamUrl(UUID movieUuid, String email) {
+        if (email == null || email.isBlank()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
+
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
+
+        if (movie.getStreamingUrl() == null || movie.getStreamingUrl().isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
+        }
+
+        boolean isVip = user.getScore() != null && user.getScore() >= 10000;
+        boolean hasTicket = movieRepository.hasConfirmedBookingForMovie(user.getId(), movieUuid);
+
+        if (!isVip && !hasTicket) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
+        }
+
+        return movie.getStreamingUrl();
+    }
 }

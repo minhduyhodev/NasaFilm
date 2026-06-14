@@ -25,6 +25,13 @@ public class ConfirmBookingRequest {
     public ConfirmBookingRequest() {
     }
 
+    public ConfirmBookingRequest(UUID showtimeUuid, List<UUID> seatUuids, List<ComboItem> combos) {
+        this.showtimeUuid = showtimeUuid;
+        this.seatUuids = seatUuids;
+        this.combos = combos;
+        this.promotionCode = null;
+    }
+
     public ConfirmBookingRequest(UUID showtimeUuid, List<UUID> seatUuids, List<ComboItem> combos, String promotionCode) {
         this.showtimeUuid = showtimeUuid;
         this.seatUuids = seatUuids;

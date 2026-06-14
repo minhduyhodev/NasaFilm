@@ -208,6 +208,9 @@ public class CinemaService {
 
             for (int i = 1; i <= count; i++) {
                 Seat seat = new Seat();
+                String seatKey = room.getUuid().toString() + "_" + rowStr + "_" + i;
+                UUID deterministicUuid = UUID.nameUUIDFromBytes(seatKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                seat.setUuid(deterministicUuid);
                 seat.setCinemaRoom(room);
                 seat.setSeatType(type);
                 seat.setRowName(rowStr);

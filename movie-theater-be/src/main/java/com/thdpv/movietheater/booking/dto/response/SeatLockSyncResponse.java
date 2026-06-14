@@ -10,6 +10,7 @@ public class SeatLockSyncResponse {
     private UUID showtimeUuid;
     private Integer lockTtlSeconds;
     private OffsetDateTime expiresAt;
+    private OffsetDateTime serverTime;
     private List<UUID> lockedSeatUuids = new ArrayList<>();
 
     public SeatLockSyncResponse() {
@@ -20,6 +21,15 @@ public class SeatLockSyncResponse {
         this.showtimeUuid = showtimeUuid;
         this.lockTtlSeconds = lockTtlSeconds;
         this.expiresAt = expiresAt;
+        this.lockedSeatUuids = lockedSeatUuids != null ? lockedSeatUuids : new ArrayList<>();
+    }
+
+    public SeatLockSyncResponse(UUID showtimeUuid, Integer lockTtlSeconds, OffsetDateTime expiresAt,
+            OffsetDateTime serverTime, List<UUID> lockedSeatUuids) {
+        this.showtimeUuid = showtimeUuid;
+        this.lockTtlSeconds = lockTtlSeconds;
+        this.expiresAt = expiresAt;
+        this.serverTime = serverTime;
         this.lockedSeatUuids = lockedSeatUuids != null ? lockedSeatUuids : new ArrayList<>();
     }
 
@@ -45,6 +55,14 @@ public class SeatLockSyncResponse {
 
     public void setExpiresAt(OffsetDateTime expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public OffsetDateTime getServerTime() {
+        return serverTime;
+    }
+
+    public void setServerTime(OffsetDateTime serverTime) {
+        this.serverTime = serverTime;
     }
 
     public List<UUID> getLockedSeatUuids() {

@@ -75,6 +75,12 @@ public class User {
     @Column(name = "verification_code_expiry")
     private LocalDateTime verificationCodeExpiry;
 
+    @Column(name = "verification_attempts")
+    private Integer verificationAttempts = 0;
+
+    @Column(name = "verification_lock_time")
+    private LocalDateTime verificationLockTime;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -267,5 +273,21 @@ public class User {
 
     public void setVerificationCodeExpiry(LocalDateTime verificationCodeExpiry) {
         this.verificationCodeExpiry = verificationCodeExpiry;
+    }
+
+    public Integer getVerificationAttempts() {
+        return verificationAttempts;
+    }
+
+    public void setVerificationAttempts(Integer verificationAttempts) {
+        this.verificationAttempts = verificationAttempts;
+    }
+
+    public LocalDateTime getVerificationLockTime() {
+        return verificationLockTime;
+    }
+
+    public void setVerificationLockTime(LocalDateTime verificationLockTime) {
+        this.verificationLockTime = verificationLockTime;
     }
 }

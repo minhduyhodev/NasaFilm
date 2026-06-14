@@ -134,7 +134,8 @@ const BookingPage = () => {
         setHasGapViolation(gapFound);
         
         if (expiresAtVal) {
-          const secondsLeft = Math.max(0, Math.floor((expiresAtVal - Date.now()) / 1000));
+          const serverTime = data.serverTime ? new Date(data.serverTime).getTime() : Date.now();
+          const secondsLeft = Math.max(0, Math.floor((expiresAtVal - serverTime) / 1000));
           setTimeLeft(secondsLeft);
         } else {
           setTimeLeft(null);

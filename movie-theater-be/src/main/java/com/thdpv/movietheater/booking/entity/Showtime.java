@@ -8,12 +8,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "showtime")
+@Table(name = "showtime", indexes = {
+        @Index(name = "idx_showtime_movie", columnList = "movie_uuid"),
+        @Index(name = "idx_showtime_room", columnList = "cinema_room_uuid")
+})
 public class Showtime {
 
     @Id

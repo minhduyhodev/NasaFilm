@@ -16,7 +16,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <GlobalStyles />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <NotificationProvider>
             <Routes>

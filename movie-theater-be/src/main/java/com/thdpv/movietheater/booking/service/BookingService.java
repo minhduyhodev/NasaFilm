@@ -89,11 +89,18 @@ public class BookingService {
                 .map(LockedSeat::price)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate combo discount based on member loyalty points (NASA'VIP >= 10000 gets 15% off, NASA'FRIEND gets 10% off)
+        // Calculate combo discount based on member loyalty points (VIP >= 10000 gets 15% off, FRIEND >= 5000 gets 10% off, < 5000 gets 0% off)
         Integer userScore = userRepository.findById(userUuid)
                 .map(User::getScore)
                 .orElse(0);
-        BigDecimal comboDiscountRate = userScore >= 10000 ? BigDecimal.valueOf(0.85) : BigDecimal.valueOf(0.90);
+        BigDecimal comboDiscountRate;
+        if (userScore >= 10000) {
+            comboDiscountRate = BigDecimal.valueOf(0.85); // 15% discount
+        } else if (userScore >= 5000) {
+            comboDiscountRate = BigDecimal.valueOf(0.90); // 10% discount
+        } else {
+            comboDiscountRate = BigDecimal.valueOf(1.00); // 0% discount
+        }
 
         BigDecimal comboTotal = BigDecimal.ZERO;
         List<ResolvedCombo> discountedResolvedCombos = new ArrayList<>();
@@ -106,41 +113,42 @@ public class BookingService {
         // Apply Promotion Code
         UUID promotionUuid = null;
         BigDecimal discountAmount = BigDecimal.ZERO;
+        Promotion resolvedPromotion = null;
         if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
-            Promotion promotion = promotionRepository.findByCodeIgnoreCase(request.getPromotionCode().trim())
+            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
                     .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
 
-            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
+            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
             }
 
-            if (promotion.getStartDate() != null && now.isBefore(promotion.getStartDate())) {
+            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
             }
 
-            if (promotion.getEndDate() != null && now.isAfter(promotion.getEndDate())) {
+            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
             }
 
-            if (promotion.getMaxUsage() != null && promotion.getUsedCount() != null
-                    && promotion.getUsedCount() >= promotion.getMaxUsage()) {
+            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
+                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
             }
 
-            if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
-                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
+                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
                 if (alreadyUsed) {
                     throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
                 }
             }
 
-            promotionUuid = promotion.getId();
-            if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
+            promotionUuid = resolvedPromotion.getId();
+            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 // Percentage discount applies to ticket sum (seatTotal)
-                discountAmount = seatTotal.multiply(promotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(promotion.getDiscountType())) {
+                discountAmount = seatTotal.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 // Fixed amount discount applies directly
-                discountAmount = promotion.getDiscountValue();
+                discountAmount = resolvedPromotion.getDiscountValue();
             }
         }
 
@@ -165,12 +173,10 @@ public class BookingService {
         booking.setPromotionUuid(promotionUuid);
         bookingJpaRepository.save(booking);
 
-        if (promotionUuid != null) {
-            Promotion promotion = promotionRepository.findById(promotionUuid).orElse(null);
-            if (promotion != null) {
-                promotion.setUsedCount(promotion.getUsedCount() + 1);
-                promotionRepository.save(promotion);
-            }
+        if (resolvedPromotion != null) {
+            int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
+            resolvedPromotion.setUsedCount(currentUsed + 1);
+            promotionRepository.save(resolvedPromotion);
         }
 
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
@@ -233,6 +239,9 @@ public class BookingService {
     }
 
     private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
+        if (bookingRepository.hasConfirmedBookings(showtimeUuid)) {
+            return;
+        }
         OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(showtimeUuid);
         if (startTime != null && startTime.isBefore(now)) {
             long daysToAdd = 0;
@@ -370,34 +379,16 @@ public class BookingService {
         List<CustomerBookingHistoryResponse> responses = new ArrayList<>();
 
         for (Object[] row : rows) {
-            UUID bookingUuid = toUuid(row[0]);
             BigDecimal totalPrice = toBigDecimal(row[1]);
             String bookingStatus = stringValue(row[2]);
             OffsetDateTime startTime = bookingRepository.toOffsetDateTime(row[4]);
             String movieTitle = stringValue(row[5]);
             String roomName = stringValue(row[6]);
+            String seatsStr = stringValue(row[7]);
+            String rawCombosStr = stringValue(row[8]);
+            String ticketCode = stringValue(row[9]);
 
-            // Load seats
-            List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
-            List<String> seatNames = new ArrayList<>();
-            for (Object[] seatRow : seatsRows) {
-                seatNames.add(stringValue(seatRow[0]) + seatRow[1]);
-            }
-            String seatsStr = String.join(", ", seatNames);
-
-            // Load combos
-            List<Object[]> comboRows = bookingRepository.loadCombosForBooking(bookingUuid);
-            List<String> comboNames = new ArrayList<>();
-            for (Object[] comboRow : comboRows) {
-                comboNames.add(comboRow[1] + "x " + comboRow[0]);
-            }
-            String combosStr = comboNames.isEmpty() ? "Không kèm bắp nước" : String.join(", ", comboNames);
-
-            // Load ticket code (first code)
-            List<String> ticketCodes = bookingRepository.loadTicketCodesForBooking(bookingUuid);
-            String ticketCode = ticketCodes.isEmpty() ? "" : ticketCodes.get(0);
-
-            // Price format
+            String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
 
             // Status: active if movie hasn't started yet, completed if movie has started/finished
@@ -424,7 +415,19 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public List<AdminBookingListResponse> getAdminBookings(String keyword) {
-        List<Object[]> rows = bookingRepository.loadAdminBookings(keyword);
+        return getAdminBookings(keyword, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminBookingListResponse> getAdminBookings(String keyword, Integer page, Integer size) {
+        Integer offset = null;
+        Integer limit = null;
+        if (page != null && size != null) {
+            offset = page * size;
+            limit = size;
+        }
+
+        List<Object[]> rows = bookingRepository.loadAdminBookings(keyword, offset, limit);
         List<AdminBookingListResponse> responses = new ArrayList<>();
 
         for (Object[] row : rows) {
@@ -437,22 +440,8 @@ public class BookingService {
             String status = stringValue(row[6]);
             OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
             String customerAvatarUrl = stringValue(row[8]);
-
-            // Load seats
-            List<Object[]> seatsRows = bookingRepository.loadSeatsForBooking(bookingUuid);
-            List<String> seatNames = new ArrayList<>();
-            for (Object[] seatRow : seatsRows) {
-                seatNames.add(stringValue(seatRow[0]) + seatRow[1]);
-            }
-            String seatsStr = String.join(", ", seatNames);
-
-            // Load combos
-            List<Object[]> comboRows = bookingRepository.loadCombosForBooking(bookingUuid);
-            List<String> comboNames = new ArrayList<>();
-            for (Object[] comboRow : comboRows) {
-                comboNames.add(comboRow[1] + "x " + comboRow[0]);
-            }
-            String combosStr = comboNames.isEmpty() ? "" : String.join(", ", comboNames);
+            String seatsStr = stringValue(row[9]);
+            String combosStr = stringValue(row[10]);
 
             responses.add(new AdminBookingListResponse(
                     bookingUuid,
@@ -507,6 +496,66 @@ public class BookingService {
         symbols.setGroupingSeparator('.');
         java.text.DecimalFormat formatter = new java.text.DecimalFormat("#,###", symbols);
         return formatter.format(price) + "đ";
+    }
+
+    @Transactional
+    public void checkInTicket(String ticketCode) {
+        if (ticketCode == null || ticketCode.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Mã vé không hợp lệ");
+        }
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé"));
+
+        if (!TICKET_STATUS_ISSUED.equalsIgnoreCase(ticket.getStatus())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vé đã được soát hoặc đã bị hủy");
+        }
+
+        ticket.setStatus("USED");
+        ticket.setCheckedInAt(OffsetDateTime.now());
+        ticketRepository.save(ticket);
+    }
+
+    @Transactional
+    public void cancelBooking(UUID bookingUuid, String email) {
+        Booking booking = bookingJpaRepository.findById(bookingUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        if (email != null && !email.isBlank()) {
+            UUID userUuid = resolveRequiredUserUuid(email);
+            if (!booking.getUserUuid().equals(userUuid)) {
+                throw new AppException(ErrorCode.FORBIDDEN, "Không có quyền hủy đặt vé này");
+            }
+        }
+
+        if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Hóa đơn không ở trạng thái CONFIRMED, không thể hủy");
+        }
+
+        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(booking.getShowtimeUuid());
+        if (startTime == null) {
+            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+
+        if (OffsetDateTime.now().plusHours(2).isAfter(startTime)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Không thể hủy vé trước giờ chiếu ít hơn 2 tiếng");
+        }
+
+        booking.setStatus("CANCELLED");
+        booking.setCancelledAt(OffsetDateTime.now());
+        bookingJpaRepository.save(booking);
+
+        // Xóa các dòng ghế đã đặt (BookingSeat)
+        bookingSeatRepository.deleteByBookingUuid(bookingUuid);
+
+        // Xóa các liên kết combo bắp nước (BookingCombo)
+        bookingComboRepository.deleteByBookingUuid(bookingUuid);
+
+        // Khấu trừ điểm thành viên đã tích lũy
+        int scoreDeducted = calculateScore(booking.getTotalPrice());
+        if (scoreDeducted > 0) {
+            bookingRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
+            bookingRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, OffsetDateTime.now());
+        }
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
