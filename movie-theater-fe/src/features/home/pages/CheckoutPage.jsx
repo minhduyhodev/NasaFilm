@@ -88,11 +88,8 @@ const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
-  const [userScore, setUserScore] = useState(0);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-  const [combosList, setCombosList] = useState([]);
-  const [myVouchers, setMyVouchers] = useState([]);
-  const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -133,6 +130,23 @@ const CheckoutPage = () => {
     fetchCombos();
     fetchVouchers();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.lockExpiresAt) {
+      const calculateTimeLeft = () => {
+        const diff = Math.max(0, Math.floor((location.state.lockExpiresAt - Date.now()) / 1000));
+        if (diff <= 0) {
+          setIsExpired(true);
+          setTimeLeft(0);
+        } else {
+          setTimeLeft(diff);
+        }
+      };
+      calculateTimeLeft();
+      const interval = setInterval(calculateTimeLeft, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [location.state?.lockExpiresAt]);
 
   const bookingFee = 15000; // 15,000 đ internet fee
   const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
@@ -206,6 +220,10 @@ const CheckoutPage = () => {
   };
 
   const handlePay = async () => {
+    if (isExpired) {
+      notificationService.error("Thời gian giữ ghế đã hết hạn!");
+      return;
+    }
     setIsPaying(true);
     try {
       const seatUuids = selectedSeats.map(s => s.seatUuid);
@@ -351,6 +369,22 @@ const CheckoutPage = () => {
           {/* Right Column: Payment Options & CTA */}
           <div className="lg:col-span-5 space-y-6">
             <section className="glass-panel p-6 rounded-2xl flex flex-col h-full text-left">
+              {timeLeft !== null && (
+                <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${
+                  timeLeft < 60 
+                    ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse' 
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-500'
+                }`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    <span>Thời gian thanh toán còn lại:</span>
+                  </div>
+                  <span className="font-mono text-sm font-black">
+                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+              )}
+
               <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
@@ -510,14 +544,14 @@ const CheckoutPage = () => {
                 
                 <button 
                   onClick={handlePay}
-                  disabled={isPaying}
+                  disabled={isPaying || isExpired}
                   className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
-                    isPaying 
-                      ? 'bg-red-700 text-white cursor-wait opacity-80'
+                    isPaying || isExpired
+                      ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5 shadow-none' 
                       : 'bg-[#E61E2A] text-white neon-glow-red hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-[0_0_20px_rgba(230,30,42,0.35)]'
                   }`}
                 >
-                  {isPaying ? 'Đang xử lý thanh toán...' : 'Xác nhận & Thanh toán'}
+                  {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : 'Xác nhận & Thanh toán'}
                 </button>
                 <p className="text-center text-[10px] font-medium text-gray-500 mt-4 leading-relaxed">
                   Bằng cách nhấn xác nhận, bạn đồng ý với các Điều khoản Sử dụng và Chính sách Bảo mật của THDPV CINEMA.
@@ -529,6 +563,24 @@ const CheckoutPage = () => {
       </main>
 
       <Footer />
+
+      {isExpired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="glass-panel p-8 rounded-2xl max-w-sm w-full text-center border border-red-500/30 bg-[#111215] shadow-2xl space-y-4">
+            <span className="material-symbols-outlined text-red-500 text-5xl">warning</span>
+            <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Đã quá 5 phút giữ ghế kể từ lúc chọn. Ghế của bạn đã được giải phóng để người khác chọn. Vui lòng quay lại để chọn ghế mới.
+            </p>
+            <button
+              onClick={() => navigate(-1)}
+              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
+            >
+              Quay lại chọn ghế
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

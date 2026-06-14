@@ -152,4 +152,11 @@ public class MovieController {
         ActorSummaryResponse response = movieService.updateActor(actorUuid, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @DeleteMapping("/admin/actors/{actorUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteActor(@PathVariable UUID actorUuid) {
+        movieService.deleteActor(actorUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
+    }
 }

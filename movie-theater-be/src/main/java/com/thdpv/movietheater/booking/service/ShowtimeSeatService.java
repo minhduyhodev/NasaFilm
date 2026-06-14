@@ -14,7 +14,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,15 +39,21 @@ public class ShowtimeSeatService {
 
     private static final int LOCK_TTL_SECONDS = 300;
 
+    @Value("${app.showtime.auto-slide-enabled:false}")
+    private boolean autoSlideEnabled;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
         OffsetDateTime now = OffsetDateTime.now();
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(showtimeUuid, now);
+        }
         UUID currentUserUuid = resolveCurrentUserUuid(currentUserEmail);
         Set<UUID> selectedSet = normalizeSelectedSeatUuids(selectedSeatUuids);
 
@@ -101,10 +109,13 @@ public class ShowtimeSeatService {
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        }
         OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
-        assertShowtimeExists(request.getShowtimeUuid());
+        assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         cleanupExpiredLocks(request.getShowtimeUuid(), now);
         validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
@@ -175,16 +186,21 @@ public class ShowtimeSeatService {
                     segmentEnd++;
                 }
 
-                for (int i = segmentStart + 1; i < segmentEnd; i++) {
+                for (int i = segmentStart; i <= segmentEnd; i++) {
                     SeatView current = seats.get(i);
                     if (!current.isPlainAvailable()) {
                         continue;
                     }
 
-                    boolean leftUnavailable = seats.get(i - 1).isUnavailableForGapRule();
-                    boolean rightUnavailable = seats.get(i + 1).isUnavailableForGapRule();
+                    boolean leftUnavailable = (i == segmentStart) || seats.get(i - 1).isUnavailableForGapRule();
+                    boolean rightUnavailable = (i == segmentEnd) || seats.get(i + 1).isUnavailableForGapRule();
+
                     if (leftUnavailable && rightUnavailable) {
-                        seats.set(i, current.withBlocked(true));
+                        boolean leftSelectedByMe = (i != segmentStart) && (seats.get(i - 1).selected() || "LOCKED_BY_ME".equals(seats.get(i - 1).availabilityStatus()));
+                        boolean rightSelectedByMe = (i != segmentEnd) && (seats.get(i + 1).selected() || "LOCKED_BY_ME".equals(seats.get(i + 1).availabilityStatus()));
+                        if (leftSelectedByMe || rightSelectedByMe) {
+                            seats.set(i, current.withBlocked(true));
+                        }
                     }
                 }
 
@@ -209,12 +225,57 @@ public class ShowtimeSeatService {
         return "AVAILABLE";
     }
 
-    private void assertShowtimeExists(UUID showtimeUuid) {
-        Number count = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+    private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
+        @SuppressWarnings("unchecked")
+        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
-                .getSingleResult();
-        if (count == null || count.longValue() == 0L) {
+                .getResultList();
+        if (rows.isEmpty()) {
             throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        }
+        OffsetDateTime startTime = toOffsetDateTime(rows.get(0));
+        if (startTime.isBefore(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
+        }
+    }
+
+    private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery("select start_time, end_time from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getResultList();
+        if (rows.isEmpty()) {
+            return;
+        }
+        OffsetDateTime startTime = toOffsetDateTime(rows.get(0)[0]);
+        OffsetDateTime endTime = toOffsetDateTime(rows.get(0)[1]);
+        if (startTime.isBefore(now)) {
+            long daysToAdd = 0;
+            OffsetDateTime temp = startTime;
+            while (temp.isBefore(now)) {
+                temp = temp.plusDays(1);
+                daysToAdd++;
+            }
+            OffsetDateTime newStart = startTime.plusDays(daysToAdd);
+            OffsetDateTime newEnd = endTime.plusDays(daysToAdd);
+
+            entityManager.createNativeQuery("""
+                    update showtime
+                    set start_time = :newStart,
+                        end_time = :newEnd
+                    where uuid = :showtimeUuid
+                    """)
+                    .setParameter("newStart", newStart)
+                    .setParameter("newEnd", newEnd)
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+
+            entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+            entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
         }
     }
 
@@ -225,6 +286,18 @@ public class ShowtimeSeatService {
                   and expired_at <= :now
                 """)
                 .setParameter("showtimeUuid", showtimeUuid)
+                .setParameter("now", now)
+                .executeUpdate();
+    }
+
+    @Transactional
+    @Scheduled(fixedDelay = 30000)
+    public void cleanupExpiredLocksScheduled() {
+        OffsetDateTime now = OffsetDateTime.now();
+        entityManager.createNativeQuery("""
+                delete from seat_locked
+                where expired_at <= :now
+                """)
                 .setParameter("now", now)
                 .executeUpdate();
     }
@@ -382,6 +455,9 @@ public class ShowtimeSeatService {
         LinkedHashSet<UUID> normalized = new LinkedHashSet<>(seatUuids);
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
+        }
+        if (normalized.size() > 8) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }
