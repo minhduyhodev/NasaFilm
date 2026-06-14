@@ -495,7 +495,8 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "KeAnDanh Poster", true, 1),
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
-                                "TRAILER", "KeAnDanh Trailer", false, 2)));
+                                "TRAILER", "KeAnDanh Trailer", false, 2)),
+                "T13");
 
         // 2. Mortal Kombat 2
         createMovieIfNotExists(
@@ -512,7 +513,8 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "MortalKombat2 Poster", true, 1),
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
-                                "TRAILER", "MortalKombat2 Trailer", false, 2)));
+                                "TRAILER", "MortalKombat2 Trailer", false, 2)),
+                "T18");
 
         // 3. Mưa Đỏ
         createMovieIfNotExists(
@@ -527,7 +529,8 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg",
                                 "POSTER", "MuaDo Poster", true, 1),
                         new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
-                                "TRAILER", "MuaDo Trailer", false, 2)));
+                                "TRAILER", "MuaDo Trailer", false, 2)),
+                "T13");
 
         // 4. Thanh Gươm Diệt Quỷ
         createMovieIfNotExists(
@@ -544,7 +547,8 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "ThanhGuongDietQuy Poster", true, 1),
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
-                                "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)));
+                                "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)),
+                "T16");
 
         // 5. Truy Tìm Long Diên Hương
         createMovieIfNotExists(
@@ -561,7 +565,8 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "TruyTimLongDienHuong Poster", true, 1),
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
-                                "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)));
+                                "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)),
+                "P");
     }
 
     private void createMovieIfNotExists(
@@ -572,7 +577,8 @@ public class DataSeeder implements CommandLineRunner {
             String status,
             List<String> genreNames,
             List<String> countryCodes,
-            List<MovieMediaData> mediaList) {
+            List<MovieMediaData> mediaList,
+            String ageRating) {
 
         if (movieRepository.existsByTitleIgnoreCase(title)) {
             return;
@@ -584,6 +590,7 @@ public class DataSeeder implements CommandLineRunner {
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(status);
+        movie.setAgeRating(ageRating);
 
         // Add Genres
         for (String genreName : genreNames) {

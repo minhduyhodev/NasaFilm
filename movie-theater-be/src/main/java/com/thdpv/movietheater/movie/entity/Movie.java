@@ -43,6 +43,9 @@ public class Movie {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "age_rating")
+    private String ageRating;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -69,7 +72,7 @@ public class Movie {
     }
 
     public Movie(UUID uuid, String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, OffsetDateTime createdAt, OffsetDateTime updatedAt, List<MovieGenre> movieGenres,
+            String status, String ageRating, OffsetDateTime createdAt, OffsetDateTime updatedAt, List<MovieGenre> movieGenres,
             List<MovieCountry> movieCountries, List<MovieActor> movieActors, List<MovieMedia> movieMedias) {
         this.uuid = uuid;
         this.title = title;
@@ -77,6 +80,7 @@ public class Movie {
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
+        this.ageRating = ageRating;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.movieGenres = movieGenres != null ? movieGenres : new ArrayList<>();
@@ -151,6 +155,14 @@ public class Movie {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAgeRating() {
+        return ageRating;
+    }
+
+    public void setAgeRating(String ageRating) {
+        this.ageRating = ageRating;
     }
 
     public OffsetDateTime getCreatedAt() {

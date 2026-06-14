@@ -65,7 +65,7 @@ public class MovieService {
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
-                request.getReleaseDate(), request.getStatus());
+                request.getReleaseDate(), request.getStatus(), request.getAgeRating());
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
@@ -77,7 +77,7 @@ public class MovieService {
     public MovieDetailResponse updateMovie(UUID movieUuid, UpdateMovieRequest request, String operatorEmail) {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
-                request.getReleaseDate(), request.getStatus());
+                request.getReleaseDate(), request.getStatus(), request.getAgeRating());
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -110,6 +110,10 @@ public class MovieService {
             String status,
             List<UUID> genreUuids,
             UUID countryUuid,
+            String ageRating,
+            UUID actorUuid,
+            UUID cinemaUuid,
+            java.time.LocalDate showtimeDate,
             int page,
             int size,
             String sortBy,
@@ -144,6 +148,38 @@ public class MovieService {
             if (countryUuid != null) {
                 Join<Movie, MovieCountry> movieCountryJoin = root.join("movieCountries", JoinType.LEFT);
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
+            }
+
+            if (ageRating != null && !ageRating.isBlank()) {
+                predicates.add(cb.equal(root.get("ageRating"), ageRating.trim()));
+            }
+
+            if (actorUuid != null) {
+                Join<Movie, MovieActor> movieActorJoin = root.join("movieActors", JoinType.LEFT);
+                predicates.add(cb.equal(movieActorJoin.get("actor").get("uuid"), actorUuid));
+            }
+
+            if (cinemaUuid != null || showtimeDate != null) {
+                jakarta.persistence.criteria.Subquery<UUID> subquery = query.subquery(UUID.class);
+                jakarta.persistence.criteria.Root<com.thdpv.movietheater.booking.entity.Showtime> stRoot = subquery.from(com.thdpv.movietheater.booking.entity.Showtime.class);
+                subquery.select(stRoot.get("movieUuid"));
+                List<jakarta.persistence.criteria.Predicate> subPredicates = new ArrayList<>();
+
+                if (cinemaUuid != null) {
+                    jakarta.persistence.criteria.Root<com.thdpv.movietheater.cinema.entity.CinemaRoom> roomRoot = subquery.from(com.thdpv.movietheater.cinema.entity.CinemaRoom.class);
+                    subPredicates.add(cb.equal(stRoot.get("cinemaRoomUuid"), roomRoot.get("uuid")));
+                    subPredicates.add(cb.equal(roomRoot.get("cinema").get("uuid"), cinemaUuid));
+                }
+
+                if (showtimeDate != null) {
+                    java.time.OffsetDateTime startOfDay = showtimeDate.atStartOfDay().atOffset(java.time.OffsetDateTime.now().getOffset());
+                    java.time.OffsetDateTime endOfDay = showtimeDate.plusDays(1).atStartOfDay().atOffset(java.time.OffsetDateTime.now().getOffset());
+                    subPredicates.add(cb.greaterThanOrEqualTo(stRoot.get("startTime"), startOfDay));
+                    subPredicates.add(cb.lessThan(stRoot.get("startTime"), endOfDay));
+                }
+
+                subquery.where(subPredicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+                predicates.add(root.get("uuid").in(subquery));
             }
 
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
@@ -270,12 +306,13 @@ public class MovieService {
     }
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
-            java.time.LocalDate releaseDate, String status) {
+            java.time.LocalDate releaseDate, String status, String ageRating) {
         movie.setTitle(trim(title));
         movie.setDescription(trimToNull(description));
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));
+        movie.setAgeRating(trim(ageRating));
     }
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
@@ -451,6 +488,7 @@ public class MovieService {
                 movie.getDurationMinutes(),
                 movie.getReleaseDate(),
                 movie.getStatus(),
+                movie.getAgeRating(),
                 resolvePrimaryMediaUrl(movie),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
@@ -470,6 +508,7 @@ public class MovieService {
                 movie.getDurationMinutes(),
                 movie.getReleaseDate(),
                 movie.getStatus(),
+                movie.getAgeRating(),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
                         .toList(),
