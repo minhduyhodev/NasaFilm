@@ -52,6 +52,7 @@ public class ShowtimeSeatService {
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
+        bookingRepository.ensureShowtimeExists(showtimeUuid);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(showtimeUuid, now);
@@ -110,6 +111,7 @@ public class ShowtimeSeatService {
 
     @Transactional
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
+        bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
@@ -192,7 +194,7 @@ public class ShowtimeSeatService {
 
                 for (int i = segmentStart; i <= segmentEnd; i++) {
                     SeatView current = seats.get(i);
-                    if (!current.isPlainAvailable()) {
+                    if (!current.isPlainAvailable() || "COUPLE".equalsIgnoreCase(current.seatTypeName())) {
                         continue;
                     }
 

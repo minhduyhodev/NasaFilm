@@ -16,6 +16,7 @@ const FaqPage = lazy(() => import('../pages/FaqPage'));
 const MovieDetailPage = lazy(() => import('../pages/MovieDetailPage'));
 const BookingPage = lazy(() => import('../pages/BookingPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
+const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#090b11] flex items-center justify-center">
@@ -51,6 +52,14 @@ export const HomeRoutes = () => {
           element={
             <ProtectedRoute>
               <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="booking-confirmed"
+          element={
+            <ProtectedRoute>
+              <BookingConfirmedPage />
             </ProtectedRoute>
           }
         />

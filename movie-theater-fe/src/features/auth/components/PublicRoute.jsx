@@ -31,7 +31,7 @@ export const PublicRoute = ({ children }) => {
         to = '/admin';
       }
     } else {
-      if (!to) {
+      if (!to || to.startsWith('/admin') || to === '/unauthorized') {
         to = '/';
       }
     }

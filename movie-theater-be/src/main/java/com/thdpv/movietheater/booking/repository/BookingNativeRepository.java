@@ -141,6 +141,7 @@ public class BookingNativeRepository {
                     sl.user_uuid as locked_user_uuid
                 from showtime st
                 join seat s on s.cinema_room_uuid = st.cinema_room_uuid
+                join seat_type stt on stt.uuid = s.seat_type_uuid
                 left join booking_seat bs
                     on bs.showtime_uuid = st.uuid
                    and bs.seat_uuid = s.uuid
@@ -149,6 +150,7 @@ public class BookingNativeRepository {
                    and sl.seat_uuid = s.uuid
                    and sl.expired_at > :now
                 where st.uuid = :showtimeUuid
+                  and stt.name <> 'COUPLE'
                 order by s.row_name asc, s.seat_number asc
                 """)
                 .setParameter("showtimeUuid", showtimeUuid)
@@ -285,6 +287,13 @@ public class BookingNativeRepository {
                     ), ''),
                     coalesce((
                         select t.ticket_code
+                        from ticket t
+                        where t.booking_uuid = b.uuid
+                        order by t.issued_at asc
+                        limit 1
+                    ), ''),
+                    coalesce((
+                        select t.status
                         from ticket t
                         where t.booking_uuid = b.uuid
                         order by t.issued_at asc
@@ -462,6 +471,36 @@ public class BookingNativeRepository {
         entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
+    }
+
+    public void ensureShowtimeExists(UUID showtimeUuid) {
+        Number countShowtime = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        if (countShowtime != null && countShowtime.longValue() > 0L) {
+            return;
+        }
+
+        Number countMovie = (Number) entityManager.createNativeQuery("select count(1) from movie where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        if (countMovie != null && countMovie.longValue() > 0L) {
+            OffsetDateTime now = OffsetDateTime.now();
+            OffsetDateTime startTime = now.withHour(19).withMinute(30).withSecond(0).withNano(0);
+            OffsetDateTime endTime = now.withHour(21).withMinute(30).withSecond(0).withNano(0);
+            UUID roomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888"); // Phòng chiếu IMAX
+            
+            entityManager.createNativeQuery("""
+                    insert into showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time)
+                    values (:uuid, :movieUuid, :roomUuid, :startTime, :endTime)
+                    """)
+                    .setParameter("uuid", showtimeUuid)
+                    .setParameter("movieUuid", showtimeUuid)
+                    .setParameter("roomUuid", roomUuid)
+                    .setParameter("startTime", startTime)
+                    .setParameter("endTime", endTime)
+                    .executeUpdate();
+        }
     }
 
     public record LockedSeat(UUID seatUuid, String rowName, Integer seatNumber, BigDecimal price) {

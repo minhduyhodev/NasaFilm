@@ -1011,3 +1011,18 @@ tr.bg-yellow-500\/10 {
 tr.bg-yellow-500\/10 td {
   color: #fbbf24 !important;
 }
+
+/* Completed / Used / Cancelled ticket styling */
+.ticket-boarding-pass.completed {
+  opacity: 0.5;
+  filter: grayscale(0.85);
+  border-style: dashed;
+  box-shadow: none !important;
+}
+
+.ticket-boarding-pass.completed:hover {
+  opacity: 0.75;
+  filter: grayscale(0.4);
+  transform: translateY(-2px);
+}
+

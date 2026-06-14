@@ -3,6 +3,7 @@ package com.thdpv.movietheater.booking.dto.response;
 import java.util.UUID;
 
 public class CustomerBookingHistoryResponse {
+    private UUID bookingUuid;
     private String id; // ticket code
     private String movieTitle;
     private String cinema;
@@ -15,7 +16,8 @@ public class CustomerBookingHistoryResponse {
     public CustomerBookingHistoryResponse() {
     }
 
-    public CustomerBookingHistoryResponse(String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status) {
+    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status) {
+        this.bookingUuid = bookingUuid;
         this.id = id;
         this.movieTitle = movieTitle;
         this.cinema = cinema;
@@ -88,5 +90,13 @@ public class CustomerBookingHistoryResponse {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public UUID getBookingUuid() {
+        return bookingUuid;
+    }
+
+    public void setBookingUuid(UUID bookingUuid) {
+        this.bookingUuid = bookingUuid;
     }
 }

@@ -62,7 +62,7 @@ export const LoginPage = () => {
       const targetPath = (from && from.startsWith('/admin')) ? from : '/admin';
       navigate(targetPath, { replace: true });
     } else {
-      const targetPath = from || '/';
+      const targetPath = (from && !from.startsWith('/admin') && from !== '/unauthorized') ? from : '/';
       navigate(targetPath, { replace: true });
     }
   };

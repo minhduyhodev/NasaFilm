@@ -243,7 +243,7 @@ const CheckoutPage = () => {
       const seatUuids = selectedSeats.map(s => s.seatUuid);
       const combos = hasCombo ? [{ comboUuid: activeCombo.uuid, quantity: 1 }] : [];
       
-      await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
       
       notificationService.addNotification(
         "Đặt vé thành công",
@@ -255,7 +255,23 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       
-      navigate('/profile');
+      navigate('/booking-confirmed', {
+        state: {
+          bookingUuid: response.bookingUuid,
+          movie: movie,
+          moviePoster: moviePoster || movieInfo.poster,
+          movieFormat: movieFormat || movieInfo.format,
+          movieRating: movieInfo.age,
+          theater: theater,
+          date: date,
+          showtime: showtime,
+          selectedSeats: selectedSeats,
+          tickets: response.tickets || [],
+          totalPrice: finalTotal,
+          combos: response.combos || []
+        },
+        replace: true
+      });
     } catch (error) {
       console.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");

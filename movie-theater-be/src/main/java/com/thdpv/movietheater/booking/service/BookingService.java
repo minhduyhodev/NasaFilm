@@ -64,6 +64,7 @@ public class BookingService {
 
     @Transactional
     public BookingResponse confirmBooking(String currentUserEmail, ConfirmBookingRequest request) {
+        bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
@@ -379,25 +380,31 @@ public class BookingService {
         List<CustomerBookingHistoryResponse> responses = new ArrayList<>();
 
         for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
             BigDecimal totalPrice = toBigDecimal(row[1]);
             String bookingStatus = stringValue(row[2]);
             OffsetDateTime startTime = bookingRepository.toOffsetDateTime(row[4]);
+            if (startTime != null) {
+                startTime = startTime.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
             String movieTitle = stringValue(row[5]);
             String roomName = stringValue(row[6]);
             String seatsStr = stringValue(row[7]);
             String rawCombosStr = stringValue(row[8]);
             String ticketCode = stringValue(row[9]);
+            String ticketStatus = stringValue(row[10]);
 
             String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
 
             // Status: active if movie hasn't started yet, completed if movie has started/finished
             String status = startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
-            if ("CANCELLED".equalsIgnoreCase(bookingStatus)) {
+            if ("CANCELLED".equalsIgnoreCase(bookingStatus) || "USED".equalsIgnoreCase(ticketStatus)) {
                 status = "completed";
             }
 
             responses.add(new CustomerBookingHistoryResponse(
+                    bookingUuid,
                     ticketCode,
                     movieTitle,
                     roomName,
