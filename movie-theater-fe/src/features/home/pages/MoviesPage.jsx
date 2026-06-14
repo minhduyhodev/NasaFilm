@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, ArrowRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
@@ -12,7 +12,7 @@ const MoviesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'now-showing';
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Filter Options State
   const [dbGenres, setDbGenres] = useState([]);
@@ -20,13 +20,21 @@ const MoviesPage = () => {
   const [dbActors, setDbActors] = useState([]);
   const [dbCinemas, setDbCinemas] = useState([]);
 
-  // Selected Filters State
+  // Selected Filters State (Active filters that trigger database query)
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedActor, setSelectedActor] = useState(null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedShowtimeDate, setSelectedShowtimeDate] = useState(null);
   const [selectedCinema, setSelectedCinema] = useState(null);
   const [selectedAgeRating, setSelectedAgeRating] = useState(null);
+
+  // Temporary Filters State (Local to UI before clicking "Lọc kết quả")
+  const [tempCountry, setTempCountry] = useState(null);
+  const [tempActor, setTempActor] = useState(null);
+  const [tempGenre, setTempGenre] = useState(null);
+  const [tempShowtimeDate, setTempShowtimeDate] = useState(null);
+  const [tempCinema, setTempCinema] = useState(null);
+  const [tempAgeRating, setTempAgeRating] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [movies, setMovies] = useState([]);
@@ -40,6 +48,11 @@ const MoviesPage = () => {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  // Scroll to top when activeTab or currentPage changes (pagination and tab switching)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab, currentPage]);
 
   // Load all filter options on mount
   useEffect(() => {
@@ -157,48 +170,80 @@ const MoviesPage = () => {
   ];
 
   const handleCountrySelect = (uuid) => {
-    setSelectedCountry(uuid);
-    setCurrentPage(1);
+    setTempCountry(uuid);
   };
 
   const handleActorSelect = (uuid) => {
-    setSelectedActor(uuid);
-    setCurrentPage(1);
+    setTempActor(uuid);
   };
 
   const handleGenreSelect = (uuid) => {
-    setSelectedGenre(uuid);
-    setCurrentPage(1);
+    setTempGenre(uuid);
   };
 
   const handleShowtimeDateSelect = (dateStr) => {
-    setSelectedShowtimeDate(dateStr);
-    setCurrentPage(1);
+    setTempShowtimeDate(dateStr);
   };
 
   const handleCinemaSelect = (uuid) => {
-    setSelectedCinema(uuid);
-    setCurrentPage(1);
+    setTempCinema(uuid);
   };
 
   const handleAgeRatingSelect = (rating) => {
-    setSelectedAgeRating(rating);
+    setTempAgeRating(rating);
+  };
+
+  const handleApplyFilters = () => {
+    setSelectedCountry(tempCountry);
+    setSelectedActor(tempActor);
+    setSelectedGenre(tempGenre);
+    setSelectedShowtimeDate(tempShowtimeDate);
+    setSelectedCinema(tempCinema);
+    setSelectedAgeRating(tempAgeRating);
     setCurrentPage(1);
   };
 
-  const handleClearFilters = () => {
+  const handleToggleFilters = () => {
+    if (!isFiltersOpen) {
+      // Sync temp selections with active selections when opening
+      setTempCountry(selectedCountry);
+      setTempActor(selectedActor);
+      setTempGenre(selectedGenre);
+      setTempShowtimeDate(selectedShowtimeDate);
+      setTempCinema(selectedCinema);
+      setTempAgeRating(selectedAgeRating);
+    }
+    setIsFiltersOpen(!isFiltersOpen);
+  };
+
+  const handleCloseFilters = () => {
+    setIsFiltersOpen(false);
+    // Revert temp selections back to current active selections
+    setTempCountry(selectedCountry);
+    setTempActor(selectedActor);
+    setTempGenre(selectedGenre);
+    setTempShowtimeDate(selectedShowtimeDate);
+    setTempCinema(selectedCinema);
+    setTempAgeRating(selectedAgeRating);
+  };
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+    // Reset active filters
     setSelectedCountry(null);
     setSelectedActor(null);
     setSelectedGenre(null);
     setSelectedShowtimeDate(null);
     setSelectedCinema(null);
     setSelectedAgeRating(null);
-    setCurrentPage(1);
-  };
-
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    setSearchParams({ tab: tabId });
+    // Reset temp filters
+    setTempCountry(null);
+    setTempActor(null);
+    setTempGenre(null);
+    setTempShowtimeDate(null);
+    setTempCinema(null);
+    setTempAgeRating(null);
     setCurrentPage(1);
   };
 
@@ -213,9 +258,6 @@ const MoviesPage = () => {
         <div className="movie-list-header">
           <div className="movie-list-title-area">
             <h2 className="movie-list-title">{activeTab === 'now-showing' ? 'Đang Chiếu' : activeTab === 'coming-soon' ? 'Sắp Chiếu' : 'Suất Chiếu Đặc Biệt'}</h2>
-            <p className="movie-list-subtitle">
-              Trải nghiệm các bộ phim bom tấn mới nhất và các tác phẩm nghệ thuật đặc sắc tại hệ thống phòng chiếu cao cấp.
-            </p>
           </div>
 
           {/* Tab Selection */}
@@ -237,32 +279,25 @@ const MoviesPage = () => {
         </div>
 
         {/* Horizontal Filters Section */}
-        <div className="horizontal-filters-panel">
+        <div className={`horizontal-filters-panel mb-8 py-3 md:py-4 ${isFiltersOpen ? 'border border-white/10 rounded-xl px-4 md:px-5 -mx-4 md:-mx-5' : 'px-0'}`}>
           <div 
-            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className="flex items-center justify-between border-b border-white/5 pb-4 mb-4 cursor-pointer select-none"
+            onClick={handleToggleFilters}
+            className="flex items-center gap-4 cursor-pointer select-none"
           >
-            <div className="flex items-center gap-2 text-white font-black uppercase text-sm tracking-wider hover:text-yellow-500 transition-colors">
-              <Filter className="h-4 w-4 text-yellow-500" /> Bộ lọc
-            </div>
-            <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-              {(selectedCountry || selectedActor || selectedGenre || selectedShowtimeDate || selectedCinema || selectedAgeRating) && (
-                <button onClick={handleClearFilters} className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors uppercase tracking-wider">
-                  Xóa bộ lọc
-                </button>
-              )}
+            <div className="flex items-center gap-2 text-white font-black text-sm tracking-wider hover:text-[#FFD875] transition-colors">
+              <Filter className="h-4 w-4 text-[#FFD875]" fill="#FFD875" /> Bộ lọc
             </div>
           </div>
 
           {isFiltersOpen && (
-            <div className="space-y-4">
+            <div className="space-y-4 mt-4 pt-4 border-t border-white/5">
               {/* Quốc gia */}
               <div className="filter-row">
                 <span className="filter-row-label">Quốc gia:</span>
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleCountrySelect(null)}
-                    className={`filter-badge ${selectedCountry === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempCountry === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -270,7 +305,7 @@ const MoviesPage = () => {
                     <button
                       key={country.uuid}
                       onClick={() => handleCountrySelect(country.uuid)}
-                      className={`filter-badge ${selectedCountry === country.uuid ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempCountry === country.uuid ? 'filter-badge-active' : ''}`}
                     >
                       {country.name}
                     </button>
@@ -284,7 +319,7 @@ const MoviesPage = () => {
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleActorSelect(null)}
-                    className={`filter-badge ${selectedActor === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempActor === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -292,7 +327,7 @@ const MoviesPage = () => {
                     <button
                       key={actor.uuid}
                       onClick={() => handleActorSelect(actor.uuid)}
-                      className={`filter-badge ${selectedActor === actor.uuid ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempActor === actor.uuid ? 'filter-badge-active' : ''}`}
                     >
                       {actor.fullName}
                     </button>
@@ -306,7 +341,7 @@ const MoviesPage = () => {
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleGenreSelect(null)}
-                    className={`filter-badge ${selectedGenre === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempGenre === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -314,7 +349,7 @@ const MoviesPage = () => {
                     <button
                       key={genre.uuid}
                       onClick={() => handleGenreSelect(genre.uuid)}
-                      className={`filter-badge ${selectedGenre === genre.uuid ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempGenre === genre.uuid ? 'filter-badge-active' : ''}`}
                     >
                       {genre.name}
                     </button>
@@ -328,7 +363,7 @@ const MoviesPage = () => {
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleShowtimeDateSelect(null)}
-                    className={`filter-badge ${selectedShowtimeDate === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempShowtimeDate === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -336,7 +371,7 @@ const MoviesPage = () => {
                     <button
                       key={dateObj.dateStr}
                       onClick={() => handleShowtimeDateSelect(dateObj.dateStr)}
-                      className={`filter-badge ${selectedShowtimeDate === dateObj.dateStr ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempShowtimeDate === dateObj.dateStr ? 'filter-badge-active' : ''}`}
                     >
                       {dateObj.label}
                     </button>
@@ -350,7 +385,7 @@ const MoviesPage = () => {
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleCinemaSelect(null)}
-                    className={`filter-badge ${selectedCinema === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempCinema === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -358,7 +393,7 @@ const MoviesPage = () => {
                     <button
                       key={cinema.uuid}
                       onClick={() => handleCinemaSelect(cinema.uuid)}
-                      className={`filter-badge ${selectedCinema === cinema.uuid ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempCinema === cinema.uuid ? 'filter-badge-active' : ''}`}
                     >
                       {cinema.name}
                     </button>
@@ -372,7 +407,7 @@ const MoviesPage = () => {
                 <div className="filter-badges-container">
                   <button
                     onClick={() => handleAgeRatingSelect(null)}
-                    className={`filter-badge ${selectedAgeRating === null ? 'filter-badge-active' : ''}`}
+                    className={`filter-badge ${tempAgeRating === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
@@ -380,12 +415,28 @@ const MoviesPage = () => {
                     <button
                       key={ratingObj.value}
                       onClick={() => handleAgeRatingSelect(ratingObj.value)}
-                      className={`filter-badge ${selectedAgeRating === ratingObj.value ? 'filter-badge-active' : ''}`}
+                      className={`filter-badge ${tempAgeRating === ratingObj.value ? 'filter-badge-active' : ''}`}
                     >
                       {ratingObj.label}
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-4 pt-4 mt-2 border-t border-white/5">
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-neutral-900 bg-[#FFD875] hover:bg-[#ffe194] rounded-full transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0"
+                >
+                  Lọc kết quả <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleCloseFilters}
+                  className="px-6 py-2 text-sm font-bold text-gray-300 hover:text-white bg-transparent border border-white/20 hover:border-white/40 rounded-full transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0"
+                >
+                  Đóng
+                </button>
               </div>
             </div>
           )}

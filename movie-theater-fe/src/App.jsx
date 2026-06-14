@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
@@ -12,11 +12,22 @@ import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
 import './index.css';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <GlobalStyles />
       <BrowserRouter>
+        <ScrollToTop />
         <AuthProvider>
           <NotificationProvider>
             <Routes>

@@ -90,6 +90,11 @@ const CheckoutPage = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [userScore, setUserScore] = useState(0);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [combosList, setCombosList] = useState([]);
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
