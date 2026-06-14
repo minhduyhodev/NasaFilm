@@ -8,7 +8,12 @@ class BookingService {
         params.selectedSeatUuids = selectedSeatUuids.join(',');
       }
       const response = await authService.api.get(`/api/showtimes/${showtimeUuid}/seat-map`, { params });
-      return response.data.data ?? response.data;
+      const serverTime = response.headers.date ? new Date(response.headers.date).getTime() : (response.data.timestamp ? new Date(response.data.timestamp).getTime() : Date.now());
+      const data = response.data.data ?? response.data;
+      if (data) {
+        data._serverTimeOffset = serverTime - Date.now();
+      }
+      return data;
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -20,7 +25,12 @@ class BookingService {
         showtimeUuid,
         seatUuids
       });
-      return response.data.data ?? response.data;
+      const serverTime = response.headers.date ? new Date(response.headers.date).getTime() : (response.data.timestamp ? new Date(response.data.timestamp).getTime() : Date.now());
+      const data = response.data.data ?? response.data;
+      if (data) {
+        data._serverTimeOffset = serverTime - Date.now();
+      }
+      return data;
     } catch (error) {
       throw authService.handleError(error);
     }

@@ -98,6 +98,7 @@ const BookingPage = () => {
       if (data && data.rows) {
         setSeatRows(data.rows);
         
+        const offset = data._serverTimeOffset || 0;
         let gapFound = false;
         let expiresAtVal = null;
         
@@ -110,7 +111,7 @@ const BookingPage = () => {
             }
             if (seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME') {
               if (seat.lockedUntil) {
-                const seatExpire = new Date(seat.lockedUntil).getTime();
+                const seatExpire = new Date(seat.lockedUntil).getTime() - offset;
                 if (!expiresAtVal || seatExpire > expiresAtVal) {
                   expiresAtVal = seatExpire;
                 }

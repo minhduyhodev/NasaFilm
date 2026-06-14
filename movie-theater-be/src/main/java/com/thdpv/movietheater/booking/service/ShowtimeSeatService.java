@@ -270,10 +270,23 @@ public class ShowtimeSeatService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
+            entityManager.createNativeQuery("delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
+
+            entityManager.createNativeQuery("delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+
             entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+
+            entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+
+            entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
         }
@@ -435,7 +448,7 @@ public class ShowtimeSeatService {
                         .setParameter("now", now)
                         .setParameter("expiresAt", expiresAt)
                         .executeUpdate();
-            } catch (DataIntegrityViolationException ex) {
+            } catch (DataIntegrityViolationException | jakarta.persistence.PersistenceException ex) {
                 throw new AppException(ErrorCode.CONFLICT, "Ghe dang duoc nguoi khac giu");
             }
         }
