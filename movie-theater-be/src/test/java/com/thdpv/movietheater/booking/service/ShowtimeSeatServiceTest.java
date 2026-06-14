@@ -168,22 +168,22 @@ class ShowtimeSeatServiceTest {
 
     private SeatViewDto createSeatViewDto(UUID showtimeUuid, UUID seatUuid, String rowName, Integer seatNumber,
             String seatStatus, boolean booked, UUID lockedUserUuid) {
-        return new SeatViewDto() {
-            @Override public UUID getShowtimeUuid() { return showtimeUuid; }
-            @Override public UUID getCinemaRoomUuid() { return UUID.randomUUID(); }
-            @Override public OffsetDateTime getStartTime() { return OffsetDateTime.now().plusHours(2); }
-            @Override public OffsetDateTime getEndTime() { return OffsetDateTime.now().plusHours(4); }
-            @Override public UUID getSeatUuid() { return seatUuid; }
-            @Override public String getRowName() { return rowName; }
-            @Override public Integer getSeatNumber() { return seatNumber; }
-            @Override public String getSeatDbStatus() { return seatStatus; }
-            @Override public UUID getSeatTypeUuid() { return UUID.randomUUID(); }
-            @Override public String getSeatTypeName() { return "STANDARD"; }
-            @Override public BigDecimal getBasePrice() { return BigDecimal.valueOf(80000); }
-            @Override public BigDecimal getPriceModifier() { return BigDecimal.ONE; }
-            @Override public UUID getBookingSeatUuid() { return booked ? UUID.randomUUID() : null; }
-            @Override public UUID getLockedUserUuid() { return lockedUserUuid; }
-            @Override public OffsetDateTime getLockedUntil() { return null; }
-        };
+        return new SeatViewDto(
+                showtimeUuid,
+                UUID.randomUUID(),
+                OffsetDateTime.now().plusHours(2),
+                OffsetDateTime.now().plusHours(4),
+                seatUuid,
+                rowName,
+                seatNumber,
+                com.thdpv.movietheater.cinema.enums.SeatStatus.valueOf(seatStatus),
+                UUID.randomUUID(),
+                "STANDARD",
+                BigDecimal.valueOf(80000),
+                BigDecimal.ONE,
+                booked ? UUID.randomUUID() : null,
+                lockedUserUuid,
+                null
+        );
     }
 }
