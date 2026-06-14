@@ -35,51 +35,42 @@
 }
 
 .movie-list-layout {
-  @apply grid lg:grid-cols-[280px_1fr] gap-8 items-start;
+  @apply w-full;
 }
 
-.filter-sidebar {
-  @apply bg-[#11141e] border border-white/5 rounded-2xl p-6 space-y-8 shadow-2xl;
+.horizontal-filters-panel {
+  @apply py-4 mb-8 flex flex-col gap-4;
 }
 
-.filter-section {
-  @apply space-y-4;
+.filter-row {
+  @apply flex items-start gap-4 py-2 border-b border-white/5 last:border-0;
 }
 
-.filter-title {
-  @apply text-[11px] font-black uppercase tracking-widest text-gray-400;
+.filter-row-label {
+  @apply text-xs font-black uppercase tracking-wider text-gray-400 w-24 shrink-0 pt-2 text-left;
 }
 
-.filter-checkbox-group {
-  @apply space-y-3;
+.filter-badges-container {
+  @apply flex flex-wrap gap-2.5 items-center max-h-36 overflow-y-auto pr-2;
 }
 
-.filter-checkbox-row {
-  @apply flex items-center gap-3 cursor-pointer;
+.filter-badges-container::-webkit-scrollbar {
+  width: 4px;
+}
+.filter-badges-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.filter-badges-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
-.filter-checkbox {
-  @apply w-4 h-4 bg-white/5 border border-white/10 rounded cursor-pointer accent-[#f3a092] transition-colors focus:ring-0;
+.filter-badge {
+  @apply px-4 py-1.5 rounded-full text-xs font-bold text-gray-300 bg-white/5 border border-white/5 transition-all duration-300 cursor-pointer hover:bg-white/10 hover:text-white;
 }
 
-.filter-checkbox-label {
-  @apply text-sm text-gray-300 group-hover:text-white transition-colors font-medium;
-}
-
-.filter-slider-group {
-  @apply space-y-3;
-}
-
-.filter-slider {
-  @apply w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#f3a092];
-}
-
-.filter-slider-labels {
-  @apply flex justify-between text-xs text-gray-500 font-bold;
-}
-
-.filter-clear-btn {
-  @apply w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black text-xs uppercase tracking-wider rounded-xl transition duration-200;
+.filter-badge-active {
+  @apply bg-amber-500/10 border-amber-500 text-amber-500 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.2)];
 }
 
 .movie-grid-area {
