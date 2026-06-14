@@ -21,7 +21,17 @@ public class BookingNativeRepository {
     private EntityManager entityManager;
 
     public boolean existsShowtime(UUID showtimeUuid) {
-        Number count = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+        Number count = (Number) entityManager
+                .createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        return count != null && count.longValue() > 0L;
+    }
+
+    public boolean hasConfirmedBookings(UUID showtimeUuid) {
+        Number count = (Number) entityManager
+                .createNativeQuery(
+                        "select count(1) from booking where showtime_uuid = :showtimeUuid and status = 'CONFIRMED'")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getSingleResult();
         return count != null && count.longValue() > 0L;
@@ -134,6 +144,7 @@ public class BookingNativeRepository {
                     sl.user_uuid as locked_user_uuid
                 from showtime st
                 join seat s on s.cinema_room_uuid = st.cinema_room_uuid
+                join seat_type stt on stt.uuid = s.seat_type_uuid
                 left join booking_seat bs
                     on bs.showtime_uuid = st.uuid
                    and bs.seat_uuid = s.uuid
@@ -142,6 +153,7 @@ public class BookingNativeRepository {
                    and sl.seat_uuid = s.uuid
                    and sl.expired_at > :now
                 where st.uuid = :showtimeUuid
+                  and stt.name <> 'COUPLE'
                 order by s.row_name asc, s.seat_number asc
                 """)
                 .setParameter("showtimeUuid", showtimeUuid)
@@ -182,6 +194,20 @@ public class BookingNativeRepository {
                 .setParameter("scoreAmount", scoreAdded)
                 .setParameter("type", "EARN")
                 .setParameter("description", "Earned from booking " + bookingUuid)
+                .setParameter("createdAt", createdAt)
+                .executeUpdate();
+    }
+
+    public void insertRefundScoreHistory(UUID userUuid, int scoreDeducted, UUID bookingUuid, OffsetDateTime createdAt) {
+        entityManager.createNativeQuery("""
+                insert into score_history (uuid, user_uuid, score_amount, type, description, created_at)
+                values (:uuid, :userUuid, :scoreAmount, :type, :description, :createdAt)
+                """)
+                .setParameter("uuid", UUID.randomUUID())
+                .setParameter("userUuid", userUuid)
+                .setParameter("scoreAmount", -scoreDeducted)
+                .setParameter("type", "REFUND")
+                .setParameter("description", "Refunded from booking " + bookingUuid)
                 .setParameter("createdAt", createdAt)
                 .executeUpdate();
     }
@@ -249,7 +275,33 @@ public class BookingNativeRepository {
                     b.created_at,
                     st.start_time,
                     m.title,
-                    cr.name
+                    cr.name,
+                    coalesce((
+                        select string_agg(s.row_name || s.seat_number, ', ' order by s.row_name asc, s.seat_number asc)
+                        from booking_seat bs
+                        join seat s on s.uuid = bs.seat_uuid
+                        where bs.booking_uuid = b.uuid
+                    ), ''),
+                    coalesce((
+                        select string_agg(bc.quantity || 'x ' || c.name, ', ' order by c.name asc)
+                        from booking_combo bc
+                        join combo c on c.uuid = bc.combo_uuid
+                        where bc.booking_uuid = b.uuid
+                    ), ''),
+                    coalesce((
+                        select t.ticket_code
+                        from ticket t
+                        where t.booking_uuid = b.uuid
+                        order by t.issued_at asc
+                        limit 1
+                    ), ''),
+                    coalesce((
+                        select t.status
+                        from ticket t
+                        where t.booking_uuid = b.uuid
+                        order by t.issued_at asc
+                        limit 1
+                    ), '')
                 from booking b
                 join showtime st on st.uuid = b.showtime_uuid
                 join movie m on m.uuid = st.movie_uuid
@@ -263,6 +315,11 @@ public class BookingNativeRepository {
 
     @SuppressWarnings("unchecked")
     public List<Object[]> loadAdminBookings(String keyword) {
+        return loadAdminBookings(keyword, null, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object[]> loadAdminBookings(String keyword, Integer offset, Integer limit) {
         String queryStr = """
                 select
                     b.uuid,
@@ -273,7 +330,19 @@ public class BookingNativeRepository {
                     b.total_price,
                     b.status,
                     b.created_at,
-                    u.avatar_url
+                    u.avatar_url,
+                    coalesce((
+                        select string_agg(s.row_name || s.seat_number, ', ' order by s.row_name asc, s.seat_number asc)
+                        from booking_seat bs
+                        join seat s on s.uuid = bs.seat_uuid
+                        where bs.booking_uuid = b.uuid
+                    ), ''),
+                    coalesce((
+                        select string_agg(bc.quantity || 'x ' || c.name, ', ' order by c.name asc)
+                        from booking_combo bc
+                        join combo c on c.uuid = bc.combo_uuid
+                        where bc.booking_uuid = b.uuid
+                    ), '')
                 from booking b
                 join users u on u.id = b.user_uuid
                 join showtime st on st.uuid = b.showtime_uuid
@@ -284,10 +353,17 @@ public class BookingNativeRepository {
             queryStr += " where upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword ";
         }
         queryStr += " order by b.created_at desc ";
+        if (limit != null && offset != null) {
+            queryStr += " limit :limit offset :offset ";
+        }
 
         var nativeQuery = entityManager.createNativeQuery(queryStr);
         if (keyword != null && !keyword.isBlank()) {
             nativeQuery.setParameter("keyword", "%" + keyword.toUpperCase() + "%");
+        }
+        if (limit != null && offset != null) {
+            nativeQuery.setParameter("limit", limit);
+            nativeQuery.setParameter("offset", offset);
         }
         return nativeQuery.getResultList();
     }
@@ -346,7 +422,8 @@ public class BookingNativeRepository {
 
     public OffsetDateTime getShowtimeStartTime(UUID showtimeUuid) {
         @SuppressWarnings("unchecked")
-        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
+        List<Object> rows = entityManager
+                .createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getResultList();
         if (rows.isEmpty()) {
@@ -356,6 +433,28 @@ public class BookingNativeRepository {
     }
 
     public void slideShowtime(UUID showtimeUuid, OffsetDateTime newStart, long daysToAdd) {
+        // 1. Delete tickets associated with showtime's bookings
+        entityManager.createNativeQuery("""
+                delete from ticket
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 2. Delete booking combos associated with showtime's bookings
+        entityManager.createNativeQuery("""
+                delete from booking_combo
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 3. Delete bookings associated with showtime
+        entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 4. Update showtime start/end times
         entityManager.createNativeQuery("""
                 update showtime
                 set start_time = :newStart,
@@ -367,14 +466,22 @@ public class BookingNativeRepository {
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        entityManager.createNativeQuery("delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+        entityManager.createNativeQuery(
+                "delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        entityManager.createNativeQuery("delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+        entityManager.createNativeQuery(
+                "delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
+        // 5. Delete locks
+        entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 6. Delete booking seats
         entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
@@ -386,6 +493,38 @@ public class BookingNativeRepository {
         entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
+    }
+
+    public void ensureShowtimeExists(UUID showtimeUuid) {
+        Number countShowtime = (Number) entityManager
+                .createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        if (countShowtime != null && countShowtime.longValue() > 0L) {
+            return;
+        }
+
+        Number countMovie = (Number) entityManager
+                .createNativeQuery("select count(1) from movie where uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .getSingleResult();
+        if (countMovie != null && countMovie.longValue() > 0L) {
+            OffsetDateTime now = OffsetDateTime.now();
+            OffsetDateTime startTime = now.withHour(19).withMinute(30).withSecond(0).withNano(0);
+            OffsetDateTime endTime = now.withHour(21).withMinute(30).withSecond(0).withNano(0);
+            UUID roomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888"); // Phòng chiếu IMAX
+
+            entityManager.createNativeQuery("""
+                    insert into showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time)
+                    values (:uuid, :movieUuid, :roomUuid, :startTime, :endTime)
+                    """)
+                    .setParameter("uuid", showtimeUuid)
+                    .setParameter("movieUuid", showtimeUuid)
+                    .setParameter("roomUuid", roomUuid)
+                    .setParameter("startTime", startTime)
+                    .setParameter("endTime", endTime)
+                    .executeUpdate();
+        }
     }
 
     public record LockedSeat(UUID seatUuid, String rowName, Integer seatNumber, BigDecimal price) {

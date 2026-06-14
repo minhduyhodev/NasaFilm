@@ -19,4 +19,6 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
     Optional<UserSession> findFirstByUserIdAndUserAgent(UUID userId, String userAgent);
 
     void deleteByExpiredAtBeforeOrRevokedAtBefore(LocalDateTime expiredAt, LocalDateTime revokedAt);
+
+    void deleteByExpiredAtBeforeOrStatus(LocalDateTime expiredAt, String status);
 }

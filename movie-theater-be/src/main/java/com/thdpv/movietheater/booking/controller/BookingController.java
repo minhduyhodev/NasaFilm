@@ -8,11 +8,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
@@ -52,8 +55,25 @@ public class BookingController {
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<ApiResponse<List<AdminBookingListResponse>>> getAdminBookings(
-            @RequestParam(value = "keyword", required = false) String keyword) {
-        List<AdminBookingListResponse> response = bookingService.getAdminBookings(keyword);
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size) {
+        List<AdminBookingListResponse> response = bookingService.getAdminBookings(keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/tickets/{code}/check-in")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<Void>> checkInTicket(@PathVariable("code") String code) {
+        bookingService.checkInTicket(code);
+        return ResponseEntity.ok(ApiResponse.success(null, "Soát vé thành công"));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelBooking(
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.cancelBooking(id, userDetails != null ? userDetails.getUsername() : null);
+        return ResponseEntity.ok(ApiResponse.success(null, "Hủy đặt vé thành công"));
     }
 }

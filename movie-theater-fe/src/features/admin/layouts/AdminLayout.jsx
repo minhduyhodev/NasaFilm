@@ -26,7 +26,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       className={`fixed inset-y-0 left-0 z-50 bg-[#0B0F19] border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:w-60 w-72`}
     >
       <div className="relative z-10 py-5 px-6 border-b border-[#1A2238]/60 flex items-center justify-start">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
+        <Link to="/admin" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
           <img src={nasaLogo} alt="NASAFILM Logo" className="h-7 w-auto object-contain rounded-lg" />
           <span className="text-lg font-black tracking-tight leading-none text-white">
             NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
@@ -104,6 +104,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
               { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
               { to: '/admin/bookings', icon: 'confirmation_number', label: 'Đơn hàng' },
+              { to: '/admin/vouchers', icon: 'local_activity', label: 'Khuyến mãi' },
             ].map((item) => (
               <NavLink
                 key={item.to}

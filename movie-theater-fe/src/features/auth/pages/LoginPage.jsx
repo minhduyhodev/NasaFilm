@@ -52,15 +52,19 @@ export const LoginPage = () => {
     const storedUser = tokenService.getUser();
     const roles = storedUser?.roles || [];
 
-    if (from) {
-      navigate(from, { replace: true });
-      return;
+    const isAdminOrStaff = roles.some((r) => {
+      if (!r) return false;
+      const roleLower = r.toLowerCase();
+      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
+    });
+
+    if (isAdminOrStaff) {
+      const targetPath = (from && from.startsWith('/admin')) ? from : '/admin';
+      navigate(targetPath, { replace: true });
+    } else {
+      const targetPath = (from && !from.startsWith('/admin') && from !== '/unauthorized') ? from : '/';
+      navigate(targetPath, { replace: true });
     }
-
-   const isAdminOrStaff = roles.some((r) => r === 'admin' || r === 'staff');
-
-    const targetPath = from || (isAdminOrStaff ? '/admin' : '/');
-    navigate(targetPath, { replace: true });
   };
 
   useEffect(() => {

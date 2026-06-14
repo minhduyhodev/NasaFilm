@@ -88,13 +88,13 @@ const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [combosList, setCombosList] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -153,7 +153,6 @@ const CheckoutPage = () => {
     }
   }, [location.state?.lockExpiresAt]);
 
-  const bookingFee = 15000; // 15,000 đ internet fee
   const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
     uuid: "55555555-5555-5555-5555-555555555555",
     name: "Combo Bắp Nước",
@@ -166,7 +165,7 @@ const CheckoutPage = () => {
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
   
   const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + bookingFee + (hasCombo ? comboPrice : 0);
+  const subtotal = ticketSum + (hasCombo ? comboPrice : 0);
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -213,15 +212,25 @@ const CheckoutPage = () => {
   const handleApplyVoucher = async () => {
     const code = voucherInput.trim();
     if (code === '') {
-      setVoucherError('Vui lòng nhập mã giảm giá.');
+      setDiscount(0);
+      setVoucherError('');
+      notificationService.success('Đã hủy áp dụng mã giảm giá.');
       return;
     }
     await applyVoucherByCode(code, true);
   };
 
   const handleSelectVoucher = (code) => {
-    setVoucherInput(code);
-    applyVoucherByCode(code, false);
+    const isAlreadySelected = voucherInput.trim().toUpperCase() === code.toUpperCase() && discount > 0;
+    if (isAlreadySelected) {
+      setVoucherInput('');
+      setDiscount(0);
+      setVoucherError('');
+      notificationService.success('Đã bỏ chọn mã giảm giá.');
+    } else {
+      setVoucherInput(code);
+      applyVoucherByCode(code, false);
+    }
   };
 
   const handlePay = async () => {
@@ -234,7 +243,7 @@ const CheckoutPage = () => {
       const seatUuids = selectedSeats.map(s => s.seatUuid);
       const combos = hasCombo ? [{ comboUuid: activeCombo.uuid, quantity: 1 }] : [];
       
-      await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
       
       notificationService.addNotification(
         "Đặt vé thành công",
@@ -246,7 +255,23 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       
-      navigate('/profile');
+      navigate('/booking-confirmed', {
+        state: {
+          bookingUuid: response.bookingUuid,
+          movie: movie,
+          moviePoster: moviePoster || movieInfo.poster,
+          movieFormat: movieFormat || movieInfo.format,
+          movieRating: movieInfo.age,
+          theater: theater,
+          date: date,
+          showtime: showtime,
+          selectedSeats: selectedSeats,
+          tickets: response.tickets || [],
+          totalPrice: finalTotal,
+          combos: response.combos || []
+        },
+        replace: true
+      });
     } catch (error) {
       console.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
@@ -315,11 +340,7 @@ const CheckoutPage = () => {
                   </div>
                 ))}
 
-                {/* Booking Fee */}
-                <div className="flex justify-between items-center text-[#c8c5ca]">
-                  <span className="text-xs font-semibold">Phí giao dịch trực tuyến</span>
-                  <span className="text-xs font-bold text-white">{(bookingFee).toLocaleString('vi-VN')} đ</span>
-                </div>
+
 
                 {/* Combo pack selection toggle */}
                 <div className="pt-4 border-t border-white/5 space-y-3">

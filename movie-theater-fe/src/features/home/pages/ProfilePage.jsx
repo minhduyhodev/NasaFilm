@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
@@ -35,11 +36,101 @@ import { bookingService } from "../../../shared/services/bookingService";
 import { promotionService } from "../../../shared/services/promotionService";
 import "./ProfilePage.css";
 
+// Import movie poster assets
+import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
+import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
+import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
+import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
+import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
+import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
+import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
+import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
+import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
+import maXoPoster from '../../../shared/assets/maxo.jpg';
+import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
+import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
+import baTronPoster from '../../../shared/assets/batron.webp';
+import khachPoster from '../../../shared/assets/khach.webp';
+
+const movieLookup = {
+  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
+  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
+  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
+  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
+  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
+  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
+  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
+  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
+  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
+  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
+  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
+  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
+  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
+  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
+  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
+};
+
+const getMovieInfo = (title) => {
+  if (!title) {
+    return {
+      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
+      format: 'IMAX 3D',
+      age: 'PG-13'
+    };
+  }
+  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
+  return key ? movieLookup[key] : {
+    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
+    format: 'IMAX 3D',
+    age: 'PG-13'
+  };
+};
+
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
+
+  const handleTicketClick = (tkt) => {
+    let showtime = "";
+    let date = "";
+    if (tkt.showtime) {
+      const parts = tkt.showtime.split(" | ");
+      if (parts.length >= 2) {
+        showtime = parts[0];
+        date = parts[1];
+      } else {
+        showtime = tkt.showtime;
+      }
+    }
+
+    let selectedSeats = [];
+    if (tkt.seats) {
+      selectedSeats = tkt.seats.split(", ").map((seatName) => ({
+        id: seatName,
+      }));
+    }
+
+    const movieInfo = getMovieInfo(tkt.movieTitle);
+
+    const bookingData = {
+      bookingUuid: tkt.bookingUuid || "",
+      movie: tkt.movieTitle,
+      moviePoster: movieInfo.poster,
+      movieFormat: movieInfo.format || "IMAX 3D",
+      movieRating: movieInfo.age || "T16",
+      theater: tkt.cinema,
+      date: date,
+      showtime: showtime,
+      selectedSeats: selectedSeats,
+      tickets: [{ ticketCode: tkt.id }],
+      totalPrice: tkt.price ? parseInt(tkt.price.replace(/[^\d]/g, ""), 10) : 0,
+    };
+
+    navigate("/booking-confirmed", { state: bookingData });
+  };
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dayOfBirth, setDayOfBirth] = useState("");
@@ -1261,6 +1352,9 @@ export const ProfilePage = () => {
                             <div
                               key={tkt.id}
                               className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
+                              onClick={() => handleTicketClick(tkt)}
+                              style={{ cursor: "pointer" }}
+                              title="Nhấp để xem chi tiết / In lại vé"
                             >
                               <div className="ticket-notch-top" />
                               <div className="ticket-notch-bottom" />

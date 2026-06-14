@@ -1,0 +1,150 @@
+/* Custom styles for BookingConfirmedPage */
+
+.bg-mesh {
+  background-color: #0A0A0C;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(204, 197, 191, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 180, 171, 0.04) 0px, transparent 50%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.neon-gold-glow {
+  box-shadow: 0 0 20px rgba(204, 197, 191, 0.3);
+}
+
+.checkmark-animate {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: checkmark-dash 1s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  animation-delay: 0.5s;
+}
+
+@keyframes checkmark-dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.qr-pulse {
+  animation: qr-pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes qr-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(204, 197, 191, 0.2);
+    border-color: rgba(204, 197, 191, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(204, 197, 191, 0.5);
+    border-color: rgba(204, 197, 191, 0.6);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: item-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes item-slide-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Celebration Particles */
+.particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
+  border-radius: 50%;
+}
+
+@keyframes particle-fade {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Print layout optimizations */
+@media print {
+  body, .bg-mesh, main {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header,
+  footer,
+  .action-buttons-group,
+  button {
+    display: none !important;
+  }
+
+  .glass-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    backdrop-filter: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-direction: row !important;
+  }
+
+  /* Make movie poster smaller or hidden for printing if preferred, but keep layout clean */
+  .relative.w-full.md\:w-2\/5 {
+    width: 30% !important;
+    height: auto !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .relative.w-full.md\:w-2\/5 img {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Hide success checkmark overlay on print for a cleaner ticket */
+  .absolute.inset-0.flex.flex-col.items-center {
+    display: none !important;
+  }
+
+  .text-on-surface,
+  .text-on-background,
+  h1,
+  h2,
+  h3,
+  span,
+  p,
+  div {
+    color: #000000 !important;
+  }
+
+  .text-tertiary {
+    color: #b45309 !important; /* amber/brown color for print contrast */
+  }
+
+  .qr-pulse {
+    animation: none !important;
+    box-shadow: none !important;
+    border: 1px solid #cccccc !important;
+    background: #f9f9f9 !important;
+  }
+}

@@ -238,10 +238,8 @@ const UsersPage = () => {
                 {filteredUsers.map((row, index) => {
                   const getMemberTier = (score) => {
                     const points = score || 0;
-                    if (points >= 1000) return { label: 'VIP Member', class: 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' };
-                    if (points >= 500) return { label: 'Gold Member', class: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' };
-                    if (points >= 100) return { label: 'Silver Member', class: 'bg-slate-400/10 border-slate-400/30 text-slate-300' };
-                    return { label: 'Standard', class: 'bg-zinc-800/60 border-zinc-700 text-gray-400' };
+                    if (points >= 10000) return { label: "NASA'VIP", class: 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' };
+                    return { label: "NASA'FRIEND", class: 'bg-gray-800/60 border-gray-700 text-gray-400' };
                   };
                   const tier = getMemberTier(row.score);
                   const isLastRow = index >= filteredUsers.length - 2 && index > 0;
@@ -288,11 +286,25 @@ const UsersPage = () => {
                           '—'
                         )}
                       </td>
-                      <td className="text-center py-2.5 px-4">
-                        <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-1.5 py-0.5 rounded text-[11px] font-bold">
-                          {row.score || 0}
-                        </span>
-                        <span className="text-gray-500 text-[10px] ml-1">Pts</span>
+                      <td className="text-center py-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-2 py-0.5 rounded-md text-xs font-bold">
+                            {row.score || 0}
+                          </span>
+                          <span className="text-gray-400 text-xs font-normal">Pts</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedUserForScore(row);
+                              setNewScore(row.score || 0);
+                              setIsScoreModalOpen(true);
+                            }}
+                            className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer inline-flex items-center justify-center focus:outline-none"
+                            title="Sửa điểm tích lũy"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                       <td className="text-center text-gray-400 font-semibold py-2.5 px-4">
                         {row.createdAt ? (() => {

@@ -13,6 +13,7 @@ public class ShowtimeSeatMapResponse {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private Integer lockTtlSeconds;
+    private OffsetDateTime serverTime;
     private List<RowItem> rows = new ArrayList<>();
 
     public ShowtimeSeatMapResponse() {
@@ -25,6 +26,17 @@ public class ShowtimeSeatMapResponse {
         this.startTime = startTime;
         this.endTime = endTime;
         this.lockTtlSeconds = lockTtlSeconds;
+        this.rows = rows != null ? rows : new ArrayList<>();
+    }
+
+    public ShowtimeSeatMapResponse(UUID showtimeUuid, UUID cinemaRoomUuid, OffsetDateTime startTime,
+            OffsetDateTime endTime, Integer lockTtlSeconds, OffsetDateTime serverTime, List<RowItem> rows) {
+        this.showtimeUuid = showtimeUuid;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.lockTtlSeconds = lockTtlSeconds;
+        this.serverTime = serverTime;
         this.rows = rows != null ? rows : new ArrayList<>();
     }
 
@@ -66,6 +78,14 @@ public class ShowtimeSeatMapResponse {
 
     public void setLockTtlSeconds(Integer lockTtlSeconds) {
         this.lockTtlSeconds = lockTtlSeconds;
+    }
+
+    public OffsetDateTime getServerTime() {
+        return serverTime;
+    }
+
+    public void setServerTime(OffsetDateTime serverTime) {
+        this.serverTime = serverTime;
     }
 
     public List<RowItem> getRows() {

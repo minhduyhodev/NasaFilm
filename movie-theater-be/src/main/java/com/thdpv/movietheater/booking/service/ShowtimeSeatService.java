@@ -25,6 +25,7 @@ import com.thdpv.movietheater.booking.dto.response.SeatLockSyncResponse;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -47,9 +48,12 @@ public class ShowtimeSeatService {
 
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final BookingNativeRepository bookingRepository;
 
     @Transactional
-    public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
+    public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids,
+            String currentUserEmail) {
+        bookingRepository.ensureShowtimeExists(showtimeUuid);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(showtimeUuid, now);
@@ -102,11 +106,13 @@ public class ShowtimeSeatService {
                 startTime,
                 endTime,
                 LOCK_TTL_SECONDS,
+                now,
                 responseRows);
     }
 
     @Transactional
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
+        bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
@@ -142,6 +148,7 @@ public class ShowtimeSeatService {
                 request.getShowtimeUuid(),
                 LOCK_TTL_SECONDS,
                 requestedSeatUuids.isEmpty() ? null : expiresAt,
+                now,
                 requestedSeatUuids);
     }
 
@@ -188,7 +195,7 @@ public class ShowtimeSeatService {
 
                 for (int i = segmentStart; i <= segmentEnd; i++) {
                     SeatView current = seats.get(i);
-                    if (!current.isPlainAvailable()) {
+                    if (!current.isPlainAvailable() || "COUPLE".equalsIgnoreCase(current.seatTypeName())) {
                         continue;
                     }
 
@@ -196,8 +203,10 @@ public class ShowtimeSeatService {
                     boolean rightUnavailable = (i == segmentEnd) || seats.get(i + 1).isUnavailableForGapRule();
 
                     if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByMe = (i != segmentStart) && (seats.get(i - 1).selected() || "LOCKED_BY_ME".equals(seats.get(i - 1).availabilityStatus()));
-                        boolean rightSelectedByMe = (i != segmentEnd) && (seats.get(i + 1).selected() || "LOCKED_BY_ME".equals(seats.get(i + 1).availabilityStatus()));
+                        boolean leftSelectedByMe = (i != segmentStart) && (seats.get(i - 1).selected()
+                                || "LOCKED_BY_ME".equals(seats.get(i - 1).availabilityStatus()));
+                        boolean rightSelectedByMe = (i != segmentEnd) && (seats.get(i + 1).selected()
+                                || "LOCKED_BY_ME".equals(seats.get(i + 1).availabilityStatus()));
                         if (leftSelectedByMe || rightSelectedByMe) {
                             seats.set(i, current.withBlocked(true));
                         }
@@ -209,7 +218,8 @@ public class ShowtimeSeatService {
         }
     }
 
-    private String resolveAvailabilityStatus(String seatDbStatus, boolean booked, UUID lockedUserUuid, UUID currentUserUuid) {
+    private String resolveAvailabilityStatus(String seatDbStatus, boolean booked, UUID lockedUserUuid,
+            UUID currentUserUuid) {
         if (seatDbStatus != null && !"ACTIVE".equalsIgnoreCase(seatDbStatus.trim())) {
             return "UNAVAILABLE";
         }
@@ -227,7 +237,8 @@ public class ShowtimeSeatService {
 
     private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
         @SuppressWarnings("unchecked")
-        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
+        List<Object> rows = entityManager
+                .createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getResultList();
         if (rows.isEmpty()) {
@@ -240,8 +251,12 @@ public class ShowtimeSeatService {
     }
 
     private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
+        if (bookingRepository.hasConfirmedBookings(showtimeUuid)) {
+            return;
+        }
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery("select start_time, end_time from showtime where uuid = :showtimeUuid")
+        List<Object[]> rows = entityManager
+                .createNativeQuery("select start_time, end_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getResultList();
         if (rows.isEmpty()) {
@@ -270,11 +285,13 @@ public class ShowtimeSeatService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            entityManager.createNativeQuery("delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+            entityManager.createNativeQuery(
+                    "delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            entityManager.createNativeQuery("delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+            entityManager.createNativeQuery(
+                    "delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
@@ -289,6 +306,7 @@ public class ShowtimeSeatService {
             entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
+            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
         }
     }
 

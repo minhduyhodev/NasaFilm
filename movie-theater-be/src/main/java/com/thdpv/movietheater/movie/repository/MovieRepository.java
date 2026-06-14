@@ -11,6 +11,7 @@ import com.thdpv.movietheater.movie.entity.Movie;
 
 public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecificationExecutor<Movie> {
 
+
     @Query(value = """
             select exists(
                 select 1
@@ -29,6 +30,18 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
             )
             """, nativeQuery = true)
     boolean existsBookingByMovieUuid(@Param("movieUuid") UUID movieUuid);
+
+    @Query(value = """
+            select exists(
+                select 1
+                from booking b
+                join showtime s on s.uuid = b.showtime_uuid
+                where b.user_uuid = :userUuid
+                  and s.movie_uuid = :movieUuid
+                  and b.status = 'CONFIRMED'
+            )
+            """, nativeQuery = true)
+    boolean hasConfirmedBookingForMovie(@Param("userUuid") UUID userUuid, @Param("movieUuid") UUID movieUuid);
 
     boolean existsByTitleIgnoreCase(String title);
 }
