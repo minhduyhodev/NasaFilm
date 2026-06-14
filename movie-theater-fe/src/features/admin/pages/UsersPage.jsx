@@ -286,9 +286,9 @@ const UsersPage = () => {
                           '—'
                         )}
                       </td>
-                      <td className="text-center py-4">
+                      <td className="text-center py-2.5 px-4">
                         <div className="flex items-center justify-center gap-1.5">
-                          <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-2 py-0.5 rounded-md text-xs font-bold">
+                          <span className="font-mono text-white bg-black/40 border border-[#1A2238] px-1.5 py-0.5 rounded text-[11px] font-bold">
                             {row.score || 0}
                           </span>
                           <span className="text-gray-400 text-xs font-normal">Pts</span>

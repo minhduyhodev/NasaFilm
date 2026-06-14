@@ -426,7 +426,7 @@ public class ShowtimeSeatService {
                         .setParameter("now", now)
                         .setParameter("expiresAt", expiresAt)
                         .executeUpdate();
-            } catch (DataIntegrityViolationException ex) {
+            } catch (DataIntegrityViolationException | jakarta.persistence.PersistenceException ex) {
                 throw new AppException(ErrorCode.CONFLICT, "Ghe dang duoc nguoi khac giu");
             }
         }

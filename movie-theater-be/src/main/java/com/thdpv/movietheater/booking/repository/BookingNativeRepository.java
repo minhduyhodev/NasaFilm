@@ -429,28 +429,7 @@ public class BookingNativeRepository {
     }
 
     public void slideShowtime(UUID showtimeUuid, OffsetDateTime newStart, long daysToAdd) {
-        // 1. Delete tickets associated with showtime's bookings
-        entityManager.createNativeQuery("""
-                delete from ticket
-                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
-                """)
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 2. Delete booking combos associated with showtime's bookings
-        entityManager.createNativeQuery("""
-                delete from booking_combo
-                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
-                """)
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 3. Delete bookings associated with showtime
-        entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 4. Update showtime start/end times
+        // 1. Update showtime start/end times
         entityManager.createNativeQuery("""
                 update showtime
                 set start_time = :newStart,
@@ -462,13 +441,34 @@ public class BookingNativeRepository {
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        // 5. Delete locks
-        entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
+        // 2. Delete dependent tickets
+        entityManager.createNativeQuery("""
+                delete from ticket
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        // 6. Delete booking seats
+        // 3. Delete dependent booking combos
+        entityManager.createNativeQuery("""
+                delete from booking_combo
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 4. Delete booking seats
         entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 5. Delete bookings
+        entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
+                .setParameter("showtimeUuid", showtimeUuid)
+                .executeUpdate();
+
+        // 6. Delete locks
+        entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
     }

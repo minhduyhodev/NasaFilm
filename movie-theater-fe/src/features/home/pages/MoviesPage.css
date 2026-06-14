@@ -23,63 +23,55 @@
 }
 
 .movie-list-tabs {
-  @apply flex items-center bg-[#171c2a] border border-white/5 rounded-full p-1 self-start md:self-auto;
+  @apply flex items-center bg-[#11141e]/60 border border-white/5 rounded-full p-1 self-start md:self-auto;
 }
 
 .movie-list-tab-btn {
-  @apply px-5 py-2 text-xs md:text-sm font-bold text-gray-400 rounded-full transition-all duration-200 hover:text-white;
+  @apply px-5 py-2 text-xs md:text-sm font-bold text-gray-400 rounded-full border border-transparent transition-all duration-300 cursor-pointer hover:text-white focus:outline-none focus:ring-0;
 }
 
 .movie-list-tab-btn-active {
-  @apply bg-[#2d3748] text-white shadow-lg;
+  @apply bg-white/10 border-white/10 text-[#FFD875] font-black shadow-lg shadow-black/20 scale-[1.02];
 }
 
 .movie-list-layout {
-  @apply grid lg:grid-cols-[280px_1fr] gap-8 items-start;
+  @apply w-full;
 }
 
-.filter-sidebar {
-  @apply bg-[#11141e] border border-white/5 rounded-2xl p-6 space-y-8 shadow-2xl;
+.horizontal-filters-panel {
+  @apply mb-8 flex flex-col;
+  transition: padding 300ms cubic-bezier(0.4, 0, 0.2, 1), margin 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.filter-section {
-  @apply space-y-4;
+.filter-row {
+  @apply flex items-start gap-4 py-2;
 }
 
-.filter-title {
-  @apply text-[11px] font-black uppercase tracking-widest text-gray-400;
+.filter-row-label {
+  @apply text-xs font-black tracking-wider text-white w-24 shrink-0 pt-2 text-left;
 }
 
-.filter-checkbox-group {
-  @apply space-y-3;
+.filter-badges-container {
+  @apply flex flex-wrap gap-2.5 items-center max-h-36 overflow-y-auto pr-2;
 }
 
-.filter-checkbox-row {
-  @apply flex items-center gap-3 cursor-pointer;
+.filter-badges-container::-webkit-scrollbar {
+  width: 4px;
+}
+.filter-badges-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.filter-badges-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
-.filter-checkbox {
-  @apply w-4 h-4 bg-white/5 border border-white/10 rounded cursor-pointer accent-[#f3a092] transition-colors focus:ring-0;
+.filter-badge {
+  @apply px-3 py-1 text-xs text-gray-400 bg-transparent border border-transparent transition-all duration-200 cursor-pointer hover:text-white focus:outline-none focus:ring-0;
 }
 
-.filter-checkbox-label {
-  @apply text-sm text-gray-300 group-hover:text-white transition-colors font-medium;
-}
-
-.filter-slider-group {
-  @apply space-y-3;
-}
-
-.filter-slider {
-  @apply w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#f3a092];
-}
-
-.filter-slider-labels {
-  @apply flex justify-between text-xs text-gray-500 font-bold;
-}
-
-.filter-clear-btn {
-  @apply w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black text-xs uppercase tracking-wider rounded-xl transition duration-200;
+.filter-badge-active {
+  @apply border-[#474950] text-[#FFD875] font-bold bg-transparent rounded-[8px] focus:outline-none focus:ring-0;
 }
 
 .movie-grid-area {
@@ -104,4 +96,17 @@
 
 .movie-pagination-nav {
   @apply flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none;
+}
+
+/* Reset default focus ring outlines to prevent ugly browser-generated borders */
+.filter-badge:focus,
+.filter-badge:active,
+.movie-list-tab-btn:focus,
+.movie-list-tab-btn:active,
+.movie-pagination-btn:focus,
+.movie-pagination-btn:active,
+.movie-pagination-nav:focus,
+.movie-pagination-nav:active {
+  outline: none !important;
+  box-shadow: none !important;
 }

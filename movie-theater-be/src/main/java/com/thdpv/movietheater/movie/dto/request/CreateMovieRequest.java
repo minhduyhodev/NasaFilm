@@ -31,6 +31,8 @@ public class CreateMovieRequest {
     @Pattern(regexp = "^(DRAFT|COMING_SOON|NOW_SHOWING|ENDED|INACTIVE|DELETED)$", message = "Trang thai phim khong hop le")
     private String status;
 
+    private String ageRating;
+
     private List<UUID> genreUuids;
 
     private List<UUID> countryUuids;
@@ -45,12 +47,13 @@ public class CreateMovieRequest {
     }
 
     public CreateMovieRequest(String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieActorRequest> actors, List<MovieMediaRequest> medias) {
+            String status, String ageRating, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieActorRequest> actors, List<MovieMediaRequest> medias) {
         this.title = title;
         this.description = description;
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
+        this.ageRating = ageRating;
         this.genreUuids = genreUuids;
         this.countryUuids = countryUuids;
         this.actors = actors;
@@ -95,6 +98,14 @@ public class CreateMovieRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAgeRating() {
+        return ageRating;
+    }
+
+    public void setAgeRating(String ageRating) {
+        this.ageRating = ageRating;
     }
 
     public List<UUID> getGenreUuids() {

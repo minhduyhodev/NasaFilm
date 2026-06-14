@@ -91,6 +91,7 @@ class MovieControllerTest {
                 169,
                 LocalDate.of(2014, 11, 7),
                 "NOW_SHOWING",
+                "T13",
                 "https://cdn/poster.jpg",
                 List.of("Sci-Fi"),
                 List.of("US"),
@@ -98,7 +99,7 @@ class MovieControllerTest {
                 OffsetDateTime.now());
         Page<MovieListResponse> page = new PageImpl<>(List.of(movie), PageRequest.of(0, 10), 1);
 
-        when(movieService.getMovieList(nullable(String.class), nullable(String.class), any(), any(), anyInt(), anyInt(),
+        when(movieService.getMovieList(nullable(String.class), nullable(String.class), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(),
                 anyString(), anyString()))
                 .thenReturn(page);
 
@@ -119,6 +120,7 @@ class MovieControllerTest {
                 169,
                 LocalDate.of(2014, 11, 7),
                 "NOW_SHOWING",
+                "T13",
                 List.of("Sci-Fi"),
                 List.of("US"),
                 List.of(new ActorResponse(UUID.randomUUID(), "Matthew McConaughey", null, "United States", "Cooper", 1, true)),
@@ -145,6 +147,7 @@ class MovieControllerTest {
                 169,
                 LocalDate.of(2014, 11, 7),
                 "DRAFT",
+                "T13",
                 List.of("Sci-Fi"),
                 List.of("US"),
                 List.of(),
@@ -160,6 +163,7 @@ class MovieControllerTest {
                 169,
                 LocalDate.of(2014, 11, 7),
                 "DRAFT",
+                "T13",
                 List.of(),
                 List.of(),
                 List.of(),
@@ -184,6 +188,7 @@ class MovieControllerTest {
                 171,
                 LocalDate.of(2014, 11, 7),
                 "COMING_SOON",
+                "T13",
                 List.of("Sci-Fi"),
                 List.of("US"),
                 List.of(),
@@ -199,6 +204,7 @@ class MovieControllerTest {
                 171,
                 LocalDate.of(2014, 11, 7),
                 "COMING_SOON",
+                "T13",
                 List.of(),
                 List.of(),
                 List.of(),

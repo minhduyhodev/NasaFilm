@@ -79,7 +79,7 @@ class BookingServiceTest {
         for (int i = 0; i < 9; i++) {
             seatUuids.add(UUID.randomUUID());
         }
-        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of());
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -95,7 +95,7 @@ class BookingServiceTest {
     void confirmBookingShouldFailIfComboQuantityIsZeroOrNegative() {
         List<UUID> seatUuids = List.of(UUID.randomUUID());
         ConfirmBookingRequest.ComboItem invalidCombo = new ConfirmBookingRequest.ComboItem(UUID.randomUUID(), 0);
-        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(invalidCombo));
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(invalidCombo), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -110,7 +110,7 @@ class BookingServiceTest {
     @Test
     void confirmBookingShouldFailIfShowtimeInPast() {
         List<UUID> seatUuids = List.of(UUID.randomUUID());
-        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of());
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
         when(bookingRepository.existsShowtime(showtimeUuid)).thenReturn(true);
@@ -130,7 +130,7 @@ class BookingServiceTest {
         UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
-        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of());
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
         when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().plusHours(2));
@@ -160,7 +160,7 @@ class BookingServiceTest {
         UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
-        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of());
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
         when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().plusHours(2));

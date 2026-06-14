@@ -13,6 +13,7 @@ public class MovieDetailResponse {
     private Integer durationMinutes;
     private LocalDate releaseDate;
     private String status;
+    private String ageRating;
     private List<String> genres;
     private List<String> countries;
     private List<ActorResponse> actors;
@@ -24,7 +25,7 @@ public class MovieDetailResponse {
     }
 
     public MovieDetailResponse(UUID uuid, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, List<String> genres, List<String> countries,
+            LocalDate releaseDate, String status, String ageRating, List<String> genres, List<String> countries,
             List<ActorResponse> actors, List<MovieMediaResponse> medias, OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {
         this.uuid = uuid;
@@ -33,6 +34,7 @@ public class MovieDetailResponse {
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
+        this.ageRating = ageRating;
         this.genres = genres;
         this.countries = countries;
         this.actors = actors;
@@ -87,6 +89,14 @@ public class MovieDetailResponse {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAgeRating() {
+        return ageRating;
+    }
+
+    public void setAgeRating(String ageRating) {
+        this.ageRating = ageRating;
     }
 
     public List<String> getGenres() {

@@ -54,6 +54,15 @@ class MovieService {
     }
   }
 
+  async getCinemas() {
+    try {
+      const response = await authService.api.get('/api/cinemas', { params: { size: 100 } });
+      return response.data.data?.content ?? response.data?.content ?? [];
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   // Admin APIs
   async createMovie(data) {
     try {
