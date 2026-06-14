@@ -27,6 +27,7 @@ import {
   Search,
   History,
   Phone,
+  ChevronDown,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
@@ -53,6 +54,20 @@ export const ProfilePage = () => {
   const [vouchers, setVouchers] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const fileInputRef = useRef(null);
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const genderDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (genderDropdownRef.current && !genderDropdownRef.current.contains(event.target)) {
+        setShowGenderDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -369,8 +384,27 @@ export const ProfilePage = () => {
 
   // Cleaned up mockVouchers array
 
-  // Predefined Mock Transactions
-  const mockTransactions = [];
+  // Dynamic Transactions based on real bookings
+  const transactions = bookings.map((tkt) => {
+    const hasCombo = tkt.combo && !tkt.combo.toLowerCase().includes("không kèm") && tkt.combo !== "";
+    return {
+      id: tkt.id,
+      type: hasCombo ? "combo" : "ticket",
+      itemName: tkt.movieTitle,
+      date: tkt.showtime,
+      amount: tkt.price,
+      method: "Ví NASA",
+      hasCombo: hasCombo,
+      details: {
+        cinema: tkt.cinema,
+        seats: tkt.seats || "N/A",
+        combo: tkt.combo || "Không kèm bắp nước",
+        price: tkt.price,
+        comboPrice: "Đã bao gồm",
+        total: tkt.price
+      }
+    };
+  });
 
   if (isLoading) {
     return (
@@ -738,19 +772,57 @@ export const ProfilePage = () => {
                         </div>
                         <div className="info-row-right">
                           {isEditing ? (
-                            <select
-                              value={gender}
-                              onChange={(e) => setGender(e.target.value)}
-                              disabled={isSaving}
-                              className={`info-row-input editable cursor-pointer`}
-                            >
-                              <option value="" disabled>
-                                Chọn giới tính
-                              </option>
-                              <option value="MALE">Nam</option>
-                              <option value="FEMALE">Nữ</option>
-                              <option value="OTHER">Khác</option>
-                            </select>
+                            <div className="relative w-full" ref={genderDropdownRef} style={{ position: "relative", width: "100%" }}>
+                              <button
+                                type="button"
+                                onClick={() => !isSaving && setShowGenderDropdown(!showGenderDropdown)}
+                                disabled={isSaving}
+                                className={`custom-gender-select-btn ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                <span>
+                                  {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chọn giới tính"}
+                                </span>
+                                <ChevronDown 
+                                  size={16} 
+                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`} 
+                                  style={{ transition: "transform 0.3s ease" }}
+                                />
+                              </button>
+                              
+                              <AnimatePresence>
+                                {showGenderDropdown && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                                    transition={{ duration: 0.15, ease: "easeOut" }}
+                                    className="custom-gender-dropdown-list"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => { setGender("MALE"); setShowGenderDropdown(false); }}
+                                      className={`custom-gender-option ${gender === "MALE" ? "active" : ""}`}
+                                    >
+                                      Nam
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setGender("FEMALE"); setShowGenderDropdown(false); }}
+                                      className={`custom-gender-option ${gender === "FEMALE" ? "active" : ""}`}
+                                    >
+                                      Nữ
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setGender("OTHER"); setShowGenderDropdown(false); }}
+                                      className={`custom-gender-option ${gender === "OTHER" ? "active" : ""}`}
+                                    >
+                                      Khác
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           ) : (
                             <span className="info-row-text">
                               {gender === "MALE"
@@ -1433,12 +1505,12 @@ export const ProfilePage = () => {
                     Tổng chi tiêu
                   </p>
                   <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500 mt-1">
-                    {mockTransactions.length === 0
+                    {transactions.length === 0
                       ? "0đ"
-                      : mockTransactions
+                      : transactions
                           .reduce(
                             (sum, txn) =>
-                              sum + parseInt(txn.amount.replace(/\./g, "")),
+                              sum + parseInt(txn.amount.replace(/\D/g, "") || "0"),
                             0,
                           )
                           .toLocaleString("vi-VN") + "đ"}
@@ -1449,10 +1521,9 @@ export const ProfilePage = () => {
                     Số lượng vé
                   </p>
                   <p className="text-lg font-black text-red-500 mt-1">
-                    {mockTransactions.length === 0
+                    {transactions.length === 0
                       ? "0"
-                      : mockTransactions.filter((txn) => txn.type === "ticket")
-                          .length}{" "}
+                      : transactions.reduce((sum, txn) => sum + (txn.details.seats && txn.details.seats !== "N/A" ? txn.details.seats.split(",").filter(Boolean).length : 0), 0)}{" "}
                     vé
                   </p>
                 </div>
@@ -1461,9 +1532,9 @@ export const ProfilePage = () => {
                     Số lượng combo
                   </p>
                   <p className="text-lg font-black text-amber-500 mt-1">
-                    {mockTransactions.length === 0
+                    {transactions.length === 0
                       ? "0"
-                      : mockTransactions.filter((txn) => txn.type === "combo")
+                      : transactions.filter((txn) => txn.hasCombo)
                           .length}{" "}
                     combo
                   </p>
@@ -1588,10 +1659,12 @@ export const ProfilePage = () => {
                 ) : (
                   /* Transaction List */
                   <div className="space-y-3">
-                    {mockTransactions
+                    {transactions
                       .filter(
                         (txn) =>
-                          historyFilter === "all" || txn.type === historyFilter,
+                          historyFilter === "all" ||
+                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
+                          (historyFilter === "combo" && txn.hasCombo),
                       )
                       .filter(
                         (txn) =>
@@ -1645,10 +1718,12 @@ export const ProfilePage = () => {
                       ))}
 
                     {/* Empty State */}
-                    {mockTransactions
+                    {transactions
                       .filter(
                         (txn) =>
-                          historyFilter === "all" || txn.type === historyFilter,
+                          historyFilter === "all" ||
+                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
+                          (historyFilter === "combo" && txn.hasCombo),
                       )
                       .filter(
                         (txn) =>
