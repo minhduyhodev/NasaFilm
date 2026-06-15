@@ -17,6 +17,7 @@ public class MovieListResponse {
     private String primaryMediaUrl;
     private List<String> genres;
     private List<String> countries;
+    private String streamingUrl;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -26,6 +27,12 @@ public class MovieListResponse {
     public MovieListResponse(UUID uuid, String title, String description, Integer durationMinutes,
             LocalDate releaseDate, String status, String ageRating, String primaryMediaUrl, List<String> genres, List<String> countries,
             OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this(uuid, title, description, durationMinutes, releaseDate, status, ageRating, primaryMediaUrl, genres, countries, null, createdAt, updatedAt);
+    }
+
+    public MovieListResponse(UUID uuid, String title, String description, Integer durationMinutes,
+            LocalDate releaseDate, String status, String ageRating, String primaryMediaUrl, List<String> genres, List<String> countries,
+            String streamingUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.uuid = uuid;
         this.title = title;
         this.description = description;
@@ -36,6 +43,7 @@ public class MovieListResponse {
         this.primaryMediaUrl = primaryMediaUrl;
         this.genres = genres;
         this.countries = countries;
+        this.streamingUrl = streamingUrl;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -134,5 +142,13 @@ public class MovieListResponse {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getStreamingUrl() {
+        return streamingUrl;
+    }
+
+    public void setStreamingUrl(String streamingUrl) {
+        this.streamingUrl = streamingUrl;
     }
 }

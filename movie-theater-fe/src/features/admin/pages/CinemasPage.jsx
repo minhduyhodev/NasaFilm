@@ -119,12 +119,13 @@ const CinemasPage = () => {
                     </div>
                   </td>
                   <td className="py-2.5 px-4 text-center">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
+                    <span className={`inline-flex items-center gap-1 border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 ${
                       row.status === 'Open' 
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                        : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' 
+                        : 'bg-rose-500/10 border-rose-500/20 text-rose-600'
                     }`}>
-                      {row.status === 'Open' ? '🟢 MỞ CỬA' : '🔴 ĐÓNG CỬA'}
+                      <span className={`w-1 h-1 rounded-full ${row.status === 'Open' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <span>{row.status === 'Open' ? 'Mở cửa' : 'Đóng cửa'}</span>
                     </span>
                   </td>
                   <td className="py-2.5 px-4 text-right">

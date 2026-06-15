@@ -154,19 +154,19 @@
 }
 
 .modal-content {
-  @apply bg-[#121826] border border-[#1A2238] rounded-2xl w-full max-w-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
+  @apply bg-white border border-gray-200 rounded-2xl w-full max-w-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
 }
 
 .modal-header {
-  @apply flex items-center justify-between border-b border-[#1A2238] pb-4;
+  @apply flex items-center justify-between border-b border-gray-200 pb-4;
 }
 
 .modal-title {
-  @apply text-xl font-bold text-white uppercase tracking-wider;
+  @apply text-xl font-bold text-gray-900 uppercase tracking-wider;
 }
 
 .modal-close-btn {
-  @apply text-gray-400 hover:text-white transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-white/5;
+  @apply text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-gray-100;
 }
 
 .form-group {
@@ -174,11 +174,11 @@
 }
 
 .form-label {
-  @apply text-xs font-bold uppercase tracking-[0.15em] text-gray-400 mb-1;
+  @apply text-xs font-bold uppercase tracking-[0.15em] text-gray-500 mb-1;
 }
 
 .form-input, .form-textarea, .form-select {
-  @apply w-full rounded-xl bg-[#0B1020] px-4 py-3 text-white placeholder-gray-600 border border-[#1A2238] focus:border-red-500/50 focus:outline-none text-sm transition-all duration-200;
+  @apply w-full rounded-xl bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 border border-gray-300 focus:border-red-500/50 focus:bg-white focus:outline-none text-sm transition-all duration-200;
 }
 
 .form-textarea {
@@ -186,11 +186,11 @@
 }
 
 .form-actions {
-  @apply flex justify-end gap-3 pt-4 border-t border-[#1A2238];
+  @apply flex justify-end gap-3 pt-4 border-t border-gray-200;
 }
 
 .btn-cancel {
-  @apply rounded-xl border border-[#1A2238] bg-[#121826] px-5 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer;
+  @apply rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition cursor-pointer;
 }
 
 .btn-submit {

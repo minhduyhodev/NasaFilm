@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Ticket, Plus, Search, Edit2, Trash2, Loader2, X, Activity, Percent, DollarSign } from 'lucide-react';
+import { Ticket, Plus, Search, Edit2, Trash2, Loader2, X, Activity, Percent, DollarSign, Play, Pause, Calendar, Clock, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useNotification } from '../../../shared/context/NotificationContext';
@@ -25,6 +25,243 @@ const VouchersPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState('ACTIVE');
+
+  // Custom Dropdown & DatePicker states
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [activeDatePickerField, setActiveDatePickerField] = useState(null); // 'startDate', 'endDate', or null
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [tempTime, setTempTime] = useState('00:00');
+
+  const statusOptions = [
+    { value: 'ACTIVE', label: 'Hoạt động (ACTIVE)', icon: <Play className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/10" /> },
+    { value: 'INACTIVE', label: 'Vô hiệu hóa (INACTIVE)', icon: <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" /> }
+  ];
+
+  const currentStatusOption = statusOptions.find(opt => opt.value === status) || statusOptions[0];
+
+  const handleOpenDatePicker = (field) => {
+    const currentValue = field === 'startDate' ? startDate : endDate;
+    if (currentValue) {
+      const parsedDate = new Date(currentValue);
+      if (!isNaN(parsedDate.getTime())) {
+        setCalendarMonth(parsedDate.getMonth());
+        setCalendarYear(parsedDate.getFullYear());
+        const hours = String(parsedDate.getHours()).padStart(2, '0');
+        const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
+        setTempTime(`${hours}:${minutes}`);
+      }
+    } else {
+      const today = new Date();
+      setCalendarMonth(today.getMonth());
+      setCalendarYear(today.getFullYear());
+      setTempTime('00:00');
+    }
+    setActiveDatePickerField(field);
+  };
+
+  const handlePrevMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 0) {
+        setCalendarYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 11) {
+        setCalendarYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const handleSelectDay = (dayObj) => {
+    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}T${tempTime}`;
+    if (activeDatePickerField === 'startDate') {
+      setStartDate(dateStr);
+    } else if (activeDatePickerField === 'endDate') {
+      setEndDate(dateStr);
+    }
+  };
+
+  const handleTimeChange = (newTime) => {
+    setTempTime(newTime);
+    const currentValue = activeDatePickerField === 'startDate' ? startDate : endDate;
+    if (currentValue) {
+      const parts = currentValue.split('T');
+      const datePart = parts[0];
+      const newDateStr = `${datePart}T${newTime}`;
+      if (activeDatePickerField === 'startDate') {
+        setStartDate(newDateStr);
+      } else if (activeDatePickerField === 'endDate') {
+        setEndDate(newDateStr);
+      }
+    } else {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T${newTime}`;
+      if (activeDatePickerField === 'startDate') {
+        setStartDate(dateStr);
+      } else if (activeDatePickerField === 'endDate') {
+        setEndDate(dateStr);
+      }
+    }
+  };
+
+  const handleConfirmDateTime = () => {
+    setActiveDatePickerField(null);
+  };
+
+  const renderCalendarContent = () => {
+    const currentValue = activeDatePickerField === 'startDate' ? startDate : endDate;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">
+            {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
+          </span>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-600 transition cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+            <div key={d} className="py-1">{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {getDaysInMonth(calendarYear, calendarMonth).map((dayObj, idx) => {
+            const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+            const isSelected = currentValue && currentValue.startsWith(dateStr);
+            const today = new Date();
+            const isToday = today.getDate() === dayObj.day && today.getMonth() === dayObj.month && today.getFullYear() === dayObj.year;
+
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectDay(dayObj)}
+                className={`py-1 text-[11px] rounded-md font-medium transition cursor-pointer ${
+                  isSelected
+                    ? 'bg-red-600 text-white font-bold'
+                    : isToday
+                    ? 'border border-red-500/30 text-red-600 font-semibold'
+                    : dayObj.isCurrentMonth
+                    ? 'text-gray-800 hover:bg-gray-100'
+                    : 'text-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {dayObj.day}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 gap-2">
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Giờ:</span>
+          <input
+            type="time"
+            className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 w-24 text-center cursor-pointer font-mono"
+            value={tempTime}
+            onChange={(e) => handleTimeChange(e.target.value)}
+          />
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => {
+              if (activeDatePickerField === 'startDate') setStartDate('');
+              else if (activeDatePickerField === 'endDate') setEndDate('');
+              setActiveDatePickerField(null);
+            }}
+            className="text-[10px] text-gray-500 hover:text-gray-800 font-bold uppercase transition cursor-pointer"
+          >
+            Xóa
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDateTime}
+            className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition cursor-pointer"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const getDaysInMonth = (year, month) => {
+    const date = new Date(year, month, 1);
+    const days = [];
+    const firstDayIndex = date.getDay(); // 0 = Sun, 1 = Mon, ...
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+    // Previous month's days
+    const prevMonthDate = new Date(year, month, 0);
+    const prevMonthDaysCount = prevMonthDate.getDate();
+    for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthDaysCount - i,
+        month: month === 0 ? 11 : month - 1,
+        year: month === 0 ? year - 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    // Current month's days
+    const currentMonthDaysCount = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= currentMonthDaysCount; i++) {
+      days.push({
+        day: i,
+        month: month,
+        year: year,
+        isCurrentMonth: true,
+      });
+    }
+
+    // Next month's days
+    const remainingCells = 42 - days.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      days.push({
+        day: i,
+        month: month === 11 ? 0 : month + 1,
+        year: month === 11 ? year + 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const formatDateTimeDisplay = (localString) => {
+    if (!localString) return 'Chọn ngày giờ...';
+    const parts = localString.split('T');
+    if (parts.length === 2) {
+      const dateParts = parts[0].split('-');
+      if (dateParts.length === 3) {
+        return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]}`;
+      }
+    }
+    return localString;
+  };
 
   // Fetch Vouchers
   const fetchVouchers = useCallback(async () => {
@@ -357,16 +594,19 @@ const VouchersPage = () => {
                       </td>
                       <td className="text-center py-4">
                         {isExpired ? (
-                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-rose-500/10 border-rose-500/20 text-rose-400">
-                            Hết hạn
+                          <span className="inline-flex items-center gap-1 border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 bg-rose-500/10 border-rose-500/20 text-rose-600">
+                            <span className="w-1 h-1 rounded-full bg-rose-500" />
+                            <span>Hết hạn</span>
                           </span>
                         ) : row.status === 'ACTIVE' ? (
-                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
-                            Hoạt động
+                          <span className="inline-flex items-center gap-1 border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                            <span>Hoạt động</span>
                           </span>
                         ) : (
-                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-zinc-500/10 border-zinc-500/20 text-zinc-400">
-                            Vô hiệu
+                          <span className="inline-flex items-center gap-1 border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 bg-zinc-500/10 border-zinc-500/20 text-zinc-600">
+                            <span className="w-1 h-1 rounded-full bg-zinc-500" />
+                            <span>Vô hiệu</span>
                           </span>
                         )}
                       </td>
@@ -425,13 +665,13 @@ const VouchersPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Voucher Code */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <label className="form-label">
                     Mã Voucher *
                   </label>
                   <input
                     type="text"
                     placeholder="MÃ VOUCHER"
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors placeholder-gray-600 font-bold uppercase"
+                    className="form-input font-bold uppercase"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     required
@@ -440,11 +680,11 @@ const VouchersPage = () => {
 
                 {/* Discount Type */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <label className="form-label">
                     Loại Giảm Giá *
                   </label>
                   <select
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                    className="form-select"
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value)}
                   >
@@ -457,14 +697,14 @@ const VouchersPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Discount Value */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <label className="form-label">
                     Giá trị giảm * ({discountType === 'PERCENTAGE' ? '%' : 'VND'})
                   </label>
                   <input
                     type="number"
                     min="1"
                     placeholder={discountType === 'PERCENTAGE' ? 'Ví dụ: 20' : 'Ví dụ: 50000'}
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors placeholder-gray-600 font-mono"
+                    className="form-input font-mono"
                     value={discountValue}
                     onChange={(e) => setDiscountValue(e.target.value)}
                     required
@@ -473,45 +713,68 @@ const VouchersPage = () => {
 
                 {/* Max Usage */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <label className="form-label">
                     Lượt dùng tối đa (Để trống nếu không giới hạn)
                   </label>
                   <input
                     type="number"
                     min="1"
                     placeholder="Không giới hạn"
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors placeholder-gray-600 font-mono"
+                    className="form-input font-mono"
                     value={maxUsage}
                     onChange={(e) => setMaxUsage(e.target.value)}
                   />
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Start Date */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                <div className="relative">
+                  <label className="form-label">
                     Ngày bắt đầu
                   </label>
-                  <input
-                    type="datetime-local"
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDatePicker('startDate')}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors"
+                  >
+                    <span className={`truncate whitespace-nowrap ${startDate ? "text-gray-900 font-mono" : "text-gray-450"}`}>
+                      {startDate ? formatDateTimeDisplay(startDate) : "Chọn ngày..."}
+                    </span>                    <Calendar className="w-4 h-4 text-gray-500" />
+                  </button>
+
+                  {activeDatePickerField === 'startDate' && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActiveDatePickerField(null)}></div>
+                      <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 animate-dropdown-fade-in w-72">
+                        {renderCalendarContent()}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* End Date */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                <div className="relative">
+                  <label className="form-label">
                     Ngày kết thúc
                   </label>
-                  <input
-                    type="datetime-local"
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDatePicker('endDate')}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors"
+                  >
+                    <span className={`truncate whitespace-nowrap ${endDate ? "text-gray-900 font-mono" : "text-gray-450"}`}>
+                      {endDate ? formatDateTimeDisplay(endDate) : "Chọn ngày..."}
+                    </span>                    <Calendar className="w-4 h-4 text-gray-500" />
+                  </button>
+
+                  {activeDatePickerField === 'endDate' && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActiveDatePickerField(null)}></div>
+                      <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 animate-dropdown-fade-in w-72">
+                        {renderCalendarContent()}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -521,40 +784,64 @@ const VouchersPage = () => {
                   <input
                     type="checkbox"
                     id="oncePerUser"
-                    className="w-5 h-5 rounded border-[#1A2238] bg-[#0B1020] text-red-600 focus:ring-red-500/50 focus:ring-offset-[#0B1020] cursor-pointer"
+                    className="w-5 h-5 rounded border-gray-300 bg-white text-red-600 focus:ring-red-500/50 focus:ring-offset-0 cursor-pointer"
                     checked={oncePerUser}
                     onChange={(e) => setOncePerUser(e.target.checked)}
                   />
                   <label
                     htmlFor="oncePerUser"
-                    className="text-xs font-bold uppercase tracking-wider text-gray-400 cursor-pointer select-none"
+                    className="text-xs font-bold uppercase tracking-wider text-gray-500 cursor-pointer select-none"
                   >
                     Giới hạn 1 lần dùng / khách hàng
                   </label>
                 </div>
 
                 {/* Status selection */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                <div className="relative">
+                  <label className="form-label">
                     Trạng thái *
                   </label>
-                  <select
-                    className="w-full rounded-xl bg-[#0B1020] border border-[#1A2238] px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors"
                   >
-                    <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-                    <option value="INACTIVE">Vô hiệu hóa (INACTIVE)</option>
-                  </select>
+                    <span className="flex items-center gap-2">
+                      {currentStatusOption.icon}
+                      <span>{currentStatusOption.label}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-500 transition-transform duration-200" style={{ transform: isStatusDropdownOpen ? 'rotate(180deg)' : 'none' }} />
+                  </button>
+
+                  {isStatusDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsStatusDropdownOpen(false)}></div>
+                      <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-1.5 space-y-0.5 animate-dropdown-fade-in max-h-60 overflow-y-auto custom-scrollbar">
+                        {statusOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setStatus(option.value);
+                              setIsStatusDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-gray-50 transition text-left text-xs ${status === option.value ? 'bg-red-50 text-red-600 font-semibold' : 'text-gray-700'}`}
+                          >
+                            {option.icon}
+                            <span>{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-[#1A2238] mt-6">
+              <div className="form-actions mt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#1A2238] text-gray-300 text-sm font-semibold hover:text-white hover:bg-white/5 transition-colors"
+                  className="btn-cancel"
                 >
                   Hủy
                 </button>

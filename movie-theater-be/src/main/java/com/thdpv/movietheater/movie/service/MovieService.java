@@ -66,6 +66,7 @@ public class MovieService {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRating());
+        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
@@ -78,6 +79,7 @@ public class MovieService {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRating());
+        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -496,6 +498,7 @@ public class MovieService {
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
+                movie.getStreamingUrl(),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
     }
@@ -524,6 +527,7 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
+                movie.getStreamingUrl(),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
     }

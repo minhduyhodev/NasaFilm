@@ -1,0 +1,360 @@
+/* Custom CSS overrides for light theme in Admin layout */
+.admin-light-theme {
+  background-color: #f8fafc; /* premium slate-50 light background */
+  color: #1e293b; /* text-slate-800 */
+}
+
+/* Override text colors */
+.admin-light-theme .text-white,
+.admin-light-theme .admin-title,
+.admin-light-theme .dashboard-title {
+  color: #0f172a !important; /* text-slate-900 */
+}
+
+.admin-light-theme .text-gray-400,
+.admin-light-theme .admin-description {
+  color: #475569 !important; /* text-slate-600 */
+}
+
+.admin-light-theme .text-gray-300 {
+  color: #475569 !important; /* text-slate-600 */
+}
+
+.admin-light-theme .text-gray-500 {
+  color: #64748b !important; /* text-slate-500 */
+}
+
+.admin-light-theme .text-\[\#8a8d9f\] {
+  color: #64748b !important;
+}
+
+.admin-light-theme .admin-subtitle,
+.admin-light-theme .dashboard-subtitle {
+  color: #ef4444 !important; /* text-red-500 */
+}
+
+/* Keep text white on primary colored buttons, active states, and labels */
+.admin-light-theme .admin-add-btn,
+.admin-light-theme .btn-submit,
+.admin-light-theme .dashboard-action-btn,
+.admin-light-theme .bg-red-600,
+.admin-light-theme .bg-red-500,
+.admin-light-theme .bg-rose-500,
+.admin-light-theme .bg-rose-600,
+.admin-light-theme .bg-emerald-500,
+.admin-light-theme .bg-emerald-600,
+.admin-light-theme .bg-blue-500,
+.admin-light-theme .bg-blue-600,
+.admin-light-theme button.bg-red-600,
+.admin-light-theme button.bg-red-500,
+.admin-light-theme .from-red-600,
+.admin-light-theme .from-red-600.to-red-700 {
+  color: #ffffff !important;
+}
+
+.admin-light-theme .admin-add-btn *,
+.admin-light-theme .btn-submit *,
+.admin-light-theme .dashboard-action-btn *,
+.admin-light-theme .bg-red-600 *,
+.admin-light-theme .bg-red-500 *,
+.admin-light-theme .bg-rose-500 *,
+.admin-light-theme .bg-rose-600 *,
+.admin-light-theme .from-red-600.to-red-700 * {
+  color: #ffffff !important;
+}
+
+/* Override card and panel backgrounds to clean white */
+.admin-light-theme .bg-\[\#0B0F19\]\/50,
+.admin-light-theme .bg-\[\#0B0F19\]\/60,
+.admin-light-theme .bg-\[\#0B0F19\]\/90,
+.admin-light-theme .bg-\[\#0B0F19\],
+.admin-light-theme .bg-\[\#121826\]\/70,
+.admin-light-theme .bg-\[\#121826\],
+.admin-light-theme .bg-\[\#0F1322\],
+.admin-light-theme .bg-\[\#0B1020\],
+.admin-light-theme .admin-table-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important; /* border-slate-200 */
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
+}
+
+/* Unified stats panel border and styling */
+.admin-light-theme .dashboard-unified-stats-panel {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Orbit background and chart container background in Dashboard */
+.admin-light-theme .bg-black\/40,
+.admin-light-theme .bg-black\/20 {
+  background-color: #f8fafc !important; /* bg-slate-50 */
+  border-color: #e2e8f0 !important;
+}
+
+/* Orbit strokes in SVG */
+.admin-light-theme ellipse {
+  stroke: #cbd5e1 !important; /* stroke-slate-300 */
+}
+
+.admin-light-theme line {
+  stroke: #cbd5e1 !important; /* stroke-slate-300 */
+}
+
+/* SVG Text labels that are hardcoded white */
+.admin-light-theme svg text[fill="#ffffff"] {
+  fill: #0f172a !important;
+}
+
+/* SVG Info boxes / Tooltip rects */
+.admin-light-theme svg rect[fill="#121826"] {
+  fill: #ffffff !important;
+  stroke: #cbd5e1 !important;
+}
+
+/* Override container backgrounds like progress bar tracks and tab rails */
+.admin-light-theme .bg-\[\#070A13\] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Circle profile badges / status containers */
+.admin-light-theme .bg-\[\#1A2238\] {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+.admin-light-theme .hover\:bg-\[\#1A2238\]:hover {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* Override borders to slate-200 */
+.admin-light-theme .border-\[\#1A2238\] {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-theme .border-\[\#1A2238\]\/60 {
+  border-color: #f1f5f9 !important;
+}
+
+.admin-light-theme .border-\[\#1A2238\]\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-theme .hover\:border-\[\#2C3B5E\]:hover {
+  border-color: #94a3b8 !important; /* border-slate-400 */
+}
+
+.admin-light-theme .divide-\[\#1A2238\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Search input and elements inside admin pages */
+.admin-light-theme input,
+.admin-light-theme select,
+.admin-light-theme textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important; /* border-slate-300 */
+  color: #0f172a !important;
+}
+
+.admin-light-theme input::placeholder,
+.admin-light-theme textarea::placeholder {
+  color: #94a3b8 !important; /* text-slate-400 */
+}
+
+/* Reset calendar indicators for dark inputs in light theme */
+.admin-light-theme input[type="date"]::-webkit-calendar-picker-indicator,
+.admin-light-theme input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.admin-light-theme input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
+}
+
+/* Custom buttons */
+.admin-light-theme .inline-flex.border-\[\#1A2238\],
+.admin-light-theme .admin-action-btn {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.admin-light-theme .inline-flex.border-\[\#1A2238\]:hover,
+.admin-light-theme .admin-action-btn:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.admin-light-theme .bg-white\/5 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Modal detail views */
+.admin-light-theme .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Table rows styling */
+.admin-light-theme tr.border-b {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.admin-light-theme tr.border-b:hover,
+.admin-light-theme tr.admin-table-tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.admin-light-theme th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.admin-light-theme td {
+  color: #334155 !important;
+}
+
+/* Genre and Country tags inside table */
+.admin-light-theme .bg-\[\#1A2238\]\/60 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* Custom dropdown triggers for status/date */
+.admin-light-theme button.bg-\[\#0F1322\] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.admin-light-theme button.bg-\[\#0F1322\]:hover {
+  border-color: #94a3b8 !important;
+}
+
+/* Custom dropdown panels */
+.admin-light-theme div.bg-\[\#0F1322\],
+.admin-light-theme div.bg-\[\#121826\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+}
+
+.admin-light-theme div.bg-\[\#0F1322\] button,
+.admin-light-theme div.bg-\[\#121826\] button {
+  color: #334155 !important;
+}
+
+.admin-light-theme div.bg-\[\#0F1322\] button:hover,
+.admin-light-theme div.bg-\[\#121826\] button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.admin-light-theme div.bg-\[\#0F1322\] button.text-red-400,
+.admin-light-theme div.bg-\[\#121826\] button.bg-red-500\/10 {
+  color: #ef4444 !important; /* text-red-500 */
+  background-color: #fee2e2 !important; /* bg-red-100 */
+}
+
+/* Custom calendar dropdown in MoviesPage */
+.admin-light-theme .bg-\[\#0B0F19\]\/90 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.admin-light-theme .bg-\[\#0B0F19\]\/90 button {
+  color: #334155 !important;
+}
+
+/* Date picker grid days */
+.admin-light-theme .grid.grid-cols-7 button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Today date marker in calendar */
+.admin-light-theme .border-red-500\/30 {
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+/* Occupancy planet labels and details */
+.admin-light-theme .bg-gradient-to-b.from-transparent.to-white {
+  background-image: linear-gradient(to bottom, transparent, #ffffff) !important;
+}
+
+/* Mobile header sticky top */
+.admin-light-theme .sticky.top-0 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.admin-light-theme .sticky.top-0 button {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Keep dashboard charts cards dark as originally designed */
+.admin-light-theme .grid.lg\:grid-cols-3 > div {
+  background-color: #121826 !important;
+  border-color: #1a2238 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25) !important;
+}
+
+/* Ensure text inside chart cards remains white/gray */
+.admin-light-theme .grid.lg\:grid-cols-3 > div .text-white,
+.admin-light-theme .grid.lg\:grid-cols-3 > div h2 {
+  color: #ffffff !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div .text-gray-400 {
+  color: #94a3b8 !important; /* text-slate-400 */
+}
+
+/* Revert inner SVG boxes and SVG styling inside the chart cards to dark theme */
+.admin-light-theme .grid.lg\:grid-cols-3 > div .bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  border-color: #1a2238 !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-color: #1a2238 !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div ellipse {
+  stroke: #1a2238 !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div line {
+  stroke: #1a2238 !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div svg text[fill="#ffffff"] {
+  fill: #ffffff !important;
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div svg rect[fill="#121826"] {
+  fill: #121826 !important;
+  stroke: #1a2238 !important;
+}
+
+/* Button in Movie Radar card */
+.admin-light-theme .grid.lg\:grid-cols-3 > div button.w-full {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #d1d5db !important; /* text-gray-300 */
+}
+
+.admin-light-theme .grid.lg\:grid-cols-3 > div button.w-full:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+
+
+
+

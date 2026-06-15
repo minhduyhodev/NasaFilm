@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
 
 const HomePage = lazy(() => import('../pages/HomePage'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
@@ -25,6 +26,25 @@ const PageLoader = () => (
 );
 
 export const HomeRoutes = () => {
+  const { isAuthenticated, loading, user } = useAuthContext();
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (isAuthenticated) {
+    const roles = user?.roles || [];
+    const isAdminOrStaff = roles.some((r) => {
+      if (!r) return false;
+      const roleLower = r.toLowerCase();
+      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
+    });
+
+    if (isAdminOrStaff) {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
