@@ -1,26 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useNotification } from '../../../shared/context/NotificationContext';
 import { notificationService } from '../../../shared/services/notificationService';
+import { movieService } from '../../../shared/services/movieService';
 
 const TicketFilters = () => {
   const [theater, setTheater] = useState('');
   const [movie, setMovie] = useState('');
+  const [movieUuid, setMovieUuid] = useState('');
+  const [moviePoster, setMoviePoster] = useState('');
+  const [movieFormat, setMovieFormat] = useState('');
   const [date, setDate] = useState('');
   const [showtime, setShowtime] = useState('');
+
+  const [moviesList, setMoviesList] = useState([]);
+  const [cinemasList, setCinemasList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { user } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [moviesData, cinemasData] = await Promise.all([
+          movieService.getMovies({ status: 'NOW_SHOWING', size: 100 }),
+          movieService.getCinemas()
+        ]);
+        setMoviesList(moviesData?.content || moviesData || []);
+        setCinemasList(cinemasData?.content || cinemasData || []);
+      } catch (err) {
+        console.error("Failed to fetch ticket filters data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getNext7Days = () => {
+    const days = [];
+    const options = { weekday: 'long', day: '2-digit', month: '2-digit' };
+    for (let i = 0; i < 7; i++) {
+      const dateObj = new Date();
+      dateObj.setDate(dateObj.getDate() + i);
+      
+      let label = '';
+      const dateStr = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      if (i === 0) {
+        label = `Hôm nay, ${dateStr}`;
+      } else if (i === 1) {
+        label = `Ngày mai, ${dateStr}`;
+      } else {
+        label = `${dateObj.toLocaleDateString('vi-VN', { weekday: 'long' })}, ${dateStr}`;
+      }
+      
+      days.push({
+        value: label,
+        label: label
+      });
+    }
+    return days;
+  };
 
   const handleTheaterChange = (e) => {
     setTheater(e.target.value);
   };
 
   const handleMovieChange = (e) => {
-    setMovie(e.target.value);
+    const selectedTitle = e.target.value;
+    setMovie(selectedTitle);
+    
+    const selectedMovieObj = moviesList.find(m => m.title === selectedTitle);
+    if (selectedMovieObj) {
+      setMovieUuid(selectedMovieObj.uuid);
+      setMoviePoster(selectedMovieObj.primaryMediaUrl || '');
+      setMovieFormat(selectedMovieObj.ageRating || '2D');
+    } else {
+      setMovieUuid('');
+      setMoviePoster('');
+      setMovieFormat('');
+    }
   };
 
   const handleDateChange = (e) => {
@@ -43,8 +107,11 @@ const TicketFilters = () => {
     }
     navigate('/booking', {
       state: {
-        theater,
+        showtimeUuid: movieUuid,
+        theater: `${theater} - Phòng chiếu IMAX`,
         movie,
+        moviePoster,
+        movieFormat,
         date,
         showtime
       }
@@ -74,9 +141,9 @@ const TicketFilters = () => {
             onChange={handleTheaterChange}
           >
             <option value="">1. Chọn Rạp</option>
-            <option value="Grand Luxe Plaza">Grand Luxe Plaza</option>
-            <option value="City Center">City Center</option>
-            <option value="Sunset Mall">Sunset Mall</option>
+            {cinemasList.map((c) => (
+              <option key={c.uuid} value={c.name}>{c.name}</option>
+            ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-red-500" />
         </div>
@@ -89,9 +156,9 @@ const TicketFilters = () => {
             onChange={handleMovieChange}
           >
             <option value="">2. Chọn Phim</option>
-            <option value="Doraemon: Lâu Đài Dưới Đáy Biển">Doraemon: Lâu Đài Dưới Đáy Biển</option>
-            <option value="Ngôi Đền Kỳ Quái 5">Ngôi Đền Kỳ Quái 5</option>
-            <option value="Ốc Mượn Hồn">Ốc Mượn Hồn</option>
+            {moviesList.map((m) => (
+              <option key={m.uuid} value={m.title}>{m.title}</option>
+            ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-red-500" />
         </div>
@@ -104,9 +171,9 @@ const TicketFilters = () => {
             onChange={handleDateChange}
           >
             <option value="">3. Chọn Ngày</option>
-            <option value="Hôm nay">Hôm nay</option>
-            <option value="Ngày mai">Ngày mai</option>
-            <option value="Cuối tuần này">Cuối tuần này</option>
+            {getNext7Days().map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
+            ))}
           </select>
           <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-red-500" />
         </div>
