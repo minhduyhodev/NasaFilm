@@ -21,17 +21,14 @@ public class BookingNativeRepository {
     private EntityManager entityManager;
 
     public boolean existsShowtime(UUID showtimeUuid) {
-        Number count = (Number) entityManager
-                .createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+        Number count = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getSingleResult();
         return count != null && count.longValue() > 0L;
     }
 
     public boolean hasConfirmedBookings(UUID showtimeUuid) {
-        Number count = (Number) entityManager
-                .createNativeQuery(
-                        "select count(1) from booking where showtime_uuid = :showtimeUuid and status = 'CONFIRMED'")
+        Number count = (Number) entityManager.createNativeQuery("select count(1) from booking where showtime_uuid = :showtimeUuid and status = 'CONFIRMED'")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getSingleResult();
         return count != null && count.longValue() > 0L;
@@ -422,8 +419,7 @@ public class BookingNativeRepository {
 
     public OffsetDateTime getShowtimeStartTime(UUID showtimeUuid) {
         @SuppressWarnings("unchecked")
-        List<Object> rows = entityManager
-                .createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
+        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getResultList();
         if (rows.isEmpty()) {
@@ -433,28 +429,7 @@ public class BookingNativeRepository {
     }
 
     public void slideShowtime(UUID showtimeUuid, OffsetDateTime newStart, long daysToAdd) {
-        // 1. Delete tickets associated with showtime's bookings
-        entityManager.createNativeQuery("""
-                delete from ticket
-                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
-                """)
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 2. Delete booking combos associated with showtime's bookings
-        entityManager.createNativeQuery("""
-                delete from booking_combo
-                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
-                """)
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 3. Delete bookings associated with showtime
-        entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 4. Update showtime start/end times
+        // 1. Update showtime start/end times
         entityManager.createNativeQuery("""
                 update showtime
                 set start_time = :newStart,
@@ -466,46 +441,47 @@ public class BookingNativeRepository {
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        entityManager.createNativeQuery(
-                "delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+        // 2. Delete dependent tickets
+        entityManager.createNativeQuery("""
+                delete from ticket
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        entityManager.createNativeQuery(
-                "delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)")
+        // 3. Delete dependent booking combos
+        entityManager.createNativeQuery("""
+                delete from booking_combo
+                where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)
+                """)
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
-        // 5. Delete locks
-        entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
-                .setParameter("showtimeUuid", showtimeUuid)
-                .executeUpdate();
-
-        // 6. Delete booking seats
+        // 4. Delete booking seats
         entityManager.createNativeQuery("delete from booking_seat where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
+        // 5. Delete bookings
         entityManager.createNativeQuery("delete from booking where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
 
+        // 6. Delete locks
         entityManager.createNativeQuery("delete from seat_locked where showtime_uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .executeUpdate();
     }
 
     public void ensureShowtimeExists(UUID showtimeUuid) {
-        Number countShowtime = (Number) entityManager
-                .createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
+        Number countShowtime = (Number) entityManager.createNativeQuery("select count(1) from showtime where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getSingleResult();
         if (countShowtime != null && countShowtime.longValue() > 0L) {
             return;
         }
 
-        Number countMovie = (Number) entityManager
-                .createNativeQuery("select count(1) from movie where uuid = :showtimeUuid")
+        Number countMovie = (Number) entityManager.createNativeQuery("select count(1) from movie where uuid = :showtimeUuid")
                 .setParameter("showtimeUuid", showtimeUuid)
                 .getSingleResult();
         if (countMovie != null && countMovie.longValue() > 0L) {
@@ -513,7 +489,7 @@ public class BookingNativeRepository {
             OffsetDateTime startTime = now.withHour(19).withMinute(30).withSecond(0).withNano(0);
             OffsetDateTime endTime = now.withHour(21).withMinute(30).withSecond(0).withNano(0);
             UUID roomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888"); // Phòng chiếu IMAX
-
+            
             entityManager.createNativeQuery("""
                     insert into showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time)
                     values (:uuid, :movieUuid, :roomUuid, :startTime, :endTime)

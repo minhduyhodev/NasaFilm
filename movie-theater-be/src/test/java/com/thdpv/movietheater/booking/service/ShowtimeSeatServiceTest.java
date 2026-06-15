@@ -85,8 +85,7 @@ class ShowtimeSeatServiceTest {
         Query mockQuery = mock(Query.class);
         when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
         when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
-        // autoSlideShowtimeIfPast select query returning empty so it doesn't try to
-        // slide showtime
+        // autoSlideShowtimeIfPast select query returning empty so it doesn't try to slide showtime
         when(mockQuery.getResultList()).thenReturn(Collections.emptyList());
 
         AppException exception = assertThrows(AppException.class, () -> {
@@ -112,18 +111,15 @@ class ShowtimeSeatServiceTest {
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
         // Mock SeatViewDto list
-        // Row A: seat 1 is AVAILABLE (but selected by user), seat 2 is AVAILABLE, seat
-        // 3 is BOOKED/UNAVAILABLE.
-        // This leaves seat 2 as a gap. Since seat 1 is selected by user, seat 2 should
-        // be marked blocked (blocked=true).
+        // Row A: seat 1 is AVAILABLE (but selected by user), seat 2 is AVAILABLE, seat 3 is BOOKED/UNAVAILABLE.
+        // This leaves seat 2 as a gap. Since seat 1 is selected by user, seat 2 should be marked blocked (blocked=true).
         SeatViewDto row1 = createSeatViewDto(showtimeUuid, seat1, "A", 1, "ACTIVE", false, null);
         SeatViewDto row2 = createSeatViewDto(showtimeUuid, seat2, "A", 2, "ACTIVE", false, null);
         SeatViewDto row3 = createSeatViewDto(showtimeUuid, seat3, "A", 3, "ACTIVE", true, null); // booked
 
         when(showtimeRepository.getShowtimeSeatViews(eq(showtimeUuid), any())).thenReturn(List.of(row1, row2, row3));
 
-        ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat1),
-                "customer@example.com");
+        ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat1), "customer@example.com");
 
         // Verify that seat 2 is blocked (blocked = true)
         ShowtimeSeatMapResponse.SeatItem s1 = response.getRows().get(0).getSeats().get(0);
@@ -164,19 +160,16 @@ class ShowtimeSeatServiceTest {
         when(showtimeRepository.getShowtimeSeatViews(eq(showtimeUuid), any())).thenReturn(List.of(row1, row2, row3));
 
         // When user selects middle seat (seat2)
-        ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat2),
-                "customer@example.com");
+        ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat2), "customer@example.com");
 
         ShowtimeSeatMapResponse.SeatItem s1 = response.getRows().get(0).getSeats().get(0);
         ShowtimeSeatMapResponse.SeatItem s2 = response.getRows().get(0).getSeats().get(1);
         ShowtimeSeatMapResponse.SeatItem s3 = response.getRows().get(0).getSeats().get(2);
 
-        // seat 1 and seat 3 should be blocked because selecting seat 2 leaves them as
-        // single gaps at the boundaries!
+        // seat 1 and seat 3 should be blocked because selecting seat 2 leaves them as single gaps at the boundaries!
         assertEquals(true, s1.getBlocked());
         assertEquals(true, s3.getBlocked());
     }
-
     private SeatViewDto createSeatViewDto(UUID showtimeUuid, UUID seatUuid, String rowName, Integer seatNumber,
             String seatStatus, boolean booked, UUID lockedUserUuid) {
         return new SeatViewDto(
@@ -187,13 +180,14 @@ class ShowtimeSeatServiceTest {
                 seatUuid,
                 rowName,
                 seatNumber,
-                com.thdpv.movietheater.cinema.enums.SeatStatus.valueOf(seatStatus),
+                SeatStatus.valueOf(seatStatus),
                 UUID.randomUUID(),
                 "STANDARD",
                 BigDecimal.valueOf(80000),
                 BigDecimal.ONE,
                 booked ? UUID.randomUUID() : null,
                 lockedUserUuid,
-                null);
+                null
+        );
     }
 }
