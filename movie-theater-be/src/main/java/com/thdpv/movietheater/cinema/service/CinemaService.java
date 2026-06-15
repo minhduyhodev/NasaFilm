@@ -180,7 +180,7 @@ public class CinemaService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void generateSeats(UUID roomUuid, GenerateSeatMapRequest request) {
         CinemaRoom room = cinemaRoomRepository.findById(roomUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));

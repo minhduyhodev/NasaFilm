@@ -716,8 +716,25 @@ public class DataSeeder implements CommandLineRunner {
     private void seedCinemasAndRooms() {
         // Clean up legacy random-UUID and duplicate cinemas to ensure clean state
         try {
-            jdbcTemplate.update("DELETE FROM seat WHERE cinema_room_uuid IN (SELECT uuid FROM cinema_room WHERE cinema_uuid <> '77777777-7777-7777-7777-777777777777')");
-            jdbcTemplate.update("DELETE FROM cinema_room WHERE cinema_uuid <> '77777777-7777-7777-7777-777777777777'");
+            jdbcTemplate.update("""
+                DELETE FROM seat 
+                WHERE cinema_room_uuid IN (
+                    SELECT uuid FROM cinema_room 
+                    WHERE cinema_uuid IN (
+                        SELECT uuid FROM cinema 
+                        WHERE uuid <> '77777777-7777-7777-7777-777777777777' 
+                          AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                    )
+                )
+            """);
+            jdbcTemplate.update("""
+                DELETE FROM cinema_room 
+                WHERE cinema_uuid IN (
+                    SELECT uuid FROM cinema 
+                    WHERE uuid <> '77777777-7777-7777-7777-777777777777' 
+                      AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                )
+            """);
             jdbcTemplate.update("DELETE FROM cinema WHERE uuid <> '77777777-7777-7777-7777-777777777777' AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')");
             
             // Rename legacy names and types if they already exist with the fixed UUIDs
