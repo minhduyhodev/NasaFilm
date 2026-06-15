@@ -341,7 +341,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             """, nativeQuery = true)
     List<String> loadTicketCodesForBooking(@Param("bookingUuid") UUID bookingUuid);
 
-    @Query(value = "select start_time from showtime where uuid = :showtimeUuid", nativeQuery = true)
+    @Query("select st.startTime from Showtime st where st.uuid = :showtimeUuid")
     OffsetDateTime queryShowtimeStartTime(@Param("showtimeUuid") UUID showtimeUuid);
 
     default OffsetDateTime getShowtimeStartTime(UUID showtimeUuid) {
@@ -441,6 +441,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         }
         if (value instanceof OffsetDateTime offsetDateTime) {
             return offsetDateTime;
+        }
+        if (value instanceof java.time.Instant instant) {
+            return instant.atOffset(java.time.ZoneOffset.UTC);
         }
         if (value instanceof java.sql.Timestamp timestamp) {
             return timestamp.toInstant().atOffset(java.time.ZoneOffset.UTC);

@@ -432,6 +432,9 @@ public class ShowtimeSeatService {
         if (value instanceof OffsetDateTime offsetDateTime) {
             return offsetDateTime;
         }
+        if (value instanceof java.time.Instant instant) {
+            return instant.atOffset(ZoneOffset.UTC);
+        }
         if (value instanceof Timestamp timestamp) {
             return timestamp.toInstant().atOffset(ZoneOffset.UTC);
         }
