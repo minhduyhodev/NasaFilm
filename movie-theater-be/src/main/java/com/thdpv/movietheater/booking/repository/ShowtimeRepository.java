@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.booking.repository;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,4 +49,6 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             """)
     List<SeatViewDto> getShowtimeSeatViews(@Param("showtimeUuid") UUID showtimeUuid, @Param("now") OffsetDateTime now);
 
+    @Query("select count(s) from Showtime st join Seat s on s.cinemaRoom.uuid = st.cinemaRoomUuid where st.uuid = :showtimeUuid and s.uuid in :seatUuids")
+    long countSeatsBelongingToShowtime(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
 }
