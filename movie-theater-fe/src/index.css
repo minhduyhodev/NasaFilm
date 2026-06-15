@@ -105,9 +105,19 @@ input::-ms-clear {
 }
 
 /* Style for browser native calendar picker indicator in dark inputs */
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   cursor: pointer;
+}
+
+/* Reset filter for light inputs so indicator is visible on white background */
+.form-input::-webkit-calendar-picker-indicator,
+.bg-gray-50::-webkit-calendar-picker-indicator,
+input[class*="bg-gray-50"]::-webkit-calendar-picker-indicator,
+input[class*="bg-white"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
 }
 
 /* Animated space background panning keyframes matching LoginPage spaceBgPan */

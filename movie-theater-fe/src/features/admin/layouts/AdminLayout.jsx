@@ -3,7 +3,10 @@ import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-do
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
+import spaceAuthBg from '../../../shared/assets/space_auth_bg.png';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import '../pages/DashboardPage.css';
+import './AdminLayout.css';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuthContext();
@@ -23,8 +26,19 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <aside 
-      className={`fixed inset-y-0 left-0 z-50 bg-[#0B0F19] border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:w-60 w-72`}
+      className={`fixed inset-y-0 left-0 z-50 border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:w-60 w-72`}
     >
+      {/* Space background image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center select-none pointer-events-none z-0"
+        style={{
+          backgroundImage: `url(${spaceAuthBg})`,
+          filter: 'brightness(0.55) contrast(1.15)',
+        }}
+      />
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0 bg-black/25 pointer-events-none z-0" />
+
       <div className="relative z-10 py-5 px-6 border-b border-[#1A2238]/60 flex items-center justify-start">
         <Link to="/admin" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
           <img src={nasaLogo} alt="NASAFILM Logo" className="h-7 w-auto object-contain rounded-lg" />
@@ -220,9 +234,9 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#070A13] text-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 overflow-hidden relative">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main ref={mainRef} className="lg:ml-60 min-h-screen flex flex-col overflow-y-auto custom-scrollbar bg-[#070A13]">
+      <main ref={mainRef} className="admin-light-theme lg:ml-60 min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10">
         <div className="sticky top-0 z-40 w-full border-b border-[#1A2238] bg-[#0B0F19]/90 backdrop-blur-[16px] shadow-sm lg:hidden">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-center justify-between gap-4">
