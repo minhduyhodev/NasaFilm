@@ -43,6 +43,9 @@ public class UpdateMovieRequest {
     @Valid
     private List<MovieMediaRequest> medias;
 
+    @Size(max = 1000, message = "Link xem phim khong duoc vuot qua 1000 ky tu")
+    private String streamingUrl;
+
     public UpdateMovieRequest() {
     }
 
@@ -138,5 +141,13 @@ public class UpdateMovieRequest {
 
     public void setMedias(List<MovieMediaRequest> medias) {
         this.medias = medias;
+    }
+
+    public String getStreamingUrl() {
+        return streamingUrl;
+    }
+
+    public void setStreamingUrl(String streamingUrl) {
+        this.streamingUrl = streamingUrl;
     }
 }
