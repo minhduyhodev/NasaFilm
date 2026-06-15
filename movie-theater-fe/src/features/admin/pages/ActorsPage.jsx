@@ -213,14 +213,14 @@ const ActorsPage = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-[#0B0F19] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl shadow-black/80 p-5 text-left transform scale-100 transition-all duration-300">
-            <div className="flex justify-between items-center mb-4 border-b border-[#1A2238]/60 pb-3">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-xl overflow-hidden shadow-2xl p-5 text-left transform scale-100 transition-all duration-300">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
                 {editingActor ? 'Chỉnh sửa Diễn viên' : 'Thêm mới Diễn viên'}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -228,30 +228,30 @@ const ActorsPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">Họ và tên *</label>
+                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Họ và tên *</label>
                 <input
                   type="text"
                   placeholder="Nhập tên diễn viên..."
                   value={formData.fullName}
                   onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  className="w-full bg-[#070A13] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">URL Ảnh chân dung</label>
+                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">URL Ảnh chân dung</label>
                 <input
                   type="url"
                   placeholder="Nhập link ảnh chân dung (HTTPS)..."
                   value={formData.avatarUrl}
                   onChange={(e) => setFormData(prev => ({ ...prev, avatarUrl: e.target.value }))}
-                  className="w-full bg-[#070A13] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors"
                 />
                 {formData.avatarUrl && formData.avatarUrl.trim().startsWith("http") && (
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Xem trước:</span>
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-[#1A2238] bg-slate-900 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
                       <img
                         src={formData.avatarUrl.trim()}
                         alt="Preview"
@@ -266,26 +266,26 @@ const ActorsPage = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">Quốc tịch *</label>
+                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Quốc tịch *</label>
                 <select
                   value={formData.countryUuid}
                   onChange={(e) => setFormData(prev => ({ ...prev, countryUuid: e.target.value }))}
-                  className="w-full bg-[#070A13] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
                   required
                 >
                   {countriesList.map((c) => (
-                    <option key={c.uuid} value={c.uuid} className="bg-[#0B0F19] text-white">
+                    <option key={c.uuid} value={c.uuid}>
                       {c.name} ({c.code})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="pt-3 border-t border-[#1A2238]/60 flex gap-2 justify-end">
+              <div className="pt-3 border-t border-gray-200 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-[#1A2238] hover:bg-white/5 text-gray-400 hover:text-white text-[11px] font-bold uppercase transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-500 hover:text-gray-700 text-[11px] font-bold uppercase transition-all cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
