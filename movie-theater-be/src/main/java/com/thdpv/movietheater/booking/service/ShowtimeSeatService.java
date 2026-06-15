@@ -335,13 +335,12 @@ public class ShowtimeSeatService {
         for (UUID seatUuid : seatUuidsToInsert) {
             try {
                 com.thdpv.movietheater.booking.entity.SeatLocked sl = new com.thdpv.movietheater.booking.entity.SeatLocked();
-                sl.setUuid(UUID.randomUUID());
                 sl.setShowtimeUuid(showtimeUuid);
                 sl.setSeatUuid(seatUuid);
                 sl.setUserUuid(currentUserUuid);
                 sl.setLockedAt(now);
                 sl.setExpiredAt(expiresAt);
-                seatLockedRepository.save(sl);
+                seatLockedRepository.saveAndFlush(sl);
             } catch (DataIntegrityViolationException | jakarta.persistence.PersistenceException ex) {
                 throw new AppException(ErrorCode.CONFLICT, "Ghe dang duoc nguoi khac giu");
             }

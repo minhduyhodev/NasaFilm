@@ -18,14 +18,14 @@ import com.thdpv.movietheater.booking.entity.Booking;
 @Repository
 public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
 
-    @Query(value = "select count(1) from showtime where uuid = :showtimeUuid", nativeQuery = true)
+    @Query("select count(st) from Showtime st where st.uuid = :showtimeUuid")
     long countShowtimeByUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     default boolean existsShowtime(UUID showtimeUuid) {
         return countShowtimeByUuid(showtimeUuid) > 0;
     }
 
-    @Query(value = "select count(1) from booking where showtime_uuid = :showtimeUuid and status = 'CONFIRMED'", nativeQuery = true)
+    @Query("select count(b) from Booking b where b.showtimeUuid = :showtimeUuid and b.status = 'CONFIRMED'")
     long countConfirmedBookings(@Param("showtimeUuid") UUID showtimeUuid);
 
     default boolean hasConfirmedBookings(UUID showtimeUuid) {
@@ -33,7 +33,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     }
 
     @Modifying
-    @Query(value = "delete from seat_locked where showtime_uuid = :showtimeUuid and expired_at <= :now", nativeQuery = true)
+    @Query("delete from SeatLocked sl where sl.showtimeUuid = :showtimeUuid and sl.expiredAt <= :now")
     void cleanupExpiredLocks(@Param("showtimeUuid") UUID showtimeUuid, @Param("now") OffsetDateTime now);
 
     @Query(value = """
@@ -349,23 +349,23 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     }
 
     @Modifying
-    @Query(value = "delete from ticket where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)", nativeQuery = true)
+    @Query("delete from Ticket t where t.bookingUuid in (select b.uuid from Booking b where b.showtimeUuid = :showtimeUuid)")
     void deleteTicketsByShowtimeUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     @Modifying
-    @Query(value = "delete from booking_combo where booking_uuid in (select uuid from booking where showtime_uuid = :showtimeUuid)", nativeQuery = true)
+    @Query("delete from BookingCombo bc where bc.bookingUuid in (select b.uuid from Booking b where b.showtimeUuid = :showtimeUuid)")
     void deleteBookingCombosByShowtimeUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     @Modifying
-    @Query(value = "delete from booking_seat where showtime_uuid = :showtimeUuid", nativeQuery = true)
+    @Query("delete from BookingSeat bs where bs.showtimeUuid = :showtimeUuid")
     void deleteBookingSeatsByShowtimeUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     @Modifying
-    @Query(value = "delete from booking where showtime_uuid = :showtimeUuid", nativeQuery = true)
+    @Query("delete from Booking b where b.showtimeUuid = :showtimeUuid")
     void deleteBookingsByShowtimeUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     @Modifying
-    @Query(value = "delete from seat_locked where showtime_uuid = :showtimeUuid", nativeQuery = true)
+    @Query("delete from SeatLocked sl where sl.showtimeUuid = :showtimeUuid")
     void deleteSeatLocksByShowtimeUuid(@Param("showtimeUuid") UUID showtimeUuid);
 
     @Modifying
@@ -373,7 +373,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             update showtime
             set start_time = :newStart,
                 end_time = end_time + interval '1 day' * :daysToAdd
-            where uuid = :showtimeUuid
+            where uuid = cast(:showtimeUuid as uuid)
             """, nativeQuery = true)
     void updateShowtimeTimes(@Param("showtimeUuid") UUID showtimeUuid, @Param("newStart") OffsetDateTime newStart, @Param("daysToAdd") long daysToAdd);
 
@@ -404,13 +404,13 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         deleteSeatLocksByShowtimeUuid(showtimeUuid);
     }
 
-    @Query(value = "select count(1) from movie where uuid = :movieUuid", nativeQuery = true)
+    @Query("select count(m) from Movie m where m.uuid = :movieUuid")
     long countMovieByUuid(@Param("movieUuid") UUID movieUuid);
 
     @Modifying
     @Query(value = """
             insert into showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time)
-            values (:uuid, :movieUuid, :roomUuid, :startTime, :endTime)
+            values (cast(:uuid as uuid), cast(:movieUuid as uuid), cast(:roomUuid as uuid), :startTime, :endTime)
             """, nativeQuery = true)
     void insertShowtime(
             @Param("uuid") UUID uuid,
