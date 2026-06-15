@@ -554,7 +554,7 @@ const VouchersPage = () => {
                         </span>
                       </td>
                       <td className="text-center py-4 text-gray-300 text-xs font-semibold">
-                        {row.discountType === 'PERCENTAGE' ? 'Giảm phần trăm (%)' : 'Giảm tiền cố định'}
+                        {row.discountType === 'PERCENTAGE' ? 'Giảm phần trăm' : 'Giảm tiền cố định'}
                       </td>
                       <td className="text-center py-4 font-mono font-bold text-white">
                         {row.discountType === 'PERCENTAGE' 
