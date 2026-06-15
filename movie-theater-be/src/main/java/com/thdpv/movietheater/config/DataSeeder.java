@@ -741,9 +741,56 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.update("UPDATE cinema SET name = 'NASA Landmark 81' WHERE uuid = '77777777-7777-7777-7777-777777777777'");
             jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-IMAX', name = 'Phòng chiếu IMAX' WHERE uuid = '88888888-8888-8888-8888-888888888888'");
             jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-VIP', name = 'Phòng chiếu VIP' WHERE uuid = '99999999-9999-9999-9999-999999999999'");
-            jdbcTemplate.update("UPDATE seat_type SET name = 'STANDARD' WHERE name = 'Ghế Thường'");
-            jdbcTemplate.update("UPDATE seat_type SET name = 'VIP' WHERE name = 'Ghế VIP'");
-            jdbcTemplate.update("UPDATE seat_type SET name = 'COUPLE' WHERE name = 'Ghế Đôi'");
+            // Self-healing for seat types: ensure standard seat types exist, migrate seat references, and clean up duplicates
+            jdbcTemplate.update("""
+                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'STANDARD', 85000, 1.0)
+                ON CONFLICT (uuid) DO NOTHING
+            """);
+            jdbcTemplate.update("""
+                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'VIP', 120000, 1.0)
+                ON CONFLICT (uuid) DO NOTHING
+            """);
+            jdbcTemplate.update("""
+                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'COUPLE', 160000, 1.0)
+                ON CONFLICT (uuid) DO NOTHING
+            """);
+
+            jdbcTemplate.update("""
+                UPDATE seat
+                SET seat_type_uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                FROM seat_type
+                WHERE seat.seat_type_uuid = seat_type.uuid
+                  AND seat_type.name IN ('Ghế Thường', 'STANDARD')
+                  AND seat.seat_type_uuid <> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+            """);
+            jdbcTemplate.update("""
+                UPDATE seat
+                SET seat_type_uuid = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                FROM seat_type
+                WHERE seat.seat_type_uuid = seat_type.uuid
+                  AND seat_type.name IN ('Ghế VIP', 'VIP')
+                  AND seat.seat_type_uuid <> 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+            """);
+            jdbcTemplate.update("""
+                UPDATE seat
+                SET seat_type_uuid = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+                FROM seat_type
+                WHERE seat.seat_type_uuid = seat_type.uuid
+                  AND seat_type.name IN ('Ghế Đôi', 'COUPLE')
+                  AND seat.seat_type_uuid <> 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+            """);
+
+            jdbcTemplate.update("""
+                DELETE FROM seat_type
+                WHERE uuid NOT IN (
+                    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                    'cccccccc-cccc-cccc-cccc-cccccccccccc'
+                )
+            """);
             
             // Self-healing: Update capacity of rooms to their actual active seat count if capacity <= 0
             jdbcTemplate.update("""
