@@ -63,6 +63,29 @@ const BookingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Try to restore from sessionStorage if location.state is not available
+  const getInitialState = () => {
+    if (location.state) {
+      try {
+        sessionStorage.setItem('booking_state', JSON.stringify(location.state));
+      } catch (e) {
+        console.error("Failed to save booking state to sessionStorage:", e);
+      }
+      return location.state;
+    }
+    try {
+      const saved = sessionStorage.getItem('booking_state');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to parse booking state from sessionStorage:", e);
+    }
+    return {};
+  };
+
+  const bookingState = getInitialState();
+
   // Extract booking details from routing state
   const { 
     showtimeUuid = '11111111-1111-1111-1111-111111111111',
@@ -71,9 +94,10 @@ const BookingPage = () => {
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
+    movieAgeRating = '',
     date = 'Hôm nay, 10/06', 
     showtime = '19:30' 
-  } = location.state || {};
+  } = bookingState;
 
   const movieInfo = getMovieInfo(movie);
 
@@ -221,6 +245,7 @@ const BookingPage = () => {
           moviePoster,
           movieRating,
           movieFormat,
+          movieAgeRating,
           date,
           showtime,
           selectedSeats,
@@ -423,7 +448,22 @@ const BookingPage = () => {
                   <Star className="h-3.5 w-3.5 fill-current" />
                   <span>{(movieRating || movieInfo.rating).toFixed(1)} IMDb</span>
                 </div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat || movieInfo.format}</p>
+                <div className="flex items-center gap-2 pt-0.5">
+                  {(movieFormat || movieInfo.format) && (
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+                      {movieFormat || movieInfo.format}
+                    </span>
+                  )}
+                  {movieAgeRating && (
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                      movieAgeRating.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+                      movieAgeRating.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+                      'bg-amber-600/90 text-white'
+                    }`}>
+                      {movieAgeRating}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] font-bold text-red-500 mt-1">{showtime} • {date}</p>
                 <p className="text-[10px] font-semibold text-gray-500">{theater}</p>
               </div>

@@ -74,6 +74,24 @@ class BookingService {
       throw authService.handleError(error);
     }
   }
+
+  async cancelBooking(bookingUuid) {
+    try {
+      const response = await authService.api.post(`/api/bookings/${bookingUuid}/cancel`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async checkInTicket(ticketCode) {
+    try {
+      const response = await authService.api.put(`/api/bookings/tickets/${ticketCode}/check-in`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const bookingService = new BookingService();

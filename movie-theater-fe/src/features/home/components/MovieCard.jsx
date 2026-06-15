@@ -1,8 +1,8 @@
 import React from 'react';
-import { Star, Tag, Clock, Globe, MessageSquare } from 'lucide-react';
+import { Star, Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails }) => {
+const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRating }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -39,10 +39,21 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
         </Link>
 
         {/* Rating and Format Badges on Poster (floating, clean) */}
-        <div className="absolute top-4 left-4 z-10">
-          <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md text-white border border-white/10`}>
-            {format || '2D'}
-          </span>
+        <div className="absolute top-4 left-4 z-10 flex gap-1.5">
+          {format && !format.toUpperCase().includes('2D') && (
+            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md text-white border border-white/10`}>
+              {format}
+            </span>
+          )}
+          {ageRating && (
+            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+              ageRating.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+              ageRating.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+              'bg-amber-600/90 text-white'
+            }`}>
+              {ageRating}
+            </span>
+          )}
         </div>
         {rating && (
           <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-black/60 backdrop-blur-md text-yellow-400 border border-white/10">
@@ -76,12 +87,7 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
                   <span>{hoverDetails.country}</span>
                 </div>
               )}
-              {hoverDetails.language && (
-                <div className="flex items-center gap-2.5 text-xs font-semibold text-gray-300">
-                  <MessageSquare className="h-4 w-4 text-red-500" />
-                  <span>{hoverDetails.language}</span>
-                </div>
-              )}
+
             </div>
           </Link>
         )}

@@ -251,7 +251,7 @@ const AdminLayout = ({ children }) => {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-4 py-8 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-8 px-6 py-8 sm:px-10">
           {children ?? <Outlet />}
         </div>
       </main>

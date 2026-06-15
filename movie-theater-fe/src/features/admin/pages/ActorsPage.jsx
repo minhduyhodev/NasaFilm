@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { User, Globe, Search, Plus, X, ShieldAlert } from 'lucide-react';
+import { User, Globe, Search, Plus, X, Loader2, Award, MapPin } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
-import './ActorsPage.css';
+import Pagination from '../../../shared/components/Pagination';
 
 const ActorsPage = () => {
   const [actors, setActors] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +43,11 @@ const ActorsPage = () => {
   useEffect(() => {
     fetchActorsAndCountries();
   }, []);
+
+  // Reset page when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleAddClick = () => {
     setEditingActor(null);
@@ -102,198 +111,329 @@ const ActorsPage = () => {
     }
   };
 
+  // Filter logic
   const filteredActors = actors.filter(actor =>
     actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (actor.countryName && actor.countryName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Statistics calculations
+  const totalActors = actors.length;
+  const totalCountries = countriesList.length;
+  const representedNationalities = new Set(actors.map(a => a.countryName).filter(Boolean)).size;
+
+  // Find the country with the most actors
+  const countryCounts = actors.reduce((acc, a) => {
+    if (a.countryName) {
+      acc[a.countryName] = (acc[a.countryName] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  let mostCommonCountry = 'Không có';
+  let maxCount = 0;
+  Object.entries(countryCounts).forEach(([country, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      mostCommonCountry = country;
+    }
+  });
+
+  // Client-side Paginated actors
+  const paginatedActors = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredActors.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredActors, currentPage, itemsPerPage]);
+
   return (
     <>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Quản Lý Diễn Viên</h1>
-          <p className="text-xs text-gray-400 mt-1">Danh mục cơ sở dữ liệu diễn viên và quốc tịch nghệ sĩ.</p>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 block mb-1">
+            Cơ Sở Dữ Liệu Nghệ Sĩ
+          </span>
+          <h1 className="text-4xl font-black text-white uppercase tracking-tight leading-none">
+            Quản Lý Diễn Viên
+          </h1>
+          <p className="text-sm text-gray-400 mt-1.5">
+            Danh mục cơ sở dữ liệu diễn viên và quốc tịch nghệ sĩ toàn hệ thống.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm diễn viên, quốc gia..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
-            />
+        <button
+          className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0"
+          onClick={handleAddClick}
+        >
+          <Plus size={16} />
+          Thêm Diễn Viên
+        </button>
+      </div>
+
+      {/* KPI CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
+          <div className="space-y-1 text-left">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
+              Tổng Số Diễn Viên
+            </span>
+            <h3 className="text-3xl font-black text-white">{totalActors}</h3>
           </div>
-          <button 
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-3.5 py-1.5 text-xs text-white font-bold transition shadow-md cursor-pointer"
-            onClick={handleAddClick}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Thêm diễn viên
-          </button>
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+            <User className="w-5 h-5 text-red-500" />
+          </div>
+        </div>
+
+        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
+          <div className="space-y-1 text-left">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
+              Quốc Tịch Đại Diện
+            </span>
+            <h3 className="text-3xl font-black text-emerald-400">{representedNationalities}</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <Globe className="w-5 h-5 text-emerald-400" />
+          </div>
+        </div>
+
+        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
+          <div className="space-y-1 text-left">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
+              Quốc Gia Trong DB
+            </span>
+            <h3 className="text-3xl font-black text-blue-400">{totalCountries}</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <MapPin className="w-5 h-5 text-blue-400" />
+          </div>
+        </div>
+
+        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
+          <div className="space-y-1 text-left min-w-0 flex-1 pr-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
+              Quốc Tịch Phổ Biến
+            </span>
+            <h3
+              className="text-lg font-black text-amber-400 truncate"
+              title={mostCommonCountry}
+            >
+              {mostCommonCountry}
+            </h3>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
+            <Award className="w-5 h-5 text-amber-400" />
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl bg-[#0B0F19]/50 border border-[#1A2238] overflow-hidden shadow-xl backdrop-blur-md">
+      {/* FILTER TOOLBAR */}
+      <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm diễn viên, quốc gia..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
+          />
+        </div>
+        <span className="text-sm text-gray-400 font-medium shrink-0">
+          {filteredActors.length} diễn viên
+        </span>
+      </div>
+
+      {/* ACTOR CARD GRID */}
+      <div className="bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl overflow-hidden p-6 mb-4">
         {isLoading ? (
-          <div className="flex justify-center items-center py-16">
-            <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-b-2 border-red-500"></div>
+          <div className="min-h-[300px] flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+            <p className="text-sm text-gray-400 font-medium">Đang tải danh sách diễn viên...</p>
           </div>
-        ) : filteredActors.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
-            <ShieldAlert className="w-10 h-10 text-zinc-600 mb-3" />
-            <p className="text-xs font-semibold">Không tìm thấy diễn viên nào phù hợp</p>
+        ) : paginatedActors.length === 0 ? (
+          <div className="min-h-[300px] flex flex-col items-center justify-center gap-3 text-center">
+            <User className="w-16 h-16 text-zinc-700 animate-pulse" />
+            <p className="text-sm font-black uppercase tracking-wider text-white">
+              Không tìm thấy diễn viên nào phù hợp
+            </p>
+            <p className="text-xs text-gray-500">
+              Thử thay đổi từ khóa hoặc bộ lọc của bạn.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="text-gray-400 text-[9px] font-bold uppercase tracking-wider border-b border-[#1A2238] bg-white/[0.02]">
-                  <th className="py-2.5 px-4 font-semibold">Ảnh</th>
-                  <th className="py-2.5 px-4 font-semibold">Họ và tên</th>
-                  <th className="py-2.5 px-4 font-semibold">Quốc gia</th>
-                  <th className="py-2.5 px-4 font-semibold text-right">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredActors.map((actor) => (
-                  <tr key={actor.uuid} className="border-b border-[#1A2238]/60 hover:bg-white/[0.015] transition-colors align-middle">
-                    <td className="py-2 px-4">
-                      <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center shrink-0">
-                        {actor.avatarUrl ? (
-                          <img
-                            src={actor.avatarUrl}
-                            alt={actor.fullName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100';
-                            }}
-                          />
-                        ) : (
-                          <User className="w-4 h-4 text-gray-500" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-4 font-bold text-white">
-                      {actor.fullName}
-                    </td>
-                    <td className="py-2 px-4">
-                      <span className="bg-[#0F1322] border border-[#1A2238] text-gray-300 text-[10px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1">
-                        <Globe className="w-3 h-3 text-zinc-500" />
-                        {actor.countryName || 'Không xác định'}
-                      </span>
-                    </td>
-                    <td className="py-2 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEditClick(actor)}
-                          className="inline-flex items-center justify-center rounded border border-blue-500/20 bg-blue-500/5 px-2.5 py-1 text-[11px] font-bold text-blue-400 hover:bg-blue-500/15 hover:border-blue-500/30 transition duration-150 cursor-pointer"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          onClick={() => handleDeleteActor(actor.uuid, actor.fullName)}
-                          className="inline-flex items-center justify-center rounded border border-red-500/20 bg-red-500/5 px-2.5 py-1 text-[11px] font-bold text-red-400 hover:bg-red-500/15 hover:border-red-500/30 transition duration-150 cursor-pointer"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {paginatedActors.map((actor) => (
+              <div
+                key={actor.uuid}
+                className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 hover:border-gray-600 transition-all duration-200 group flex flex-col gap-3"
+              >
+                {/* Avatar */}
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#1A2238] bg-slate-800 mx-auto flex items-center justify-center shrink-0">
+                  {actor.avatarUrl ? (
+                    <img
+                      src={actor.avatarUrl}
+                      alt={actor.fullName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100';
+                      }}
+                    />
+                  ) : (
+                    <User className="w-7 h-7 text-gray-500" />
+                  )}
+                </div>
+
+                {/* Name */}
+                <p className="text-base font-black text-white text-center leading-snug line-clamp-2">
+                  {actor.fullName}
+                </p>
+
+                {/* Country Badge */}
+                <div className="flex justify-center">
+                  <span className="inline-flex items-center gap-1.5 bg-zinc-500/10 border border-zinc-500/20 text-zinc-300 text-xs px-2.5 py-1 rounded-full">
+                    <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                    {actor.countryName || 'Không xác định'}
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-2 mt-auto pt-3 border-t border-[#1A2238]/50">
+                  <button
+                    onClick={() => handleEditClick(actor)}
+                    className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-500/15 transition cursor-pointer"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDeleteActor(actor.uuid, actor.fullName)}
+                    className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-500/15 transition cursor-pointer"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Edit / Add Modal */}
+      {/* PAGINATION */}
+      {filteredActors.length > 0 && (
+        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl overflow-hidden">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredActors.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        </div>
+      )}
+
+      {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-xl overflow-hidden shadow-2xl p-5 text-left transform scale-100 transition-all duration-300">
-            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
-              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                {editingActor ? 'Chỉnh sửa Diễn viên' : 'Thêm mới Diễn viên'}
-              </h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => setIsModalOpen(false)}
+          />
+          <div className="relative bg-[#090D1A] border border-[#1A2238] rounded-xl shadow-2xl p-6 w-full max-w-md text-left">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-5 pb-4 border-b border-[#1A2238]">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 block mb-0.5">
+                  {editingActor ? 'Chỉnh Sửa' : 'Thêm Mới'}
+                </span>
+                <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                  {editingActor ? 'Chỉnh Sửa Diễn Viên' : 'Thêm Mới Diễn Viên'}
+                </h2>
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Full Name */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Họ và tên *</label>
+                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                  Họ và Tên *
+                </label>
                 <input
                   type="text"
                   placeholder="Nhập tên diễn viên..."
                   value={formData.fullName}
                   onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors"
+                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
                   required
                 />
               </div>
 
+              {/* Avatar URL */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">URL Ảnh chân dung</label>
+                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                  URL Ảnh Chân Dung
+                </label>
                 <input
                   type="url"
                   placeholder="Nhập link ảnh chân dung (HTTPS)..."
                   value={formData.avatarUrl}
                   onChange={(e) => setFormData(prev => ({ ...prev, avatarUrl: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors"
+                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
                 />
                 {formData.avatarUrl && formData.avatarUrl.trim().startsWith("http") && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Xem trước:</span>
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+                  <div className="mt-2.5 flex items-center gap-3">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
+                      Xem trước:
+                    </span>
+                    <div className="rounded-full w-14 h-14 overflow-hidden border border-[#1A2238] bg-slate-800 flex items-center justify-center">
                       <img
                         src={formData.avatarUrl.trim()}
                         alt="Preview"
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     </div>
                   </div>
                 )}
               </div>
 
+              {/* Nationality */}
               <div>
-                <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Quốc tịch *</label>
+                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                  Quốc Tịch *
+                </label>
                 <select
                   value={formData.countryUuid}
                   onChange={(e) => setFormData(prev => ({ ...prev, countryUuid: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
+                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
                   required
                 >
                   {countriesList.map((c) => (
-                    <option key={c.uuid} value={c.uuid}>
+                    <option key={c.uuid} value={c.uuid} style={{ background: '#0F1322' }}>
                       {c.name} ({c.code})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="pt-3 border-t border-gray-200 flex gap-2 justify-end">
+              {/* Footer Actions */}
+              <div className="pt-4 border-t border-[#1A2238] flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-500 hover:text-gray-700 text-[11px] font-bold uppercase transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
-                  Hủy bỏ
+                  Hủy Bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold uppercase transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
-                  {editingActor ? 'Cập nhật' : 'Thêm mới'}
+                  {editingActor ? 'Cập Nhật' : 'Thêm Mới'}
                 </button>
               </div>
             </form>

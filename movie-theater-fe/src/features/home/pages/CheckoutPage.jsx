@@ -63,6 +63,29 @@ const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Try to restore from sessionStorage if location.state is not available
+  const getInitialState = () => {
+    if (location.state) {
+      try {
+        sessionStorage.setItem('checkout_state', JSON.stringify(location.state));
+      } catch (e) {
+        console.error("Failed to save checkout state to sessionStorage:", e);
+      }
+      return location.state;
+    }
+    try {
+      const saved = sessionStorage.getItem('checkout_state');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to parse checkout state from sessionStorage:", e);
+    }
+    return {};
+  };
+
+  const checkoutState = getInitialState();
+
   // Extract payment details from state, or fallback to mock data
   const {
     showtimeUuid = '11111111-1111-1111-1111-111111111111',
@@ -71,6 +94,7 @@ const CheckoutPage = () => {
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
+    movieAgeRating = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
     selectedSeats = [
@@ -78,7 +102,7 @@ const CheckoutPage = () => {
       { id: 'E6', price: 120000, type: 'Ghế VIP' }
     ],
     totalAmount = 240000
-  } = location.state || {};
+  } = checkoutState;
 
   const movieInfo = getMovieInfo(movie);
 
@@ -261,7 +285,7 @@ const CheckoutPage = () => {
           movie: movie,
           moviePoster: moviePoster || movieInfo.poster,
           movieFormat: movieFormat || movieInfo.format,
-          movieRating: movieInfo.age,
+          movieRating: movieAgeRating || movieInfo.age,
           theater: theater,
           date: date,
           showtime: showtime,
@@ -323,7 +347,17 @@ const CheckoutPage = () => {
                   </div>
                   <div className="mt-6 flex gap-2">
                     <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                    <span className="bg-red-600/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black border border-red-500/20">{movieInfo.age}</span>
+                    {(movieAgeRating || movieInfo.age) && (
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${
+                        (movieAgeRating || movieInfo.age).toUpperCase() === 'P' 
+                          ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20' 
+                          : (movieAgeRating || movieInfo.age).toUpperCase().includes('T18') 
+                            ? 'bg-red-600/10 text-red-500 border-red-500/20' 
+                            : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
+                      }`}>
+                        {movieAgeRating || movieInfo.age}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

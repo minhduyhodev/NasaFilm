@@ -325,7 +325,8 @@ const TicketFilters = () => {
         theater: `${selectedShowtimeObj.cinemaName} - ${selectedShowtimeObj.cinemaRoomName}`,
         movie: selectedShowtimeObj.movieTitle,
         moviePoster: selectedMovieObj?.primaryMediaUrl || '',
-        movieFormat: selectedShowtimeObj.cinemaRoomName.includes('IMAX') ? 'IMAX' : (selectedMovieObj?.ageRating || '2D'),
+        movieFormat: selectedShowtimeObj.cinemaRoomName.includes('IMAX') ? 'IMAX' : '2D',
+        movieAgeRating: selectedMovieObj?.ageRating || '',
         date: dateLabel,
         showtime: timeLabel
       }

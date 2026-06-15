@@ -163,6 +163,7 @@ const MovieDetailPage = () => {
         moviePoster: movie.poster,
         movieRating: movie.rating,
         movieFormat: movie.format,
+        movieAgeRating: movie.ageRating,
         date: dateText,
         showtime: showtimeText
       }
@@ -195,6 +196,7 @@ const MovieDetailPage = () => {
     genres: dbMovie.genres || [],
     rating: dbMovie.rating || 8.0,
     format: dbMovie.format || '2D',
+    ageRating: dbMovie.ageRating || '',
     poster: dbMovie.medias?.find(m => m.isPrimary)?.mediaUrl 
             || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl 
             || '',
@@ -293,6 +295,15 @@ const MovieDetailPage = () => {
             {/* Info */}
             <div className="flex-grow space-y-4 text-left">
               <div className="flex flex-wrap items-center gap-3">
+                {movie.ageRating && (
+                  <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-wider ${
+                    movie.ageRating.toUpperCase() === 'P' ? 'bg-emerald-600 text-white' : 
+                    movie.ageRating.toUpperCase().includes('T18') ? 'bg-red-600 text-white' : 
+                    'bg-amber-600 text-white'
+                  }`}>
+                    {movie.ageRating}
+                  </span>
+                )}
                 {movie.genres.map((g) => (
                   <span key={g} className="bg-red-600/20 text-red-500 px-3 py-1 rounded-full text-xs font-black border border-red-500/30">
                     {g}

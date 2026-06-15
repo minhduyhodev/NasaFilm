@@ -99,7 +99,18 @@ export const BookingConfirmedPage = () => {
               <div className="grid grid-cols-2 gap-y-6 gap-x-4 mb-8">
                 <div className="stagger-item" style={{ animationDelay: '0.4s' }}>
                   <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Phim</span>
-                  <span className="text-sm font-bold text-white line-clamp-1">{movie}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white line-clamp-1">{movie}</span>
+                    {movieRating && (
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                        movieRating.toUpperCase() === 'P' ? 'bg-emerald-600 text-white' : 
+                        movieRating.toUpperCase().includes('T18') ? 'bg-red-600 text-white' : 
+                        'bg-amber-600 text-white'
+                      }`}>
+                        {movieRating}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="stagger-item" style={{ animationDelay: '0.5s' }}>

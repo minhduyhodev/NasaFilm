@@ -77,6 +77,15 @@ class CinemaService {
       throw authService.handleError(error);
     }
   }
+
+  async getSeatsByRoom(roomUuid) {
+    try {
+      const response = await authService.api.get(`/api/rooms/${roomUuid}/seats`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const cinemaService = new CinemaService();

@@ -1,1 +1,14 @@
-/* Bookings page styling - migrated to inline Tailwind CSS utility classes */
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-dropdown-fade-in {
+  animation: dropdownFadeIn 0.15s ease-out forwards;
+}
