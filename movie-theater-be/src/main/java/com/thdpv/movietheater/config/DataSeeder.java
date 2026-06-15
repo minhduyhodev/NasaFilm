@@ -28,6 +28,7 @@ import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.enums.RoomType;
 import com.thdpv.movietheater.cinema.repository.CinemaRepository;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
@@ -219,15 +220,23 @@ public class DataSeeder implements CommandLineRunner {
         try {
             java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
 
-            // 1. Seed Cinema Rooms
+            // 1. Seed Cinema Rooms (JDBC Seed)
+            java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class, cinemaUuid) == 0) {
+                jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
+                        cinemaUuid, "NASA Landmark 81 JDBC", "Landmark 81, HCM", "19001080");
+            }
+
             java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
             java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
             
             if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room1Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room1Uuid, "Phòng chiếu IMAX");
+                jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
             }
             if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room2Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room2Uuid, "Phòng chiếu VIP");
+                jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
             }
 
             // 2. Seed Seat Types
@@ -266,11 +275,11 @@ public class DataSeeder implements CommandLineRunner {
                         java.util.UUID seat1Uuid = java.util.UUID.nameUUIDFromBytes((room1Uuid.toString() + "_" + rowName + "_" + num).getBytes(java.nio.charset.StandardCharsets.UTF_8));
                         java.util.UUID seat2Uuid = java.util.UUID.nameUUIDFromBytes((room2Uuid.toString() + "_" + rowName + "_" + num).getBytes(java.nio.charset.StandardCharsets.UTF_8));
                         jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid) VALUES (?, ?, ?, ?, ?, ?)",
-                                seat1Uuid, room1Uuid, rowName, num, "ACTIVE", seatTypeUuid);
+                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                seat1Uuid, room1Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
                         jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid) VALUES (?, ?, ?, ?, ?, ?)",
-                                seat2Uuid, room2Uuid, rowName, num, "ACTIVE", seatTypeUuid);
+                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                seat2Uuid, room2Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
                     }
                 }
             }
@@ -297,31 +306,35 @@ public class DataSeeder implements CommandLineRunner {
 
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtime1Uuid) == 0) {
                     jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtime1Uuid, movie1, room1Uuid,
                             now.withHour(19).withMinute(30).withSecond(0).withNano(0),
-                            now.withHour(21).withMinute(30).withSecond(0).withNano(0));
+                            now.withHour(21).withMinute(30).withSecond(0).withNano(0),
+                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
                 }
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtime2Uuid) == 0) {
                     jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtime2Uuid, movie2, room1Uuid,
                             now.withHour(21).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(23).withMinute(0).withSecond(0).withNano(0));
+                            now.withHour(23).withMinute(0).withSecond(0).withNano(0),
+                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
                 }
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtime3Uuid) == 0) {
                     jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtime3Uuid, movie3, room2Uuid,
                             now.withHour(18).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(20).withMinute(0).withSecond(0).withNano(0));
+                            now.withHour(20).withMinute(0).withSecond(0).withNano(0),
+                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
                 }
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtime4Uuid) == 0) {
                     jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtime4Uuid, movie4, room2Uuid,
                             now.withHour(20).withMinute(45).withSecond(0).withNano(0),
-                            now.withHour(22).withMinute(45).withSecond(0).withNano(0));
+                            now.withHour(22).withMinute(45).withSecond(0).withNano(0),
+                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
                 }
             }
 
@@ -663,12 +676,50 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedCinemasAndRooms() {
-        if (cinemaRepository.count() > 0) {
+        // Clean up legacy random-UUID and duplicate cinemas to ensure clean state
+        try {
+            jdbcTemplate.update("DELETE FROM seat WHERE cinema_room_uuid IN (SELECT uuid FROM cinema_room WHERE cinema_uuid <> '77777777-7777-7777-7777-777777777777')");
+            jdbcTemplate.update("DELETE FROM cinema_room WHERE cinema_uuid <> '77777777-7777-7777-7777-777777777777'");
+            jdbcTemplate.update("DELETE FROM cinema WHERE uuid <> '77777777-7777-7777-7777-777777777777' AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')");
+            
+            // Rename legacy names and types if they already exist with the fixed UUIDs
+            jdbcTemplate.update("UPDATE cinema SET name = 'NASA Landmark 81' WHERE uuid = '77777777-7777-7777-7777-777777777777'");
+            jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-IMAX', name = 'Phòng chiếu IMAX' WHERE uuid = '88888888-8888-8888-8888-888888888888'");
+            jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-VIP', name = 'Phòng chiếu VIP' WHERE uuid = '99999999-9999-9999-9999-999999999999'");
+            jdbcTemplate.update("UPDATE seat_type SET name = 'STANDARD' WHERE name = 'Ghế Thường'");
+            jdbcTemplate.update("UPDATE seat_type SET name = 'VIP' WHERE name = 'Ghế VIP'");
+            jdbcTemplate.update("UPDATE seat_type SET name = 'COUPLE' WHERE name = 'Ghế Đôi'");
+            
+            // Self-healing: Update capacity of rooms to their actual active seat count if capacity <= 0
+            jdbcTemplate.update("""
+                UPDATE cinema_room cr
+                SET capacity = (SELECT COUNT(1) FROM seat s WHERE s.cinema_room_uuid = cr.uuid AND s.is_active = true)
+                WHERE cr.capacity <= 0 OR cr.capacity IS NULL
+            """);
+
+            // Self-healing: Restore showtimes marked SOLD_OUT back to OPEN_FOR_BOOKING if booked seats < room capacity
+            jdbcTemplate.update("""
+                UPDATE showtime st
+                SET status = 'OPEN_FOR_BOOKING'
+                WHERE st.status = 'SOLD_OUT'
+                  AND (
+                      SELECT COUNT(1) FROM booking_seat bs WHERE bs.showtime_uuid = st.uuid
+                  ) < (
+                      SELECT cr.capacity FROM cinema_room cr WHERE cr.uuid = st.cinema_room_uuid
+                  )
+            """);
+        } catch (Exception e) {
+            logger.warn("Could not clean up, rename, or heal legacy cinema/showtime records: {}", e.getMessage());
+        }
+
+        java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
+        if (cinemaRepository.existsById(cinemaUuid)) {
             return;
         }
 
         // Create Cinema
         Cinema cinema = new Cinema();
+        cinema.setUuid(cinemaUuid);
         cinema.setName("NASA Landmark 81");
         cinema.setAddress("Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM");
         cinema.setPhoneNumber("19001080");
@@ -676,9 +727,13 @@ public class DataSeeder implements CommandLineRunner {
         logger.info("Seeded cinema: {}", savedCinema.getName());
 
         // Create Room 1 (matching default FE name)
+        java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
         CinemaRoom room1 = new CinemaRoom();
+        room1.setUuid(room1Uuid);
         room1.setCinema(savedCinema);
+        room1.setRoomCode("ROOM-IMAX");
         room1.setName("Phòng chiếu IMAX");
+        room1.setRoomType(RoomType.IMAX);
         room1.setStatus(CinemaRoomStatus.ACTIVE);
         room1.setCapacity(0);
         CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
@@ -689,9 +744,13 @@ public class DataSeeder implements CommandLineRunner {
         logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom1.getName());
 
         // Create Room 2
+        java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
         CinemaRoom room2 = new CinemaRoom();
+        room2.setUuid(room2Uuid);
         room2.setCinema(savedCinema);
-        room2.setName("Phòng chiếu 2");
+        room2.setRoomCode("ROOM-VIP");
+        room2.setName("Phòng chiếu VIP");
+        room2.setRoomType(RoomType.VIP);
         room2.setStatus(CinemaRoomStatus.ACTIVE);
         room2.setCapacity(0);
         CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);

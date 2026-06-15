@@ -236,7 +236,14 @@ const BookingPage = () => {
   const renderSeatElement = (seat, rowName) => {
     const isOccupied = seat.availabilityStatus === 'BOOKED' || seat.availabilityStatus === 'LOCKED_BY_OTHER' || seat.availabilityStatus === 'UNAVAILABLE';
     const isSelected = seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME';
-    const type = seat.seatTypeName.toLowerCase();
+    let type = (seat.seatTypeName || '').toLowerCase();
+    if (type.includes('thường') || type.includes('standard') || type.includes('regular')) {
+      type = 'standard';
+    } else if (type.includes('vip')) {
+      type = 'vip';
+    } else if (type.includes('đôi') || type.includes('couple')) {
+      type = 'couple';
+    }
     
     let seatClass = `seat ${type}`;
     

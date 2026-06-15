@@ -51,6 +51,7 @@ public class SecurityConfig {
             "/api/reset-password",
             "/api/movies",
             "/api/movies/**",
+            "/api/showtimes",
             "/api/showtimes/*/seat-map",
             "/v3/api-docs/**",
             "/swagger-ui/**",

@@ -28,6 +28,7 @@ import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
+import com.thdpv.movietheater.cinema.service.CinemaService;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.common.exception.AppException;
@@ -53,6 +54,9 @@ class ShowtimeSeatServiceTest {
 
     @Mock
     private BookingNativeRepository bookingRepository;
+
+    @Mock
+    private CinemaService cinemaService;
 
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;

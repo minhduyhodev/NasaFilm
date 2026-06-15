@@ -17,15 +17,23 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.ConstraintMode;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Index;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.enums.RoomType;
 
 @Entity
-@Table(name = "cinema_room", indexes = {
-        @Index(name = "idx_cinemaroom_cinema", columnList = "cinema_uuid")
-})
+@Table(
+        name = "cinema_room",
+        indexes = {
+                @Index(name = "idx_cinemaroom_cinema", columnList = "cinema_uuid")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_cinema_room_code", columnNames = {"cinema_uuid", "room_code"})
+        }
+)
 public class CinemaRoom {
 
     @Id
@@ -33,11 +41,18 @@ public class CinemaRoom {
     @Column(name = "uuid", nullable = false, updatable = false)
     private UUID uuid;
 
+    @Column(name = "room_code", nullable = false)
+    private String roomCode;
+
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "capacity")
     private Integer capacity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "room_type", nullable = false)
+    private RoomType roomType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -53,10 +68,12 @@ public class CinemaRoom {
     public CinemaRoom() {
     }
 
-    public CinemaRoom(UUID uuid, String name, Integer capacity, CinemaRoomStatus status, Cinema cinema) {
+    public CinemaRoom(UUID uuid, String roomCode, String name, Integer capacity, RoomType roomType, CinemaRoomStatus status, Cinema cinema) {
         this.uuid = uuid;
+        this.roomCode = roomCode;
         this.name = name;
         this.capacity = capacity;
+        this.roomType = roomType;
         this.status = status;
         this.cinema = cinema;
     }
@@ -67,6 +84,22 @@ public class CinemaRoom {
 
     public void setUuid(UUID uuid) {
         this.uuid = uuid;
+    }
+
+    public String getRoomCode() {
+        return roomCode;
+    }
+
+    public void setRoomCode(String roomCode) {
+        this.roomCode = roomCode;
+    }
+
+    public RoomType getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(RoomType roomType) {
+        this.roomType = roomType;
     }
 
     public String getName() {

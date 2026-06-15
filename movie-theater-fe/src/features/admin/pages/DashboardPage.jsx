@@ -1,38 +1,146 @@
-import React from 'react';
-import { Coins, Percent, TrendingUp, CreditCard, Activity, Radio, Compass } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Coins, Percent, TrendingUp, CreditCard, Activity, Radio, Compass, Loader2 } from 'lucide-react';
+import { adminDashboardService } from '../api/adminDashboardService';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await adminDashboardService.getDashboardStats();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const formatRevenue = (val) => {
+    if (val == null) return '0đ';
+    if (val >= 1000000) {
+      return (val / 1000000).toFixed(1).replace('.', ',') + 'M đ';
+    }
+    return new Intl.NumberFormat('vi-VN').format(val) + 'đ';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
+        <span className="text-gray-400 text-sm font-semibold">Đang tải thông số vận hành...</span>
+      </div>
+    );
+  }
+
+  const revenueVal = stats ? formatRevenue(stats.totalRevenue) : '0đ';
+  const transactionVal = stats ? new Intl.NumberFormat('vi-VN').format(stats.totalTransactions) : '0';
+  const growthVal = stats ? (stats.growth >= 0 ? `+${stats.growth.toFixed(1)}%` : `${stats.growth.toFixed(1)}%`) : '0%';
+  const conversionVal = stats ? `${stats.conversionRate.toFixed(1)}%` : '0%';
+
   const cards = [
     {
       label: 'DOANH THU',
-      value: '142,5K',
+      value: revenueVal,
       badge: 'Tháng này',
       Icon: Coins,
       color: 'text-rose-500',
     },
     {
       label: 'TỶ LỆ CHUYỂN ĐỔI',
-      value: '32,8%',
-      badge: 'Tỷ lệ trung bình',
+      value: conversionVal,
+      badge: 'Tổng số thành viên',
       Icon: Percent,
       color: 'text-emerald-500',
     },
     {
       label: 'TĂNG TRƯỞNG',
-      value: '+8,4%',
+      value: growthVal,
       badge: 'So với tháng trước',
       Icon: TrendingUp,
       color: 'text-amber-500',
     },
     {
       label: 'GIAO DỊCH',
-      value: '3,480',
+      value: transactionVal,
       badge: 'Đã hoàn thành',
       Icon: CreditCard,
       color: 'text-sky-500',
     },
   ];
+
+  // Resolve dynamic cinemas data
+  const cinemas = stats?.cinemas || [];
+  const getCinema = (index, defaultName, defaultOccupancy, defaultRevenue) => {
+    if (cinemas[index]) {
+      return {
+        name: cinemas[index].name.toUpperCase(),
+        occupancy: cinemas[index].occupancyRate,
+        revenue: formatRevenue(cinemas[index].revenue)
+      };
+    }
+    return { name: defaultName, occupancy: defaultOccupancy, revenue: defaultRevenue };
+  };
+
+  const planet1 = getCinema(0, 'CHI NHÁNH A', 90, '45Mđ');
+  const planet2 = getCinema(1, 'CHI NHÁNH B', 75, '30Mđ');
+  const planet3 = getCinema(2, 'CHI NHÁNH C', 60, '15Mđ');
+
+  // Resolve dynamic genres data
+  const genres = stats?.genres || [];
+  const getGenre = (index, defaultName, defaultOccupancy) => {
+    if (genres[index]) {
+      return {
+        name: genres[index].name.toUpperCase(),
+        occupancy: genres[index].occupancyRate
+      };
+    }
+    return { name: defaultName, occupancy: defaultOccupancy };
+  };
+
+  const g1 = getGenre(0, 'SCI-FI', 92);
+  const g2 = getGenre(1, 'KINH DỊ', 88);
+  const g3 = getGenre(2, 'HÀNH ĐỘNG', 75);
+  const g4 = getGenre(3, 'HOẠT HÌNH', 79);
+  const g5 = getGenre(4, 'DRAMA', 64);
+
+  // Dynamic coordinates calculation for Pentagon Radar Chart
+  const getCoords = (genreData, angleIndex) => {
+    const r = (genreData.occupancy / 100) * 100; // max radius is 100px
+    const center_x = 160;
+    const center_y = 140;
+    let x, y;
+    if (angleIndex === 0) {
+      x = center_x;
+      y = center_y - r;
+    } else if (angleIndex === 1) {
+      x = center_x + r * 0.951;
+      y = center_y - r * 0.309;
+    } else if (angleIndex === 2) {
+      x = center_x + r * 0.588;
+      y = center_y + r * 0.809;
+    } else if (angleIndex === 3) {
+      x = center_x - r * 0.588;
+      y = center_y + r * 0.809;
+    } else {
+      x = center_x - r * 0.951;
+      y = center_y - r * 0.309;
+    }
+    return { x: x.toFixed(1), y: y.toFixed(1) };
+  };
+
+  const p0 = getCoords(g1, 0);
+  const p1 = getCoords(g2, 1);
+  const p2 = getCoords(g3, 2);
+  const p3 = getCoords(g4, 3);
+  const p4 = getCoords(g5, 4);
+
+  const polygonPoints = `${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}`;
 
   return (
     <div className="space-y-8">
@@ -49,7 +157,7 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {/* Unified Stats Insight Panel (No-Card Layout, reduced by 60% clutter) */}
+      {/* Unified Stats Insight Panel */}
       <div className="dashboard-unified-stats-panel bg-[#121826]/70 border border-[#1A2238] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 divide-y md:divide-y-0 md:divide-x divide-[#1A2238] shadow-2xl backdrop-blur-md">
         {cards.map((card) => (
           <div key={card.label} className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
@@ -79,7 +187,6 @@ const DashboardPage = () => {
 
           {/* SVG Orbit Graphic */}
           <div className="relative w-full h-[320px] bg-black/40 rounded-xl border border-[#1A2238] overflow-hidden flex items-center justify-center p-4">
-            {/* Telemetry scanlines overlay */}
             <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-[0.03]" />
             <div className="absolute inset-0 bg-radial-glow pointer-events-none" />
 
@@ -106,34 +213,34 @@ const DashboardPage = () => {
               <circle cx="350" cy="150" r="6" fill="#ffffff" filter="url(#glow)" />
               <text x="350" y="125" textAnchor="middle" fill="#ef4444" className="text-[10px] font-bold tracking-[0.2em]">NASA HQ</text>
 
-              {/* Planet 1: Downtown Plaza */}
+              {/* Planet 1 */}
               <g className="cursor-pointer group">
                 <circle cx="450" cy="108" r="16" fill="#f43f5e" filter="url(#glow)" className="transition-transform duration-300 hover:scale-125" />
                 <circle cx="450" cy="108" r="6" fill="#ffffff" />
                 <path d="M450,108 L530,70" stroke="#f43f5e" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="530" y="55" width="130" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="536" y="67" fill="#ffffff" className="text-[9px] font-bold">DOWNTOWN PLAZA</text>
-                <text x="536" y="79" fill="#f43f5e" className="text-[8px] font-bold">92% lấp đầy • $45K</text>
+                <rect x="530" y="55" width="140" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
+                <text x="536" y="67" fill="#ffffff" className="text-[8px] font-bold">{planet1.name}</text>
+                <text x="536" y="79" fill="#f43f5e" className="text-[8px] font-bold">{planet1.occupancy}% lấp đầy • {planet1.revenue}</text>
               </g>
 
-              {/* Planet 2: Riverfront Mall */}
+              {/* Planet 2 */}
               <g className="cursor-pointer group">
                 <circle cx="200" cy="190" r="12" fill="#3b82f6" filter="url(#glow)" />
                 <circle cx="200" cy="190" r="4" fill="#ffffff" />
                 <path d="M200,190 L110,210" stroke="#3b82f6" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="10" y="195" width="110" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="16" y="207" fill="#ffffff" className="text-[9px] font-bold">RIVERFRONT</text>
-                <text x="16" y="219" fill="#3b82f6" className="text-[8px] font-bold">79% lấp đầy • $32K</text>
+                <rect x="10" y="195" width="130" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
+                <text x="16" y="207" fill="#ffffff" className="text-[8px] font-bold">{planet2.name}</text>
+                <text x="16" y="219" fill="#3b82f6" className="text-[8px] font-bold">{planet2.occupancy}% lấp đầy • {planet2.revenue}</text>
               </g>
 
-              {/* Planet 3: North Point Galaxy */}
+              {/* Planet 3 */}
               <g className="cursor-pointer group">
                 <circle cx="580" cy="210" r="9" fill="#10b981" filter="url(#glow)" />
                 <circle cx="580" cy="210" r="3" fill="#ffffff" />
                 <path d="M580,210 L500,240" stroke="#10b981" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="400" y="225" width="120" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="406" y="237" fill="#ffffff" className="text-[9px] font-bold">NORTH POINT</text>
-                <text x="406" y="249" fill="#10b981" className="text-[8px] font-bold">64% lấp đầy • $18K</text>
+                <rect x="390" y="225" width="130" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
+                <text x="396" y="237" fill="#ffffff" className="text-[8px] font-bold">{planet3.name}</text>
+                <text x="396" y="249" fill="#10b981" className="text-[8px] font-bold">{planet3.occupancy}% lấp đầy • {planet3.revenue}</text>
               </g>
             </svg>
           </div>
@@ -165,13 +272,9 @@ const DashboardPage = () => {
               </defs>
 
               {/* Dotted Pentagon Web Grid */}
-              {/* Level 100% */}
               <polygon points="160,40 255.1,109.1 218.8,220.9 101.2,220.9 64.9,109.1" fill="none" stroke="#1A2238" strokeWidth="1" />
-              {/* Level 75% */}
               <polygon points="160,65 231.3,116.8 204.1,200.7 115.9,200.7 88.7,116.8" fill="none" stroke="#1A2238" strokeWidth="0.75" strokeDasharray="3 3" />
-              {/* Level 50% */}
               <polygon points="160,90 207.6,124.5 189.4,180.5 130.6,180.5 112.4,124.5" fill="none" stroke="#1A2238" strokeWidth="0.75" strokeDasharray="3 3" />
-              {/* Level 25% */}
               <polygon points="160,115 183.8,132.3 174.7,160.2 145.3,160.2 136.2,132.3" fill="none" stroke="#1A2238" strokeWidth="0.5" />
 
               {/* Spider Axes */}
@@ -181,9 +284,9 @@ const DashboardPage = () => {
               <line x1="160" y1="140" x2="101.2" y2="220.9" stroke="#1A2238" strokeWidth="1" />
               <line x1="160" y1="140" x2="64.9" y2="109.1" stroke="#1A2238" strokeWidth="1" />
 
-              {/* Actual Data Radar Area: Sci-Fi(92), Horror(88), Action(75), Animation(79), Drama(64) */}
+              {/* Dynamic Data Radar Area */}
               <polygon 
-                points="160,48 243.7,112.8 204.1,200.7 113.6,203.9 99.1,120.2" 
+                points={polygonPoints} 
                 fill="rgba(239, 68, 68, 0.15)" 
                 stroke="#ef4444" 
                 strokeWidth="2.5" 
@@ -191,18 +294,18 @@ const DashboardPage = () => {
               />
 
               {/* Glowing Data Dots */}
-              <circle cx="160" cy="48" r="4.5" fill="#ef4444" />
-              <circle cx="243.7" cy="112.8" r="4.5" fill="#ef4444" />
-              <circle cx="204.1" cy="200.7" r="4.5" fill="#ef4444" />
-              <circle cx="113.6" cy="203.9" r="4.5" fill="#ef4444" />
-              <circle cx="99.1" cy="120.2" r="4.5" fill="#ef4444" />
+              <circle cx={p0.x} cy={p0.y} r="4.5" fill="#ef4444" />
+              <circle cx={p1.x} cy={p1.y} r="4.5" fill="#ef4444" />
+              <circle cx={p2.x} cy={p2.y} r="4.5" fill="#ef4444" />
+              <circle cx={p3.x} cy={p3.y} r="4.5" fill="#ef4444" />
+              <circle cx={p4.x} cy={p4.y} r="4.5" fill="#ef4444" />
 
               {/* Radar Labels */}
-              <text x="160" y="27" textAnchor="middle" fill="#ffffff" className="text-[9px] font-bold">SCI-FI (92%)</text>
-              <text x="265" y="106" textAnchor="start" fill="#ffffff" className="text-[9px] font-bold">KINH DỊ (88%)</text>
-              <text x="225" y="235" textAnchor="middle" fill="#ffffff" className="text-[9px] font-bold">HÀNH ĐỘNG (75%)</text>
-              <text x="95" y="235" textAnchor="middle" fill="#ffffff" className="text-[9px] font-bold">HOẠT HÌNH (79%)</text>
-              <text x="55" y="106" textAnchor="end" fill="#ffffff" className="text-[9px] font-bold">DRAMA (64%)</text>
+              <text x="160" y="27" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g1.name} ({g1.occupancy}%)</text>
+              <text x="265" y="106" textAnchor="start" fill="#ffffff" className="text-[8px] font-bold">{g2.name} ({g2.occupancy}%)</text>
+              <text x="225" y="235" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g3.name} ({g3.occupancy}%)</text>
+              <text x="95" y="235" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g4.name} ({g4.occupancy}%)</text>
+              <text x="55" y="106" textAnchor="end" fill="#ffffff" className="text-[8px] font-bold">{g5.name} ({g5.occupancy}%)</text>
             </svg>
           </div>
 

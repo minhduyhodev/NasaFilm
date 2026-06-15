@@ -2,6 +2,7 @@ package com.thdpv.movietheater.booking.entity;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,8 +11,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 
 @Entity
 @Table(name = "showtime", indexes = {
@@ -37,8 +41,12 @@ public class Showtime {
     @Column(name = "end_time")
     private OffsetDateTime endTime;
 
+    @Column(name = "base_price", nullable = false)
+    private BigDecimal basePrice;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private ShowtimeStatus status = ShowtimeStatus.DRAFT;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -91,11 +99,19 @@ public class Showtime {
         this.endTime = endTime;
     }
 
-    public String getStatus() {
+    public BigDecimal getBasePrice() {
+        return basePrice;
+    }
+
+    public void setBasePrice(BigDecimal basePrice) {
+        this.basePrice = basePrice;
+    }
+
+    public ShowtimeStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ShowtimeStatus status) {
         this.status = status;
     }
 

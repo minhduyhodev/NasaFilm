@@ -48,4 +48,20 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             """)
     List<SeatViewDto> getShowtimeSeatViews(@Param("showtimeUuid") UUID showtimeUuid, @Param("now") OffsetDateTime now);
 
+    @Query("SELECT COUNT(s) > 0 FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.startTime > :now")
+    boolean existsFutureShowtime(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN Showtime s ON s.uuid = b.showtimeUuid WHERE s.cinemaRoomUuid = :roomUuid AND b.status = 'CONFIRMED'")
+    boolean existsConfirmedBookingForRoom(@Param("roomUuid") UUID roomUuid);
+
+    @Query("SELECT COUNT(s) > 0 FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.startTime > :now AND (s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED OR s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING)")
+    boolean existsFutureActiveShowtimes(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
+
+    @Query("SELECT s FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.uuid <> :excludeUuid AND s.status <> com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED AND s.startTime < :endTimeWithBuffer AND s.endTime > :startTimeWithBuffer")
+    List<Showtime> findOverlappingShowtimes(
+        @Param("roomUuid") UUID roomUuid,
+        @Param("excludeUuid") UUID excludeUuid,
+        @Param("startTimeWithBuffer") OffsetDateTime startTimeWithBuffer,
+        @Param("endTimeWithBuffer") OffsetDateTime endTimeWithBuffer
+    );
 }

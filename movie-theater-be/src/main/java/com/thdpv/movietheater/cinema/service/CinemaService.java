@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
@@ -28,6 +29,8 @@ import com.thdpv.movietheater.cinema.repository.CinemaRepository;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.repository.SeatRepository;
 import com.thdpv.movietheater.cinema.repository.SeatTypeRepository;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import java.time.OffsetDateTime;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
@@ -43,6 +46,7 @@ public class CinemaService {
     private final CinemaRoomRepository cinemaRoomRepository;
     private final SeatTypeRepository seatTypeRepository;
     private final SeatRepository seatRepository;
+    private final ShowtimeRepository showtimeRepository;
 
     @Transactional
     public CinemaResponse createCinema(CinemaRequest request) {
@@ -66,14 +70,9 @@ public class CinemaService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Rap phim khong ton tai"));
 
         String nameTrimmed = request.getName().trim();
-        cinemaRepository.existsByNameIgnoreCase(nameTrimmed);
-
-        cinemaRepository.findAll().stream()
-                .filter(c -> c.getName().equalsIgnoreCase(nameTrimmed) && !c.getUuid().equals(cinemaUuid))
-                .findFirst()
-                .ifPresent(c -> {
-                    throw new AppException(ErrorCode.CONFLICT, "Ten rap phim da ton tai");
-                });
+        if (cinemaRepository.existsByNameIgnoreCaseAndUuidNot(nameTrimmed, cinemaUuid)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ten rap phim da ton tai");
+        }
 
         cinema.setName(nameTrimmed);
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
@@ -109,14 +108,20 @@ public class CinemaService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Rap phim khong ton tai"));
 
         String roomNameTrimmed = request.getName().trim();
+        String roomCodeTrimmed = request.getRoomCode().trim();
         if (cinemaRoomRepository.existsByCinema_UuidAndNameIgnoreCase(cinemaUuid, roomNameTrimmed)) {
-            throw new AppException(ErrorCode.CONFLICT, "Phong chieu nay da ton tai trong rap");
+            throw new AppException(ErrorCode.CONFLICT, "Ten phong chieu da ton tai trong rap");
+        }
+        if (cinemaRoomRepository.existsByCinema_UuidAndRoomCodeIgnoreCase(cinemaUuid, roomCodeTrimmed)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ma phong chieu da ton tai trong rap");
         }
 
         CinemaRoom room = new CinemaRoom();
         room.setCinema(cinema);
+        room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
         room.setCapacity(request.getCapacity() != null ? request.getCapacity() : 0);
+        room.setRoomType(request.getRoomType());
         room.setStatus(request.getStatus() != null ? request.getStatus() : CinemaRoomStatus.ACTIVE);
 
         CinemaRoom savedRoom = cinemaRoomRepository.save(room);
@@ -129,19 +134,36 @@ public class CinemaService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
 
         String roomNameTrimmed = request.getName().trim();
+        String roomCodeTrimmed = request.getRoomCode().trim();
         UUID cinemaUuid = room.getCinema().getUuid();
 
         cinemaRoomRepository.findByCinema_UuidOrderByNameAsc(cinemaUuid).stream()
                 .filter(r -> r.getName().equalsIgnoreCase(roomNameTrimmed) && !r.getUuid().equals(roomUuid))
                 .findFirst()
                 .ifPresent(r -> {
-                    throw new AppException(ErrorCode.CONFLICT, "Phong chieu nay da ton tai trong rap");
+                    throw new AppException(ErrorCode.CONFLICT, "Ten phong chieu da ton tai trong rap");
                 });
 
+        if (cinemaRoomRepository.existsByCinema_UuidAndRoomCodeIgnoreCaseAndUuidNot(cinemaUuid, roomCodeTrimmed, roomUuid)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ma phong chieu da ton tai trong rap");
+        }
+
+        // Check if changing status to MAINTENANCE or DISABLED when there are future active showtimes
+        if (request.getStatus() != null && request.getStatus() != room.getStatus()) {
+            if (request.getStatus() == CinemaRoomStatus.MAINTENANCE || request.getStatus() == CinemaRoomStatus.DISABLED) {
+                boolean hasFutureActive = showtimeRepository.existsFutureActiveShowtimes(roomUuid, OffsetDateTime.now());
+                if (hasFutureActive) {
+                    throw new AppException(ErrorCode.CONFLICT, "Khong the chuyen trang thai phong chieu vi dang co lich chieu hoac suat chieu dang mo ban ve trong tuong lai.");
+                }
+            }
+            room.setStatus(request.getStatus());
+        }
+
+        room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
         room.setCapacity(request.getCapacity() != null ? request.getCapacity() : room.getCapacity());
-        if (request.getStatus() != null) {
-            room.setStatus(request.getStatus());
+        if (request.getRoomType() != null) {
+            room.setRoomType(request.getRoomType());
         }
 
         CinemaRoom updatedRoom = cinemaRoomRepository.save(room);
@@ -158,18 +180,31 @@ public class CinemaService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void generateSeats(UUID roomUuid, GenerateSeatMapRequest request) {
         CinemaRoom room = cinemaRoomRepository.findById(roomUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
 
-        // Delete any existing seats to reset
-        seatRepository.deleteByCinemaRoomUuid(roomUuid);
+        // Fetch existing seats in room to soft-disable or reuse
+        List<Seat> existingSeats = seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(roomUuid);
+
+        // Check if there are future active showtimes or confirmed bookings for this room, but only if the room already has active seats
+        boolean hasActiveSeats = existingSeats.stream().anyMatch(Seat::isActive);
+        if (hasActiveSeats) {
+            boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(roomUuid, OffsetDateTime.now());
+            boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(roomUuid);
+            if (hasFutureShowtimes || hasConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT, "Không thể thiết lập lại sơ đồ ghế vì phòng chiếu đang có lịch chiếu sắp tới hoặc vé đã đặt.");
+            }
+        }
+
+        java.util.Map<String, Seat> existingSeatMap = existingSeats.stream()
+                .collect(Collectors.toMap(s -> s.getRowName() + "_" + s.getSeatNumber(), s -> s));
 
         // Fetch or create standard seat types matching UI defaults
-        SeatType normalType = getOrCreateSeatType("Ghế Thường", "Ghe standard cho rap phim", new BigDecimal("85000"), 1.0);
-        SeatType vipType = getOrCreateSeatType("Ghế VIP", "Ghe VIP cho rap phim", new BigDecimal("120000"), 1.0);
-        SeatType coupleType = getOrCreateSeatType("Ghế Đôi", "Ghe doi cho rap phim", new BigDecimal("160000"), 1.0);
+        SeatType normalType = getOrCreateSeatType("STANDARD", "Ghe standard cho rap phim", new BigDecimal("85000"), 1.0);
+        SeatType vipType = getOrCreateSeatType("VIP", "Ghe VIP cho rap phim", new BigDecimal("120000"), 1.0);
+        SeatType coupleType = getOrCreateSeatType("COUPLE", "Ghe doi cho rap phim", new BigDecimal("160000"), 1.0);
 
         int rowCount = (request != null && request.getRowCount() != null) ? request.getRowCount() : 8;
         int seatsPerRow = (request != null && request.getSeatsPerRow() != null) ? request.getSeatsPerRow() : 12;
@@ -207,23 +242,42 @@ public class CinemaService {
             }
 
             for (int i = 1; i <= count; i++) {
-                Seat seat = new Seat();
-                String seatKey = room.getUuid().toString() + "_" + rowStr + "_" + i;
-                UUID deterministicUuid = UUID.nameUUIDFromBytes(seatKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                seat.setUuid(deterministicUuid);
-                seat.setCinemaRoom(room);
-                seat.setSeatType(type);
-                seat.setRowName(rowStr);
-                seat.setSeatNumber(i);
-                seat.setStatus(SeatStatus.ACTIVE);
-                seatsToSave.add(seat);
+                String posKey = rowStr + "_" + i;
+                if (existingSeatMap.containsKey(posKey)) {
+                    Seat seat = existingSeatMap.get(posKey);
+                    seat.setActive(true);
+                    seat.setStatus(SeatStatus.ACTIVE);
+                    seat.setSeatType(type);
+                    seatsToSave.add(seat);
+                    existingSeatMap.remove(posKey);
+                } else {
+                    Seat seat = new Seat();
+                    String seatKey = room.getUuid().toString() + "_" + rowStr + "_" + i;
+                    UUID deterministicUuid = UUID.nameUUIDFromBytes(seatKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    seat.setUuid(deterministicUuid);
+                    seat.setCinemaRoom(room);
+                    seat.setSeatType(type);
+                    seat.setRowName(rowStr);
+                    seat.setSeatNumber(i);
+                    seat.setStatus(SeatStatus.ACTIVE);
+                    seat.setActive(true);
+                    seatsToSave.add(seat);
+                }
             }
+        }
+
+        // Soft-disable any remaining seats that were not in the new layout
+        for (Seat remainingSeat : existingSeatMap.values()) {
+            remainingSeat.setActive(false);
+            remainingSeat.setStatus(SeatStatus.DISABLED);
+            seatsToSave.add(remainingSeat);
         }
 
         seatRepository.saveAll(seatsToSave);
 
-        // Update capacity of room to reflect the actual generated count
-        room.setCapacity(seatsToSave.size());
+        // Update capacity of room to reflect the actual ACTIVE generated count
+        int activeCapacity = (int) seatsToSave.stream().filter(Seat::isActive).count();
+        room.setCapacity(activeCapacity);
         cinemaRoomRepository.save(room);
     }
 
@@ -271,7 +325,14 @@ public class CinemaService {
         return seatTypeRepository.findByNameIgnoreCase(name)
                 .orElseGet(() -> {
                     SeatType newType = new SeatType();
-                    newType.setName(name);
+                    if ("STANDARD".equalsIgnoreCase(name)) {
+                        newType.setUuid(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
+                    } else if ("VIP".equalsIgnoreCase(name)) {
+                        newType.setUuid(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
+                    } else if ("COUPLE".equalsIgnoreCase(name)) {
+                        newType.setUuid(UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc"));
+                    }
+                    newType.setName(name.toUpperCase());
                     newType.setDescription(description);
                     newType.setBasePrice(basePrice);
                     newType.setPriceModifier(BigDecimal.valueOf(modifier));
@@ -291,8 +352,10 @@ public class CinemaService {
     private CinemaRoomResponse toCinemaRoomResponse(CinemaRoom room) {
         return new CinemaRoomResponse(
                 room.getUuid(),
+                room.getRoomCode(),
                 room.getName(),
                 room.getCapacity(),
+                room.getRoomType(),
                 room.getStatus(),
                 room.getCinema().getUuid(),
                 room.getCinema().getName());

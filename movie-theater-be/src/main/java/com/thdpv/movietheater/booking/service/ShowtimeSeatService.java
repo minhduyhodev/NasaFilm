@@ -25,7 +25,9 @@ import com.thdpv.movietheater.booking.dto.response.SeatLockSyncResponse;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
+import com.thdpv.movietheater.cinema.service.CinemaService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -49,6 +51,7 @@ public class ShowtimeSeatService {
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
+    private final CinemaService cinemaService;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -61,6 +64,18 @@ public class ShowtimeSeatService {
         Set<UUID> selectedSet = normalizeSelectedSeatUuids(selectedSeatUuids);
 
         List<SeatViewDto> rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
+
+        if (rows.isEmpty()) {
+            Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
+            if (showtime != null) {
+                try {
+                    cinemaService.generateSeats(showtime.getCinemaRoomUuid(), null);
+                    rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
 
         if (rows.isEmpty()) {
             throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
@@ -232,15 +247,12 @@ public class ShowtimeSeatService {
     }
 
     private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
-        @SuppressWarnings("unchecked")
-        List<Object> rows = entityManager.createNativeQuery("select start_time from showtime where uuid = :showtimeUuid")
-                .setParameter("showtimeUuid", showtimeUuid)
-                .getResultList();
-        if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        Showtime showtime = showtimeRepository.findById(showtimeUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOWTIME_NOT_FOUND));
+        if (showtime.getStatus() != com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu khong o trang thai mo ban ve, khong the thuc hien");
         }
-        OffsetDateTime startTime = toOffsetDateTime(rows.get(0));
-        if (startTime.isBefore(now)) {
+        if (showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
         }
     }

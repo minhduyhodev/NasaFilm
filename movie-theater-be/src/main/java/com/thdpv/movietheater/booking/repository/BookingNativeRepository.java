@@ -11,6 +11,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Repository;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -173,7 +176,7 @@ public class BookingNativeRepository {
     public void addUserScore(UUID userUuid, int scoreAdded) {
         entityManager.createNativeQuery("""
                 update users
-                set score = coalesce(score, 0) + :scoreAdded
+                set score = greatest(coalesce(score, 0) + :scoreAdded, 0)
                 where id = :userUuid
                 """)
                 .setParameter("scoreAdded", scoreAdded)
@@ -488,7 +491,33 @@ public class BookingNativeRepository {
             OffsetDateTime now = OffsetDateTime.now();
             OffsetDateTime startTime = now.withHour(19).withMinute(30).withSecond(0).withNano(0);
             OffsetDateTime endTime = now.withHour(21).withMinute(30).withSecond(0).withNano(0);
-            UUID roomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888"); // Phòng chiếu IMAX
+            
+            UUID roomUuid = null;
+            try {
+                UUID seededRoomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888");
+                Number existsRoom = (Number) entityManager.createNativeQuery("select count(1) from cinema_room where uuid = :roomUuid")
+                        .setParameter("roomUuid", seededRoomUuid)
+                        .getSingleResult();
+                if (existsRoom != null && existsRoom.longValue() > 0L) {
+                    roomUuid = seededRoomUuid;
+                } else {
+                    List<?> rooms = entityManager.createNativeQuery("select uuid from cinema_room limit 1").getResultList();
+                    if (!rooms.isEmpty()) {
+                        Object firstRoom = rooms.get(0);
+                        if (firstRoom instanceof UUID) {
+                            roomUuid = (UUID) firstRoom;
+                        } else {
+                            roomUuid = UUID.fromString(firstRoom.toString());
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                // Fallback ignore
+            }
+
+            if (roomUuid == null) {
+                throw new AppException(ErrorCode.INTERNAL_ERROR, "Không tìm thấy phòng chiếu khả dụng để khởi tạo suất chiếu.");
+            }
             
             entityManager.createNativeQuery("""
                     insert into showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time)

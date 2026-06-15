@@ -17,4 +17,6 @@ public interface CinemaRepository extends JpaRepository<Cinema, UUID> {
     Page<Cinema> searchCinemas(String keyword, Pageable pageable);
 
     boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndUuidNot(String name, UUID uuid);
 }

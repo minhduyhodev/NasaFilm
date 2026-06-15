@@ -40,6 +40,11 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.repository.PromotionRepository;
 import com.thdpv.movietheater.user.entity.User;
+import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +66,8 @@ public class BookingService {
     private final TicketRepository ticketRepository;
     private final BookingNativeRepository bookingRepository;
     private final PromotionRepository promotionRepository;
+    private final ShowtimeRepository showtimeRepository;
+    private final CinemaRoomRepository cinemaRoomRepository;
 
     @Transactional
     public BookingResponse confirmBooking(String currentUserEmail, ConfirmBookingRequest request) {
@@ -217,6 +224,23 @@ public class BookingService {
 
         bookingRepository.deleteSeatLocks(request.getShowtimeUuid(), userUuid, seatUuids);
 
+        // Auto sold out transition check
+        try {
+            Showtime showtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
+            if (showtime != null) {
+                CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+                if (room != null) {
+                    long bookedSeats = bookingSeatRepository.countByShowtimeUuid(showtime.getUuid());
+                    if (room.getCapacity() != null && room.getCapacity() > 0 && bookedSeats >= room.getCapacity()) {
+                        showtime.setStatus(ShowtimeStatus.SOLD_OUT);
+                        showtimeRepository.save(showtime);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log warning but do not break booking flow
+        }
+
         return new BookingResponse(
                 bookingUuid,
                 request.getShowtimeUuid(),
@@ -230,11 +254,12 @@ public class BookingService {
     }
 
     private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
-        if (!bookingRepository.existsShowtime(showtimeUuid)) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+        Showtime showtime = showtimeRepository.findById(showtimeUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOWTIME_NOT_FOUND));
+        if (showtime.getStatus() != ShowtimeStatus.OPEN_FOR_BOOKING) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu khong o trang thai mo ban ve, khong the thuc hien");
         }
-        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(showtimeUuid);
-        if (startTime != null && startTime.isBefore(now)) {
+        if (showtime.getStartTime() != null && showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
         }
     }

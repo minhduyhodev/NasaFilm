@@ -2,5 +2,6 @@ package com.thdpv.movietheater.cinema.enums;
 
 public enum SeatStatus {
     ACTIVE,
-    INACTIVE
+    DISABLED,
+    MAINTENANCE
 }

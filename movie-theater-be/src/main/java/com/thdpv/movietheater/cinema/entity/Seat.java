@@ -5,8 +5,6 @@ import java.util.UUID;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -32,7 +30,6 @@ import com.thdpv.movietheater.cinema.enums.SeatStatus;
 public class Seat {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "uuid", nullable = false, updatable = false)
     private UUID uuid;
 
@@ -54,16 +51,20 @@ public class Seat {
     @Column(name = "status")
     private SeatStatus status;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
     public Seat() {
     }
 
-    public Seat(UUID uuid, CinemaRoom cinemaRoom, SeatType seatType, String rowName, Integer seatNumber, SeatStatus status) {
+    public Seat(UUID uuid, CinemaRoom cinemaRoom, SeatType seatType, String rowName, Integer seatNumber, SeatStatus status, boolean isActive) {
         this.uuid = uuid;
         this.cinemaRoom = cinemaRoom;
         this.seatType = seatType;
         this.rowName = rowName;
         this.seatNumber = seatNumber;
         this.status = status;
+        this.isActive = isActive;
     }
 
     public UUID getUuid() {
@@ -112,5 +113,13 @@ public class Seat {
 
     public void setStatus(SeatStatus status) {
         this.status = status;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
     }
 }

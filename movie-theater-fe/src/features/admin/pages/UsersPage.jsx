@@ -154,10 +154,16 @@ const UsersPage = () => {
           NASA'VIP
         </span>
       );
+    } else if (points >= 5000) {
+      return (
+        <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-blue-500/10 border-blue-500/30 text-blue-400">
+          NASA'FRIEND
+        </span>
+      );
     }
     return (
       <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-gray-800/60 border-gray-700 text-gray-400">
-        NASA'FRIEND
+        NASA'MEMBER
       </span>
     );
   };

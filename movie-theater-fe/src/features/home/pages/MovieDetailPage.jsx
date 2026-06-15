@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { movieService } from '../../../shared/services/movieService';
+import { showtimeService } from '../../../shared/services/showtimeService';
 
 import './MovieDetailPage.css';
 
@@ -27,6 +28,7 @@ const MovieDetailPage = () => {
   const [isVideoActive, setIsVideoActive] = useState(false);
 
   const [dbMovie, setDbMovie] = useState(null);
+  const [showtimes, setShowtimes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,6 +40,14 @@ const MovieDetailPage = () => {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
         setIsVideoActive(false);
+        
+        try {
+          const allShowtimes = await showtimeService.getPublicShowtimes();
+          const movieShowtimes = allShowtimes.filter(st => st.movieUuid === data.uuid);
+          setShowtimes(movieShowtimes);
+        } catch (stErr) {
+          console.error("Failed to fetch showtimes:", stErr);
+        }
       } catch (err) {
         console.error("Failed to fetch movie detail:", err);
         setError("Không thể tải chi tiết phim. Vui lòng thử lại sau.");
@@ -70,7 +80,8 @@ const MovieDetailPage = () => {
       dates.push({
         id: i === 0 ? 'today' : i === 1 ? 'fri' : i === 2 ? 'sat' : 'sun',
         label: `${dayName}, ${dateStr}`,
-        fullDateText: `${dayName}, ${dateStr}`
+        fullDateText: `${dayName}, ${dateStr}`,
+        rawDate: d
       });
     }
     return dates;
@@ -85,37 +96,79 @@ const MovieDetailPage = () => {
     sun: dynamicDates[3].fullDateText
   };
 
-  const checkIfTimeInPastForTab = (timeStr, tabId) => {
-    if (tabId !== 'today') return false;
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-    
-    if (currentHours > hours) return true;
-    if (currentHours === hours && currentMinutes >= minutes) return true;
-    return false;
+  const getShowtimesForActiveTab = () => {
+    const activeDateObj = dynamicDates.find(d => d.id === activeDateTab)?.rawDate;
+    if (!activeDateObj) return [];
+
+    return showtimes.filter(st => {
+      const stDate = new Date(st.startTime);
+      return stDate.getDate() === activeDateObj.getDate() &&
+             stDate.getMonth() === activeDateObj.getMonth() &&
+             stDate.getFullYear() === activeDateObj.getFullYear();
+    });
   };
 
-  const isTimeInPast = (timeStr) => {
-    return checkIfTimeInPastForTab(timeStr, activeDateTab);
+  const getSeatInfoForShowtime = (showtime) => {
+    if (!showtime) return null;
+    const seedStr = showtime.uuid;
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+      hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    hash = Math.abs(hash);
+
+    const occupiedStandard = (hash % 15) + 5;
+    const occupiedVip = ((hash >> 1) % 10) + 3;
+    const occupiedCouple = ((hash >> 2) % 6) + 1;
+
+    const freeStandard = 30 - occupiedStandard;
+    const freeVip = 15 - occupiedVip;
+    const freeCouple = 8 - occupiedCouple;
+
+    return {
+      standard: freeStandard,
+      vip: freeVip,
+      couple: freeCouple,
+      total: freeStandard + freeVip + freeCouple
+    };
   };
 
-  const isShowtimeAvailableForMovie = (cinema, time) => {
-    if (isTimeInPast(time)) return false;
-    
-    const titleUpper = movie.title.toUpperCase();
-    if (titleUpper.includes("MORTAL")) {
-      return cinema === 'IMAX' && time === '21:00';
-    } else if (titleUpper.includes("MƯA") || titleUpper.includes("RED") || titleUpper.includes("MUA")) {
-      return cinema === 'GOLD' && time === '18:00';
-    } else if (titleUpper.includes("THANH GƯƠM") || titleUpper.includes("DIỆT QUỶ") || titleUpper.includes("DEMON")) {
-      return cinema === 'GOLD' && time === '20:45';
-    } else {
-      // Mặc định hoặc Kẻ Ẩn Danh
-      return cinema === 'IMAX' && (time === '19:15' || time === '19:30');
+  const handleBookTickets = () => {
+    const el = document.getElementById('select-showtimes');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      notificationService.info(`Vui lòng chọn suất chiếu để tiếp tục đặt vé phim ${movie.title}`);
     }
   };
+
+  const handleShowtimeClick = (showtime) => {
+    setSelectedShowtime(showtime);
+  };
+
+  const handleProceedToBooking = () => {
+    if (!selectedShowtime) return;
+    const theater = `${selectedShowtime.cinemaName} - ${selectedShowtime.cinemaRoomName}`;
+    const dateText = dateMap[activeDateTab];
+    const showtimeText = new Date(selectedShowtime.startTime).toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    navigate('/booking', {
+      state: {
+        showtimeUuid: selectedShowtime.uuid,
+        theater,
+        movie: movie.title,
+        moviePoster: movie.poster,
+        movieRating: movie.rating,
+        movieFormat: movie.format,
+        date: dateText,
+        showtime: showtimeText
+      }
+    });
+  };
+  const seatInfo = selectedShowtime ? getSeatInfoForShowtime(selectedShowtime) : null;
 
   if (isLoading) {
     return (
@@ -156,73 +209,19 @@ const MovieDetailPage = () => {
     })) || []
   };
 
-  const getSeatInfoForShowtime = (cinema, time) => {
-    const theaterName = cinema === 'IMAX' 
-      ? 'NASA Landmark 81 - Phòng chiếu IMAX' 
-      : 'CineStar Premium GOLD - Phòng VIP';
-    
-    const seedStr = `${theaterName}-${time}-${movie.title}`;
-    let hash = 0;
-    for (let i = 0; i < seedStr.length; i++) {
-      hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+  const showtimesForActiveTab = getShowtimesForActiveTab();
+  
+  const groupedShowtimes = showtimesForActiveTab.reduce((acc, st) => {
+    const cinemaName = st.cinemaName || 'NASA Landmark 81';
+    if (!acc[cinemaName]) {
+      acc[cinemaName] = {
+        name: cinemaName,
+        showtimes: []
+      };
     }
-    hash = Math.abs(hash);
-
-    const occupiedStandard = (hash % 26) + 10;
-    const occupiedVip = ((hash >> 1) % 14) + 5;
-    const occupiedCouple = ((hash >> 2) % 8) + 2;
-
-    const freeStandard = 48 - occupiedStandard;
-    const freeVip = 24 - occupiedVip;
-    const freeCouple = 12 - occupiedCouple;
-
-    return {
-      standard: freeStandard,
-      vip: freeVip,
-      couple: freeCouple,
-      total: freeStandard + freeVip + freeCouple
-    };
-  };
-
-  const handleBookTickets = () => {
-    const el = document.getElementById('select-showtimes');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      notificationService.info(`Vui lòng chọn suất chiếu để tiếp tục đặt vé phim ${movie.title}`);
-    }
-  };
-
-  const handleShowtimeClick = (cinema, time) => {
-    setSelectedShowtime({ cinema, time });
-  };
-
-  const handleProceedToBooking = () => {
-    if (!selectedShowtime) return;
-    const theater = selectedShowtime.cinema === 'IMAX' 
-      ? 'NASA Landmark 81 - Phòng chiếu IMAX' 
-      : 'CineStar Premium GOLD - Phòng VIP';
-    const dateText = dateMap[activeDateTab];
-    const showtimeText = selectedShowtime.time;
-    
-    // Use the actual movie UUID as the showtime UUID
-    const showtimeUuid = dbMovie.uuid;
-
-    // Redirect to seat booking with routing state
-    navigate('/booking', {
-      state: {
-        showtimeUuid,
-        theater,
-        movie: movie.title,
-        moviePoster: movie.poster,
-        movieRating: movie.rating,
-        movieFormat: movie.format,
-        date: dateText,
-        showtime: showtimeText
-      }
-    });
-  };
-
-  const seatInfo = selectedShowtime ? getSeatInfoForShowtime(selectedShowtime.cinema, selectedShowtime.time) : null;
+    acc[cinemaName].showtimes.push(st);
+    return acc;
+  }, {});
 
   return (
     <div className="movie-detail-wrapper">
@@ -402,94 +401,78 @@ const MovieDetailPage = () => {
             </div>
 
             <div className="space-y-6">
-              {/* Cinema 1: CineStar IMAX */}
-              <div className="py-4 text-left">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-2.5">
-                    <Film className="text-red-500 h-4 w-4" />
-                    <h4 className="text-base font-black text-white uppercase font-heading tracking-wide">CineStar IMAX - NASA Landmark 81</h4>
+              {Object.keys(groupedShowtimes).length > 0 ? (
+                Object.values(groupedShowtimes).map((cinemaGroup) => (
+                  <div key={cinemaGroup.name} className="py-4 text-left">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-2.5">
+                        <Film className="text-red-500 h-4 w-4" />
+                        <h4 className="text-base font-black text-white uppercase font-heading tracking-wide">
+                          {cinemaGroup.name}
+                        </h4>
+                      </div>
+                      <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
+                        <MapPin className="h-3 w-3 text-red-500" /> Hồ Chí Minh
+                      </span>
+                    </div>
+                    
+                    <div className="border-b border-white/5 my-4" />
+                     
+                    <div className="flex flex-wrap gap-2.5">
+                      {cinemaGroup.showtimes.map((st) => {
+                        const timeStr = new Date(st.startTime).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false
+                        });
+                        const isSelected = selectedShowtime?.uuid === st.uuid;
+                        const isSoldOut = st.status === 'SOLD_OUT';
+                        return (
+                          <button
+                            key={st.uuid}
+                            onClick={() => !isSoldOut && handleShowtimeClick(st)}
+                            disabled={isSoldOut}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 text-left ${
+                              isSelected 
+                                ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
+                                : isSoldOut
+                                  ? 'text-gray-700 cursor-not-allowed opacity-20'
+                                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
+                            }`}
+                          >
+                            {timeStr}
+                            <span className="block text-[8px] text-gray-500 font-medium font-sans mt-0.5">
+                              {st.cinemaRoomName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
-                    <MapPin className="h-3 w-3 text-red-500" /> Quận Bình Thạnh, HCM
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-12 text-gray-500 font-medium bg-[#111215]/20 border border-white/5 rounded-2xl">
+                  <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+                  Không có suất chiếu nào được lên lịch cho ngày này.
                 </div>
-                
-                {/* Thin Editorial Divider */}
-                <div className="border-b border-white/5 my-4" />
-                
-                <div className="flex flex-wrap gap-2.5">
-                  {['11:00', '13:45', '16:30', '19:15', '21:00', '22:45'].map((time) => {
-                    const isSelected = selectedShowtime?.cinema === 'IMAX' && selectedShowtime?.time === time;
-                    const isDisabled = !isShowtimeAvailableForMovie('IMAX', time);
-                    return (
-                      <button
-                        key={time}
-                        onClick={() => !isDisabled && handleShowtimeClick('IMAX', time)}
-                        disabled={isDisabled}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-                          isSelected 
-                            ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
-                            : isDisabled
-                              ? 'text-gray-700 cursor-not-allowed opacity-20'
-                              : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Cinema 2: CineStar Premium GOLD */}
-              <div className="py-4 text-left">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-2.5">
-                    <Award className="text-yellow-500 h-4 w-4" />
-                    <h4 className="text-base font-black text-yellow-500 uppercase font-heading tracking-wide">CineStar Premium GOLD</h4>
-                  </div>
-                  <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
-                    <MapPin className="h-3 w-3 text-red-500" /> Quận 1, HCM
-                  </span>
-                </div>
-                
-                {/* Thin Editorial Divider */}
-                <div className="border-b border-white/5 my-4" />
-                
-                <div className="flex flex-wrap gap-2.5">
-                  {['12:30', '15:15', '18:00', '20:45'].map((time) => {
-                    const isSelected = selectedShowtime?.cinema === 'GOLD' && selectedShowtime?.time === time;
-                    const isDisabled = !isShowtimeAvailableForMovie('GOLD', time);
-                    return (
-                      <button
-                        key={time}
-                        onClick={() => !isDisabled && handleShowtimeClick('GOLD', time)}
-                        disabled={isDisabled}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-                          isSelected 
-                            ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
-                            : isDisabled
-                              ? 'text-gray-700 cursor-not-allowed opacity-20'
-                              : 'text-yellow-500/80 hover:text-yellow-500 hover:bg-yellow-500/5'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
 
               {/* Selected Showtime Summary & Book Button */}
               {selectedShowtime && seatInfo && (
                 <div className="glass-panel p-6 rounded-2xl border-red-500/20 bg-red-600/5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 animate-fade-in">
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">Suất chiếu đã chọn</span>
                     <h4 className="text-base font-black text-white uppercase">
-                      {selectedShowtime.cinema === 'IMAX' ? 'CineStar IMAX - NASA Landmark 81' : 'CineStar Premium GOLD - Phòng VIP'}
+                      {selectedShowtime.cinemaName} - {selectedShowtime.cinemaRoomName}
                     </h4>
                     <p className="text-xs font-bold text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                      <span>{dateMap[activeDateTab]} • <span className="text-red-500 font-extrabold">{selectedShowtime.time}</span></span>
+                      <span>{dateMap[activeDateTab]} • <span className="text-red-500 font-extrabold">{
+                        new Date(selectedShowtime.startTime).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false
+                        })
+                      }</span></span>
                       <span className="text-gray-600 hidden sm:inline">|</span>
                       <span className="text-emerald-400">Còn trống: <span className="font-extrabold">{seatInfo.total}</span> ghế</span>
                     </p>

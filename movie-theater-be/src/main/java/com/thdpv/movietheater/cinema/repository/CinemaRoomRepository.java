@@ -14,4 +14,8 @@ public interface CinemaRoomRepository extends JpaRepository<CinemaRoom, UUID> {
     List<CinemaRoom> findByCinema_UuidOrderByNameAsc(UUID cinemaUuid);
 
     boolean existsByCinema_UuidAndNameIgnoreCase(UUID cinemaUuid, String name);
+
+    boolean existsByCinema_UuidAndRoomCodeIgnoreCase(UUID cinemaUuid, String roomCode);
+
+    boolean existsByCinema_UuidAndRoomCodeIgnoreCaseAndUuidNot(UUID cinemaUuid, String roomCode, UUID roomUuid);
 }

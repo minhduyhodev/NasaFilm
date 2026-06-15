@@ -23,13 +23,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
+import com.thdpv.movietheater.booking.dto.response.BookingResponse;
+import com.thdpv.movietheater.booking.entity.Booking;
+import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 import com.thdpv.movietheater.booking.repository.BookingComboRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.LockedSeat;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.SeatGapState;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.repository.TicketRepository;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
@@ -55,6 +61,12 @@ class BookingServiceTest {
 
     @Mock
     private BookingNativeRepository bookingRepository;
+
+    @Mock
+    private ShowtimeRepository showtimeRepository;
+
+    @Mock
+    private CinemaRoomRepository cinemaRoomRepository;
 
     @InjectMocks
     private BookingService bookingService;
@@ -113,8 +125,12 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        when(bookingRepository.existsShowtime(showtimeUuid)).thenReturn(true);
-        when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().minusMinutes(5));
+        
+        Showtime mockShowtime = new Showtime();
+        mockShowtime.setUuid(showtimeUuid);
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        mockShowtime.setStartTime(OffsetDateTime.now().minusMinutes(5));
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         AppException exception = assertThrows(AppException.class, () -> {
             bookingService.confirmBooking("customer@example.com", request);
@@ -133,8 +149,12 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().plusHours(2));
-        when(bookingRepository.existsShowtime(showtimeUuid)).thenReturn(true);
+        
+        Showtime mockShowtime = new Showtime();
+        mockShowtime.setUuid(showtimeUuid);
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         LockedSeat mockLocked = new LockedSeat(seat1, "A", 1, BigDecimal.valueOf(80000));
         when(bookingRepository.lockActiveSeatsForConfirm(eq(showtimeUuid), eq(userUuid), any(), any()))
@@ -163,8 +183,12 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        when(bookingRepository.getShowtimeStartTime(showtimeUuid)).thenReturn(OffsetDateTime.now().plusHours(2));
-        when(bookingRepository.existsShowtime(showtimeUuid)).thenReturn(true);
+        
+        Showtime mockShowtime = new Showtime();
+        mockShowtime.setUuid(showtimeUuid);
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         LockedSeat mockLocked = new LockedSeat(seat2, "A", 2, BigDecimal.valueOf(80000));
         when(bookingRepository.lockActiveSeatsForConfirm(eq(showtimeUuid), eq(userUuid), any(), any()))
