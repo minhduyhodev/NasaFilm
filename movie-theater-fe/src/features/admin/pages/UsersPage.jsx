@@ -406,62 +406,84 @@ const UsersPage = () => {
                       </td>
                       <td className="text-center py-2.5 px-4">
                         <div className="relative inline-block text-left">
-                          <button
-                            type="button"
-                            disabled={updatingUserId === row.id}
-                            onClick={() => setOpenStatusDropdownId(openStatusDropdownId === row.id ? null : row.id)}
-                            className={`focus:outline-none border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 cursor-pointer flex items-center gap-1 ${
-                              row.status === 'ACTIVE'
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
-                                : row.status === 'SUSPENDED'
-                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20'
-                                : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400 hover:bg-zinc-500/20'
-                            }`}
-                          >
-                            <span className={`w-1 h-1 rounded-full ${row.status === 'ACTIVE' ? 'bg-emerald-400' : row.status === 'SUSPENDED' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
-                            <span>
-                              {row.status === 'ACTIVE' && 'Hoạt động'}
-                              {row.status === 'SUSPENDED' && 'Bị khóa'}
-                              {row.status === 'INACTIVE' && 'Chưa kích hoạt'}
-                              {row.status === 'PENDING_VERIFICATION' && 'Chờ xác minh'}
-                            </span>
-                            <span className="text-[9px] opacity-75">▼</span>
-                          </button>
-                          
-                          {openStatusDropdownId === row.id && (
+                          {row.roles && (row.roles.includes('ADMIN') || row.roles.includes('STAFF')) ? (
+                            <div
+                              className={`border rounded-full px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1 ${
+                                row.status === 'ACTIVE'
+                                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                  : row.status === 'SUSPENDED'
+                                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                  : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
+                              }`}
+                            >
+                              <span className={`w-1 h-1 rounded-full ${row.status === 'ACTIVE' ? 'bg-emerald-400' : row.status === 'SUSPENDED' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
+                              <span>
+                                {row.status === 'ACTIVE' && 'Hoạt động'}
+                                {row.status === 'SUSPENDED' && 'Bị khóa'}
+                                {row.status === 'INACTIVE' && 'Chưa kích hoạt'}
+                                {row.status === 'PENDING_VERIFICATION' && 'Chờ xác minh'}
+                              </span>
+                            </div>
+                          ) : (
                             <>
-                              <div 
-                                className="fixed inset-0 z-40 bg-transparent" 
-                                onClick={() => setOpenStatusDropdownId(null)}
-                              />
-                              <div className={`absolute right-0 w-36 bg-[#0B0F19] border border-[#1A2238] rounded-lg shadow-xl z-50 p-0.5 transition-all duration-300 space-y-0.5 ${
-                                isLastRow 
-                                  ? 'bottom-full mb-1 origin-bottom-right animate-dropdown-fade-in-up' 
-                                  : 'mt-1 top-full origin-top-right animate-dropdown-fade-in'
-                              }`}>
-                                {[
-                                  { value: 'ACTIVE', label: 'Hoạt động', color: 'bg-emerald-500' },
-                                  { value: 'SUSPENDED', label: 'Bị khóa', color: 'bg-rose-500' },
-                                  { value: 'INACTIVE', label: 'Chưa kích hoạt', color: 'bg-gray-400' }
-                                ].map((option) => (
-                                  <button
-                                    key={option.value}
-                                    type="button"
-                                    onClick={() => {
-                                      handleStatusChange(row.id, row.email, option.value);
-                                      setOpenStatusDropdownId(null);
-                                    }}
-                                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left text-[11px] font-semibold transition-all duration-200 cursor-pointer ${
-                                      row.status === option.value 
-                                        ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
-                                        : 'text-gray-300 hover:bg-white/5 hover:text-white border border-transparent'
-                                    }`}
-                                  >
-                                    <span className={`w-1 h-1 rounded-full ${option.color}`} />
-                                    <span>{option.label}</span>
-                                  </button>
-                                ))}
-                              </div>
+                              <button
+                                type="button"
+                                disabled={updatingUserId === row.id}
+                                onClick={() => setOpenStatusDropdownId(openStatusDropdownId === row.id ? null : row.id)}
+                                className={`focus:outline-none border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 cursor-pointer flex items-center gap-1 ${
+                                  row.status === 'ACTIVE'
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                                    : row.status === 'SUSPENDED'
+                                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20'
+                                    : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400 hover:bg-zinc-500/20'
+                                }`}
+                              >
+                                <span className={`w-1 h-1 rounded-full ${row.status === 'ACTIVE' ? 'bg-emerald-400' : row.status === 'SUSPENDED' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
+                                <span>
+                                  {row.status === 'ACTIVE' && 'Hoạt động'}
+                                  {row.status === 'SUSPENDED' && 'Bị khóa'}
+                                  {row.status === 'INACTIVE' && 'Chưa kích hoạt'}
+                                  {row.status === 'PENDING_VERIFICATION' && 'Chờ xác minh'}
+                                </span>
+                                <span className="text-[9px] opacity-75">▼</span>
+                              </button>
+                              
+                              {openStatusDropdownId === row.id && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40 bg-transparent" 
+                                    onClick={() => setOpenStatusDropdownId(null)}
+                                  />
+                                  <div className={`absolute right-0 w-36 bg-[#0B0F19] border border-[#1A2238] rounded-lg shadow-xl z-50 p-0.5 transition-all duration-300 space-y-0.5 ${
+                                    isLastRow 
+                                      ? 'bottom-full mb-1 origin-bottom-right animate-dropdown-fade-in-up' 
+                                      : 'mt-1 top-full origin-top-right animate-dropdown-fade-in'
+                                  }`}>
+                                    {[
+                                      { value: 'ACTIVE', label: 'Hoạt động', color: 'bg-emerald-500' },
+                                      { value: 'SUSPENDED', label: 'Bị khóa', color: 'bg-rose-500' },
+                                      { value: 'INACTIVE', label: 'Chưa kích hoạt', color: 'bg-gray-400' }
+                                    ].map((option) => (
+                                      <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => {
+                                          handleStatusChange(row.id, row.email, option.value);
+                                          setOpenStatusDropdownId(null);
+                                        }}
+                                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left text-[11px] font-semibold transition-all duration-200 cursor-pointer ${
+                                          row.status === option.value 
+                                            ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
+                                            : 'text-gray-300 hover:bg-white/5 hover:text-white border border-transparent'
+                                        }`}
+                                      >
+                                        <span className={`w-1 h-1 rounded-full ${option.color}`} />
+                                        <span>{option.label}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

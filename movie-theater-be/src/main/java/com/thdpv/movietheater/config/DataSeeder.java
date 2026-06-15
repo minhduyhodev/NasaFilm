@@ -134,7 +134,10 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS cinema_room (
                             uuid UUID PRIMARY KEY,
-                            name VARCHAR(255) NOT NULL
+                            name VARCHAR(255) NOT NULL,
+                            capacity INTEGER,
+                            status VARCHAR(255),
+                            cinema_uuid UUID NOT NULL
                         )
                     """);
 
@@ -223,11 +226,16 @@ public class DataSeeder implements CommandLineRunner {
             java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
             java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
             
+            java.util.UUID cinemaUuid = cinemaRepository.findAll().stream()
+                    .findFirst()
+                    .map(Cinema::getUuid)
+                    .orElse(null);
+
             if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room1Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room1Uuid, "Phòng chiếu IMAX");
+                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name, cinema_uuid) VALUES (?, ?, ?)", room1Uuid, "Phòng chiếu IMAX", cinemaUuid);
             }
             if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room2Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name) VALUES (?, ?)", room2Uuid, "Phòng chiếu VIP");
+                jdbcTemplate.update("INSERT INTO cinema_room (uuid, name, cinema_uuid) VALUES (?, ?, ?)", room2Uuid, "Phòng chiếu VIP", cinemaUuid);
             }
 
             // 2. Seed Seat Types
