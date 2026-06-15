@@ -236,14 +236,25 @@ const BookingsPage = () => {
 
                     {/* Status */}
                     <td className="py-2.5 px-4 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
+                      <span className={`inline-flex items-center gap-1 border rounded-full px-2.5 py-0.5 text-[10px] font-bold transition duration-200 ${
                         row.status?.toUpperCase() === 'CONFIRMED'
-                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
                           : row.status?.toUpperCase() === 'CANCELLED'
-                          ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                          : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
+                          ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                          : 'bg-amber-500/10 border-amber-500/20 text-amber-600'
                       }`}>
-                        {row.status?.toUpperCase() === 'CONFIRMED' ? '🟢 THÀNH CÔNG' : row.status?.toUpperCase() === 'CANCELLED' ? '🔴 ĐÃ HỦY' : '🟡 CHỜ THANH TOÁN'}
+                        <span className={`w-1 h-1 rounded-full ${
+                          row.status?.toUpperCase() === 'CONFIRMED' 
+                            ? 'bg-emerald-500' 
+                            : row.status?.toUpperCase() === 'CANCELLED' 
+                            ? 'bg-rose-500' 
+                            : 'bg-amber-500'
+                        }`} />
+                        <span>
+                          {row.status?.toUpperCase() === 'CONFIRMED' && 'Thành công'}
+                          {row.status?.toUpperCase() === 'CANCELLED' && 'Đã hủy'}
+                          {row.status?.toUpperCase() !== 'CONFIRMED' && row.status?.toUpperCase() !== 'CANCELLED' && 'Chờ thanh toán'}
+                        </span>
                       </span>
                     </td>
 
