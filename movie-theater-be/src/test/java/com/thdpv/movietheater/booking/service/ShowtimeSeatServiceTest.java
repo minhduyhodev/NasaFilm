@@ -3,15 +3,12 @@ package com.thdpv.movietheater.booking.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.SyncSeatLockRequest;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeSeatMapResponse;
@@ -29,22 +27,17 @@ import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
-import org.springframework.test.util.ReflectionTestUtils;
-
+import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
+import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.cinema.enums.SeatStatus;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ShowtimeSeatServiceTest {
-
-    @Mock
-    private EntityManager entityManager;
 
     @Mock
     private UserRepository userRepository;
@@ -57,6 +50,12 @@ class ShowtimeSeatServiceTest {
 
     @Mock
     private CinemaService cinemaService;
+
+    @Mock
+    private SeatLockedRepository seatLockedRepository;
+
+    @Mock
+    private BookingSeatRepository bookingSeatRepository;
 
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;
@@ -72,7 +71,6 @@ class ShowtimeSeatServiceTest {
         mockUser = new User();
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
-        ReflectionTestUtils.setField(showtimeSeatService, "entityManager", entityManager);
         ReflectionTestUtils.setField(showtimeSeatService, "autoSlideEnabled", true);
     }
 
@@ -86,11 +84,11 @@ class ShowtimeSeatServiceTest {
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
-        Query mockQuery = mock(Query.class);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
-        when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
-        // autoSlideShowtimeIfPast select query returning empty so it doesn't try to slide showtime
-        when(mockQuery.getResultList()).thenReturn(Collections.emptyList());
+        com.thdpv.movietheater.booking.entity.Showtime mockShowtime = new com.thdpv.movietheater.booking.entity.Showtime();
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        mockShowtime.setEndTime(OffsetDateTime.now().plusHours(4));
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         AppException exception = assertThrows(AppException.class, () -> {
             showtimeSeatService.syncSeatLocks("customer@example.com", request);
@@ -106,11 +104,11 @@ class ShowtimeSeatServiceTest {
         UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
-        // Mock autoSlideShowtimeIfPast select query returning empty
-        Query mockQuery = mock(Query.class);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
-        when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
-        when(mockQuery.getResultList()).thenReturn(Collections.emptyList());
+        com.thdpv.movietheater.booking.entity.Showtime mockShowtime = new com.thdpv.movietheater.booking.entity.Showtime();
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        mockShowtime.setEndTime(OffsetDateTime.now().plusHours(4));
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -125,7 +123,6 @@ class ShowtimeSeatServiceTest {
 
         ShowtimeSeatMapResponse response = showtimeSeatService.getSeatMap(showtimeUuid, List.of(seat1), "customer@example.com");
 
-        // Verify that seat 2 is blocked (blocked = true)
         ShowtimeSeatMapResponse.SeatItem s1 = response.getRows().get(0).getSeats().get(0);
         ShowtimeSeatMapResponse.SeatItem s2 = response.getRows().get(0).getSeats().get(1);
         ShowtimeSeatMapResponse.SeatItem s3 = response.getRows().get(0).getSeats().get(2);
@@ -150,10 +147,11 @@ class ShowtimeSeatServiceTest {
         UUID seat2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
-        Query mockQuery = mock(Query.class);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
-        when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
-        when(mockQuery.getResultList()).thenReturn(Collections.emptyList());
+        com.thdpv.movietheater.booking.entity.Showtime mockShowtime = new com.thdpv.movietheater.booking.entity.Showtime();
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        mockShowtime.setEndTime(OffsetDateTime.now().plusHours(4));
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -174,6 +172,7 @@ class ShowtimeSeatServiceTest {
         assertEquals(true, s1.getBlocked());
         assertEquals(true, s3.getBlocked());
     }
+
     private SeatViewDto createSeatViewDto(UUID showtimeUuid, UUID seatUuid, String rowName, Integer seatNumber,
             String seatStatus, boolean booked, UUID lockedUserUuid) {
         return new SeatViewDto(
