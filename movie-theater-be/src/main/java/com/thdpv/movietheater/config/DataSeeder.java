@@ -815,52 +815,44 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-        if (cinemaRepository.existsById(cinemaUuid)) {
-            return;
+        if (!cinemaRepository.existsById(cinemaUuid)) {
+            jdbcTemplate.update("""
+                INSERT INTO cinema (uuid, name, address, phone_number)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT (uuid) DO NOTHING
+            """, cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM", "19001080");
+            logger.info("Seeded cinema: NASA Landmark 81");
         }
-
-        // Create Cinema
-        Cinema cinema = new Cinema();
-        cinema.setUuid(cinemaUuid);
-        cinema.setName("NASA Landmark 81");
-        cinema.setAddress("Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM");
-        cinema.setPhoneNumber("19001080");
-        Cinema savedCinema = cinemaRepository.save(cinema);
-        logger.info("Seeded cinema: {}", savedCinema.getName());
 
         // Create Room 1 (matching default FE name)
         java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-        CinemaRoom room1 = new CinemaRoom();
-        room1.setUuid(room1Uuid);
-        room1.setCinema(savedCinema);
-        room1.setRoomCode("ROOM-IMAX");
-        room1.setName("Phòng chiếu IMAX");
-        room1.setRoomType(RoomType.IMAX);
-        room1.setStatus(CinemaRoomStatus.ACTIVE);
-        room1.setCapacity(0);
-        CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
-        logger.info("Seeded room: {}", savedRoom1.getName());
+        if (!cinemaRoomRepository.existsById(room1Uuid)) {
+            jdbcTemplate.update("""
+                INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (uuid) DO NOTHING
+            """, room1Uuid, cinemaUuid, "ROOM-IMAX", "Phòng chiếu IMAX", "IMAX", "ACTIVE", 0);
+            logger.info("Seeded room: Phòng chiếu IMAX");
 
-        // Auto-generate seats for Room 1 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom1.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom1.getName());
+            // Auto-generate seats for Room 1 (NASA Standard Layout)
+            cinemaService.generateSeats(room1Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: Phòng chiếu IMAX");
+        }
 
         // Create Room 2
         java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-        CinemaRoom room2 = new CinemaRoom();
-        room2.setUuid(room2Uuid);
-        room2.setCinema(savedCinema);
-        room2.setRoomCode("ROOM-VIP");
-        room2.setName("Phòng chiếu VIP");
-        room2.setRoomType(RoomType.VIP);
-        room2.setStatus(CinemaRoomStatus.ACTIVE);
-        room2.setCapacity(0);
-        CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);
-        logger.info("Seeded room: {}", savedRoom2.getName());
+        if (!cinemaRoomRepository.existsById(room2Uuid)) {
+            jdbcTemplate.update("""
+                INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (uuid) DO NOTHING
+            """, room2Uuid, cinemaUuid, "ROOM-VIP", "Phòng chiếu VIP", "VIP", "ACTIVE", 0);
+            logger.info("Seeded room: Phòng chiếu VIP");
 
-        // Auto-generate seats for Room 2 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom2.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom2.getName());
+            // Auto-generate seats for Room 2 (NASA Standard Layout)
+            cinemaService.generateSeats(room2Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: Phòng chiếu VIP");
+        }
     }
 
     private void repairOrphanBookingSeats() {
