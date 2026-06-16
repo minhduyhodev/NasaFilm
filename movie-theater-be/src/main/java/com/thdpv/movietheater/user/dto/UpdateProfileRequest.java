@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.user.dto;
 
 import java.time.LocalDate;
+
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
