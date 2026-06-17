@@ -237,7 +237,7 @@ const BookingPage = () => {
     setIsConfirming(true);
     setTimeout(() => {
       setIsConfirming(false);
-      navigate('/checkout', {
+      navigate('/concessions', {
         state: {
           showtimeUuid,
           theater,

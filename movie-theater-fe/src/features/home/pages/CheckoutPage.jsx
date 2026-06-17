@@ -107,7 +107,7 @@ const CheckoutPage = () => {
   const movieInfo = getMovieInfo(movie);
 
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [hasCombo, setHasCombo] = useState(false);
+  const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -177,19 +177,15 @@ const CheckoutPage = () => {
     }
   }, [location.state?.lockExpiresAt]);
 
-  const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
-    uuid: "55555555-5555-5555-5555-555555555555",
-    name: "Combo Bắp Nước",
-    price: 90000
-  };
-  const comboOriginalPrice = activeCombo.price;
   const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
   const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
-  const comboDiscountAmount = hasCombo ? Math.round(comboOriginalPrice * memberDiscountRate) : 0;
+  const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
+  const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
+  const hasCombo = checkoutCombos.length > 0;
   
   const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + (hasCombo ? comboPrice : 0);
+  const subtotal = ticketSum + comboPrice;
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -265,7 +261,7 @@ const CheckoutPage = () => {
     setIsPaying(true);
     try {
       const seatUuids = selectedSeats.map(s => s.seatUuid);
-      const combos = hasCombo ? [{ comboUuid: activeCombo.uuid, quantity: 1 }] : [];
+      const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
       
       const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
       
@@ -376,30 +372,24 @@ const CheckoutPage = () => {
 
 
 
-                {/* Combo pack selection toggle */}
+                {/* Selected Combo packs breakdown */}
                 <div className="pt-4 border-t border-white/5 space-y-3">
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group active:scale-[0.99]">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        checked={hasCombo} 
-                        onChange={(e) => setHasCombo(e.target.checked)}
-                        className="rounded border-white/20 bg-transparent text-red-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-white block">Thêm {activeCombo.name}</span>
-                        <span className="text-[10px] font-semibold text-gray-400">
-                          1 Bắp lớn + 2 Nước ngọt cỡ vừa (Thành viên: {memberTier} -{memberDiscountRate * 100}%)
-                        </span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                  {checkoutCombos.length === 0 ? (
+                    <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
+                      Không mua kèm bắp nước.
+                    </div>
+                  ) : (
+                    checkoutCombos.map(combo => (
+                      <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                        <div>
+                          <span className="text-xs font-bold text-white block">{combo.name}</span>
+                          <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      {hasCombo && (
-                        <span className="text-[10px] line-through text-gray-500 block">{(comboOriginalPrice).toLocaleString('vi-VN')} đ</span>
-                      )}
-                      <span className="text-xs font-extrabold text-yellow-400">{(comboPrice).toLocaleString('vi-VN')} đ</span>
-                    </div>
-                  </label>
+                    ))
+                  )}
                 </div>
 
                 {hasCombo && (

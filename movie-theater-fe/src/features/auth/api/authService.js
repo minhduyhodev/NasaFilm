@@ -273,7 +273,7 @@ class AuthService {
       formData.append('file', file);
       const response = await this.api.post('/api/user/profile/avatar', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': undefined,
         },
       });
       return response.data.data ?? response.data;

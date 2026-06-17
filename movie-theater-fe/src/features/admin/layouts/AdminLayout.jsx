@@ -117,6 +117,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             {[
               { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
               { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
+              { to: '/admin/combos', icon: 'fastfood', label: 'Bắp nước' },
               { to: '/admin/bookings', icon: 'confirmation_number', label: 'Đơn hàng' },
               { to: '/admin/vouchers', icon: 'local_activity', label: 'Khuyến mãi' },
             ].map((item) => (

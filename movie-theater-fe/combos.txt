@@ -1,0 +1,6 @@
+Combos in database:
+UUID: 55555555-5555-5555-5555-777777777777, Name: Combo Gia Đình (2 Bắp + 4 Nước), Price: 160000.00, Status: ACTIVE
+UUID: 55555555-5555-5555-5555-555555555555, Name: Combo Bắp Nước, Price: 90000.00, Status: INACTIVE
+UUID: 4db36f87-1a3b-4ef9-aa87-8bf5e66dd72b, Name: aaaa, Price: 100000000.00, Status: ACTIVE
+UUID: f25075b4-de2b-40b1-a86d-7aee2eaa6af8, Name: Nước Suối, Price: 20000.00, Status: ACTIVE
+UUID: 55555555-5555-5555-5555-666666666666, Name: Combo Solo (1 Bắp + 1 Nước), Price: 70000.00, Status: ACTIVE
