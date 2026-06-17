@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Film, 
+  User, 
+  Calendar, 
+  Tv, 
+  Ticket, 
+  Tag, 
+  Users, 
+  LogOut, 
+  Menu 
+} from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
@@ -8,7 +20,7 @@ import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import '../pages/DashboardPage.css';
 import './AdminLayout.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onToggle, onClose }) => {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
   const displayName = user?.fullName || user?.email || 'ADMIN';
@@ -26,38 +38,57 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <aside 
-      className={`fixed inset-y-0 left-0 z-50 border-r border-[#1A2238] flex flex-col overflow-hidden transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:w-60 w-72`}
+      className={`fixed inset-y-0 left-0 z-50 bg-[#0f172a] border-r border-[#1E293B]/20 flex flex-col overflow-hidden transition-all duration-300 ${
+        isOpen 
+          ? 'w-60 translate-x-0' 
+          : 'w-72 -translate-x-full lg:translate-x-0 lg:w-16'
+      }`}
     >
-      {/* Space background image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center select-none pointer-events-none z-0"
-        style={{
-          backgroundImage: `url(${spaceAuthBg})`,
-          filter: 'brightness(0.55) contrast(1.15)',
-        }}
-      />
-      {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-black/25 pointer-events-none z-0" />
+      <div className={`relative z-10 py-5 border-b border-[#1E293B]/20 flex items-center transition-all duration-300 ${
+        isOpen ? 'px-6 justify-between' : 'px-0 justify-center'
+      }`}>
+        {isOpen ? (
+          <Link to="/admin" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
+            <img src={nasaLogo} alt="NASAFILM Logo" className="h-7 w-auto object-contain rounded-lg" />
+            <span className="text-lg font-black tracking-tight leading-none text-white">
+              NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
+            </span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            title="Mở rộng Sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
 
-      <div className="relative z-10 py-5 px-6 border-b border-[#1A2238]/60 flex items-center justify-start">
-        <Link to="/admin" className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
-          <img src={nasaLogo} alt="NASAFILM Logo" className="h-7 w-auto object-contain rounded-lg" />
-          <span className="text-lg font-black tracking-tight leading-none text-white">
-            NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
-          </span>
-        </Link>
+        {isOpen && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            title="Thu nhỏ Sidebar"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <nav className="relative z-10 flex-1 py-5 px-4 space-y-6 overflow-y-auto no-scrollbar">
         {/* System Group */}
         <div>
-          <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Hệ thống</div>
+          {isOpen && <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Hệ thống</div>}
           <div className="space-y-1">
             <NavLink
               to="/admin"
               end
               className={({ isActive }) =>
-                `flex items-center rounded-lg px-3 py-2 gap-3 transition-all duration-200 text-xs font-semibold ${
+                `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
+                  isOpen ? 'px-3 py-2 gap-3 justify-start' : 'p-2 justify-center'
+                } ${
                   isActive
                     ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -67,10 +98,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             >
               {({ isActive }) => (
                 <>
-                  <span className="material-symbols-outlined shrink-0 text-base" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                    dashboard
-                  </span>
-                  <span>Tổng quan</span>
+                  <LayoutDashboard className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-sky-400'}`} />
+                  {isOpen && <span className="truncate">Tổng quan</span>}
                 </>
               )}
             </NavLink>
@@ -79,80 +108,88 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Content Group */}
         <div>
-          <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Nội dung</div>
+          {isOpen && <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Nội dung</div>}
           <div className="space-y-1">
             {[
-              { to: '/admin/movies', icon: 'movie', label: 'Phim' },
-              { to: '/admin/actors', icon: 'person', label: 'Diễn viên' },
-            ].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg px-3 py-2 gap-3 transition-all duration-200 text-xs font-semibold ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`
-                }
-                onClick={onClose}
-              >
-                {({ isActive }) => (
-                  <>
-                    <span className="material-symbols-outlined shrink-0 text-base" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
+              { to: '/admin/movies', icon: Film, label: 'Phim', colorClass: 'text-rose-400' },
+              { to: '/admin/actors', icon: User, label: 'Diễn viên', colorClass: 'text-violet-400' },
+            ].map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
+                      isOpen ? 'px-3 py-2 gap-3 justify-start' : 'p-2 justify-center'
+                    } ${
+                      isActive
+                        ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`
+                  }
+                  onClick={onClose}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <IconComponent className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-white' : item.colorClass}`} />
+                      {isOpen && <span className="truncate">{item.label}</span>}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
           </div>
         </div>
 
         {/* Operations Group */}
         <div>
-          <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Vận hành</div>
+          {isOpen && <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Vận hành</div>}
           <div className="space-y-1">
             {[
-              { to: '/admin/showtimes', icon: 'schedule', label: 'Lịch chiếu' },
-              { to: '/admin/cinemas', icon: 'theater_comedy', label: 'Rạp chiếu' },
-              { to: '/admin/bookings', icon: 'confirmation_number', label: 'Đơn hàng' },
-              { to: '/admin/vouchers', icon: 'local_activity', label: 'Khuyến mãi' },
-            ].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg px-3 py-2 gap-3 transition-all duration-200 text-xs font-semibold ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`
-                }
-                onClick={onClose}
-              >
-                {({ isActive }) => (
-                  <>
-                    <span className="material-symbols-outlined shrink-0 text-base" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
+              { to: '/admin/showtimes', icon: Calendar, label: 'Lịch chiếu', colorClass: 'text-amber-400' },
+              { to: '/admin/cinemas', icon: Tv, label: 'Rạp chiếu', colorClass: 'text-emerald-400' },
+              { to: '/admin/bookings', icon: Ticket, label: 'Đơn hàng', colorClass: 'text-orange-400' },
+              { to: '/admin/vouchers', icon: Tag, label: 'Khuyến mãi', colorClass: 'text-pink-400' },
+            ].map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
+                      isOpen ? 'px-3 py-2 gap-3 justify-start' : 'p-2 justify-center'
+                    } ${
+                      isActive
+                        ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`
+                  }
+                  onClick={onClose}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <IconComponent className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-white' : item.colorClass}`} />
+                      {isOpen && <span className="truncate">{item.label}</span>}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
           </div>
         </div>
 
         {/* Users Group */}
         <div>
-          <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Người dùng</div>
+          {isOpen && <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-gray-500 uppercase">Người dùng</div>}
           <div className="space-y-1">
             <NavLink
               to="/admin/users"
               className={({ isActive }) =>
-                `flex items-center rounded-lg px-3 py-2 gap-3 transition-all duration-200 text-xs font-semibold ${
+                `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
+                  isOpen ? 'px-3 py-2 gap-3 justify-start' : 'p-2 justify-center'
+                } ${
                   isActive
                     ? 'bg-red-600 text-white shadow-md shadow-red-600/10'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -162,10 +199,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             >
               {({ isActive }) => (
                 <>
-                  <span className="material-symbols-outlined shrink-0 text-base" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                    group
-                  </span>
-                  <span>Khách hàng</span>
+                  <Users className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-cyan-400'}`} />
+                  {isOpen && <span className="truncate">Khách hàng</span>}
                 </>
               )}
             </NavLink>
@@ -173,9 +208,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
       </nav>
 
-      <div className="relative z-10 mt-auto p-4 border-t border-[#1A2238]/60 bg-black/20">
+      <div className={`relative z-10 mt-auto border-t border-[#1A2238]/60 bg-black/20 transition-all duration-300 ${
+        isOpen ? 'p-4' : 'p-2 flex justify-center'
+      }`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-black/40 border border-white/15 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-8 h-8 rounded-full bg-black/40 border border-white/15 flex items-center justify-center overflow-hidden shrink-0" title={displayName}>
             <img
               alt="Admin Profile"
               className="w-full h-full object-cover"
@@ -184,17 +221,23 @@ const Sidebar = ({ isOpen, onClose }) => {
               onError={() => setAvatarLoadFailed(true)}
             />
           </div>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-xs font-bold text-white truncate leading-tight">{displayName}</p>
-            <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase mt-0.5">Quản trị</p>
-          </div>
-          <button 
-            onClick={handleLogout} 
-            className="rounded-lg p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
-            title="Đăng xuất"
-          >
-            <span className="material-symbols-outlined text-sm">logout</span>
-          </button>
+          {isOpen && (
+            <>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-bold text-white truncate leading-tight">{displayName}</p>
+                <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase mt-0.5">
+                  {user?.roles?.includes('ADMIN') ? 'Quản trị viên' : user?.roles?.includes('STAFF') ? 'Nhân viên' : 'Quản trị viên'}
+                </p>
+              </div>
+              <button 
+                onClick={handleLogout} 
+                className="rounded-lg p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/5 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </aside>
@@ -202,9 +245,21 @@ const Sidebar = ({ isOpen, onClose }) => {
 };
 
 const AdminLayout = ({ children }) => {
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
   const mainRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const scrollToTop = () => {
@@ -234,19 +289,50 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 overflow-hidden relative">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main ref={mainRef} className="admin-light-theme lg:ml-60 min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10">
-        <div className="sticky top-0 z-40 w-full border-b border-[#1A2238] bg-[#0B0F19]/90 backdrop-blur-[16px] shadow-sm lg:hidden">
-          <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-full items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#0f172a] text-gray-100 overflow-hidden relative">
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onToggle={() => setSidebarOpen(prev => !prev)}
+        onClose={() => {
+          if (window.innerWidth < 1024) {
+            setSidebarOpen(false);
+          }
+        }} 
+      />
+      
+      {/* MOBILE BACKDROP OVERLAY */}
+      {isSidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)} 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-all duration-300"
+        />
+      )}
+
+      <main 
+        ref={mainRef} 
+        className={`min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10 bg-[#0f172a] transition-all duration-300 ${
+          isSidebarOpen ? 'lg:ml-60' : 'lg:ml-16'
+        }`}
+      >
+        {/* MOBILE STICKY HEADER WITH TOGGLE SIDEBAR BUTTON */}
+        <div className="sticky top-0 z-40 w-full border-b border-[#1E293B]/60 bg-[#0B0F19]/90 backdrop-blur-[16px] shadow-sm lg:hidden">
+          <div className="flex w-full items-center px-6 py-3 justify-between">
+            <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setSidebarOpen((prev) => !prev)}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-[#1A2238] bg-[#121826] text-gray-200 lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                title="Mở sidebar"
               >
-                <span className="material-symbols-outlined">menu</span>
+                <Menu className="w-5 h-5" />
               </button>
+              
+              <Link to="/admin" className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
+                <img src={nasaLogo} alt="NASAFILM Logo" className="h-6 w-auto object-contain rounded-lg" />
+                <span className="text-sm font-black tracking-tight leading-none text-white">
+                  NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
+                </span>
+              </Link>
             </div>
           </div>
         </div>

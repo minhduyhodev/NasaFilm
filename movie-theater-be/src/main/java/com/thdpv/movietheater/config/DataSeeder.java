@@ -126,21 +126,33 @@ public class DataSeeder implements CommandLineRunner {
                             movie_uuid UUID NOT NULL,
                             cinema_room_uuid UUID NOT NULL,
                             start_time TIMESTAMPTZ NOT NULL,
-                            end_time TIMESTAMPTZ NOT NULL
+                            end_time TIMESTAMPTZ,
+                            base_price NUMERIC(21, 2) NOT NULL DEFAULT 0.00,
+                            status VARCHAR(50) DEFAULT 'DRAFT',
+                            created_at TIMESTAMPTZ,
+                            updated_at TIMESTAMPTZ
                         )
                     """);
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS base_price NUMERIC(21, 2) NOT NULL DEFAULT 0.00");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'DRAFT'");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ");
 
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS booking (uuid UUID PRIMARY KEY, showtime_uuid UUID)");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS cinema_room (
                             uuid UUID PRIMARY KEY,
+                            room_code VARCHAR(255),
                             name VARCHAR(255) NOT NULL,
                             capacity INTEGER,
+                            room_type VARCHAR(255) NOT NULL DEFAULT 'STANDARD',
                             status VARCHAR(255),
                             cinema_uuid UUID NOT NULL
                         )
                     """);
+            jdbcTemplate.execute("ALTER TABLE cinema_room ADD COLUMN IF NOT EXISTS room_code VARCHAR(255)");
+            jdbcTemplate.execute("ALTER TABLE cinema_room ADD COLUMN IF NOT EXISTS room_type VARCHAR(255) NOT NULL DEFAULT 'STANDARD'");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS seat_type (
@@ -158,9 +170,11 @@ public class DataSeeder implements CommandLineRunner {
                             row_name VARCHAR(5) NOT NULL,
                             seat_number INTEGER NOT NULL,
                             status VARCHAR(50) DEFAULT 'ACTIVE',
-                            seat_type_uuid UUID NOT NULL
+                            seat_type_uuid UUID NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE
                         )
                     """);
+            jdbcTemplate.execute("ALTER TABLE seat ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS seat_locked (
@@ -815,52 +829,35 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-        if (cinemaRepository.existsById(cinemaUuid)) {
-            return;
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class, cinemaUuid) == 0) {
+            jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
+                    cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM", "19001080");
+            logger.info("Seeded cinema: NASA Landmark 81");
         }
-
-        // Create Cinema
-        Cinema cinema = new Cinema();
-        cinema.setUuid(cinemaUuid);
-        cinema.setName("NASA Landmark 81");
-        cinema.setAddress("Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM");
-        cinema.setPhoneNumber("19001080");
-        Cinema savedCinema = cinemaRepository.save(cinema);
-        logger.info("Seeded cinema: {}", savedCinema.getName());
 
         // Create Room 1 (matching default FE name)
         java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-        CinemaRoom room1 = new CinemaRoom();
-        room1.setUuid(room1Uuid);
-        room1.setCinema(savedCinema);
-        room1.setRoomCode("ROOM-IMAX");
-        room1.setName("Phòng chiếu IMAX");
-        room1.setRoomType(RoomType.IMAX);
-        room1.setStatus(CinemaRoomStatus.ACTIVE);
-        room1.setCapacity(0);
-        CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
-        logger.info("Seeded room: {}", savedRoom1.getName());
-
-        // Auto-generate seats for Room 1 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom1.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom1.getName());
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room1Uuid) == 0) {
+            jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
+            logger.info("Seeded room: Phòng chiếu IMAX");
+            
+            // Auto-generate seats for Room 1 (NASA Standard Layout)
+            cinemaService.generateSeats(room1Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: ROOM-IMAX");
+        }
 
         // Create Room 2
         java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-        CinemaRoom room2 = new CinemaRoom();
-        room2.setUuid(room2Uuid);
-        room2.setCinema(savedCinema);
-        room2.setRoomCode("ROOM-VIP");
-        room2.setName("Phòng chiếu VIP");
-        room2.setRoomType(RoomType.VIP);
-        room2.setStatus(CinemaRoomStatus.ACTIVE);
-        room2.setCapacity(0);
-        CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);
-        logger.info("Seeded room: {}", savedRoom2.getName());
-
-        // Auto-generate seats for Room 2 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom2.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom2.getName());
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room2Uuid) == 0) {
+            jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
+            logger.info("Seeded room: Phòng chiếu VIP");
+            
+            // Auto-generate seats for Room 2 (NASA Standard Layout)
+            cinemaService.generateSeats(room2Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: ROOM-VIP");
+        }
     }
 
     private void repairOrphanBookingSeats() {

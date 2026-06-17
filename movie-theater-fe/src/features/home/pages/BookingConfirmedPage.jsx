@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Download } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import './BookingConfirmedPage.css';
@@ -161,7 +162,7 @@ export const BookingConfirmedPage = () => {
                 onClick={handlePrint}
                 className="flex-grow bg-[#ccc5bf] text-[#1c1b1d] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-white transition-all duration-300 neon-gold-glow cursor-pointer active:scale-95"
               >
-                <span className="material-symbols-outlined text-[16px]">download</span>
+                <Download className="w-4 h-4 text-[#1c1b1d] shrink-0" />
                 In / Tải vé PDF
               </button>
               
