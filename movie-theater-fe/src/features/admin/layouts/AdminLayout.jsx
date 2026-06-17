@@ -10,7 +10,8 @@ import {
   Tag, 
   Users, 
   LogOut, 
-  Menu 
+  Menu,
+  Popcorn
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -149,6 +150,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
             {[
               { to: '/admin/showtimes', icon: Calendar, label: 'Lịch chiếu', colorClass: 'text-amber-400' },
               { to: '/admin/cinemas', icon: Tv, label: 'Rạp chiếu', colorClass: 'text-emerald-400' },
+              { to: '/admin/combos', icon: Popcorn, label: 'Bắp nước', colorClass: 'text-yellow-400' },
               { to: '/admin/bookings', icon: Ticket, label: 'Đơn hàng', colorClass: 'text-orange-400' },
               { to: '/admin/vouchers', icon: Tag, label: 'Khuyến mãi', colorClass: 'text-pink-400' },
             ].map((item) => {
