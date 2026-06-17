@@ -1,1 +1,564 @@
-/* Showtimes page styling - migrated to inline Tailwind CSS utility classes */
+/* ============================================================
+   ShowtimesPage — Enterprise Scheduling Dashboard Styles
+   ============================================================ */
+
+/* ---- Skeleton Loading Animation ---- */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, #1a223800 0%, #1e293b 50%, #1a223800 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skeleton-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-card .sk-line {
+  height: 12px;
+  border-radius: 6px;
+}
+
+.skeleton-card .sk-line-sm {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-card .sk-bar {
+  height: 6px;
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+/* ---- Section Collapse / Expand ---- */
+.section-collapsible {
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease;
+}
+
+.section-collapsible.collapsed {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+.section-collapsible.expanded {
+  opacity: 1;
+}
+
+.section-header-chevron {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.section-header-chevron.rotated {
+  transform: rotate(-90deg);
+}
+
+/* ---- Date Navigator ---- */
+.date-nav-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.date-nav-item:hover {
+  transform: translateY(-1px);
+}
+
+.date-nav-item.active {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
+}
+
+.date-nav-item.active .date-nav-day {
+  color: #ef4444;
+}
+
+/* ---- Timeline View ---- */
+.timeline-container {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #1a2238 transparent;
+}
+
+.timeline-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.timeline-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background: #1a2238;
+  border-radius: 3px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background: #2a3450;
+}
+
+.timeline-grid {
+  display: grid;
+  min-width: 1200px;
+  position: relative;
+}
+
+.timeline-hour-col {
+  border-left: 1px solid #1a2238;
+  min-height: 60px;
+}
+
+.timeline-block {
+  position: absolute;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.timeline-block:hover {
+  transform: scaleY(1.05);
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Calendar View ---- */
+.calendar-grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendar-hour-slot {
+  min-height: 64px;
+  border-bottom: 1px solid #1a2238;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.calendar-hour-slot:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.calendar-hour-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  border-right: 1px solid #1a2238;
+  background: rgba(11, 15, 25, 0.5);
+  text-align: right;
+  min-width: 56px;
+}
+
+.calendar-event {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.calendar-event:hover {
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transform: scale(1.01);
+}
+
+/* ---- Room View ---- */
+.room-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #1a2238;
+  min-height: 56px;
+  transition: background 0.15s ease;
+}
+
+.room-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.room-label {
+  min-width: 160px;
+  max-width: 160px;
+  padding: 8px 12px;
+  border-right: 1px solid #1a2238;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(11, 15, 25, 0.5);
+  flex-shrink: 0;
+}
+
+.room-timeline {
+  flex: 1;
+  position: relative;
+  min-height: 48px;
+}
+
+.room-block {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.room-block:hover {
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ---- Showtime Card ---- */
+.st-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.st-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+
+.st-card:hover {
+  border-color: #334155;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.st-card.selected {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+/* Status accent colors for card left border */
+.st-card.status-OPEN_FOR_BOOKING::before { background: #10b981; }
+.st-card.status-SCHEDULED::before { background: #3b82f6; }
+.st-card.status-DRAFT::before { background: #71717a; }
+.st-card.status-SOLD_OUT::before { background: #f59e0b; }
+.st-card.status-CANCELLED::before { background: #f43f5e; }
+.st-card.status-FINISHED::before { background: #52525b; }
+
+/* ---- List View Row ---- */
+.list-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px 140px 100px 100px 120px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a2238;
+  font-size: 12px;
+  transition: background 0.15s ease;
+  cursor: default;
+}
+
+.list-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.list-row.selected {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.list-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px 140px 100px 100px 120px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1e293b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background: rgba(11, 15, 25, 0.5);
+}
+
+/* ---- KPI Card ---- */
+.kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  border-color: #334155;
+  transform: translateY(-1px);
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.kpi-card.kpi-total::after { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.kpi-card.kpi-selling::after { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card.kpi-upcoming::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.kpi-card.kpi-playing::after { background: linear-gradient(90deg, #a855f7, #c084fc); }
+.kpi-card.kpi-ended::after { background: linear-gradient(90deg, #64748b, #94a3b8); }
+.kpi-card.kpi-cancelled::after { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+.kpi-card.kpi-occupancy::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.kpi-card.kpi-revenue::after { background: linear-gradient(90deg, #ec4899, #f472b6); }
+
+/* ---- Bulk Action Bar ---- */
+.bulk-bar {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- View Transition ---- */
+.view-fade-enter {
+  animation: viewFadeIn 0.3s ease;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Empty State ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  color: #334155;
+  opacity: 0.7;
+}
+
+/* ---- Tooltip ---- */
+.st-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.st-card:hover .st-tooltip,
+.timeline-block:hover .st-tooltip,
+.room-block:hover .st-tooltip,
+.calendar-event:hover .st-tooltip {
+  opacity: 1;
+}
+
+/* ---- Custom scrollbar for main containers ---- */
+.st-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.st-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.st-scroll::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+.st-scroll::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* ---- Now-indicator line for timeline ---- */
+.now-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ef4444;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.now-indicator::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+/* ---- Checkbox ---- */
+.st-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #334155;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.st-checkbox:hover {
+  border-color: #64748b;
+}
+
+.st-checkbox:checked {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.st-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---- Responsive adjustments ---- */
+@media (max-width: 1280px) {
+  .list-row,
+  .list-header {
+    grid-template-columns: 40px 1fr 120px 120px 90px 90px 100px;
+  }
+  .list-row > *:nth-child(7),
+  .list-header > *:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .list-row,
+  .list-header {
+    grid-template-columns: 40px 1fr 110px 100px 90px 100px;
+  }
+  .list-row > *:nth-child(6),
+  .list-header > *:nth-child(6) {
+    display: none;
+  }
+  
+  .room-label {
+    min-width: 120px;
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .list-row,
+  .list-header {
+    grid-template-columns: 36px 1fr 100px 90px;
+  }
+  .list-row > *:nth-child(n+5),
+  .list-header > *:nth-child(n+5) {
+    display: none;
+  }
+}
+
+/* ---- Print styles ---- */
+@media print {
+  .st-card {
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+    background: white !important;
+  }
+  
+  .kpi-card {
+    break-inside: avoid;
+  }
+}
