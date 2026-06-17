@@ -75,7 +75,7 @@ public class MovieController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) List<UUID> genreUuids,
             @RequestParam(required = false) UUID countryUuid,
-            @RequestParam(required = false) String ageRating,
+            @RequestParam(required = false) String ageRestriction,
             @RequestParam(required = false) UUID actorUuid,
             @RequestParam(required = false) UUID cinemaUuid,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate showtimeDate,
@@ -84,7 +84,7 @@ public class MovieController {
             @RequestParam(defaultValue = "releaseDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         Page<MovieListResponse> response = movieService.getMovieList(
-                keyword, status, genreUuids, countryUuid, ageRating, actorUuid, cinemaUuid, showtimeDate, page, size, sortBy, sortDir);
+                keyword, status, genreUuids, countryUuid, ageRestriction, actorUuid, cinemaUuid, showtimeDate, page, size, sortBy, sortDir);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

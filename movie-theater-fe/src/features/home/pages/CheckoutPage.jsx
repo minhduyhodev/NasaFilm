@@ -95,7 +95,7 @@ const CheckoutPage = () => {
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
-    movieAgeRating = '',
+    movieAgeRestriction = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
     selectedSeats = [
@@ -282,7 +282,7 @@ const CheckoutPage = () => {
           movie: movie,
           moviePoster: moviePoster || movieInfo.poster,
           movieFormat: movieFormat || movieInfo.format,
-          movieRating: movieAgeRating || movieInfo.age,
+          movieRating: movieAgeRestriction || movieInfo.age,
           theater: theater,
           date: date,
           showtime: showtime,
@@ -344,15 +344,15 @@ const CheckoutPage = () => {
                   </div>
                   <div className="mt-6 flex gap-2">
                     <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                    {(movieAgeRating || movieInfo.age) && (
+                    {(movieAgeRestriction || movieInfo.age) && (
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${
-                        (movieAgeRating || movieInfo.age).toUpperCase() === 'P' 
+                        (movieAgeRestriction || movieInfo.age).toUpperCase() === 'P' 
                           ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20' 
-                          : (movieAgeRating || movieInfo.age).toUpperCase().includes('T18') 
+                          : (movieAgeRestriction || movieInfo.age).toUpperCase().includes('T18') 
                             ? 'bg-red-600/10 text-red-500 border-red-500/20' 
                             : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
                       }`}>
-                        {movieAgeRating || movieInfo.age}
+                        {movieAgeRestriction || movieInfo.age}
                       </span>
                     )}
                   </div>

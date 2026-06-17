@@ -683,7 +683,7 @@ public class DataSeeder implements CommandLineRunner {
             List<String> genreNames,
             List<String> countryCodes,
             List<MovieMediaData> mediaList,
-            String ageRating) {
+            String ageRestriction) {
 
         if (movieRepository.existsByTitleIgnoreCase(title)) {
             return;
@@ -695,7 +695,7 @@ public class DataSeeder implements CommandLineRunner {
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(status);
-        movie.setAgeRating(ageRating);
+        movie.setAgeRestriction(ageRestriction);
 
         // Add Genres
         for (String genreName : genreNames) {

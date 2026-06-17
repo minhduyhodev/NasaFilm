@@ -52,14 +52,14 @@ public class CreateMovieRequest {
     }
 
     public CreateMovieRequest(String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, String ageRating, List<UUID> genreUuids, List<UUID> countryUuids,
+            String status, String ageRestriction, List<UUID> genreUuids, List<UUID> countryUuids,
             List<MovieActorRequest> actors, List<MovieMediaRequest> medias, String streamingUrl) {
         this.title = title;
         this.description = description;
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
-        this.ageRestriction = ageRating;
+        this.ageRestriction = ageRestriction;
         this.genreUuids = genreUuids;
         this.countryUuids = countryUuids;
         this.actors = actors;
@@ -111,8 +111,8 @@ public class CreateMovieRequest {
         return ageRestriction;
     }
 
-    public void setAgeRestriction(String ageRating) {
-        this.ageRestriction = ageRating;
+    public void setAgeRestriction(String ageRestriction) {
+        this.ageRestriction = ageRestriction;
     }
 
     public List<UUID> getGenreUuids() {

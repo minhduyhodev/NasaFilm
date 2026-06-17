@@ -101,7 +101,7 @@ const ConcessionsPage = () => {
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
-    movieAgeRating = '',
+    movieAgeRestriction = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
     selectedSeats = [],
@@ -396,13 +396,13 @@ const ConcessionsPage = () => {
                 </div>
                 <div className="flex items-center gap-2 pt-0.5">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                  {movieAgeRating && (
+                  {movieAgeRestriction && (
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      movieAgeRating.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-                      movieAgeRating.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+                      movieAgeRestriction.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+                      movieAgeRestriction.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
                       'bg-amber-600/90 text-white'
                     }`}>
-                      {movieAgeRating}
+                      {movieAgeRestriction}
                     </span>
                   )}
                 </div>

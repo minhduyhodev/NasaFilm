@@ -2,7 +2,7 @@ import React from 'react';
 import { Star, Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRating }) => {
+const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -45,13 +45,13 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
               {format}
             </span>
           )}
-          {ageRating && (
+          {ageRestriction && (
             <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-              ageRating.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-              ageRating.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+              ageRestriction.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+              ageRestriction.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
               'bg-amber-600/90 text-white'
             }`}>
-              {ageRating}
+              {ageRestriction}
             </span>
           )}
         </div>

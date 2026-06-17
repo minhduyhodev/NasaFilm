@@ -326,7 +326,7 @@ const TicketFilters = () => {
         movie: selectedShowtimeObj.movieTitle,
         moviePoster: selectedMovieObj?.primaryMediaUrl || '',
         movieFormat: selectedShowtimeObj.cinemaRoomName.includes('IMAX') ? 'IMAX' : '2D',
-        movieAgeRating: selectedMovieObj?.ageRating || '',
+        movieAgeRestriction: selectedMovieObj?.ageRestriction || '',
         date: dateLabel,
         showtime: timeLabel
       }

@@ -13,7 +13,7 @@ public class MovieListResponse {
     private Integer durationMinutes;
     private LocalDate releaseDate;
     private String status;
-    private String ageRating;
+    private String ageRestriction;
     private String primaryMediaUrl;
     private List<String> genres;
     private List<String> countries;
@@ -25,13 +25,13 @@ public class MovieListResponse {
     }
 
     public MovieListResponse(UUID uuid, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, String ageRating, String primaryMediaUrl, List<String> genres, List<String> countries,
+            LocalDate releaseDate, String status, String ageRestriction, String primaryMediaUrl, List<String> genres, List<String> countries,
             OffsetDateTime createdAt, OffsetDateTime updatedAt) {
-        this(uuid, title, description, durationMinutes, releaseDate, status, ageRating, primaryMediaUrl, genres, countries, null, createdAt, updatedAt);
+        this(uuid, title, description, durationMinutes, releaseDate, status, ageRestriction, primaryMediaUrl, genres, countries, null, createdAt, updatedAt);
     }
 
     public MovieListResponse(UUID uuid, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, String ageRating, String primaryMediaUrl, List<String> genres, List<String> countries,
+            LocalDate releaseDate, String status, String ageRestriction, String primaryMediaUrl, List<String> genres, List<String> countries,
             String streamingUrl, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.uuid = uuid;
         this.title = title;
@@ -39,7 +39,7 @@ public class MovieListResponse {
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
-        this.ageRating = ageRating;
+        this.ageRestriction = ageRestriction;
         this.primaryMediaUrl = primaryMediaUrl;
         this.genres = genres;
         this.countries = countries;
@@ -96,12 +96,12 @@ public class MovieListResponse {
         this.status = status;
     }
 
-    public String getAgeRating() {
-        return ageRating;
+    public String getAgeRestriction() {
+        return ageRestriction;
     }
 
-    public void setAgeRating(String ageRating) {
-        this.ageRating = ageRating;
+    public void setAgeRestriction(String ageRestriction) {
+        this.ageRestriction = ageRestriction;
     }
 
     public String getPrimaryMediaUrl() {

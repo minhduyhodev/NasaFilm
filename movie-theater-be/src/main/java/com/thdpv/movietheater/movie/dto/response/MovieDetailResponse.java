@@ -13,7 +13,7 @@ public class MovieDetailResponse {
     private Integer durationMinutes;
     private LocalDate releaseDate;
     private String status;
-    private String ageRating;
+    private String ageRestriction;
     private List<String> genres;
     private List<String> countries;
     private List<ActorResponse> actors;
@@ -26,14 +26,14 @@ public class MovieDetailResponse {
     }
 
     public MovieDetailResponse(UUID uuid, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, String ageRating, List<String> genres, List<String> countries,
+            LocalDate releaseDate, String status, String ageRestriction, List<String> genres, List<String> countries,
             List<ActorResponse> actors, List<MovieMediaResponse> medias, OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {
-        this(uuid, title, description, durationMinutes, releaseDate, status, ageRating, genres, countries, actors, medias, null, createdAt, updatedAt);
+        this(uuid, title, description, durationMinutes, releaseDate, status, ageRestriction, genres, countries, actors, medias, null, createdAt, updatedAt);
     }
 
     public MovieDetailResponse(UUID uuid, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, String ageRating, List<String> genres, List<String> countries,
+            LocalDate releaseDate, String status, String ageRestriction, List<String> genres, List<String> countries,
             List<ActorResponse> actors, List<MovieMediaResponse> medias, String streamingUrl, OffsetDateTime createdAt,
             OffsetDateTime updatedAt) {
         this.uuid = uuid;
@@ -42,7 +42,7 @@ public class MovieDetailResponse {
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
-        this.ageRating = ageRating;
+        this.ageRestriction = ageRestriction;
         this.genres = genres;
         this.countries = countries;
         this.actors = actors;
@@ -100,12 +100,12 @@ public class MovieDetailResponse {
         this.status = status;
     }
 
-    public String getAgeRating() {
-        return ageRating;
+    public String getAgeRestriction() {
+        return ageRestriction;
     }
 
-    public void setAgeRating(String ageRating) {
-        this.ageRating = ageRating;
+    public void setAgeRestriction(String ageRestriction) {
+        this.ageRestriction = ageRestriction;
     }
 
     public List<String> getGenres() {

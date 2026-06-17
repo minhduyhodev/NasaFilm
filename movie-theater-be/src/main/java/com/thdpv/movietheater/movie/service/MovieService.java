@@ -119,7 +119,7 @@ public class MovieService {
             String status,
             List<UUID> genreUuids,
             UUID countryUuid,
-            String ageRating,
+            String ageRestriction,
             UUID actorUuid,
             UUID cinemaUuid,
             java.time.LocalDate showtimeDate,
@@ -160,8 +160,8 @@ public class MovieService {
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
-            if (ageRating != null && !ageRating.isBlank()) {
-                predicates.add(cb.equal(root.get("ageRating"), ageRating.trim()));
+            if (ageRestriction != null && !ageRestriction.isBlank()) {
+                predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));
             }
 
             if (actorUuid != null) {
@@ -321,13 +321,13 @@ public class MovieService {
     }
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
-            LocalDate releaseDate, String status, String ageRating) {
+            LocalDate releaseDate, String status, String ageRestriction) {
         movie.setTitle(trim(title));
         movie.setDescription(trimToNull(description));
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));
-        movie.setAgeRating(trim(ageRating));
+        movie.setAgeRestriction(trim(ageRestriction));
     }
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
@@ -499,7 +499,7 @@ public class MovieService {
                 movie.getDurationMinutes(),
                 movie.getReleaseDate(),
                 movie.getStatus(),
-                movie.getAgeRating(),
+                movie.getAgeRestriction(),
                 resolvePrimaryMediaUrl(movie),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
@@ -520,7 +520,7 @@ public class MovieService {
                 movie.getDurationMinutes(),
                 movie.getReleaseDate(),
                 movie.getStatus(),
-                movie.getAgeRating(),
+                movie.getAgeRestriction(),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
                         .toList(),

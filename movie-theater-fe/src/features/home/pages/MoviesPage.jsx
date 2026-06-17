@@ -26,15 +26,15 @@ const MoviesPage = () => {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedShowtimeDate, setSelectedShowtimeDate] = useState(null);
   const [selectedCinema, setSelectedCinema] = useState(null);
-  const [selectedAgeRating, setSelectedAgeRating] = useState(null);
-
+  const [selectedAgeRestriction, setSelectedAgeRestriction] = useState(null);
+  
   // Temporary Filters State (Local to UI before clicking "Lọc kết quả")
   const [tempCountry, setTempCountry] = useState(null);
   const [tempActor, setTempActor] = useState(null);
   const [tempGenre, setTempGenre] = useState(null);
   const [tempShowtimeDate, setTempShowtimeDate] = useState(null);
   const [tempCinema, setTempCinema] = useState(null);
-  const [tempAgeRating, setTempAgeRating] = useState(null);
+  const [tempAgeRestriction, setTempAgeRestriction] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [movies, setMovies] = useState([]);
@@ -111,8 +111,8 @@ const MoviesPage = () => {
         if (selectedShowtimeDate) {
           queryParams.showtimeDate = selectedShowtimeDate;
         }
-        if (selectedAgeRating) {
-          queryParams.ageRating = selectedAgeRating;
+        if (selectedAgeRestriction) {
+          queryParams.ageRestriction = selectedAgeRestriction;
         }
 
         const data = await movieService.getMovies(queryParams);
@@ -133,7 +133,7 @@ const MoviesPage = () => {
       }
     };
     fetchMovies();
-  }, [activeTab, currentPage, selectedGenre, selectedCountry, selectedActor, selectedCinema, selectedShowtimeDate, selectedAgeRating]);
+  }, [activeTab, currentPage, selectedGenre, selectedCountry, selectedActor, selectedCinema, selectedShowtimeDate, selectedAgeRestriction]);
 
   // Generate showtime dates for the next 7 days
   const filterDates = useMemo(() => {
@@ -161,7 +161,7 @@ const MoviesPage = () => {
     return dates;
   }, []);
 
-  const ageRatings = [
+  const ageRestrictions = [
     { value: 'P', label: 'P (Mọi lứa tuổi)' },
     { value: 'K', label: 'K (Dưới 13 tuổi)' },
     { value: 'T13', label: 'T13 (13 tuổi trở lên)' },
@@ -189,8 +189,8 @@ const MoviesPage = () => {
     setTempCinema(uuid);
   };
 
-  const handleAgeRatingSelect = (rating) => {
-    setTempAgeRating(rating);
+  const handleAgeRestrictionSelect = (rating) => {
+    setTempAgeRestriction(rating);
   };
 
   const handleApplyFilters = () => {
@@ -199,7 +199,7 @@ const MoviesPage = () => {
     setSelectedGenre(tempGenre);
     setSelectedShowtimeDate(tempShowtimeDate);
     setSelectedCinema(tempCinema);
-    setSelectedAgeRating(tempAgeRating);
+    setSelectedAgeRestriction(tempAgeRestriction);
     setCurrentPage(1);
   };
 
@@ -211,7 +211,7 @@ const MoviesPage = () => {
       setTempGenre(selectedGenre);
       setTempShowtimeDate(selectedShowtimeDate);
       setTempCinema(selectedCinema);
-      setTempAgeRating(selectedAgeRating);
+      setTempAgeRestriction(selectedAgeRestriction);
     }
     setIsFiltersOpen(!isFiltersOpen);
   };
@@ -224,7 +224,7 @@ const MoviesPage = () => {
     setTempGenre(selectedGenre);
     setTempShowtimeDate(selectedShowtimeDate);
     setTempCinema(selectedCinema);
-    setTempAgeRating(selectedAgeRating);
+    setTempAgeRestriction(selectedAgeRestriction);
   };
 
   const handleTabChange = (tabId) => {
@@ -236,14 +236,14 @@ const MoviesPage = () => {
     setSelectedGenre(null);
     setSelectedShowtimeDate(null);
     setSelectedCinema(null);
-    setSelectedAgeRating(null);
+    setSelectedAgeRestriction(null);
     // Reset temp filters
     setTempCountry(null);
     setTempActor(null);
     setTempGenre(null);
     setTempShowtimeDate(null);
     setTempCinema(null);
-    setTempAgeRating(null);
+    setTempAgeRestriction(null);
     setCurrentPage(1);
   };
 
@@ -406,16 +406,16 @@ const MoviesPage = () => {
                 <span className="filter-row-label">Xếp hạng:</span>
                 <div className="filter-badges-container">
                   <button
-                    onClick={() => handleAgeRatingSelect(null)}
-                    className={`filter-badge ${tempAgeRating === null ? 'filter-badge-active' : ''}`}
+                    onClick={() => handleAgeRestrictionSelect(null)}
+                    className={`filter-badge ${tempAgeRestriction === null ? 'filter-badge-active' : ''}`}
                   >
                     Tất cả
                   </button>
-                  {ageRatings.map(ratingObj => (
+                  {ageRestrictions.map(ratingObj => (
                     <button
                       key={ratingObj.value}
-                      onClick={() => handleAgeRatingSelect(ratingObj.value)}
-                      className={`filter-badge ${tempAgeRating === ratingObj.value ? 'filter-badge-active' : ''}`}
+                      onClick={() => handleAgeRestrictionSelect(ratingObj.value)}
+                      className={`filter-badge ${tempAgeRestriction === ratingObj.value ? 'filter-badge-active' : ''}`}
                     >
                       {ratingObj.label}
                     </button>

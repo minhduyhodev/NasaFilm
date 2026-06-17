@@ -165,7 +165,7 @@ const MoviesPage = () => {
     durationMinutes: '',
     releaseDate: '',
     status: 'NOW_SHOWING',
-    ageRating: 'P',
+    ageRestriction: 'P',
     genreUuids: [],
     countryUuids: [],
     posterUrl: '',
@@ -177,7 +177,7 @@ const MoviesPage = () => {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
 
-  const ageRatingOptions = [
+  const ageRestrictionOptions = [
     { value: 'P', label: 'P - Moi lua tuoi' },
     { value: 'K', label: 'K - Duoi 13 tuoi (can co nguoi giam ho)' },
     { value: 'T13', label: 'T13 - Tu 13 tuoi tro len' },
@@ -359,7 +359,7 @@ const MoviesPage = () => {
       durationMinutes: '',
       releaseDate: '',
       status: 'NOW_SHOWING',
-      ageRating: 'P',
+      ageRestriction: 'P',
       genreUuids: [],
       countryUuids: [],
       posterUrl: '',
@@ -389,7 +389,7 @@ const MoviesPage = () => {
         durationMinutes: detail.durationMinutes || '',
         releaseDate: detail.releaseDate || '',
         status: detail.status || 'NOW_SHOWING',
-        ageRating: detail.ageRating || 'P',
+        ageRestriction: detail.ageRestriction || 'P',
         genreUuids: mappedGenreUuids,
         countryUuids: mappedCountryUuids,
         posterUrl: poster,
@@ -527,7 +527,7 @@ const MoviesPage = () => {
       durationMinutes: Number(formData.durationMinutes),
       releaseDate: formData.releaseDate,
       status: formData.status,
-      ageRating: formData.ageRating || 'P',
+      ageRestriction: formData.ageRestriction || 'P',
       genreUuids: formData.genreUuids,
       countryUuids: formData.countryUuids,
       streamingUrl: formData.streamingUrl.trim() || null,
@@ -759,9 +759,9 @@ const MoviesPage = () => {
                   {getCardStatusPill(movie.status)}
                 </div>
 
-                {movie.ageRating && (
-                  <div className={`absolute top-2 right-2 z-10 w-7 h-7 rounded font-black text-[10px] flex items-center justify-center shadow-lg ${getAgeBadgeClass(movie.ageRating)}`}>
-                    {movie.ageRating}
+                {movie.ageRestriction && (
+                  <div className={`absolute top-2 right-2 z-10 w-7 h-7 rounded font-black text-[10px] flex items-center justify-center shadow-lg ${getAgeBadgeClass(movie.ageRestriction)}`}>
+                    {movie.ageRestriction}
                   </div>
                 )}
 
@@ -1006,19 +1006,19 @@ const MoviesPage = () => {
                       onClick={() => setIsAgeDropdownOpen(!isAgeDropdownOpen)}
                       className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 flex items-center justify-between focus:outline-none focus:border-red-500/50 cursor-pointer h-[38px] transition-colors"
                     >
-                      <span>{ageRatingOptions.find(opt => opt.value === formData.ageRating)?.label || 'Chon lua tuoi...'}</span>
+                      <span>{ageRestrictionOptions.find(opt => opt.value === formData.ageRestriction)?.label || 'Chon lua tuoi...'}</span>
                       <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
                     </button>
                     {isAgeDropdownOpen && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setIsAgeDropdownOpen(false)}></div>
                         <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl py-1 animate-dropdown-fade-in">
-                          {ageRatingOptions.map(opt => (
+                          {ageRestrictionOptions.map(opt => (
                             <button
                               key={opt.value}
                               type="button"
-                              onClick={() => { setFormData(prev => ({ ...prev, ageRating: opt.value })); setIsAgeDropdownOpen(false); }}
-                              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-100 cursor-pointer ${formData.ageRating === opt.value ? 'text-red-600 font-bold bg-red-50/50' : 'text-gray-700'}`}
+                              onClick={() => { setFormData(prev => ({ ...prev, ageRestriction: opt.value })); setIsAgeDropdownOpen(false); }}
+                              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-100 cursor-pointer ${formData.ageRestriction === opt.value ? 'text-red-600 font-bold bg-red-50/50' : 'text-gray-700'}`}
                             >
                               <span>{opt.label}</span>
                             </button>
@@ -1155,7 +1155,7 @@ const MoviesPage = () => {
                     </div>
                     <div>
                       <span className="font-bold text-gray-400 uppercase tracking-wider text-[9px] block">Do tuoi</span>
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-red-100 border border-red-200 text-red-700 inline-block mt-0.5">{selectedDetailMovie.ageRating || 'P'}</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-red-100 border border-red-200 text-red-700 inline-block mt-0.5">{selectedDetailMovie.ageRestriction || 'P'}</span>
                     </div>
                     <div>
                       <span className="font-bold text-gray-400 uppercase tracking-wider text-[9px] block">Khoi chieu</span>
