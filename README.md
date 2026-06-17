@@ -178,7 +178,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 - [03_API_DESIGN.md](/F:/NasaFilm/docs/03_API_DESIGN.md)
 - [04_PROGRESS.md](/F:/NasaFilm/docs/04_PROGRESS.md)
 
-## 📝 Trung da sua Ghi chu
+## 📝 Trung1 da sua Ghi chu nay
 
 - Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
 - README này chỉ đóng vai trò hướng dẫn vào dự án; phần chi tiết nên đặt trong thư mục `docs/`.
