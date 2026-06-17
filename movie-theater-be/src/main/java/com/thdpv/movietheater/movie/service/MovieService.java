@@ -1,5 +1,7 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +18,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
@@ -47,6 +51,9 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -65,7 +72,7 @@ public class MovieService {
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
-                request.getReleaseDate(), request.getStatus(), request.getAgeRating());
+                request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
         movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
@@ -78,7 +85,7 @@ public class MovieService {
     public MovieDetailResponse updateMovie(UUID movieUuid, UpdateMovieRequest request, String operatorEmail) {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
-                request.getReleaseDate(), request.getStatus(), request.getAgeRating());
+                request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
         movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
 
         if (request.getGenreUuids() != null) {
@@ -123,7 +130,8 @@ public class MovieService {
         Pageable pageable = PageRequest.of(
                 Math.max(page, 0),
                 size > 0 ? size : 10,
-                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC, resolveSortBy(sortBy)));
+                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC,
+                        resolveSortBy(sortBy)));
 
         Specification<Movie> specification = (root, query, cb) -> {
             query.distinct(true);
@@ -162,29 +170,33 @@ public class MovieService {
             }
 
             if (cinemaUuid != null || showtimeDate != null) {
-                jakarta.persistence.criteria.Subquery<UUID> subquery = query.subquery(UUID.class);
-                jakarta.persistence.criteria.Root<com.thdpv.movietheater.booking.entity.Showtime> stRoot = subquery.from(com.thdpv.movietheater.booking.entity.Showtime.class);
+                Subquery<UUID> subquery = query.subquery(UUID.class);
+                Root<Showtime> stRoot = subquery
+                        .from(Showtime.class);
                 subquery.select(stRoot.get("movieUuid"));
-                List<jakarta.persistence.criteria.Predicate> subPredicates = new ArrayList<>();
+                List<Predicate> subPredicates = new ArrayList<>();
 
                 if (cinemaUuid != null) {
-                    jakarta.persistence.criteria.Root<com.thdpv.movietheater.cinema.entity.CinemaRoom> roomRoot = subquery.from(com.thdpv.movietheater.cinema.entity.CinemaRoom.class);
+                    Root<CinemaRoom> roomRoot = subquery
+                            .from(CinemaRoom.class);
                     subPredicates.add(cb.equal(stRoot.get("cinemaRoomUuid"), roomRoot.get("uuid")));
                     subPredicates.add(cb.equal(roomRoot.get("cinema").get("uuid"), cinemaUuid));
                 }
 
                 if (showtimeDate != null) {
-                    java.time.OffsetDateTime startOfDay = showtimeDate.atStartOfDay().atOffset(java.time.OffsetDateTime.now().getOffset());
-                    java.time.OffsetDateTime endOfDay = showtimeDate.plusDays(1).atStartOfDay().atOffset(java.time.OffsetDateTime.now().getOffset());
+                    OffsetDateTime startOfDay = showtimeDate.atStartOfDay()
+                            .atOffset(OffsetDateTime.now().getOffset());
+                    OffsetDateTime endOfDay = showtimeDate.plusDays(1).atStartOfDay()
+                            .atOffset(OffsetDateTime.now().getOffset());
                     subPredicates.add(cb.greaterThanOrEqualTo(stRoot.get("startTime"), startOfDay));
                     subPredicates.add(cb.lessThan(stRoot.get("startTime"), endOfDay));
                 }
 
-                subquery.where(subPredicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+                subquery.where(subPredicates.toArray(new Predicate[0]));
                 predicates.add(root.get("uuid").in(subquery));
             }
 
-            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         return movieRepository.findAll(specification, pageable)
@@ -281,7 +293,8 @@ public class MovieService {
     }
 
     @Transactional
-    public MovieMediaResponse updateMovieMedia(UUID movieUuid, UUID mediaUuid, MovieMediaRequest request, String operatorEmail) {
+    public MovieMediaResponse updateMovieMedia(UUID movieUuid, UUID mediaUuid, MovieMediaRequest request,
+            String operatorEmail) {
         MovieMedia movieMedia = movieMediaRepository.findByUuidAndMovie_Uuid(mediaUuid, movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Media phim khong ton tai"));
 
@@ -308,7 +321,7 @@ public class MovieService {
     }
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
-            java.time.LocalDate releaseDate, String status, String ageRating) {
+            LocalDate releaseDate, String status, String ageRating) {
         movie.setTitle(trim(title));
         movie.setDescription(trimToNull(description));
         movie.setDurationMinutes(durationMinutes);
@@ -319,12 +332,11 @@ public class MovieService {
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
         if (genreUuids == null) {
-            genreUuids = new java.util.ArrayList<>();
+            genreUuids = new ArrayList<>();
         }
         validateNoDuplicateUuids(genreUuids, "Genre bi trung");
 
-        // 1. Find and remove genres that are no longer selected
-        List<MovieGenre> toRemove = new java.util.ArrayList<>();
+        List<MovieGenre> toRemove = new ArrayList<>();
         for (MovieGenre mg : movie.getMovieGenres()) {
             if (!genreUuids.contains(mg.getGenre().getUuid())) {
                 toRemove.add(mg);
@@ -335,12 +347,11 @@ public class MovieService {
             mg.setMovie(null);
         }
 
-        // 2. Identify new genre UUIDs to be added
         Set<UUID> currentGenreUuids = movie.getMovieGenres().stream()
                 .map(mg -> mg.getGenre().getUuid())
                 .collect(Collectors.toSet());
 
-        List<UUID> toAddUuids = new java.util.ArrayList<>();
+        List<UUID> toAddUuids = new ArrayList<>();
         for (UUID uuid : genreUuids) {
             if (!currentGenreUuids.contains(uuid)) {
                 toAddUuids.add(uuid);
@@ -366,7 +377,6 @@ public class MovieService {
         }
         validateNoDuplicateUuids(countryUuids, "Country bi trung");
 
-        // 1. Find and remove countries that are no longer selected
         List<MovieCountry> toRemove = new java.util.ArrayList<>();
         for (MovieCountry mc : movie.getMovieCountries()) {
             if (!countryUuids.contains(mc.getCountry().getUuid())) {
@@ -378,7 +388,6 @@ public class MovieService {
             mc.setMovie(null);
         }
 
-        // 2. Identify new country UUIDs to be added
         Set<UUID> currentCountryUuids = movie.getMovieCountries().stream()
                 .map(mc -> mc.getCountry().getUuid())
                 .collect(Collectors.toSet());

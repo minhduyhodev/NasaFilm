@@ -31,7 +31,9 @@ public class UpdateMovieRequest {
     @Pattern(regexp = "^(DRAFT|COMING_SOON|NOW_SHOWING|ENDED|INACTIVE|DELETED)$", message = "Trang thai phim khong hop le")
     private String status;
 
-    private String ageRating;
+    @NotBlank(message = "Phân loại độ tuổi là bắt buộc")
+    @Pattern(regexp = "^(P|K|T13|T16|T18)$", message = "phan loai do tuoi khong hop le")
+    private String ageRestriction;
 
     private List<UUID> genreUuids;
 
@@ -50,17 +52,18 @@ public class UpdateMovieRequest {
     }
 
     public UpdateMovieRequest(String title, String description, Integer durationMinutes, LocalDate releaseDate,
-            String status, String ageRating, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieActorRequest> actors, List<MovieMediaRequest> medias) {
+            String status, String ageRestriction, List<UUID> genreUuids, List<UUID> countryUuids, List<MovieActorRequest> actors, List<MovieMediaRequest> medias, String streamingUrl) {
         this.title = title;
         this.description = description;
         this.durationMinutes = durationMinutes;
         this.releaseDate = releaseDate;
         this.status = status;
-        this.ageRating = ageRating;
+        this.ageRestriction = ageRestriction;
         this.genreUuids = genreUuids;
         this.countryUuids = countryUuids;
         this.actors = actors;
         this.medias = medias;
+        this.streamingUrl = streamingUrl;
     }
 
     public String getTitle() {
@@ -103,12 +106,12 @@ public class UpdateMovieRequest {
         this.status = status;
     }
 
-    public String getAgeRating() {
-        return ageRating;
+    public String getAgeRestriction() {
+        return ageRestriction;
     }
 
-    public void setAgeRating(String ageRating) {
-        this.ageRating = ageRating;
+    public void setAgeRestriction(String ageRestriction) {
+        this.ageRestriction = ageRestriction;
     }
 
     public List<UUID> getGenreUuids() {

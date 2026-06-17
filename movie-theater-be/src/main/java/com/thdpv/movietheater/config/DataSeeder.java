@@ -820,25 +820,16 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         // Create Cinema
-        Cinema cinema = new Cinema();
-        cinema.setUuid(cinemaUuid);
-        cinema.setName("NASA Landmark 81");
-        cinema.setAddress("Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM");
-        cinema.setPhoneNumber("19001080");
-        Cinema savedCinema = cinemaRepository.save(cinema);
+        jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
+                cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM", "19001080");
+        Cinema savedCinema = cinemaRepository.findById(cinemaUuid).get();
         logger.info("Seeded cinema: {}", savedCinema.getName());
 
         // Create Room 1 (matching default FE name)
         java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-        CinemaRoom room1 = new CinemaRoom();
-        room1.setUuid(room1Uuid);
-        room1.setCinema(savedCinema);
-        room1.setRoomCode("ROOM-IMAX");
-        room1.setName("Phòng chiếu IMAX");
-        room1.setRoomType(RoomType.IMAX);
-        room1.setStatus(CinemaRoomStatus.ACTIVE);
-        room1.setCapacity(0);
-        CinemaRoom savedRoom1 = cinemaRoomRepository.save(room1);
+        jdbcTemplate.update("INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                room1Uuid, cinemaUuid, "ROOM-IMAX", "Phòng chiếu IMAX", RoomType.IMAX.name(), CinemaRoomStatus.ACTIVE.name(), 0);
+        CinemaRoom savedRoom1 = cinemaRoomRepository.findById(room1Uuid).get();
         logger.info("Seeded room: {}", savedRoom1.getName());
 
         // Auto-generate seats for Room 1 (NASA Standard Layout)
@@ -847,15 +838,9 @@ public class DataSeeder implements CommandLineRunner {
 
         // Create Room 2
         java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-        CinemaRoom room2 = new CinemaRoom();
-        room2.setUuid(room2Uuid);
-        room2.setCinema(savedCinema);
-        room2.setRoomCode("ROOM-VIP");
-        room2.setName("Phòng chiếu VIP");
-        room2.setRoomType(RoomType.VIP);
-        room2.setStatus(CinemaRoomStatus.ACTIVE);
-        room2.setCapacity(0);
-        CinemaRoom savedRoom2 = cinemaRoomRepository.save(room2);
+        jdbcTemplate.update("INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                room2Uuid, cinemaUuid, "ROOM-VIP", "Phòng chiếu VIP", RoomType.VIP.name(), CinemaRoomStatus.ACTIVE.name(), 0);
+        CinemaRoom savedRoom2 = cinemaRoomRepository.findById(room2Uuid).get();
         logger.info("Seeded room: {}", savedRoom2.getName());
 
         // Auto-generate seats for Room 2 (NASA Standard Layout)

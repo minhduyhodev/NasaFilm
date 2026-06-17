@@ -167,7 +167,8 @@ class MovieControllerTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         mockMvc.perform(post("/api/admin/movies")
                         .with(user("admin@example.com").roles("ADMIN"))
@@ -208,7 +209,8 @@ class MovieControllerTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         mockMvc.perform(put("/api/admin/movies/{movieUuid}", movieUuid)
                         .with(user("admin@example.com").roles("ADMIN"))
