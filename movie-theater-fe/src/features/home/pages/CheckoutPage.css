@@ -21,10 +21,6 @@
   box-shadow: 0 0 20px rgba(251, 191, 36, 0.25);
 }
 
-.checkout-wrapper .material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;

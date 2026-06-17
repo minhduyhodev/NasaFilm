@@ -1,10 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
     background: radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.12) 0%, #060608 75%) no-repeat, #060608;
     background-attachment: fixed;
     @apply font-normal; /* 400 */

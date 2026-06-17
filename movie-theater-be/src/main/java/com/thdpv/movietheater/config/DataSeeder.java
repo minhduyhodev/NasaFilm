@@ -126,21 +126,35 @@ public class DataSeeder implements CommandLineRunner {
                             movie_uuid UUID NOT NULL,
                             cinema_room_uuid UUID NOT NULL,
                             start_time TIMESTAMPTZ NOT NULL,
-                            end_time TIMESTAMPTZ NOT NULL
+                            end_time TIMESTAMPTZ,
+                            base_price NUMERIC(21, 2) NOT NULL DEFAULT 0.00,
+                            status VARCHAR(50) DEFAULT 'DRAFT',
+                            created_at TIMESTAMPTZ,
+                            updated_at TIMESTAMPTZ
                         )
                     """);
+            jdbcTemplate.execute(
+                    "ALTER TABLE showtime ADD COLUMN IF NOT EXISTS base_price NUMERIC(21, 2) NOT NULL DEFAULT 0.00");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'DRAFT'");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ");
+            jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ");
 
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS booking (uuid UUID PRIMARY KEY, showtime_uuid UUID)");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS cinema_room (
                             uuid UUID PRIMARY KEY,
+                            room_code VARCHAR(255),
                             name VARCHAR(255) NOT NULL,
                             capacity INTEGER,
+                            room_type VARCHAR(255) NOT NULL DEFAULT 'STANDARD',
                             status VARCHAR(255),
                             cinema_uuid UUID NOT NULL
                         )
                     """);
+            jdbcTemplate.execute("ALTER TABLE cinema_room ADD COLUMN IF NOT EXISTS room_code VARCHAR(255)");
+            jdbcTemplate.execute(
+                    "ALTER TABLE cinema_room ADD COLUMN IF NOT EXISTS room_type VARCHAR(255) NOT NULL DEFAULT 'STANDARD'");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS seat_type (
@@ -158,9 +172,11 @@ public class DataSeeder implements CommandLineRunner {
                             row_name VARCHAR(5) NOT NULL,
                             seat_number INTEGER NOT NULL,
                             status VARCHAR(50) DEFAULT 'ACTIVE',
-                            seat_type_uuid UUID NOT NULL
+                            seat_type_uuid UUID NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE
                         )
                     """);
+            jdbcTemplate.execute("ALTER TABLE seat ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE");
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS seat_locked (
@@ -225,20 +241,25 @@ public class DataSeeder implements CommandLineRunner {
 
             // 1. Seed Cinema Rooms (JDBC Seed)
             java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class, cinemaUuid) == 0) {
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class,
+                    cinemaUuid) == 0) {
                 jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
                         cinemaUuid, "NASA Landmark 81 JDBC", "Landmark 81, HCM", "19001080");
             }
 
             java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
             java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-            
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room1Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
+                    room1Uuid) == 0) {
+                jdbcTemplate.update(
+                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
             }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class, room2Uuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
+                    room2Uuid) == 0) {
+                jdbcTemplate.update(
+                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
             }
 
@@ -304,6 +325,21 @@ public class DataSeeder implements CommandLineRunner {
                     comboUuid) == 0) {
                 jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
                         comboUuid, "Combo Bắp Nước", java.math.BigDecimal.valueOf(90000), "ACTIVE");
+            }
+
+            java.util.UUID comboSoloUuid = java.util.UUID.fromString("55555555-5555-5555-5555-666666666666");
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
+                    comboSoloUuid) == 0) {
+                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
+                        comboSoloUuid, "Combo Solo (1 Bắp + 1 Nước)", java.math.BigDecimal.valueOf(70000), "ACTIVE");
+            }
+
+            java.util.UUID comboFamilyUuid = java.util.UUID.fromString("55555555-5555-5555-5555-777777777777");
+            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
+                    comboFamilyUuid) == 0) {
+                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
+                        comboFamilyUuid, "Combo Gia Đình (2 Bắp + 4 Nước)", java.math.BigDecimal.valueOf(160000),
+                        "ACTIVE");
             }
 
             // 5. Seed Showtimes for movies
@@ -717,135 +753,146 @@ public class DataSeeder implements CommandLineRunner {
         // Clean up legacy random-UUID and duplicate cinemas to ensure clean state
         try {
             jdbcTemplate.update("""
-                DELETE FROM seat 
-                WHERE cinema_room_uuid IN (
-                    SELECT uuid FROM cinema_room 
-                    WHERE cinema_uuid IN (
-                        SELECT uuid FROM cinema 
-                        WHERE uuid <> '77777777-7777-7777-7777-777777777777' 
-                          AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
-                    )
-                )
-            """);
+                        DELETE FROM seat
+                        WHERE cinema_room_uuid IN (
+                            SELECT uuid FROM cinema_room
+                            WHERE cinema_uuid IN (
+                                SELECT uuid FROM cinema
+                                WHERE uuid <> '77777777-7777-7777-7777-777777777777'
+                                  AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                            )
+                        )
+                    """);
             jdbcTemplate.update("""
-                DELETE FROM cinema_room 
-                WHERE cinema_uuid IN (
-                    SELECT uuid FROM cinema 
-                    WHERE uuid <> '77777777-7777-7777-7777-777777777777' 
-                      AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
-                )
-            """);
-            jdbcTemplate.update("DELETE FROM cinema WHERE uuid <> '77777777-7777-7777-7777-777777777777' AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')");
-            
+                        DELETE FROM cinema_room
+                        WHERE cinema_uuid IN (
+                            SELECT uuid FROM cinema
+                            WHERE uuid <> '77777777-7777-7777-7777-777777777777'
+                              AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                        )
+                    """);
+            jdbcTemplate.update(
+                    "DELETE FROM cinema WHERE uuid <> '77777777-7777-7777-7777-777777777777' AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')");
+
             // Rename legacy names and types if they already exist with the fixed UUIDs
-            jdbcTemplate.update("UPDATE cinema SET name = 'NASA Landmark 81' WHERE uuid = '77777777-7777-7777-7777-777777777777'");
-            jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-IMAX', name = 'Phòng chiếu IMAX' WHERE uuid = '88888888-8888-8888-8888-888888888888'");
-            jdbcTemplate.update("UPDATE cinema_room SET room_code = 'ROOM-VIP', name = 'Phòng chiếu VIP' WHERE uuid = '99999999-9999-9999-9999-999999999999'");
-            // Self-healing for seat types: ensure standard seat types exist, migrate seat references, and clean up duplicates
+            jdbcTemplate.update(
+                    "UPDATE cinema SET name = 'NASA Landmark 81' WHERE uuid = '77777777-7777-7777-7777-777777777777'");
+            jdbcTemplate.update(
+                    "UPDATE cinema_room SET room_code = 'ROOM-IMAX', name = 'Phòng chiếu IMAX' WHERE uuid = '88888888-8888-8888-8888-888888888888'");
+            jdbcTemplate.update(
+                    "UPDATE cinema_room SET room_code = 'ROOM-VIP', name = 'Phòng chiếu VIP' WHERE uuid = '99999999-9999-9999-9999-999999999999'");
+            // Self-healing for seat types: ensure standard seat types exist, migrate seat
+            // references, and clean up duplicates
             jdbcTemplate.update("""
-                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'STANDARD', 85000, 1.0)
-                ON CONFLICT (uuid) DO NOTHING
-            """);
+                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                        VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'STANDARD', 85000, 1.0)
+                        ON CONFLICT (uuid) DO NOTHING
+                    """);
             jdbcTemplate.update("""
-                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'VIP', 120000, 1.0)
-                ON CONFLICT (uuid) DO NOTHING
-            """);
+                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                        VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'VIP', 120000, 1.0)
+                        ON CONFLICT (uuid) DO NOTHING
+                    """);
             jdbcTemplate.update("""
-                INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'COUPLE', 160000, 1.0)
-                ON CONFLICT (uuid) DO NOTHING
-            """);
+                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
+                        VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'COUPLE', 160000, 1.0)
+                        ON CONFLICT (uuid) DO NOTHING
+                    """);
 
             jdbcTemplate.update("""
-                UPDATE seat
-                SET seat_type_uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-                FROM seat_type
-                WHERE seat.seat_type_uuid = seat_type.uuid
-                  AND seat_type.name IN ('Ghế Thường', 'STANDARD')
-                  AND seat.seat_type_uuid <> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-            """);
+                        UPDATE seat
+                        SET seat_type_uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                        FROM seat_type
+                        WHERE seat.seat_type_uuid = seat_type.uuid
+                          AND seat_type.name IN ('Ghế Thường', 'STANDARD')
+                          AND seat.seat_type_uuid <> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+                    """);
             jdbcTemplate.update("""
-                UPDATE seat
-                SET seat_type_uuid = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-                FROM seat_type
-                WHERE seat.seat_type_uuid = seat_type.uuid
-                  AND seat_type.name IN ('Ghế VIP', 'VIP')
-                  AND seat.seat_type_uuid <> 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-            """);
+                        UPDATE seat
+                        SET seat_type_uuid = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                        FROM seat_type
+                        WHERE seat.seat_type_uuid = seat_type.uuid
+                          AND seat_type.name IN ('Ghế VIP', 'VIP')
+                          AND seat.seat_type_uuid <> 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+                    """);
             jdbcTemplate.update("""
-                UPDATE seat
-                SET seat_type_uuid = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
-                FROM seat_type
-                WHERE seat.seat_type_uuid = seat_type.uuid
-                  AND seat_type.name IN ('Ghế Đôi', 'COUPLE')
-                  AND seat.seat_type_uuid <> 'cccccccc-cccc-cccc-cccc-cccccccccccc'
-            """);
+                        UPDATE seat
+                        SET seat_type_uuid = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+                        FROM seat_type
+                        WHERE seat.seat_type_uuid = seat_type.uuid
+                          AND seat_type.name IN ('Ghế Đôi', 'COUPLE')
+                          AND seat.seat_type_uuid <> 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+                    """);
 
             jdbcTemplate.update("""
-                DELETE FROM seat_type
-                WHERE uuid NOT IN (
-                    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-                    'cccccccc-cccc-cccc-cccc-cccccccccccc'
-                )
-            """);
-            
-            // Self-healing: Update capacity of rooms to their actual active seat count if capacity <= 0
-            jdbcTemplate.update("""
-                UPDATE cinema_room cr
-                SET capacity = (SELECT COUNT(1) FROM seat s WHERE s.cinema_room_uuid = cr.uuid AND s.is_active = true)
-                WHERE cr.capacity <= 0 OR cr.capacity IS NULL
-            """);
+                        DELETE FROM seat_type
+                        WHERE uuid NOT IN (
+                            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                            'cccccccc-cccc-cccc-cccc-cccccccccccc'
+                        )
+                    """);
 
-            // Self-healing: Restore showtimes marked SOLD_OUT back to OPEN_FOR_BOOKING if booked seats < room capacity
+            // Self-healing: Update capacity of rooms to their actual active seat count if
+            // capacity <= 0
+            jdbcTemplate
+                    .update("""
+                                UPDATE cinema_room cr
+                                SET capacity = (SELECT COUNT(1) FROM seat s WHERE s.cinema_room_uuid = cr.uuid AND s.is_active = true)
+                                WHERE cr.capacity <= 0 OR cr.capacity IS NULL
+                            """);
+
+            // Self-healing: Restore showtimes marked SOLD_OUT back to OPEN_FOR_BOOKING if
+            // booked seats < room capacity
             jdbcTemplate.update("""
-                UPDATE showtime st
-                SET status = 'OPEN_FOR_BOOKING'
-                WHERE st.status = 'SOLD_OUT'
-                  AND (
-                      SELECT COUNT(1) FROM booking_seat bs WHERE bs.showtime_uuid = st.uuid
-                  ) < (
-                      SELECT cr.capacity FROM cinema_room cr WHERE cr.uuid = st.cinema_room_uuid
-                  )
-            """);
+                        UPDATE showtime st
+                        SET status = 'OPEN_FOR_BOOKING'
+                        WHERE st.status = 'SOLD_OUT'
+                          AND (
+                              SELECT COUNT(1) FROM booking_seat bs WHERE bs.showtime_uuid = st.uuid
+                          ) < (
+                              SELECT cr.capacity FROM cinema_room cr WHERE cr.uuid = st.cinema_room_uuid
+                          )
+                    """);
         } catch (Exception e) {
             logger.warn("Could not clean up, rename, or heal legacy cinema/showtime records: {}", e.getMessage());
         }
 
         java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-        if (cinemaRepository.existsById(cinemaUuid)) {
-            return;
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class, cinemaUuid) == 0) {
+            jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
+                    cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM",
+                    "19001080");
+            logger.info("Seeded cinema: NASA Landmark 81");
         }
-
-        // Create Cinema
-        jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
-                cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM", "19001080");
-        Cinema savedCinema = cinemaRepository.findById(cinemaUuid).get();
-        logger.info("Seeded cinema: {}", savedCinema.getName());
 
         // Create Room 1 (matching default FE name)
         java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-        jdbcTemplate.update("INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                room1Uuid, cinemaUuid, "ROOM-IMAX", "Phòng chiếu IMAX", RoomType.IMAX.name(), CinemaRoomStatus.ACTIVE.name(), 0);
-        CinemaRoom savedRoom1 = cinemaRoomRepository.findById(room1Uuid).get();
-        logger.info("Seeded room: {}", savedRoom1.getName());
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
+                room1Uuid) == 0) {
+            jdbcTemplate.update(
+                    "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
+            logger.info("Seeded room: Phòng chiếu IMAX");
 
-        // Auto-generate seats for Room 1 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom1.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom1.getName());
+            // Auto-generate seats for Room 1 (NASA Standard Layout)
+            cinemaService.generateSeats(room1Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: ROOM-IMAX");
+        }
 
         // Create Room 2
         java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-        jdbcTemplate.update("INSERT INTO cinema_room (uuid, cinema_uuid, room_code, name, room_type, status, capacity) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                room2Uuid, cinemaUuid, "ROOM-VIP", "Phòng chiếu VIP", RoomType.VIP.name(), CinemaRoomStatus.ACTIVE.name(), 0);
-        CinemaRoom savedRoom2 = cinemaRoomRepository.findById(room2Uuid).get();
-        logger.info("Seeded room: {}", savedRoom2.getName());
+        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
+                room2Uuid) == 0) {
+            jdbcTemplate.update(
+                    "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
+            logger.info("Seeded room: Phòng chiếu VIP");
 
-        // Auto-generate seats for Room 2 (NASA Standard Layout)
-        cinemaService.generateSeats(savedRoom2.getUuid(), null);
-        logger.info("Auto-generated NASA Standard seats for room: {}", savedRoom2.getName());
+            // Auto-generate seats for Room 2 (NASA Standard Layout)
+            cinemaService.generateSeats(room2Uuid, null);
+            logger.info("Auto-generated NASA Standard seats for room: ROOM-VIP");
+        }
     }
 
     private void repairOrphanBookingSeats() {

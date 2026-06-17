@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -107,7 +108,7 @@ const CheckoutPage = () => {
   const movieInfo = getMovieInfo(movie);
 
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [hasCombo, setHasCombo] = useState(false);
+  const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -177,19 +178,15 @@ const CheckoutPage = () => {
     }
   }, [location.state?.lockExpiresAt]);
 
-  const activeCombo = combosList.find(c => c.name.toLowerCase().includes("bắp nước") || c.uuid === "55555555-5555-5555-5555-555555555555") || {
-    uuid: "55555555-5555-5555-5555-555555555555",
-    name: "Combo Bắp Nước",
-    price: 90000
-  };
-  const comboOriginalPrice = activeCombo.price;
   const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
   const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
-  const comboDiscountAmount = hasCombo ? Math.round(comboOriginalPrice * memberDiscountRate) : 0;
+  const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
+  const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
+  const hasCombo = checkoutCombos.length > 0;
   
   const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + (hasCombo ? comboPrice : 0);
+  const subtotal = ticketSum + comboPrice;
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -265,7 +262,7 @@ const CheckoutPage = () => {
     setIsPaying(true);
     try {
       const seatUuids = selectedSeats.map(s => s.seatUuid);
-      const combos = hasCombo ? [{ comboUuid: activeCombo.uuid, quantity: 1 }] : [];
+      const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
       
       const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
       
@@ -314,7 +311,7 @@ const CheckoutPage = () => {
           className="mb-8 flex items-center gap-2 group cursor-pointer w-fit" 
           onClick={() => navigate(-1)}
         >
-          <span className="material-symbols-outlined text-[#c8c6c8] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
           <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">Quay lại chọn ghế</span>
         </div>
 
@@ -332,15 +329,15 @@ const CheckoutPage = () => {
                     <h3 className="text-2xl font-black text-white leading-tight uppercase tracking-wide mb-2">{movie}</h3>
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2.5 text-[#c8c5ca]">
-                        <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                        <Calendar className="w-4.5 h-4.5 text-rose-500 shrink-0" />
                         <span className="text-xs font-semibold">{date}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-[#c8c5ca]">
-                        <span className="material-symbols-outlined text-[18px]">schedule</span>
+                        <Clock className="w-4.5 h-4.5 text-cyan-400 shrink-0" />
                         <span className="text-xs font-semibold">{showtime} • {theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP'}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-yellow-400 font-bold">
-                        <span className="material-symbols-outlined text-[18px] fill-current">event_seat</span>
+                        <Armchair className="w-4.5 h-4.5 text-yellow-500 fill-yellow-500/10 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-wide">Ghế: {selectedSeats.map(s => s.id).join(', ')}</span>
                       </div>
                     </div>
@@ -376,30 +373,24 @@ const CheckoutPage = () => {
 
 
 
-                {/* Combo pack selection toggle */}
+                {/* Selected Combo packs breakdown */}
                 <div className="pt-4 border-t border-white/5 space-y-3">
-                  <label className="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group active:scale-[0.99]">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        checked={hasCombo} 
-                        onChange={(e) => setHasCombo(e.target.checked)}
-                        className="rounded border-white/20 bg-transparent text-red-600 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-white block">Thêm {activeCombo.name}</span>
-                        <span className="text-[10px] font-semibold text-gray-400">
-                          1 Bắp lớn + 2 Nước ngọt cỡ vừa (Thành viên: {memberTier} -{memberDiscountRate * 100}%)
-                        </span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                  {checkoutCombos.length === 0 ? (
+                    <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
+                      Không mua kèm bắp nước.
+                    </div>
+                  ) : (
+                    checkoutCombos.map(combo => (
+                      <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                        <div>
+                          <span className="text-xs font-bold text-white block">{combo.name}</span>
+                          <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      {hasCombo && (
-                        <span className="text-[10px] line-through text-gray-500 block">{(comboOriginalPrice).toLocaleString('vi-VN')} đ</span>
-                      )}
-                      <span className="text-xs font-extrabold text-yellow-400">{(comboPrice).toLocaleString('vi-VN')} đ</span>
-                    </div>
-                  </label>
+                    ))
+                  )}
                 </div>
 
                 {hasCombo && (
@@ -436,7 +427,7 @@ const CheckoutPage = () => {
                     : 'bg-amber-500/10 border-amber-500/20 text-amber-500'
                 }`}>
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    <Clock className={`w-4 h-4 shrink-0 ${timeLeft < 60 ? 'text-red-500' : 'text-amber-500'}`} />
                     <span>Thời gian thanh toán còn lại:</span>
                   </div>
                   <span className="font-mono text-sm font-black">
@@ -467,7 +458,7 @@ const CheckoutPage = () => {
                     <div className="text-xs font-bold text-white">Số dư tài khoản</div>
                     <div className="text-[10px] font-semibold text-gray-400">Ví credits (Đang có: 500.000 đ)</div>
                   </div>
-                  <span className="material-symbols-outlined text-red-500 fill-current">account_balance_wallet</span>
+                  <Wallet className="w-5 h-5 text-red-500 shrink-0 fill-red-500/10" />
                 </label>
 
                 {/* Credit Card */}
@@ -490,7 +481,7 @@ const CheckoutPage = () => {
                     <div className="text-xs font-bold text-white">Thẻ Quốc Tế Visa/Mastercard</div>
                     <div className="text-[10px] font-semibold text-gray-400">Visa liên kết đuôi **** 4429</div>
                   </div>
-                  <span className="material-symbols-outlined text-[#c8c5ca]">credit_card</span>
+                  <CreditCard className="w-5 h-5 text-[#c8c5ca] group-hover:text-white transition-colors shrink-0" />
                 </label>
 
                 {/* Apple Pay / MoMo */}
@@ -513,7 +504,7 @@ const CheckoutPage = () => {
                     <div className="text-xs font-bold text-white">Ví Điện Tử (MoMo / ZaloPay)</div>
                     <div className="text-[10px] font-semibold text-gray-400">Thanh toán nhanh chóng, an toàn</div>
                   </div>
-                  <span className="material-symbols-outlined text-[#c8c5ca]">account_balance</span>
+                  <Landmark className="w-5 h-5 text-[#c8c5ca] group-hover:text-white transition-colors shrink-0" />
                 </label>
               </div>
 
@@ -537,7 +528,7 @@ const CheckoutPage = () => {
                 </div>
                 {voucherError && (
                   <p className="text-[10px] text-red-500 font-semibold mt-2 ml-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">info</span> {voucherError}
+                    <Info className="w-3.5 h-3.5 text-red-500 shrink-0" /> {voucherError}
                   </p>
                 )}
 
@@ -627,7 +618,7 @@ const CheckoutPage = () => {
       {isExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="glass-panel p-8 rounded-2xl max-w-sm w-full text-center border border-red-500/30 bg-[#111215] shadow-2xl space-y-4">
-            <span className="material-symbols-outlined text-red-500 text-5xl">warning</span>
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto animate-bounce shrink-0" />
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
               Đã quá 5 phút giữ ghế kể từ lúc chọn. Ghế của bạn đã được giải phóng để người khác chọn. Vui lòng quay lại để chọn ghế mới.

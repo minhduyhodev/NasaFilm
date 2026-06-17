@@ -57,9 +57,6 @@ export default function App() {
               {/* Legacy auth routes */}
               <Route path="/auth/*" element={<AuthRoutes />} />
 
-              {/* Home routes */}
-              <Route path="/*" element={<HomeRoutes />} />
-
               {/* Admin routes — chỉ ADMIN và STAFF mới được vào */}
               <Route
                 path="/admin/*"
@@ -69,6 +66,10 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Home routes */}
+              <Route path="/*" element={<HomeRoutes />} />
+
 
               {/* Unauthorized page */}
               <Route path="/unauthorized" element={<UnauthorizedPage />} />

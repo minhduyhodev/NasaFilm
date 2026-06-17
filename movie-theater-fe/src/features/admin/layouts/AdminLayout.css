@@ -342,19 +342,63 @@
 }
 
 /* Button in Movie Radar card */
-.admin-light-theme .grid.lg\:grid-cols-3 > div button.w-full {
+.grid.lg\:grid-cols-3 > div button.w-full {
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #d1d5db !important; /* text-gray-300 */
 }
 
-.admin-light-theme .grid.lg\:grid-cols-3 > div button.w-full:hover {
+.grid.lg\:grid-cols-3 > div button.w-full:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
 }
 
+/* ==========================================
+   GLOBAL DARK NAVY THEME OVERRIDES
+   ========================================== */
 
+/* Main cards, containers, tables, lists */
+.bg-\[\#0B0F19\],
+.bg-\[\#0B0F19\]\/50,
+.bg-\[\#0B0F19\]\/60,
+.bg-\[\#0B0F19\]\/70,
+.bg-\[\#0B0F19\]\/80,
+.bg-\[\#0B0F19\]\/90,
+.bg-\[\#121826\],
+.bg-\[\#121826\]\/70,
+.bg-\[\#0F1322\],
+.bg-\[\#0F1322\]\/50,
+.bg-\[\#0F1322\]\/80,
+.bg-\[\#0E131F\]\/40,
+.bg-\[\#090D1A\],
+.bg-\[\#0B1020\] {
+  background-color: #1c2333 !important;
+}
 
+/* Inputs, Select fields, search boxes */
+input.bg-\[\#0F1322\],
+select.bg-\[\#0F1322\],
+textarea.bg-\[\#0F1322\],
+input.bg-\[\#1E293B\],
+select.bg-\[\#1E293B\],
+.bg-\[\#1E293B\] {
+  background-color: #0f172a !important;
+  border-color: #242d42 !important;
+}
 
+/* Buttons like pagination arrow clicks */
+.bg-\[\#1E293B\]\/40 {
+  background-color: #242d42 !important;
+  border-color: #334155 !important;
+}
 
+/* Globally unify borders to a subtle dark blue-gray */
+.border-\[\#1A2238\],
+.border-\[\#1E293B\],
+.border-\[\#1E293B\]\/20,
+.border-\[\#1E293B\]\/30,
+.border-\[\#1E293B\]\/40,
+.border-\[\#334155\]\/60 {
+  border-color: #242d42 !important;
+}

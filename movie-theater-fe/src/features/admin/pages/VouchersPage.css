@@ -74,7 +74,7 @@
 
 /* Modal styles overrides for users features */
 .modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto transition-all duration-300;
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto transition-all duration-300;
 }
 
 .modal-content {

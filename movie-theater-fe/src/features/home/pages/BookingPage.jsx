@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Star, X } from 'lucide-react';
+import { Star, X, AlertTriangle, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -237,7 +237,7 @@ const BookingPage = () => {
     setIsConfirming(true);
     setTimeout(() => {
       setIsConfirming(false);
-      navigate('/checkout', {
+      navigate('/concessions', {
         state: {
           showtimeUuid,
           theater,
@@ -380,7 +380,7 @@ const BookingPage = () => {
           {/* Gap Violation Warning */}
           {hasGapViolation && (
             <div className="w-full mt-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in">
-              <span className="material-symbols-outlined text-sm">warning</span>
+              <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
               <span>Không được để trống 1 ghế đơn bị kẹp giữa các ghế đã chọn/đã đặt. Vui lòng chọn ghế trống đó hoặc thay đổi vị trí ghế.</span>
             </div>
           )}
@@ -426,7 +426,7 @@ const BookingPage = () => {
             {timeLeft !== null && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold mb-4 animate-pulse">
                 <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  <Clock className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>Thời gian giữ ghế:</span>
                 </div>
                 <span className="font-mono text-sm font-black">
