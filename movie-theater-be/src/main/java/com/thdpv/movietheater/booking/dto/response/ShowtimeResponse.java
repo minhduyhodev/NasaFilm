@@ -18,6 +18,8 @@ public class ShowtimeResponse {
     private BigDecimal basePrice;
     private ShowtimeStatus status;
 
+    private String moviePosterUrl;
+
     public ShowtimeResponse() {
     }
 
@@ -25,6 +27,20 @@ public class ShowtimeResponse {
         this.uuid = uuid;
         this.movieUuid = movieUuid;
         this.movieTitle = movieTitle;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.cinemaRoomName = cinemaRoomName;
+        this.cinemaName = cinemaName;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.basePrice = basePrice;
+        this.status = status;
+    }
+
+    public ShowtimeResponse(UUID uuid, UUID movieUuid, String movieTitle, String moviePosterUrl, UUID cinemaRoomUuid, String cinemaRoomName, String cinemaName, OffsetDateTime startTime, OffsetDateTime endTime, BigDecimal basePrice, ShowtimeStatus status) {
+        this.uuid = uuid;
+        this.movieUuid = movieUuid;
+        this.movieTitle = movieTitle;
+        this.moviePosterUrl = moviePosterUrl;
         this.cinemaRoomUuid = cinemaRoomUuid;
         this.cinemaRoomName = cinemaRoomName;
         this.cinemaName = cinemaName;
@@ -112,5 +128,13 @@ public class ShowtimeResponse {
 
     public void setStatus(ShowtimeStatus status) {
         this.status = status;
+    }
+
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
+
+    public void setMoviePosterUrl(String moviePosterUrl) {
+        this.moviePosterUrl = moviePosterUrl;
     }
 }
