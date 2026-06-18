@@ -24,6 +24,7 @@ import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -180,8 +181,24 @@ public class ShowtimeService {
                 .collect(Collectors.toList());
     }
 
+    private String resolvePrimaryMediaUrl(Movie movie) {
+        if (movie == null || movie.getMovieMedias() == null) {
+            return null;
+        }
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
+    }
+
     private ShowtimeResponse toShowtimeResponse(Showtime showtime, Movie movie, CinemaRoom room) {
         String movieTitle = movie != null ? movie.getTitle() : "Unkown Movie";
+        String moviePosterUrl = resolvePrimaryMediaUrl(movie);
         String roomName = room != null ? room.getName() : "Unknown Room";
         String cinemaName = (room != null && room.getCinema() != null) ? room.getCinema().getName() : "Unknown Cinema";
 
@@ -189,6 +206,7 @@ public class ShowtimeService {
                 showtime.getUuid(),
                 showtime.getMovieUuid(),
                 movieTitle,
+                moviePosterUrl,
                 showtime.getCinemaRoomUuid(),
                 roomName,
                 cinemaName,

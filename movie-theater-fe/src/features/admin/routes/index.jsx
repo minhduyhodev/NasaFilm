@@ -22,13 +22,13 @@ export const AdminRoutes = () => {
   return (
     <Suspense fallback={<AdminPageLoader />}>
       <Routes>
+        <Route path="cinemas" element={<CinemasPage />} />
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="actors" element={<ActorsPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
-          <Route path="cinemas" element={<CinemasPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
           <Route path="combos" element={<AdminCombosPage />} />

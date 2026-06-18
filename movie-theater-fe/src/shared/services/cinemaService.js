@@ -86,6 +86,15 @@ class CinemaService {
       throw authService.handleError(error);
     }
   }
+
+  async updateSeat(seatUuid, data) {
+    try {
+      const response = await authService.api.put(`/api/admin/seats/${seatUuid}`, data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const cinemaService = new CinemaService();

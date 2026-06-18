@@ -529,75 +529,103 @@ const ShowtimesPage = () => {
   const renderCard = (row) => {
     const trans = getValidTransitions(row.status);
     const isSelected = selectedIds.has(row.uuid);
+    
+    // Resolve poster URL
+    const movieObj = movies.find(m => m.uuid === row.movieUuid);
+    const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
 
     return (
       <div
         key={row.uuid}
-        className={`st-card status-${row.status} ${isSelected ? 'selected' : ''}`}
+        className={`st-card status-${row.status} ${isSelected ? 'selected' : ''} flex gap-4`}
       >
-        {/* Top row: checkbox + status + time */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2.5">
+        {/* Left: Movie Poster & Checkbox */}
+        <div className="flex flex-col items-center gap-2 shrink-0">
+          <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg overflow-hidden border border-[#1a2238] bg-[#0F1322] relative shadow-md">
+            <img
+              src={posterUrl}
+              alt={row.movieTitle}
+              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = FALLBACK_POSTER;
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
             <input
               type="checkbox"
-              className="st-checkbox"
+              className="st-checkbox cursor-pointer"
               checked={isSelected}
               onChange={() => toggleSelection(row.uuid)}
             />
-            <StatusBadge status={row.status} />
-          </div>
-          <div className="flex items-center gap-1.5 text-white font-mono text-sm font-bold">
-            <Clock className="w-3.5 h-3.5 text-gray-500" />
-            {formatTimeOnly(row.startTime)}
-            <span className="text-gray-600">→</span>
-            <span className="text-gray-400 font-semibold">{formatTimeOnly(row.endTime)}</span>
+            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">Chọn</span>
           </div>
         </div>
 
-        {/* Movie title */}
-        <h3 className="text-[13px] font-extrabold text-white leading-snug line-clamp-2 mb-1.5">
-          {row.movieTitle}
-        </h3>
+        {/* Right: Showtime details */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+          <div>
+            {/* Top row: StatusBadge + Time */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <StatusBadge status={row.status} />
+              <div className="flex items-center gap-1 text-white font-mono text-xs font-bold bg-[#0F1322]/80 px-2 py-0.5 rounded border border-[#1a2238]">
+                <Clock className="w-3 h-3 text-gray-400" />
+                <span>{formatTimeOnly(row.startTime)}</span>
+                <span className="text-gray-500">→</span>
+                <span className="text-gray-400">{formatTimeOnly(row.endTime)}</span>
+              </div>
+            </div>
 
-        {/* Cinema + Room */}
-        <div className="flex items-center gap-2 text-gray-400 text-xs mb-3">
-          <MapPin className="w-3 h-3 shrink-0 text-gray-500" />
-          <span className="truncate">{row.cinemaName}</span>
-          <span className="text-gray-600">•</span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-semibold">
-            <Tv className="w-2.5 h-2.5" />{row.cinemaRoomName}
-          </span>
-        </div>
+            {/* Movie Title */}
+            <h3 className="text-xs sm:text-[13px] font-black text-white leading-snug line-clamp-2 mb-1.5" title={row.movieTitle}>
+              {row.movieTitle}
+            </h3>
 
-        {/* Price */}
-        <div className="mb-3">
-          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-0.5">Giá vé</p>
-          <p className="text-amber-400 font-mono text-sm font-black">{row.basePrice?.toLocaleString('vi-VN')}đ</p>
-        </div>
+            {/* Cinema & Room */}
+            <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mb-2">
+              <MapPin className="w-3 h-3 shrink-0 text-gray-500" />
+              <span className="truncate max-w-[100px]">{row.cinemaName}</span>
+              <span className="text-gray-600">•</span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-bold">
+                <Tv className="w-2.5 h-2.5" />{row.cinemaRoomName}
+              </span>
+            </div>
 
-        {/* Date */}
-        <div className="text-[10px] text-gray-500 mb-2">
-          {row.startTime ? new Date(row.startTime).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
-        </div>
-
-        {/* Actions */}
-        {trans.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-[#1a2238]">
-            {trans.map(t => (
-              <button
-                key={t.target}
-                onClick={() => handleStatusTransition(row.uuid, t.target)}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition duration-150 cursor-pointer ${getTransitionBtnClass(t.target)}`}
-              >
-                {t.label}
-              </button>
-            ))}
+            {/* Price & Date */}
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Giá vé</p>
+                <p className="text-amber-400 font-mono text-xs font-black">{row.basePrice?.toLocaleString('vi-VN')}đ</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Ngày chiếu</p>
+                <p className="text-gray-400 font-mono text-[10px] font-bold">
+                  {row.startTime ? formatDateShort(new Date(row.startTime)) : ''} ({row.startTime ? formatWeekday(new Date(row.startTime)) : ''})
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="pt-1 border-t border-[#1a2238]">
-            <p className="text-[11px] text-gray-600 italic">Trạng thái cuối — không thể thay đổi</p>
+
+          {/* Actions */}
+          <div className="mt-1 pt-1.5 border-t border-[#1a2238]/60 flex justify-end">
+            {trans.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {trans.map(t => (
+                  <button
+                    key={t.target}
+                    onClick={() => handleStatusTransition(row.uuid, t.target)}
+                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition duration-150 cursor-pointer ${getTransitionBtnClass(t.target)}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[9px] text-gray-600 italic">Trạng thái cuối</p>
+            )}
           </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -664,12 +692,22 @@ const ShowtimesPage = () => {
                   <DoorOpen className="w-3.5 h-3.5 text-blue-400" />
                   <span className="text-xs font-bold text-blue-400 uppercase">{roomName}</span>
                 </div>
-                {Object.entries(movieMap).map(([movieTitle, sts]) => (
-                  <div key={movieTitle} className="ml-5 mb-3">
-                    <p className="text-xs font-bold text-white/80 mb-2 flex items-center gap-2">
-                      <Film className="w-3 h-3 text-rose-400" />{movieTitle}
-                    </p>
-                    <div className="flex flex-wrap gap-2 ml-5">
+                {Object.entries(movieMap).map(([movieTitle, sts]) => {
+                  const firstSt = sts[0];
+                  const movieObj = movies.find(m => m.uuid === firstSt?.movieUuid);
+                  const posterUrl = movieObj?.primaryMediaUrl || firstSt?.moviePosterUrl || FALLBACK_POSTER;
+                  return (
+                    <div key={movieTitle} className="ml-5 mb-3">
+                      <div className="text-xs font-bold text-white/80 mb-2 flex items-center gap-2">
+                        <img
+                          src={posterUrl}
+                          alt=""
+                          className="w-6 h-8 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0"
+                          onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                        />
+                        <span>{movieTitle}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 ml-8">
                       {sts.map(st => (
                         <div
                           key={st.uuid}
@@ -702,7 +740,8 @@ const ShowtimesPage = () => {
                       ))}
                     </div>
                   </div>
-                ))}
+                );
+              })}`
               </div>
             ))}
           </div>
@@ -746,12 +785,25 @@ const ShowtimesPage = () => {
         paginatedShowtimes.map(row => {
           const trans = getValidTransitions(row.status);
           const isSelected = selectedIds.has(row.uuid);
+          const movieObj = movies.find(m => m.uuid === row.movieUuid);
+          const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
           return (
             <div key={row.uuid} className={`list-row ${isSelected ? 'selected' : ''}`}>
               <div>
                 <input type="checkbox" className="st-checkbox" checked={isSelected} onChange={() => toggleSelection(row.uuid)} />
               </div>
-              <div className="font-bold text-white text-xs truncate">{row.movieTitle}</div>
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={posterUrl}
+                  alt=""
+                  className="w-8 h-10 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0 shadow-sm"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = FALLBACK_POSTER;
+                  }}
+                />
+                <span className="font-bold text-white text-xs truncate" title={row.movieTitle}>{row.movieTitle}</span>
+              </div>
               <div className="text-xs text-gray-400 truncate">
                 <span>{row.cinemaName}</span>
                 <span className="block text-blue-400 text-[10px]">{row.cinemaRoomName}</span>
