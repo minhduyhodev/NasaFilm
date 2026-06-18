@@ -196,3 +196,34 @@
 .btn-submit {
   @apply rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
 }
+
+/* ---- KPI Card ---- */
+.kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  border-color: #334155;
+  transform: translateY(-1px);
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.kpi-card.kpi-revenue::after { background: linear-gradient(90deg, #ec4899, #f472b6); }
+.kpi-card.kpi-conversion::after { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card.kpi-growth::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.kpi-card.kpi-transactions::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+

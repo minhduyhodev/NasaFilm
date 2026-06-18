@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Loader2, X, Play, Pause, 
-  FastForward, Check, Upload, Image as ImageIcon
+  FastForward, Check, Upload, Image as ImageIcon, ChevronDown
 } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -12,6 +12,7 @@ const AdminCombosPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -205,17 +206,21 @@ const AdminCombosPage = () => {
     }
   };
 
+  const statusOptions = [
+    { value: 'all', label: 'Tất cả bắp nước', icon: <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 shrink-0" /> },
+    { value: 'active', label: 'Hoạt động', icon: <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shrink-0" /> },
+    { value: 'inactive', label: 'Vô hiệu hóa', icon: <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 shrink-0" /> }
+  ];
+  const currentStatusOpt = statusOptions.find(opt => opt.value === statusFilter) || statusOptions[0];
+
   return (
-    <div className="flex flex-col gap-6 text-left">
+    <div className="space-y-6 text-left">
       {/* HEADER PAGE */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-white uppercase tracking-wider font-heading">
-            Quản lý Bắp Nước
-          </h1>
-          <p className="text-[11px] text-gray-500 font-semibold mt-0.5">
-            Xem danh mục, điều chỉnh giá bán và trạng thái bán bắp nước đi kèm phim.
-          </p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Quản Lý Dịch Vụ</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Bắp Nước</h1>
+          <p className="text-sm text-gray-400 mt-2">Xem danh mục, điều chỉnh giá bán và trạng thái bán bắp nước đi kèm phim.</p>
         </div>
 
         <button
@@ -227,36 +232,56 @@ const AdminCombosPage = () => {
       </div>
 
       {/* FILTER & SEARCH */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center bg-[#0B0F19]/30 border border-[#1A2238]/60 p-4 rounded-xl">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
           <input
             type="text"
+            autoComplete="off"
             placeholder="Tìm kiếm bắp nước theo tên, mô tả..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-all duration-200"
+            className="w-full rounded-lg bg-[#0f172a] border border-[#242d42] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { value: 'all', label: 'Tất cả' },
-            { value: 'active', label: 'Hoạt động' },
-            { value: 'inactive', label: 'Vô hiệu hóa' }
-          ].map(opt => (
+        <div className="flex items-center gap-2 sm:ml-auto">
+          {/* Status Filter */}
+          <div className="relative text-left z-30">
             <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`rounded-lg px-4 py-2 text-xs font-bold transition cursor-pointer ${
-                statusFilter === opt.value
-                  ? 'bg-red-600 text-white'
-                  : 'bg-[#0F1322] border border-[#1A2238] text-gray-400 hover:text-white'
-              }`}
+              type="button"
+              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f172a] border border-[#242d42] text-gray-300 text-xs font-semibold hover:text-white hover:border-[#475569] focus:outline-none transition-all duration-200 cursor-pointer min-w-[160px] h-[34px] justify-between"
             >
-              {opt.label}
+              <span className="flex items-center">
+                {currentStatusOpt.icon}
+                <span>{currentStatusOpt.label}</span>
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-          ))}
+
+            {isStatusDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsStatusDropdownOpen(false)}></div>
+                <div className="absolute right-0 mt-1 w-44 bg-[#1c2333] border border-[#242d42] rounded-lg shadow-xl p-1.5 space-y-0.5 animate-dropdown-fade-in z-20 text-left">
+                  {statusOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(opt.value);
+                        setIsStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 rounded-md hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer ${statusFilter === opt.value ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'text-gray-300 border border-transparent'}`}
+                    >
+                      {opt.icon}
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -357,17 +382,19 @@ const AdminCombosPage = () => {
 
       {/* MODAL THÊM / SỬA */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-[#0b0f19] border border-[#1a2238] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in my-8 text-left">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => !isSubmitting && setIsModalOpen(false)} />
+          <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in my-8 text-left relative z-10">
             
             {/* Header Modal */}
-            <div className="p-5 border-b border-[#1A2238] flex items-center justify-between bg-black/20">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">
                 {selectedCombo ? `Chỉnh sửa: ${selectedCombo.name}` : "Tạo Combo Bắp Nước Mới"}
               </h3>
               <button
+                type="button"
                 onClick={() => !isSubmitting && setIsModalOpen(false)}
-                className="text-gray-400 hover:text-white rounded-lg p-1 transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 rounded-lg p-1 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -379,20 +406,20 @@ const AdminCombosPage = () => {
                 
                 {/* Tên Combo */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tên gói Combo *</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tên gói Combo *</label>
                   <input
                     type="text"
                     required
                     placeholder="Ví dụ: Combo Solo, Combo Gia Đình..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-colors"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors"
                   />
                 </div>
 
                 {/* Giá tiền */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Đơn giá bán (VNĐ) *</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Đơn giá bán (VNĐ) *</label>
                   <input
                     type="number"
                     required
@@ -401,25 +428,25 @@ const AdminCombosPage = () => {
                     placeholder="Ví dụ: 90000, 160000..."
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-colors font-mono"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors font-mono"
                   />
                 </div>
 
                 {/* Mô tả */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mô tả chi tiết các sản phẩm</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mô tả chi tiết các sản phẩm</label>
                   <textarea
                     placeholder="Ví dụ: Gồm 1 bắp lớn vị ngọt + 2 ly Coca cỡ vừa..."
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-colors resize-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500/50 focus:bg-white transition-colors resize-none"
                   />
                 </div>
 
                 {/* File Upload & Preview Area */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Hình ảnh minh họa</label>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Hình ảnh minh họa</label>
                   
                   {/* Drag and Drop Zone */}
                   <div
@@ -430,8 +457,8 @@ const AdminCombosPage = () => {
                       dragOver 
                         ? 'border-red-500 bg-red-500/5 scale-[0.99]' 
                         : previewUrl 
-                          ? 'border-white/15 bg-white/[0.02]' 
-                          : 'border-white/10 hover:border-white/20 bg-white/5'
+                          ? 'border-gray-200 bg-gray-50' 
+                          : 'border-gray-200 hover:border-gray-300 bg-gray-50'
                     }`}
                   >
                     {previewUrl ? (
@@ -456,20 +483,20 @@ const AdminCombosPage = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center text-center space-y-2">
-                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
                           <Upload size={18} />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white">
+                          <p className="text-xs font-bold text-gray-700">
                             Kéo thả ảnh vào đây hoặc click để chọn
                           </p>
-                          <p className="text-[9px] text-gray-500 mt-1">
+                          <p className="text-[9px] text-gray-400 mt-1">
                             Hỗ trợ tệp PNG, JPG, JPEG chất lượng cao.
                           </p>
                         </div>
                         <label
                           htmlFor="modal-file-input"
-                          className="px-4 py-2 border border-white/10 hover:border-white/20 bg-white/5 text-[10px] text-gray-300 font-bold rounded-lg cursor-pointer transition-colors active:scale-95 mt-1"
+                          className="px-4 py-2 border border-gray-200 hover:border-gray-350 bg-white text-[10px] text-gray-600 font-bold rounded-lg cursor-pointer transition-colors active:scale-95 mt-1"
                         >
                           Duyệt tập tin
                         </label>
@@ -487,10 +514,10 @@ const AdminCombosPage = () => {
                 </div>
 
                 {/* Trạng thái hoạt động */}
-                <div className="flex items-center justify-between p-3.5 bg-white/5 border border-white/5 rounded-xl mt-4">
+                <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl mt-4">
                   <div>
-                    <span className="text-xs font-bold text-white block">Trạng thái bán</span>
-                    <span className="text-[10px] text-gray-500">Mở bán gói combo này ngay lập tức.</span>
+                    <span className="text-xs font-bold text-gray-800 block">Trạng thái bán</span>
+                    <span className="text-[10px] text-gray-400">Mở bán gói combo này ngay lập tức.</span>
                   </div>
                   
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -500,19 +527,19 @@ const AdminCombosPage = () => {
                       onChange={(e) => setIsActive(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600 peer-checked:after:bg-white" />
+                    <div className="w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600 peer-checked:after:bg-white" />
                   </label>
                 </div>
 
               </div>
 
               {/* Footer Modal với Nút Lưu và Spinner Loading */}
-              <div className="p-5 border-t border-[#1A2238] bg-black/25 flex items-center justify-end gap-3">
+              <div className="p-5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => setIsModalOpen(false)}
-                  className={`px-4 py-2 border border-white/10 rounded-lg text-xs font-bold text-gray-400 hover:text-white transition-colors cursor-pointer ${
+                  className={`px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer ${
                     isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >

@@ -43,7 +43,7 @@
 }
 
 .navbar-btn-menu {
-  @apply flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 lg:hidden;
+  @apply flex h-11 w-11 items-center justify-center text-white/80 transition-colors hover:text-white lg:hidden;
 }
 
 .auth-controls-container {

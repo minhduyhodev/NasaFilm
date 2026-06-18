@@ -1,1 +1,28 @@
-/* MoviesPage styles are fully migrated to inline Tailwind classes for a clean Stripe/Linear-like design */
+.kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  border-color: #334155;
+  transform: translateY(-1px);
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.kpi-card.kpi-total::after { background: linear-gradient(90deg, #ec4899, #f472b6); }
+.kpi-card.kpi-showing::after { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card.kpi-upcoming::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.kpi-card.kpi-hidden::after { background: linear-gradient(90deg, #64748b, #94a3b8); }

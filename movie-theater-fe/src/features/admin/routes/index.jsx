@@ -22,7 +22,6 @@ export const AdminRoutes = () => {
   return (
     <Suspense fallback={<AdminPageLoader />}>
       <Routes>
-        <Route path="cinemas" element={<CinemasPage />} />
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="movies" element={<MoviesPage />} />
@@ -32,6 +31,7 @@ export const AdminRoutes = () => {
           <Route path="users" element={<UsersPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
           <Route path="combos" element={<AdminCombosPage />} />
+          <Route path="cinemas" element={<CinemasPage />} />
         </Route>
       </Routes>
     </Suspense>

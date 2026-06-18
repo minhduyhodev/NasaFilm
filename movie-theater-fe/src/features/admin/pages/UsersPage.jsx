@@ -7,6 +7,8 @@ import { adminUserService } from '../api/adminUserService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useNotification } from '../../../shared/context/NotificationContext';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import Pagination from '../../../shared/components/Pagination';
+import './UsersPage.css';
 
 const UsersPage = () => {
   const { addNotification } = useNotification();
@@ -228,30 +230,30 @@ const UsersPage = () => {
   const currentStatusOpt = statusOptions.find(opt => opt.value === statusFilter) || statusOptions[0];
 
   return (
-    <>
+    <div className="space-y-6 text-left">
       {/* PAGE HEADER */}
-      <div className="mb-8 text-left">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1.5 font-sans">Quản Trị Hệ Thống Người Dùng</p>
-        <h1 className="text-4xl font-extrabold text-white uppercase leading-none tracking-tight font-sans">Quản Lý Khách Hàng</h1>
-        <p className="text-sm text-gray-400 mt-2 max-w-lg font-sans">Phân quyền tài khoản, giám sát điểm thưởng tích lũy và cập nhật trạng thái người dùng trên hệ thống.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Quản Trị Hệ Thống Người Dùng</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Khách Hàng</h1>
+          <p className="text-sm text-gray-400 mt-2">Phân quyền tài khoản, giám sát điểm thưởng tích lũy và cập nhật trạng thái người dùng trên hệ thống.</p>
+        </div>
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Tổng Người Dùng', value: stats.total, Icon: Users, valueColor: 'text-white', iconColor: 'text-white' },
-          { label: 'Đang Hoạt Động', value: stats.active, Icon: CheckCircle, valueColor: 'text-emerald-400', iconColor: 'text-emerald-400' },
-          { label: 'Bị Khóa / Tạm Ngưng', value: stats.banned, Icon: Ban, valueColor: 'text-rose-400', iconColor: 'text-rose-400' },
-          { label: 'Nhân Viên / Quản Trị', value: stats.staffAdmin, Icon: Shield, valueColor: 'text-purple-400', iconColor: 'text-purple-400' },
-        ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div key={label} className="bg-[#1c2333] border border-[#242d42] rounded-2xl p-5 flex items-center justify-between shadow-lg hover:border-[#2e3954] transition-colors duration-300 group font-sans">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block font-sans">{label}</span>
-              <span className={`text-3xl font-extrabold ${valueColor} block leading-none font-sans`}>{value}</span>
+          { label: 'TỔNG NGƯỜI DÙNG', value: stats.total, icon: Users, color: 'text-indigo-400', kpiClass: 'kpi-total' },
+          { label: 'ĐANG HOẠT ĐỘNG', value: stats.active, icon: CheckCircle, color: 'text-emerald-400', kpiClass: 'kpi-active' },
+          { label: 'BỊ KHÓA / TẠM NGƯNG', value: stats.banned, icon: Ban, color: 'text-rose-400', kpiClass: 'kpi-banned' },
+          { label: 'NHÂN VIÊN / QUẢN TRỊ', value: stats.staffAdmin, icon: Shield, color: 'text-purple-400', kpiClass: 'kpi-staff' },
+        ].map(kpi => (
+          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
             </div>
-            <div className={`p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] ${iconColor} group-hover:scale-105 transition-transform duration-300`}>
-              <Icon className="w-5 h-5" />
-            </div>
+            <p className={`text-xl font-black ${kpi.color} leading-none`}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -518,34 +520,15 @@ const UsersPage = () => {
 
       {/* PAGINATION / TABLE FOOTER */}
       {filteredUsers.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 mt-2 border-t border-[#242d42]/30 font-sans">
-          <span className="text-[13px] text-gray-400 font-medium font-sans">
-            Trang {currentPage}/{totalPages}
-          </span>
-
-          <div className="flex items-center gap-1.5 font-sans">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              className="px-3 py-1 bg-[#0f172a] hover:bg-[#1E293B] border border-[#242d42] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center font-sans"
-              aria-label="Previous page"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              className="px-3 py-1 bg-[#0f172a] hover:bg-[#1E293B] border border-[#242d42] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center font-sans"
-              aria-label="Next page"
-            >
-              ›
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredUsers.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       )}
-    </>
+    </div>
   );
 };
 

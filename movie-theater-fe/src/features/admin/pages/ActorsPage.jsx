@@ -3,6 +3,7 @@ import { User, Globe, Search, Plus, X, Loader2, Award, MapPin } from 'lucide-rea
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
+import './ActorsPage.css';
 
 const ActorsPage = () => {
   const [actors, setActors] = useState([]);
@@ -145,22 +146,18 @@ const ActorsPage = () => {
   }, [filteredActors, currentPage, itemsPerPage]);
 
   return (
-    <>
+    <div className="space-y-6 text-left">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 block mb-1">
-            Cơ Sở Dữ Liệu Nghệ Sĩ
-          </span>
-          <h1 className="text-4xl font-black text-white uppercase tracking-tight leading-none">
-            Quản Lý Diễn Viên
-          </h1>
-          <p className="text-sm text-gray-400 mt-1.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Cơ Sở Dữ Liệu Nghệ Sĩ</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Diễn Viên</h1>
+          <p className="text-sm text-gray-400 mt-2">
             Danh mục cơ sở dữ liệu diễn viên và quốc tịch nghệ sĩ toàn hệ thống.
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0"
+          className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
           onClick={handleAddClick}
         >
           <Plus size={16} />
@@ -169,59 +166,21 @@ const ActorsPage = () => {
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
-          <div className="space-y-1 text-left">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
-              Tổng Số Diễn Viên
-            </span>
-            <h3 className="text-3xl font-black text-white">{totalActors}</h3>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: 'Tổng Số Diễn Viên', value: totalActors, icon: User, color: 'text-indigo-400', kpiClass: 'kpi-total' },
+          { label: 'Quốc Tịch Đại Diện', value: representedNationalities, icon: Globe, color: 'text-emerald-400', kpiClass: 'kpi-represented' },
+          { label: 'Quốc Gia Trong DB', value: totalCountries, icon: MapPin, color: 'text-blue-400', kpiClass: 'kpi-database' },
+          { label: 'Quốc Tịch Phổ Biến', value: mostCommonCountry, icon: Award, color: 'text-amber-400', kpiClass: 'kpi-popular' }
+        ].map(kpi => (
+          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
+            </div>
+            <p className={`text-xl font-black ${kpi.color} truncate leading-none`} title={kpi.value.toString()}>{kpi.value}</p>
           </div>
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-            <User className="w-5 h-5 text-red-500" />
-          </div>
-        </div>
-
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
-          <div className="space-y-1 text-left">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
-              Quốc Tịch Đại Diện
-            </span>
-            <h3 className="text-3xl font-black text-emerald-400">{representedNationalities}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Globe className="w-5 h-5 text-emerald-400" />
-          </div>
-        </div>
-
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
-          <div className="space-y-1 text-left">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
-              Quốc Gia Trong DB
-            </span>
-            <h3 className="text-3xl font-black text-blue-400">{totalCountries}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-            <MapPin className="w-5 h-5 text-blue-400" />
-          </div>
-        </div>
-
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 shadow-md">
-          <div className="space-y-1 text-left min-w-0 flex-1 pr-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block">
-              Quốc Tịch Phổ Biến
-            </span>
-            <h3
-              className="text-lg font-black text-amber-400 truncate"
-              title={mostCommonCountry}
-            >
-              {mostCommonCountry}
-            </h3>
-          </div>
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
-            <Award className="w-5 h-5 text-amber-400" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* FILTER TOOLBAR */}
@@ -318,48 +277,56 @@ const ActorsPage = () => {
 
       {/* PAGINATION */}
       {filteredActors.length > 0 && (
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl overflow-hidden">
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredActors.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredActors.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       )}
 
       {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div
             className="absolute inset-0"
             onClick={() => setIsModalOpen(false)}
           />
-          <div className="relative bg-[#090D1A] border border-[#1A2238] rounded-xl shadow-2xl p-6 w-full max-w-md text-left">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-5 pb-4 border-b border-[#1A2238]">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500 block mb-0.5">
-                  {editingActor ? 'Chỉnh Sửa' : 'Thêm Mới'}
-                </span>
-                <h2 className="text-sm font-black text-white uppercase tracking-wider">
-                  {editingActor ? 'Chỉnh Sửa Diễn Viên' : 'Thêm Mới Diễn Viên'}
-                </h2>
+          <div className="w-full max-w-md rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button
+              type="button"
+              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+              onClick={() => setIsModalOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-5">
+              <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                {editingActor ? (
+                  <User className="w-4 h-4 text-red-400" />
+                ) : (
+                  <Plus className="w-4 h-4 text-red-400" />
+                )}
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                  {editingActor ? 'Chỉnh Sửa Diễn Viên' : 'Thêm Diễn Viên Mới'}
+                </h2>
+                <p className="text-[10px] text-gray-500">
+                  {editingActor 
+                    ? 'Chỉnh sửa thông tin chi tiết của diễn viên nghệ sĩ' 
+                    : 'Thêm thông tin nghệ sĩ diễn viên mới vào hệ thống'}
+                </p>
+              </div>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name */}
               <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
                   Họ và Tên *
                 </label>
                 <input
@@ -367,14 +334,14 @@ const ActorsPage = () => {
                   placeholder="Nhập tên diễn viên..."
                   value={formData.fullName}
                   onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
                   required
                 />
               </div>
 
               {/* Avatar URL */}
               <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
                   URL Ảnh Chân Dung
                 </label>
                 <input
@@ -382,14 +349,14 @@ const ActorsPage = () => {
                   placeholder="Nhập link ảnh chân dung (HTTPS)..."
                   value={formData.avatarUrl}
                   onChange={(e) => setFormData(prev => ({ ...prev, avatarUrl: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
                 />
                 {formData.avatarUrl && formData.avatarUrl.trim().startsWith("http") && (
                   <div className="mt-2.5 flex items-center gap-3">
                     <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
                       Xem trước:
                     </span>
-                    <div className="rounded-full w-14 h-14 overflow-hidden border border-[#1A2238] bg-slate-800 flex items-center justify-center">
+                    <div className="rounded-full w-14 h-14 overflow-hidden border border-[#1a2238] bg-slate-800 flex items-center justify-center">
                       <img
                         src={formData.avatarUrl.trim()}
                         alt="Preview"
@@ -403,13 +370,13 @@ const ActorsPage = () => {
 
               {/* Nationality */}
               <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 tracking-wider mb-1.5">
+                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
                   Quốc Tịch *
                 </label>
                 <select
                   value={formData.countryUuid}
                   onChange={(e) => setFormData(prev => ({ ...prev, countryUuid: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1A2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
+                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
                   required
                 >
                   {countriesList.map((c) => (
@@ -421,26 +388,26 @@ const ActorsPage = () => {
               </div>
 
               {/* Footer Actions */}
-              <div className="pt-4 border-t border-[#1A2238] flex gap-2 justify-end">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                  className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
                 >
-                  Hủy Bỏ
+                  Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                  className="rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-red-600/10"
                 >
-                  {editingActor ? 'Cập Nhật' : 'Thêm Mới'}
+                  {editingActor ? 'Cập Nhật' : 'Thêm Diễn Viên'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
