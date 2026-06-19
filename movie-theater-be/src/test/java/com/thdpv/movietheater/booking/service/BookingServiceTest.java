@@ -224,7 +224,7 @@ class BookingServiceTest {
     void getVodStatus_NoBooking_ReturnsNoneState() {
         UUID movieUuid = UUID.randomUUID();
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.empty());
 
         VodStatusResponse response = bookingService.getVodStatus("customer@example.com", movieUuid);
@@ -249,7 +249,7 @@ class BookingServiceTest {
         movie.setDurationMinutes(120);
         movie.setStreamingUrl("http://example.com/stream.mp4");
 
-        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(movie));
         when(bookingJpaRepository.save(any(Booking.class))).thenReturn(booking);
@@ -276,7 +276,7 @@ class BookingServiceTest {
         booking.setExpiresAt(OffsetDateTime.now().plusHours(2));
         booking.setStreamToken("token-a");
 
-        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
 
         AppException exception = assertThrows(AppException.class, () -> {

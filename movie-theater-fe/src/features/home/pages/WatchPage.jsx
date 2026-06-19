@@ -19,15 +19,18 @@ const WatchPage = () => {
 
   // 1. Fetch movie details and VOD session on mount
   useEffect(() => {
+    let active = true;
     const initializeStream = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const movieDetail = await movieService.getMovieDetail(id);
+        if (!active) return;
         setMovie(movieDetail);
 
         // Fetch VOD status
         const status = await bookingService.getVodStatus(id);
+        if (!active) return;
         if (!status.hasPurchased) {
           throw new Error('Bạn chưa mua vé xem trực tuyến phim này.');
         }
@@ -38,12 +41,16 @@ const WatchPage = () => {
 
         // Activate VOD session
         const playSession = await bookingService.activateVodPlay(id);
+        if (!active) return;
         setStreamData(playSession);
       } catch (err) {
+        if (!active) return;
         console.error('Failed to initialize stream:', err);
         setError(err.message || 'Không thể bắt đầu luồng phát phim trực tuyến.');
       } finally {
-        setIsLoading(false);
+        if (active) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -52,6 +59,7 @@ const WatchPage = () => {
     }
 
     return () => {
+      active = false;
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
       }

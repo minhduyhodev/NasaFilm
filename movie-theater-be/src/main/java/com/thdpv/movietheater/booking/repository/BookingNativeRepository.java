@@ -195,9 +195,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 b.total_price,
                 b.status,
                 b.created_at,
-                st.start_time,
+                coalesce(st.start_time, b.created_at),
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'NASA VOD (Xem online)'),
                 coalesce((
                     select string_agg(s.row_name || s.seat_number, ', ' order by s.row_name asc, s.seat_number asc)
                     from booking_seat bs
@@ -216,18 +216,18 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     where t.booking_uuid = b.uuid
                     order by t.issued_at asc
                     limit 1
-                ), ''),
+                ), 'VOD-' || substring(cast(b.uuid as text), 1, 8)),
                 coalesce((
                     select t.status
                     from ticket t
                     where t.booking_uuid = b.uuid
                     order by t.issued_at asc
                     limit 1
-                ), '')
+                ), 'CONFIRMED')
             from booking b
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where b.user_uuid = :userUuid
             order by b.created_at desc
             """, nativeQuery = true)
@@ -239,7 +239,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 u.full_name,
                 u.email,
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -258,9 +258,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
             order by b.created_at desc
             limit :limit offset :offset
@@ -276,7 +276,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 u.full_name,
                 u.email,
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -295,9 +295,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
             order by b.created_at desc
             """, nativeQuery = true)
