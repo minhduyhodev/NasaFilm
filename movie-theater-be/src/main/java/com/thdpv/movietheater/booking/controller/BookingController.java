@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
+import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
@@ -39,6 +40,16 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ConfirmBookingRequest request) {
         BookingResponse response = bookingService.confirmBooking(
+                userDetails != null ? userDetails.getUsername() : null,
+                request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
+    }
+
+    @PostMapping("/confirm-online")
+    public ResponseEntity<ApiResponse<BookingResponse>> confirmOnlineBooking(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ConfirmOnlineBookingRequest request) {
+        BookingResponse response = bookingService.confirmOnlineBooking(
                 userDetails != null ? userDetails.getUsername() : null,
                 request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));

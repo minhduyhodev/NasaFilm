@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.dto.request;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +48,10 @@ public class CreateMovieRequest {
 
     @Size(max = 1000, message = "Link xem phim khong duoc vuot qua 1000 ky tu")
     private String streamingUrl;
+
+    private String screeningMode;
+
+    private BigDecimal onlinePrice;
 
     public CreateMovieRequest() {
     }
@@ -153,5 +158,21 @@ public class CreateMovieRequest {
 
     public void setStreamingUrl(String streamingUrl) {
         this.streamingUrl = streamingUrl;
+    }
+
+    public String getScreeningMode() {
+        return screeningMode;
+    }
+
+    public void setScreeningMode(String screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
     }
 }

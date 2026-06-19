@@ -7,6 +7,9 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { bookingService } from '../../../shared/services/bookingService';
+
 import './MovieDetailPage.css';
 
 const getEmbedUrl = (url) => {
@@ -22,6 +25,7 @@ const getEmbedUrl = (url) => {
 const MovieDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthContext();
   const [activeDateTab, setActiveDateTab] = useState('today');
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
@@ -32,6 +36,24 @@ const MovieDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [vodStatus, setVodStatus] = useState(null);
+  const [isVodPurchaseOpen, setIsVodPurchaseOpen] = useState(false);
+  const [isVodConfirming, setIsVodConfirming] = useState(false);
+
+  useEffect(() => {
+    const fetchVodStatus = async () => {
+      if (isAuthenticated && dbMovie && (dbMovie.screeningMode === 'BOTH' || dbMovie.screeningMode === 'ONLINE_ONLY')) {
+        try {
+          const status = await bookingService.getVodStatus(dbMovie.uuid);
+          setVodStatus(status);
+        } catch (err) {
+          console.error("Failed to load VOD status:", err);
+        }
+      }
+    };
+    fetchVodStatus();
+  }, [dbMovie, isAuthenticated]);
+
   useEffect(() => {
     const fetchMovieDetail = async () => {
       setIsLoading(true);
@@ -40,7 +62,7 @@ const MovieDetailPage = () => {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
         setIsVideoActive(false);
-        
+
         try {
           const allShowtimes = await showtimeService.getPublicShowtimes();
           const movieShowtimes = allShowtimes.filter(st => st.movieUuid === data.uuid);
@@ -69,14 +91,14 @@ const MovieDetailPage = () => {
     const dates = [];
     const daysOfWeek = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const now = new Date();
-    
+
     for (let i = 0; i < 4; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i);
-      
+
       const dayName = i === 0 ? 'Hôm nay' : daysOfWeek[d.getDay()];
       const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-      
+
       dates.push({
         id: i === 0 ? 'today' : i === 1 ? 'fri' : i === 2 ? 'sat' : 'sun',
         label: `${dayName}, ${dateStr}`,
@@ -103,8 +125,8 @@ const MovieDetailPage = () => {
     return showtimes.filter(st => {
       const stDate = new Date(st.startTime);
       return stDate.getDate() === activeDateObj.getDate() &&
-             stDate.getMonth() === activeDateObj.getMonth() &&
-             stDate.getFullYear() === activeDateObj.getFullYear();
+        stDate.getMonth() === activeDateObj.getMonth() &&
+        stDate.getFullYear() === activeDateObj.getFullYear();
     });
   };
 
@@ -169,6 +191,36 @@ const MovieDetailPage = () => {
       }
     });
   };
+
+  const handleBuyVodClick = () => {
+    if (!isAuthenticated) {
+      notificationService.info("Vui lòng đăng nhập để tiếp tục mua vé xem phim Online.");
+      navigate('/login', { state: { from: `/movie/${id}` } });
+      return;
+    }
+    navigate('/checkout', {
+      state: {
+        isVod: true,
+        movieUuid: dbMovie.uuid,
+        movie: dbMovie.title,
+        moviePoster: dbMovie.poster || '',
+        movieRating: dbMovie.rating || 8.0,
+        movieFormat: 'VOD 4K',
+        movieAgeRestriction: dbMovie.ageRestriction || 'P',
+        totalAmount: dbMovie.onlinePrice || 45000,
+        date: 'Mọi lúc, mọi nơi',
+        showtime: 'Xem trực tuyến',
+        theater: 'Trình phát video NASA VOD',
+        selectedSeats: [],
+        durationMinutes: dbMovie.durationMinutes || 120
+      }
+    });
+  };
+
+  const handleWatchVodClick = () => {
+    navigate(`/watch/${dbMovie.uuid}`);
+  };
+
   const seatInfo = selectedShowtime ? getSeatInfoForShowtime(selectedShowtime) : null;
 
   if (isLoading) {
@@ -197,12 +249,12 @@ const MovieDetailPage = () => {
     rating: dbMovie.rating || 8.0,
     format: dbMovie.format || '2D',
     ageRestriction: dbMovie.ageRestriction || '',
-    poster: dbMovie.medias?.find(m => m.isPrimary)?.mediaUrl 
-            || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl 
-            || '',
-    backdrop: dbMovie.medias?.find(m => m.mediaType === 'BACKDROP')?.mediaUrl 
-              || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl 
-              || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200',
+    poster: dbMovie.medias?.find(m => m.isPrimary)?.mediaUrl
+      || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl
+      || '',
+    backdrop: dbMovie.medias?.find(m => m.mediaType === 'BACKDROP')?.mediaUrl
+      || dbMovie.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl
+      || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200',
     trailer: dbMovie.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl || '',
     cast: dbMovie.actors?.map(act => ({
       name: act.fullName,
@@ -212,7 +264,7 @@ const MovieDetailPage = () => {
   };
 
   const showtimesForActiveTab = getShowtimesForActiveTab();
-  
+
   const groupedShowtimes = showtimesForActiveTab.reduce((acc, st) => {
     const cinemaName = st.cinemaName || 'NASA Landmark 81';
     if (!acc[cinemaName]) {
@@ -233,12 +285,12 @@ const MovieDetailPage = () => {
         {/* Hero Section */}
         <section className="relative h-[650px] md:h-[780px] w-full overflow-hidden bg-black">
           {/* Base Backdrop Image Layer (Always visible, z-index: 0) */}
-          <img 
-            alt="Movie backdrop" 
-            className={`movie-backdrop-img ${isVideoActive ? 'video-active' : ''}`} 
-            src={movie.backdrop} 
+          <img
+            alt="Movie backdrop"
+            className={`movie-backdrop-img ${isVideoActive ? 'video-active' : ''}`}
+            src={movie.backdrop}
           />
-          
+
           {/* Video Trailer Background Layer (Absolute on top, z-index: 10) */}
           {movie.trailer && (() => {
             const isYouTube = movie.trailer.includes('youtube.com') || movie.trailer.includes('youtu.be');
@@ -246,7 +298,7 @@ const MovieDetailPage = () => {
               const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
               const match = movie.trailer.match(regExp);
               const videoId = match && match[2].length === 11 ? match[2] : '';
-              const bgYoutubeUrl = videoId 
+              const bgYoutubeUrl = videoId
                 ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1&enablejsapi=1`
                 : '';
               if (bgYoutubeUrl) {
@@ -277,30 +329,29 @@ const MovieDetailPage = () => {
             }
             return null;
           })()}
-          
+
           {/* Gradient Overlay Layer (z-index: 20) */}
           <div className="absolute inset-0 hero-gradient z-20"></div>
-          
+
           {/* Detail Overlay Content Layer (z-index: 30) */}
           <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 lg:px-20 pb-12 md:pb-16 flex flex-col md:flex-row gap-8 items-end z-30">
             {/* Poster */}
             <div className="hidden lg:block w-64 h-[380px] rounded-2xl overflow-hidden shadow-2xl poster-hover flex-shrink-0 border border-white/10 bg-[#0f121d]">
-              <img 
-                alt="High-res Movie Poster" 
-                className="w-full h-full object-contain" 
-                src={movie.poster} 
+              <img
+                alt="High-res Movie Poster"
+                className="w-full h-full object-contain"
+                src={movie.poster}
               />
             </div>
-            
+
             {/* Info */}
             <div className="flex-grow space-y-4 text-left">
               <div className="flex flex-wrap items-center gap-3">
                 {movie.ageRestriction && (
-                  <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-wider ${
-                    movie.ageRestriction.toUpperCase() === 'P' ? 'bg-emerald-600 text-white' : 
-                    movie.ageRestriction.toUpperCase().includes('T18') ? 'bg-red-600 text-white' : 
-                    'bg-amber-600 text-white'
-                  }`}>
+                  <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-wider ${movie.ageRestriction.toUpperCase() === 'P' ? 'bg-emerald-600 text-white' :
+                      movie.ageRestriction.toUpperCase().includes('T18') ? 'bg-red-600 text-white' :
+                        'bg-amber-600 text-white'
+                    }`}>
                     {movie.ageRestriction}
                   </span>
                 )}
@@ -309,7 +360,7 @@ const MovieDetailPage = () => {
                     {g}
                   </span>
                 ))}
-                
+
                 {movie.rating && (
                   <div className="flex items-center gap-1.5 text-yellow-400 font-bold ml-2">
                     <Star className="h-4 w-4 fill-current" />
@@ -317,11 +368,11 @@ const MovieDetailPage = () => {
                   </div>
                 )}
               </div>
-              
+
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-wide uppercase">
                 {movie.title}
               </h1>
-              
+
               <div className="flex items-center gap-6 text-gray-400 text-sm font-semibold">
                 <span className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-red-500" /> {movie.duration}
@@ -330,21 +381,54 @@ const MovieDetailPage = () => {
                   <Calendar className="h-4 w-4 text-red-500" /> {movie.releaseDate}
                 </span>
               </div>
-              
+
               <p className="text-gray-300 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
                 {movie.description}
               </p>
-              
+
               <div className="flex flex-wrap items-center gap-4 pt-4">
-                <button 
-                  onClick={handleBookTickets} 
-                  className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider neon-red-glow hover:scale-105 active:scale-95 transition-all"
-                >
-                  Mua vé ngay
-                </button>
-                <button 
+                {/* 1. Mua vé xem tại rạp (Chỉ khi screeningMode là THEATER_ONLY hoặc BOTH hoặc chưa cấu hình) */}
+                {(dbMovie.screeningMode === 'THEATER_ONLY' || dbMovie.screeningMode === 'BOTH' || !dbMovie.screeningMode) && (
+                  <button
+                    onClick={handleBookTickets}
+                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider neon-red-glow hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Đặt vé tại rạp
+                  </button>
+                )}
+
+                {/* 2. Vé xem Online VOD (Chỉ khi screeningMode là ONLINE_ONLY hoặc BOTH) */}
+                {(dbMovie.screeningMode === 'ONLINE_ONLY' || dbMovie.screeningMode === 'BOTH') && (
+                  <>
+                    {vodStatus && vodStatus.hasPurchased && vodStatus.playbackState !== 'EXPIRED' ? (
+                      <button
+                        onClick={handleWatchVodClick}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      >
+                        {vodStatus.playbackState === 'STREAMING' ? 'Tiếp tục xem phim' : 'Xem phim Online'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleBuyVodClick}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-purple-600/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      >
+                        {vodStatus && vodStatus.playbackState === 'EXPIRED' ? 'Mua lại xem Online' : `Mua xem Online`}
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* 3. Phim ngưng chiếu hoàn toàn */}
+                {dbMovie.screeningMode === 'NONE' && (
+                  <span className="px-6 py-3.5 bg-gray-800 text-gray-500 rounded-xl font-bold text-sm uppercase tracking-wider border border-gray-700">
+                    Phim tạm ngưng chiếu
+                  </span>
+                )}
+
+                {/* 4. Nút Xem Trailer */}
+                <button
                   onClick={() => setIsTrailerOpen(true)}
-                  className="glass-panel text-white hover:text-red-500 px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center gap-2 hover:bg-white/10 transition-colors"
+                  className="glass-panel text-white hover:text-red-500 px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center gap-2 hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <Play className="h-4 w-4 fill-current text-red-500" /> Xem Trailer
                 </button>
@@ -355,7 +439,7 @@ const MovieDetailPage = () => {
 
         {/* Main Content Grid */}
         <section id="select-showtimes" className="px-4 md:px-12 lg:px-20 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-7xl mx-auto">
-          
+
           {/* Left Side: Cast & Crew */}
           <div className="lg:col-span-4 space-y-6 text-left">
             <h3 className="text-xl md:text-2xl font-black text-white border-l-4 border-red-600 pl-4 uppercase tracking-wider">
@@ -365,10 +449,10 @@ const MovieDetailPage = () => {
               {movie.cast.map((actor) => (
                 <div key={actor.name} className="flex flex-col items-center gap-2 text-center group bg-[#111215]/40 border border-white/5 p-4 rounded-2xl hover:border-red-500/20 transition-all duration-300">
                   <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-red-600 transition-all duration-300 bg-slate-900">
-                    <img 
-                      alt={actor.name} 
-                      className="w-full h-full object-cover" 
-                      src={actor.avatar} 
+                    <img
+                      alt={actor.name}
+                      className="w-full h-full object-cover"
+                      src={actor.avatar}
                     />
                   </div>
                   <span className="text-xs md:text-sm font-bold text-white leading-snug">{actor.name}</span>
@@ -384,7 +468,7 @@ const MovieDetailPage = () => {
               <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
                 Chọn suất chiếu
               </h3>
-              
+
               {/* Date Tabs */}
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {dynamicDates.map((date) => (
@@ -399,11 +483,10 @@ const MovieDetailPage = () => {
                         }
                       }
                     }}
-                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                      activeDateTab === date.id 
-                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/15' 
+                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeDateTab === date.id
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/15'
                         : 'glass-panel text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     {date.label}
                   </button>
@@ -426,9 +509,9 @@ const MovieDetailPage = () => {
                         <MapPin className="h-3 w-3 text-red-500" /> Hồ Chí Minh
                       </span>
                     </div>
-                    
+
                     <div className="border-b border-white/5 my-4" />
-                     
+
                     <div className="flex flex-wrap gap-2.5">
                       {cinemaGroup.showtimes.map((st) => {
                         const timeStr = new Date(st.startTime).toLocaleTimeString('vi-VN', {
@@ -443,13 +526,12 @@ const MovieDetailPage = () => {
                             key={st.uuid}
                             onClick={() => !isSoldOut && handleShowtimeClick(st)}
                             disabled={isSoldOut}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 text-left ${
-                              isSelected 
-                                ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20' 
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 text-left ${isSelected
+                                ? 'bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20'
                                 : isSoldOut
                                   ? 'text-gray-700 cursor-not-allowed opacity-20'
                                   : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
-                            }`}
+                              }`}
                           >
                             {timeStr}
                             <span className="block text-[8px] text-gray-500 font-medium font-sans mt-0.5">
@@ -518,13 +600,13 @@ const MovieDetailPage = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setIsTrailerOpen(false)}></div>
           <div className="relative w-full max-w-4xl aspect-video glass-panel rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-            <button 
-              className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-50 bg-black/70 p-2 rounded-full cursor-pointer" 
+            <button
+              className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-50 bg-black/70 p-2 rounded-full cursor-pointer"
               onClick={() => setIsTrailerOpen(false)}
             >
               <X className="h-6 w-6" />
             </button>
-            
+
             {movie.trailer ? (
               (() => {
                 const embedUrl = getEmbedUrl(movie.trailer);
@@ -556,8 +638,8 @@ const MovieDetailPage = () => {
                 <h2 className="text-2xl font-black text-white uppercase tracking-wider">Chưa có Trailer</h2>
                 <p className="text-gray-400 mt-2 font-medium">Trailer chính thức của bộ phim {movie.title} đang được cập nhật.</p>
                 <div className="mt-6 flex justify-center">
-                  <button 
-                    onClick={() => setIsTrailerOpen(false)} 
+                  <button
+                    onClick={() => setIsTrailerOpen(false)}
                     className="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
                   >
                     Quay lại
@@ -568,6 +650,8 @@ const MovieDetailPage = () => {
           </div>
         </div>
       )}
+
+
 
       <Footer />
     </div>

@@ -92,6 +92,46 @@ class BookingService {
       throw authService.handleError(error);
     }
   }
+
+  async confirmOnlineBooking(movieUuid, promotionCode = null) {
+    try {
+      const payload = { movieUuid };
+      if (promotionCode) {
+        payload.promotionCode = promotionCode;
+      }
+      const response = await authService.api.post('/api/bookings/confirm-online', payload);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getVodStatus(movieUuid) {
+    try {
+      const response = await authService.api.get(`/api/vod/status/${movieUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async activateVodPlay(movieUuid) {
+    try {
+      const response = await authService.api.post(`/api/vod/play/${movieUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async vodHeartbeat(movieUuid, streamToken) {
+    try {
+      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?streamToken=${encodeURIComponent(streamToken)}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const bookingService = new BookingService();

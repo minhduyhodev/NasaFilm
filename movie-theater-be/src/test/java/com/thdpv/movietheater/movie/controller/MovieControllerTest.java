@@ -30,12 +30,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import org.springframework.data.domain.Pageable;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -99,8 +101,7 @@ class MovieControllerTest {
                 OffsetDateTime.now());
         Page<MovieListResponse> page = new PageImpl<>(List.of(movie), PageRequest.of(0, 10), 1);
 
-        when(movieService.getMovieList(nullable(String.class), nullable(String.class), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(),
-                anyString(), anyString()))
+        when(movieService.getMovieList(any(MovieFilterRequest.class), any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/movies"))

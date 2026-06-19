@@ -4,6 +4,9 @@ import java.util.UUID;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
@@ -47,7 +51,8 @@ public class MovieController {
     public ResponseEntity<ApiResponse<MovieDetailResponse>> createMovie(
             @Valid @RequestBody CreateMovieRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        MovieDetailResponse response = movieService.createMovie(request, userDetails != null ? userDetails.getUsername() : null);
+        MovieDetailResponse response = movieService.createMovie(request,
+                userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
@@ -71,20 +76,9 @@ public class MovieController {
 
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) List<UUID> genreUuids,
-            @RequestParam(required = false) UUID countryUuid,
-            @RequestParam(required = false) String ageRestriction,
-            @RequestParam(required = false) UUID actorUuid,
-            @RequestParam(required = false) UUID cinemaUuid,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate showtimeDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "releaseDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        Page<MovieListResponse> response = movieService.getMovieList(
-                keyword, status, genreUuids, countryUuid, ageRestriction, actorUuid, cinemaUuid, showtimeDate, page, size, sortBy, sortDir);
+            MovieFilterRequest filter,
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getMovieList(filter, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -168,7 +162,8 @@ public class MovieController {
     public ResponseEntity<ApiResponse<String>> getMovieStream(
             @PathVariable UUID movieUuid,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String streamUrl = movieService.getMovieStreamUrl(movieUuid, userDetails != null ? userDetails.getUsername() : null);
+        String streamUrl = movieService.getMovieStreamUrl(movieUuid,
+                userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.ok(ApiResponse.success(streamUrl));
     }
 }

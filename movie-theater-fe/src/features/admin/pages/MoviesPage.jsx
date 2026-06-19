@@ -171,7 +171,9 @@ const MoviesPage = () => {
     posterUrl: '',
     streamingUrl: '',
     trailerUrl: '',
-    actors: []
+    actors: [],
+    screeningMode: 'BOTH',
+    onlinePrice: ''
   });
 
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -365,7 +367,9 @@ const MoviesPage = () => {
       posterUrl: '',
       streamingUrl: '',
       trailerUrl: '',
-      actors: []
+      actors: [],
+      screeningMode: 'BOTH',
+      onlinePrice: ''
     });
     setIsModalOpen(true);
   };
@@ -400,7 +404,9 @@ const MoviesPage = () => {
           characterName: a.characterName || '',
           isMain: a.isMain || false,
           castOrder: a.castOrder || 0
-        })) || []
+        })) || [],
+        screeningMode: detail.screeningMode || 'BOTH',
+        onlinePrice: detail.onlinePrice !== null && detail.onlinePrice !== undefined ? detail.onlinePrice : ''
       });
       setIsModalOpen(true);
     } catch (err) {
@@ -532,7 +538,9 @@ const MoviesPage = () => {
       countryUuids: formData.countryUuids,
       streamingUrl: formData.streamingUrl.trim() || null,
       medias: medias,
-      actors: formData.actors.filter(a => a.actorUuid)
+      actors: formData.actors.filter(a => a.actorUuid),
+      screeningMode: formData.screeningMode,
+      onlinePrice: (formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE' || formData.onlinePrice === '') ? null : Math.max(0, Number(formData.onlinePrice))
     };
     try {
       if (editingMovie) {
@@ -1002,6 +1010,47 @@ const MoviesPage = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Hinh thuc phat hanh *</label>
+                    <select
+                      value={formData.screeningMode}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          screeningMode: val,
+                          onlinePrice: (val === 'THEATER_ONLY' || val === 'NONE') ? '' : prev.onlinePrice
+                        }));
+                      }}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white h-[38px] cursor-pointer"
+                    >
+                      <option value="BOTH">Ca rap &amp; Xem Online</option>
+                      <option value="THEATER_ONLY">Chi chieu rap</option>
+                      <option value="ONLINE_ONLY">Chi xem Online (VOD)</option>
+                      <option value="NONE">Ngung chieu hoan toan</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-wider mb-1.5">Gia ve xem Online (VND)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      disabled={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE'}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white h-[38px] disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE' ? "Khong ap dung" : "Vi du: 49000"}
+                      value={formData.onlinePrice}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || Number(val) >= 0) {
+                          setFormData(prev => ({ ...prev, onlinePrice: val }));
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* SECTION 3 */}
@@ -1139,6 +1188,16 @@ const MoviesPage = () => {
                       <span className="font-bold text-gray-400 uppercase tracking-wider text-[9px] block">Stream link</span>
                       <span className="text-gray-900 font-semibold truncate block" title={selectedDetailMovie.streamingUrl || 'Chua tich hop'}>
                         {selectedDetailMovie.streamingUrl ? 'San sang' : 'Khong ho tro'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-gray-400 uppercase tracking-wider text-[9px] block">Hinh thuc</span>
+                      <span className="text-gray-900 font-semibold">{selectedDetailMovie.screeningMode === 'BOTH' ? 'Ca rap & Xem Online' : selectedDetailMovie.screeningMode === 'THEATER_ONLY' ? 'Chi chieu rap' : selectedDetailMovie.screeningMode === 'ONLINE_ONLY' ? 'Chi xem Online' : 'Ngung chieu'}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-gray-400 uppercase tracking-wider text-[9px] block">Gia ve Online</span>
+                      <span className="text-gray-900 font-semibold text-rose-500">
+                        {selectedDetailMovie.onlinePrice ? `${selectedDetailMovie.onlinePrice.toLocaleString()} VND` : 'Khong ho tro'}
                       </span>
                     </div>
                   </div>
