@@ -16,6 +16,8 @@ public class ShowtimeResponse {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private BigDecimal basePrice;
+    private BigDecimal vipPrice;
+    private BigDecimal couplePrice;
     private ShowtimeStatus status;
 
     private String moviePosterUrl;
@@ -47,6 +49,22 @@ public class ShowtimeResponse {
         this.startTime = startTime;
         this.endTime = endTime;
         this.basePrice = basePrice;
+        this.status = status;
+    }
+
+    public ShowtimeResponse(UUID uuid, UUID movieUuid, String movieTitle, String moviePosterUrl, UUID cinemaRoomUuid, String cinemaRoomName, String cinemaName, OffsetDateTime startTime, OffsetDateTime endTime, BigDecimal basePrice, BigDecimal vipPrice, BigDecimal couplePrice, ShowtimeStatus status) {
+        this.uuid = uuid;
+        this.movieUuid = movieUuid;
+        this.movieTitle = movieTitle;
+        this.moviePosterUrl = moviePosterUrl;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.cinemaRoomName = cinemaRoomName;
+        this.cinemaName = cinemaName;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.basePrice = basePrice;
+        this.vipPrice = vipPrice;
+        this.couplePrice = couplePrice;
         this.status = status;
     }
 
@@ -120,6 +138,22 @@ public class ShowtimeResponse {
 
     public void setBasePrice(BigDecimal basePrice) {
         this.basePrice = basePrice;
+    }
+
+    public BigDecimal getVipPrice() {
+        return vipPrice;
+    }
+
+    public void setVipPrice(BigDecimal vipPrice) {
+        this.vipPrice = vipPrice;
+    }
+
+    public BigDecimal getCouplePrice() {
+        return couplePrice;
+    }
+
+    public void setCouplePrice(BigDecimal couplePrice) {
+        this.couplePrice = couplePrice;
     }
 
     public ShowtimeStatus getStatus() {

@@ -597,7 +597,8 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
                                 "TRAILER", "KeAnDanh Trailer", false, 2)),
-                "T13");
+                "T13",
+                7.5);
 
         // 2. Mortal Kombat 2
         createMovieIfNotExists(
@@ -615,7 +616,8 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
                                 "TRAILER", "MortalKombat2 Trailer", false, 2)),
-                "T18");
+                "T18",
+                8.2);
 
         // 3. Mưa Đỏ
         createMovieIfNotExists(
@@ -631,7 +633,8 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "MuaDo Poster", true, 1),
                         new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
                                 "TRAILER", "MuaDo Trailer", false, 2)),
-                "T13");
+                "T13",
+                7.0);
 
         // 4. Thanh Gươm Diệt Quỷ
         createMovieIfNotExists(
@@ -649,7 +652,8 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
                                 "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)),
-                "T16");
+                "T16",
+                8.9);
 
         // 5. Truy Tìm Long Diên Hương
         createMovieIfNotExists(
@@ -667,7 +671,8 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
                                 "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)),
-                "P");
+                "P",
+                6.8);
         // 6. Sword Art Online The Movie: Progressive Scherzo of Deep Night
         createMovieIfNotExists(
                 "Sword Art Online The Movie: Progressive Scherzo of Deep Night",
@@ -684,7 +689,22 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://vs-prodamdfandango.akamaized.net/out/v1/b8926cbbb6524b64b320ecd281f84f4e/24179244572d48768920647994272718/55cfc6748196457d965dfd98aa2d46b8/d18057147c904ac6acda75542d2a2d01/1af7b8b9f8ca4653ae82f69b3af973ab/index_1.m3u8",
                                 "TRAILER", "SAO Progressive Trailer", false, 2)),
-                "T13");
+                "T13",
+                8.5);
+
+        // Self-healing: Cập nhật rating cho các phim đã tồn tại nếu rating là null
+        try {
+            jdbcTemplate.update("UPDATE movie SET rating = 7.5 WHERE title = 'Kẻ Ẩn Danh' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 8.2 WHERE title = 'Mortal Kombat 2' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 7.0 WHERE title = 'Mưa Đỏ' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 8.9 WHERE title = 'Thanh Gươm Diệt Quỷ' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 6.8 WHERE title = 'Truy Tìm Long Diên Hương' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 8.5 WHERE title = 'Sword Art Online The Movie: Progressive Scherzo of Deep Night' AND rating IS NULL");
+            jdbcTemplate.update("UPDATE movie SET rating = 8.0 WHERE rating IS NULL");
+            logger.info("Successfully self-healed ratings for existing movies.");
+        } catch (Exception e) {
+            logger.error("Failed to self-heal ratings", e);
+        }
     }
 
     private void createMovieIfNotExists(
@@ -696,7 +716,8 @@ public class DataSeeder implements CommandLineRunner {
             List<String> genreNames,
             List<String> countryCodes,
             List<MovieMediaData> mediaList,
-            String ageRestriction) {
+            String ageRestriction,
+            Double rating) {
 
         if (movieRepository.existsByTitleIgnoreCase(title)) {
             return;
@@ -710,6 +731,7 @@ public class DataSeeder implements CommandLineRunner {
         movie.setStatus(status);
         movie.setAgeRestriction(ageRestriction);
         movie.setOnlinePrice(java.math.BigDecimal.valueOf(45000));
+        movie.setRating(rating);
 
         // Add Genres
         for (String genreName : genreNames) {

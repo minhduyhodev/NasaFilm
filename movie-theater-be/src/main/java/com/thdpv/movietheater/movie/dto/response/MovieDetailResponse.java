@@ -24,6 +24,7 @@ public class MovieDetailResponse {
     private OffsetDateTime updatedAt;
     private String screeningMode;
     private BigDecimal onlinePrice;
+    private Double rating;
 
     public MovieDetailResponse() {
     }
@@ -181,5 +182,13 @@ public class MovieDetailResponse {
 
     public void setOnlinePrice(BigDecimal onlinePrice) {
         this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
     }
 }

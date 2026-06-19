@@ -220,9 +220,9 @@ public class CinemaService {
         // - Last 1 row (or 2 rows if total rows >= 8) will be Couple seats
         // - Middle rows (from 50% to the Couple rows) will be VIP seats
         // - First rows will be Standard seats
-        int coupleRowsCount = (rowCount >= 8) ? 2 : 1;
+        int coupleRowsCount = 1;
         int vipStartRowIndex = rowCount / 2; // e.g. 8 / 2 = row index 4 (E)
-        int coupleStartRowIndex = rowCount - coupleRowsCount; // e.g. 8 - 2 = row index 6 (G)
+        int coupleStartRowIndex = rowCount - coupleRowsCount; // e.g. 8 - 1 = row index 7 (H)
 
         for (int r = 0; r < rowCount; r++) {
             char rowChar = (char) ('A' + r);
@@ -233,8 +233,7 @@ public class CinemaService {
 
             if (r >= coupleStartRowIndex) {
                 type = coupleType;
-                count = seatsPerRow / 2; // Couple seats take twice the width, so we generate half as many
-                if (count == 0) count = 1; // Ensure at least 1 seat
+                count = seatsPerRow; // Couple seats now have the same width and count as standard/VIP seats
             } else if (r >= vipStartRowIndex) {
                 type = vipType;
             } else {

@@ -41,7 +41,12 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 sl.seat_uuid,
                 s.row_name,
                 s.seat_number,
-                stt.base_price,
+                case 
+                    when upper(stt.name) = 'STANDARD' then st.base_price
+                    when upper(stt.name) = 'VIP' then coalesce(st.vip_price, stt.base_price)
+                    when upper(stt.name) = 'COUPLE' then coalesce(st.couple_price, stt.base_price)
+                    else stt.base_price
+                end,
                 coalesce(stt.price_modifier, 1)
             from seat_locked sl
             join showtime st on st.uuid = sl.showtime_uuid
