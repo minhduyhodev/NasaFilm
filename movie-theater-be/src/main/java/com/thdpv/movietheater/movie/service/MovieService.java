@@ -25,6 +25,7 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
@@ -114,24 +115,23 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MovieListResponse> getMovieList(
-            String keyword,
-            String status,
-            List<UUID> genreUuids,
-            UUID countryUuid,
-            String ageRestriction,
-            UUID actorUuid,
-            UUID cinemaUuid,
-            java.time.LocalDate showtimeDate,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-        Pageable pageable = PageRequest.of(
-                Math.max(page, 0),
-                size > 0 ? size : 10,
-                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                        resolveSortBy(sortBy)));
+    public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
+        Sort resolvedSort = Sort.unsorted();
+        if (pageable.getSort().isSorted()) {
+            List<Sort.Order> safeOrders = new ArrayList<>();
+            for (Sort.Order order : pageable.getSort()) {
+                String resolvedProperty = resolveSortBy(order.getProperty());
+                safeOrders.add(new Sort.Order(order.getDirection(), resolvedProperty));
+            }
+            resolvedSort = Sort.by(safeOrders);
+        } else {
+            resolvedSort = Sort.by(Sort.Direction.DESC, "releaseDate");
+        }
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10,
+                resolvedSort);
 
         Specification<Movie> specification = (root, query, cb) -> {
             query.distinct(true);
@@ -139,6 +139,7 @@ public class MovieService {
 
             predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE")));
 
+            String keyword = filter.getKeyword();
             if (keyword != null && !keyword.isBlank()) {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -146,29 +147,36 @@ public class MovieService {
                         cb.like(cb.lower(root.get("description")), pattern)));
             }
 
+            String status = filter.getStatus();
             if (status != null && !status.isBlank()) {
                 predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
             }
 
+            List<UUID> genreUuids = filter.getGenreUuids();
             if (genreUuids != null && !genreUuids.isEmpty()) {
                 Join<Movie, MovieGenre> movieGenreJoin = root.join("movieGenres", JoinType.LEFT);
                 predicates.add(movieGenreJoin.get("genre").get("uuid").in(genreUuids));
             }
 
+            UUID countryUuid = filter.getCountryUuid();
             if (countryUuid != null) {
                 Join<Movie, MovieCountry> movieCountryJoin = root.join("movieCountries", JoinType.LEFT);
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
+            String ageRestriction = filter.getAgeRestriction();
             if (ageRestriction != null && !ageRestriction.isBlank()) {
                 predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));
             }
 
+            UUID actorUuid = filter.getActorUuid();
             if (actorUuid != null) {
                 Join<Movie, MovieActor> movieActorJoin = root.join("movieActors", JoinType.LEFT);
                 predicates.add(cb.equal(movieActorJoin.get("actor").get("uuid"), actorUuid));
             }
 
+            UUID cinemaUuid = filter.getCinemaUuid();
+            java.time.LocalDate showtimeDate = filter.getShowtimeDate();
             if (cinemaUuid != null || showtimeDate != null) {
                 Subquery<UUID> subquery = query.subquery(UUID.class);
                 Root<Showtime> stRoot = subquery
@@ -199,7 +207,7 @@ public class MovieService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return movieRepository.findAll(specification, pageable)
+        return movieRepository.findAll(specification, safePageable)
                 .map(this::toMovieListResponse);
     }
 
