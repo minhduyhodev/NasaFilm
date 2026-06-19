@@ -3,11 +3,10 @@ package com.thdpv.movietheater.movie.controller;
 import java.util.UUID;
 import java.util.List;
 
-import org.springdoc.core.converters.models.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
@@ -78,12 +77,7 @@ public class MovieController {
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
             MovieFilterRequest filter,
-            PageableDefault(
-                page = 0,
-                size = 10,
-                sort = "releaseDate",
-                direction = Sort.Direction.DESC
-            ) Pageable pageable) {
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<MovieListResponse> response = movieService.getMovieList(filter, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
