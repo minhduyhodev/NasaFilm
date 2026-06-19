@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
@@ -71,20 +73,14 @@ public class MovieController {
 
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) List<UUID> genreUuids,
-            @RequestParam(required = false) UUID countryUuid,
-            @RequestParam(required = false) String ageRestriction,
-            @RequestParam(required = false) UUID actorUuid,
-            @RequestParam(required = false) UUID cinemaUuid,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate showtimeDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "releaseDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        Page<MovieListResponse> response = movieService.getMovieList(
-                keyword, status, genreUuids, countryUuid, ageRestriction, actorUuid, cinemaUuid, showtimeDate, page, size, sortBy, sortDir);
+            MovieFilterRequest filter,
+            @org.springframework.data.web.PageableDefault(
+                page = 0,
+                size = 10,
+                sort = "releaseDate",
+                direction = org.springframework.data.domain.Sort.Direction.DESC
+            ) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getMovieList(filter, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
