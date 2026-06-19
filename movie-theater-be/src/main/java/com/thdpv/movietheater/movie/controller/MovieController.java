@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
@@ -49,7 +51,8 @@ public class MovieController {
     public ResponseEntity<ApiResponse<MovieDetailResponse>> createMovie(
             @Valid @RequestBody CreateMovieRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        MovieDetailResponse response = movieService.createMovie(request, userDetails != null ? userDetails.getUsername() : null);
+        MovieDetailResponse response = movieService.createMovie(request,
+                userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
@@ -74,7 +77,7 @@ public class MovieController {
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
             MovieFilterRequest filter,
-            @org.springframework.data.web.PageableDefault(
+            PageableDefault(
                 page = 0,
                 size = 10,
                 sort = "releaseDate",
@@ -164,7 +167,8 @@ public class MovieController {
     public ResponseEntity<ApiResponse<String>> getMovieStream(
             @PathVariable UUID movieUuid,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String streamUrl = movieService.getMovieStreamUrl(movieUuid, userDetails != null ? userDetails.getUsername() : null);
+        String streamUrl = movieService.getMovieStreamUrl(movieUuid,
+                userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.ok(ApiResponse.success(streamUrl));
     }
 }
