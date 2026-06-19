@@ -539,7 +539,7 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedGenres() {
         String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
-                "Phiêu lưu" };
+                "Phiêu lưu", "Kinh dị" };
         for (String name : genres) {
             if (!genreRepository.existsByNameIgnoreCase(name)) {
                 Genre genre = new Genre();
@@ -571,6 +571,8 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedMovies() {
+        removeObsoleteComingSoonMovies();
+
         // Tự động chuyển đổi các phim cũ có status "LIVE" thành "NOW_SHOWING" để đồng
         // bộ hóa
         List<Movie> existingMovies = movieRepository.findAll();
@@ -692,6 +694,23 @@ public class DataSeeder implements CommandLineRunner {
                 "T13",
                 8.5);
 
+        // Self-healing: đồng bộ trạng thái phim theo ngày công chiếu
+        try {
+            LocalDate today = LocalDate.now();
+            int toComingSoon = jdbcTemplate.update(
+                    "UPDATE movie SET status = 'COMING_SOON' WHERE release_date > ? AND status IN ('NOW_SHOWING', 'DRAFT')",
+                    today);
+            int toNowShowing = jdbcTemplate.update(
+                    "UPDATE movie SET status = 'NOW_SHOWING' WHERE release_date <= ? AND status = 'COMING_SOON'",
+                    today);
+            if (toComingSoon > 0 || toNowShowing > 0) {
+                logger.info("Synced movie status by release date: {} -> COMING_SOON, {} -> NOW_SHOWING",
+                        toComingSoon, toNowShowing);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to sync movie status by release date", e);
+        }
+
         // Self-healing: Cập nhật rating cho các phim đã tồn tại nếu rating là null
         try {
             jdbcTemplate.update("UPDATE movie SET rating = 7.5 WHERE title = 'Kẻ Ẩn Danh' AND rating IS NULL");
@@ -704,6 +723,50 @@ public class DataSeeder implements CommandLineRunner {
             logger.info("Successfully self-healed ratings for existing movies.");
         } catch (Exception e) {
             logger.error("Failed to self-heal ratings", e);
+        }
+    }
+
+    private void removeObsoleteComingSoonMovies() {
+        String[] titles = {
+                "Đường Đua Nghẹt Thở",
+                "PHIM ĐIỆN ẢNH DORAEMON: NOBITA VÀ LÂU ĐÀI DƯỚI ĐÁY BIỂN (PHIÊN BẢN MỚI)",
+                "Hiệp Sĩ Mặt Nạ Zeztz - Kamen Rider Zeztz",
+                "Ma Xó 2: Hồi Sinh"
+        };
+
+        try {
+            for (String title : titles) {
+                List<java.util.UUID> movieUuids = jdbcTemplate.query(
+                        "SELECT uuid FROM movie WHERE LOWER(title) = LOWER(?)",
+                        (rs, rowNum) -> rs.getObject("uuid", java.util.UUID.class),
+                        title);
+
+                for (java.util.UUID movieUuid : movieUuids) {
+                    jdbcTemplate.update(
+                            "DELETE FROM seat_locked WHERE showtime_uuid IN (SELECT uuid FROM showtime WHERE movie_uuid = ?)",
+                            movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking_seat WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking_combo WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM ticket WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?)", movieUuid);
+                    jdbcTemplate.update("DELETE FROM showtime WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_media WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_genre WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_country WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_actor WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie WHERE uuid = ?", movieUuid);
+                    logger.info("Removed obsolete coming soon movie: {}", title);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to remove obsolete coming soon movies", e);
         }
     }
 

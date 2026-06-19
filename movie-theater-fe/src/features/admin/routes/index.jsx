@@ -1,18 +1,20 @@
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import AdminLayout from '../layouts/AdminLayout';
+import React, { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+import AdminLayout from "../layouts/AdminLayout";
 
-const DashboardPage = lazy(() => import('../pages/DashboardPage'));
-const MoviesPage = lazy(() => import('../pages/MoviesPage'));
-const ActorsPage = lazy(() => import('../pages/ActorsPage'));
-const BookingsPage = lazy(() => import('../pages/BookingsPage'));
-const ShowtimesPage = lazy(() => import('../pages/ShowtimesPage'));
-const CinemasPage = lazy(() => import('../pages/CinemasPage'));
-const UsersPage = lazy(() => import('../pages/UsersPage'));
-const VouchersPage = lazy(() => import('../pages/VouchersPage'));
-const AdminCombosPage = lazy(() => import('../pages/AdminCombosPage'));
-const ConfigPage = lazy(() => import('../pages/ConfigPage'));
-const StaffPage = lazy(() => import('../pages/StaffPage'));
+const DashboardPage = lazy(() => import("../pages/DashboardPage"));
+const MoviesPage = lazy(() => import("../pages/MoviesPage"));
+const AdminMovieFormPage = lazy(() => import("../pages/AdminMovieFormPage"));
+const AdminMovieDetailPage = lazy(() => import("../pages/AdminMovieDetailPage"));
+const ActorsPage = lazy(() => import("../pages/ActorsPage"));
+const BookingsPage = lazy(() => import("../pages/BookingsPage"));
+const ShowtimesPage = lazy(() => import("../pages/ShowtimesPage"));
+const CinemasPage = lazy(() => import("../pages/CinemasPage"));
+const UsersPage = lazy(() => import("../pages/UsersPage"));
+const VouchersPage = lazy(() => import("../pages/VouchersPage"));
+const AdminCombosPage = lazy(() => import("../pages/AdminCombosPage"));
+const ConfigPage = lazy(() => import("../pages/ConfigPage"));
+const StaffPage = lazy(() => import("../pages/StaffPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -22,8 +24,12 @@ const AdminPageLoader = () => (
 
 const PlaceholderPage = ({ title }) => (
   <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-8 text-center max-w-lg mx-auto my-12">
-    <h2 className="text-lg font-bold text-white uppercase tracking-wider mb-2 font-mono">{title}</h2>
-    <p className="text-xs text-gray-400">Tính năng này đang được thiết lập cấu hình trong hệ thống.</p>
+    <h2 className="text-lg font-bold text-white uppercase tracking-wider mb-2 font-mono">
+      {title}
+    </h2>
+    <p className="text-xs text-gray-400">
+      Tính năng này đang được thiết lập cấu hình trong hệ thống.
+    </p>
   </div>
 );
 
@@ -34,6 +40,9 @@ export const AdminRoutes = () => {
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="movies" element={<MoviesPage />} />
+          <Route path="movies/new" element={<AdminMovieFormPage />} />
+          <Route path="movies/:movieUuid/edit" element={<AdminMovieFormPage />} />
+          <Route path="movies/:movieUuid" element={<AdminMovieDetailPage />} />
           <Route path="actors" element={<ActorsPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
@@ -41,7 +50,10 @@ export const AdminRoutes = () => {
           <Route path="users" element={<UsersPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
           <Route path="combos" element={<AdminCombosPage />} />
-          <Route path="combos/revenue" element={<PlaceholderPage title="Báo Cáo Doanh Thu Bắp Nước" />} />
+          <Route
+            path="combos/revenue"
+            element={<PlaceholderPage title="Báo Cáo Doanh Thu Bắp Nước" />}
+          />
           <Route path="staff" element={<StaffPage />} />
           <Route path="config" element={<ConfigPage />} />
         </Route>

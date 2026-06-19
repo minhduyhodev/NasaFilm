@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
 import { movieService } from '../../../shared/services/movieService';
@@ -16,30 +17,30 @@ const mapApiMovies = (content) =>
     },
   }));
 
-const NowShowing = () => {
+const ComingSoon = () => {
   const scrollerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [moviesList, setMoviesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchNowShowing = async () => {
+    const fetchComingSoon = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 20 });
+        const data = await movieService.getUpcomingMovies({ page: 0, size: 20 });
         if (data?.content?.length > 0) {
           setMoviesList(mapApiMovies(data.content));
         } else {
           setMoviesList([]);
         }
       } catch (err) {
-        console.error('Failed to load now showing movies:', err);
+        console.error('Failed to load coming soon movies:', err);
         setMoviesList([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchNowShowing();
+    fetchComingSoon();
   }, []);
 
   const getScrollAmount = () => {
@@ -94,8 +95,14 @@ const NowShowing = () => {
 
   return (
     <section className="relative">
-      <div className="mb-6 flex items-center justify-center">
-        <h2 className="text-3xl font-black text-white md:text-4xl text-center">PHIM ĐANG CHIẾU </h2>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-3xl font-black text-white md:text-4xl text-center flex-1">PHIM SẮP CHIẾU</h2>
+        <Link
+          to="/movies?tab=coming-soon"
+          className="hidden sm:inline-block text-xs font-black uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors"
+        >
+          Xem tất cả
+        </Link>
       </div>
 
       <button
@@ -137,7 +144,7 @@ const NowShowing = () => {
               className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
               style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
             >
-              <MovieCard {...movie} />
+              <MovieCard {...movie} actionLabel="Chi tiết" />
             </div>
           ))
         )}
@@ -169,4 +176,4 @@ const NowShowing = () => {
   );
 };
 
-export default NowShowing;
+export default ComingSoon;

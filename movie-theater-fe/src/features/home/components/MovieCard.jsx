@@ -2,7 +2,7 @@ import React from 'react';
 import { Star, Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction }) => {
+const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé' }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -108,7 +108,7 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
         {/* Clean Editorial Link */}
         <div className="pt-2">
           <Link to={linkTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
-            [Mua vé]
+            [{actionLabel}]
           </Link>
         </div>
       </div>

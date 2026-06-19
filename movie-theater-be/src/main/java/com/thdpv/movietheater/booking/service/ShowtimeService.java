@@ -6,8 +6,11 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -323,39 +326,54 @@ public class ShowtimeService {
                     }
                 }
 
-                candidates.sort(Comparator.comparingDouble(CandidateSlot::getScore).reversed());
                 List<AutoShowtimePreviewResponse> scheduledForRoom = new ArrayList<>();
 
-                for (CandidateSlot cand : candidates) {
-                    AutoShowtimePreviewResponse target = cand.getResponse();
-                    OffsetDateTime targetStart = target.getStartTime();
-                    OffsetDateTime targetEnd = target.getEndTime();
-                    int targetDuration = target.getDurationMinutes();
+                // Pass 1: guarantee at least one showtime per movie when slots are available
+                ensureMinimumMovieCoverage(selectedMovies, candidates, scheduledForRoom,
+                        cleaningMinutes, trailerBuffer);
+                previewList.addAll(scheduledForRoom);
 
-                    boolean hasConflict = false;
-                    for (AutoShowtimePreviewResponse sch : scheduledForRoom) {
-                        OffsetDateTime schStartWithBuffer = sch.getStartTime().minusMinutes(cleaningMinutes);
-                        OffsetDateTime schEndWithBuffer = sch.getEndTime().plusMinutes(cleaningMinutes);
+                // Pass 2: fill remaining slots; penalize movies that already have many showtimes
+                Set<String> scheduledKeys = scheduledForRoom.stream()
+                        .map(this::slotKey)
+                        .collect(Collectors.toSet());
+                Map<UUID, Long> movieShowtimeCounts = scheduledForRoom.stream()
+                        .collect(Collectors.groupingBy(
+                                AutoShowtimePreviewResponse::getMovieUuid, Collectors.counting()));
 
-                        if (targetStart.isBefore(schEndWithBuffer) && targetEnd.isAfter(schStartWithBuffer)) {
-                            hasConflict = true;
-                            break;
+                final double fairnessPenalty = 25.0;
+                boolean added;
+                do {
+                    added = false;
+                    CandidateSlot bestCandidate = null;
+                    double bestAdjustedScore = Double.NEGATIVE_INFINITY;
+
+                    for (CandidateSlot cand : candidates) {
+                        AutoShowtimePreviewResponse target = cand.getResponse();
+                        if (scheduledKeys.contains(slotKey(target))) {
+                            continue;
+                        }
+                        if (hasSchedulingConflict(target, scheduledForRoom, cleaningMinutes, trailerBuffer)) {
+                            continue;
                         }
 
-                        if (sch.getMovieUuid().equals(target.getMovieUuid())) {
-                            long startDiff = Math.abs(java.time.Duration.between(targetStart, sch.getStartTime()).toMinutes());
-                            if (startDiff < (targetDuration + trailerBuffer + cleaningMinutes + 30)) {
-                                hasConflict = true;
-                                break;
-                            }
+                        long count = movieShowtimeCounts.getOrDefault(target.getMovieUuid(), 0L);
+                        double adjustedScore = cand.getScore() - (count * fairnessPenalty);
+                        if (adjustedScore > bestAdjustedScore) {
+                            bestAdjustedScore = adjustedScore;
+                            bestCandidate = cand;
                         }
                     }
 
-                    if (!hasConflict) {
+                    if (bestCandidate != null) {
+                        AutoShowtimePreviewResponse target = bestCandidate.getResponse();
                         scheduledForRoom.add(target);
+                        scheduledKeys.add(slotKey(target));
+                        movieShowtimeCounts.merge(target.getMovieUuid(), 1L, Long::sum);
                         previewList.add(target);
+                        added = true;
                     }
-                }
+                } while (added);
             }
             current = current.plusDays(1);
         }
@@ -378,6 +396,76 @@ public class ShowtimeService {
             savedList.add(createShowtime(req));
         }
         return savedList;
+    }
+
+    private void ensureMinimumMovieCoverage(
+            List<Movie> movies,
+            List<CandidateSlot> candidates,
+            List<AutoShowtimePreviewResponse> scheduledForRoom,
+            int cleaningMinutes,
+            int trailerBuffer) {
+
+        Set<UUID> uncovered = movies.stream().map(Movie::getUuid).collect(Collectors.toSet());
+        boolean progress = true;
+
+        while (progress && !uncovered.isEmpty()) {
+            progress = false;
+
+            List<UUID> ordered = uncovered.stream()
+                    .sorted(Comparator.comparingDouble(uuid -> movies.stream()
+                            .filter(m -> m.getUuid().equals(uuid))
+                            .findFirst()
+                            .map(m -> m.getRating() != null ? m.getRating() : 8.0)
+                            .orElse(8.0)))
+                    .toList();
+
+            for (UUID movieUuid : ordered) {
+                CandidateSlot best = candidates.stream()
+                        .filter(c -> c.getResponse().getMovieUuid().equals(movieUuid))
+                        .filter(c -> !hasSchedulingConflict(
+                                c.getResponse(), scheduledForRoom, cleaningMinutes, trailerBuffer))
+                        .max(Comparator.comparingDouble(CandidateSlot::getScore))
+                        .orElse(null);
+
+                if (best != null) {
+                    scheduledForRoom.add(best.getResponse());
+                    uncovered.remove(movieUuid);
+                    progress = true;
+                }
+            }
+        }
+    }
+
+    private boolean hasSchedulingConflict(
+            AutoShowtimePreviewResponse target,
+            List<AutoShowtimePreviewResponse> scheduled,
+            int cleaningMinutes,
+            int trailerBuffer) {
+
+        OffsetDateTime targetStart = target.getStartTime();
+        OffsetDateTime targetEnd = target.getEndTime();
+        int targetDuration = target.getDurationMinutes();
+
+        for (AutoShowtimePreviewResponse sch : scheduled) {
+            OffsetDateTime schStartWithBuffer = sch.getStartTime().minusMinutes(cleaningMinutes);
+            OffsetDateTime schEndWithBuffer = sch.getEndTime().plusMinutes(cleaningMinutes);
+
+            if (targetStart.isBefore(schEndWithBuffer) && targetEnd.isAfter(schStartWithBuffer)) {
+                return true;
+            }
+
+            if (sch.getMovieUuid().equals(target.getMovieUuid())) {
+                long startDiff = Math.abs(java.time.Duration.between(targetStart, sch.getStartTime()).toMinutes());
+                if (startDiff < (targetDuration + trailerBuffer + cleaningMinutes + 30)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String slotKey(AutoShowtimePreviewResponse slot) {
+        return slot.getMovieUuid() + "|" + slot.getCinemaRoomUuid() + "|" + slot.getStartTime();
     }
 
     private List<TimeInterval> subtractIntervals(List<TimeInterval> freeIntervals, OffsetDateTime occupiedStart, OffsetDateTime occupiedEnd) {

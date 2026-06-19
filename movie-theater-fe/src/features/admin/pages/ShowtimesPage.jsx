@@ -28,7 +28,7 @@ const STATUS_CONFIG = {
     accent: '#71717a', accentBg: 'rgba(113,113,122,0.1)',
   },
   SCHEDULED: {
-    label: 'Đã Lên Lịch', icon: CalendarClock, section: 'Sắp Chiếu',
+    label: 'Sắp Chiếu', icon: CalendarClock, section: 'Sắp Chiếu',
     dotClass: 'bg-blue-400', pillBg: 'bg-blue-500/10', pillBorder: 'border-blue-500/20', pillText: 'text-blue-400',
     accent: '#3b82f6', accentBg: 'rgba(59,130,246,0.1)',
   },
@@ -95,7 +95,7 @@ const isSameDay = (d1, d2) => {
 
 const getValidTransitions = (status) => {
   switch (status) {
-    case 'DRAFT': return [{ target: 'SCHEDULED', label: 'Xuất Bản' }];
+    case 'DRAFT': return [{ target: 'SCHEDULED', label: 'Sắp Chiếu' }];
     case 'SCHEDULED': return [
       { target: 'OPEN_FOR_BOOKING', label: 'Mở Bán Vé' },
       { target: 'CANCELLED', label: 'Hủy Suất' }
@@ -1154,7 +1154,7 @@ const ShowtimesPage = () => {
         >
           <option value="">Tất cả trạng thái</option>
           <option value="DRAFT">Nháp</option>
-          <option value="SCHEDULED">Đã Lên Lịch</option>
+          <option value="SCHEDULED">Sắp Chiếu</option>
           <option value="OPEN_FOR_BOOKING">Đang Mở Bán</option>
           <option value="SOLD_OUT">Hết Ghế</option>
           <option value="CANCELLED">Đã Hủy</option>
@@ -1250,7 +1250,7 @@ const ShowtimesPage = () => {
             onClick={() => handleBulkAction('SCHEDULED')}
             className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold cursor-pointer hover:bg-blue-500/20 transition"
           >
-            <CalendarClock className="w-3 h-3 inline mr-1" />Xuất Bản
+            <CalendarClock className="w-3 h-3 inline mr-1" />Sắp Chiếu
           </button>
           <button
             onClick={() => handleBulkAction('OPEN_FOR_BOOKING')}

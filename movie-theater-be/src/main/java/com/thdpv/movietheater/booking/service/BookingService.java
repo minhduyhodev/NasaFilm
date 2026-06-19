@@ -49,6 +49,7 @@ import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
@@ -76,6 +77,7 @@ public class BookingService {
     private final ShowtimeRepository showtimeRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final MovieRepository movieRepository;
+    private final SystemConfigService systemConfigService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -89,14 +91,12 @@ public class BookingService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
         }
 
-        if (movie.getOnlinePrice() == null) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Giá vé trực tuyến chưa được cấu hình");
-        }
-
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
 
-        BigDecimal basePrice = movie.getOnlinePrice();
+        BigDecimal basePrice = movie.getOnlinePrice() != null
+                ? movie.getOnlinePrice()
+                : systemConfigService.getDefaultOnlinePrice();
         BigDecimal discountAmount = BigDecimal.ZERO;
         UUID promotionUuid = null;
         Promotion resolvedPromotion = null;
