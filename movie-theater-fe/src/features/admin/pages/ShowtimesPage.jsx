@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Film, Search, Plus, Calendar, Tv, X, Play,
   Ban, CheckCircle, MapPin, CreditCard, LayoutGrid,
-  AlignJustify, Clock, ChevronDown, ChevronRight,
-  ListFilter, ArrowUpDown, Layers, BarChart3,
-  CalendarDays, Building2, Timer, TrendingUp,
-  Eye, XCircle, Ticket, Hash, Download,
-  DoorOpen, CalendarClock, ChevronLeft
+  AlignJustify, Clock, ChevronDown,
+  Layers,
+  CalendarDays, Building2,
+  Eye, XCircle, Ticket, Hash,
+  DoorOpen, CalendarClock
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -17,14 +17,7 @@ import './ShowtimesPage.css';
 
 // ========== CONSTANTS ==========
 
-const getOccupancy = (uuid) => {
-  if (!uuid) return 50;
-  let sum = 0;
-  for (let i = 0; i < uuid.length; i++) {
-    sum += uuid.charCodeAt(i);
-  }
-  return (sum % 88) + 10;
-};
+
 
 const STATUS_ORDER = ['OPEN_FOR_BOOKING', 'SCHEDULED', 'SOLD_OUT', 'DRAFT', 'FINISHED', 'CANCELLED'];
 
@@ -73,8 +66,6 @@ const SORT_OPTIONS = [
 const VIEW_MODES = [
   { key: 'grid', icon: LayoutGrid, label: 'Lưới' },
   { key: 'list', icon: AlignJustify, label: 'Danh sách' },
-  { key: 'timeline', icon: Timer, label: 'Dòng thời gian' },
-  { key: 'calendar', icon: CalendarDays, label: 'Lịch' },
   { key: 'room', icon: DoorOpen, label: 'Phòng chiếu' },
 ];
 
@@ -252,20 +243,34 @@ const ShowtimesPage = () => {
   const [isMovieDropdownOpen, setIsMovieDropdownOpen] = useState(false);
   const [searchMovieKeyword, setSearchMovieKeyword] = useState('');
   const [formData, setFormData] = useState({
-    movieUuid: '', cinemaUuid: '', cinemaRoomUuid: '', startTime: '', basePrice: 85000,
+    movieUuid: '', cinemaUuid: '', cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
   });
 
-  // ---------- DATA FETCHING ----------
-  useEffect(() => {
-    fetchShowtimes();
-    fetchMovies();
-    fetchCinemas();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-    setSelectedIds(new Set());
-  }, [searchTerm, statusFilter, cinemaFilter, selectedDate, sortKey]);
+  // Auto-scheduling modal
+  const [isAutoModalOpen, setIsAutoModalOpen] = useState(false);
+  const [isAutoPreviewOpen, setIsAutoPreviewOpen] = useState(false);
+  const [previewGenerated, setPreviewGenerated] = useState([]);
+  const [selectedPreviewUuids, setSelectedPreviewUuids] = useState(new Set());
+  const [autoFormData, setAutoFormData] = useState({
+    startDate: '',
+    endDate: '',
+    cinemaUuid: '',
+    roomUuids: [],
+    movieUuids: [],
+    startTime: '08:00',
+    endTime: '23:30',
+    basePrice: 85000,
+    vipPrice: 120000,
+    couplePrice: 160000,
+    intervalMinutes: 15,
+    trailerBuffer: 10,
+    goldenHourWeight: 1.0,
+    weekendWeight: 1.0,
+    ratingWeight: 1.0,
+    genreWeight: 1.0,
+  });
+  const [isAutoLoading, setIsAutoLoading] = useState(false);
+  const [isSavingAuto, setIsSavingAuto] = useState(false);
 
   const fetchShowtimes = async () => {
     setIsLoading(true);
@@ -319,6 +324,120 @@ const ShowtimesPage = () => {
     }
   };
 
+  // ---------- DATA FETCHING ----------
+  useEffect(() => {
+    fetchShowtimes();
+    fetchMovies();
+    fetchCinemas();
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [searchTerm, statusFilter, cinemaFilter, selectedDate, sortKey]);
+
+  const handleAutoClick = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    setAutoFormData({
+      startDate: todayStr,
+      endDate: tomorrowStr,
+      cinemaUuid: cinemas[0]?.uuid || '',
+      roomUuids: [],
+      movieUuids: [],
+      startTime: '08:00',
+      endTime: '23:30',
+      basePrice: 85000,
+      vipPrice: 120000,
+      couplePrice: 160000,
+      intervalMinutes: 15,
+      trailerBuffer: 10,
+      goldenHourWeight: 1.0,
+      weekendWeight: 1.0,
+      ratingWeight: 1.0,
+      genreWeight: 1.0,
+    });
+    setRooms([]);
+    setPreviewGenerated([]);
+    setSelectedPreviewUuids(new Set());
+    setIsAutoPreviewOpen(false);
+    setIsAutoModalOpen(true);
+
+    if (cinemas[0]?.uuid) {
+      cinemaService.getRoomsByCinema(cinemas[0].uuid)
+        .then(data => setRooms(data.filter(r => r.status === 'ACTIVE')))
+        .catch(console.error);
+    }
+  };
+
+  const handleAutoSubmit = async (e) => {
+    e.preventDefault();
+    if (autoFormData.roomUuids.length === 0) {
+      notificationService.warning('Vui lòng chọn ít nhất một phòng chiếu');
+      return;
+    }
+    if (autoFormData.movieUuids.length === 0) {
+      notificationService.warning('Vui lòng chọn ít nhất một bộ phim');
+      return;
+    }
+
+    setIsAutoLoading(true);
+    try {
+      const data = await showtimeService.getAutoShowtimesPreview(autoFormData);
+      setPreviewGenerated(data || []);
+      const uuids = new Set((data || []).map((_, idx) => idx));
+      setSelectedPreviewUuids(uuids);
+      setIsAutoPreviewOpen(true);
+      notificationService.success('Phân tích lịch chiếu tối ưu hoàn tất!');
+    } catch (err) {
+      notificationService.error(err.message || 'Lỗi khi phân tích lịch chiếu');
+    } finally {
+      setIsAutoLoading(false);
+    }
+  };
+
+  const handleSaveAuto = async () => {
+    if (selectedPreviewUuids.size === 0) {
+      notificationService.warning('Vui lòng chọn ít nhất một suất chiếu để lưu');
+      return;
+    }
+
+    setIsSavingAuto(true);
+    try {
+      const selectedRequests = previewGenerated
+        .filter((_, idx) => selectedPreviewUuids.has(idx))
+        .map(p => ({
+          movieUuid: p.movieUuid,
+          cinemaRoomUuid: p.cinemaRoomUuid,
+          startTime: p.startTime,
+          basePrice: p.basePrice,
+          vipPrice: p.vipPrice,
+          couplePrice: p.couplePrice,
+        }));
+
+      await showtimeService.saveAutoShowtimes(selectedRequests);
+      setIsAutoModalOpen(false);
+      setIsAutoPreviewOpen(false);
+      fetchShowtimes();
+      notificationService.success('Đã lưu lịch chiếu tự động thành công!');
+    } catch (err) {
+      notificationService.error(err.message || 'Lỗi khi lưu lịch chiếu');
+    } finally {
+      setIsSavingAuto(false);
+    }
+  };
+
+  const togglePreviewSelection = (index) => {
+    setSelectedPreviewUuids(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  };
+
   // ---------- HANDLERS ----------
   const handleCinemaChange = async (cinemaUuid) => {
     setFormData(prev => ({ ...prev, cinemaUuid, cinemaRoomUuid: '' }));
@@ -334,7 +453,7 @@ const ShowtimesPage = () => {
   const handleAddClick = () => {
     setFormData({
       movieUuid: movies[0]?.uuid || '', cinemaUuid: cinemas[0]?.uuid || '',
-      cinemaRoomUuid: '', startTime: '', basePrice: 85000,
+      cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
     });
     if (cinemas[0]?.uuid) handleCinemaChange(cinemas[0].uuid);
     setIsMovieDropdownOpen(false);
@@ -355,6 +474,8 @@ const ShowtimesPage = () => {
         cinemaRoomUuid: formData.cinemaRoomUuid,
         startTime: isoStartTime,
         basePrice: parseFloat(formData.basePrice),
+        vipPrice: parseFloat(formData.vipPrice),
+        couplePrice: parseFloat(formData.couplePrice),
       });
       setIsModalOpen(false);
       fetchShowtimes();
@@ -476,21 +597,27 @@ const ShowtimesPage = () => {
     return { total: data.length, selling, scheduled, soldOut, playing, finished, cancelled, revenue };
   }, [dateFilteredShowtimes]);
 
+  // Paginated for grid/list views
+  const paginatedShowtimes = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredShowtimes.slice(start, start + itemsPerPage);
+  }, [filteredShowtimes, currentPage, itemsPerPage]);
+
   // Group by status
   const statusGroups = useMemo(() => {
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       if (groups[st.status]) groups[st.status].push(st);
       else groups[st.status] = [st];
     });
     return STATUS_ORDER.map(s => ({ status: s, items: groups[s] || [] })).filter(g => g.items.length > 0);
-  }, [filteredShowtimes]);
+  }, [paginatedShowtimes]);
 
   // Group by cinema → room → movie
   const cinemaGroups = useMemo(() => {
     const map = {};
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       const cinema = st.cinemaName || 'Không rõ rạp';
       const room = st.cinemaRoomName || 'Không rõ phòng';
       if (!map[cinema]) map[cinema] = {};
@@ -500,14 +627,7 @@ const ShowtimesPage = () => {
       map[cinema][room][movie].push(st);
     });
     return map;
-  }, [filteredShowtimes]);
-
-  // Paginated for grid/list views
-  const paginatedShowtimes = useMemo(() => {
-    if (groupBy === 'status' && viewMode === 'grid') return filteredShowtimes; // no pagination for grouped grid
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredShowtimes.slice(start, start + itemsPerPage);
-  }, [filteredShowtimes, currentPage, itemsPerPage, groupBy, viewMode]);
+  }, [paginatedShowtimes]);
 
   // Unique rooms for timeline/room views
   const uniqueRooms = useMemo(() => {
@@ -596,7 +716,9 @@ const ShowtimesPage = () => {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Giá vé</p>
-                <p className="text-amber-400 font-mono text-xs font-black">{row.basePrice?.toLocaleString('vi-VN')}đ</p>
+                <p className="text-amber-400 font-mono text-xs font-black" title={`Thường: ${row.basePrice?.toLocaleString('vi-VN')}đ\nVIP: ${row.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${row.couplePrice?.toLocaleString('vi-VN')}đ`}>
+                  {row.basePrice?.toLocaleString('vi-VN')}đ
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Ngày chiếu</p>
@@ -726,7 +848,9 @@ const ShowtimesPage = () => {
                           <span className="text-gray-600">→</span>
                           <span className="text-gray-400">{formatTimeOnly(st.endTime)}</span>
                           <StatusBadge status={st.status} />
-                          <span className="text-amber-400 font-mono font-bold">{st.basePrice?.toLocaleString('vi-VN')}đ</span>
+                          <span className="text-amber-400 font-mono font-bold" title={`Thường: ${st.basePrice?.toLocaleString('vi-VN')}đ\nVIP: ${st.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${st.couplePrice?.toLocaleString('vi-VN')}đ`}>
+                            {st.basePrice?.toLocaleString('vi-VN')}đ
+                          </span>
                           {getValidTransitions(st.status).map(t => (
                             <button
                               key={t.target}
@@ -762,11 +886,11 @@ const ShowtimesPage = () => {
           <input
             type="checkbox"
             className="st-checkbox"
-            checked={paginatedShowtimes.length > 0 && paginatedShowtimes.every(s => selectedIds.has(s.uuid))}
+            checked={filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid))}
             onChange={() => {
-              const allSelected = paginatedShowtimes.every(s => selectedIds.has(s.uuid));
+              const allSelected = filteredShowtimes.every(s => selectedIds.has(s.uuid));
               const next = new Set(selectedIds);
-              paginatedShowtimes.forEach(s => allSelected ? next.delete(s.uuid) : next.add(s.uuid));
+              filteredShowtimes.forEach(s => allSelected ? next.delete(s.uuid) : next.add(s.uuid));
               setSelectedIds(next);
             }}
           />
@@ -814,7 +938,9 @@ const ShowtimesPage = () => {
                 <span className="text-gray-400">{formatTimeOnly(row.endTime)}</span>
               </div>
               <div><StatusBadge status={row.status} /></div>
-              <div className="text-amber-400 font-mono font-bold text-xs">{row.basePrice?.toLocaleString('vi-VN')}đ</div>
+              <div className="text-amber-400 font-mono font-bold text-xs" title={`Thường: ${row.basePrice?.toLocaleString('vi-VN')}đ\nVIP: ${row.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${row.couplePrice?.toLocaleString('vi-VN')}đ`}>
+                {row.basePrice?.toLocaleString('vi-VN')}đ
+              </div>
               <div className="flex flex-wrap gap-1">
                 {trans.map(t => (
                   <button
@@ -831,151 +957,10 @@ const ShowtimesPage = () => {
           );
         })
       )}
-      {/* Pagination */}
-      {filteredShowtimes.length > itemsPerPage && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={filteredShowtimes.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
-        />
-      )}
     </div>
   );
 
-  /** Timeline View */
-  const renderTimelineView = () => {
-    const hours = Array.from({ length: 17 }, (_, i) => i + 7); // 07:00 → 23:00
-    const now = new Date();
-    const nowHour = now.getHours() + now.getMinutes() / 60;
-    const nowPct = ((nowHour - 7) / 16) * 100;
 
-    return (
-      <div className="bg-[#0B0F19]/70 border border-[#1a2238] rounded-xl overflow-hidden view-fade-enter">
-        <div className="timeline-container st-scroll">
-          <div style={{ minWidth: '1200px' }}>
-            {/* Hour labels */}
-            <div className="flex border-b border-[#1a2238] sticky top-0 z-10 bg-[#0B0F19]">
-              <div className="min-w-[160px] max-w-[160px] p-2 border-r border-[#1a2238] text-[10px] font-bold text-gray-500 uppercase">
-                Phòng chiếu
-              </div>
-              <div className="flex-1 flex relative">
-                {hours.map(h => (
-                  <div key={h} className="flex-1 text-center py-2 border-r border-[#1a2238] text-[10px] font-bold text-gray-500 tabular-nums">
-                    {String(h).padStart(2, '0')}:00
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Room rows */}
-            {uniqueRooms.length === 0 ? (
-              <EmptyState icon={Timer} title="Không có dữ liệu timeline" subtitle="Chọn ngày có suất chiếu." />
-            ) : (
-              uniqueRooms.map(({ cinema, room, key }) => {
-                const roomShowtimes = filteredShowtimes.filter(
-                  s => s.cinemaName === cinema && s.cinemaRoomName === room
-                );
-                return (
-                  <div key={key} className="room-row">
-                    <div className="room-label">
-                      <span className="text-[11px] font-bold text-white truncate">{room}</span>
-                      <span className="text-[9px] text-gray-500 truncate">{cinema}</span>
-                    </div>
-                    <div className="room-timeline">
-                      {/* Now indicator */}
-                      {nowPct >= 0 && nowPct <= 100 && selectedDate === 'today' && (
-                        <div className="now-indicator" style={{ left: `${nowPct}%` }} />
-                      )}
-                      {roomShowtimes.map(st => {
-                        if (!st.startTime || !st.endTime) return null;
-                        const start = new Date(st.startTime);
-                        const end = new Date(st.endTime);
-                        const startH = start.getHours() + start.getMinutes() / 60;
-                        const endH = end.getHours() + end.getMinutes() / 60;
-                        const leftPct = ((startH - 7) / 16) * 100;
-                        const widthPct = ((endH - startH) / 16) * 100;
-                        if (leftPct < 0 || leftPct > 100) return null;
-                        const cfg = STATUS_CONFIG[st.status] || STATUS_CONFIG.DRAFT;
-                        return (
-                          <div
-                            key={st.uuid}
-                            className="room-block"
-                            style={{
-                              left: `${Math.max(0, leftPct)}%`,
-                              width: `${Math.min(widthPct, 100 - leftPct)}%`,
-                              background: cfg.accentBg,
-                              borderLeft: `3px solid ${cfg.accent}`,
-                              color: cfg.accent,
-                            }}
-                            title={`${st.movieTitle} • ${formatTimeOnly(st.startTime)}–${formatTimeOnly(st.endTime)}`}
-                          >
-                            <span className="truncate text-white text-[10px] font-bold">{st.movieTitle}</span>
-                            <span className="text-[9px] opacity-70">{formatTimeOnly(st.startTime)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /** Calendar View (Day) */
-  const renderCalendarView = () => {
-    const hours = Array.from({ length: 17 }, (_, i) => i + 7);
-    const now = new Date();
-
-    return (
-      <div className="bg-[#0B0F19]/70 border border-[#1a2238] rounded-xl overflow-hidden view-fade-enter">
-        <div className="st-scroll" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-          {hours.map(h => {
-            const hourShowtimes = filteredShowtimes.filter(st => {
-              if (!st.startTime) return false;
-              const startH = new Date(st.startTime).getHours();
-              return startH === h;
-            });
-            return (
-              <div key={h} className="flex border-b border-[#1a2238]">
-                <div className="calendar-hour-label flex items-start pt-2">{String(h).padStart(2, '0')}:00</div>
-                <div className="flex-1 min-h-[64px] p-1.5 relative">
-                  {hourShowtimes.length === 0 ? null : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {hourShowtimes.map(st => {
-                        const cfg = STATUS_CONFIG[st.status] || STATUS_CONFIG.DRAFT;
-                        return (
-                          <div
-                            key={st.uuid}
-                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] cursor-default transition-all hover:scale-[1.02]"
-                            style={{
-                              background: cfg.accentBg,
-                              borderLeft: `3px solid ${cfg.accent}`,
-                            }}
-                          >
-                            <span className="font-bold text-white">{formatTimeOnly(st.startTime)}</span>
-                            <span className="text-gray-500">→</span>
-                            <span className="text-gray-400">{formatTimeOnly(st.endTime)}</span>
-                            <span className="font-bold text-white truncate max-w-[150px]">{st.movieTitle}</span>
-                            <span className="text-gray-500 text-[10px]">{st.cinemaRoomName}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   /** Room View */
   const renderRoomView = () => {
@@ -1078,12 +1063,20 @@ const ShowtimesPage = () => {
           <h1 className="text-2xl font-black text-white tracking-tight uppercase">Quản Lý Lịch Chiếu Phim</h1>
           <p className="text-xs text-gray-400 mt-1">Điều phối trạng thái, khởi tạo và phân bổ khung giờ chiếu phim trên toàn hệ thống rạp.</p>
         </div>
-        <button
-          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0"
-          onClick={handleAddClick}
-        >
-          <Plus className="w-4 h-4" /> Thêm Lịch Chiếu
-        </button>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-amber-600/10 cursor-pointer shrink-0"
+            onClick={handleAutoClick}
+          >
+            <CalendarDays className="w-4 h-4" /> Tạo Lịch Tự Động
+          </button>
+          <button
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0"
+            onClick={handleAddClick}
+          >
+            <Plus className="w-4 h-4" /> Thêm Lịch Chiếu
+          </button>
+        </div>
       </div>
 
       {/* ==================== KPI CARDS ==================== */}
@@ -1192,6 +1185,26 @@ const ShowtimesPage = () => {
           {SORT_OPTIONS.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
         </select>
 
+        {/* Bulk select all toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            const allSelected = filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid));
+            const next = new Set(selectedIds);
+            filteredShowtimes.forEach(s => {
+              if (allSelected) {
+                next.delete(s.uuid);
+              } else {
+                next.add(s.uuid);
+              }
+            });
+            setSelectedIds(next);
+          }}
+          className="rounded-lg bg-[#0F1322] border border-[#1a2238] px-3.5 py-2 text-xs font-bold text-gray-300 hover:text-white hover:border-gray-600 transition-colors cursor-pointer"
+        >
+          {filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+        </button>
+
         {/* Group by toggle (grid view only) */}
         {viewMode === 'grid' && (
           <div className="flex items-center gap-1 bg-[#0F1322] border border-[#1a2238] rounded-lg p-1">
@@ -1237,6 +1250,12 @@ const ShowtimesPage = () => {
           </span>
           <div className="flex-1" />
           <button
+            onClick={() => handleBulkAction('SCHEDULED')}
+            className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold cursor-pointer hover:bg-blue-500/20 transition"
+          >
+            <CalendarClock className="w-3 h-3 inline mr-1" />Xuất Bản
+          </button>
+          <button
             onClick={() => handleBulkAction('OPEN_FOR_BOOKING')}
             className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold cursor-pointer hover:bg-emerald-500/20 transition"
           >
@@ -1270,22 +1289,451 @@ const ShowtimesPage = () => {
         <>
           {viewMode === 'grid' && renderGridView()}
           {viewMode === 'list' && renderListView()}
-          {viewMode === 'timeline' && renderTimelineView()}
-          {viewMode === 'calendar' && renderCalendarView()}
           {viewMode === 'room' && renderRoomView()}
 
-          {/* Pagination for grid view with pagination */}
-          {viewMode === 'grid' && groupBy === 'status' && filteredShowtimes.length > 0 && (
-            <div className="text-center py-4">
-              <span className="text-xs text-gray-500">
-                Hiển thị tổng cộng <span className="text-white font-bold">{filteredShowtimes.length}</span> suất chiếu
-              </span>
+          {/* Centralized Pagination for grid and list views */}
+          {(viewMode === 'grid' || viewMode === 'list') && filteredShowtimes.length > itemsPerPage && (
+            <div className="mt-6 flex justify-end">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredShowtimes.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
+              />
             </div>
           )}
         </>
       )}
 
       {/* ==================== CREATE SHOWTIME MODAL ==================== */}
+      {isAutoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[95vh] overflow-y-auto custom-scrollbar flex flex-col">
+            <button
+              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+              onClick={() => {
+                setIsAutoModalOpen(false);
+                setIsAutoPreviewOpen(false);
+              }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4 shrink-0">
+              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <CalendarDays className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Tự Động Tạo Suất Chiếu Tối Ưu</h2>
+                <p className="text-[10px] text-gray-500">Cấu hình thuật toán tối ưu hóa lịch chiếu theo 5 yếu tố</p>
+              </div>
+            </div>
+
+            {!isAutoPreviewOpen ? (
+              <form onSubmit={handleAutoSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Bắt Đầu *</label>
+                    <input
+                      type="date"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                      value={autoFormData.startDate}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Kết Thúc *</label>
+                    <input
+                      type="date"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                      value={autoFormData.endDate}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Rạp Chiếu *</label>
+                      <select
+                        className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                        value={autoFormData.cinemaUuid}
+                        onChange={async (e) => {
+                          const cinemaUuid = e.target.value;
+                          setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
+                          if (cinemaUuid) {
+                            try {
+                              const data = await cinemaService.getRoomsByCinema(cinemaUuid);
+                              setRooms(data.filter(r => r.status === 'ACTIVE'));
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          } else {
+                            setRooms([]);
+                          }
+                        }}
+                        required
+                      >
+                        <option value="">-- Chọn Rạp --</option>
+                        {cinemas.map(c => (
+                          <option key={c.uuid} value={c.uuid}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phòng Chiếu *</label>
+                      <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
+                        {rooms.map(room => (
+                          <label key={room.uuid} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white">
+                            <input
+                              type="checkbox"
+                              checked={autoFormData.roomUuids.includes(room.uuid)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setAutoFormData(prev => {
+                                  const nextRooms = checked 
+                                    ? [...prev.roomUuids, room.uuid]
+                                    : prev.roomUuids.filter(id => id !== room.uuid);
+                                  return { ...prev, roomUuids: nextRooms };
+                                });
+                              }}
+                              className="st-checkbox"
+                            />
+                            <span>{room.name}</span>
+                          </label>
+                        ))}
+                        {rooms.length === 0 && <span className="text-[10px] text-gray-500 col-span-2">Vui lòng chọn rạp chiếu trước</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phim Chiếu *</label>
+                      <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
+                        {movies.map(movie => (
+                          <label key={movie.uuid} className="flex items-center justify-between cursor-pointer text-xs text-gray-300 hover:text-white p-1 hover:bg-white/5 rounded transition-colors">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={autoFormData.movieUuids.includes(movie.uuid)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setAutoFormData(prev => {
+                                    const nextMovies = checked 
+                                      ? [...prev.movieUuids, movie.uuid]
+                                      : prev.movieUuids.filter(id => id !== movie.uuid);
+                                    return { ...prev, movieUuids: nextMovies };
+                                  });
+                                }}
+                                className="st-checkbox"
+                              />
+                              <span className="font-bold truncate max-w-[150px]">{movie.title}</span>
+                            </div>
+                            <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black shrink-0 font-mono">
+                              ★ {movie.rating ? movie.rating.toFixed(1) : '8.0'}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ mở cửa *</label>
+                    <input
+                      type="time"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                      value={autoFormData.startTime}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ đóng cửa *</label>
+                    <input
+                      type="time"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                      value={autoFormData.endTime}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Dọn dẹp (phút) *</label>
+                    <input
+                      type="number"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
+                      value={autoFormData.intervalMinutes}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) || 15 }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
+                    <input
+                      type="number"
+                      step="5000"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
+                      value={autoFormData.basePrice}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
+                    <input
+                      type="number"
+                      step="5000"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
+                      value={autoFormData.vipPrice}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
+                    <input
+                      type="number"
+                      step="5000"
+                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
+                      value={autoFormData.couplePrice}
+                      onChange={(e) => setAutoFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Weights Sliders */}
+                <div className="bg-[#0F1322]/50 border border-[#1a2238] rounded-xl p-4 space-y-3 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-bold uppercase text-amber-400 font-black">Trọng số thuật toán (Weights)</span>
+                    <span className="text-[10px] text-gray-500">Tùy biến mức độ ưu tiên giữa các yếu tố</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Weekend Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Cuối tuần (Weekend)</span>
+                        <span className="font-mono text-amber-400 font-bold">{autoFormData.weekendWeight.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        value={autoFormData.weekendWeight}
+                        onChange={(e) => setAutoFormData(prev => ({ ...prev, weekendWeight: parseFloat(e.target.value) }))}
+                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    {/* Golden Hour Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Giờ vàng (Golden Hour)</span>
+                        <span className="font-mono text-amber-400 font-bold">{autoFormData.goldenHourWeight.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        value={autoFormData.goldenHourWeight}
+                        onChange={(e) => setAutoFormData(prev => ({ ...prev, goldenHourWeight: parseFloat(e.target.value) }))}
+                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    {/* Rating Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Đánh giá phim (Rating)</span>
+                        <span className="font-mono text-amber-400 font-bold">{autoFormData.ratingWeight.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        value={autoFormData.ratingWeight}
+                        onChange={(e) => setAutoFormData(prev => ({ ...prev, ratingWeight: parseFloat(e.target.value) }))}
+                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    {/* Genre Weight */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Thể loại phim (Genre)</span>
+                        <span className="font-mono text-amber-400 font-bold">{autoFormData.genreWeight.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        value={autoFormData.genreWeight}
+                        onChange={(e) => setAutoFormData(prev => ({ ...prev, genreWeight: parseFloat(e.target.value) }))}
+                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoModalOpen(false)}
+                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAutoLoading}
+                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
+                  >
+                    {isAutoLoading ? (
+                      <>
+                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                        Đang phân tích...
+                      </>
+                    ) : (
+                      <>Phân tích & Gợi ý</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="mb-3 shrink-0 flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400">
+                    Tìm thấy <span className="text-amber-400">{previewGenerated.length}</span> suất chiếu tối ưu.
+                  </span>
+                  <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="st-checkbox"
+                      checked={previewGenerated.length > 0 && selectedPreviewUuids.size === previewGenerated.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPreviewUuids(new Set(previewGenerated.map((_, idx) => idx)));
+                        } else {
+                          setSelectedPreviewUuids(new Set());
+                        }
+                      }}
+                    />
+                    <span>Chọn tất cả</span>
+                  </label>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[50vh] custom-scrollbar">
+                  {previewGenerated.map((p, idx) => {
+                    const isSelected = selectedPreviewUuids.has(idx);
+                    const pillColor = p.priorityScore >= 25 
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                      : p.priorityScore >= 15 
+                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
+                      : 'bg-zinc-500/10 border-zinc-500/30 text-zinc-400';
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex gap-3 p-3 rounded-lg border bg-[#0B0F19]/90 transition-all ${isSelected ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-[#1a2238] hover:border-gray-700'}`}
+                      >
+                        <div className="flex items-center shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => togglePreviewSelection(idx)}
+                            className="st-checkbox cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="w-10 h-14 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
+                          <img
+                            src={p.moviePosterUrl || FALLBACK_POSTER}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className="font-black text-white text-xs truncate" title={p.movieTitle}>{p.movieTitle}</h4>
+                              <span className={`px-2 py-0.5 rounded border text-[10px] font-black font-mono shrink-0 ${pillColor}`}>
+                                Điểm: {p.priorityScore.toFixed(1)}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
+                              <span className="text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 rounded text-[9px] uppercase">{p.cinemaRoomName}</span>
+                              <span>•</span>
+                              <span>{p.durationMinutes} phút</span>
+                              <span>•</span>
+                              <span className="font-mono font-bold text-amber-400" title={`Thường: ${p.basePrice.toLocaleString('vi-VN')}đ\nVIP: ${p.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${p.couplePrice?.toLocaleString('vi-VN')}đ`}>
+                                {p.basePrice.toLocaleString('vi-VN')}đ
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-[#1a2238]/50">
+                            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
+                              <Clock className="w-3 h-3 text-gray-500" />
+                              <span className="text-white font-bold">{formatTimeOnly(p.startTime)}</span>
+                              <span>→</span>
+                              <span className="text-gray-400">{formatTimeOnly(p.endTime)}</span>
+                              <span className="ml-1 text-gray-600">({formatDateShort(new Date(p.startTime))} {formatWeekday(new Date(p.startTime))})</span>
+                            </div>
+                            <div className="flex gap-1.5 text-[8px] font-black uppercase text-gray-500">
+                              {p.scoreBreakdown.weekendScore > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
+                              {p.scoreBreakdown.goldenHourScore > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
+                              {p.scoreBreakdown.genreScore > 4.0 && <span className="text-blue-500/80">HOT Genre</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between items-center pt-3 border-t border-[#1a2238] mt-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoPreviewOpen(false)}
+                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    onClick={handleSaveAuto}
+                    disabled={isSavingAuto || selectedPreviewUuids.size === 0}
+                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
+                  >
+                    {isSavingAuto ? (
+                      <>
+                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>Lưu {selectedPreviewUuids.size} Suất Chiếu</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -1409,7 +1857,7 @@ const ShowtimesPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Datetime Picker */}
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Thời Gian Bắt Đầu *</label>
                   <input
                     type="datetime-local"
@@ -1419,9 +1867,12 @@ const ShowtimesPage = () => {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 {/* Base Ticket Price */}
                 <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Cơ Bản (VNĐ) *</label>
+                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
                   <input
                     type="number"
                     min="10000"
@@ -1430,6 +1881,32 @@ const ShowtimesPage = () => {
                     className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
                     value={formData.basePrice}
                     onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
+                  />
+                </div>
+                {/* VIP Price */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
+                  <input
+                    type="number"
+                    min="10000"
+                    step="5000"
+                    required
+                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
+                    value={formData.vipPrice}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
+                  />
+                </div>
+                {/* Couple Price */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
+                  <input
+                    type="number"
+                    min="10000"
+                    step="5000"
+                    required
+                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
+                    value={formData.couplePrice}
+                    onChange={(e) => setFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
                   />
                 </div>
               </div>

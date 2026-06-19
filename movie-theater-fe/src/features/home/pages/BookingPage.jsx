@@ -323,17 +323,7 @@ const BookingPage = () => {
               const seatsList = rowItem.seats || [];
               const type = seatsList[0]?.seatTypeName?.toLowerCase() || 'standard';
 
-              if (type === 'couple') {
-                return (
-                  <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
-                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
-                    <div className="flex gap-2">
-                      {seatsList.map((seat) => renderSeatElement(seat, row))}
-                    </div>
-                    <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
-                  </div>
-                );
-              }
+
 
               const isCenterRow = ['C', 'D', 'E', 'F'].includes(row);
               let centerClasses = "flex gap-2 px-1";

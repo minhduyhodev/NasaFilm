@@ -14,48 +14,37 @@ import './OffersPage.css';
 
 const allOffers = [
   {
-    id: 'family-combo',
-    title: 'Combo Family Deal',
-    description: 'Nhận ngay 4 nước ngọt lớn, 2 hộp bắp khổng lồ và 2 phần khoai tây chiên giòn rụm với mức giá vô cùng ưu đãi dành riêng cho gia đình.',
-    category: 'Combo Ẩm Thực',
-    badge: '-25%',
-    image: familyComboImg,
-    expiry: '31/12/2026',
-    code: 'LUXEFAMILY',
-    details: 'Ưu đãi áp dụng khi mua vé kèm combo tại quầy bắp nước hoặc đặt trực tuyến qua ứng dụng CINE LUXE. Không áp dụng đồng thời với các chương trình khuyến mãi bắp nước khác.'
-  },
-  {
-    id: 'imax-week',
-    title: 'IMAX Week - Trải nghiệm IMAX cực đỉnh',
-    description: 'Giảm ngay 30% giá vé IMAX cho mọi khung giờ chiếu từ thứ Hai đến thứ Năm hàng tuần.',
+    id: 'thdpv50',
+    title: 'Ưu đãi đặc biệt THDPV50',
+    description: 'Nhận ngay ưu đãi giảm 50% giá trị tiền vé xem phim khi đặt vé trực tuyến trên hệ thống.',
     category: 'Vé Xem Phim',
-    badge: '-30%',
+    badge: '-50%',
     image: imaxWeekImg,
-    expiry: '30/09/2026',
-    code: 'IMAXWEEK',
-    details: 'Áp dụng cho mọi suất chiếu phim định dạng IMAX tại các rạp có phòng chiếu IMAX của hệ thống CINE LUXE. Giới hạn tối đa 2 vé giảm giá mỗi tài khoản thành viên.'
-  },
-  {
-    id: 'vip-member',
-    title: 'Chào bạn mới - Nhận ngay 1 vé miễn phí',
-    description: 'Đăng ký tài khoản thành viên VIP CINE LUXE mới và nhận ngay 01 mã voucher đổi vé miễn phí cho suất chiếu 2D bất kỳ.',
-    category: 'VIP / Member',
-    badge: 'FREE VÉ',
-    image: vipMemberImg,
     expiry: '31/12/2026',
-    code: 'WELCOMEBYE',
-    details: 'Voucher vé miễn phí sẽ tự động được gửi vào ví voucher của tài khoản sau khi xác thực email thành công. Có giá trị sử dụng trong vòng 30 ngày kể từ ngày kích hoạt tài khoản.'
+    code: 'THDPV50',
+    details: 'Áp dụng giảm 50% tiền vé cho tất cả các suất chiếu phim tại rạp khi thanh toán trực tuyến và nhập mã khuyến mãi.'
   },
   {
-    id: 'happy-wednesday',
-    title: 'Happy Wednesday - Đồng giá vé 65K',
-    description: 'Đồng giá vé 65,000 VNĐ cho tất cả các suất chiếu phim 2D vào ngày thứ Tư hàng tuần.',
+    id: 'cineluxe',
+    title: 'Khuyến mãi CINE LUXE đặc quyền',
+    description: 'Giảm ngay 30.000đ trực tiếp vào tổng hóa đơn vé xem phim của bạn.',
     category: 'Vé Xem Phim',
-    badge: '65K VÉ',
+    badge: '-30K',
     image: wednesdayImg,
     expiry: '31/12/2026',
-    code: 'HAPPYWED',
-    details: 'Ưu đãi áp dụng cho tất cả khách hàng mua vé trực tiếp hoặc đặt vé trực tuyến vào ngày thứ Tư. Không áp dụng cho các suất chiếu sớm (Sneak Show) hoặc các ngày lễ tết.'
+    code: 'CINELUXE',
+    details: 'Mã giảm giá áp dụng trực tiếp 30.000đ cho hóa đơn đặt vé xem phim trực tuyến tại hệ thống rạp NASA Film.'
+  },
+  {
+    id: 'nasafirst',
+    title: 'Quà tặng thành viên mới NASAFIRST',
+    description: 'Tặng ngay 50.000đ giảm giá cho giao dịch đặt vé đầu tiên của tài khoản thành viên mới.',
+    category: 'VIP / Member',
+    badge: '-50K',
+    image: vipMemberImg,
+    expiry: '31/12/2026',
+    code: 'NASAFIRST',
+    details: 'Áp dụng giảm 50.000đ trực tiếp vào hóa đơn vé cho giao dịch đầu tiên của tài khoản. Giới hạn mỗi người dùng chỉ được sử dụng một lần duy nhất.'
   }
 ];
 

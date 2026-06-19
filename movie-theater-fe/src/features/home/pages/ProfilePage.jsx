@@ -447,34 +447,6 @@ export const ProfilePage = () => {
     }
   };
 
-  // Predefined Mock Booking History
-  const mockBookings = [
-    {
-      id: "TKT-8849182",
-      movieTitle: "STELLAR HORIZON",
-      poster: "movie_stelar_horizon",
-      cinema: "NASA Landmark 81 - Phòng chiếu IMAX",
-      showtime: "20:15 | Hôm nay, 06 Tháng 06",
-      seats: "G08, G09",
-      combo: "1x Popcorn Max, 2x Pepsi Medium",
-      price: "320.000đ",
-      status: "active",
-    },
-    {
-      id: "TKT-4412093",
-      movieTitle: "AETHERIA",
-      poster: "movie_aetheria",
-      cinema: "NASA Sunset Mall - Hall 3",
-      showtime: "14:30 | 01 Tháng 06, 2026",
-      seats: "F12",
-      combo: "Không kèm bắp nước",
-      price: "115.000đ",
-      status: "completed",
-    },
-  ];
-
-  // Cleaned up mockVouchers array
-
   // Dynamic Transactions based on real bookings
   const transactions = bookings.map((tkt) => {
     const hasCombo = tkt.combo && !tkt.combo.toLowerCase().includes("không kèm") && tkt.combo !== "";
