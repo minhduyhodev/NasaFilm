@@ -25,39 +25,39 @@ const FALLBACK_SEAT_TYPES = {
 const SEAT_TYPE_CONFIGS = {
   STANDARD: {
     label: 'Ghế Thường',
-    color: 'bg-[#363433] hover:bg-[#e2c19b]/35',
+    color: 'bg-[#1e293b] hover:bg-[#ef4444]/35',
     border: 'border-transparent',
-    text: 'text-[#d1c4b8]',
+    text: 'text-[#94a3b8]',
     glow: '',
-    accentBg: 'bg-[#363433]/20',
-    accentBorder: 'border-[#4e453c]/50'
+    accentBg: 'bg-[#1e293b]/20',
+    accentBorder: 'border-[#1a2238]/50'
   },
   VIP: {
     label: 'Ghế VIP Recliner',
-    color: 'bg-[#e2c19b]/40 hover:bg-[#e2c19b]/60',
-    border: 'border-[#e2c19b]/60',
-    text: 'text-[#e2c19b]',
-    glow: 'shadow-[0_0_12px_rgba(226,193,155,0.25)]',
-    accentBg: 'bg-[#e2c19b]/10',
-    accentBorder: 'border-[#e2c19b]/40'
+    color: 'bg-[#ef4444]/40 hover:bg-[#ef4444]/60',
+    border: 'border-[#ef4444]/60',
+    text: 'text-[#ef4444]',
+    glow: 'shadow-[0_0_12px_rgba(239,68,68,0.25)]',
+    accentBg: 'bg-[#ef4444]/10',
+    accentBorder: 'border-[#ef4444]/40'
   },
   COUPLE: {
     label: 'Sofa Đôi',
-    color: 'bg-[#93000a]/25 hover:bg-[#93000a]/40',
-    border: 'border-[#93000a]/80',
-    text: 'text-[#ffb4ab]',
+    color: 'bg-[#991b1b]/25 hover:bg-[#991b1b]/40',
+    border: 'border-[#991b1b]/80',
+    text: 'text-[#f87171]',
     glow: 'shadow-[0_0_12px_rgba(147,0,10,0.25)]',
-    accentBg: 'bg-[#93000a]/10',
-    accentBorder: 'border-[#93000a]/40'
+    accentBg: 'bg-[#991b1b]/10',
+    accentBorder: 'border-[#991b1b]/40'
   },
   BROKEN: {
     label: 'Ghế Hỏng/Bảo Trì',
-    color: 'bg-transparent hover:bg-[#4e453c]/25',
-    border: 'border-[#4e453c]',
-    text: 'text-[#9a8f84]',
+    color: 'bg-transparent hover:bg-[#1a2238]/25',
+    border: 'border-[#1a2238]',
+    text: 'text-[#64748b]',
     glow: '',
     accentBg: 'bg-transparent',
-    accentBorder: 'border-[#4e453c]'
+    accentBorder: 'border-[#1a2238]'
   }
 };
 
@@ -70,7 +70,7 @@ const TEMPLATE_PRESETS = [
 
 const ROOM_TYPES = [
   { value: 'STANDARD', label: 'Standard 2D/3D', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
-  { value: 'IMAX', label: 'IMAX Laser', color: 'text-[#e2c19b] bg-[#e2c19b]/10 border-[#e2c19b]/20 shadow-[0_0_10px_rgba(226,193,155,0.15)]' },
+  { value: 'IMAX', label: 'IMAX Laser', color: 'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]' },
   { value: 'VIP', label: 'VIP Gold Class', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.15)]' },
   { value: 'DOLBY_ATMOS', label: 'Dolby Atmos', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)]' },
   { value: 'FOUR_DX', label: '4DX Motion Cinema', color: 'text-pink-400 bg-pink-500/10 border-pink-500/20 shadow-[0_0_10px_rgba(236,72,153,0.15)]' }
@@ -820,133 +820,15 @@ const CinemasPage = () => {
   }, [handleGlobalMouseUp]);
 
   return (
-    <div className="min-h-screen bg-[#141312] text-[#e6e1df] font-body-md relative flex select-none">
-      {/* Sidebar TPD Cinema */}
-      <aside className="w-64 bg-[#0f0e0d] border-r border-[#4e453c] h-screen fixed left-0 top-0 flex flex-col py-6 px-4 z-40 select-none">
-        <div className="px-3 mb-8 flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-[#e2c19b] flex items-center justify-center font-bold text-[#0f0e0d] font-['Bebas_Neue'] text-xl tracking-wider">
-            TPD
-          </div>
-          <div>
-            <span className="text-sm font-black tracking-widest text-[#e6e1df] font-['Bebas_Neue'] block leading-none">TPD CINEMA</span>
-            <span className="text-[8px] font-['JetBrains_Mono'] text-[#e2c19b] uppercase tracking-[0.2em] block mt-1">Noir Admin Terminal</span>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-6 overflow-y-auto no-scrollbar font-['JetBrains_Mono'] text-xs uppercase tracking-wider">
-          <div>
-            <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-[#9a8f84] uppercase">Hệ thống</div>
-            <div className="space-y-1">
-              <Link to="/admin" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-205 font-semibold">
-                <LayoutDashboard className="w-4 h-4 text-[#9a8f84]" />
-                <span>Tổng quan</span>
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-[#9a8f84] uppercase">Nội dung</div>
-            <div className="space-y-1">
-              <Link to="/admin/movies" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Film className="w-4 h-4 text-[#9a8f84]" />
-                <span>Phim</span>
-              </Link>
-              <Link to="/admin/actors" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <User className="w-4 h-4 text-[#9a8f84]" />
-                <span>Diễn viên</span>
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-[#9a8f84] uppercase">Vận hành</div>
-            <div className="space-y-1">
-              <Link to="/admin/showtimes" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Calendar className="w-4 h-4 text-[#9a8f84]" />
-                <span>Lịch chiếu</span>
-              </Link>
-              <NavLink to="/admin/cinemas" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#e2c19b] bg-[#e2c19b]/10 border border-[#e2c19b]/25 font-semibold">
-                <Tv className="w-4 h-4 text-[#e2c19b]" />
-                <span>Rạp & Phòng</span>
-              </NavLink>
-              <Link to="/admin/combos" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Popcorn className="w-4 h-4 text-[#9a8f84]" />
-                <span>Bắp nước</span>
-              </Link>
-              <Link to="/admin/bookings" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Ticket className="w-4 h-4 text-[#9a8f84]" />
-                <span>Đơn hàng</span>
-              </Link>
-              <Link to="/admin/vouchers" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Tag className="w-4 h-4 text-[#9a8f84]" />
-                <span>Khuyến mãi</span>
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="px-3 mb-2 text-[9px] font-bold tracking-wider text-[#9a8f84] uppercase">Người dùng</div>
-            <div className="space-y-1">
-              <Link to="/admin/users" className="flex items-center gap-3 px-3 py-2 rounded-sm text-[#9a8f84] hover:text-[#e2c19b] hover:bg-[#e2c19b]/5 transition-all duration-200 font-semibold">
-                <Users className="w-4 h-4 text-[#9a8f84]" />
-                <span>Khách hàng</span>
-              </Link>
-            </div>
-          </div>
-        </nav>
-
-        <div className="mt-auto border-t border-[#4e453c]/30 pt-4">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-black/40 border border-[#e2c19b]/30 flex items-center justify-center overflow-hidden shrink-0">
-              <img
-                alt="Admin Profile"
-                className="w-full h-full object-cover"
-                src={avatar}
-                referrerPolicy="no-referrer"
-                onError={() => setAvatarLoadFailed(true)}
-              />
-            </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[11px] font-bold text-[#e6e1df] truncate leading-tight">{displayName}</p>
-              <p className="text-[8px] text-[#e2c19b] font-medium tracking-wider uppercase mt-0.5 font-['JetBrains_Mono']">
-                {user?.roles?.includes('ADMIN') ? 'Quản trị viên' : user?.roles?.includes('STAFF') ? 'Nhân viên' : 'Quản trị viên'}
-              </p>
-            </div>
-            <button 
-              onClick={handleLogout} 
-              className="rounded-sm p-1.5 text-[#9a8f84] hover:text-red-500 hover:bg-white/5 transition-colors shrink-0 cursor-pointer flex items-center justify-center bg-transparent border-none"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-screen ml-64 bg-[#141312] flex flex-col">
-        {/* Top Header */}
-        <header className="flex justify-between items-center w-full h-16 px-8 sticky top-0 bg-[#141312]/85 backdrop-blur-md border-b border-[#4e453c] z-30 shadow-[0_4px_30px_rgba(226,193,155,0.02)]">
-          <div className="flex items-center gap-4">
-            <span className="font-['JetBrains_Mono'] text-xs text-[#e2c19b] uppercase tracking-[0.2em]">Hệ thống rạp TPD Cinema</span>
-          </div>
-          <div className="flex items-center gap-4 text-xs font-['JetBrains_Mono'] text-[#9a8f84]">
-            <span>Noir Terminal v2.0</span>
-          </div>
-        </header>
-
-        {/* Content wrapper */}
-        <main className="flex-1 p-8 relative select-none">
-          {/* Grain Overlay */}
-          <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-50 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+    <div className="space-y-6 text-left">
 
           <style>{`
             .material-symbols-outlined {
                 font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
             }
             .premium-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
-            .premium-scroll::-webkit-scrollbar-track { background: #141312; }
-            .premium-scroll::-webkit-scrollbar-thumb { background: #4e453c; }
+            .premium-scroll::-webkit-scrollbar-track { background: #0f172a; }
+            .premium-scroll::-webkit-scrollbar-thumb { background: #1a2238; }
             
             .seat-map-grid {
                 display: grid;
@@ -954,7 +836,7 @@ const CinemasPage = () => {
                 gap: 4px;
             }
             .cinematic-glow {
-                box-shadow: 0 0 40px rgba(226, 193, 155, 0.1);
+                box-shadow: 0 0 40px rgba(239, 68, 68, 0.1);
             }
             
             .seat-item {
@@ -965,28 +847,21 @@ const CinemasPage = () => {
               z-index: 10;
             }
             .seat-item.selected {
-              border-color: #e2c19b !important;
-              box-shadow: 0 0 10px rgba(226, 193, 155, 0.4);
-            }
-            
-            /* Curved screen visual glowing */
-            .curved-screen-gold {
-              position: relative;
-              width: 100%;
-              height: 8px;
-              border-radius: 50% / 100% 100% 0 0;
-              background: linear-gradient(180deg, rgba(226, 193, 155, 0.6) 0%, rgba(226, 193, 155, 0) 100%);
-              filter: drop-shadow(0 0 12px rgba(226, 193, 155, 0.8));
+              border-color: #ef4444 !important;
+              box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
             }
           `}</style>
 
           {/* Header Section */}
-          <div className="flex justify-between items-end mb-12 text-left">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="font-['Bebas_Neue'] text-5xl text-[#e6e1df] uppercase leading-none tracking-wider">Kiến Trúc Rạp Chiếu</h1>
-              <p className="font-['JetBrains_Mono'] text-xs text-[#e2c19b] mt-2 uppercase tracking-[0.2em]">Cấu Hình Chi Nhánh & Phòng Chiếu</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Kiến Trúc Hệ Thống Rạp</p>
+              <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Kiến Trúc Rạp Chiếu</h1>
+              <p className="text-sm text-gray-400 mt-2">
+                Cấu hình chi nhánh rạp, quản lý sơ đồ phòng chiếu và sơ đồ ghế ngồi toàn hệ thống.
+              </p>
             </div>
-            <div className="flex gap-4 font-['JetBrains_Mono'] text-xs uppercase">
+            <div className="flex gap-3 text-xs uppercase">
               <button 
                 type="button"
                 onClick={() => {
@@ -1004,17 +879,17 @@ const CinemasPage = () => {
                     notificationService.warning('Vui lòng chọn phòng chiếu trước!');
                   }
                 }}
-                className="bg-[#2b2a28] border border-[#4e453c] text-[#e6e1df] px-6 py-2 hover:bg-[#4e453c]/20 transition-all flex items-center gap-2 cursor-pointer rounded-sm"
+                className="rounded-lg border border-[#1A2238] bg-[#121826] px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-200 cursor-pointer flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm leading-none">edit_document</span>
+                <Edit2 className="w-3.5 h-3.5" />
                 Sửa Phòng Chiếu
               </button>
               <button 
                 type="button"
                 onClick={handleAddCinemaClick}
-                className="bg-[#e2c19b] text-[#412d11] px-8 py-2 font-bold hover:brightness-110 transition-all flex items-center gap-2 cinematic-glow cursor-pointer rounded-sm"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0"
               >
-                <span className="material-symbols-outlined text-sm leading-none">add</span>
+                <Plus className="w-3.5 h-3.5" />
                 Thêm Rạp Mới
               </button>
             </div>
@@ -1027,21 +902,21 @@ const CinemasPage = () => {
             <div className="col-span-12 lg:col-span-4 space-y-6">
               
               {/* Branches list */}
-              <div className="bg-[#1d1b1a] p-6 border border-[#4e453c] relative group overflow-hidden rounded-sm">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#e2c19b]/30 to-transparent"></div>
+              <div className="bg-[#0b0f19] p-6 border border-[#1a2238] relative group overflow-hidden rounded-xl">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#ef4444]/30 to-transparent"></div>
                 
                 <div className="flex justify-between items-start mb-6">
-                  <h2 className="font-['Manrope'] text-lg font-semibold text-[#e6e1df] uppercase tracking-wide">Danh Sách Chi Nhánh</h2>
-                  <span className="font-['JetBrains_Mono'] text-[10px] text-[#e2c19b] bg-[#e2c19b]/10 px-2 py-0.5 rounded-sm">
+                  <h2 className="font-['Manrope'] text-lg font-semibold text-[#ffffff] uppercase tracking-wide">Danh Sách Chi Nhánh</h2>
+                  <span className="font-['JetBrains_Mono'] text-[10px] text-[#ef4444] bg-[#ef4444]/10 px-2 py-0.5 rounded-xl">
                     HOẠT ĐỘNG: {cinemas.filter(c => getCinemaStats(c.uuid).activeCount > 0).length}
                   </span>
                 </div>
 
                 {/* Search filter in Branches */}
                 <div className="relative mb-4">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9a8f84] text-sm">search</span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">search</span>
                   <input
-                    className="w-full bg-[#0f0e0d] border border-[#4e453c] text-xs font-['JetBrains_Mono'] py-2 pl-9 pr-4 text-[#e6e1df] placeholder-[#9a8f84]/50 focus:ring-1 focus:ring-[#e2c19b]/30 focus:border-[#e2c19b]/40 transition-all uppercase rounded-sm"
+                    className="w-full bg-[#0f172a] border border-[#1a2238] text-xs font-['JetBrains_Mono'] py-2 pl-9 pr-4 text-[#ffffff] placeholder-[#64748b]/50 focus:ring-1 focus:ring-[#ef4444]/30 focus:border-[#ef4444]/40 transition-all uppercase rounded-xl"
                     placeholder="TÌM KIẾM CHI NHÁNH..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -1051,7 +926,7 @@ const CinemasPage = () => {
                 <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 premium-scroll">
                   {isLoadingCinemas ? (
                     <div className="flex justify-center items-center py-12">
-                      <div className="w-6 h-6 border-2 border-[#e2c19b] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   ) : filteredCinemas.length > 0 ? (
                     filteredCinemas.map((cinema) => {
@@ -1063,33 +938,33 @@ const CinemasPage = () => {
                         <div
                           key={cinema.uuid}
                           onClick={() => setSelectedCinema(cinema)}
-                          className={`p-4 border-l-2 transition-all cursor-pointer rounded-sm ${
+                          className={`p-4 border-l-2 transition-all cursor-pointer rounded-xl ${
                             isSelected
-                              ? 'bg-[#211f1e] border-[#e2c19b] shadow-[0_0_15px_rgba(226,193,155,0.05)]'
-                              : 'bg-[#211f1e]/50 border-[#4e453c] hover:bg-[#2b2a28]/50'
+                              ? 'bg-[#121826] border-[#ef4444] shadow-[0_0_15px_rgba(239,68,68,0.05)]'
+                              : 'bg-[#121826]/50 border-[#1a2238] hover:bg-[#1c2333]/50'
                           }`}
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <h3 className="font-['Manrope'] text-sm text-[#e6e1df] uppercase font-bold flex items-center gap-1.5">
+                            <h3 className="font-['Manrope'] text-sm text-[#ffffff] uppercase font-bold flex items-center gap-1.5">
                               {cinema.name}
                               <button
                                 type="button"
                                 onClick={(e) => handleEditCinemaClick(cinema, e)}
-                                className="text-[#9a8f84] hover:text-[#e2c19b] p-0.5 transition"
+                                className="text-[#64748b] hover:text-[#ef4444] p-0.5 transition"
                                 title="Chỉnh sửa chi nhánh"
                               >
                                 <span className="material-symbols-outlined text-xs leading-none">edit</span>
                               </button>
                             </h3>
-                            <span className={`flex items-center gap-1.5 text-[10px] uppercase font-bold ${isBranchOpen ? 'text-[#e2c19b]' : 'text-[#ffb4ab]'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${isBranchOpen ? 'bg-[#e2c19b] animate-pulse' : 'bg-[#ffb4ab]'}`}></span>
+                            <span className={`flex items-center gap-1.5 text-[10px] uppercase font-bold ${isBranchOpen ? 'text-[#ef4444]' : 'text-[#f87171]'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isBranchOpen ? 'bg-[#ef4444] animate-pulse' : 'bg-[#f87171]'}`}></span>
                               {isBranchOpen ? 'Đang Mở' : 'Bảo Trì'}
                             </span>
                           </div>
-                          <p className="text-xs text-[#d1c4b8] font-['JetBrains_Mono'] opacity-80 truncate" title={cinema.address}>
+                          <p className="text-xs text-[#94a3b8] font-['JetBrains_Mono'] opacity-80 truncate" title={cinema.address}>
                             {cinema.address}
                           </p>
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#4e453c]/30 text-[9px] text-[#9a8f84] font-['JetBrains_Mono']">
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1a2238]/30 text-[9px] text-[#64748b] font-['JetBrains_Mono']">
                             <span>{cStats.totalRoomsCount} PHÒNG CHIẾU</span>
                             <span>{cStats.capacity} GHẾ</span>
                           </div>
@@ -1097,7 +972,7 @@ const CinemasPage = () => {
                       );
                     })
                   ) : (
-                    <div className="text-center py-12 text-[#9a8f84] border border-dashed border-[#4e453c] rounded-sm p-4 bg-[#0f0e0d]/20">
+                    <div className="text-center py-12 text-[#64748b] border border-dashed border-[#1a2238] rounded-xl p-4 bg-[#0f172a]/20">
                       <p className="text-xs font-['JetBrains_Mono'] uppercase tracking-wider">Không tìm thấy chi nhánh</p>
                     </div>
                   )}
@@ -1105,8 +980,8 @@ const CinemasPage = () => {
               </div>
 
               {/* Facility Amenities */}
-              <div className="bg-[#1d1b1a] p-6 border border-[#4e453c] rounded-sm">
-                <h2 className="font-['Manrope'] text-lg font-semibold text-[#e6e1df] uppercase tracking-wide mb-6">Tiện Ích Rạp Chiếu</h2>
+              <div className="bg-[#0b0f19] p-6 border border-[#1a2238] rounded-xl">
+                <h2 className="font-['Manrope'] text-lg font-semibold text-[#ffffff] uppercase tracking-wide mb-6">Tiện Ích Rạp Chiếu</h2>
                 <div className="space-y-4">
                   {[
                     { id: 'vipLounge', label: 'PHÒNG CHỜ VIP' },
@@ -1115,7 +990,7 @@ const CinemasPage = () => {
                     { id: 'valetParking', label: 'DỊCH VỤ ĐỖ XE' }
                   ].map(item => (
                     <label key={item.id} className="flex justify-between items-center cursor-pointer group select-none">
-                      <span className="text-sm font-['JetBrains_Mono'] text-[#d1c4b8] group-hover:text-[#e2c19b] transition-colors">{item.label}</span>
+                      <span className="text-sm font-['JetBrains_Mono'] text-[#94a3b8] group-hover:text-[#ef4444] transition-colors">{item.label}</span>
                       <div className="relative inline-flex items-center">
                         <input 
                           type="checkbox" 
@@ -1123,7 +998,7 @@ const CinemasPage = () => {
                           checked={branchAmenities[item.id] || false}
                           onChange={() => handleToggleAmenity(item.id)}
                         />
-                        <div className="w-10 h-5 bg-[#211f1e] border border-[#4e453c] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[#e2c19b] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#e2c19b]/20 after:border-[#e2c19b]/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#e2c19b]/10"></div>
+                        <div className="w-10 h-5 bg-[#121826] border border-[#1a2238] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[#ef4444] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#ef4444]/20 after:border-[#ef4444]/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ef4444]/10"></div>
                       </div>
                     </label>
                   ))}
@@ -1135,8 +1010,8 @@ const CinemasPage = () => {
             <div className="col-span-12 lg:col-span-8 space-y-6">
               
               {/* Auditorium Selection */}
-              <div className="bg-[#1d1b1a] border border-[#4e453c] p-6 rounded-sm">
-                <div className="flex items-center gap-6 mb-8 overflow-x-auto pb-4 border-b border-[#4e453c]/30 premium-scroll">
+              <div className="bg-[#0b0f19] border border-[#1a2238] p-6 rounded-xl">
+                <div className="flex items-center gap-6 mb-8 overflow-x-auto pb-4 border-b border-[#1a2238]/30 premium-scroll">
                   {rooms.length > 0 ? (
                     rooms.map((room) => {
                       const isRoomSelected = selectedRoom?.uuid === room.uuid;
@@ -1147,8 +1022,8 @@ const CinemasPage = () => {
                           onClick={() => setSelectedRoom(room)}
                           className={`shrink-0 font-['JetBrains_Mono'] text-xs pb-2 uppercase tracking-widest transition-colors cursor-pointer ${
                             isRoomSelected
-                              ? 'text-[#e2c19b] border-b-2 border-[#e2c19b]'
-                              : 'text-[#d1c4b8] hover:text-[#e6e1df]'
+                              ? 'text-[#ef4444] border-b-2 border-[#ef4444]'
+                              : 'text-[#94a3b8] hover:text-[#ffffff]'
                           }`}
                         >
                           {room.name} - {room.roomType}
@@ -1156,12 +1031,12 @@ const CinemasPage = () => {
                       );
                     })
                   ) : (
-                    <span className="text-[#9a8f84] text-xs font-['JetBrains_Mono']">CHƯA CÓ PHÒNG CHIẾU</span>
+                    <span className="text-[#64748b] text-xs font-['JetBrains_Mono']">CHƯA CÓ PHÒNG CHIẾU</span>
                   )}
                   <button 
                     type="button"
                     onClick={handleAddRoomClick}
-                    className="shrink-0 text-[#e2c19b] hover:opacity-70 transition cursor-pointer"
+                    className="shrink-0 text-[#ef4444] hover:opacity-70 transition cursor-pointer"
                     title="Thêm phòng mới"
                   >
                     <span className="material-symbols-outlined text-base mt-0.5 leading-none">add_circle</span>
@@ -1172,8 +1047,8 @@ const CinemasPage = () => {
                   <>
                     <div className="grid grid-cols-3 gap-8 mb-8">
                       <div>
-                        <p className="text-[10px] text-[#9a8f84] font-['JetBrains_Mono'] uppercase mb-1">Sức Chứa Phòng</p>
-                        <p className="font-['Bebas_Neue'] text-3xl text-[#e6e1df] flex items-center gap-2">
+                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Sức Chứa Phòng</p>
+                        <p className="font-['Bebas_Neue'] text-3xl text-[#ffffff] flex items-center gap-2">
                           {selectedRoom.capacity} GHẾ
                           <button
                             type="button"
@@ -1188,7 +1063,7 @@ const CinemasPage = () => {
                               });
                               setIsRoomModalOpen(true);
                             }}
-                            className="text-[#9a8f84] hover:text-[#e2c19b] transition"
+                            className="text-[#64748b] hover:text-[#ef4444] transition"
                             title="Chỉnh sửa thông tin phòng"
                           >
                             <span className="material-symbols-outlined text-sm leading-none">edit</span>
@@ -1196,23 +1071,23 @@ const CinemasPage = () => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#9a8f84] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Hình Ảnh</p>
+                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Hình Ảnh</p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="bg-[#e2c19b]/10 text-[#e2c19b] border border-[#e2c19b]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-sm">
+                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
                             {selectedRoom.roomType === 'IMAX' ? 'IMAX 3D' : '4K Laser'}
                           </span>
-                          <span className="bg-[#e2c19b]/10 text-[#e2c19b] border border-[#e2c19b]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-sm">
+                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
                             {selectedRoom.roomType === 'FOUR_DX' ? '4DX Motion' : 'HDR10'}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#9a8f84] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Âm Thanh</p>
+                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Âm Thanh</p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="bg-[#e2c19b]/10 text-[#e2c19b] border border-[#e2c19b]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-sm">
+                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
                             {selectedRoom.roomType === 'DOLBY_ATMOS' ? 'Dolby Atmos' : 'Dolby 7.1'}
                           </span>
-                          <span className="bg-[#e2c19b]/10 text-[#e2c19b] border border-[#e2c19b]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-sm">
+                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
                             {selectedRoom.roomType === 'IMAX' ? '12.0 CH' : '11.2 CH'}
                           </span>
                         </div>
@@ -1220,17 +1095,17 @@ const CinemasPage = () => {
                     </div>
 
                     {/* Seating Chart Editor */}
-                    <div className="relative bg-[#0f0e0d] border border-[#4e453c] p-8 mb-6 overflow-hidden rounded-sm select-none">
+                    <div className="relative bg-[#0f172a] border border-[#1a2238] p-8 mb-6 overflow-hidden rounded-xl select-none">
                       
                       {/* Design/Preview Switch Toolbar */}
                       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
                         <button
                           type="button"
                           onClick={() => setShowBookingPreview(!showBookingPreview)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm border text-[10px] font-bold font-['JetBrains_Mono'] uppercase tracking-wider transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border text-[10px] font-bold font-['JetBrains_Mono'] uppercase tracking-wider transition-all cursor-pointer ${
                             showBookingPreview
-                              ? 'bg-[#e2c19b] border-[#e2c19b] text-[#412d11]'
-                              : 'bg-[#141312] border-[#4e453c] text-[#d1c4b8] hover:bg-[#2b2a28]/40'
+                              ? 'bg-[#ef4444] border-[#ef4444] text-[#ffffff]'
+                              : 'bg-[#0f172a] border-[#1a2238] text-[#94a3b8] hover:bg-[#1c2333]/40'
                           }`}
                         >
                           <span className="material-symbols-outlined text-xs leading-none">{showBookingPreview ? 'design_services' : 'visibility'}</span>
@@ -1242,7 +1117,7 @@ const CinemasPage = () => {
                             <button
                               type="button"
                               onClick={handleExportJson}
-                              className="p-1 text-[#d1c4b8] hover:text-[#e2c19b] transition cursor-pointer bg-transparent border-none"
+                              className="p-1 text-[#94a3b8] hover:text-[#ef4444] transition cursor-pointer bg-transparent border-none"
                               title="Xuất file JSON"
                             >
                               <span className="material-symbols-outlined text-sm leading-none">download</span>
@@ -1253,7 +1128,7 @@ const CinemasPage = () => {
                                 setImportJsonText('');
                                 setIsImportExportOpen(true);
                               }}
-                              className="p-1 text-[#d1c4b8] hover:text-[#e2c19b] transition cursor-pointer bg-transparent border-none"
+                              className="p-1 text-[#94a3b8] hover:text-[#ef4444] transition cursor-pointer bg-transparent border-none"
                               title="Nạp file JSON"
                             >
                               <span className="material-symbols-outlined text-sm leading-none">upload</span>
@@ -1265,44 +1140,44 @@ const CinemasPage = () => {
                       <div className="flex flex-col items-center">
                         
                         {/* Screen Visualization */}
-                        <div className="w-2/3 h-2 bg-[#e2c19b]/20 mb-12 relative">
-                          <div className="absolute inset-0 bg-[#e2c19b]/40 blur-md"></div>
-                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-['JetBrains_Mono'] text-[#e2c19b] tracking-[0.4em] uppercase">MÀN CHIẾU CHÍNH</div>
+                        <div className="w-2/3 h-2 bg-[#ef4444]/20 mb-12 relative">
+                          <div className="absolute inset-0 bg-[#ef4444]/40 blur-md"></div>
+                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-['JetBrains_Mono'] text-[#ef4444] tracking-[0.4em] uppercase">MÀN CHIẾU CHÍNH</div>
                         </div>
 
                         {/* Interactive Seat Map View Canvas */}
                         {isLoadingSeats ? (
                           <div className="flex justify-center items-center py-20">
-                            <div className="w-8 h-8 border-2 border-[#e2c19b] border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-8 h-8 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         ) : selectedRoomSeats.length === 0 ? (
-                          <div className="text-center py-16 border border-dashed border-[#4e453c] rounded-sm p-6 bg-[#141312]/50 w-full max-w-lg">
-                            <span className="material-symbols-outlined text-[#e2c19b] text-4xl mb-3 opacity-30 leading-none">tv</span>
-                            <p className="text-sm font-bold uppercase tracking-wider text-[#e6e1df] mb-1">Chưa có sơ đồ ghế nào được sinh</p>
-                            <p className="text-xs text-[#9a8f84] mb-6 font-['JetBrains_Mono']">Hãy thiết lập kích thước và khởi tạo sơ đồ tự động cho phòng chiếu.</p>
+                          <div className="text-center py-16 border border-dashed border-[#1a2238] rounded-xl p-6 bg-[#0f172a]/50 w-full max-w-lg">
+                            <span className="material-symbols-outlined text-[#ef4444] text-4xl mb-3 opacity-30 leading-none">tv</span>
+                            <p className="text-sm font-bold uppercase tracking-wider text-[#ffffff] mb-1">Chưa có sơ đồ ghế nào được sinh</p>
+                            <p className="text-xs text-[#64748b] mb-6 font-['JetBrains_Mono']">Hãy thiết lập kích thước và khởi tạo sơ đồ tự động cho phòng chiếu.</p>
                             
-                            <div className="flex flex-col items-center gap-4 max-w-sm mx-auto p-4 bg-[#1d1b1a]/50 border border-[#4e453c] rounded-sm mb-4 text-left">
-                              <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#9a8f84] border-b border-[#4e453c] pb-1.5 w-full font-['JetBrains_Mono']">Thông Số Bố Cục</h4>
+                            <div className="flex flex-col items-center gap-4 max-w-sm mx-auto p-4 bg-[#0b0f19]/50 border border-[#1a2238] rounded-xl mb-4 text-left">
+                              <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] border-b border-[#1a2238] pb-1.5 w-full font-['JetBrains_Mono']">Thông Số Bố Cục</h4>
                               
                               <div className="grid grid-cols-2 gap-4 w-full">
                                 <div>
-                                  <label className="block text-[9px] font-bold text-[#9a8f84] uppercase mb-1 font-['JetBrains_Mono']">Số Hàng (A-Z)</label>
+                                  <label className="block text-[9px] font-bold text-[#64748b] uppercase mb-1 font-['JetBrains_Mono']">Số Hàng (A-Z)</label>
                                   <input
                                     type="number"
                                     min="1"
                                     max="26"
-                                    className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-2.5 py-1.5 text-xs text-[#e6e1df] focus:ring-1 focus:ring-[#e2c19b]/30"
+                                    className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-2.5 py-1.5 text-xs text-[#ffffff] focus:ring-1 focus:ring-[#ef4444]/30"
                                     value={builderRows}
                                     onChange={(e) => setBuilderRows(parseInt(e.target.value) || 8)}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[9px] font-bold text-[#9a8f84] uppercase mb-1 font-['JetBrains_Mono']">Ghế Mỗi Hàng</label>
+                                  <label className="block text-[9px] font-bold text-[#64748b] uppercase mb-1 font-['JetBrains_Mono']">Ghế Mỗi Hàng</label>
                                   <input
                                     type="number"
                                     min="1"
                                     max="30"
-                                    className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-2.5 py-1.5 text-xs text-[#e6e1df] focus:ring-1 focus:ring-[#e2c19b]/30"
+                                    className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-2.5 py-1.5 text-xs text-[#ffffff] focus:ring-1 focus:ring-[#ef4444]/30"
                                     value={builderCols}
                                     onChange={(e) => setBuilderCols(parseInt(e.target.value) || 12)}
                                   />
@@ -1310,7 +1185,7 @@ const CinemasPage = () => {
                               </div>
 
                               <div className="w-full">
-                                <p className="text-[9px] text-[#9a8f84] mb-2 font-['JetBrains_Mono']">
+                                <p className="text-[9px] text-[#64748b] mb-2 font-['JetBrains_Mono']">
                                   💡 **Bố cục mẫu**: Chọn sơ đồ thiết lập sẵn bên dưới.
                                 </p>
                                 <div className="flex flex-wrap gap-1.5 w-full">
@@ -1319,7 +1194,7 @@ const CinemasPage = () => {
                                       key={preset.id}
                                       type="button"
                                       onClick={() => handleApplyPresetTemplate(preset)}
-                                      className="px-2 py-1 border border-[#4e453c] hover:border-[#e2c19b]/30 bg-[#211f1e] text-[9px] font-bold rounded-sm text-[#d1c4b8] hover:text-[#e6e1df] cursor-pointer"
+                                      className="px-2 py-1 border border-[#1a2238] hover:border-[#ef4444]/30 bg-[#121826] text-[9px] font-bold rounded-xl text-[#94a3b8] hover:text-[#ffffff] cursor-pointer"
                                     >
                                       {preset.name}
                                     </button>
@@ -1331,7 +1206,7 @@ const CinemasPage = () => {
                             <button
                               type="button"
                               onClick={handleGenerateBaseLayout}
-                              className="inline-flex items-center gap-1.5 rounded-sm bg-[#e2c19b] text-[#412d11] px-5 py-2.5 text-xs font-bold font-['JetBrains_Mono'] uppercase hover:brightness-110 transition shadow-md shadow-[#e2c19b]/15 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-[#ef4444] text-[#ffffff] px-5 py-2.5 text-xs font-bold font-['JetBrains_Mono'] uppercase hover:brightness-110 transition shadow-md shadow-[#ef4444]/15 cursor-pointer"
                             >
                               <span className="material-symbols-outlined text-sm leading-none font-bold">refresh</span> Khởi Tạo Sơ Đồ
                             </button>
@@ -1341,11 +1216,11 @@ const CinemasPage = () => {
                             {/* Seating Grid */}
                             <div 
                               ref={seatGridRef}
-                              className="flex flex-col gap-2 select-none w-full overflow-x-auto premium-scroll p-4 items-center bg-[#141312]/30 border border-[#4e453c]/40 rounded-sm"
+                              className="flex flex-col gap-2 select-none w-full overflow-x-auto premium-scroll p-4 items-center bg-[#0f172a]/30 border border-[#1a2238]/40 rounded-xl"
                             >
                               {Object.entries(seatsByRow).map(([rowName, rowSeats]) => (
                                 <div key={rowName} className="flex items-center gap-3 min-w-max">
-                                  <span className="w-4 font-mono font-bold text-xs text-[#9a8f84] text-center shrink-0">{rowName}</span>
+                                  <span className="w-4 font-mono font-bold text-xs text-[#64748b] text-center shrink-0">{rowName}</span>
                                   
                                   <div className="flex items-center gap-1.5">
                                     {rowSeats.map((seat, seatIdx) => {
@@ -1356,7 +1231,7 @@ const CinemasPage = () => {
                                       return (
                                         <React.Fragment key={seat.uuid}>
                                           {isAisle && (
-                                            <div className="w-4 h-4 shrink-0 flex items-center justify-center text-[7px] text-[#9a8f84]/40 border border-dashed border-[#4e453c]/30 rounded-sm bg-[#0f0e0d]/10 select-none">
+                                            <div className="w-4 h-4 shrink-0 flex items-center justify-center text-[7px] text-[#64748b]/40 border border-dashed border-[#1a2238]/30 rounded-xl bg-[#0f172a]/10 select-none">
                                               ⇅
                                             </div>
                                           )}
@@ -1364,9 +1239,9 @@ const CinemasPage = () => {
                                             type="button"
                                             onMouseDown={() => handleSeatMouseDown(seat.uuid)}
                                             onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
-                                            className={`w-4 h-4 rounded-sm text-[8px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item ${
+                                            className={`w-4 h-4 rounded-xl text-[8px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item ${
                                               isSelected
-                                                ? 'border-[#e2c19b] ring-1 ring-[#e2c19b]/40 bg-[#e2c19b]/25 text-[#e2c19b]'
+                                                ? 'border-[#ef4444] ring-1 ring-[#ef4444]/40 bg-[#ef4444]/25 text-[#ef4444]'
                                                 : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
                                             }`}
                                             title={`${rowName}${seat.seatNumber} (${stConfig.label}) - ${seat.status}`}
@@ -1378,7 +1253,7 @@ const CinemasPage = () => {
                                     })}
                                   </div>
 
-                                  <span className="w-4 font-mono font-bold text-xs text-[#9a8f84] text-center shrink-0">{rowName}</span>
+                                  <span className="w-4 font-mono font-bold text-xs text-[#64748b] text-center shrink-0">{rowName}</span>
                                 </div>
                               ))}
                             </div>
@@ -1397,17 +1272,17 @@ const CinemasPage = () => {
                                       if (selectedSeatIds.size > 0) handlePaintSelection(key);
                                     }}
                                     disabled={showBookingPreview}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border transition-all cursor-pointer text-left ${
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-left ${
                                       isActiveBrush && !showBookingPreview
-                                        ? 'border-[#e2c19b] bg-[#e2c19b]/10 scale-105'
+                                        ? 'border-[#ef4444] bg-[#ef4444]/10 scale-105'
                                         : 'border-transparent bg-transparent opacity-85 hover:opacity-100'
                                     }`}
                                   >
-                                    <div className={`h-3 w-3 rounded-sm shrink-0 border ${config.color} ${config.border}`} />
+                                    <div className={`h-3 w-3 rounded-xl shrink-0 border ${config.color} ${config.border}`} />
                                     <div className="leading-none">
-                                      <span className="text-[10px] font-['JetBrains_Mono'] text-[#d1c4b8] uppercase block">{config.label}</span>
+                                      <span className="text-[10px] font-['JetBrains_Mono'] text-[#94a3b8] uppercase block">{config.label}</span>
                                       {selectedSeatIds.size > 0 && isActiveBrush && !showBookingPreview && (
-                                        <span className="text-[7px] text-[#e2c19b] font-bold font-mono">TÔ MÀU VÙNG CHỌN</span>
+                                        <span className="text-[7px] text-[#ef4444] font-bold font-mono">TÔ MÀU VÙNG CHỌN</span>
                                       )}
                                     </div>
                                   </button>
@@ -1420,15 +1295,15 @@ const CinemasPage = () => {
                     </div>
 
                     {/* Operations bar: Save or discard */}
-                    <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-[#4e453c]/30">
-                      <p className="mr-auto text-[10px] text-[#9a8f84] font-['JetBrains_Mono'] uppercase flex items-center gap-2">
+                    <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-[#1a2238]/30">
+                      <p className="mr-auto text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm leading-none">history</span>
                         Lưu lần cuối: Vừa xong bởi quản trị viên
                       </p>
                       <button 
                         type="button"
                         onClick={() => fetchSeats(selectedRoom.uuid)}
-                        className="px-6 py-2 bg-[#211f1e] text-[#e6e1df] border border-[#4e453c] font-['JetBrains_Mono'] text-xs uppercase hover:bg-[#2b2a28] transition-all cursor-pointer rounded-sm"
+                        className="px-6 py-2 bg-[#121826] text-[#ffffff] border border-[#1a2238] font-['JetBrains_Mono'] text-xs uppercase hover:bg-[#1c2333] transition-all cursor-pointer rounded-xl"
                       >
                         Hủy Bỏ Thay Đổi
                       </button>
@@ -1436,11 +1311,11 @@ const CinemasPage = () => {
                         type="button"
                         onClick={handleSaveAllConfiguration}
                         disabled={isSavingSeats || isSavingRoomConfig}
-                        className="px-10 py-2 bg-[#e2c19b] text-[#412d11] font-bold font-['JetBrains_Mono'] text-xs uppercase cinematic-glow transition-all hover:brightness-110 cursor-pointer rounded-sm flex items-center gap-2"
+                        className="px-10 py-2 bg-[#ef4444] text-[#ffffff] font-bold font-['JetBrains_Mono'] text-xs uppercase cinematic-glow transition-all hover:brightness-110 cursor-pointer rounded-xl flex items-center gap-2"
                       >
                         {(isSavingSeats || isSavingRoomConfig) ? (
                           <>
-                            <div className="w-3.5 h-3.5 border-2 border-[#412d11] border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-3.5 h-3.5 border-2 border-[#ffffff] border-t-transparent rounded-full animate-spin"></div>
                             Đang lưu...
                           </>
                         ) : (
@@ -1450,10 +1325,10 @@ const CinemasPage = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-16 border border-dashed border-[#4e453c] rounded-sm p-6 bg-[#141312]/55">
-                    <span className="material-symbols-outlined text-[#e2c19b] text-4xl mb-3 opacity-20 animate-pulse leading-none">compass</span>
-                    <p className="text-sm font-bold uppercase tracking-wider text-[#e6e1df] mb-1">Chưa chọn phòng chiếu</p>
-                    <p className="text-xs text-[#9a8f84] font-['JetBrains_Mono']">Vui lòng chọn hoặc thêm mới phòng chiếu ở danh sách tabs phía trên.</p>
+                  <div className="text-center py-16 border border-dashed border-[#1a2238] rounded-xl p-6 bg-[#0f172a]/55">
+                    <span className="material-symbols-outlined text-[#ef4444] text-4xl mb-3 opacity-20 animate-pulse leading-none">compass</span>
+                    <p className="text-sm font-bold uppercase tracking-wider text-[#ffffff] mb-1">Chưa chọn phòng chiếu</p>
+                    <p className="text-xs text-[#64748b] font-['JetBrains_Mono']">Vui lòng chọn hoặc thêm mới phòng chiếu ở danh sách tabs phía trên.</p>
                   </div>
                 )}
               </div>
@@ -1463,10 +1338,10 @@ const CinemasPage = () => {
           {/* Technical Standards Section (Asymmetric) */}
           <section className="mt-12 grid grid-cols-12 gap-6 text-left">
             <div className="col-span-12">
-              <div className="bg-[#1d1b1a] border border-[#4e453c] p-8 flex flex-col md:flex-row gap-8 items-center rounded-sm">
+              <div className="bg-[#0b0f19] border border-[#1a2238] p-8 flex flex-col md:flex-row gap-8 items-center rounded-xl">
                 <div className="md:w-1/3">
-                  <h2 className="font-['Bebas_Neue'] text-3xl text-[#e6e1df] mb-2 tracking-wider">Thông Số Kỹ Thuật</h2>
-                  <p className="text-sm text-[#d1c4b8] leading-relaxed">
+                  <h2 className="font-['Bebas_Neue'] text-3xl text-[#ffffff] mb-2 tracking-wider">Thông Số Kỹ Thuật</h2>
+                  <p className="text-sm text-[#94a3b8] leading-relaxed">
                     Xác định cấu hình phần cứng thiết bị chiếu phim và âm thanh cho phòng chiếu. Các phòng chiếu phải đạt tiêu chuẩn hiển thị và âm thanh quy chuẩn để hoạt động.
                   </p>
                 </div>
@@ -1475,55 +1350,55 @@ const CinemasPage = () => {
                   {selectedRoom ? (
                     <>
                       {/* Projection */}
-                      <div className="bg-[#211f1e] p-4 border border-[#4e453c]/30 hover:border-[#e2c19b]/50 transition-all rounded-sm">
-                        <span className="material-symbols-outlined text-[#e2c19b] mb-2 leading-none">videocam</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#e6e1df]">Thiết Bị Chiếu</h4>
+                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
+                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">videocam</span>
+                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Thiết Bị Chiếu</h4>
                         <input
                           type="text"
-                          className="bg-[#0f0e0d] border border-[#4e453c]/50 hover:border-[#e2c19b]/30 focus:border-[#e2c19b] focus:ring-1 focus:ring-[#e2c19b]/20 text-[10.5px] text-[#d1c4b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-sm transition-all"
+                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
                           value={roomTechSpecs.projection}
                           onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, projection: e.target.value })}
                         />
                       </div>
 
                       {/* Audio Processor */}
-                      <div className="bg-[#211f1e] p-4 border border-[#4e453c]/30 hover:border-[#e2c19b]/50 transition-all rounded-sm">
-                        <span className="material-symbols-outlined text-[#e2c19b] mb-2 leading-none">surround_sound</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#e6e1df]">Bộ Xử Lý Âm Thanh</h4>
+                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
+                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">surround_sound</span>
+                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Bộ Xử Lý Âm Thanh</h4>
                         <input
                           type="text"
-                          className="bg-[#0f0e0d] border border-[#4e453c]/50 hover:border-[#e2c19b]/30 focus:border-[#e2c19b] focus:ring-1 focus:ring-[#e2c19b]/20 text-[10.5px] text-[#d1c4b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-sm transition-all"
+                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
                           value={roomTechSpecs.audioProcessor}
                           onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, audioProcessor: e.target.value })}
                         />
                       </div>
 
                       {/* Screen Material */}
-                      <div className="bg-[#211f1e] p-4 border border-[#4e453c]/30 hover:border-[#e2c19b]/50 transition-all rounded-sm">
-                        <span className="material-symbols-outlined text-[#e2c19b] mb-2 leading-none">layers</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#e6e1df]">Chất Liệu Màn Hình</h4>
+                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
+                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">layers</span>
+                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Chất Liệu Màn Hình</h4>
                         <input
                           type="text"
-                          className="bg-[#0f0e0d] border border-[#4e453c]/50 hover:border-[#e2c19b]/30 focus:border-[#e2c19b] focus:ring-1 focus:ring-[#e2c19b]/20 text-[10.5px] text-[#d1c4b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-sm transition-all"
+                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
                           value={roomTechSpecs.screenMaterial}
                           onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, screenMaterial: e.target.value })}
                         />
                       </div>
 
                       {/* Seating Soft */}
-                      <div className="bg-[#211f1e] p-4 border border-[#4e453c]/30 hover:border-[#e2c19b]/50 transition-all rounded-sm">
-                        <span className="material-symbols-outlined text-[#e2c19b] mb-2 leading-none">chair</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#e6e1df]">Chất Liệu Đệm Ghế</h4>
+                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
+                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">chair</span>
+                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Chất Liệu Đệm Ghế</h4>
                         <input
                           type="text"
-                          className="bg-[#0f0e0d] border border-[#4e453c]/50 hover:border-[#e2c19b]/30 focus:border-[#e2c19b] focus:ring-1 focus:ring-[#e2c19b]/20 text-[10.5px] text-[#d1c4b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-sm transition-all"
+                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
                           value={roomTechSpecs.seatingSoft}
                           onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, seatingSoft: e.target.value })}
                         />
                       </div>
                     </>
                   ) : (
-                    <div className="col-span-4 py-8 text-center text-[#9a8f84] border border-dashed border-[#4e453c] rounded-sm p-4 bg-[#0f0e0d]/20 w-full font-['JetBrains_Mono']">
+                    <div className="col-span-4 py-8 text-center text-[#64748b] border border-dashed border-[#1a2238] rounded-xl p-4 bg-[#0f172a]/20 w-full font-['JetBrains_Mono']">
                       <p className="text-xs uppercase tracking-wider">Chọn phòng chiếu để cấu hình thông số kỹ thuật</p>
                     </div>
                   )}
@@ -1536,10 +1411,10 @@ const CinemasPage = () => {
           {isCinemaModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsCinemaModalOpen(false)}></div>
-              <div className="relative w-full max-w-md bg-[#1d1b1a] border border-[#4e453c] rounded-sm overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-5 border-b border-[#4e453c]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#e6e1df] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Sparkles className="w-4 h-4 text-[#e2c19b]" />
+              <div className="relative w-full max-w-md bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
+                <div className="flex justify-between items-center mb-5 border-b border-[#1a2238]/45 pb-3">
+                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
+                    <Sparkles className="w-4 h-4 text-[#ef4444]" />
                     {editingCinema ? 'Chỉnh Sửa Chi Nhánh' : 'Thêm Chi Nhánh Mới'}
                   </h2>
                   <button
@@ -1552,50 +1427,50 @@ const CinemasPage = () => {
                 
                 <form onSubmit={handleCinemaSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Chi Nhánh Rạp *</label>
+                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Chi Nhánh Rạp *</label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50 transition-colors"
+                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
                       placeholder="Ví dụ: TPD Đống Đa"
                       value={cinemaFormData.name}
                       onChange={(e) => setCinemaFormData({ ...cinemaFormData, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Địa Chỉ Chi Nhánh *</label>
+                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Địa Chỉ Chi Nhánh *</label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50 transition-colors"
+                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
                       placeholder="Địa chỉ chi tiết..."
                       value={cinemaFormData.address}
                       onChange={(e) => setCinemaFormData({ ...cinemaFormData, address: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Số Điện Thoại Vận Hành *</label>
+                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Số Điện Thoại Vận Hành *</label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50 transition-colors"
+                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
                       placeholder="Ví dụ: 1900 1080"
                       value={cinemaFormData.phoneNumber}
                       onChange={(e) => setCinemaFormData({ ...cinemaFormData, phoneNumber: e.target.value })}
                     />
                   </div>
                   
-                  <div className="pt-4 border-t border-[#4e453c]/45 flex gap-2 justify-end">
+                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
                     <button
                       type="button"
                       onClick={() => setIsCinemaModalOpen(false)}
-                      className="px-4 py-2 rounded-sm bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-sm bg-[#e2c19b] text-[#412d11] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#e2c19b]/10 font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
                     >
                       Lưu Lại
                     </button>
@@ -1609,10 +1484,10 @@ const CinemasPage = () => {
           {isRoomModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsRoomModalOpen(false)}></div>
-              <div className="relative w-full max-w-md bg-[#1d1b1a] border border-[#4e453c] rounded-sm overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-5 border-b border-[#4e453c]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#e6e1df] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Tv className="w-4 h-4 text-[#e2c19b]" />
+              <div className="relative w-full max-w-md bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
+                <div className="flex justify-between items-center mb-5 border-b border-[#1a2238]/45 pb-3">
+                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
+                    <Tv className="w-4 h-4 text-[#ef4444]" />
                     {editingRoom ? 'Chỉnh Sửa Phòng Chiếu' : 'Thêm Phòng Chiếu Mới'}
                   </h2>
                   <button
@@ -1625,22 +1500,22 @@ const CinemasPage = () => {
                 
                 <form onSubmit={handleRoomSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Mã Phòng Chiếu *</label>
+                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Mã Phòng Chiếu *</label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50"
+                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
                       placeholder="Ví dụ: ROOM-IMAX-01"
                       value={roomFormData.roomCode}
                       onChange={(e) => setRoomFormData({ ...roomFormData, roomCode: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Phòng Chiếu *</label>
+                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Phòng Chiếu *</label>
                     <input
                       type="text"
                       required
-                      className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50"
+                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
                       placeholder="Ví dụ: Phòng Chiếu Số 1"
                       value={roomFormData.name}
                       onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })}
@@ -1649,9 +1524,9 @@ const CinemasPage = () => {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Kiểu Phòng Chiếu *</label>
+                      <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Kiểu Phòng Chiếu *</label>
                       <select
-                        className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#e2c19b]/50 cursor-pointer"
+                        className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#ef4444]/50 cursor-pointer"
                         value={roomFormData.roomType}
                         onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
                       >
@@ -1663,9 +1538,9 @@ const CinemasPage = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[9px] font-bold text-[#9a8f84] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Trạng Thái Vận Hành *</label>
+                      <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Trạng Thái Vận Hành *</label>
                       <select
-                        className="w-full bg-[#0f0e0d] border border-[#4e453c] rounded-sm px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#e2c19b]/50 cursor-pointer"
+                        className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#ef4444]/50 cursor-pointer"
                         value={roomFormData.status}
                         onChange={(e) => setRoomFormData({ ...roomFormData, status: e.target.value })}
                       >
@@ -1676,17 +1551,17 @@ const CinemasPage = () => {
                     </div>
                   </div>
                   
-                  <div className="pt-4 border-t border-[#4e453c]/45 flex gap-2 justify-end">
+                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
                     <button
                       type="button"
                       onClick={() => setIsRoomModalOpen(false)}
-                      className="px-4 py-2 rounded-sm bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-sm bg-[#e2c19b] text-[#412d11] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#e2c19b]/10 font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
                     >
                       Lưu Lại
                     </button>
@@ -1700,10 +1575,10 @@ const CinemasPage = () => {
           {isImportExportOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsImportExportOpen(false)}></div>
-              <div className="relative w-full max-w-lg bg-[#1d1b1a] border border-[#4e453c] rounded-sm overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-4 border-b border-[#4e453c]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#e6e1df] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Upload className="w-4 h-4 text-[#e2c19b]" />
+              <div className="relative w-full max-w-lg bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
+                <div className="flex justify-between items-center mb-4 border-b border-[#1a2238]/45 pb-3">
+                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
+                    <Upload className="w-4 h-4 text-[#ef4444]" />
                     Nạp Sơ Đồ Thiết Kế Từ JSON
                   </h2>
                   <button
@@ -1721,24 +1596,24 @@ const CinemasPage = () => {
                   
                   <textarea
                     rows="8"
-                    className="w-full rounded-sm bg-[#0f0e0d] border border-[#4e453c] p-3 font-mono text-xs text-emerald-400 placeholder-gray-600 focus:outline-none focus:border-[#e2c19b]/50"
+                    className="w-full rounded-xl bg-[#0f172a] border border-[#1a2238] p-3 font-mono text-xs text-emerald-400 placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
                     placeholder='[\n  {\n    "rowName": "A",\n    "seatNumber": 1,\n    "status": "ACTIVE",\n    "customTypeName": "STANDARD"\n  }\n]'
                     value={importJsonText}
                     onChange={(e) => setImportJsonText(e.target.value)}
                   />
                   
-                  <div className="pt-4 border-t border-[#4e453c]/45 flex gap-2 justify-end">
+                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
                     <button
                       type="button"
                       onClick={() => setIsImportExportOpen(false)}
-                      className="px-4 py-2 rounded-sm bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
                     >
                       Hủy
                     </button>
                     <button
                       type="button"
                       onClick={handleImportJson}
-                      className="px-4 py-2 rounded-sm bg-[#e2c19b] text-[#412d11] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#e2c19b]/10 font-['JetBrains_Mono']"
+                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
                     >
                       Nạp Bố Cục
                     </button>
@@ -1747,10 +1622,9 @@ const CinemasPage = () => {
               </div>
             </div>
           )}
-        </main>
-      </div>
     </div>
   );
 };
 
 export default CinemasPage;
+

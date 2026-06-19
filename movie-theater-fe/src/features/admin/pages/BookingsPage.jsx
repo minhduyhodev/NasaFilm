@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, User, Film,
-  Download, MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
-  Filter, X
+  MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
+  Filter, X, ChevronDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
@@ -10,6 +10,7 @@ import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import Pagination from '../../../shared/components/Pagination';
+import './BookingsPage.css';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -26,6 +27,178 @@ const BookingsPage = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedCinema, setSelectedCinema] = useState('');
   const [selectedShowtime, setSelectedShowtime] = useState('');
+
+  const [activeDatePickerField, setActiveDatePickerField] = useState(null); // 'startDate', 'endDate', or null
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
+  const openDatePicker = (field) => {
+    const currentValue = field === 'startDate' ? startDate : endDate;
+    if (currentValue) {
+      const parts = currentValue.split('-');
+      if (parts.length === 3) {
+        setCalendarYear(parseInt(parts[0], 10));
+        setCalendarMonth(parseInt(parts[1], 10) - 1);
+      }
+    } else {
+      const today = new Date();
+      setCalendarMonth(today.getMonth());
+      setCalendarYear(today.getFullYear());
+    }
+    setActiveDatePickerField(field);
+    setActiveDropdown(null);
+  };
+
+  const handlePrevMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 0) {
+        setCalendarYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 11) {
+        setCalendarYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const handleSelectDay = (dayObj) => {
+    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+    if (activeDatePickerField === 'startDate') {
+      setStartDate(dateStr);
+    } else {
+      setEndDate(dateStr);
+    }
+    setActiveDatePickerField(null);
+  };
+
+  const getDaysInMonth = (year, month) => {
+    const date = new Date(year, month, 1);
+    const days = [];
+    const firstDayIndex = date.getDay();
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // start from Monday
+
+    const prevMonthDate = new Date(year, month, 0);
+    const prevMonthDaysCount = prevMonthDate.getDate();
+    for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthDaysCount - i,
+        month: month === 0 ? 11 : month - 1,
+        year: month === 0 ? year - 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    const currentMonthDaysCount = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= currentMonthDaysCount; i++) {
+      days.push({
+        day: i,
+        month,
+        year,
+        isCurrentMonth: true,
+      });
+    }
+
+    const remainingSlots = 42 - days.length; // 6 rows * 7 columns = 42
+    for (let i = 1; i <= remainingSlots; i++) {
+      days.push({
+        day: i,
+        month: month === 11 ? 0 : month + 1,
+        year: month === 11 ? year + 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const renderCalendarContent = (field) => {
+    const currentValue = field === 'startDate' ? startDate : endDate;
+    return (
+      <div className="space-y-3 font-sans text-left">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+            {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
+          </span>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+            <div key={d} className="py-1">{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {getDaysInMonth(calendarYear, calendarMonth).map((dayObj, idx) => {
+            const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+            const isSelected = currentValue === dateStr;
+            const today = new Date();
+            const isToday = today.getDate() === dayObj.day && today.getMonth() === dayObj.month && today.getFullYear() === dayObj.year;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectDay(dayObj)}
+                className={`py-1 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer border-0 ${
+                  isSelected
+                    ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-600/20'
+                    : isToday
+                    ? 'border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                    : dayObj.isCurrentMonth
+                    ? 'text-gray-800 hover:bg-gray-100'
+                    : 'text-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {dayObj.day}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => {
+              if (field === 'startDate') setStartDate('');
+              else setEndDate('');
+              setActiveDatePickerField(null);
+            }}
+            className="text-[10px] text-gray-400 hover:text-gray-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
+          >
+            Xóa
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveDatePickerField(null)}
+            className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -71,8 +244,6 @@ const BookingsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, startDate, endDate, selectedCinema, selectedShowtime]);
-
-  const handleExport = () => notificationService.info('Tính năng xuất báo cáo đang được chuẩn bị.');
 
   const handleClearFilters = () => {
     setStartDate('');
@@ -246,114 +417,226 @@ const BookingsPage = () => {
               Đặt lại bộ lọc
             </button>
           )}
-          <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 px-4 py-2 text-xs font-black text-black transition-all duration-200 shadow-lg shadow-yellow-500/20 cursor-pointer shrink-0">
-            <Download className="w-4 h-4" />
-            Xuất Excel
-          </button>
         </div>
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-amber-500/15 to-yellow-600/10 border border-amber-500/25 rounded-2xl p-5 flex items-center justify-between hover:border-amber-500/50 transition-all duration-200 group shadow-lg shadow-amber-500/5">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400/80 block">Doanh Thu</span>
-            <h3 className="text-3xl font-black text-amber-400 font-mono leading-none tracking-tight">{formatPrice(stats.totalRevenue)}</h3>
-            <span className="text-[10px] text-amber-400/50">Đơn thành công</span>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6 text-left">
+        {[
+          { label: 'DOANH THU', value: formatPrice(stats.totalRevenue), badge: 'Đơn thành công', icon: DollarSign, color: 'text-amber-400', kpiClass: 'kpi-revenue' },
+          { label: 'THÀNH CÔNG', value: stats.confirmedCount, badge: 'đơn đặt vé', icon: CheckCircle2, color: 'text-emerald-400', kpiClass: 'kpi-success' },
+          { label: 'ĐÃ HỦY', value: stats.cancelledCount, badge: 'đơn đã hủy', icon: XCircle, color: 'text-rose-400', kpiClass: 'kpi-cancelled' },
+          { label: 'TỔNG ĐƠN HÀNG', value: stats.totalCount, badge: 'tổng giao dịch', icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total' },
+          { label: 'GIÁ TRỊ AOV', value: formatPrice(stats.avgOrderValue), badge: 'trung bình/đơn', icon: Sparkles, color: 'text-blue-400', kpiClass: 'kpi-aov' }
+        ].map(kpi => (
+          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
+            </div>
+            <p className={`text-xl font-black ${kpi.color} leading-none truncate`} title={kpi.value.toString()}>{kpi.value}</p>
+            <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
           </div>
-          <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform duration-200">
-            <DollarSign className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-emerald-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Thành Công</span>
-            <h3 className="text-3xl font-black text-emerald-400 leading-none">{stats.confirmedCount}</h3>
-            <span className="text-[10px] text-gray-600">đơn đặt vé</span>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-200">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-rose-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Đã Hủy</span>
-            <h3 className="text-3xl font-black text-rose-400 leading-none">{stats.cancelledCount}</h3>
-            <span className="text-[10px] text-gray-600">đơn đã hủy</span>
-          </div>
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 group-hover:scale-110 transition-transform duration-200">
-            <XCircle className="w-5 h-5 text-rose-400" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Tổng Đơn Hàng</span>
-            <h3 className="text-3xl font-black text-white leading-none">{stats.totalCount}</h3>
-            <span className="text-[10px] text-gray-600">tổng giao dịch</span>
-          </div>
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-            <Ticket className="w-5 h-5 text-white" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-blue-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Giá Trị AOV</span>
-            <h3 className="text-3xl font-black text-blue-400 font-mono leading-none">{formatPrice(stats.avgOrderValue)}</h3>
-            <span className="text-[10px] text-gray-600">trung bình/đơn</span>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:scale-110 transition-transform duration-200">
-            <Sparkles className="w-5 h-5 text-blue-400" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 space-y-3 backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5 pointer-events-none" />
-            <input className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên khách, email, phim..." />
+      <div className="bg-[#1c2333]/50 border border-[#242d42] rounded-2xl p-5 space-y-4 backdrop-blur-md shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+            <input
+              className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-605 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 font-sans"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm theo tên khách, email, phim..."
+            />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center bg-[#0b0f19] border border-[#242d42] p-1 rounded-xl self-start sm:self-auto shrink-0 shadow-inner">
             {[{ key: 'ALL', label: 'Tất cả' }, { key: 'CONFIRMED', label: 'Thành công' }, { key: 'CANCELLED', label: 'Đã hủy' }].map(({ key, label }) => (
-              <button key={key} onClick={() => setStatusFilter(key)} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer border ${statusFilter === key ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-[#0F1322] border-[#1A2238] text-gray-400 hover:text-white hover:border-gray-600'}`}>{label}</button>
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer border-0 ${
+                  statusFilter === key
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5 bg-transparent'
+                }`}
+              >
+                {label}
+              </button>
             ))}
           </div>
-          <div className="sm:ml-auto">
-            <button onClick={handleExport} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0F1322] border border-[#1A2238] text-xs font-bold text-gray-400 hover:text-yellow-400 hover:border-yellow-500/30 transition-all duration-200 cursor-pointer">
-              <Download className="w-3.5 h-3.5" />
-              Xuất dữ liệu
-            </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Từ ngày mua</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => openDatePicker('startDate')}
+                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
+              >
+                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+                <span className={startDate ? 'text-white' : 'text-gray-600'}>
+                  {startDate ? startDate : 'yyyy-mm-dd'}
+                </span>
+              </button>
+            </div>
+            {activeDatePickerField === 'startDate' && (
+              <>
+                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
+                <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                  {renderCalendarContent('startDate')}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Đến ngày mua</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => openDatePicker('endDate')}
+                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
+              >
+                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+                <span className={endDate ? 'text-white' : 'text-gray-600'}>
+                  {endDate ? endDate : 'yyyy-mm-dd'}
+                </span>
+              </button>
+            </div>
+            {activeDatePickerField === 'endDate' && (
+              <>
+                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
+                <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                  {renderCalendarContent('endDate')}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Rạp chiếu / Chi nhánh</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema');
+                  setActiveDatePickerField(null);
+                }}
+                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
+              >
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+                <span className="truncate">{selectedCinema ? selectedCinema : 'Tất cả rạp'}</span>
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+              </button>
+
+              {activeDropdown === 'cinema' && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdown(null)}></div>
+                  <div className="absolute left-0 top-full mt-1.5 w-full min-w-[200px] bg-[#1c2333] border border-[#242d42] rounded-xl shadow-2xl p-1.5 space-y-0.5 z-50 text-left animate-dropdown-fade-in max-h-60 overflow-y-auto custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCinema('');
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                        !selectedCinema ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                      }`}
+                    >
+                      Tất cả rạp
+                    </button>
+                    {cinemasList.map((c) => (
+                      <button
+                        key={c.uuid}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCinema(c.name);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                          selectedCinema === c.name ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Khung giờ suất chiếu</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime');
+                  setActiveDatePickerField(null);
+                }}
+                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
+              >
+                <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+                <span className="truncate">{selectedShowtime ? selectedShowtime : 'Tất cả khung giờ'}</span>
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+              </button>
+
+              {activeDropdown === 'showtime' && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdown(null)}></div>
+                  <div className="absolute left-0 top-full mt-1.5 w-full min-w-[200px] bg-[#1c2333] border border-[#242d42] rounded-xl shadow-2xl p-1.5 space-y-0.5 z-50 text-left animate-dropdown-fade-in max-h-60 overflow-y-auto custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedShowtime('');
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                        !selectedShowtime ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                      }`}
+                    >
+                      Tất cả khung giờ
+                    </button>
+                    {uniqueShowtimeOptions.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          setSelectedShowtime(t);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                          selectedShowtime === t ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Từ ngày mua</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Đến ngày mua</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Rạp chiếu / Chi nhánh</label>
-            <select value={selectedCinema} onChange={(e) => setSelectedCinema(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer">
-              <option value="">Tất cả rạp</option>
-              {cinemasList.map(c => (<option key={c.uuid} value={c.name}>{c.name}</option>))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Khung giờ suất chiếu</label>
-            <select value={selectedShowtime} onChange={(e) => setSelectedShowtime(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer">
-              <option value="">Tất cả khung giờ</option>
-              {uniqueShowtimeOptions.map(t => (<option key={t} value={t}>{t}</option>))}
-            </select>
-          </div>
-        </div>
+
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 pt-0.5">
-            <Filter className="w-3 h-3 text-red-400" />
-            <span className="text-[11px] text-gray-500">Bộ lọc đang hoạt động — <button onClick={handleClearFilters} className="text-red-400 hover:text-red-300 font-bold cursor-pointer transition-colors">Xóa bộ lọc</button></span>
+          <div className="flex items-center gap-2 pt-1 border-t border-[#242d42]/30">
+            <Filter className="w-3.5 h-3.5 text-red-400" />
+            <span className="text-[11px] text-gray-400">
+              Bộ lọc đang hoạt động —{' '}
+              <button
+                onClick={handleClearFilters}
+                className="text-red-500 hover:text-red-400 font-bold cursor-pointer transition-colors border-0 bg-transparent p-0"
+              >
+                Xóa bộ lọc
+              </button>
+            </span>
           </div>
         )}
       </div>
@@ -515,15 +798,13 @@ const BookingsPage = () => {
 
       {/* Pagination Section */}
       {filteredBookings.length > 0 && (
-        <div className="rounded-xl bg-[#0B0F19]/70 border border-[#1A2238] overflow-hidden">
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredBookings.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredBookings.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       )}
     </div>
   );

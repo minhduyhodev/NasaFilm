@@ -59,7 +59,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
           <button
             type="button"
             onClick={onToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
             title="Mở rộng Sidebar"
           >
             <Menu className="w-5 h-5" />
@@ -70,7 +70,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
           <button
             type="button"
             onClick={onToggle}
-            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            className="hidden lg:flex h-8 w-8 items-center justify-center text-gray-250 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
             title="Thu nhỏ Sidebar"
           >
             <Menu className="w-4 h-4" />
@@ -323,7 +323,7 @@ const AdminLayout = ({ children }) => {
               <button
                 type="button"
                 onClick={() => setSidebarOpen((prev) => !prev)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#1E293B]/60 bg-[#121826] text-gray-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                className="inline-flex h-10 w-10 items-center justify-center text-gray-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
                 title="Mở sidebar"
               >
                 <Menu className="w-5 h-5" />

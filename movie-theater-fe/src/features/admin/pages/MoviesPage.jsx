@@ -575,63 +575,39 @@ const MoviesPage = () => {
   const hiddenCount = overallStats.inactive || 0;
 
   return (
-    <>
+    <div className="space-y-6 text-left">
       {/* PAGE HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase">Quan ly Kho Phim</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Dang ky, cap nhat chi tiet va thiet lap phan loai phim tren he thong luu tru cua NASAFilm.
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Hệ Thống Phim Điện Ảnh</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Kho Phim</h1>
+          <p className="text-sm text-gray-400 mt-2">
+            Đăng ký, cập nhật chi tiết và thiết lập phân loại phim trên hệ thống lưu trữ của NASAFilm.
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-xs text-white font-bold transition shadow-md shadow-red-600/20 cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-xs text-white font-bold transition shadow-md shadow-red-600/20 cursor-pointer shrink-0 self-start md:self-auto"
           onClick={handleAddClick}
         >
-          <Plus className="w-4 h-4" /> Them Phim Moi
+          <Plus className="w-4 h-4" /> Thêm Phim Mới
         </button>
+      </div>      {/* KPI CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 text-left">
+        {[
+          { label: 'TỔNG SỐ PHIM', value: overallStats.total, icon: Film, color: 'text-rose-400', kpiClass: 'kpi-total' },
+          { label: 'ĐANG CHIẾU', value: overallStats.nowShowing, icon: Play, color: 'text-emerald-400', kpiClass: 'kpi-showing' },
+          { label: 'SẮP CHIẾU', value: overallStats.comingSoon, icon: Clock, color: 'text-blue-400', kpiClass: 'kpi-upcoming' },
+          { label: 'NHÁP / TẠM NGƯNG', value: hiddenCount, icon: EyeOff, color: 'text-zinc-400', kpiClass: 'kpi-hidden' }
+        ].map(kpi => (
+          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
+            </div>
+            <p className={`text-xl font-black ${kpi.color} leading-none`}>{kpi.value}</p>
+          </div>
+        ))}
       </div>
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-left">
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tong So Phim</span>
-            <h3 className="text-3xl font-black text-white">{overallStats.total}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
-            <Film className="w-5 h-5 text-rose-400" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Dang Chieu</span>
-            <h3 className="text-3xl font-black text-emerald-400">{overallStats.nowShowing}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Play className="w-5 h-5 text-emerald-400" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Sap Chieu</span>
-            <h3 className="text-3xl font-black text-blue-400">{overallStats.comingSoon}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-            <Clock className="w-5 h-5 text-blue-400" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Nhap / Tam Ngung</span>
-            <h3 className="text-3xl font-black text-zinc-400">{hiddenCount}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-zinc-500/10 border border-zinc-500/20">
-            <EyeOff className="w-5 h-5 text-zinc-400" />
-          </div>
-        </div>
-      </div>
-
       {/* SEARCH + FILTER TOOLBAR */}
       <div className="rounded-xl bg-[#0F1322] border border-[#1A2238] shadow-xl mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-[#1A2238]">
@@ -847,15 +823,13 @@ const MoviesPage = () => {
 
       {/* PAGINATION */}
       {totalMoviesCount > 0 && (
-        <div className="rounded-xl bg-[#0F1322] border border-[#1A2238] overflow-hidden shadow-xl">
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalMoviesCount}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalMoviesCount}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       )}
 
       {/* MODAL FORM: ADD / EDIT MOVIE */}
@@ -1387,7 +1361,7 @@ const MoviesPage = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
