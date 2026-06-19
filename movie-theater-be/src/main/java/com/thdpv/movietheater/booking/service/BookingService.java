@@ -715,7 +715,7 @@ public class BookingService {
     @Transactional(readOnly = true)
     public VodStatusResponse getVodStatus(String currentUserEmail, UUID movieUuid) {
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
-        Optional<Booking> optBooking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        Optional<Booking> optBooking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED);
 
         if (optBooking.isEmpty()) {
@@ -745,7 +745,7 @@ public class BookingService {
     @Transactional
     public VodPlayResponse activateVodPlay(String currentUserEmail, UUID movieUuid) {
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
-        Booking booking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        Booking booking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Bạn chưa mua vé xem trực tuyến phim này"));
 
@@ -784,7 +784,7 @@ public class BookingService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Token phát trực tuyến không hợp lệ");
         }
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
-        Booking booking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+        Booking booking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé xem trực tuyến hoạt động"));
 
