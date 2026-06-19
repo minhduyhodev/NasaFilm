@@ -27,11 +27,26 @@ public class Booking {
     @Column(name = "user_uuid", nullable = false)
     private UUID userUuid;
 
-    @Column(name = "showtime_uuid", nullable = false)
+    @Column(name = "showtime_uuid")
     private UUID showtimeUuid;
 
     @Column(name = "promotion_uuid")
     private UUID promotionUuid;
+
+    @Column(name = "booking_type")
+    private String bookingType = "THEATER";
+
+    @Column(name = "movie_uuid")
+    private UUID movieUuid;
+
+    @Column(name = "first_played_at")
+    private OffsetDateTime firstPlayedAt;
+
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;
+
+    @Column(name = "stream_token")
+    private String streamToken;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
@@ -180,5 +195,45 @@ public class Booking {
 
     public void setUpdatedBy(UUID updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public UUID getMovieUuid() {
+        return movieUuid;
+    }
+
+    public void setMovieUuid(UUID movieUuid) {
+        this.movieUuid = movieUuid;
+    }
+
+    public OffsetDateTime getFirstPlayedAt() {
+        return firstPlayedAt;
+    }
+
+    public void setFirstPlayedAt(OffsetDateTime firstPlayedAt) {
+        this.firstPlayedAt = firstPlayedAt;
+    }
+
+    public OffsetDateTime getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(OffsetDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public String getStreamToken() {
+        return streamToken;
+    }
+
+    public void setStreamToken(String streamToken) {
+        this.streamToken = streamToken;
     }
 }

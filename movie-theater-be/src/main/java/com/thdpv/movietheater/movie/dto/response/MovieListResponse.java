@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -20,6 +21,8 @@ public class MovieListResponse {
     private String streamingUrl;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String screeningMode;
+    private BigDecimal onlinePrice;
 
     public MovieListResponse() {
     }
@@ -150,5 +153,21 @@ public class MovieListResponse {
 
     public void setStreamingUrl(String streamingUrl) {
         this.streamingUrl = streamingUrl;
+    }
+
+    public String getScreeningMode() {
+        return screeningMode;
+    }
+
+    public void setScreeningMode(String screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
     }
 }

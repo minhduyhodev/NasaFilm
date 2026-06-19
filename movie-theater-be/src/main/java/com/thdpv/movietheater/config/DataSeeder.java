@@ -113,6 +113,13 @@ public class DataSeeder implements CommandLineRunner {
         seedGenres();
         seedCountries();
         seedMovies();
+        // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng có online_price là null
+        try {
+            jdbcTemplate.update("UPDATE movie SET online_price = 45000 WHERE online_price IS NULL");
+            logger.info("Successfully self-healed online_price for existing movies.");
+        } catch (Exception e) {
+            logger.error("Failed to self-heal online_price", e);
+        }
         seedCinemasAndRooms();
         seedBookingData();
         repairOrphanBookingSeats();
@@ -140,6 +147,12 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ");
 
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS booking (uuid UUID PRIMARY KEY, showtime_uuid UUID)");
+            try {
+                jdbcTemplate.execute("ALTER TABLE booking ALTER COLUMN showtime_uuid DROP NOT NULL");
+                logger.info("Altered booking table to make showtime_uuid nullable.");
+            } catch (Exception e) {
+                logger.warn("Could not alter booking showtime_uuid column: {}", e.getMessage());
+            }
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS cinema_room (
@@ -696,6 +709,7 @@ public class DataSeeder implements CommandLineRunner {
         movie.setReleaseDate(releaseDate);
         movie.setStatus(status);
         movie.setAgeRestriction(ageRestriction);
+        movie.setOnlinePrice(java.math.BigDecimal.valueOf(45000));
 
         // Add Genres
         for (String genreName : genreNames) {

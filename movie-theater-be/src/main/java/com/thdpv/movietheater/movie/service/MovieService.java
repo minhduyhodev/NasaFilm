@@ -28,6 +28,7 @@ import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
@@ -75,6 +76,10 @@ public class MovieService {
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
         movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
@@ -88,6 +93,10 @@ public class MovieService {
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
         movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -500,7 +509,7 @@ public class MovieService {
     }
 
     private MovieListResponse toMovieListResponse(Movie movie) {
-        return new MovieListResponse(
+        MovieListResponse response = new MovieListResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -518,10 +527,13 @@ public class MovieService {
                 movie.getStreamingUrl(),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(movie.getOnlinePrice());
+        return response;
     }
 
     private MovieDetailResponse toMovieDetailResponse(Movie movie) {
-        return new MovieDetailResponse(
+        MovieDetailResponse response = new MovieDetailResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -547,6 +559,9 @@ public class MovieService {
                 movie.getStreamingUrl(),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(movie.getOnlinePrice());
+        return response;
     }
 
     private ActorResponse toActorResponse(MovieActor movieActor) {

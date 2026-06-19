@@ -98,11 +98,14 @@ const CheckoutPage = () => {
     movieAgeRestriction = '',
     date = 'Hôm nay, 10/06',
     showtime = '19:30',
-    selectedSeats = [
+    selectedSeats = checkoutState.isVod ? [] : [
       { id: 'E5', price: 120000, type: 'Ghế VIP' },
       { id: 'E6', price: 120000, type: 'Ghế VIP' }
     ],
-    totalAmount = 240000
+    totalAmount = checkoutState.isVod ? 45000 : 240000,
+    isVod = false,
+    movieUuid = '',
+    durationMinutes = 120
   } = checkoutState;
 
   const movieInfo = getMovieInfo(movie);
@@ -162,6 +165,7 @@ const CheckoutPage = () => {
   }, []);
 
   useEffect(() => {
+    if (isVod) return;
     if (location.state?.lockExpiresAt) {
       const calculateTimeLeft = () => {
         const diff = Math.max(0, Math.floor((location.state.lockExpiresAt - Date.now()) / 1000));
@@ -185,7 +189,7 @@ const CheckoutPage = () => {
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
   const hasCombo = checkoutCombos.length > 0;
   
-  const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
+  const ticketSum = isVod ? totalAmount : selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
   const subtotal = ticketSum + comboPrice;
   const finalTotal = Math.max(0, subtotal - discount);
 
@@ -255,20 +259,28 @@ const CheckoutPage = () => {
   };
 
   const handlePay = async () => {
-    if (isExpired) {
+    if (!isVod && isExpired) {
       notificationService.error("Thời gian giữ ghế đã hết hạn!");
       return;
     }
     setIsPaying(true);
     try {
-      const seatUuids = selectedSeats.map(s => s.seatUuid);
-      const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+      let response;
+      if (isVod) {
+        response = await bookingService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null);
+      } else {
+        const seatUuids = selectedSeats.map(s => s.seatUuid);
+        const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      }
       
-      const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      const successMessage = isVod
+        ? `Mua vé xem phim Online thành công! Bạn có thể xem ngay bây giờ.`
+        : `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`;
       
       notificationService.addNotification(
         "Đặt vé thành công",
-        `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`,
+        successMessage,
         "success"
       );
       
@@ -281,15 +293,17 @@ const CheckoutPage = () => {
           bookingUuid: response.bookingUuid,
           movie: movie,
           moviePoster: moviePoster || movieInfo.poster,
-          movieFormat: movieFormat || movieInfo.format,
+          movieFormat: isVod ? 'VOD 4K' : (movieFormat || movieInfo.format),
           movieRating: movieAgeRestriction || movieInfo.age,
-          theater: theater,
-          date: date,
-          showtime: showtime,
+          theater: isVod ? 'Trình phát video NASA VOD' : theater,
+          date: isVod ? 'Mọi lúc, mọi nơi' : date,
+          showtime: isVod ? 'Xem trực tuyến' : showtime,
           selectedSeats: selectedSeats,
           tickets: response.tickets || [],
           totalPrice: finalTotal,
-          combos: response.combos || []
+          combos: response.combos || [],
+          isVod: isVod,
+          movieUuid: movieUuid
         },
         replace: true
       });
@@ -312,7 +326,9 @@ const CheckoutPage = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
-          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">Quay lại chọn ghế</span>
+          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
+            {isVod ? 'Quay lại chi tiết phim' : 'Quay lại chọn ghế'}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -334,11 +350,13 @@ const CheckoutPage = () => {
                       </div>
                       <div className="flex items-center gap-2.5 text-[#c8c5ca]">
                         <Clock className="w-4.5 h-4.5 text-cyan-400 shrink-0" />
-                        <span className="text-xs font-semibold">{showtime} • {theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP'}</span>
+                        <span className="text-xs font-semibold">{showtime} • {isVod ? theater : (theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP')}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-yellow-400 font-bold">
                         <Armchair className="w-4.5 h-4.5 text-yellow-500 fill-yellow-500/10 shrink-0" />
-                        <span className="text-xs font-bold uppercase tracking-wide">Ghế: {selectedSeats.map(s => s.id).join(', ')}</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          {isVod ? 'Vé xem trực tuyến (VOD)' : `Ghế: ${selectedSeats.map(s => s.id).join(', ')}`}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -364,36 +382,43 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Chi tiết thanh toán</h2>
               <div className="space-y-4">
                 {/* Seat tickets breakdown */}
-                {Object.entries(seatGroupBreakdown).map(([type, data]) => (
+                {!isVod && Object.entries(seatGroupBreakdown).map(([type, data]) => (
                   <div key={type} className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">{type} ({data.count}x)</span>
                     <span className="text-xs font-bold text-white">{(data.sum).toLocaleString('vi-VN')} đ</span>
                   </div>
                 ))}
 
-
+                {isVod && (
+                  <div className="flex justify-between items-center text-[#c8c5ca]">
+                    <span className="text-xs font-semibold">Vé xem phim trực tuyến (VOD)</span>
+                    <span className="text-xs font-bold text-white">{(totalAmount).toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
 
                 {/* Selected Combo packs breakdown */}
-                <div className="pt-4 border-t border-white/5 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
-                  {checkoutCombos.length === 0 ? (
-                    <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
-                      Không mua kèm bắp nước.
-                    </div>
-                  ) : (
-                    checkoutCombos.map(combo => (
-                      <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
-                        <div>
-                          <span className="text-xs font-bold text-white block">{combo.name}</span>
-                          <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
-                        </div>
-                        <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                {!isVod && (
+                  <div className="pt-4 border-t border-white/5 space-y-3">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                    {checkoutCombos.length === 0 ? (
+                      <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
+                        Không mua kèm bắp nước.
                       </div>
-                    ))
-                  )}
-                </div>
+                    ) : (
+                      checkoutCombos.map(combo => (
+                        <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                          <div>
+                            <span className="text-xs font-bold text-white block">{combo.name}</span>
+                            <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
+                          </div>
+                          <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
 
-                {hasCombo && (
+                {hasCombo && !isVod && (
                   <div className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">Ưu đãi thành viên ({memberTier})</span>
                     <span className="text-xs font-bold text-green-500">-{comboDiscountAmount.toLocaleString('vi-VN')} đ</span>
@@ -415,12 +440,23 @@ const CheckoutPage = () => {
                 </div>
               </div>
             </section>
+
+            {isVod && (
+              <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-6 space-y-3 text-xs leading-relaxed text-purple-300 text-left">
+                <p className="font-bold text-purple-400 text-sm uppercase tracking-wider">Điều khoản dịch vụ VOD:</p>
+                <ul className="list-disc pl-5 space-y-2 font-medium">
+                  <li>Vé xem có thời hạn sử dụng trong vòng <span className="font-extrabold text-white">{(durationMinutes * 2) || 240} phút</span> kể từ lần đầu tiên nhấn nút xem phim.</li>
+                  <li>Mỗi vé chỉ hỗ trợ phát trên <span className="font-extrabold text-white">01 thiết bị duy nhất</span> tại cùng một thời điểm.</li>
+                  <li>Mọi hành vi sao chép, chia sẻ stream trái phép sẽ bị hệ thống tự động khóa tài khoản vĩnh viễn.</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Payment Options & CTA */}
           <div className="lg:col-span-5 space-y-6">
             <section className="glass-panel p-6 rounded-2xl flex flex-col h-full text-left">
-              {timeLeft !== null && (
+              {timeLeft !== null && !isVod && (
                 <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${
                   timeLeft < 60 
                     ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse' 
