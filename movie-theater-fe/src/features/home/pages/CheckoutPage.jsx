@@ -82,30 +82,43 @@ const CheckoutPage = () => {
     } catch (e) {
       console.error("Failed to parse checkout state from sessionStorage:", e);
     }
-    return {};
+    return null;
   };
 
   const checkoutState = getInitialState();
 
-  // Extract payment details from state, or fallback to mock data
+  const isStateValid = checkoutState && (
+    (checkoutState.isVod && checkoutState.movieUuid) ||
+    (!checkoutState.isVod && checkoutState.showtimeUuid)
+  );
+
+  useEffect(() => {
+    if (!isStateValid) {
+      notificationService.error("Phiên giao dịch không hợp lệ hoặc đã hết hạn.");
+      navigate('/', { replace: true });
+    }
+  }, [isStateValid, navigate]);
+
+  if (!isStateValid) {
+    return null;
+  }
+
+  // Extract payment details from state
   const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
+    showtimeUuid = '',
+    theater = '',
+    movie = '',
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30',
-    selectedSeats = checkoutState.isVod ? [] : [
-      { id: 'E5', price: 120000, type: 'Ghế VIP' },
-      { id: 'E6', price: 120000, type: 'Ghế VIP' }
-    ],
-    totalAmount = checkoutState.isVod ? 45000 : 240000,
+    date = '',
+    showtime = '',
+    selectedSeats = [],
+    totalAmount = 0,
     isVod = false,
     movieUuid = '',
-    durationMinutes = 120
+    durationMinutes = 0
   } = checkoutState;
 
   const movieInfo = getMovieInfo(movie);

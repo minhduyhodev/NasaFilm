@@ -28,7 +28,12 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                 s.status,
                 stt.uuid,
                 stt.name,
-                stt.basePrice,
+                CASE 
+                    WHEN UPPER(stt.name) = 'STANDARD' THEN st.basePrice
+                    WHEN UPPER(stt.name) = 'VIP' THEN COALESCE(st.vipPrice, stt.basePrice)
+                    WHEN UPPER(stt.name) = 'COUPLE' THEN COALESCE(st.couplePrice, stt.basePrice)
+                    ELSE stt.basePrice
+                END,
                 COALESCE(stt.priceModifier, 1.0),
                 bs.uuid,
                 sl.userUuid,
@@ -68,4 +73,11 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
 
     @Query("select count(s) from Showtime st join Seat s on s.cinemaRoom.uuid = st.cinemaRoomUuid where st.uuid = :showtimeUuid and s.uuid in :seatUuids")
     long countSeatsBelongingToShowtime(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
+
+    @Query("SELECT s FROM Showtime s WHERE s.cinemaRoomUuid IN :roomUuids AND s.startTime >= :startRange AND s.startTime < :endRange AND s.status <> com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED")
+    List<Showtime> findActiveShowtimesInRooms(
+        @Param("roomUuids") Collection<UUID> roomUuids,
+        @Param("startRange") OffsetDateTime startRange,
+        @Param("endRange") OffsetDateTime endRange
+    );
 }

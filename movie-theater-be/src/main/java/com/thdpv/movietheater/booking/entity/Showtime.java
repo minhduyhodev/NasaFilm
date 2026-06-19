@@ -44,6 +44,12 @@ public class Showtime {
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
 
+    @Column(name = "vip_price")
+    private BigDecimal vipPrice;
+
+    @Column(name = "couple_price")
+    private BigDecimal couplePrice;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ShowtimeStatus status = ShowtimeStatus.DRAFT;
@@ -105,6 +111,22 @@ public class Showtime {
 
     public void setBasePrice(BigDecimal basePrice) {
         this.basePrice = basePrice;
+    }
+
+    public BigDecimal getVipPrice() {
+        return vipPrice;
+    }
+
+    public void setVipPrice(BigDecimal vipPrice) {
+        this.vipPrice = vipPrice;
+    }
+
+    public BigDecimal getCouplePrice() {
+        return couplePrice;
+    }
+
+    public void setCouplePrice(BigDecimal couplePrice) {
+        this.couplePrice = couplePrice;
     }
 
     public ShowtimeStatus getStatus() {

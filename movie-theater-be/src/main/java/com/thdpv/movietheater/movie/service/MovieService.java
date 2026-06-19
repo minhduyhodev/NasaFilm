@@ -80,6 +80,7 @@ public class MovieService {
             movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
         }
         movie.setOnlinePrice(request.getOnlinePrice());
+        movie.setRating(request.getRating() != null ? request.getRating() : 8.0);
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
@@ -97,6 +98,9 @@ public class MovieService {
             movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
         }
         movie.setOnlinePrice(request.getOnlinePrice());
+        if (request.getRating() != null) {
+            movie.setRating(request.getRating());
+        }
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -529,6 +533,7 @@ public class MovieService {
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
         response.setOnlinePrice(movie.getOnlinePrice());
+        response.setRating(movie.getRating() != null ? movie.getRating() : 8.0);
         return response;
     }
 
@@ -561,6 +566,7 @@ public class MovieService {
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
         response.setOnlinePrice(movie.getOnlinePrice());
+        response.setRating(movie.getRating() != null ? movie.getRating() : 8.0);
         return response;
     }
 

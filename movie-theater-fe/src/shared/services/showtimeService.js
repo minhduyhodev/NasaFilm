@@ -38,6 +38,24 @@ class ShowtimeService {
       throw authService.handleError(error);
     }
   }
+
+  async getAutoShowtimesPreview(data) {
+    try {
+      const response = await authService.api.post('/api/admin/showtimes/auto-generate/preview', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async saveAutoShowtimes(requests) {
+    try {
+      const response = await authService.api.post('/api/admin/showtimes/auto-generate/save', requests);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const showtimeService = new ShowtimeService();

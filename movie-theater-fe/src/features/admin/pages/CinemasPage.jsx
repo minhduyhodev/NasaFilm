@@ -4,7 +4,8 @@ import {
   Armchair, Hammer, AlertCircle, Loader2, Sparkles, Check, Trash2, 
   ChevronRight, RefreshCw, Download, Upload, Copy, Eye, Sliders, 
   Volume2, Monitor, Shield, Info, Compass, HelpCircle, CheckSquare,
-  LayoutDashboard, Film, User, Calendar, Popcorn, Ticket, Tag, Users, LogOut, Menu
+  LayoutDashboard, Film, User, Calendar, Popcorn, Ticket, Tag, Users, LogOut, Menu,
+  MousePointer, Settings, AlertTriangle
 } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
@@ -23,41 +24,50 @@ const FALLBACK_SEAT_TYPES = {
 };
 
 const SEAT_TYPE_CONFIGS = {
+  SELECT: {
+    label: 'Công cụ Chọn',
+    color: 'bg-[#1E293B] hover:bg-[#334155]',
+    border: 'border-slate-500',
+    text: 'text-white',
+    glow: '',
+    accentBg: 'bg-slate-800/25',
+    accentBorder: 'border-slate-600'
+  },
   STANDARD: {
     label: 'Ghế Thường',
-    color: 'bg-[#1e293b] hover:bg-[#ef4444]/35',
-    border: 'border-transparent',
-    text: 'text-[#94a3b8]',
-    glow: '',
-    accentBg: 'bg-[#1e293b]/20',
-    accentBorder: 'border-[#1a2238]/50'
+    color: 'bg-emerald-950/60 hover:bg-emerald-900/80',
+    border: 'border-emerald-500',
+    text: 'text-emerald-400 font-bold',
+    glow: 'shadow-[0_0_12px_rgba(16,185,129,0.25)]',
+    accentBg: 'bg-emerald-950/20',
+    accentBorder: 'border-emerald-500/40'
   },
   VIP: {
-    label: 'Ghế VIP Recliner',
-    color: 'bg-[#ef4444]/40 hover:bg-[#ef4444]/60',
-    border: 'border-[#ef4444]/60',
-    text: 'text-[#ef4444]',
+    label: 'Ghế VIP',
+    color: 'bg-red-950/60 hover:bg-red-900/80',
+    border: 'border-red-500',
+    text: 'text-red-400 font-bold',
     glow: 'shadow-[0_0_12px_rgba(239,68,68,0.25)]',
-    accentBg: 'bg-[#ef4444]/10',
-    accentBorder: 'border-[#ef4444]/40'
+    accentBg: 'bg-red-950/20',
+    accentBorder: 'border-red-500/40'
   },
   COUPLE: {
     label: 'Sofa Đôi',
-    color: 'bg-[#991b1b]/25 hover:bg-[#991b1b]/40',
-    border: 'border-[#991b1b]/80',
-    text: 'text-[#f87171]',
-    glow: 'shadow-[0_0_12px_rgba(147,0,10,0.25)]',
-    accentBg: 'bg-[#991b1b]/10',
-    accentBorder: 'border-[#991b1b]/40'
+    color: 'bg-fuchsia-950/60 hover:bg-fuchsia-900/80',
+    border: 'border-fuchsia-500',
+    text: 'text-fuchsia-400 font-bold',
+    glow: 'shadow-[0_0_12px_rgba(217,70,239,0.25)]',
+    accentBg: 'bg-fuchsia-950/20',
+    accentBorder: 'border-fuchsia-500/40'
   },
   BROKEN: {
-    label: 'Ghế Hỏng/Bảo Trì',
-    color: 'bg-transparent hover:bg-[#1a2238]/25',
-    border: 'border-[#1a2238]',
-    text: 'text-[#64748b]',
+    label: 'Bảo Trì / Hỏng',
+    color: 'bg-zinc-900/60 hover:bg-zinc-850',
+    border: 'border-zinc-700',
+    text: 'text-zinc-500 line-through',
     glow: '',
-    accentBg: 'bg-transparent',
-    accentBorder: 'border-[#1a2238]'
+    accentBg: 'bg-zinc-900/20',
+    accentBorder: 'border-zinc-700/40'
   }
 };
 
@@ -70,7 +80,7 @@ const TEMPLATE_PRESETS = [
 
 const ROOM_TYPES = [
   { value: 'STANDARD', label: 'Standard 2D/3D', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
-  { value: 'IMAX', label: 'IMAX Laser', color: 'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]' },
+  { value: 'IMAX', label: 'IMAX Laser', color: 'text-[#e2c19b] bg-[#e2c19b]/10 border-[#e2c19b]/20 shadow-[0_0_10px_rgba(226,193,155,0.15)]' },
   { value: 'VIP', label: 'VIP Gold Class', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.15)]' },
   { value: 'DOLBY_ATMOS', label: 'Dolby Atmos', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)]' },
   { value: 'FOUR_DX', label: '4DX Motion Cinema', color: 'text-pink-400 bg-pink-500/10 border-pink-500/20 shadow-[0_0_10px_rgba(236,72,153,0.15)]' }
@@ -121,7 +131,7 @@ const CinemasPage = () => {
 
   // Interactive Builder States
   const [selectedSeatIds, setSelectedSeatIds] = useState(new Set());
-  const [activePaintBrushType, setActivePaintBrushType] = useState('STANDARD'); // Paint bucket selection
+  const [activePaintBrushType, setActivePaintBrushType] = useState('SELECT'); // Pointer tool is default
   const [builderRows, setBuilderRows] = useState(8);
   const [builderCols, setBuilderCols] = useState(12);
   const [aisleColumns, setAisleColumns] = useState([4, 11]); // Vertical aisles layout (Mockup defaults: 4 and 11)
@@ -129,22 +139,6 @@ const CinemasPage = () => {
   const [showBookingPreview, setShowBookingPreview] = useState(false); // Customer View Simulator
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
-
-  // Branch Amenities (localStorage-backed state)
-  const [branchAmenities, setBranchAmenities] = useState({
-    vipLounge: false,
-    snackBar: false,
-    wheelchairAccess: false,
-    valetParking: false
-  });
-
-  // Room Technical Specifications (localStorage-backed state)
-  const [roomTechSpecs, setRoomTechSpecs] = useState({
-    projection: '',
-    audioProcessor: '',
-    screenMaterial: '',
-    seatingSoft: ''
-  });
 
   // Drag selection mouse tracking
   const seatGridRef = useRef(null);
@@ -291,20 +285,6 @@ const CinemasPage = () => {
   useEffect(() => {
     if (selectedCinema) {
       fetchRooms(selectedCinema.uuid);
-      
-      // Load branch amenities from localStorage
-      const savedAmenities = localStorage.getItem(`branch_amenities_${selectedCinema.uuid}`);
-      if (savedAmenities) {
-        setBranchAmenities(JSON.parse(savedAmenities));
-      } else {
-        // Default to all false (no mock data)
-        setBranchAmenities({
-          vipLounge: false,
-          snackBar: false,
-          wheelchairAccess: false,
-          valetParking: false
-        });
-      }
     } else {
       setRooms([]);
       setSelectedRoom(null);
@@ -317,34 +297,11 @@ const CinemasPage = () => {
   useEffect(() => {
     if (selectedRoom) {
       fetchSeats(selectedRoom.uuid);
-      
-      // Load room technical specifications from localStorage
-      const savedTech = localStorage.getItem(`room_tech_${selectedRoom.uuid}`);
-      if (savedTech) {
-        setRoomTechSpecs(JSON.parse(savedTech));
-      } else {
-        // Default to empty strings (no mock data)
-        setRoomTechSpecs({
-          projection: '',
-          audioProcessor: '',
-          screenMaterial: '',
-          seatingSoft: ''
-        });
-      }
     } else {
       setSelectedRoomSeats([]);
       setOriginalSeats([]);
     }
   }, [selectedRoom]);
-
-  // Toggle branch amenity and save to localStorage
-  const handleToggleAmenity = (key) => {
-    const next = { ...branchAmenities, [key]: !branchAmenities[key] };
-    setBranchAmenities(next);
-    if (selectedCinema) {
-      localStorage.setItem(`branch_amenities_${selectedCinema.uuid}`, JSON.stringify(next));
-    }
-  };
 
   // ---------- DERIVED STATISTICS ----------
 
@@ -382,9 +339,9 @@ const CinemasPage = () => {
       if (!rows[r]) rows[r] = [];
       rows[r].push(seat);
     });
-    // Sort seats in each row by seatNumber
+    // Sort seats in each row by seatNumber descending (matching screen layout reference)
     Object.keys(rows).forEach(r => {
-      rows[r].sort((a, b) => (a.seatNumber || 0) - (b.seatNumber || 0));
+      rows[r].sort((a, b) => (b.seatNumber || 0) - (a.seatNumber || 0));
     });
     // Sort rows alphabetically
     return Object.keys(rows).sort().reduce((acc, key) => {
@@ -470,41 +427,12 @@ const CinemasPage = () => {
     }
   };
 
-  // Save changes on Room Configuration Panel (Right Column)
-  const handleSaveRoomConfig = async () => {
-    if (!selectedRoom) return;
-    setIsSavingRoomConfig(true);
-    try {
-      // Sync parameters to localStorage
-      localStorage.setItem(`room_tech_${selectedRoom.uuid}`, JSON.stringify(roomTechSpecs));
-
-      // Sync parameters to room main details
-      await cinemaService.updateRoom(selectedRoom.uuid, {
-        roomCode: selectedRoom.roomCode,
-        name: selectedRoom.name,
-        roomType: selectedRoom.roomType,
-        capacity: selectedRoom.capacity,
-        status: selectedRoom.status
-      });
-      notificationService.success('Đã lưu cấu hình kỹ thuật của phòng thành công!');
-      fetchCinemasAndGlobalStats(true);
-    } catch (error) {
-      notificationService.error(error.message || 'Lỗi khi lưu cấu hình kỹ thuật');
-    } finally {
-      setIsSavingRoomConfig(false);
-    }
-  };
-
   // Combined master configuration save handler (used by Save Configuration button)
   const handleSaveAllConfiguration = async () => {
     if (!selectedRoom) return;
     setIsSavingSeats(true);
-    setIsSavingRoomConfig(true);
     try {
-      // 1. Save Technical Specifications to localStorage
-      localStorage.setItem(`room_tech_${selectedRoom.uuid}`, JSON.stringify(roomTechSpecs));
-
-      // 2. Save Seat Layout modifications
+      // 1. Save Seat Layout modifications
       const modifiedSeats = [];
       for (const seat of selectedRoomSeats) {
         const original = originalSeats.find(o => o.uuid === seat.uuid);
@@ -523,7 +451,7 @@ const CinemasPage = () => {
         await Promise.all(promises);
       }
 
-      // 3. Save Room main details to database
+      // 2. Save Room main details to database
       await cinemaService.updateRoom(selectedRoom.uuid, {
         roomCode: selectedRoom.roomCode,
         name: selectedRoom.name,
@@ -540,7 +468,6 @@ const CinemasPage = () => {
       notificationService.error(error.message || 'Lỗi khi lưu cấu hình');
     } finally {
       setIsSavingSeats(false);
-      setIsSavingRoomConfig(false);
     }
   };
 
@@ -662,10 +589,24 @@ const CinemasPage = () => {
   // Re-generate layout mapping based on rows & columns settings
   const handleGenerateBaseLayout = async () => {
     if (!selectedRoom) return;
+    
+    const finalRows = parseInt(builderRows) || 8;
+    const finalCols = parseInt(builderCols) || 12;
+    
+    if (finalRows < 1 || finalRows > 26 || finalCols < 1 || finalCols > 30) {
+      notificationService.error('Số hàng ghế phải từ 1 đến 26, số cột ghế phải từ 1 đến 30!');
+      return;
+    }
+
+    const confirmRegen = window.confirm(
+      `Cảnh báo: Việc khởi tạo lại sơ đồ ghế sẽ XÓA sạch toàn bộ bố cục sơ đồ hiện tại của phòng "${selectedRoom.name}". Bạn có chắc chắn muốn tiếp tục không?`
+    );
+    if (!confirmRegen) return;
+
     setIsLoadingSeats(true);
     try {
-      await cinemaService.generateSeats(selectedRoom.uuid, builderRows, builderCols);
-      notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${builderRows} hàng x ${builderCols} ghế thành công.`);
+      await cinemaService.generateSeats(selectedRoom.uuid, finalRows, finalCols);
+      notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng x ${finalCols} ghế thành công.`);
       fetchSeats(selectedRoom.uuid);
       fetchCinemasAndGlobalStats(true);
     } catch (error) {
@@ -790,23 +731,46 @@ const CinemasPage = () => {
     }
   };
 
+  const paintSingleSeat = useCallback((uuid, paintType) => {
+    const { seatTypeUuid, status } = getBackendDataForPaintType(paintType);
+    setSelectedRoomSeats(prev => prev.map(s => {
+      if (s.uuid === uuid) {
+        return {
+          ...s,
+          seatTypeUuid,
+          status,
+          customTypeName: paintType
+        };
+      }
+      return s;
+    }));
+  }, [getBackendDataForPaintType]);
+
   // Mouse Selection drag-select triggers
   const handleSeatMouseDown = (uuid) => {
     setIsDragSelecting(true);
-    setSelectedSeatIds(prev => {
-      const next = new Set(prev);
-      if (next.has(uuid)) next.delete(uuid); else next.add(uuid);
-      return next;
-    });
+    if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
+      paintSingleSeat(uuid, activePaintBrushType);
+    } else {
+      setSelectedSeatIds(prev => {
+        const next = new Set(prev);
+        if (next.has(uuid)) next.delete(uuid); else next.add(uuid);
+        return next;
+      });
+    }
   };
 
   const handleSeatMouseEnter = (uuid) => {
     if (isDragSelecting) {
-      setSelectedSeatIds(prev => {
-        const next = new Set(prev);
-        next.add(uuid);
-        return next;
-      });
+      if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
+        paintSingleSeat(uuid, activePaintBrushType);
+      } else {
+        setSelectedSeatIds(prev => {
+          const next = new Set(prev);
+          next.add(uuid);
+          return next;
+        });
+      }
     }
   };
 
@@ -819,812 +783,730 @@ const CinemasPage = () => {
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [handleGlobalMouseUp]);
 
+  // Compute stats of seats inside current room mapping
+  const seatCounts = useMemo(() => {
+    const counts = { STANDARD: 0, VIP: 0, COUPLE: 0, BROKEN: 0 };
+    selectedRoomSeats.forEach(s => {
+      if (s.customTypeName) {
+        counts[s.customTypeName] = (counts[s.customTypeName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [selectedRoomSeats]);
+
   return (
-    <div className="space-y-6 text-left">
+    <>
+      <style>{`
+        .premium-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .premium-scroll::-webkit-scrollbar-track { background: #0B0F19; }
+        .premium-scroll::-webkit-scrollbar-thumb { background: #1A2238; }
+        
+        .seat-item {
+          transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .seat-item:hover {
+          transform: scale(1.2);
+          z-index: 10;
+        }
+      `}</style>
 
-          <style>{`
-            .material-symbols-outlined {
-                font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-            }
-            .premium-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
-            .premium-scroll::-webkit-scrollbar-track { background: #0f172a; }
-            .premium-scroll::-webkit-scrollbar-thumb { background: #1a2238; }
-            
-            .seat-map-grid {
-                display: grid;
-                grid-template-columns: repeat(16, minmax(0, 1fr));
-                gap: 4px;
-            }
-            .cinematic-glow {
-                box-shadow: 0 0 40px rgba(239, 68, 68, 0.1);
-            }
-            
-            .seat-item {
-              transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
-            }
-            .seat-item:hover {
-              transform: scale(1.15);
-              z-index: 10;
-            }
-            .seat-item.selected {
-              border-color: #ef4444 !important;
-              box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-            }
-          `}</style>
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight uppercase">Kiến Trúc Rạp Chiếu</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Cấu hình chi nhánh rạp, phòng chiếu và thiết lập sơ đồ ghế trực quan.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            type="button"
+            onClick={() => {
+              if (selectedRoom) {
+                setEditingRoom(selectedRoom);
+                setRoomFormData({
+                  roomCode: selectedRoom.roomCode || '',
+                  name: selectedRoom.name,
+                  roomType: selectedRoom.roomType || 'STANDARD',
+                  capacity: selectedRoom.capacity || 0,
+                  status: selectedRoom.status || 'ACTIVE',
+                });
+                setIsRoomModalOpen(true);
+              } else {
+                notificationService.warning('Vui lòng chọn phòng chiếu trước!');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A2238] bg-[#0B0F19] px-4 py-2 text-xs text-gray-300 hover:border-[#2C3B5E] hover:text-white transition-colors cursor-pointer select-none"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            Sửa Phòng Chiếu
+          </button>
+          <button 
+            type="button"
+            onClick={handleAddCinemaClick}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-xs text-white font-bold transition shadow-md shadow-red-600/20 cursor-pointer border-none"
+          >
+            <Plus className="w-4 h-4" />
+            Thêm Rạp Mới
+          </button>
+        </div>
+      </div>
 
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Kiến Trúc Hệ Thống Rạp</p>
-              <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Kiến Trúc Rạp Chiếu</h1>
-              <p className="text-sm text-gray-400 mt-2">
-                Cấu hình chi nhánh rạp, quản lý sơ đồ phòng chiếu và sơ đồ ghế ngồi toàn hệ thống.
-              </p>
-            </div>
-            <div className="flex gap-3 text-xs uppercase">
-              <button 
-                type="button"
-                onClick={() => {
-                  if (selectedRoom) {
-                    setEditingRoom(selectedRoom);
-                    setRoomFormData({
-                      roomCode: selectedRoom.roomCode || '',
-                      name: selectedRoom.name,
-                      roomType: selectedRoom.roomType || 'STANDARD',
-                      capacity: selectedRoom.capacity || 0,
-                      status: selectedRoom.status || 'ACTIVE',
-                    });
-                    setIsRoomModalOpen(true);
-                  } else {
-                    notificationService.warning('Vui lòng chọn phòng chiếu trước!');
-                  }
-                }}
-                className="rounded-lg border border-[#1A2238] bg-[#121826] px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-200 cursor-pointer flex items-center gap-2"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                Sửa Phòng Chiếu
-              </button>
-              <button 
-                type="button"
-                onClick={handleAddCinemaClick}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Thêm Rạp Mới
-              </button>
-            </div>
+      {/* Page KPI Statistics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-left">
+        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Số Chi Nhánh</span>
+            <h3 className="text-2xl font-black text-white">{stats.totalCinemas}</h3>
           </div>
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+            <MapPin className="w-5 h-5 text-red-400" />
+          </div>
+        </div>
+        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Số Phòng</span>
+            <h3 className="text-2xl font-black text-white">{stats.totalRooms}</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-[#6366f1]/10 border border-[#6366f1]/20">
+            <Tv className="w-5 h-5 text-[#818cf8]" />
+          </div>
+        </div>
+        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Phòng Hoạt Động</span>
+            <h3 className="text-2xl font-black text-emerald-400">{stats.activeRooms}</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <Activity className="w-5 h-5 text-emerald-400" />
+          </div>
+        </div>
+        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Sức Chứa (Ghế)</span>
+            <h3 className="text-2xl font-black text-amber-400">{stats.totalCapacity}</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <Grid className="w-5 h-5 text-amber-400" />
+          </div>
+        </div>
+      </div>
 
-          {/* Bento Grid Layout */}
-          <div className="grid grid-cols-12 gap-6 text-left">
-            
-            {/* Left Column: Cinema Location Management */}
-            <div className="col-span-12 lg:col-span-4 space-y-6">
-              
-              {/* Branches list */}
-              <div className="bg-[#0b0f19] p-6 border border-[#1a2238] relative group overflow-hidden rounded-xl">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#ef4444]/30 to-transparent"></div>
-                
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="font-['Manrope'] text-lg font-semibold text-[#ffffff] uppercase tracking-wide">Danh Sách Chi Nhánh</h2>
-                  <span className="font-['JetBrains_Mono'] text-[10px] text-[#ef4444] bg-[#ef4444]/10 px-2 py-0.5 rounded-xl">
-                    HOẠT ĐỘNG: {cinemas.filter(c => getCinemaStats(c.uuid).activeCount > 0).length}
-                  </span>
-                </div>
-
-                {/* Search filter in Branches */}
-                <div className="relative mb-4">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">search</span>
-                  <input
-                    className="w-full bg-[#0f172a] border border-[#1a2238] text-xs font-['JetBrains_Mono'] py-2 pl-9 pr-4 text-[#ffffff] placeholder-[#64748b]/50 focus:ring-1 focus:ring-[#ef4444]/30 focus:border-[#ef4444]/40 transition-all uppercase rounded-xl"
-                    placeholder="TÌM KIẾM CHI NHÁNH..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 premium-scroll">
-                  {isLoadingCinemas ? (
-                    <div className="flex justify-center items-center py-12">
-                      <div className="w-6 h-6 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  ) : filteredCinemas.length > 0 ? (
-                    filteredCinemas.map((cinema) => {
-                      const isSelected = selectedCinema?.uuid === cinema.uuid;
-                      const cStats = getCinemaStats(cinema.uuid);
-                      const isBranchOpen = cStats.activeCount > 0;
-
-                      return (
-                        <div
-                          key={cinema.uuid}
-                          onClick={() => setSelectedCinema(cinema)}
-                          className={`p-4 border-l-2 transition-all cursor-pointer rounded-xl ${
-                            isSelected
-                              ? 'bg-[#121826] border-[#ef4444] shadow-[0_0_15px_rgba(239,68,68,0.05)]'
-                              : 'bg-[#121826]/50 border-[#1a2238] hover:bg-[#1c2333]/50'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center mb-1">
-                            <h3 className="font-['Manrope'] text-sm text-[#ffffff] uppercase font-bold flex items-center gap-1.5">
-                              {cinema.name}
-                              <button
-                                type="button"
-                                onClick={(e) => handleEditCinemaClick(cinema, e)}
-                                className="text-[#64748b] hover:text-[#ef4444] p-0.5 transition"
-                                title="Chỉnh sửa chi nhánh"
-                              >
-                                <span className="material-symbols-outlined text-xs leading-none">edit</span>
-                              </button>
-                            </h3>
-                            <span className={`flex items-center gap-1.5 text-[10px] uppercase font-bold ${isBranchOpen ? 'text-[#ef4444]' : 'text-[#f87171]'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${isBranchOpen ? 'bg-[#ef4444] animate-pulse' : 'bg-[#f87171]'}`}></span>
-                              {isBranchOpen ? 'Đang Mở' : 'Bảo Trì'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-[#94a3b8] font-['JetBrains_Mono'] opacity-80 truncate" title={cinema.address}>
-                            {cinema.address}
-                          </p>
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1a2238]/30 text-[9px] text-[#64748b] font-['JetBrains_Mono']">
-                            <span>{cStats.totalRoomsCount} PHÒNG CHIẾU</span>
-                            <span>{cStats.capacity} GHẾ</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-12 text-[#64748b] border border-dashed border-[#1a2238] rounded-xl p-4 bg-[#0f172a]/20">
-                      <p className="text-xs font-['JetBrains_Mono'] uppercase tracking-wider">Không tìm thấy chi nhánh</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Facility Amenities */}
-              <div className="bg-[#0b0f19] p-6 border border-[#1a2238] rounded-xl">
-                <h2 className="font-['Manrope'] text-lg font-semibold text-[#ffffff] uppercase tracking-wide mb-6">Tiện Ích Rạp Chiếu</h2>
-                <div className="space-y-4">
-                  {[
-                    { id: 'vipLounge', label: 'PHÒNG CHỜ VIP' },
-                    { id: 'snackBar', label: 'QUẦY BẮP NƯỚC' },
-                    { id: 'wheelchairAccess', label: 'HỖ TRỢ XE LĂN' },
-                    { id: 'valetParking', label: 'DỊCH VỤ ĐỖ XE' }
-                  ].map(item => (
-                    <label key={item.id} className="flex justify-between items-center cursor-pointer group select-none">
-                      <span className="text-sm font-['JetBrains_Mono'] text-[#94a3b8] group-hover:text-[#ef4444] transition-colors">{item.label}</span>
-                      <div className="relative inline-flex items-center">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer"
-                          checked={branchAmenities[item.id] || false}
-                          onChange={() => handleToggleAmenity(item.id)}
-                        />
-                        <div className="w-10 h-5 bg-[#121826] border border-[#1a2238] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[#ef4444] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#ef4444]/20 after:border-[#ef4444]/40 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ef4444]/10"></div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
+      {/* Main Grid Content */}
+      <div className="grid grid-cols-12 gap-6 text-left">
+        {/* Left Column: Cinemas List */}
+        <div className="col-span-12 lg:col-span-4 space-y-6">
+          <div className="bg-[#0F1322] p-6 border border-[#1A2238] rounded-xl shadow-lg relative overflow-hidden">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-sm font-bold uppercase text-white tracking-wide">Danh Sách Chi Nhánh</h2>
+              <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
+                HOẠT ĐỘNG: {cinemas.filter(c => getCinemaStats(c.uuid).activeCount > 0).length}
+              </span>
             </div>
 
-            {/* Right Column: Room Setup & Seating Chart */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
-              
-              {/* Auditorium Selection */}
-              <div className="bg-[#0b0f19] border border-[#1a2238] p-6 rounded-xl">
-                <div className="flex items-center gap-6 mb-8 overflow-x-auto pb-4 border-b border-[#1a2238]/30 premium-scroll">
-                  {rooms.length > 0 ? (
-                    rooms.map((room) => {
-                      const isRoomSelected = selectedRoom?.uuid === room.uuid;
-                      return (
-                        <button
-                          key={room.uuid}
-                          type="button"
-                          onClick={() => setSelectedRoom(room)}
-                          className={`shrink-0 font-['JetBrains_Mono'] text-xs pb-2 uppercase tracking-widest transition-colors cursor-pointer ${
-                            isRoomSelected
-                              ? 'text-[#ef4444] border-b-2 border-[#ef4444]'
-                              : 'text-[#94a3b8] hover:text-[#ffffff]'
-                          }`}
-                        >
-                          {room.name} - {room.roomType}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span className="text-[#64748b] text-xs font-['JetBrains_Mono']">CHƯA CÓ PHÒNG CHIẾU</span>
-                  )}
-                  <button 
-                    type="button"
-                    onClick={handleAddRoomClick}
-                    className="shrink-0 text-[#ef4444] hover:opacity-70 transition cursor-pointer"
-                    title="Thêm phòng mới"
-                  >
-                    <span className="material-symbols-outlined text-base mt-0.5 leading-none">add_circle</span>
-                  </button>
-                </div>
+            {/* Search filter in Branches */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+              <input
+                className="w-full bg-[#0B0F19] border border-[#1A2238] text-xs py-2 pl-9 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-all rounded-lg"
+                placeholder="Tìm kiếm chi nhánh..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-                {selectedRoom ? (
-                  <>
-                    <div className="grid grid-cols-3 gap-8 mb-8">
-                      <div>
-                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Sức Chứa Phòng</p>
-                        <p className="font-['Bebas_Neue'] text-3xl text-[#ffffff] flex items-center gap-2">
-                          {selectedRoom.capacity} GHẾ
+            <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1 premium-scroll">
+              {isLoadingCinemas ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : filteredCinemas.length > 0 ? (
+                filteredCinemas.map((cinema) => {
+                  const isSelected = selectedCinema?.uuid === cinema.uuid;
+                  const cStats = getCinemaStats(cinema.uuid);
+                  const isBranchOpen = cStats.activeCount > 0;
+
+                  return (
+                    <div
+                      key={cinema.uuid}
+                      onClick={() => setSelectedCinema(cinema)}
+                      className={`p-4 border transition-all cursor-pointer rounded-lg ${
+                        isSelected
+                          ? 'bg-[#1e293b]/30 border-red-500/50 shadow-md shadow-red-500/5'
+                          : 'bg-[#0B0F19]/60 border-[#1A2238] hover:bg-[#1a2238]/30 hover:border-[#2C3B5E]'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <h3 className="text-xs text-white uppercase font-black flex items-center gap-1.5 truncate">
+                          {cinema.name}
                           <button
                             type="button"
-                            onClick={() => {
-                              setEditingRoom(selectedRoom);
-                              setRoomFormData({
-                                roomCode: selectedRoom.roomCode || '',
-                                name: selectedRoom.name,
-                                roomType: selectedRoom.roomType || 'STANDARD',
-                                capacity: selectedRoom.capacity || 0,
-                                status: selectedRoom.status || 'ACTIVE',
-                              });
-                              setIsRoomModalOpen(true);
-                            }}
-                            className="text-[#64748b] hover:text-[#ef4444] transition"
-                            title="Chỉnh sửa thông tin phòng"
+                            onClick={(e) => handleEditCinemaClick(cinema, e)}
+                            className="text-gray-400 hover:text-white p-0.5 transition bg-transparent border-none cursor-pointer"
+                            title="Chỉnh sửa chi nhánh"
                           >
-                            <span className="material-symbols-outlined text-sm leading-none">edit</span>
+                            <Edit2 className="w-3 h-3" />
                           </button>
-                        </p>
+                        </h3>
+                        <span className={`flex items-center gap-1 text-[9px] uppercase font-bold shrink-0 ${isBranchOpen ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isBranchOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                          {isBranchOpen ? 'Đang Mở' : 'Bảo Trì'}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Hình Ảnh</p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
-                            {selectedRoom.roomType === 'IMAX' ? 'IMAX 3D' : '4K Laser'}
-                          </span>
-                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
-                            {selectedRoom.roomType === 'FOUR_DX' ? '4DX Motion' : 'HDR10'}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase mb-1">Tiêu Chuẩn Âm Thanh</p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
-                            {selectedRoom.roomType === 'DOLBY_ATMOS' ? 'Dolby Atmos' : 'Dolby 7.1'}
-                          </span>
-                          <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 px-2 py-0.5 text-[10px] font-bold uppercase rounded-xl">
-                            {selectedRoom.roomType === 'IMAX' ? '12.0 CH' : '11.2 CH'}
-                          </span>
-                        </div>
+                      <p className="text-[11px] text-gray-400 opacity-80 truncate" title={cinema.address}>
+                        {cinema.address}
+                      </p>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1A2238]/60 text-[9px] text-gray-500 font-mono">
+                        <span>{cStats.totalRoomsCount} PHÒNG CHIẾU</span>
+                        <span>{cStats.capacity} GHẾ</span>
                       </div>
                     </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-12 text-gray-500 border border-dashed border-[#1A2238] rounded-lg p-4 bg-[#0F1322]">
+                  <p className="text-xs uppercase tracking-wider">Không tìm thấy chi nhánh</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-                    {/* Seating Chart Editor */}
-                    <div className="relative bg-[#0f172a] border border-[#1a2238] p-8 mb-6 overflow-hidden rounded-xl select-none">
+        {/* Right Column: Room Setup & Seating Chart */}
+        <div className="col-span-12 lg:col-span-8 space-y-6">
+          <div className="bg-[#0F1322] border border-[#1A2238] p-6 rounded-xl shadow-lg">
+            
+            {/* Auditorium Selection */}
+            <div className="flex items-center gap-4 mb-6 overflow-x-auto pb-3 border-b border-[#1A2238]/60 premium-scroll">
+              {rooms.length > 0 ? (
+                rooms.map((room) => {
+                  const isRoomSelected = selectedRoom?.uuid === room.uuid;
+                  return (
+                    <button
+                      key={room.uuid}
+                      type="button"
+                      onClick={() => setSelectedRoom(room)}
+                      className={`shrink-0 text-xs pb-1.5 uppercase font-bold tracking-wider transition-colors border-b-2 cursor-pointer bg-transparent border-t-0 border-x-0 ${
+                        isRoomSelected
+                          ? 'text-red-500 border-red-500'
+                          : 'text-gray-400 border-transparent hover:text-gray-250'
+                      }`}
+                    >
+                      {room.name} ({room.roomType})
+                    </button>
+                  );
+                })
+              ) : (
+                <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Chưa có phòng chiếu</span>
+              )}
+              <button 
+                type="button"
+                onClick={handleAddRoomClick}
+                className="shrink-0 text-red-500 hover:text-red-400 transition cursor-pointer flex items-center justify-center bg-transparent border-none"
+                title="Thêm phòng mới"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedRoom ? (
+              <>
+                {/* Seating Layout Size Customization Controls Panel */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 p-4 bg-[#0B0F19] border border-[#1A2238] rounded-xl text-left">
+                  <div className="md:col-span-2 space-y-3">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 font-mono">
+                      <Grid className="w-3.5 h-3.5 text-red-500" />
+                      Cấu hình kích thước sơ đồ ghế
+                    </h4>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1 font-mono">Hàng ghế (A-Z)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="26"
+                          className="w-20 bg-[#0B0F19] border border-[#1A2238] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50"
+                          value={builderRows}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBuilderRows(val === '' ? '' : parseInt(val) || 0);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1 font-mono">Số cột ghế</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          className="w-20 bg-[#0B0F19] border border-[#1A2238] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50"
+                          value={builderCols}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBuilderCols(val === '' ? '' : parseInt(val) || 0);
+                          }}
+                        />
+                      </div>
                       
-                      {/* Design/Preview Switch Toolbar */}
-                      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                      <button
+                        type="button"
+                        onClick={handleGenerateBaseLayout}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-red-600/10 border-none"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Khởi Tạo Lại Sơ Đồ
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-amber-500 flex items-center gap-1 font-mono">
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      Lưu ý: Khởi tạo lại sẽ xóa sạch sơ đồ ghế hiện có của phòng chiếu.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 border-l border-[#1A2238]/60 pl-6">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 font-mono">Sơ đồ mẫu nhanh</h4>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {TEMPLATE_PRESETS.map(preset => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleApplyPresetTemplate(preset)}
+                          className="px-2 py-1 border border-[#1A2238] bg-[#0B0F19] hover:border-red-500/40 text-[9px] font-bold rounded-lg text-gray-400 hover:text-white transition cursor-pointer text-left truncate"
+                          title={preset.desc}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seating Chart Editor Canvas */}
+                <div className="relative bg-[#0B0F19] border border-[#1A2238] p-8 mb-6 overflow-hidden rounded-xl select-none">
+                  
+                  {/* Design/Preview Switch Toolbar */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                    <button
+                      type="button"
+                      onClick={() => setShowBookingPreview(!showBookingPreview)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                        showBookingPreview
+                          ? 'bg-red-600 border-red-600 text-white shadow-md shadow-red-600/20'
+                          : 'bg-[#0F1322] border-[#1A2238] text-gray-300 hover:bg-[#1e293b]/40 hover:text-white'
+                      }`}
+                    >
+                      {showBookingPreview ? <Sliders className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showBookingPreview ? 'Thiết Kế' : 'Xem Trước'}
+                    </button>
+                    
+                    {!showBookingPreview && (
+                      <>
                         <button
                           type="button"
-                          onClick={() => setShowBookingPreview(!showBookingPreview)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border text-[10px] font-bold font-['JetBrains_Mono'] uppercase tracking-wider transition-all cursor-pointer ${
-                            showBookingPreview
-                              ? 'bg-[#ef4444] border-[#ef4444] text-[#ffffff]'
-                              : 'bg-[#0f172a] border-[#1a2238] text-[#94a3b8] hover:bg-[#1c2333]/40'
-                          }`}
+                          onClick={handleExportJson}
+                          className="p-2 text-gray-400 hover:text-white transition cursor-pointer bg-[#0F1322] border border-[#1A2238] rounded-lg border-none"
+                          title="Xuất file JSON"
                         >
-                          <span className="material-symbols-outlined text-xs leading-none">{showBookingPreview ? 'design_services' : 'visibility'}</span>
-                          {showBookingPreview ? 'Thiết Kế' : 'Xem Trước'}
+                          <Download className="w-3.5 h-3.5" />
                         </button>
-                        
-                        {!showBookingPreview && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={handleExportJson}
-                              className="p-1 text-[#94a3b8] hover:text-[#ef4444] transition cursor-pointer bg-transparent border-none"
-                              title="Xuất file JSON"
-                            >
-                              <span className="material-symbols-outlined text-sm leading-none">download</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImportJsonText('');
-                                setIsImportExportOpen(true);
-                              }}
-                              className="p-1 text-[#94a3b8] hover:text-[#ef4444] transition cursor-pointer bg-transparent border-none"
-                              title="Nạp file JSON"
-                            >
-                              <span className="material-symbols-outlined text-sm leading-none">upload</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImportJsonText('');
+                            setIsImportExportOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-white transition cursor-pointer bg-[#0F1322] border border-[#1A2238] rounded-lg border-none"
+                          title="Nạp file JSON"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
 
-                      <div className="flex flex-col items-center">
-                        
-                        {/* Screen Visualization */}
-                        <div className="w-2/3 h-2 bg-[#ef4444]/20 mb-12 relative">
-                          <div className="absolute inset-0 bg-[#ef4444]/40 blur-md"></div>
-                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-['JetBrains_Mono'] text-[#ef4444] tracking-[0.4em] uppercase">MÀN CHIẾU CHÍNH</div>
+                  <div className="flex flex-col items-center">
+                    
+                    {/* curved screen visual */}
+                    <div className="w-2/3 h-2 bg-red-600/20 mb-12 relative mx-auto rounded-full">
+                      <div className="absolute inset-0 bg-red-600/40 blur-md rounded-full"></div>
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-red-500 tracking-[0.4em] uppercase font-mono">MÀN CHIẾU CHÍNH</div>
+                    </div>
+
+                    {/* Seating Grid Map */}
+                    {isLoadingSeats ? (
+                      <div className="flex justify-center items-center py-20">
+                        <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : selectedRoomSeats.length === 0 ? (
+                      <div className="text-center py-16 border border-dashed border-[#1A2238] rounded-xl p-6 bg-[#0F1322]/40 w-full max-w-lg">
+                        <Tv className="w-10 h-10 text-red-500 mx-auto mb-3 opacity-40 animate-pulse" />
+                        <p className="text-sm font-bold uppercase tracking-wider text-white mb-1">Chưa có sơ đồ ghế nào</p>
+                        <p className="text-xs text-gray-500 mb-4">Nhấp "Khởi tạo lại sơ đồ" phía trên để sinh sơ đồ ghế mặc định.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Seating Grid */}
+                        <div 
+                          ref={seatGridRef}
+                          className="flex flex-col gap-2 select-none w-full overflow-x-auto premium-scroll p-6 items-center bg-[#0F1322]/40 border border-[#1A2238]/60 rounded-xl"
+                        >
+                          {Object.entries(seatsByRow).map(([rowName, rowSeats]) => (
+                            <div key={rowName} className="flex items-center gap-3 min-w-max">
+                              <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
+                              
+                              <div className="flex items-center gap-1.5">
+                                {rowSeats.map((seat) => {
+                                  const stConfig = SEAT_TYPE_CONFIGS[seat.customTypeName] || SEAT_TYPE_CONFIGS.STANDARD;
+                                  const isSelected = selectedSeatIds.has(seat.uuid);
+                                  const isAisle = aisleColumns.includes(seat.seatNumber + 1);
+
+                                  return (
+                                    <React.Fragment key={seat.uuid}>
+                                      {isAisle && (
+                                        <div className="w-6 h-7 shrink-0 flex items-center justify-center text-[10px] text-gray-600 border border-dashed border-[#1A2238] rounded-md bg-black/10 select-none">
+                                          ⇅
+                                        </div>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onMouseDown={() => handleSeatMouseDown(seat.uuid)}
+                                        onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                        className={`w-12 h-7 rounded-md text-[9px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item cursor-pointer ${
+                                          isSelected
+                                            ? 'border-red-500 ring-1 ring-red-500/40 bg-red-500/20 text-white'
+                                            : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
+                                        }`}
+                                        title={`${rowName}${seat.seatNumber} (${stConfig.label}) - ${seat.status}`}
+                                      >
+                                        {rowName}{seat.seatNumber}
+                                      </button>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
+
+                              <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Interactive Seat Map View Canvas */}
-                        {isLoadingSeats ? (
-                          <div className="flex justify-center items-center py-20">
-                            <div className="w-8 h-8 border-2 border-[#ef4444] border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        ) : selectedRoomSeats.length === 0 ? (
-                          <div className="text-center py-16 border border-dashed border-[#1a2238] rounded-xl p-6 bg-[#0f172a]/50 w-full max-w-lg">
-                            <span className="material-symbols-outlined text-[#ef4444] text-4xl mb-3 opacity-30 leading-none">tv</span>
-                            <p className="text-sm font-bold uppercase tracking-wider text-[#ffffff] mb-1">Chưa có sơ đồ ghế nào được sinh</p>
-                            <p className="text-xs text-[#64748b] mb-6 font-['JetBrains_Mono']">Hãy thiết lập kích thước và khởi tạo sơ đồ tự động cho phòng chiếu.</p>
+                        {/* Interactive Brush Toolbox / Legend */}
+                        <div className="mt-12 flex flex-wrap gap-4 justify-center select-none">
+                          {Object.entries(SEAT_TYPE_CONFIGS).map(([key, config]) => {
+                            const isActiveBrush = activePaintBrushType === key;
+                            const isSelectTool = key === 'SELECT';
                             
-                            <div className="flex flex-col items-center gap-4 max-w-sm mx-auto p-4 bg-[#0b0f19]/50 border border-[#1a2238] rounded-xl mb-4 text-left">
-                              <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#64748b] border-b border-[#1a2238] pb-1.5 w-full font-['JetBrains_Mono']">Thông Số Bố Cục</h4>
-                              
-                              <div className="grid grid-cols-2 gap-4 w-full">
-                                <div>
-                                  <label className="block text-[9px] font-bold text-[#64748b] uppercase mb-1 font-['JetBrains_Mono']">Số Hàng (A-Z)</label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max="26"
-                                    className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-2.5 py-1.5 text-xs text-[#ffffff] focus:ring-1 focus:ring-[#ef4444]/30"
-                                    value={builderRows}
-                                    onChange={(e) => setBuilderRows(parseInt(e.target.value) || 8)}
-                                  />
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  if (showBookingPreview) return;
+                                  setActivePaintBrushType(key);
+                                  if (selectedSeatIds.size > 0 && !isSelectTool) {
+                                    handlePaintSelection(key);
+                                  }
+                                }}
+                                disabled={showBookingPreview}
+                                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all cursor-pointer text-left ${
+                                  isActiveBrush && !showBookingPreview
+                                    ? 'border-red-500 bg-red-500/10 scale-105'
+                                    : 'border-[#1A2238] bg-[#0F1322] hover:border-gray-700 opacity-90 hover:opacity-100'
+                                }`}
+                              >
+                                {isSelectTool ? (
+                                  <MousePointer className="w-3.5 h-3.5 text-white shrink-0" />
+                                ) : (
+                                  <div className={`h-3 w-3 rounded shrink-0 border ${config.color} ${config.border}`} />
+                                )}
+                                <div className="leading-none font-mono">
+                                  <span className="text-[10px] font-bold text-gray-300 uppercase block">{config.label}</span>
+                                  {selectedSeatIds.size > 0 && isActiveBrush && !isSelectTool && !showBookingPreview && (
+                                    <span className="text-[8px] text-red-400 font-bold block mt-0.5 animate-pulse">ÁP DỤNG VÙNG CHỌN</span>
+                                  )}
                                 </div>
-                                <div>
-                                  <label className="block text-[9px] font-bold text-[#64748b] uppercase mb-1 font-['JetBrains_Mono']">Ghế Mỗi Hàng</label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max="30"
-                                    className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-2.5 py-1.5 text-xs text-[#ffffff] focus:ring-1 focus:ring-[#ef4444]/30"
-                                    value={builderCols}
-                                    onChange={(e) => setBuilderCols(parseInt(e.target.value) || 12)}
-                                  />
-                                </div>
-                              </div>
+                              </button>
+                            );
+                          })}
+                        </div>
 
-                              <div className="w-full">
-                                <p className="text-[9px] text-[#64748b] mb-2 font-['JetBrains_Mono']">
-                                  💡 **Bố cục mẫu**: Chọn sơ đồ thiết lập sẵn bên dưới.
-                                </p>
-                                <div className="flex flex-wrap gap-1.5 w-full">
-                                  {TEMPLATE_PRESETS.map(preset => (
-                                    <button
-                                      key={preset.id}
-                                      type="button"
-                                      onClick={() => handleApplyPresetTemplate(preset)}
-                                      className="px-2 py-1 border border-[#1a2238] hover:border-[#ef4444]/30 bg-[#121826] text-[9px] font-bold rounded-xl text-[#94a3b8] hover:text-[#ffffff] cursor-pointer"
-                                    >
-                                      {preset.name}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={handleGenerateBaseLayout}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-[#ef4444] text-[#ffffff] px-5 py-2.5 text-xs font-bold font-['JetBrains_Mono'] uppercase hover:brightness-110 transition shadow-md shadow-[#ef4444]/15 cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-sm leading-none font-bold">refresh</span> Khởi Tạo Sơ Đồ
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            {/* Seating Grid */}
-                            <div 
-                              ref={seatGridRef}
-                              className="flex flex-col gap-2 select-none w-full overflow-x-auto premium-scroll p-4 items-center bg-[#0f172a]/30 border border-[#1a2238]/40 rounded-xl"
-                            >
-                              {Object.entries(seatsByRow).map(([rowName, rowSeats]) => (
-                                <div key={rowName} className="flex items-center gap-3 min-w-max">
-                                  <span className="w-4 font-mono font-bold text-xs text-[#64748b] text-center shrink-0">{rowName}</span>
-                                  
-                                  <div className="flex items-center gap-1.5">
-                                    {rowSeats.map((seat, seatIdx) => {
-                                      const stConfig = SEAT_TYPE_CONFIGS[seat.customTypeName] || SEAT_TYPE_CONFIGS.STANDARD;
-                                      const isSelected = selectedSeatIds.has(seat.uuid);
-                                      const isAisle = aisleColumns.includes(seatIdx + 1);
-
-                                      return (
-                                        <React.Fragment key={seat.uuid}>
-                                          {isAisle && (
-                                            <div className="w-4 h-4 shrink-0 flex items-center justify-center text-[7px] text-[#64748b]/40 border border-dashed border-[#1a2238]/30 rounded-xl bg-[#0f172a]/10 select-none">
-                                              ⇅
-                                            </div>
-                                          )}
-                                          <button
-                                            type="button"
-                                            onMouseDown={() => handleSeatMouseDown(seat.uuid)}
-                                            onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
-                                            className={`w-4 h-4 rounded-xl text-[8px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item ${
-                                              isSelected
-                                                ? 'border-[#ef4444] ring-1 ring-[#ef4444]/40 bg-[#ef4444]/25 text-[#ef4444]'
-                                                : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
-                                            }`}
-                                            title={`${rowName}${seat.seatNumber} (${stConfig.label}) - ${seat.status}`}
-                                          >
-                                            {seat.seatNumber}
-                                          </button>
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                  </div>
-
-                                  <span className="w-4 font-mono font-bold text-xs text-[#64748b] text-center shrink-0">{rowName}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Interactive Brush Selection / Legend */}
-                            <div className="mt-12 flex flex-wrap gap-8 justify-center select-none">
-                              {Object.entries(SEAT_TYPE_CONFIGS).map(([key, config]) => {
-                                const isActiveBrush = activePaintBrushType === key;
-                                return (
-                                  <button
-                                    key={key}
-                                    type="button"
-                                    onClick={() => {
-                                      if (showBookingPreview) return;
-                                      setActivePaintBrushType(key);
-                                      if (selectedSeatIds.size > 0) handlePaintSelection(key);
-                                    }}
-                                    disabled={showBookingPreview}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-left ${
-                                      isActiveBrush && !showBookingPreview
-                                        ? 'border-[#ef4444] bg-[#ef4444]/10 scale-105'
-                                        : 'border-transparent bg-transparent opacity-85 hover:opacity-100'
-                                    }`}
-                                  >
-                                    <div className={`h-3 w-3 rounded-xl shrink-0 border ${config.color} ${config.border}`} />
-                                    <div className="leading-none">
-                                      <span className="text-[10px] font-['JetBrains_Mono'] text-[#94a3b8] uppercase block">{config.label}</span>
-                                      {selectedSeatIds.size > 0 && isActiveBrush && !showBookingPreview && (
-                                        <span className="text-[7px] text-[#ef4444] font-bold font-mono">TÔ MÀU VÙNG CHỌN</span>
-                                      )}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Operations bar: Save or discard */}
-                    <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-[#1a2238]/30">
-                      <p className="mr-auto text-[10px] text-[#64748b] font-['JetBrains_Mono'] uppercase flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm leading-none">history</span>
-                        Lưu lần cuối: Vừa xong bởi quản trị viên
-                      </p>
-                      <button 
-                        type="button"
-                        onClick={() => fetchSeats(selectedRoom.uuid)}
-                        className="px-6 py-2 bg-[#121826] text-[#ffffff] border border-[#1a2238] font-['JetBrains_Mono'] text-xs uppercase hover:bg-[#1c2333] transition-all cursor-pointer rounded-xl"
-                      >
-                        Hủy Bỏ Thay Đổi
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={handleSaveAllConfiguration}
-                        disabled={isSavingSeats || isSavingRoomConfig}
-                        className="px-10 py-2 bg-[#ef4444] text-[#ffffff] font-bold font-['JetBrains_Mono'] text-xs uppercase cinematic-glow transition-all hover:brightness-110 cursor-pointer rounded-xl flex items-center gap-2"
-                      >
-                        {(isSavingSeats || isSavingRoomConfig) ? (
-                          <>
-                            <div className="w-3.5 h-3.5 border-2 border-[#ffffff] border-t-transparent rounded-full animate-spin"></div>
-                            Đang lưu...
-                          </>
-                        ) : (
-                          'Lưu Cấu Hình'
-                        )}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-16 border border-dashed border-[#1a2238] rounded-xl p-6 bg-[#0f172a]/55">
-                    <span className="material-symbols-outlined text-[#ef4444] text-4xl mb-3 opacity-20 animate-pulse leading-none">compass</span>
-                    <p className="text-sm font-bold uppercase tracking-wider text-[#ffffff] mb-1">Chưa chọn phòng chiếu</p>
-                    <p className="text-xs text-[#64748b] font-['JetBrains_Mono']">Vui lòng chọn hoặc thêm mới phòng chiếu ở danh sách tabs phía trên.</p>
+                        {/* Seat Map Statistics Breakdown */}
+                        <div className="mt-8 pt-4 border-t border-[#1A2238]/60 flex flex-wrap justify-center gap-6 text-[10px] font-mono text-gray-400">
+                          <span>Tổng số ghế hoạt động: <strong className="text-white">{selectedRoomSeats.filter(s => s.status === 'ACTIVE').length}</strong></span>
+                          <span>•</span>
+                          <span>Thường: <strong className="text-emerald-400">{seatCounts.STANDARD || 0}</strong></span>
+                          <span>•</span>
+                          <span>VIP: <strong className="text-red-400">{seatCounts.VIP || 0}</strong></span>
+                          <span>•</span>
+                          <span>Đôi: <strong className="text-fuchsia-400">{seatCounts.COUPLE || 0}</strong></span>
+                          <span>•</span>
+                          <span>Bảo Trì: <strong className="text-zinc-500">{seatCounts.BROKEN || 0}</strong></span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* Operations Bar */}
+                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-[#1A2238]/60">
+                  <p className="mr-auto text-[10px] text-gray-500 font-mono uppercase flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" />
+                    Bố cục phòng chiếu đã được kết nối cơ sở dữ liệu thực
+                  </p>
+                  <button 
+                    type="button"
+                    onClick={() => fetchSeats(selectedRoom.uuid)}
+                    className="px-5 py-2 bg-[#0F1322] text-gray-305 border border-[#1A2238] rounded-lg font-bold text-xs uppercase hover:bg-[#1a2238]/40 hover:text-white transition cursor-pointer"
+                  >
+                    Hủy Bỏ Thay Đổi
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleSaveAllConfiguration}
+                    disabled={isSavingSeats}
+                    className="px-8 py-2 bg-red-600 text-white font-bold rounded-lg text-xs uppercase transition-all hover:bg-red-700 shadow-md shadow-red-600/10 cursor-pointer flex items-center gap-1.5 border-none font-mono"
+                  >
+                    {isSavingSeats ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Đang lưu...
+                      </>
+                    ) : (
+                      'Lưu Cấu Hình'
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-16 border border-dashed border-[#1A2238] rounded-xl p-6 bg-[#0F1322]/40">
+                <Tv className="w-12 h-12 text-red-500 mx-auto mb-3 opacity-30 animate-pulse" />
+                <p className="text-sm font-bold uppercase tracking-wider text-white mb-1">Chưa chọn phòng chiếu</p>
+                <p className="text-xs text-gray-500">Vui lòng chọn hoặc thêm mới phòng chiếu ở danh sách tabs phía trên.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ==================== CINEMA MODAL (ADD / EDIT BRANCH) ==================== */}
+      {isCinemaModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsCinemaModalOpen(false)}></div>
+          <div className="relative w-full max-w-md bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300 font-sans">
+            <div className="flex justify-between items-center mb-5 border-b border-[#1A2238]/60 pb-3">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+                <Sparkles className="w-4 h-4 text-red-500" />
+                {editingCinema ? 'Chỉnh Sửa Chi Nhánh' : 'Thêm Chi Nhánh Mới'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsCinemaModalOpen(false)}
+                className="p-1 rounded hover:bg-white/5 border border-transparent text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCinemaSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Tên Chi Nhánh Rạp *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+                  placeholder="Ví dụ: NASA Đống Đa"
+                  value={cinemaFormData.name}
+                  onChange={(e) => setCinemaFormData({ ...cinemaFormData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Địa Chỉ Chi Nhánh *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+                  placeholder="Địa chỉ chi tiết..."
+                  value={cinemaFormData.address}
+                  onChange={(e) => setCinemaFormData({ ...cinemaFormData, address: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Số Điện Thoại Vận Hành *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+                  placeholder="Ví dụ: 1900 1080"
+                  value={cinemaFormData.phoneNumber}
+                  onChange={(e) => setCinemaFormData({ ...cinemaFormData, phoneNumber: e.target.value })}
+                />
+              </div>
+              
+              <div className="pt-4 border-t border-[#1A2238]/60 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCinemaModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-[#0F1322] border border-[#1A2238] hover:bg-[#1a2238]/40 text-gray-300 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-mono"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase transition-all hover:bg-red-700 cursor-pointer shadow-md shadow-red-600/10 border-none font-mono"
+                >
+                  Lưu Lại
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== ROOM MODAL (ADD / EDIT ROOM) ==================== */}
+      {isRoomModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsRoomModalOpen(false)}></div>
+          <div className="relative w-full max-w-md bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
+            <div className="flex justify-between items-center mb-5 border-b border-[#1A2238]/60 pb-3">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+                <Tv className="w-4 h-4 text-red-500" />
+                {editingRoom ? 'Chỉnh Sửa Phòng Chiếu' : 'Thêm Phòng Chiếu Mới'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsRoomModalOpen(false)}
+                className="p-1 rounded hover:bg-white/5 border border-transparent text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleRoomSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Mã Phòng Chiếu *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-red-500/50"
+                  placeholder="Ví dụ: ROOM-IMAX-01"
+                  value={roomFormData.roomCode}
+                  onChange={(e) => setRoomFormData({ ...roomFormData, roomCode: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Tên Phòng Chiếu *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:border-red-500/50"
+                  placeholder="Ví dụ: Phòng Chiếu Số 1"
+                  value={roomFormData.name}
+                  onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Kiểu Phòng Chiếu *</label>
+                  <select
+                    className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-red-500/50 cursor-pointer"
+                    value={roomFormData.roomType}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
+                  >
+                    <option value="STANDARD">STANDARD</option>
+                    <option value="IMAX">IMAX</option>
+                    <option value="FOUR_DX">4DX</option>
+                    <option value="DOLBY_ATMOS">Dolby Atmos</option>
+                    <option value="VIP">VIP</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Trạng Thái Vận Hành *</label>
+                  <select
+                    className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-gray-305 focus:outline-none focus:border-red-500/50 cursor-pointer"
+                    value={roomFormData.status}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, status: e.target.value })}
+                  >
+                    <option value="ACTIVE">Hoạt động</option>
+                    <option value="MAINTENANCE">Bảo trì</option>
+                    <option value="DISABLED">Vô hiệu hóa</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-[#1A2238]/60 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsRoomModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-[#0F1322] border border-[#1A2238] hover:bg-[#1a2238]/40 text-gray-300 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-mono"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase transition-all hover:bg-red-700 cursor-pointer shadow-md shadow-red-600/10 border-none font-mono"
+                >
+                  Lưu Lại
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== IMPORT / EXPORT DIALOG ==================== */}
+      {isImportExportOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsImportExportOpen(false)}></div>
+          <div className="relative w-full max-w-lg bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
+            <div className="flex justify-between items-center mb-4 border-b border-[#1A2238]/60 pb-3">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+                <Upload className="w-4 h-4 text-red-500" />
+                Nạp Sơ Đồ Thiết Kế Từ JSON
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsImportExportOpen(false)}
+                className="p-1 rounded hover:bg-white/5 border border-transparent text-gray-400 hover:text-white transition-colors cursor-pointer bg-transparent"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-[10px] text-gray-400 leading-relaxed font-mono">
+                Dán chuỗi dữ liệu JSON sơ đồ ghế đã xuất trước đó vào khung dưới đây. Hệ thống sẽ tự động đối chiếu các cặp `rowName` và `seatNumber` để cập nhật cục bộ.
+              </p>
+              
+              <textarea
+                rows="8"
+                className="w-full rounded-lg bg-[#0B0F19] border border-[#1A2238] p-3 font-mono text-xs text-emerald-400 placeholder-gray-650 focus:outline-none focus:border-red-500/50"
+                value={importJsonText}
+                onChange={(e) => setImportJsonText(e.target.value)}
+              />
+              
+              <div className="pt-4 border-t border-[#1A2238]/60 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsImportExportOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-[#0F1322] border border-[#1A2238] hover:bg-[#1a2238]/40 text-gray-300 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-mono"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImportJson}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase transition-all hover:bg-red-700 cursor-pointer shadow-md shadow-red-600/10 border-none font-mono"
+                >
+                  Nạp Bố Cục
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Technical Standards Section (Asymmetric) */}
-          <section className="mt-12 grid grid-cols-12 gap-6 text-left">
-            <div className="col-span-12">
-              <div className="bg-[#0b0f19] border border-[#1a2238] p-8 flex flex-col md:flex-row gap-8 items-center rounded-xl">
-                <div className="md:w-1/3">
-                  <h2 className="font-['Bebas_Neue'] text-3xl text-[#ffffff] mb-2 tracking-wider">Thông Số Kỹ Thuật</h2>
-                  <p className="text-sm text-[#94a3b8] leading-relaxed">
-                    Xác định cấu hình phần cứng thiết bị chiếu phim và âm thanh cho phòng chiếu. Các phòng chiếu phải đạt tiêu chuẩn hiển thị và âm thanh quy chuẩn để hoạt động.
-                  </p>
-                </div>
-                
-                <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                  {selectedRoom ? (
-                    <>
-                      {/* Projection */}
-                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
-                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">videocam</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Thiết Bị Chiếu</h4>
-                        <input
-                          type="text"
-                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
-                          value={roomTechSpecs.projection}
-                          onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, projection: e.target.value })}
-                        />
-                      </div>
-
-                      {/* Audio Processor */}
-                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
-                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">surround_sound</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Bộ Xử Lý Âm Thanh</h4>
-                        <input
-                          type="text"
-                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
-                          value={roomTechSpecs.audioProcessor}
-                          onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, audioProcessor: e.target.value })}
-                        />
-                      </div>
-
-                      {/* Screen Material */}
-                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
-                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">layers</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Chất Liệu Màn Hình</h4>
-                        <input
-                          type="text"
-                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
-                          value={roomTechSpecs.screenMaterial}
-                          onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, screenMaterial: e.target.value })}
-                        />
-                      </div>
-
-                      {/* Seating Soft */}
-                      <div className="bg-[#121826] p-4 border border-[#1a2238]/30 hover:border-[#ef4444]/50 transition-all rounded-xl">
-                        <span className="material-symbols-outlined text-[#ef4444] mb-2 leading-none">chair</span>
-                        <h4 className="text-xs font-bold uppercase mb-1 text-[#ffffff]">Chất Liệu Đệm Ghế</h4>
-                        <input
-                          type="text"
-                          className="bg-[#0f172a] border border-[#1a2238]/50 hover:border-[#ef4444]/30 focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]/20 text-[10.5px] text-[#94a3b8] uppercase font-['JetBrains_Mono'] w-full py-1 px-2 mt-1 rounded-xl transition-all"
-                          value={roomTechSpecs.seatingSoft}
-                          onChange={(e) => setRoomTechSpecs({ ...roomTechSpecs, seatingSoft: e.target.value })}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="col-span-4 py-8 text-center text-[#64748b] border border-dashed border-[#1a2238] rounded-xl p-4 bg-[#0f172a]/20 w-full font-['JetBrains_Mono']">
-                      <p className="text-xs uppercase tracking-wider">Chọn phòng chiếu để cấu hình thông số kỹ thuật</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* ==================== CINEMA MODAL (ADD / EDIT BRANCH) ==================== */}
-          {isCinemaModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsCinemaModalOpen(false)}></div>
-              <div className="relative w-full max-w-md bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-5 border-b border-[#1a2238]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Sparkles className="w-4 h-4 text-[#ef4444]" />
-                    {editingCinema ? 'Chỉnh Sửa Chi Nhánh' : 'Thêm Chi Nhánh Mới'}
-                  </h2>
-                  <button
-                    onClick={() => setIsCinemaModalOpen(false)}
-                    className="p-1 rounded bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <form onSubmit={handleCinemaSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Chi Nhánh Rạp *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
-                      placeholder="Ví dụ: TPD Đống Đa"
-                      value={cinemaFormData.name}
-                      onChange={(e) => setCinemaFormData({ ...cinemaFormData, name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Địa Chỉ Chi Nhánh *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
-                      placeholder="Địa chỉ chi tiết..."
-                      value={cinemaFormData.address}
-                      onChange={(e) => setCinemaFormData({ ...cinemaFormData, address: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Số Điện Thoại Vận Hành *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50 transition-colors"
-                      placeholder="Ví dụ: 1900 1080"
-                      value={cinemaFormData.phoneNumber}
-                      onChange={(e) => setCinemaFormData({ ...cinemaFormData, phoneNumber: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setIsCinemaModalOpen(false)}
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
-                    >
-                      Lưu Lại
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ==================== ROOM MODAL (ADD / EDIT ROOM) ==================== */}
-          {isRoomModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsRoomModalOpen(false)}></div>
-              <div className="relative w-full max-w-md bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-5 border-b border-[#1a2238]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Tv className="w-4 h-4 text-[#ef4444]" />
-                    {editingRoom ? 'Chỉnh Sửa Phòng Chiếu' : 'Thêm Phòng Chiếu Mới'}
-                  </h2>
-                  <button
-                    onClick={() => setIsRoomModalOpen(false)}
-                    className="p-1 rounded bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <form onSubmit={handleRoomSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Mã Phòng Chiếu *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
-                      placeholder="Ví dụ: ROOM-IMAX-01"
-                      value={roomFormData.roomCode}
-                      onChange={(e) => setRoomFormData({ ...roomFormData, roomCode: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Tên Phòng Chiếu *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
-                      placeholder="Ví dụ: Phòng Chiếu Số 1"
-                      value={roomFormData.name}
-                      onChange={(e) => setRoomFormData({ ...roomFormData, name: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Kiểu Phòng Chiếu *</label>
-                      <select
-                        className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#ef4444]/50 cursor-pointer"
-                        value={roomFormData.roomType}
-                        onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
-                      >
-                        <option value="STANDARD">STANDARD</option>
-                        <option value="IMAX">IMAX</option>
-                        <option value="FOUR_DX">4DX</option>
-                        <option value="DOLBY_ATMOS">Dolby Atmos</option>
-                        <option value="VIP">VIP</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[9px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5 font-['JetBrains_Mono']">Trạng Thái Vận Hành *</label>
-                      <select
-                        className="w-full bg-[#0f172a] border border-[#1a2238] rounded-xl px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#ef4444]/50 cursor-pointer"
-                        value={roomFormData.status}
-                        onChange={(e) => setRoomFormData({ ...roomFormData, status: e.target.value })}
-                      >
-                        <option value="ACTIVE">Hoạt động</option>
-                        <option value="MAINTENANCE">Bảo trì</option>
-                        <option value="DISABLED">Vô hiệu hóa</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setIsRoomModalOpen(false)}
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
-                    >
-                      Lưu Lại
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ==================== IMPORT / EXPORT DIALOG ==================== */}
-          {isImportExportOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsImportExportOpen(false)}></div>
-              <div className="relative w-full max-w-lg bg-[#0b0f19] border border-[#1a2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300">
-                <div className="flex justify-between items-center mb-4 border-b border-[#1a2238]/45 pb-3">
-                  <h2 className="text-sm font-bold text-[#ffffff] uppercase tracking-wider flex items-center gap-2 font-['JetBrains_Mono']">
-                    <Upload className="w-4 h-4 text-[#ef4444]" />
-                    Nạp Sơ Đồ Thiết Kế Từ JSON
-                  </h2>
-                  <button
-                    onClick={() => setIsImportExportOpen(false)}
-                    className="p-1 rounded bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  <p className="text-[10px] text-gray-400 leading-relaxed font-['JetBrains_Mono']">
-                    Dán chuỗi dữ liệu JSON sơ đồ ghế đã xuất trước đó vào khung dưới đây. Hệ thống sẽ tự động đối chiếu các cặp `rowName` và `seatNumber` để cập nhật cục bộ.
-                  </p>
-                  
-                  <textarea
-                    rows="8"
-                    className="w-full rounded-xl bg-[#0f172a] border border-[#1a2238] p-3 font-mono text-xs text-emerald-400 placeholder-gray-600 focus:outline-none focus:border-[#ef4444]/50"
-                    placeholder='[\n  {\n    "rowName": "A",\n    "seatNumber": 1,\n    "status": "ACTIVE",\n    "customTypeName": "STANDARD"\n  }\n]'
-                    value={importJsonText}
-                    onChange={(e) => setImportJsonText(e.target.value)}
-                  />
-                  
-                  <div className="pt-4 border-t border-[#1a2238]/45 flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setIsImportExportOpen(false)}
-                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-['JetBrains_Mono']"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleImportJson}
-                      className="px-4 py-2 rounded-xl bg-[#ef4444] text-[#ffffff] text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md shadow-[#ef4444]/10 font-['JetBrains_Mono']"
-                    >
-                      Nạp Bố Cục
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export default CinemasPage;
-

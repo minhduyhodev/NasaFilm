@@ -69,6 +69,9 @@ public class Movie {
     @Column(name = "online_price")
     private BigDecimal onlinePrice;
 
+    @Column(name = "rating")
+    private Double rating;
+
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 20)
     private List<MovieGenre> movieGenres = new ArrayList<>();
@@ -255,6 +258,14 @@ public class Movie {
 
     public void setOnlinePrice(BigDecimal onlinePrice) {
         this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
     }
 
 }

@@ -53,6 +53,8 @@ public class UpdateMovieRequest {
 
     private BigDecimal onlinePrice;
 
+    private Double rating;
+
     public UpdateMovieRequest() {
     }
 
@@ -173,5 +175,13 @@ public class UpdateMovieRequest {
 
     public void setOnlinePrice(BigDecimal onlinePrice) {
         this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
     }
 }
