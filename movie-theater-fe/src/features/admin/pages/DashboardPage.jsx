@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Coins, Percent, TrendingUp, CreditCard, Activity, Radio, Compass, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
+import {
+  AdminPage,
+  PageHeader,
+  Section,
+  MetadataRow,
+} from '../components';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -42,37 +48,6 @@ const DashboardPage = () => {
   const transactionVal = stats ? new Intl.NumberFormat('vi-VN').format(stats.totalTransactions) : '0';
   const growthVal = stats ? (stats.growth >= 0 ? `+${stats.growth.toFixed(1)}%` : `${stats.growth.toFixed(1)}%`) : '0%';
   const conversionVal = stats ? `${stats.conversionRate.toFixed(1)}%` : '0%';
-
-  const cards = [
-    {
-      label: 'DOANH THU',
-      value: revenueVal,
-      badge: 'Tháng này',
-      Icon: Coins,
-      color: 'text-rose-500',
-    },
-    {
-      label: 'TỶ LỆ CHUYỂN ĐỔI',
-      value: conversionVal,
-      badge: 'Tổng số thành viên',
-      Icon: Percent,
-      color: 'text-emerald-500',
-    },
-    {
-      label: 'TĂNG TRƯỞNG',
-      value: growthVal,
-      badge: 'So với tháng trước',
-      Icon: TrendingUp,
-      color: 'text-amber-500',
-    },
-    {
-      label: 'GIAO DỊCH',
-      value: transactionVal,
-      badge: 'Đã hoàn thành',
-      Icon: CreditCard,
-      color: 'text-sky-500',
-    },
-  ];
 
   // Resolve dynamic cinemas data
   const cinemas = stats?.cinemas || [];
@@ -143,65 +118,23 @@ const DashboardPage = () => {
   const polygonPoints = `${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}`;
 
   return (
-    <div className="space-y-8">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">NASAFilm Control Room</p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Bảng Điều Khiển Admin</h1>
-          <p className="text-sm text-gray-400 mt-2">Tổng quan vận hành & Phân tích thời gian thực hệ thống rạp toàn cầu.</p>
-        </div>
-        <button className="dashboard-action-btn">
-          <Radio className="w-4 h-4 animate-pulse shrink-0" />
-          Kích hoạt Chiến Dịch Mới
-        </button>
-      </div>
+    <AdminPage>
+      <PageHeader
+        title="Bang dieu khien"
+        description="Tong quan van hanh va phan tich he thong rạp."
+      />
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {cards.map((card) => {
-          let colorClass = 'text-indigo-400';
-          let kpiClass = 'kpi-revenue';
-          if (card.label.includes('DOANH')) {
-            colorClass = 'text-pink-400';
-            kpiClass = 'kpi-revenue';
-          } else if (card.label.includes('CHUYỂN')) {
-            colorClass = 'text-emerald-400';
-            kpiClass = 'kpi-conversion';
-          } else if (card.label.includes('TRƯỞNG')) {
-            colorClass = 'text-amber-400';
-            kpiClass = 'kpi-growth';
-          } else if (card.label.includes('GIAO DỊCH')) {
-            colorClass = 'text-blue-400';
-            kpiClass = 'kpi-transactions';
-          }
-          return (
-            <div key={card.label} className={`kpi-card ${kpiClass}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{card.label}</span>
-                <card.Icon className={`w-4 h-4 ${colorClass} opacity-60`} />
-              </div>
-              <p className={`text-xl font-black ${colorClass} leading-none`}>{card.value}</p>
-              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{card.badge}</p>
-            </div>
-          );
-        })}
-      </div>
+      <Section title="Chi so chinh">
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetadataRow label="Doanh thu thang nay" value={revenueVal} />
+          <MetadataRow label="Ty le chuyen doi" value={conversionVal} />
+          <MetadataRow label="Tang truong" value={growthVal} />
+          <MetadataRow label="Giao dich hoan thanh" value={transactionVal} />
+        </dl>
+      </Section>
 
-      {/* High-Tech Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Occupancy Galaxy Chart (Planetary Telemetry) */}
-        <div className="lg:col-span-2 rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md flex flex-col justify-between">
-          <div className="mb-4">
-            <div className="flex items-center gap-2">
-              <Compass className="w-5 h-5 text-rose-500 animate-spin-slow" />
-              <h2 className="text-xl font-bold text-white">Occupancy Galaxy</h2>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Giám sát doanh thu rạp chiếu thời gian thực theo mô hình quỹ đạo hành tinh.</p>
-          </div>
-
-          {/* SVG Orbit Graphic */}
-          <div className="relative w-full h-[320px] bg-black/40 rounded-xl border border-[#1A2238] overflow-hidden flex items-center justify-center p-4">
+      <Section title="Occupancy galaxy" description="Doanh thu theo cum rap" divided>
+        <div className="relative w-full h-[320px] rounded-lg bg-white/[0.02] overflow-hidden flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-[0.03]" />
             <div className="absolute inset-0 bg-radial-glow pointer-events-none" />
 
@@ -258,26 +191,15 @@ const DashboardPage = () => {
                 <text x="396" y="249" fill="#10b981" className="text-[8px] font-bold">{planet3.occupancy}% lấp đầy • {planet3.revenue}</text>
               </g>
             </svg>
-          </div>
-
-          <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 mt-3 px-1">
-            <span>COSMIC TELEMETRY ACTIVE</span>
-            <span>SYSTEM STATE: OPTIMAL</span>
-          </div>
         </div>
+        <div className="flex items-center justify-between text-xs text-gray-600 mt-3">
+          <span>Telemetry active</span>
+          <span>System optimal</span>
+        </div>
+      </Section>
 
-        {/* Occupancy by Genre (Custom Movie Radar Chart) */}
-        <div className="rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-rose-500" />
-              <h2 className="text-xl font-bold text-white">Movie Radar</h2>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Hiệu suất lấp đầy ghế bình quân chia theo thể loại phim thịnh hành.</p>
-          </div>
-
-          {/* Radar Chart Container */}
-          <div className="relative w-full h-[260px] flex items-center justify-center mt-4 bg-black/20 rounded-xl border border-[#1A2238] overflow-hidden">
+      <Section title="Movie radar" description="Ty le lap day theo the loai" divided>
+          <div className="relative w-full h-[260px] flex items-center justify-center rounded-lg bg-white/[0.02] overflow-hidden">
             <svg className="w-full h-full" viewBox="0 0 320 280">
               <defs>
                 <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -323,13 +245,8 @@ const DashboardPage = () => {
               <text x="55" y="106" textAnchor="end" fill="#ffffff" className="text-[8px] font-bold">{g5.name} ({g5.occupancy}%)</text>
             </svg>
           </div>
-
-          <button className="w-full mt-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-white/15 text-xs font-semibold transition-all duration-300">
-            Xem Báo Cáo Chi Tiết
-          </button>
-        </div>
-      </div>
-    </div>
+      </Section>
+    </AdminPage>
   );
 };
 

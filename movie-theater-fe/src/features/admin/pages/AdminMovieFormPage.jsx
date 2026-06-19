@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, X, Plus, User, Play, Calendar, FileText, Archive, Pause,
-  ChevronDown, ChevronLeft, ChevronRight, Search, Loader2
+  X, Plus, User, Play, Calendar, FileText, Archive, Pause,
+  ChevronDown, ChevronLeft, ChevronRight, Search, Loader2, Film
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getDefaultOnlineStreamingPrice } from '../../../shared/utils/systemConfig';
 import { formatDateDisplay, getDaysInMonth } from '../utils/adminMovieUtils.jsx';
-import './MoviesPage.css';
+import {
+  AdminPage,
+  PageHeader,
+  Section,
+  PrimaryButton,
+  GhostButton,
+} from '../components';
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '';
@@ -85,6 +91,11 @@ const AdminMovieFormPage = () => {
   const [actorSearchTerm, setActorSearchTerm] = useState('');
   const [actorCountryFilter, setActorCountryFilter] = useState('');
   const [isActorCountryDropdownOpen, setIsActorCountryDropdownOpen] = useState(false);
+  const [posterLoadError, setPosterLoadError] = useState(false);
+
+  useEffect(() => {
+    setPosterLoadError(false);
+  }, [formData.posterUrl]);
 
   const ageRestrictionOptions = [
     { value: 'P', label: 'P - Moi lua tuoi' },
@@ -349,9 +360,8 @@ const AdminMovieFormPage = () => {
     }
   };
 
-  const inputClass = 'w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors';
-  const labelClass = 'block text-[10px] font-bold uppercase text-gray-400 tracking-wider mb-1.5';
-  const sectionTitleClass = 'text-xs font-bold uppercase text-red-500 tracking-wider border-b border-[#1A2238] pb-1';
+  const inputClass = 'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors';
+  const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
   if (isLoading) {
     return (
@@ -363,64 +373,75 @@ const AdminMovieFormPage = () => {
   }
 
   return (
-    <div className="space-y-6 text-left">
-      {/* PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/admin/movies')}
-            className="mt-1 p-2 rounded-lg border border-[#1A2238] bg-[#0F1322] text-gray-400 hover:text-white hover:border-[#2C3B5E] transition cursor-pointer shrink-0"
-            title="Quay lai danh sach phim"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">He Thong Phim Dien Anh</p>
-            <h1 className="text-2xl md:text-3xl font-black text-white uppercase leading-none tracking-tight">
-              {isEditing ? 'Chinh sua phim' : 'Them moi phim'}
-            </h1>
-            {isEditing && editingMovie && (
-              <p className="text-xs text-gray-500 font-mono mt-2">{editingMovie.title}</p>
-            )}
-          </div>
-        </div>
-      </div>
+    <AdminPage>
+      <PageHeader
+        title={isEditing ? 'Chinh sua phim' : 'Them phim moi'}
+        description={isEditing && editingMovie ? editingMovie.title : 'Nhap thong tin phim va luu vao he thong.'}
+        backTo={isEditing ? `/admin/movies/${movieUuid}` : '/admin/movies'}
+      />
 
-      {/* FORM CARD */}
-      <div className="rounded-xl bg-[#0F1322] border border-[#1A2238] shadow-xl p-5 md:p-6">
-        <form onSubmit={handleSubmit} className="space-y-6 text-xs">
-          {/* SECTION 1 */}
-          <div className="space-y-3 text-left">
-            <h3 className={sectionTitleClass}>1. Thong tin phim</h3>
-            <div className="space-y-3">
-              <div>
-                <label className={labelClass}>Ten phim *</label>
-                <input
-                  type="text"
-                  className={inputClass}
-                  placeholder="Nhap ten phim..."
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
+      <form onSubmit={handleSubmit} className="space-y-8">
+          <Section title="Poster & thong tin phim">
+            <div className="grid grid-cols-1 md:grid-cols-[148px_1fr] gap-6">
+              <div className="shrink-0">
+                <div className="aspect-[2/3] w-full max-w-[148px] rounded-lg overflow-hidden bg-white/[0.03] flex items-center justify-center">
+                  {formData.posterUrl?.trim() && !posterLoadError ? (
+                    <img
+                      src={formData.posterUrl.trim()}
+                      alt={formData.title || 'Poster phim'}
+                      className="w-full h-full object-cover"
+                      onError={() => setPosterLoadError(true)}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-gray-600 px-3 text-center">
+                      <Film className="w-8 h-8" />
+                      <span className="text-[10px] leading-snug">
+                        {formData.posterUrl?.trim() ? 'Khong tai duoc anh' : 'Chua co poster'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Mo ta phim</label>
-                <textarea
-                  className={`${inputClass} h-20 resize-y`}
-                  placeholder="Nhap mo ta chi tiet..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
+
+              <div className="space-y-4 min-w-0">
+                <div>
+                  <label className={labelClass}>Ten phim *</label>
+                  <input
+                    type="text"
+                    className={inputClass}
+                    placeholder="Nhap ten phim..."
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Poster URL *</label>
+                  <input
+                    type="url"
+                    className={inputClass}
+                    placeholder="https://..."
+                    value={formData.posterUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
+                    required
+                  />
+                  <p className="text-xs text-gray-600 mt-1">Anh xem truoc cap nhat khi ban nhap URL.</p>
+                </div>
+                <div>
+                  <label className={labelClass}>Mo ta phim</label>
+                  <textarea
+                    className={`${inputClass} h-24 resize-y`}
+                    placeholder="Nhap mo ta chi tiet..."
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* SECTION 2 */}
-          <div className="space-y-3 text-left">
-            <h3 className={sectionTitleClass}>2. Thong tin phat hanh &amp; Trang thai</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Section title="Phat hanh & trang thai" divided>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Thoi luong (phut) *</label>
                 <input
@@ -439,7 +460,7 @@ const AdminMovieFormPage = () => {
                   onClick={handleOpenDatePicker}
                   className={`${inputClass} flex items-center justify-between text-left cursor-pointer h-[38px]`}
                 >
-                  <span className={`truncate whitespace-nowrap ${formData.releaseDate ? 'text-white font-mono' : 'text-gray-500'}`}>
+                  <span className={`truncate whitespace-nowrap ${formData.releaseDate ? 'text-white' : 'text-gray-500'}`}>
                     {formData.releaseDate ? formatDateDisplay(formData.releaseDate) : 'Chon ngay...'}
                   </span>
                   <Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" />
@@ -597,15 +618,13 @@ const AdminMovieFormPage = () => {
                 />
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* SECTION 3 */}
-          <div className="space-y-3 text-left">
-            <h3 className={sectionTitleClass}>3. Phan loai &amp; Phuong tien</h3>
+          <Section title="Phan loai & phuong tien" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>The loai phim *</label>
-                <div className="border border-[#1A2238] rounded-lg p-2.5 max-h-32 overflow-y-auto space-y-1.5 bg-[#0B0F19] custom-scrollbar">
+                <div className="rounded-md bg-white/[0.02] p-3 max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
                   {genresList.map(genre => (
                     <label key={genre.uuid} className="flex items-center gap-2 cursor-pointer select-none">
                       <input type="checkbox" className="rounded text-red-600 focus:ring-red-500 cursor-pointer" checked={formData.genreUuids.includes(genre.uuid)} onChange={() => handleGenreCheckboxChange(genre.uuid)} />
@@ -616,7 +635,7 @@ const AdminMovieFormPage = () => {
               </div>
               <div>
                 <label className={labelClass}>Quoc gia san xuat *</label>
-                <div className="border border-[#1A2238] rounded-lg p-2.5 max-h-32 overflow-y-auto space-y-1.5 bg-[#0B0F19] custom-scrollbar">
+                <div className="rounded-md bg-white/[0.02] p-3 max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
                   {countriesList.map(country => (
                     <label key={country.uuid} className="flex items-center gap-2 cursor-pointer select-none">
                       <input type="checkbox" className="rounded text-red-600 focus:ring-red-500 cursor-pointer" checked={formData.countryUuids.includes(country.uuid)} onChange={() => handleCountryCheckboxChange(country.uuid)} />
@@ -626,40 +645,35 @@ const AdminMovieFormPage = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-3 mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className={labelClass}>Poster URL *</label>
-                <input type="url" className={inputClass} placeholder="https://..." value={formData.posterUrl} onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))} required />
+                <label className={labelClass}>Trailer URL (YouTube)</label>
+                <input type="url" className={inputClass} placeholder="https://youtube.com/watch?v=..." value={formData.trailerUrl} onChange={(e) => setFormData(prev => ({ ...prev, trailerUrl: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Trailer URL (YouTube)</label>
-                  <input type="url" className={inputClass} placeholder="https://youtube.com/watch?v=..." value={formData.trailerUrl} onChange={(e) => setFormData(prev => ({ ...prev, trailerUrl: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelClass}>Link phim (Streaming URL)</label>
-                  <input type="url" className={inputClass} placeholder="Ho tro file .mp4 hoac link stream..." value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
-                </div>
+              <div>
+                <label className={labelClass}>Link phim (Streaming URL)</label>
+                <input type="url" className={inputClass} placeholder="Ho tro file .mp4 hoac link stream..." value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* SECTION 4 */}
-          <div className="space-y-3 text-left">
-            <div className="flex items-center justify-between border-b border-[#1A2238] pb-1">
-              <h3 className="text-xs font-bold uppercase text-red-500 tracking-wider">4. Dan dien vien (Cast)</h3>
-              <button type="button" onClick={handleAddActorToCast} className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold text-red-400 rounded border border-red-500/30 flex items-center gap-1 transition cursor-pointer">
-                <Plus className="w-3 h-3" /> Them vai dien
-              </button>
-            </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar bg-[#0B0F19] p-2.5 rounded-lg border border-[#1A2238]">
+          <Section
+            title="Dan dien vien"
+            divided
+            action={
+              <GhostButton type="button" onClick={handleAddActorToCast}>
+                <Plus className="w-3.5 h-3.5" /> Them vai
+              </GhostButton>
+            }
+          >
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
               {formData.actors.length === 0 ? (
                 <p className="text-center text-gray-500 italic py-4">Chua co vai dien nao duoc thiet lap.</p>
               ) : (
                 formData.actors.map((cast, index) => {
                   const matchingActorObj = actorsList.find(a => a.uuid === cast.actorUuid);
                   return (
-                    <div key={index} className="flex items-center gap-2.5 p-2 bg-[#0F1322] rounded-lg border border-[#1A2238]">
+                    <div key={index} className="flex items-center gap-2.5 py-2 border-b border-white/[0.04] last:border-0">
                       <div className="w-1/3">
                         <button type="button" onClick={() => handleOpenActorSelector(index)} className="w-full text-left px-2 py-1.5 bg-[#0B0F19] border border-[#1A2238] rounded text-gray-200 hover:bg-white/[0.04] transition truncate cursor-pointer font-bold">
                           {matchingActorObj ? matchingActorObj.fullName : 'Chon dien vien...'}
@@ -680,20 +694,17 @@ const AdminMovieFormPage = () => {
                 })
               )}
             </div>
-          </div>
+          </Section>
 
-          {/* SUBMIT */}
-          <div className="flex justify-end gap-2.5 pt-4 border-t border-[#1A2238] text-left">
-            <button type="button" onClick={handleCancel} disabled={isSaving} className="px-4 py-2 bg-[#0B0F19] hover:bg-white/[0.04] border border-[#1A2238] text-gray-300 font-bold rounded-lg transition cursor-pointer disabled:opacity-50">
+          <div className="flex justify-end gap-2 pt-8 border-t border-white/[0.06]">
+            <GhostButton type="button" onClick={handleCancel} disabled={isSaving}>
               Huy
-            </button>
-            <button type="submit" disabled={isSaving} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition cursor-pointer disabled:opacity-50 flex items-center gap-2">
-              {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            </GhostButton>
+            <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
               Luu phim
-            </button>
+            </PrimaryButton>
           </div>
         </form>
-      </div>
 
       {/* ACTOR SELECTOR OVERLAY MODAL */}
       {isActorSelectorOpen && (
@@ -787,7 +798,7 @@ const AdminMovieFormPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 };
 

@@ -3,7 +3,7 @@ import React from 'react';
 export const GlobalStyles = () => {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap');
 
       * {
         margin: 0;
@@ -16,7 +16,7 @@ export const GlobalStyles = () => {
       }
 
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         background: #0f0f0f;
         color: #ffffff;
         overflow-x: hidden;

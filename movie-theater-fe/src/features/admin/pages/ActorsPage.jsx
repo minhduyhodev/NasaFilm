@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { User, Globe, Search, Plus, X, Loader2, Award, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Globe, Search, Plus, Loader2, Award, MapPin } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
 import './ActorsPage.css';
 
 const ActorsPage = () => {
+  const navigate = useNavigate();
   const [actors, setActors] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,15 +16,6 @@ const ActorsPage = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
-
-  // Modal & Form States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingActor, setEditingActor] = useState(null);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    avatarUrl: '',
-    countryUuid: ''
-  });
 
   const fetchActorsAndCountries = async () => {
     setIsLoading(true);
@@ -49,68 +42,6 @@ const ActorsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-
-  const handleAddClick = () => {
-    setEditingActor(null);
-    setFormData({
-      fullName: '',
-      avatarUrl: '',
-      countryUuid: countriesList[0]?.uuid || ''
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEditClick = (actor) => {
-    setEditingActor(actor);
-    setFormData({
-      fullName: actor.fullName || '',
-      avatarUrl: actor.avatarUrl || '',
-      countryUuid: actor.countryUuid || countriesList[0]?.uuid || ''
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.fullName.trim()) {
-      notificationService.error("Tên diễn viên không được để trống");
-      return;
-    }
-
-    const payload = {
-      fullName: formData.fullName.trim(),
-      avatarUrl: formData.avatarUrl.trim() || null,
-      countryUuid: formData.countryUuid || null
-    };
-
-    try {
-      if (editingActor) {
-        await movieService.updateActor(editingActor.uuid, payload);
-        notificationService.success(`Cập nhật thành công diễn viên "${payload.fullName}"`);
-      } else {
-        await movieService.createActor(payload);
-        notificationService.success(`Thêm mới thành công diễn viên "${payload.fullName}"`);
-      }
-      setIsModalOpen(false);
-      fetchActorsAndCountries();
-    } catch (err) {
-      console.error("Failed to save actor:", err);
-      notificationService.error(err.message || "Lưu thông tin diễn viên thất bại");
-    }
-  };
-
-  const handleDeleteActor = async (uuid, fullName) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa diễn viên "${fullName}" không?`)) {
-      try {
-        await movieService.deleteActor(uuid);
-        notificationService.success(`Xóa thành công diễn viên "${fullName}"`);
-        fetchActorsAndCountries();
-      } catch (err) {
-        console.error("Failed to delete actor:", err);
-        notificationService.error(err.message || "Xóa diễn viên thất bại");
-      }
-    }
-  };
 
   // Filter logic
   const filteredActors = actors.filter(actor =>
@@ -158,7 +89,7 @@ const ActorsPage = () => {
         </div>
         <button
           className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
-          onClick={handleAddClick}
+          onClick={() => navigate('/admin/actors/new')}
         >
           <Plus size={16} />
           Thêm Diễn Viên
@@ -220,9 +151,11 @@ const ActorsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {paginatedActors.map((actor) => (
-              <div
+              <button
                 key={actor.uuid}
-                className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 hover:border-gray-600 transition-all duration-200 group flex flex-col gap-3"
+                type="button"
+                onClick={() => navigate(`/admin/actors/${actor.uuid}`)}
+                className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 hover:border-gray-600 transition-all duration-200 group flex flex-col gap-3 text-left cursor-pointer w-full"
               >
                 {/* Avatar */}
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#1A2238] bg-slate-800 mx-auto flex items-center justify-center shrink-0">
@@ -253,23 +186,7 @@ const ActorsPage = () => {
                     {actor.countryName || 'Không xác định'}
                   </span>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-center gap-2 mt-auto pt-3 border-t border-[#1A2238]/50">
-                  <button
-                    onClick={() => handleEditClick(actor)}
-                    className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-500/15 transition cursor-pointer"
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDeleteActor(actor.uuid, actor.fullName)}
-                    className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-500/15 transition cursor-pointer"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -286,127 +203,6 @@ const ActorsPage = () => {
         />
       )}
 
-      {/* MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div
-            className="absolute inset-0"
-            onClick={() => setIsModalOpen(false)}
-          />
-          <div className="w-full max-w-md rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button
-              type="button"
-              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-              onClick={() => setIsModalOpen(false)}
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                {editingActor ? (
-                  <User className="w-4 h-4 text-red-400" />
-                ) : (
-                  <Plus className="w-4 h-4 text-red-400" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                  {editingActor ? 'Chỉnh Sửa Diễn Viên' : 'Thêm Diễn Viên Mới'}
-                </h2>
-                <p className="text-[10px] text-gray-500">
-                  {editingActor 
-                    ? 'Chỉnh sửa thông tin chi tiết của diễn viên nghệ sĩ' 
-                    : 'Thêm thông tin nghệ sĩ diễn viên mới vào hệ thống'}
-                </p>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
-                  Họ và Tên *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nhập tên diễn viên..."
-                  value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
-                  required
-                />
-              </div>
-
-              {/* Avatar URL */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
-                  URL Ảnh Chân Dung
-                </label>
-                <input
-                  type="url"
-                  placeholder="Nhập link ảnh chân dung (HTTPS)..."
-                  value={formData.avatarUrl}
-                  onChange={(e) => setFormData(prev => ({ ...prev, avatarUrl: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
-                />
-                {formData.avatarUrl && formData.avatarUrl.trim().startsWith("http") && (
-                  <div className="mt-2.5 flex items-center gap-3">
-                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
-                      Xem trước:
-                    </span>
-                    <div className="rounded-full w-14 h-14 overflow-hidden border border-[#1a2238] bg-slate-800 flex items-center justify-center">
-                      <img
-                        src={formData.avatarUrl.trim()}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Nationality */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">
-                  Quốc Tịch *
-                </label>
-                <select
-                  value={formData.countryUuid}
-                  onChange={(e) => setFormData(prev => ({ ...prev, countryUuid: e.target.value }))}
-                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer"
-                  required
-                >
-                  {countriesList.map((c) => (
-                    <option key={c.uuid} value={c.uuid} style={{ background: '#0F1322' }}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238]">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-red-600/10"
-                >
-                  {editingActor ? 'Cập Nhật' : 'Thêm Diễn Viên'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

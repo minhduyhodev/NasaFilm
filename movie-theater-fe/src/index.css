@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,15 +15,14 @@
     font-family: 'Montserrat', sans-serif;
   }
 
-  /* Fallback headings to Montserrat 700 */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold;
-  }
-
   /* Buttons & navbar links defaulting to 600 */
   button, .btn, .btn-primary, .navbar-nav-link, [role="button"] {
     font-family: 'Inter', sans-serif;
     @apply font-semibold; /* 600 */
+  }
+
+  .font-ui {
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -132,4 +131,27 @@ input[class*="bg-white"]::-webkit-calendar-picker-indicator {
   position: relative;
   overflow: hidden;
   background-color: #030307; /* Fallback dark background matching auth page */
+}
+
+/* Admin typography — sync with global Google Fonts (Be Vietnam Pro / Montserrat / Inter) */
+.admin-shell,
+.admin-shell .font-sans {
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3,
+.admin-shell .font-heading {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-shell button,
+.admin-shell [role="button"],
+.admin-shell .font-ui {
+  font-family: 'Inter', sans-serif;
+}
+
+.admin-shell .font-mono {
+  font-family: 'Be Vietnam Pro', sans-serif;
 }

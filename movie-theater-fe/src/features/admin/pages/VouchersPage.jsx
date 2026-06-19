@@ -1,67 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Ticket, Plus, Search, Edit2, Trash2, Loader2, X, Activity,
-  CheckCircle, Pause, Calendar, ChevronLeft, ChevronRight, ChevronDown,
-  Percent, DollarSign, Play
+  Ticket, Plus, Search, Activity, CheckCircle, Pause, ChevronDown,
 } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { useNotification } from '../../../shared/context/NotificationContext';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDateForInput, formatDateTimeDisplay } from '../utils/voucherFormUtils';
 import './VouchersPage.css';
 
 const VouchersPage = () => {
-  const { addNotification } = useNotification();
+  const navigate = useNavigate();
   const [vouchersList, setVouchersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedVoucher, setSelectedVoucher] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Pagination states
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // Form states
-  const [code, setCode] = useState('');
-  const [discountType, setDiscountType] = useState('PERCENTAGE');
-  const [discountValue, setDiscountValue] = useState('');
-  const [maxUsage, setMaxUsage] = useState('');
-  const [oncePerUser, setOncePerUser] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [status, setStatus] = useState('ACTIVE');
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-
-  // Datepicker states
-  const [activeDatePickerField, setActiveDatePickerField] = useState(null);
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
-  const [tempTime, setTempTime] = useState('00:00');
-
-  const formatDateTimeDisplay = (localString) => {
-    if (!localString) return 'Chưa thiết lập';
-    const parts = localString.split('T');
-    if (parts.length === 2) {
-      const dateParts = parts[0].split('-');
-      if (dateParts.length === 3) {
-        return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]}`;
-      }
-    }
-    return localString;
-  };
 
   const fetchVouchers = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await adminPromotionService.getPromotions();
-      if (Array.isArray(data)) {
-        setVouchersList(data);
-      }
+      if (Array.isArray(data)) setVouchersList(data);
     } catch (error) {
       notificationService.error(error.message || 'Không thể tải danh sách khuyến mãi.');
     } finally {
@@ -76,310 +38,6 @@ const VouchersPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
-
-  const formatDateForInput = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
-  };
-
-  const formatDateForBackend = (localString) => {
-    if (!localString) return null;
-    return new Date(localString).toISOString();
-  };
-
-  const handleOpenDatePicker = (field) => {
-    const currentValue = field === 'startDate' ? startDate : endDate;
-    if (currentValue) {
-      const parsedDate = new Date(currentValue);
-      if (!isNaN(parsedDate.getTime())) {
-        setCalendarMonth(parsedDate.getMonth());
-        setCalendarYear(parsedDate.getFullYear());
-        const hours = String(parsedDate.getHours()).padStart(2, '0');
-        const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
-        setTempTime(`${hours}:${minutes}`);
-      }
-    } else {
-      const today = new Date();
-      setCalendarMonth(today.getMonth());
-      setCalendarYear(today.getFullYear());
-      setTempTime('00:00');
-    }
-    setActiveDatePickerField(field);
-  };
-
-  const handlePrevMonth = () => {
-    setCalendarMonth(prev => {
-      if (prev === 0) {
-        setCalendarYear(y => y - 1);
-        return 11;
-      }
-      return prev - 1;
-    });
-  };
-
-  const handleNextMonth = () => {
-    setCalendarMonth(prev => {
-      if (prev === 11) {
-        setCalendarYear(y => y + 1);
-        return 0;
-      }
-      return prev + 1;
-    });
-  };
-
-  const handleSelectDay = (dayObj) => {
-    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}T${tempTime}`;
-    if (activeDatePickerField === 'startDate') {
-      setStartDate(dateStr);
-    } else {
-      setEndDate(dateStr);
-    }
-  };
-
-  const handleTimeChange = (newTime) => {
-    setTempTime(newTime);
-    const currentValue = activeDatePickerField === 'startDate' ? startDate : endDate;
-    if (currentValue) {
-      const parts = currentValue.split('T');
-      const datePart = parts[0];
-      const newDateStr = `${datePart}T${newTime}`;
-      if (activeDatePickerField === 'startDate') {
-        setStartDate(newDateStr);
-      } else {
-        setEndDate(newDateStr);
-      }
-    } else {
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T${newTime}`;
-      if (activeDatePickerField === 'startDate') {
-        setStartDate(dateStr);
-      } else {
-        setEndDate(dateStr);
-      }
-    }
-  };
-
-  const getDaysInMonth = (year, month) => {
-    const date = new Date(year, month, 1);
-    const days = [];
-    const firstDayIndex = date.getDay();
-    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-    const prevMonthDate = new Date(year, month, 0);
-    const prevMonthDaysCount = prevMonthDate.getDate();
-    for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
-      days.push({
-        day: prevMonthDaysCount - i,
-        month: month === 0 ? 11 : month - 1,
-        year: month === 0 ? year - 1 : year,
-        isCurrentMonth: false,
-      });
-    }
-
-    const currentMonthDaysCount = new Date(year, month + 1, 0).getDate();
-    for (let i = 1; i <= currentMonthDaysCount; i++) {
-      days.push({ day: i, month: month, year: year, isCurrentMonth: true });
-    }
-
-    const remainingCells = 42 - days.length;
-    for (let i = 1; i <= remainingCells; i++) {
-      days.push({
-        day: i,
-        month: month === 11 ? 0 : month + 1,
-        year: month === 11 ? year + 1 : year,
-        isCurrentMonth: false,
-      });
-    }
-
-    return days;
-  };
-
-  const renderCalendarContent = () => {
-    const currentValue = activeDatePickerField === 'startDate' ? startDate : endDate;
-    return (
-      <div className="space-y-3 font-sans">
-        <div className="flex items-center justify-between">
-          <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">
-            {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
-          </span>
-          <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
-          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-            <div key={d} className="py-1">{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {getDaysInMonth(calendarYear, calendarMonth).map((dayObj, idx) => {
-            const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
-            const isSelected = currentValue && currentValue.startsWith(dateStr);
-            const today = new Date();
-            const isToday = today.getDate() === dayObj.day && today.getMonth() === dayObj.month && today.getFullYear() === dayObj.year;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectDay(dayObj)}
-                className={`py-1 text-[11px] rounded-md font-medium transition cursor-pointer ${
-                  isSelected
-                    ? 'bg-red-600 text-white font-bold'
-                    : isToday
-                    ? 'border border-red-500 text-red-500 hover:bg-red-50'
-                    : dayObj.isCurrentMonth
-                    ? 'text-gray-800 hover:bg-gray-100'
-                    : 'text-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {dayObj.day}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 gap-2">
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Giờ:</span>
-          <input
-            type="time"
-            className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-800 focus:outline-none focus:border-red-500 focus:bg-white w-24 text-center cursor-pointer font-mono"
-            value={tempTime}
-            onChange={(e) => handleTimeChange(e.target.value)}
-          />
-        </div>
-
-        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={() => {
-              if (activeDatePickerField === 'startDate') setStartDate('');
-              else setEndDate('');
-              setActiveDatePickerField(null);
-            }}
-            className="text-[10px] text-gray-400 hover:text-gray-700 font-bold uppercase transition cursor-pointer"
-          >
-            Xóa
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveDatePickerField(null)}
-            className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition cursor-pointer"
-          >
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const handleOpenCreateModal = () => {
-    setSelectedVoucher(null);
-    setCode('');
-    setDiscountType('PERCENTAGE');
-    setDiscountValue('');
-    setMaxUsage('');
-    setOncePerUser(false);
-    setStartDate('');
-    setEndDate('');
-    setStatus('ACTIVE');
-    setIsTypeDropdownOpen(false);
-    setIsStatusDropdownOpen(false);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditModal = (voucher) => {
-    setSelectedVoucher(voucher);
-    setCode(voucher.code);
-    setDiscountType(voucher.discountType);
-    setDiscountValue(
-      voucher.discountType === 'PERCENTAGE'
-        ? Math.round(voucher.discountValue * 100)
-        : voucher.discountValue
-    );
-    setMaxUsage(voucher.maxUsage !== null ? voucher.maxUsage.toString() : '');
-    setOncePerUser(voucher.oncePerUser || false);
-    setStartDate(formatDateForInput(voucher.startDate));
-    setEndDate(formatDateForInput(voucher.endDate));
-    setStatus(voucher.status);
-    setIsTypeDropdownOpen(false);
-    setIsStatusDropdownOpen(false);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteVoucher = async (id, codeStr) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa mã khuyến mãi "${codeStr}" không?`)) {
-      return;
-    }
-    try {
-      await adminPromotionService.deletePromotion(id);
-      addNotification('Xóa thành công', `Đã xóa mã khuyến mãi ${codeStr}`, 'success');
-      fetchVouchers();
-    } catch (error) {
-      addNotification('Xóa thất bại', error.message || 'Lỗi khi xóa khuyến mãi', 'error');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const trimmedCode = code.trim().toUpperCase();
-    if (!trimmedCode) {
-      addNotification('Lỗi', 'Mã khuyến mãi không được bỏ trống', 'error');
-      return;
-    }
-
-    const valueNum = parseFloat(discountValue);
-    if (isNaN(valueNum) || valueNum <= 0) {
-      addNotification('Lỗi', 'Giá trị giảm giá phải lớn hơn 0', 'error');
-      return;
-    }
-
-    if (discountType === 'PERCENTAGE' && valueNum > 100) {
-      addNotification('Lỗi', 'Phần trăm giảm giá tối đa là 100%', 'error');
-      return;
-    }
-
-    const finalDiscountValue = discountType === 'PERCENTAGE' ? valueNum / 100 : valueNum;
-
-    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
-      addNotification('Lỗi', 'Ngày bắt đầu phải trước ngày kết thúc', 'error');
-      return;
-    }
-
-    const promoData = {
-      code: trimmedCode,
-      discountType,
-      discountValue: finalDiscountValue,
-      maxUsage: maxUsage ? parseInt(maxUsage, 10) : null,
-      oncePerUser,
-      startDate: formatDateForBackend(startDate),
-      endDate: formatDateForBackend(endDate),
-      status,
-    };
-
-    setIsSubmitting(true);
-    try {
-      if (selectedVoucher) {
-        await adminPromotionService.updatePromotion(selectedVoucher.id, promoData);
-        addNotification('Cập nhật thành công', `Mã ${trimmedCode} đã được cập nhật`, 'success');
-      } else {
-        await adminPromotionService.createPromotion(promoData);
-        addNotification('Thêm thành công', `Mã ${trimmedCode} đã được thêm mới`, 'success');
-      }
-      setIsModalOpen(false);
-      fetchVouchers();
-    } catch (error) {
-      addNotification('Lỗi', error.message || 'Đã xảy ra lỗi khi lưu mã khuyến mãi.', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const filteredVouchers = vouchersList.filter((v) => {
     const matchesSearch =
@@ -398,18 +56,15 @@ const VouchersPage = () => {
     return filteredVouchers.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredVouchers, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredVouchers.length / itemsPerPage) || 1;
-
   const filterOptions = [
     { value: 'all', label: 'Tất cả trạng thái', icon: <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 shrink-0" /> },
     { value: 'ACTIVE', label: 'Hoạt động', icon: <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shrink-0" /> },
-    { value: 'INACTIVE', label: 'Đã vô hiệu', icon: <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 shrink-0" /> }
+    { value: 'INACTIVE', label: 'Đã vô hiệu', icon: <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 shrink-0" /> },
   ];
-  const currentFilter = filterOptions.find(opt => opt.value === statusFilter) || filterOptions[0];
+  const currentFilter = filterOptions.find((opt) => opt.value === statusFilter) || filterOptions[0];
 
   return (
     <div className="space-y-6 text-left">
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Khuyến Mãi</p>
@@ -419,21 +74,21 @@ const VouchersPage = () => {
           </p>
         </div>
         <button
-          onClick={handleOpenCreateModal}
+          type="button"
+          onClick={() => navigate('/admin/vouchers/new')}
           className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm text-white font-bold transition shadow-md cursor-pointer shrink-0 self-start md:self-auto"
         >
           <Plus size={16} /> Tạo Voucher Mới
         </button>
       </div>
 
-      {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 text-left">
         {[
           { label: 'TỔNG VOUCHER', value: totalVouchers, icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total' },
           { label: 'ĐANG HOẠT ĐỘNG', value: activeVouchers, icon: CheckCircle, color: 'text-emerald-400', kpiClass: 'kpi-active' },
           { label: 'VÔ HIỆU HÓA', value: inactiveVouchers, icon: Pause, color: 'text-amber-400', kpiClass: 'kpi-inactive' },
           { label: 'TỔNG LƯỢT SỬ DỤNG', value: totalUsedCount, icon: Activity, color: 'text-blue-400', kpiClass: 'kpi-used' },
-        ].map(kpi => (
+        ].map((kpi) => (
           <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
@@ -444,20 +99,16 @@ const VouchersPage = () => {
         ))}
       </div>
 
-      {/* FILTER TOOLBAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1">
-        {/* Search Box */}
         <div className="relative w-full sm:w-72 text-left">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
-            className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-505 focus:outline-none focus:border-[#FF3366]/50 transition-colors font-sans"
+            className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#FF3366]/50 transition-colors font-sans"
             placeholder="Tìm kiếm theo mã voucher..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-
-        {/* Filters Group on the Right */}
         <div className="relative text-left z-20">
           <button
             type="button"
@@ -470,11 +121,10 @@ const VouchersPage = () => {
             </span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
-
           {isFilterDropdownOpen && (
             <>
-              <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsFilterDropdownOpen(false)}></div>
-              <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5 animate-dropdown-fade-in z-20">
+              <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsFilterDropdownOpen(false)} />
+              <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5 z-20">
                 {filterOptions.map((opt) => (
                   <button
                     key={opt.value}
@@ -495,7 +145,6 @@ const VouchersPage = () => {
         </div>
       </div>
 
-      {/* CONTENT AREA */}
       {isLoading ? (
         <div className="min-h-[320px] flex flex-col items-center justify-center gap-3 bg-[#1c2333]/50 border border-[#242d42] rounded-xl shadow-2xl">
           <div className="w-10 h-10 border-2 border-[#FF3366] border-t-transparent rounded-full animate-spin" />
@@ -505,7 +154,7 @@ const VouchersPage = () => {
         <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[#1c2333]/50 border border-[#242d42] rounded-xl shadow-2xl">
           <Ticket className="w-14 h-14 text-zinc-700" />
           <p className="font-bold text-white uppercase tracking-wider text-sm font-sans">Không tìm thấy voucher nào</p>
-          <p className="text-xs text-gray-505 font-sans">Hãy tạo voucher mới hoặc điều chỉnh bộ lọc.</p>
+          <p className="text-xs text-gray-500 font-sans">Hãy tạo voucher mới hoặc điều chỉnh bộ lọc.</p>
         </div>
       ) : (
         <>
@@ -517,7 +166,6 @@ const VouchersPage = () => {
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-sans">Chiết Khấu</th>
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-sans">Lượt Sử Dụng</th>
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-sans">Hiệu Lực</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-sans text-center">Thao Tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -525,19 +173,20 @@ const VouchersPage = () => {
                   const now = new Date();
                   const endDateObj = v.endDate ? new Date(v.endDate) : null;
                   const isExpired = endDateObj && endDateObj < now;
-                  const isSoonExpiring = endDateObj && !isExpired && (endDateObj - now) < 7 * 24 * 3600 * 1000;
+                  const isSoonExpiring = endDateObj && !isExpired && endDateObj - now < 7 * 24 * 3600 * 1000;
                   const usedCount = v.usedCount ?? 0;
                   const pct = v.maxUsage > 0 ? Math.min(100, Math.round((usedCount / v.maxUsage) * 100)) : 0;
                   const progressColor = pct >= 85 ? 'bg-rose-500' : pct >= 60 ? 'bg-amber-500' : 'bg-emerald-500';
 
                   return (
-                    <tr key={v.id} className="border-b border-[#242d42]/30 hover:bg-white/[0.01] transition-colors duration-150">
-                      {/* VOUCHER CODE */}
+                    <tr
+                      key={v.id}
+                      onClick={() => navigate(`/admin/vouchers/${v.id}`)}
+                      className="border-b border-[#242d42]/30 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1 items-start">
-                          <span className="text-base font-extrabold text-white tracking-widest uppercase font-sans">
-                            {v.code}
-                          </span>
+                          <span className="text-base font-extrabold text-white tracking-widest uppercase font-sans">{v.code}</span>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {v.status === 'ACTIVE' ? (
                               <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 font-sans">
@@ -558,8 +207,6 @@ const VouchersPage = () => {
                           </div>
                         </div>
                       </td>
-
-                      {/* DISCOUNT */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-bold text-gray-400 font-sans">
@@ -572,8 +219,6 @@ const VouchersPage = () => {
                           </span>
                         </div>
                       </td>
-
-                      {/* USAGE Progress */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1.5 max-w-[150px] text-left">
                           <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 font-sans">
@@ -582,18 +227,13 @@ const VouchersPage = () => {
                           </div>
                           {v.maxUsage > 0 ? (
                             <div className="h-1 rounded-full bg-[#1A2238] overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${progressColor}`}
-                                style={{ width: `${pct}%` }}
-                              />
+                              <div className={`h-full rounded-full transition-all ${progressColor}`} style={{ width: `${pct}%` }} />
                             </div>
                           ) : (
                             <span className="text-[11px] text-gray-500 font-sans">Không giới hạn</span>
                           )}
                         </div>
                       </td>
-
-                      {/* VALIDITY */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1 font-sans text-left">
                           {v.startDate && (
@@ -608,38 +248,12 @@ const VouchersPage = () => {
                           )}
                           <div className="flex gap-1 flex-wrap mt-0.5">
                             {isExpired && (
-                              <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">
-                                Hết hạn
-                              </span>
+                              <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">Hết hạn</span>
                             )}
                             {isSoonExpiring && (
-                              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">
-                                Sắp hết hạn
-                              </span>
+                              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">Sắp hết hạn</span>
                             )}
                           </div>
-                        </div>
-                      </td>
-
-                      {/* ACTIONS */}
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(v)}
-                            className="p-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/20 hover:text-blue-300 transition-all cursor-pointer"
-                            title="Sửa"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteVoucher(v.id, v.code)}
-                            className="p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg hover:bg-rose-500/20 hover:text-rose-300 transition-all cursor-pointer"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -648,8 +262,6 @@ const VouchersPage = () => {
               </tbody>
             </table>
           </div>
-
-          {/* PAGINATION / TABLE FOOTER */}
           <Pagination
             currentPage={currentPage}
             totalItems={filteredVouchers.length}
@@ -658,262 +270,6 @@ const VouchersPage = () => {
             onItemsPerPageChange={setItemsPerPage}
           />
         </>
-      )}
-
-      {/* MODAL - SIMPLIFIED WITHOUT POPUPS */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto transition-all duration-300">
-          <div className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6 text-left max-h-[90vh] overflow-y-auto transition-all duration-300 transform scale-100 text-gray-800">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900">
-                {selectedVoucher ? 'Cập nhật Voucher' : 'Tạo Voucher Khuyến Mãi'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Voucher Code */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Mã Voucher *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="MA VOUCHER"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white font-mono font-bold uppercase transition-colors"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Discount Type */}
-                <div className="relative text-left">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Loại Giảm Giá *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypeDropdownOpen(!isTypeDropdownOpen);
-                      setIsStatusDropdownOpen(false);
-                    }}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none flex items-center justify-between text-left cursor-pointer transition-colors h-[34px] focus:bg-white focus:border-red-500/50"
-                  >
-                    <span>
-                      {discountType === 'PERCENTAGE' ? 'Giảm phần trăm (%)' : 'Giảm tiền cố định (đ)'}
-                    </span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${isTypeDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isTypeDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsTypeDropdownOpen(false)}></div>
-                      <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5 animate-dropdown-fade-in">
-                        {[
-                          { value: 'PERCENTAGE', label: 'Giảm phần trăm (%)' },
-                          { value: 'FIXED_AMOUNT', label: 'Giảm tiền cố định (đ)' }
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              setDiscountType(opt.value);
-                              setIsTypeDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-center px-3 py-2 rounded-md hover:bg-gray-100 transition text-left text-xs font-semibold cursor-pointer ${discountType === opt.value ? 'bg-red-50 text-red-600 font-bold border border-red-200' : 'text-gray-700 border border-transparent'}`}
-                          >
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Discount Value */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Giá trị giảm * ({discountType === 'PERCENTAGE' ? '%' : 'VND'})
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder={discountType === 'PERCENTAGE' ? 'Ví dụ: 20' : 'Ví dụ: 50000'}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white font-mono transition-colors"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Max Usage */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Lượt dùng tối đa (Bỏ trống nếu không giới hạn)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Không giới hạn"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 focus:bg-white font-mono transition-colors"
-                    value={maxUsage}
-                    onChange={(e) => setMaxUsage(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Start Date */}
-                <div className="relative">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Ngày bắt đầu
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDatePicker('startDate')}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors h-[34px] focus:bg-white"
-                  >
-                    <span className={`truncate ${startDate ? 'text-gray-900 font-mono font-bold' : 'text-gray-400'}`}>
-                      {startDate ? formatDateTimeDisplay(startDate) : 'Chọn ngày giờ...'}
-                    </span>
-                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  </button>
-
-                  {activeDatePickerField === 'startDate' && (
-                    <>
-                      <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
-                      <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 w-72 animate-dropdown-fade-in">
-                        {renderCalendarContent()}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* End Date */}
-                <div className="relative">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Ngày kết thúc
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDatePicker('endDate')}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors h-[34px] focus:bg-white"
-                  >
-                    <span className={`truncate ${endDate ? 'text-gray-900 font-mono font-bold' : 'text-gray-400'}`}>
-                      {endDate ? formatDateTimeDisplay(endDate) : 'Chọn ngày giờ...'}
-                    </span>
-                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  </button>
-
-                  {activeDatePickerField === 'endDate' && (
-                    <>
-                      <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
-                      <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 w-72 animate-dropdown-fade-in">
-                        {renderCalendarContent()}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                {/* Once per user */}
-                <div className="flex items-center gap-3 py-2">
-                  <input
-                    type="checkbox"
-                    id="oncePerUser"
-                    className="w-5 h-5 rounded border-gray-300 bg-gray-50 text-red-600 focus:ring-red-500/50 focus:ring-offset-0 cursor-pointer"
-                    checked={oncePerUser}
-                    onChange={(e) => setOncePerUser(e.target.checked)}
-                  />
-                  <label
-                    htmlFor="oncePerUser"
-                    className="text-xs font-bold uppercase tracking-wider text-gray-500 cursor-pointer select-none"
-                  >
-                    Giới hạn 1 lần dùng / khách hàng
-                  </label>
-                </div>
-
-                {/* Status selection */}
-                <div className="relative text-left">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    Trạng thái *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsStatusDropdownOpen(!isStatusDropdownOpen);
-                      setIsTypeDropdownOpen(false);
-                    }}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:outline-none flex items-center justify-between text-left cursor-pointer transition-colors h-[34px] focus:bg-white focus:border-red-500/50"
-                  >
-                    <span className="flex items-center">
-                      <span className={`w-1.5 h-1.5 rounded-full mr-2 shrink-0 ${status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                      <span>
-                        {status === 'ACTIVE' ? 'Hoạt động (ACTIVE)' : 'Vô hiệu hóa (INACTIVE)'}
-                      </span>
-                    </span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isStatusDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsStatusDropdownOpen(false)}></div>
-                      <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 space-y-0.5 animate-dropdown-fade-in">
-                        {[
-                          { value: 'ACTIVE', label: 'Hoạt động (ACTIVE)', dotBg: 'bg-emerald-500' },
-                          { value: 'INACTIVE', label: 'Vô hiệu hóa (INACTIVE)', dotBg: 'bg-amber-500' }
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              setStatus(opt.value);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-center px-3 py-2 rounded-md hover:bg-gray-100 transition text-left text-xs font-semibold cursor-pointer ${status === opt.value ? 'bg-red-50 text-red-600 font-bold border border-red-200' : 'text-gray-700 border border-transparent'}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full mr-2 shrink-0 ${opt.dotBg}`} />
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-6 flex justify-end gap-2 pt-3 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-white hover:bg-gray-100 border border-gray-300 text-gray-500 hover:text-gray-700 font-bold rounded-lg text-xs transition cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer font-sans"
-                >
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {selectedVoucher ? 'Cập nhật' : 'Tạo mới'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -116,7 +116,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
         {isOpen ? (
           <Link to="/admin" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer shrink-0">
             <img src={nasaLogo} alt="NASAFILM Logo" className="h-7 w-7 rounded-lg object-cover shadow-md" />
-            <span className="text-lg font-black tracking-tight leading-none text-white font-sans">
+            <span className="text-lg font-bold tracking-tight leading-none text-white font-heading">
               NASA<span className="text-red-500">Film</span>
             </span>
             <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-500 tracking-wider uppercase ml-1 shrink-0 font-mono">
@@ -298,7 +298,7 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-gray-100 overflow-hidden relative">
+    <div className="min-h-screen bg-[#080B14] text-gray-100 overflow-hidden relative font-sans antialiased admin-shell">
       <Sidebar 
         isOpen={isSidebarOpen} 
         onToggle={() => setSidebarOpen(prev => !prev)}
@@ -319,7 +319,7 @@ const AdminLayout = ({ children }) => {
 
       <main 
         ref={mainRef} 
-        className={`min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10 bg-[#080B14] transition-all duration-300 ${
+        className={`min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10 bg-[#080B14] font-sans transition-all duration-300 ${
           isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'
         }`}
       >
@@ -338,7 +338,7 @@ const AdminLayout = ({ children }) => {
               
               <Link to="/admin" className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
                 <img src={nasaLogo} alt="NASAFILM Logo" className="h-6 w-6 rounded-md object-cover shadow-sm" />
-                <span className="text-sm font-black tracking-tight leading-none text-white font-sans">
+                <span className="text-sm font-bold tracking-tight leading-none text-white font-heading">
                   NASA<span className="text-red-500">Film</span>
                 </span>
               </Link>
@@ -346,7 +346,7 @@ const AdminLayout = ({ children }) => {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-8 px-6 py-8 sm:px-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-8">
           {children ?? <Outlet />}
         </div>
       </main>
