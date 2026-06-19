@@ -78,6 +78,7 @@ const WatchPage = () => {
       }
     };
 
+    sendHeartbeat();
     heartbeatIntervalRef.current = setInterval(sendHeartbeat, 15000);
 
     return () => {
@@ -103,11 +104,11 @@ const WatchPage = () => {
         const hours = Math.floor(diff / 3600000);
         const minutes = Math.floor((diff % 3600000) / 60000);
         const seconds = Math.floor((diff % 60000) / 1000);
-        
+
         const hStr = hours.toString().padStart(2, '0');
         const mStr = minutes.toString().padStart(2, '0');
         const sStr = seconds.toString().padStart(2, '0');
-        
+
         setRemainingTimeText(`${hStr}:${mStr}:${sStr}`);
       }
     }, 1000);
@@ -131,8 +132,8 @@ const WatchPage = () => {
           <AlertCircle className="w-8 h-8" />
         </div>
         <p className="text-base font-bold text-red-500 mb-6 text-center max-w-md">{error || 'Có lỗi xảy ra khi tải luồng phát.'}</p>
-        <button 
-          onClick={() => navigate(`/movie/${id}`)} 
+        <button
+          onClick={() => navigate(`/movie/${id}`)}
           className="bg-white/10 hover:bg-white/20 border border-white/10 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
         >
           Quay lại chi tiết phim
@@ -154,7 +155,7 @@ const WatchPage = () => {
           >
             <ArrowLeft className="w-4 h-4" /> Quay lại
           </button>
-          
+
           <div className="flex items-center gap-3.5 bg-purple-950/20 border border-purple-500/25 px-4 py-2 rounded-xl">
             <Clock className="w-4 h-4 text-purple-400 animate-pulse" />
             <div className="text-left">
@@ -206,11 +207,11 @@ const WatchPage = () => {
 
           <h1 className="text-2xl md:text-4xl font-black uppercase tracking-wide text-white">{movie.title}</h1>
           <p className="text-gray-300 text-sm md:text-base leading-relaxed max-w-4xl font-medium">{movie.description}</p>
-          
+
           <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-start gap-3 text-xs text-gray-400 max-w-4xl">
             <AlertTriangle className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
             <p className="font-medium">
-              Bạn đang xem luồng phát video trực tuyến bản quyền được mã hóa bởi <span className="text-purple-400 font-bold">NASAFilm VOD</span>. 
+              Bạn đang xem luồng phát video trực tuyến bản quyền được mã hóa bởi <span className="text-purple-400 font-bold">NASAFilm VOD</span>.
               Vui lòng không mở tab xem phim trên nhiều trình duyệt hoặc chia sẻ tài khoản để đảm bảo phiên truyền tải không bị gián đoạn.
             </p>
           </div>
