@@ -24,6 +24,7 @@ public class MovieListResponse {
     private String screeningMode;
     private BigDecimal onlinePrice;
     private Double rating;
+    private OffsetDateTime nextShowtimeStart;
 
     public MovieListResponse() {
     }
@@ -178,5 +179,13 @@ public class MovieListResponse {
 
     public void setRating(Double rating) {
         this.rating = rating;
+    }
+
+    public OffsetDateTime getNextShowtimeStart() {
+        return nextShowtimeStart;
+    }
+
+    public void setNextShowtimeStart(OffsetDateTime nextShowtimeStart) {
+        this.nextShowtimeStart = nextShowtimeStart;
     }
 }

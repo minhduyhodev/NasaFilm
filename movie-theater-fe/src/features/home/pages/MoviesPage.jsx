@@ -44,8 +44,11 @@ const MoviesPage = () => {
   // Sync tab from URL query params
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && (tab === 'now-showing' || tab === 'coming-soon' || tab === 'specials')) {
+    if (tab && (tab === 'now-showing' || tab === 'coming-soon')) {
       setActiveTab(tab);
+    } else if (tab === 'specials') {
+      setActiveTab('now-showing');
+      setSearchParams({ tab: 'now-showing' }, { replace: true });
     }
   }, [searchParams]);
 
@@ -76,9 +79,7 @@ const MoviesPage = () => {
   }, []);
 
   const getBackendStatus = (tab) => {
-    if (tab === 'now-showing') return 'NOW_SHOWING';
     if (tab === 'coming-soon') return 'COMING_SOON';
-    if (tab === 'specials') return 'SPECIAL';
     return 'NOW_SHOWING';
   };
 
@@ -87,35 +88,39 @@ const MoviesPage = () => {
     const fetchMovies = async () => {
       setIsLoading(true);
       try {
-        const beStatus = getBackendStatus(activeTab);
         const pageIndex = currentPage - 1;
 
-        const queryParams = {
-          status: beStatus,
-          page: pageIndex,
-          size: 6,
-        };
+        let data;
+        if (activeTab === 'coming-soon') {
+          data = await movieService.getUpcomingMovies({ page: pageIndex, size: 6 });
+        } else {
+          const queryParams = {
+            status: getBackendStatus(activeTab),
+            page: pageIndex,
+            size: 6,
+          };
 
-        if (selectedGenre) {
-          queryParams.genreUuids = [selectedGenre];
-        }
-        if (selectedCountry) {
-          queryParams.countryUuid = selectedCountry;
-        }
-        if (selectedActor) {
-          queryParams.actorUuid = selectedActor;
-        }
-        if (selectedCinema) {
-          queryParams.cinemaUuid = selectedCinema;
-        }
-        if (selectedShowtimeDate) {
-          queryParams.showtimeDate = selectedShowtimeDate;
-        }
-        if (selectedAgeRestriction) {
-          queryParams.ageRestriction = selectedAgeRestriction;
-        }
+          if (selectedGenre) {
+            queryParams.genreUuids = [selectedGenre];
+          }
+          if (selectedCountry) {
+            queryParams.countryUuid = selectedCountry;
+          }
+          if (selectedActor) {
+            queryParams.actorUuid = selectedActor;
+          }
+          if (selectedCinema) {
+            queryParams.cinemaUuid = selectedCinema;
+          }
+          if (selectedShowtimeDate) {
+            queryParams.showtimeDate = selectedShowtimeDate;
+          }
+          if (selectedAgeRestriction) {
+            queryParams.ageRestriction = selectedAgeRestriction;
+          }
 
-        const data = await movieService.getMovies(queryParams);
+          data = await movieService.getMovies(queryParams);
+        }
 
         if (data && data.content) {
           setMovies(data.content);
@@ -257,7 +262,7 @@ const MoviesPage = () => {
         {/* Header section with Title & Tab buttons */}
         <div className="movie-list-header">
           <div className="movie-list-title-area">
-            <h2 className="movie-list-title">{activeTab === 'now-showing' ? 'Đang Chiếu' : activeTab === 'coming-soon' ? 'Sắp Chiếu' : 'Suất Chiếu Đặc Biệt'}</h2>
+            <h2 className="movie-list-title">{activeTab === 'coming-soon' ? 'Sắp Chiếu' : 'Đang Chiếu'}</h2>
           </div>
 
           {/* Tab Selection */}
@@ -265,7 +270,6 @@ const MoviesPage = () => {
             {[
               { id: 'now-showing', label: 'Đang Chiếu' },
               { id: 'coming-soon', label: 'Sắp Chiếu' },
-              { id: 'specials', label: 'Đặc Biệt' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -455,7 +459,11 @@ const MoviesPage = () => {
             ) : displayedMovies.length > 0 ? (
               <div className="movie-grid">
                 {displayedMovies.map(movie => (
-                  <MovieCard key={movie.uuid || movie.title} {...movie} />
+                  <MovieCard
+                    key={movie.uuid || movie.title}
+                    {...movie}
+                    actionLabel={activeTab === 'coming-soon' ? 'Chi tiết' : 'Mua vé'}
+                  />
                 ))}
               </div>
             ) : (

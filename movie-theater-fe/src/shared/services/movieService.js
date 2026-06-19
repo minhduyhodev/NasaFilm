@@ -19,6 +19,15 @@ class MovieService {
     }
   }
 
+  async getUpcomingMovies(params = {}) {
+    try {
+      const response = await authService.api.get('/api/movies/upcoming', { params });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getMovieDetail(uuid) {
     try {
       const response = await authService.api.get(`/api/movies/${uuid}`);

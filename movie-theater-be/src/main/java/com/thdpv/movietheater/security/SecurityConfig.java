@@ -58,6 +58,7 @@ public class SecurityConfig {
             "/api/cinemas",
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
+            "/api/system-config",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"

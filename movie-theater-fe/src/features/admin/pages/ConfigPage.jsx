@@ -1,59 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Settings, Clock, Coins, Sliders, Shield, Check, RotateCcw, 
-  Sparkles, Tv, Activity, Award, Lock, Percent, Save
+  Settings, Coins, Sliders, RotateCcw, 
+  Sparkles, Tv, Award, Lock, Save
 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
-
-const DEFAULT_CONFIG = {
-  startTime: '08:00',
-  endTime: '23:30',
-  intervalMinutes: 15,
-  trailerBuffer: 10,
-  goldenHourWeight: 1.2,
-  weekendWeight: 1.5,
-  ratingWeight: 1.0,
-  genreWeight: 1.1,
-  basePrice: 60000,
-  vipPrice: 90000,
-  couplePrice: 120000,
-  seatLockMinutes: 5,
-  pointsEarningRatio: 5,
-  pointsToCashValue: 1000,
-  sessionTimeoutHours: 24,
-};
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
+import { writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
 
 const ConfigPage = () => {
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [config, setConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [activeTab, setActiveTab] = useState('showtime');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load configuration on mount
   useEffect(() => {
-    const savedConfig = localStorage.getItem('lorafilm_system_config');
-    if (savedConfig) {
+    let isMounted = true;
+    const loadConfig = async () => {
       try {
-        setConfig({ ...DEFAULT_CONFIG, ...JSON.parse(savedConfig) });
-      } catch (e) {
-        console.error('Failed to parse saved configuration', e);
+        const data = await systemConfigService.getConfig();
+        if (isMounted) {
+          setConfig(data);
+        }
+      } catch (error) {
+        console.error('Failed to load system configuration', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    }
+    };
+    loadConfig();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      localStorage.setItem('lorafilm_system_config', JSON.stringify(config));
+    try {
+      const saved = await systemConfigService.saveConfig(config);
+      setConfig(saved);
       notificationService.success('Đã lưu cấu hình hệ thống thành công!');
+    } catch (error) {
+      notificationService.error(error?.message || 'Không thể lưu cấu hình hệ thống.');
+    } finally {
       setIsSaving(false);
-    }, 800);
+    }
   };
 
-  const handleReset = () => {
-    if (window.confirm('Bạn có chắc chắn muốn khôi phục tất cả cấu hình về mặc định của hệ thống?')) {
-      setConfig(DEFAULT_CONFIG);
-      localStorage.setItem('lorafilm_system_config', JSON.stringify(DEFAULT_CONFIG));
+  const handleReset = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn khôi phục tất cả cấu hình về mặc định của hệ thống?')) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const restored = await systemConfigService.saveConfig(DEFAULT_SYSTEM_CONFIG);
+      setConfig(restored);
       notificationService.info('Đã khôi phục cấu hình mặc định.');
+    } catch (error) {
+      setConfig(DEFAULT_SYSTEM_CONFIG);
+      writeCachedSystemConfig(DEFAULT_SYSTEM_CONFIG);
+      notificationService.info('Đã khôi phục cấu hình mặc định trên trình duyệt.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -63,6 +73,14 @@ const ConfigPage = () => {
       [field]: value
     }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[320px] text-gray-400 text-sm font-mono">
+        Đang tải cấu hình hệ thống...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-left">
@@ -315,6 +333,41 @@ const ConfigPage = () => {
                   onChange={(e) => updateField('couplePrice', parseInt(e.target.value) || 0)}
                 />
                 <p className="text-[10px] text-gray-500 mt-1 font-mono">Giá mặc định của loại ghế Double/Sofa khi mua vé.</p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#1A2238]/40">
+              <h4 className="text-xs font-bold text-white uppercase mb-4 font-mono flex items-center gap-1.5">
+                <Tv className="w-3.5 h-3.5 text-purple-400" />
+                Giá vé xem Streaming Online (VOD)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1.5 font-mono">
+                    Giá vé xem online mặc định (VND)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    className="w-full bg-[#0B0F19] border border-purple-500/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500/60"
+                    value={config.onlineStreamingPrice}
+                    onChange={(e) => updateField('onlineStreamingPrice', parseInt(e.target.value) || 0)}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1 font-mono">
+                    Áp dụng khi khách mua vé xem phim trực tuyến (VOD) và phim chưa có giá riêng.
+                  </p>
+                </div>
+
+                <div className="flex items-center">
+                  <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl w-full">
+                    <p className="text-[10px] text-purple-300 font-mono leading-relaxed">
+                      Giá hiện tại: <strong>{Number(config.onlineStreamingPrice || 0).toLocaleString('vi-VN')}đ</strong> / vé VOD.
+                      Có thể ghi đè giá riêng cho từng phim tại trang Quản lý Phim.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

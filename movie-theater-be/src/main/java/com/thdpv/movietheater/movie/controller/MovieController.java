@@ -82,6 +82,13 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/movies/upcoming")
+    public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getUpcomingMovies(
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getUpcomingMovieList(pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/movies/{movieUuid}")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable UUID movieUuid) {
         MovieDetailResponse response = movieService.getMovieDetail(movieUuid);

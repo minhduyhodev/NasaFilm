@@ -9,6 +9,7 @@ import { showtimeService } from '../../../shared/services/showtimeService';
 
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
+import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
 
 import './MovieDetailPage.css';
 
@@ -207,7 +208,7 @@ const MovieDetailPage = () => {
         movieRating: dbMovie.rating || 8.0,
         movieFormat: 'VOD 4K',
         movieAgeRestriction: dbMovie.ageRestriction || 'P',
-        totalAmount: dbMovie.onlinePrice || 45000,
+        totalAmount: resolveMovieOnlinePrice(dbMovie),
         date: 'Mọi lúc, mọi nơi',
         showtime: 'Xem trực tuyến',
         theater: 'Trình phát video NASA VOD',

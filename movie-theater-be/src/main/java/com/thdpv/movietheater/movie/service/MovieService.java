@@ -1,8 +1,10 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +13,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -50,6 +55,7 @@ import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieActorRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -69,6 +75,8 @@ public class MovieService {
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
     private final MovieActorRepository movieActorRepository;
+    private final ShowtimeRepository showtimeRepository;
+    private final SystemConfigService systemConfigService;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
@@ -222,6 +230,54 @@ public class MovieService {
 
         return movieRepository.findAll(specification, safePageable)
                 .map(this::toMovieListResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10,
+                Sort.by(Sort.Direction.ASC, "releaseDate"));
+
+        Specification<Movie> specification = (root, query, cb) -> {
+            query.distinct(true);
+
+            Subquery<UUID> scheduledSubquery = query.subquery(UUID.class);
+            Root<Showtime> showtimeRoot = scheduledSubquery.from(Showtime.class);
+            scheduledSubquery.select(showtimeRoot.get("movieUuid"));
+            scheduledSubquery.where(
+                    cb.equal(showtimeRoot.get("status"), ShowtimeStatus.SCHEDULED),
+                    cb.greaterThan(showtimeRoot.get("startTime"), now));
+
+            return cb.and(
+                    cb.not(root.get("status").in("DELETED", "INACTIVE")),
+                    cb.or(
+                            cb.equal(root.get("status"), "COMING_SOON"),
+                            root.get("uuid").in(scheduledSubquery)));
+        };
+
+        List<MovieListResponse> items = movieRepository.findAll(specification).stream()
+                .map(movie -> {
+                    MovieListResponse response = toMovieListResponse(movie);
+                    OffsetDateTime nextStart = showtimeRepository.findEarliestScheduledStart(movie.getUuid(), now);
+                    response.setNextShowtimeStart(nextStart);
+                    return response;
+                })
+                .sorted(Comparator
+                        .comparing((MovieListResponse m) -> m.getNextShowtimeStart() == null)
+                        .thenComparing(MovieListResponse::getNextShowtimeStart,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        int start = (int) safePageable.getOffset();
+        int end = Math.min(start + safePageable.getPageSize(), items.size());
+        List<MovieListResponse> pageContent = start >= items.size()
+                ? List.of()
+                : items.subList(start, end);
+
+        return new PageImpl<>(pageContent, safePageable, items.size());
     }
 
     @Transactional(readOnly = true)
@@ -532,7 +588,7 @@ public class MovieService {
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
-        response.setOnlinePrice(movie.getOnlinePrice());
+        response.setOnlinePrice(resolveOnlinePrice(movie));
         response.setRating(movie.getRating() != null ? movie.getRating() : 8.0);
         return response;
     }
@@ -565,7 +621,7 @@ public class MovieService {
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
-        response.setOnlinePrice(movie.getOnlinePrice());
+        response.setOnlinePrice(resolveOnlinePrice(movie));
         response.setRating(movie.getRating() != null ? movie.getRating() : 8.0);
         return response;
     }
@@ -699,5 +755,16 @@ public class MovieService {
         }
 
         return movie.getStreamingUrl();
+    }
+
+    private BigDecimal resolveOnlinePrice(Movie movie) {
+        if (movie.getOnlinePrice() != null) {
+            return movie.getOnlinePrice();
+        }
+        ScreeningMode mode = movie.getScreeningMode();
+        if (mode == ScreeningMode.ONLINE_ONLY || mode == ScreeningMode.BOTH) {
+            return systemConfigService.getDefaultOnlinePrice();
+        }
+        return null;
     }
 }

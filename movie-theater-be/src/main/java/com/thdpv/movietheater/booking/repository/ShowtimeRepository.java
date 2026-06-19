@@ -80,4 +80,14 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
         @Param("startRange") OffsetDateTime startRange,
         @Param("endRange") OffsetDateTime endRange
     );
+
+    @Query("""
+            SELECT MIN(s.startTime) FROM Showtime s
+            WHERE s.movieUuid = :movieUuid
+              AND s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED
+              AND s.startTime > :now
+            """)
+    OffsetDateTime findEarliestScheduledStart(
+            @Param("movieUuid") UUID movieUuid,
+            @Param("now") OffsetDateTime now);
 }
