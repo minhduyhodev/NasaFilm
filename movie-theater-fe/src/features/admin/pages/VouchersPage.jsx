@@ -7,6 +7,7 @@ import {
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useNotification } from '../../../shared/context/NotificationContext';
+import Pagination from '../../../shared/components/Pagination';
 import './VouchersPage.css';
 
 const VouchersPage = () => {
@@ -407,44 +408,38 @@ const VouchersPage = () => {
   const currentFilter = filterOptions.find(opt => opt.value === statusFilter) || filterOptions[0];
 
   return (
-    <>
+    <div className="space-y-6 text-left">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 text-left">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF3366] block mb-1 font-sans">
-            Trung Tâm Khuyến Mãi
-          </span>
-          <h1 className="text-4xl font-extrabold text-white uppercase leading-none tracking-tight font-sans">
-            Quản Lý Voucher &amp; Khuyến Mãi
-          </h1>
-          <p className="text-sm text-gray-400 mt-2 max-w-lg font-sans">
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Khuyến Mãi</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Voucher &amp; Khuyến Mãi</h1>
+          <p className="text-sm text-gray-400 mt-2">
             Tạo chiến dịch chiết khấu, quản lý lượt sử dụng mã và thời hạn kích hoạt voucher toàn hệ thống.
           </p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm text-white font-bold transition shadow-md cursor-pointer shrink-0 font-sans"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm text-white font-bold transition shadow-md cursor-pointer shrink-0 self-start md:self-auto"
         >
           <Plus size={16} /> Tạo Voucher Mới
         </button>
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-left">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6 text-left">
         {[
-          { label: 'Tổng Voucher', value: totalVouchers, Icon: Ticket, valCls: 'text-white', iconBg: 'bg-gray-500/10 text-gray-400' },
-          { label: 'Đang Hoạt Động', value: activeVouchers, Icon: CheckCircle, valCls: 'text-emerald-400', iconBg: 'bg-emerald-500/10 text-emerald-400' },
-          { label: 'Vô Hiệu Hóa', value: inactiveVouchers, Icon: Pause, valCls: 'text-amber-400', iconBg: 'bg-amber-500/10 text-amber-400' },
-          { label: 'Tổng Lượt Sử Dụng', value: totalUsedCount, Icon: Activity, valCls: 'text-blue-400', iconBg: 'bg-blue-500/10 text-blue-400' },
-        ].map((card) => (
-          <div key={card.label} className="bg-[#1c2333] border border-[#242d42] rounded-xl p-5 flex items-center justify-between shadow-lg">
-            <div className="space-y-1.5 text-left font-sans">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block">{card.label}</span>
-              <span className={`text-3xl font-extrabold ${card.valCls} block leading-none`}>{card.value}</span>
+          { label: 'TỔNG VOUCHER', value: totalVouchers, icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total' },
+          { label: 'ĐANG HOẠT ĐỘNG', value: activeVouchers, icon: CheckCircle, color: 'text-emerald-400', kpiClass: 'kpi-active' },
+          { label: 'VÔ HIỆU HÓA', value: inactiveVouchers, icon: Pause, color: 'text-amber-400', kpiClass: 'kpi-inactive' },
+          { label: 'TỔNG LƯỢT SỬ DỤNG', value: totalUsedCount, icon: Activity, color: 'text-blue-400', kpiClass: 'kpi-used' },
+        ].map(kpi => (
+          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
             </div>
-            <div className={`p-2.5 rounded-full ${card.iconBg} flex items-center justify-center shrink-0`}>
-              <card.Icon className="w-5 h-5" />
-            </div>
+            <p className={`text-xl font-black ${kpi.color} leading-none`}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -655,32 +650,13 @@ const VouchersPage = () => {
           </div>
 
           {/* PAGINATION / TABLE FOOTER */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 mt-2 border-t border-[#242d42]/30">
-            <span className="text-[13px] text-gray-400 font-medium font-sans">
-              Trang {currentPage}/{totalPages}
-            </span>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                className="px-3 py-1 bg-[#0f172a] hover:bg-[#1E293B] border border-[#242d42] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center"
-                aria-label="Previous page"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="px-3 py-1 bg-[#0f172a] hover:bg-[#1E293B] border border-[#242d42] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center"
-                aria-label="Next page"
-              >
-                ›
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredVouchers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </>
       )}
 
@@ -939,7 +915,7 @@ const VouchersPage = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

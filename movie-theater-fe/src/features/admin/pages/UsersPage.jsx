@@ -6,6 +6,8 @@ import {
 import { adminUserService } from '../api/adminUserService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import Pagination from '../../../shared/components/Pagination';
+import './UsersPage.css';
 
 const UsersPage = () => {
   const [usersList, setUsersList] = useState([]);
@@ -184,7 +186,7 @@ const UsersPage = () => {
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Tổng Khách Hàng', value: stats.total, Icon: Users, valueColor: 'text-white', iconColor: 'text-white' },
           { label: 'Đang Hoạt Động', value: stats.active, Icon: CheckCircle, valueColor: 'text-emerald-400', iconColor: 'text-emerald-400' },

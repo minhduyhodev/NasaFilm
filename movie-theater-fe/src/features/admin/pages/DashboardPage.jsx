@@ -145,11 +145,11 @@ const DashboardPage = () => {
   return (
     <div className="space-y-8">
       {/* Header section */}
-      <div className="dashboard-header-container">
-        <div className="dashboard-header-info">
-          <p className="dashboard-subtitle">NASAFilm Control Room</p>
-          <h1 className="dashboard-title text-white">Bảng Điều Khiển Admin</h1>
-          <p className="text-gray-400 text-sm">Tổng quan vận hành & Phân tích thời gian thực hệ thống rạp toàn cầu.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">NASAFilm Control Room</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Bảng Điều Khiển Admin</h1>
+          <p className="text-sm text-gray-400 mt-2">Tổng quan vận hành & Phân tích thời gian thực hệ thống rạp toàn cầu.</p>
         </div>
         <button className="dashboard-action-btn">
           <Radio className="w-4 h-4 animate-pulse shrink-0" />
@@ -157,20 +157,35 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {/* Unified Stats Insight Panel */}
-      <div className="dashboard-unified-stats-panel bg-[#121826]/70 border border-[#1A2238] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 divide-y md:divide-y-0 md:divide-x divide-[#1A2238] shadow-2xl backdrop-blur-md">
-        {cards.map((card) => (
-          <div key={card.label} className="w-full flex items-center justify-between md:justify-center md:px-8 gap-6 py-4 md:py-0">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 block">{card.label}</span>
-              <h3 className="text-3xl font-black text-white tracking-tight leading-none mt-1">{card.value}</h3>
-              <p className="text-xs text-gray-500 font-medium mt-1">{card.badge}</p>
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((card) => {
+          let colorClass = 'text-indigo-400';
+          let kpiClass = 'kpi-revenue';
+          if (card.label.includes('DOANH')) {
+            colorClass = 'text-pink-400';
+            kpiClass = 'kpi-revenue';
+          } else if (card.label.includes('CHUYỂN')) {
+            colorClass = 'text-emerald-400';
+            kpiClass = 'kpi-conversion';
+          } else if (card.label.includes('TRƯỞNG')) {
+            colorClass = 'text-amber-400';
+            kpiClass = 'kpi-growth';
+          } else if (card.label.includes('GIAO DỊCH')) {
+            colorClass = 'text-blue-400';
+            kpiClass = 'kpi-transactions';
+          }
+          return (
+            <div key={card.label} className={`kpi-card ${kpiClass}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{card.label}</span>
+                <card.Icon className={`w-4 h-4 ${colorClass} opacity-60`} />
+              </div>
+              <p className={`text-xl font-black ${colorClass} leading-none`}>{card.value}</p>
+              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{card.badge}</p>
             </div>
-            <div className={`p-3.5 rounded-xl bg-white/5 border border-white/5 ${card.color} shrink-0`}>
-              <card.Icon className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* High-Tech Charts Grid */}

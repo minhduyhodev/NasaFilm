@@ -1052,16 +1052,13 @@ const ShowtimesPage = () => {
 
   // ========== MAIN RENDER ==========
   return (
-    <>
+    <div className="space-y-6 text-left">
       {/* ==================== HEADER ==================== */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6 text-left">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Film className="w-5 h-5 text-red-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">Trung Tâm Vận Hành Rạp</span>
-          </div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase">Quản Lý Lịch Chiếu Phim</h1>
-          <p className="text-xs text-gray-400 mt-1">Điều phối trạng thái, khởi tạo và phân bổ khung giờ chiếu phim trên toàn hệ thống rạp.</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Vận Hành Rạp</p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Lịch Chiếu Phim</h1>
+          <p className="text-sm text-gray-400 mt-2">Điều phối trạng thái, khởi tạo và phân bổ khung giờ chiếu phim trên toàn hệ thống rạp.</p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <button
@@ -1930,7 +1927,7 @@ const ShowtimesPage = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
