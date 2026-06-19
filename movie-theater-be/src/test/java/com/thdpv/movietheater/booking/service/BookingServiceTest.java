@@ -40,6 +40,12 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
+import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
+import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -67,6 +73,12 @@ class BookingServiceTest {
 
     @Mock
     private CinemaRoomRepository cinemaRoomRepository;
+
+    @Mock
+    private MovieRepository movieRepository;
+
+    @Mock
+    private PromotionRepository promotionRepository;
 
     @InjectMocks
     private BookingService bookingService;
@@ -206,5 +218,72 @@ class BookingServiceTest {
 
         assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
         assertEquals("Khong duoc de trong 1 ghe le bi kep giua", exception.getMessage());
+    }
+
+    @Test
+    void getVodStatus_NoBooking_ReturnsNoneState() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.empty());
+
+        VodStatusResponse response = bookingService.getVodStatus("customer@example.com", movieUuid);
+
+        assertEquals(false, response.isHasPurchased());
+        assertEquals("NONE", response.getPlaybackState());
+    }
+
+    @Test
+    void activateVodPlay_FirstTime_SetsExpirationAndReturnsToken() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Booking booking = new Booking();
+        booking.setUserUuid(userUuid);
+        booking.setMovieUuid(movieUuid);
+        booking.setBookingType("ONLINE");
+        booking.setStatus("CONFIRMED");
+
+        Movie movie = new Movie();
+        movie.setUuid(movieUuid);
+        movie.setDurationMinutes(120);
+        movie.setStreamingUrl("http://example.com/stream.mp4");
+
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
+        when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(movie));
+        when(bookingJpaRepository.save(any(Booking.class))).thenReturn(booking);
+
+        VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
+        assertEquals("http://example.com/stream.mp4", response.getStreamingUrl());
+        org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
+        org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
+    }
+
+    @Test
+    void vodHeartbeat_TokenMismatch_ThrowsConflict() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Booking booking = new Booking();
+        booking.setUserUuid(userUuid);
+        booking.setMovieUuid(movieUuid);
+        booking.setBookingType("ONLINE");
+        booking.setStatus("CONFIRMED");
+        booking.setFirstPlayedAt(OffsetDateTime.now());
+        booking.setExpiresAt(OffsetDateTime.now().plusHours(2));
+        booking.setStreamToken("token-a");
+
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.vodHeartbeat("customer@example.com", movieUuid, "token-b");
+        });
+
+        assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());
+        assertEquals("Tài khoản đang được xem trên thiết bị khác", exception.getMessage());
     }
 }

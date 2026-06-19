@@ -19,6 +19,7 @@ const BookingPage = lazy(() => import('../pages/BookingPage'));
 const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
+const WatchPage = lazy(() => import('../pages/WatchPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#090b11] flex items-center justify-center">
@@ -97,6 +98,14 @@ export const HomeRoutes = () => {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="watch/:id"
+          element={
+            <ProtectedRoute>
+              <WatchPage />
             </ProtectedRoute>
           }
         />

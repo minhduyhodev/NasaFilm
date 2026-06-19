@@ -43,7 +43,9 @@ export const BookingConfirmedPage = () => {
     showtime = '',
     selectedSeats = [],
     tickets = [],
-    totalPrice = 0
+    totalPrice = 0,
+    isVod = false,
+    movieUuid = ''
   } = bookingData;
 
   const bookingId = `#CL-${bookingUuid.substring(0, 8).toUpperCase()}`;
@@ -120,16 +122,16 @@ export const BookingConfirmedPage = () => {
                 </div>
                 
                 <div className="stagger-item" style={{ animationDelay: '0.6s' }}>
-                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Rạp & Phòng chiếu</span>
+                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">{isVod ? 'Hình thức' : 'Rạp & Phòng chiếu'}</span>
                   <span className="text-sm font-bold text-white line-clamp-1">
-                    {theater.replace('NASA ', '')} ({movieFormat})
+                    {isVod ? 'Xem trực tuyến' : theater.replace('NASA ', '')} ({movieFormat})
                   </span>
                 </div>
                 
                 <div className="stagger-item" style={{ animationDelay: '0.7s' }}>
                   <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Ghế đã đặt</span>
                   <span className="text-sm font-bold text-[#ccc5bf]">
-                    {selectedSeats.map(s => s.id).join(', ')}
+                    {isVod ? 'Không áp dụng (VOD)' : selectedSeats.map(s => s.id).join(', ')}
                   </span>
                 </div>
               </div>
@@ -150,7 +152,7 @@ export const BookingConfirmedPage = () => {
                   <span className="block text-white text-xs font-bold mb-1">Mã vé: {firstTicketCode}</span>
                   <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
                   <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
-                    Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.
+                    {isVod ? 'Mã vé trực tuyến của bạn. Bạn có thể bắt đầu xem ngay trên thiết bị của mình.' : 'Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.'}
                   </span>
                 </div>
               </div>
@@ -158,13 +160,22 @@ export const BookingConfirmedPage = () => {
             
             {/* Action Buttons */}
             <div className="mt-8 flex flex-col sm:flex-row gap-3 action-buttons-group stagger-item" style={{ animationDelay: '0.9s' }}>
-              <button 
-                onClick={handlePrint}
-                className="flex-grow bg-[#ccc5bf] text-[#1c1b1d] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-white transition-all duration-300 neon-gold-glow cursor-pointer active:scale-95"
-              >
-                <Download className="w-4 h-4 text-[#1c1b1d] shrink-0" />
-                In / Tải vé PDF
-              </button>
+              {isVod ? (
+                <button 
+                  onClick={() => navigate(`/watch/${movieUuid}`)}
+                  className="flex-grow bg-red-600 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-700 transition-all duration-300 cursor-pointer active:scale-95 text-center"
+                >
+                  Xem phim ngay
+                </button>
+              ) : (
+                <button 
+                  onClick={handlePrint}
+                  className="flex-grow bg-[#ccc5bf] text-[#1c1b1d] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-white transition-all duration-300 neon-gold-glow cursor-pointer active:scale-95"
+                >
+                  <Download className="w-4 h-4 text-[#1c1b1d] shrink-0" />
+                  In / Tải vé PDF
+                </button>
+              )}
               
               <button 
                 onClick={() => navigate('/movies')}

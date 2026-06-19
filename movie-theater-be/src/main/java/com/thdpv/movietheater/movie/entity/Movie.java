@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -9,9 +10,13 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -56,6 +61,13 @@ public class Movie {
 
     @Column(name = "streaming_url")
     private String streamingUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "screening_mode")
+    private ScreeningMode screeningMode = ScreeningMode.BOTH;
+
+    @Column(name = "online_price")
+    private BigDecimal onlinePrice;
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 20)
@@ -229,4 +241,21 @@ public class Movie {
         this.streamingUrl = streamingUrl;
     }
 
+    public ScreeningMode getScreeningMode() {
+        return screeningMode != null ? screeningMode : ScreeningMode.BOTH;
+    }
+
+    public void setScreeningMode(ScreeningMode screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
+    }
+
 }
+
