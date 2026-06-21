@@ -4,6 +4,7 @@ import { User, Edit2, Trash2, Loader2, ExternalLink, Film } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatDateDisplay, getScreeningModeLabel } from '../utils/adminMovieUtils.jsx';
+import { getMovieStreamingUrl } from '../../home/utils/movieUtils';
 import { getMovieStatusLabel } from '../utils/statusLabels';
 import {
   AdminPage,
@@ -148,7 +149,7 @@ const AdminMovieDetailPage = () => {
               />
               <MetadataRow
                 label="Stream"
-                value={movie.streamingUrl ? 'San sang' : 'Chua tich hop'}
+                value={getMovieStreamingUrl(movie) ? 'San sang' : 'Chua tich hop'}
               />
             </dl>
           </Section>

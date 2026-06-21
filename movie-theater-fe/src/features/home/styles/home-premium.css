@@ -1,0 +1,78 @@
+.home-premium {
+  --accent: #dc2626;
+  --accent-light: #f87171;
+  --accent-dark: #b91c1c;
+  --bg-deep: #0a0a0a;
+  background-color: var(--bg-deep);
+}
+
+.section-heading {
+  @apply text-2xl md:text-3xl font-black uppercase tracking-tight text-white;
+}
+
+.section-heading-row {
+  @apply mb-6 md:mb-8 flex items-center justify-between gap-4;
+}
+
+.section-link {
+  @apply text-[11px] font-semibold uppercase tracking-wider text-red-400 transition-colors shrink-0 hover:text-red-300;
+}
+
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white transition-all duration-200;
+  background: #dc2626;
+  box-shadow: 0 18px 40px rgba(220, 38, 38, 0.28);
+}
+
+.btn-gold:hover {
+  transform: translateY(-1px);
+  background: #b91c1c;
+  box-shadow: 0 20px 44px rgba(220, 38, 38, 0.38);
+}
+
+.btn-gold-outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-gold-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.hero-title-gold {
+  @apply text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[1.05] text-white;
+}
+
+.badge-new-movie {
+  @apply absolute top-2.5 left-2.5 z-10 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-sm;
+  background: rgba(220, 38, 38, 0.92);
+  color: #fff;
+}
+
+.premium-footer {
+  @apply border-t border-white/5 py-8 px-4 md:px-8 lg:px-20;
+  background: #050505;
+}
+
+.premium-footer-inner {
+  @apply max-w-7xl mx-auto;
+}
+
+.premium-footer-top {
+  @apply flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-6 border-b border-white/5;
+}
+
+.premium-footer-links {
+  @apply flex flex-wrap gap-x-6 gap-y-2 text-[11px] uppercase tracking-wider text-white/45;
+}
+
+.premium-footer-links a:hover {
+  color: var(--accent-light);
+}
+
+.premium-footer-bottom {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 text-xs text-white/35;
+}

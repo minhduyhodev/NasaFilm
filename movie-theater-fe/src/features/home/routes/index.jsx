@@ -4,6 +4,8 @@ import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 
 const HomePage = lazy(() => import('../pages/HomePage'));
+const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
+const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const MoviesPage = lazy(() => import('../pages/MoviesPage'));
 const CinemasPage = lazy(() => import('../pages/CinemasPage'));
@@ -51,6 +53,8 @@ export const HomeRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route index element={<HomePage />} />
+        <Route path="online" element={<OnlineMoviesPage />} />
+        <Route path="online/activate/:movieId" element={<TicketActivationPage />} />
         <Route path="movies" element={<MoviesPage />} />
         <Route path="cinemas" element={<CinemasPage />} />
         <Route path="offers" element={<OffersPage />} />

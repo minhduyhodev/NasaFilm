@@ -12,17 +12,17 @@ const Footer = () => {
 
       <div className="footer-container">
         <div className="footer-grid">
-          
+
           {/* Brand Info Column */}
           <div className="footer-col">
-            <div className="footer-brand-logo">
+            <Link to="/" className="footer-brand-logo group">
               <img src={nasaFilmLogo} alt="NASAFILM Logo" className="footer-logo-img" />
               <div className="flex flex-col">
                 <span className="footer-brand-name text-lg">
                   NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
                 </span>
               </div>
-            </div>
+            </Link>
             <p className="footer-brand-text">
               Trải nghiệm điện ảnh đỉnh cao với công nghệ chiếu phim IMAX hiện đại bậc nhất và hệ thống âm thanh vòm Dolby Atmos sống động.
             </p>
@@ -58,8 +58,8 @@ const Footer = () => {
                 { label: 'Giới Thiệu CINE LUXE', to: '/about' }
               ].map((link) => (
                 <li key={link.label}>
-                  <Link 
-                    to={link.to} 
+                  <Link
+                    to={link.to}
                     className="footer-link-item group"
                   >
                     <span className="footer-link-dot" />
@@ -82,8 +82,8 @@ const Footer = () => {
                 { label: 'Câu Hỏi Thường Gặp', to: '/faq' }
               ].map((link) => (
                 <li key={link.label}>
-                  <Link 
-                    to={link.to} 
+                  <Link
+                    to={link.to}
                     className="footer-link-item group"
                   >
                     <span className="footer-link-dot" />

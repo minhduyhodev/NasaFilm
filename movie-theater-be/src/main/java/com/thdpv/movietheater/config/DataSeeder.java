@@ -694,6 +694,30 @@ public class DataSeeder implements CommandLineRunner {
                 "T13",
                 8.5);
 
+        // Self-healing: đồng bộ streaming_url từ TRAILER cho phim online chưa có link phát
+        try {
+            int synced = jdbcTemplate.update("""
+                        UPDATE movie m
+                        SET streaming_url = src.media_url
+                        FROM (
+                            SELECT DISTINCT ON (mm.movie_uuid) mm.movie_uuid, mm.media_url
+                            FROM movie_media mm
+                            WHERE mm.media_type = 'TRAILER'
+                              AND mm.media_url IS NOT NULL
+                              AND btrim(mm.media_url) <> ''
+                            ORDER BY mm.movie_uuid, mm.sort_order NULLS LAST
+                        ) src
+                        WHERE m.uuid = src.movie_uuid
+                          AND (m.streaming_url IS NULL OR btrim(m.streaming_url) = '')
+                          AND m.screening_mode IN ('BOTH', 'ONLINE_ONLY')
+                    """);
+            if (synced > 0) {
+                logger.info("Synced streaming_url from TRAILER media for {} online movies", synced);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to sync streaming_url from trailer media", e);
+        }
+
         // Self-healing: đồng bộ trạng thái phim theo ngày công chiếu
         try {
             LocalDate today = LocalDate.now();

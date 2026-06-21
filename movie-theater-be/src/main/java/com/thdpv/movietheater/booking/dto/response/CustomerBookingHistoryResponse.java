@@ -12,11 +12,13 @@ public class CustomerBookingHistoryResponse {
     private String combo;
     private String price;
     private String status;
+    private UUID movieUuid;
+    private String bookingType;
 
     public CustomerBookingHistoryResponse() {
     }
 
-    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status) {
+    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType) {
         this.bookingUuid = bookingUuid;
         this.id = id;
         this.movieTitle = movieTitle;
@@ -26,6 +28,8 @@ public class CustomerBookingHistoryResponse {
         this.combo = combo;
         this.price = price;
         this.status = status;
+        this.movieUuid = movieUuid;
+        this.bookingType = bookingType;
     }
 
     public String getId() {
@@ -98,5 +102,21 @@ public class CustomerBookingHistoryResponse {
 
     public void setBookingUuid(UUID bookingUuid) {
         this.bookingUuid = bookingUuid;
+    }
+
+    public UUID getMovieUuid() {
+        return movieUuid;
+    }
+
+    public void setMovieUuid(UUID movieUuid) {
+        this.movieUuid = movieUuid;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
     }
 }

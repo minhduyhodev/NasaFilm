@@ -37,16 +37,15 @@ const Navbar = () => {
         <nav className="navbar-nav">
           <Link to="/movies" className="navbar-nav-link">Phim</Link>
           <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
+          <Link to="/online" className="navbar-nav-link">Trực Tuyến</Link>
           <Link to="/offers" className="navbar-nav-link">Ưu Đãi</Link>
           <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
         </nav>
 
         <div className="navbar-actions">
-
-
-          <button 
-            onClick={handleBookingClick} 
-            className="relative overflow-hidden bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-xs uppercase tracking-wider h-11 pl-4 pr-3.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-[0_4px_15px_rgba(220,38,38,0.3)] hidden md:flex items-stretch"
+          <button
+            onClick={handleBookingClick}
+            className="relative hidden overflow-hidden bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-xs uppercase tracking-wider h-11 pl-4 pr-3.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-[0_4px_15px_rgba(220,38,38,0.3)] md:flex items-stretch shrink-0"
           >
             {/* Left section (Star + Text) */}
             <span className="flex items-center gap-1.5 pr-3.5 border-r border-dashed border-white/30">
@@ -82,20 +81,20 @@ const Navbar = () => {
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, markAllAsRead, clearAll } = useNotification();
- 
+
   const unreadCount = notifications.filter((n) => !n.read).length;
- 
+
   const handleToggle = () => {
     setIsOpen(!isOpen);
     if (!isOpen && unreadCount > 0) {
       markAllAsRead();
     }
   };
- 
+
   const handleMarkAllRead = () => {
     markAllAsRead();
   };
- 
+
   const handleClearAll = () => {
     clearAll();
   };
@@ -119,8 +118,8 @@ const NotificationBell = () => {
 
   return (
     <div className="relative">
-      <button 
-        onClick={handleToggle} 
+      <button
+        onClick={handleToggle}
         className="navbar-btn-notif relative"
       >
         <Bell className="h-4 w-4" />
@@ -161,8 +160,8 @@ const NotificationBell = () => {
               ) : (
                 <div className="notif-list-items">
                   {notifications.map((notif) => (
-                    <div 
-                      key={notif.id} 
+                    <div
+                      key={notif.id}
                       className={`notif-item ${notif.read ? 'read' : 'unread'} ${notif.type}`}
                     >
                       <div className="notif-item-dot" />
@@ -255,12 +254,12 @@ const AuthControls = () => {
               <span>{initial}</span>
             )}
           </div>
-          
+
           {/* Username */}
           <span className="user-name">
             {displayName}
           </span>
-          
+
           {/* Chevron Arrow */}
           <ChevronDown className={`h-4 w-4 text-white/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -270,7 +269,7 @@ const AuthControls = () => {
           <>
             {/* Backdrop click-away trigger */}
             <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-            
+
             {/* Dropdown list */}
             <div className="dropdown-menu-list">
               {isAdminOrStaff && (
@@ -283,7 +282,7 @@ const AuthControls = () => {
                   <span>Trang Admin</span>
                 </Link>
               )}
-              
+
               <Link
                 to="/profile"
                 onClick={() => setIsOpen(false)}
@@ -292,7 +291,7 @@ const AuthControls = () => {
                 <User className="h-4 w-4" />
                 <span>Thông tin cá nhân</span>
               </Link>
-              
+
               <Link
                 to="/wallet"
                 onClick={() => setIsOpen(false)}
@@ -301,7 +300,7 @@ const AuthControls = () => {
                 <Wallet className="h-4 w-4" />
                 <span>Ví tiền</span>
               </Link>
-              
+
               <Link
                 to="/reminders"
                 onClick={() => setIsOpen(false)}
@@ -310,9 +309,9 @@ const AuthControls = () => {
                 <Calendar className="h-4 w-4" />
                 <span>Nhắc hẹn</span>
               </Link>
-              
+
               <div className="my-1 border-t border-white/5" />
-              
+
               <button
                 onClick={() => {
                   setIsOpen(false);

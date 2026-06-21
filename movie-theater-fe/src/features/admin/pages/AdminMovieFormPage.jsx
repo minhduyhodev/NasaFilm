@@ -303,6 +303,19 @@ const AdminMovieFormPage = () => {
       return;
     }
 
+    const supportsOnline =
+      formData.screeningMode === 'BOTH' || formData.screeningMode === 'ONLINE_ONLY';
+    let streamingUrl = formData.streamingUrl.trim() || null;
+    if (!streamingUrl && supportsOnline && formData.trailerUrl.trim()) {
+      streamingUrl = formData.trailerUrl.trim();
+    }
+    if (supportsOnline && !streamingUrl) {
+      notificationService.error(
+        'Phim xem online can Link phim (Streaming URL) hoac Trailer URL de phat video'
+      );
+      return;
+    }
+
     const medias = [];
     if (formData.posterUrl.trim()) {
       medias.push({
@@ -332,7 +345,7 @@ const AdminMovieFormPage = () => {
       ageRestriction: formData.ageRestriction || 'P',
       genreUuids: formData.genreUuids,
       countryUuids: formData.countryUuids,
-      streamingUrl: formData.streamingUrl.trim() || null,
+      streamingUrl,
       medias,
       actors: formData.actors.filter(a => a.actorUuid),
       screeningMode: formData.screeningMode,
@@ -652,7 +665,8 @@ const AdminMovieFormPage = () => {
               </div>
               <div>
                 <label className={labelClass}>Link phim (Streaming URL)</label>
-                <input type="url" className={inputClass} placeholder="Ho tro file .mp4 hoac link stream..." value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
+                <input type="url" className={inputClass} placeholder="Link FILE video: drive.google.com/file/d/.../view (khong dung link thu muc)" value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
+                <p className="mt-1 text-[10px] text-gray-500">Google Drive: mo file video → Chia se → Sao chep lien ket file (dang /file/d/ID/view). Khong dung link thu muc /folders/</p>
               </div>
             </div>
           </Section>

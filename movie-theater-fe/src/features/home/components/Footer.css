@@ -19,7 +19,7 @@
 }
 
 .footer-brand-logo {
-  @apply flex items-center gap-2.5;
+  @apply flex items-center gap-2.5 w-fit transition-opacity hover:opacity-90;
 }
 
 .footer-logo-img {

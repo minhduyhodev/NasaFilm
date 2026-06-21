@@ -288,7 +288,7 @@ const CheckoutPage = () => {
       }
       
       const successMessage = isVod
-        ? `Mua vé xem phim Online thành công! Bạn có thể xem ngay bây giờ.`
+        ? `Mua vé xem phim Online thành công! Hãy kích hoạt mã vé để bắt đầu xem.`
         : `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`;
       
       notificationService.addNotification(
@@ -504,8 +504,12 @@ const CheckoutPage = () => {
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
-                    <div className="text-xs font-bold text-white">Số dư tài khoản</div>
-                    <div className="text-[10px] font-semibold text-gray-400">Ví credits (Đang có: 500.000 đ)</div>
+                    <div className="text-xs font-bold text-white">Thanh toán trực tuyến</div>
+                    <div className="text-[10px] font-semibold text-gray-400">
+                      {loadingProfile
+                        ? 'Đang tải thông tin thành viên...'
+                        : `Điểm tích lũy: ${userScore.toLocaleString('vi-VN')} · ${memberTier}`}
+                    </div>
                   </div>
                   <Wallet className="w-5 h-5 text-red-500 shrink-0 fill-red-500/10" />
                 </label>

@@ -228,7 +228,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     where t.booking_uuid = b.uuid
                     order by t.issued_at asc
                     limit 1
-                ), 'CONFIRMED')
+                ), 'CONFIRMED'),
+                coalesce(b.movie_uuid, st.movie_uuid),
+                coalesce(b.booking_type, 'THEATER')
             from booking b
             left join showtime st on st.uuid = b.showtime_uuid
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
