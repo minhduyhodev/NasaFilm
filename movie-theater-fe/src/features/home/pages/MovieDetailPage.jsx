@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   Star,
   Clock,
@@ -20,6 +20,8 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
+import { systemConfigService } from "../../../shared/services/systemConfigService";
+import { getOnlineMoviePath, getOnlineActionLabel } from "../utils/movieUtils";
 
 import "./MovieDetailPage.css";
 
@@ -37,6 +39,8 @@ const getEmbedUrl = (url) => {
 const MovieDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isFromOnline = searchParams.get("from") === "online";
   const { isAuthenticated } = useAuthContext();
   const [activeDateTab, setActiveDateTab] = useState("today");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
@@ -49,15 +53,18 @@ const MovieDetailPage = () => {
   const [error, setError] = useState(null);
 
   const [vodStatus, setVodStatus] = useState(null);
-  const [isVodPurchaseOpen, setIsVodPurchaseOpen] = useState(false);
-  const [isVodConfirming, setIsVodConfirming] = useState(false);
+
+  useEffect(() => {
+    systemConfigService.getConfig().catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchVodStatus = async () => {
       if (
         isAuthenticated &&
         dbMovie &&
-        (dbMovie.screeningMode === "BOTH" ||
+        (isFromOnline ||
+          dbMovie.screeningMode === "BOTH" ||
           dbMovie.screeningMode === "ONLINE_ONLY")
       ) {
         try {
@@ -69,7 +76,7 @@ const MovieDetailPage = () => {
       }
     };
     fetchVodStatus();
-  }, [dbMovie, isAuthenticated]);
+  }, [dbMovie, isAuthenticated, isFromOnline]);
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
@@ -255,7 +262,7 @@ const MovieDetailPage = () => {
   };
 
   const handleWatchVodClick = () => {
-    navigate(`/watch/${dbMovie.uuid}`);
+    navigate(getOnlineMoviePath(dbMovie.uuid, vodStatus));
   };
 
   const seatInfo = selectedShowtime
@@ -458,10 +465,11 @@ const MovieDetailPage = () => {
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-4">
-                {/* 1. Mua vé xem tại rạp (Chỉ khi screeningMode là THEATER_ONLY hoặc BOTH hoặc chưa cấu hình) */}
-                {(dbMovie.screeningMode === "THEATER_ONLY" ||
-                  dbMovie.screeningMode === "BOTH" ||
-                  !dbMovie.screeningMode) && (
+                {/* 1. Mua vé xem tại rạp */}
+                {!isFromOnline &&
+                  (dbMovie.screeningMode === "THEATER_ONLY" ||
+                    dbMovie.screeningMode === "BOTH" ||
+                    !dbMovie.screeningMode) && (
                   <button
                     onClick={handleBookTickets}
                     className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider neon-red-glow hover:scale-105 active:scale-95 transition-all cursor-pointer"
@@ -470,8 +478,9 @@ const MovieDetailPage = () => {
                   </button>
                 )}
 
-                {/* 2. Vé xem Online VOD (Chỉ khi screeningMode là ONLINE_ONLY hoặc BOTH) */}
-                {(dbMovie.screeningMode === "ONLINE_ONLY" ||
+                {/* 2. Vé xem Online VOD */}
+                {(isFromOnline ||
+                  dbMovie.screeningMode === "ONLINE_ONLY" ||
                   dbMovie.screeningMode === "BOTH") && (
                   <>
                     {vodStatus &&
@@ -481,9 +490,7 @@ const MovieDetailPage = () => {
                         onClick={handleWatchVodClick}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                       >
-                        {vodStatus.playbackState === "STREAMING"
-                          ? "Tiếp tục xem phim"
-                          : "Xem phim Online"}
+                        {getOnlineActionLabel(vodStatus, "Xem phim Online")}
                       </button>
                     ) : (
                       <button
@@ -553,6 +560,7 @@ const MovieDetailPage = () => {
           </div>
 
           {/* Right Side: Showtimes */}
+          {!isFromOnline && (
           <div className="lg:col-span-8 space-y-6 text-left">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
               <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
@@ -712,6 +720,7 @@ const MovieDetailPage = () => {
               )}
             </div>
           </div>
+          )}
         </section>
       </main>
 

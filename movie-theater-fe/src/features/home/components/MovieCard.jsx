@@ -1,8 +1,9 @@
 import React from 'react';
 import { Star, Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMovieDetailPath, getOnlineMoviePath } from '../utils/movieUtils';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé' }) => {
+const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -11,7 +12,15 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
   };
 
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-  const linkTarget = uuid ? `/movie/${uuid}` : `/movie/${slug}`;
+  const resolveOnlinePath = (movieUuid) => {
+    if (getOnlinePath) return getOnlinePath(movieUuid);
+    return getOnlineMoviePath(movieUuid, vodStatus);
+  };
+  const linkTarget =
+    fromOnline && uuid
+      ? resolveOnlinePath(uuid)
+      : getMovieDetailPath(uuid || slug, { online: false });
+  const watchTarget = linkTarget;
   const displayPoster = primaryMediaUrl || poster;
   const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
   const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
@@ -107,7 +116,7 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
 
         {/* Clean Editorial Link */}
         <div className="pt-2">
-          <Link to={linkTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
+          <Link to={watchTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
             [{actionLabel}]
           </Link>
         </div>

@@ -52,6 +52,7 @@ import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.movie.repository.MovieActorRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -83,7 +84,7 @@ public class MovieService {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
         if (request.getScreeningMode() != null) {
             movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
         }
@@ -93,6 +94,7 @@ public class MovieService {
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
         replaceMedias(movie, request.getMedias(), operatorEmail);
+        syncStreamingUrlFromMediasIfMissing(movie);
         return toMovieDetailResponse(movieRepository.save(movie));
     }
 
@@ -101,7 +103,7 @@ public class MovieService {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
         if (request.getScreeningMode() != null) {
             movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
         }
@@ -123,6 +125,7 @@ public class MovieService {
             replaceMedias(movie, request.getMedias(), operatorEmail);
         }
 
+        syncStreamingUrlFromMediasIfMissing(movie);
         return toMovieDetailResponse(movieRepository.save(movie));
     }
 
@@ -283,10 +286,6 @@ public class MovieService {
     @Transactional(readOnly = true)
     public MovieDetailResponse getMovieDetail(UUID movieUuid) {
         Movie movie = getMovieOrThrow(movieUuid);
-        System.out.println("DEBUG - Movie Detail: UUID=" + movieUuid + ", Title=" + movie.getTitle());
-        for (MovieMedia mm : movie.getMovieMedias()) {
-            System.out.println("DEBUG - Media: Type=" + mm.getMediaType() + ", URL=" + mm.getMediaUrl());
-        }
         if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
@@ -584,7 +583,7 @@ public class MovieService {
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
-                movie.getStreamingUrl(),
+                MovieStreamingUtils.resolveStreamingUrl(movie),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
@@ -617,7 +616,7 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
-                movie.getStreamingUrl(),
+                MovieStreamingUtils.resolveStreamingUrl(movie),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
@@ -743,7 +742,8 @@ public class MovieService {
         Movie movie = movieRepository.findById(movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
 
-        if (movie.getStreamingUrl() == null || movie.getStreamingUrl().isBlank()) {
+        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+        if (streamingUrl == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
         }
 
@@ -754,7 +754,22 @@ public class MovieService {
             throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
         }
 
-        return movie.getStreamingUrl();
+        return streamingUrl;
+    }
+
+    private void applyStreamingUrl(Movie movie, String streamingUrl, List<MovieMediaRequest> medias) {
+        String resolved = trimToNull(streamingUrl);
+        if (resolved == null) {
+            resolved = MovieStreamingUtils.resolveFromMediaRequests(medias);
+        }
+        movie.setStreamingUrl(resolved);
+    }
+
+    private void syncStreamingUrlFromMediasIfMissing(Movie movie) {
+        if (trimToNull(movie.getStreamingUrl()) != null) {
+            return;
+        }
+        movie.setStreamingUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
     }
 
     private BigDecimal resolveOnlinePrice(Movie movie) {

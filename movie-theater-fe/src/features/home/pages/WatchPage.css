@@ -1,0 +1,199 @@
+.watch-page {
+  background: #0a0a0a;
+}
+
+.watch-page-content {
+  transition:
+    opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.watch-page-content--cinema {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.98);
+}
+
+.watch-player-slot {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.watch-player-wrap {
+  @apply relative w-full overflow-hidden rounded-xl border border-white/10 bg-black;
+  aspect-ratio: 16 / 9;
+  transition:
+    top 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s ease,
+    box-shadow 0.55s ease;
+  transform-origin: center center;
+  will-change: top, left, width, height, border-radius;
+}
+
+.watch-player-wrap--cinema {
+  position: fixed !important;
+  z-index: 200;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none;
+}
+
+.watch-player-wrap--cinema .watch-player-video {
+  object-fit: cover;
+}
+
+.watch-player-wrap--cinema .watch-player-embed {
+  transform: scale(1.02);
+}
+
+.watch-player-wrap:fullscreen,
+.watch-player-wrap:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none;
+  border-radius: 0 !important;
+  border: none !important;
+  aspect-ratio: auto !important;
+  background: #000;
+}
+
+.watch-player-wrap:fullscreen .watch-player-video,
+.watch-player-wrap:-webkit-full-screen .watch-player-video {
+  object-fit: contain;
+}
+
+.watch-player-wrap:fullscreen .watch-player-embed,
+.watch-player-wrap:-webkit-full-screen .watch-player-embed {
+  transform: none;
+}
+
+.watch-player-embed {
+  @apply absolute inset-0 h-full w-full border-0 bg-black;
+}
+
+.watch-player-poster {
+  @apply absolute inset-0 h-full w-full object-cover;
+}
+
+.watch-player-overlay {
+  @apply absolute inset-0 bg-black/35;
+  transition: opacity 0.4s ease;
+}
+
+.watch-player-wrap--cinema .watch-player-overlay {
+  opacity: 0;
+}
+
+.watch-play-btn {
+  @apply absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-red-500/60 bg-red-600/90 text-white shadow-[0_0_40px_rgba(220,38,38,0.45)] transition-all hover:scale-105 hover:bg-red-600;
+}
+
+.watch-vod-badge {
+  @apply absolute left-4 top-4 z-10 flex items-center gap-2 rounded-lg border border-red-500/30 bg-black/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 backdrop-blur-sm;
+  transition: opacity 0.3s ease;
+}
+
+.watch-player-wrap--cinema .watch-vod-badge {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.watch-player-video {
+  @apply absolute inset-0 h-full w-full bg-black;
+  object-fit: contain;
+  transition: object-fit 0.55s ease;
+}
+
+.watch-cinema-vignette {
+  @apply pointer-events-none absolute inset-0 z-[5];
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.6s ease 0.2s;
+}
+
+.watch-player-wrap--cinema .watch-cinema-vignette {
+  opacity: 1;
+}
+
+.watch-cinema-vignette--hidden {
+  display: none;
+}
+
+.watch-cinema-backdrop {
+  @apply fixed inset-0 z-[199] bg-black;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.watch-cinema-backdrop--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.watch-zoom-btn {
+  @apply absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/50 text-white/90 backdrop-blur-sm transition-all hover:bg-red-600/80 hover:border-red-500/50;
+}
+
+.watch-cinema-ui {
+  @apply absolute inset-0 z-30 flex flex-col justify-between pointer-events-none;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.15s;
+}
+
+.watch-player-wrap--cinema .watch-cinema-ui {
+  opacity: 1;
+}
+
+.watch-player-wrap--cinema.watch-player-wrap--cinema-ui-hidden .watch-cinema-ui {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.watch-player-wrap--cinema.watch-player-wrap--cinema-ui-hidden .watch-cinema-vignette {
+  opacity: 1;
+}
+
+.watch-cinema-ui-top {
+  @apply flex items-center justify-between p-5 md:p-8 pointer-events-auto;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.65), transparent);
+}
+
+.watch-cinema-ui-bottom {
+  @apply flex items-center justify-end p-5 md:p-8 pointer-events-auto;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+}
+
+.watch-cinema-exit-btn {
+  @apply inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black/50 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/90 backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/30;
+}
+
+.watch-timer-badge {
+  @apply flex items-center gap-2 rounded-lg border border-red-500/25 bg-red-950/30 px-3 py-2 text-xs;
+}
+
+.watch-title {
+  @apply text-2xl md:text-4xl font-black uppercase tracking-wide text-white;
+  font-family: Montserrat, sans-serif;
+}
+
+.watch-tag {
+  @apply inline-flex items-center rounded border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70;
+}
+
+.watch-sidebar-card {
+  @apply flex gap-3 rounded-lg border border-white/5 bg-[#111111] p-2.5 transition-colors hover:border-red-500/25 hover:bg-[#141414];
+}
+
+.watch-feature-box {
+  @apply relative overflow-hidden rounded-xl border border-white/5 bg-[#111111] p-5;
+}
+
+body.watch-cinema-active {
+  overflow: hidden;
+}

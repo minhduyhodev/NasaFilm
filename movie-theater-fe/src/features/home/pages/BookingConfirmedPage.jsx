@@ -152,7 +152,7 @@ export const BookingConfirmedPage = () => {
                   <span className="block text-white text-xs font-bold mb-1">Mã vé: {firstTicketCode}</span>
                   <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
                   <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
-                    {isVod ? 'Mã vé trực tuyến của bạn. Bạn có thể bắt đầu xem ngay trên thiết bị của mình.' : 'Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.'}
+                    {isVod ? 'Mã vé trực tuyến của bạn. Vui lòng vào trang kích hoạt, nhập mã vé rồi bắt đầu xem phim.' : 'Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.'}
                   </span>
                 </div>
               </div>
@@ -162,10 +162,10 @@ export const BookingConfirmedPage = () => {
             <div className="mt-8 flex flex-col sm:flex-row gap-3 action-buttons-group stagger-item" style={{ animationDelay: '0.9s' }}>
               {isVod ? (
                 <button 
-                  onClick={() => navigate(`/watch/${movieUuid}`)}
+                  onClick={() => navigate(`/online/activate/${movieUuid}`)}
                   className="flex-grow bg-red-600 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-700 transition-all duration-300 cursor-pointer active:scale-95 text-center"
                 >
-                  Xem phim ngay
+                  Kích hoạt vé xem online
                 </button>
               ) : (
                 <button 

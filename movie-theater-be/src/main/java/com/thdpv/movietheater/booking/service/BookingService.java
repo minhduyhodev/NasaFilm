@@ -49,6 +49,7 @@ import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
@@ -534,12 +535,14 @@ public class BookingService {
             String rawCombosStr = stringValue(row[8]);
             String ticketCode = stringValue(row[9]);
             String ticketStatus = stringValue(row[10]);
+            UUID movieUuid = toUuid(row[11]);
+            String bookingType = stringValue(row[12]);
 
             String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
 
             // Status: active if movie hasn't started yet, completed if movie has started/finished
-            String status = startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
+            String status = startTime != null && startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
             if ("CANCELLED".equalsIgnoreCase(bookingStatus) || "USED".equalsIgnoreCase(ticketStatus)) {
                 status = "completed";
             }
@@ -549,11 +552,15 @@ public class BookingService {
                     ticketCode,
                     movieTitle,
                     roomName,
-                    startTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy")),
+                    startTime != null
+                            ? startTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                            : "",
                     seatsStr,
                     combosStr,
                     priceStr,
-                    status
+                    status,
+                    movieUuid,
+                    bookingType
             ));
         }
 
@@ -735,7 +742,7 @@ public class BookingService {
                 playbackState = "EXPIRED";
             } else {
                 playbackState = "STREAMING";
-                streamingUrl = movie.getStreamingUrl();
+                streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
             }
         }
 
@@ -752,6 +759,12 @@ public class BookingService {
         Movie movie = movieRepository.findById(movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
 
+        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+        if (streamingUrl == null || streamingUrl.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Phim chưa được cấu hình link phát trực tuyến. Vui lòng liên hệ quản trị viên.");
+        }
+
         OffsetDateTime now = OffsetDateTime.now();
         String streamToken = UUID.randomUUID().toString();
 
@@ -762,7 +775,7 @@ public class BookingService {
             // Re-entry: generate new streamToken to kick out other sessions
             booking.setStreamToken(streamToken);
             bookingJpaRepository.save(booking);
-            return new VodPlayResponse(streamToken, movie.getStreamingUrl(), booking.getExpiresAt());
+            return new VodPlayResponse(streamToken, streamingUrl, booking.getExpiresAt());
         }
 
         // First play activation
@@ -775,7 +788,7 @@ public class BookingService {
         booking.setStreamToken(streamToken);
         bookingJpaRepository.save(booking);
 
-        return new VodPlayResponse(streamToken, movie.getStreamingUrl(), expiresAt);
+        return new VodPlayResponse(streamToken, streamingUrl, expiresAt);
     }
 
     @Transactional(readOnly = true)

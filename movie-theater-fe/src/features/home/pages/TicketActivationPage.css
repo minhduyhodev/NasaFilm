@@ -1,0 +1,37 @@
+.ticket-activation-page {
+  background: #0a0a0a;
+}
+
+.activation-hero-title {
+  @apply text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-white leading-tight;
+  font-family: Montserrat, sans-serif;
+}
+
+.activation-panel {
+  @apply rounded-xl border border-white/10 bg-[#111111] p-6 md:p-8;
+}
+
+.activation-input-wrap {
+  @apply flex items-center gap-3 rounded-lg border border-white/10 bg-[#0d0d0d] px-4 py-3.5 focus-within:border-red-500/50 transition-colors;
+}
+
+.activation-input {
+  @apply w-full bg-transparent text-base md:text-lg font-bold tracking-[0.25em] text-white placeholder:text-white/25 outline-none uppercase;
+}
+
+.activation-btn {
+  @apply inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-4 text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-red-700 hover:shadow-[0_8px_24px_rgba(220,38,38,0.35)] disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.activation-badge {
+  @apply flex items-center gap-2 rounded-lg border border-white/5 bg-[#141414] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white/70;
+}
+
+.activation-step-num {
+  @apply text-4xl font-black leading-none text-transparent;
+  -webkit-text-stroke: 1px rgba(220, 38, 38, 0.5);
+}
+
+.activation-gallery-item {
+  @apply relative aspect-[4/3] overflow-hidden rounded-lg border border-white/5;
+}
