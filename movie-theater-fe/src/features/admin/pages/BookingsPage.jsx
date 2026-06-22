@@ -8,7 +8,7 @@ import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
 import './BookingsPage.css';
 
@@ -685,13 +685,12 @@ const BookingsPage = () => {
                   {/* SECTION 1: CUSTOMER */}
                   <div className="w-52 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center gap-2">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-slate-800 shrink-0 flex items-center justify-center">
-                        {row.customerAvatarUrl ? (
-                          <img src={normalizeAvatarUrl(row.customerAvatarUrl)} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                        ) : (
-                          <User className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
+                      <UserAvatar
+                        src={row.customerAvatarUrl}
+                        name={row.customerName}
+                        fallbackClassName="bg-slate-800"
+                        borderClassName="border border-white/10"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold text-white leading-snug break-words">{row.customerName || 'N/A'}</div>
                         <div className="text-xs text-gray-400 break-words mt-0.5">{row.customerEmail || 'N/A'}</div>

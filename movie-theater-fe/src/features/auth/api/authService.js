@@ -211,6 +211,19 @@ class AuthService {
     }
   }
 
+  async activateAccount({ token, temporaryPassword, password }) {
+    try {
+      const response = await this.api.post('/api/activate-account', {
+        token,
+        temporaryPassword,
+        newPassword: password,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async refreshToken() {
     try {
       const currentRefreshToken = tokenService.getRefreshToken();

@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getEnabledRoomTypes } from '../../../shared/utils/systemConfig';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
 
 const inputClass =
   'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
-const ROOM_TYPES = ['STANDARD', 'IMAX', 'FOUR_DX', 'DOLBY_ATMOS', 'VIP'];
 const ROOM_STATUSES = [
   { value: 'ACTIVE', label: 'Hoat dong' },
   { value: 'MAINTENANCE', label: 'Bao tri' },
@@ -24,6 +25,7 @@ const AdminCinemaRoomFormPage = () => {
   const [cinemaName, setCinemaName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [roomTypes, setRoomTypes] = useState(() => getEnabledRoomTypes());
   const [form, setForm] = useState({
     roomCode: '',
     name: '',
@@ -64,6 +66,9 @@ const AdminCinemaRoomFormPage = () => {
       }
     };
     load();
+    systemConfigService.getConfig()
+      .then((cfg) => setRoomTypes(getEnabledRoomTypes(cfg)))
+      .catch(() => {});
     return () => { isMounted = false; };
   }, [cinemaUuid, roomUuid, isEditing, navigate]);
 
@@ -116,17 +121,19 @@ const AdminCinemaRoomFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Kieu phong *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.roomType} onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}>
-                {ROOM_TYPES.map((t) => (
-                  <option key={t} value={t} style={{ background: '#0F1322' }}>{t}</option>
+              <select className={`${inputClass} app-select`} value={form.roomType} onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}>
+                {roomTypes.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label || t.value}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
               <label className={labelClass}>Trang thai *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+              <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
                 {ROOM_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value} style={{ background: '#0F1322' }}>{s.label}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </div>

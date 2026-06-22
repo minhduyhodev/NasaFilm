@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.booking.dto.request.ComboRequest;
+import com.thdpv.movietheater.booking.dto.response.ComboRevenueResponse;
 import com.thdpv.movietheater.booking.entity.Combo;
+import com.thdpv.movietheater.booking.service.ComboRevenueService;
 import com.thdpv.movietheater.booking.service.ComboService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
@@ -31,6 +33,12 @@ import lombok.RequiredArgsConstructor;
 public class AdminComboController {
 
     private final ComboService comboService;
+    private final ComboRevenueService comboRevenueService;
+
+    @GetMapping("/revenue/stats")
+    public ResponseEntity<ApiResponse<ComboRevenueResponse>> getRevenueStats() {
+        return ResponseEntity.ok(ApiResponse.success(comboRevenueService.getRevenueStats()));
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Combo>>> getAllCombos() {

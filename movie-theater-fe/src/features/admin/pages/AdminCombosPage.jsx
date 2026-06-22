@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Search, Loader2, ChevronDown, Image as ImageIcon
+  Plus, Search, Loader2, ChevronDown, Image as ImageIcon, Edit2, Trash2,
 } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
+import AdminModal from '../components/AdminModal';
+import ComboFormPanel from '../components/panels/ComboFormPanel';
+import { PrimaryButton, GhostButton } from '../components';
 import './AdminCombosPage.css';
 
 const AdminCombosPage = () => {
-  const navigate = useNavigate();
   const [combosList, setCombosList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [comboModal, setComboModal] = useState({ open: false, mode: 'create', combo: null });
 
   const fetchCombos = async () => {
     setIsLoading(true);
@@ -56,6 +59,40 @@ const AdminCombosPage = () => {
   ];
   const currentStatusOpt = statusOptions.find(opt => opt.value === statusFilter) || statusOptions[0];
 
+  const closeComboModal = () => setComboModal({ open: false, mode: 'create', combo: null });
+
+  const handleComboSaved = async () => {
+    closeComboModal();
+    await fetchCombos();
+  };
+
+  const handleDeleteCombo = async (combo) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa combo "${combo.name}"?`)) return;
+    setIsDeleting(true);
+    try {
+      await comboService.deleteCombo(combo.uuid);
+      notificationService.success('Đã xóa combo');
+      closeComboModal();
+      await fetchCombos();
+    } catch (err) {
+      notificationService.error(err.message || 'Xóa thất bại');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const comboModalTitle =
+    comboModal.mode === 'create'
+      ? 'Tạo combo mới'
+      : comboModal.mode === 'edit'
+        ? 'Chỉnh sửa combo'
+        : comboModal.combo?.name || 'Chi tiết combo';
+
+  const comboModalSubtitle =
+    comboModal.mode === 'detail' && comboModal.combo
+      ? comboModal.combo.status === 'ACTIVE' ? 'Đang bán · Combo bắp nước' : 'Tạm ngưng · Combo bắp nước'
+      : undefined;
+
   return (
     <div className="space-y-6 text-left">
       {/* HEADER PAGE */}
@@ -67,7 +104,7 @@ const AdminCombosPage = () => {
         </div>
 
         <button
-          onClick={() => navigate('/admin/combos/new')}
+          onClick={() => setComboModal({ open: true, mode: 'create', combo: null })}
           className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0 self-start md:self-auto"
         >
           <Plus size={14} /> Tạo Combo Mới
@@ -155,7 +192,7 @@ const AdminCombosPage = () => {
                 <button
                   key={combo.uuid}
                   type="button"
-                  onClick={() => navigate(`/admin/combos/${combo.uuid}`)}
+                  onClick={() => setComboModal({ open: true, mode: 'detail', combo })}
                   className="flex items-center flex-col md:flex-row p-5 gap-4 hover:bg-white/[0.012] transition-colors w-full text-left cursor-pointer bg-transparent border-none"
                 >
                   {/* Thumbnail ảnh */}
@@ -207,6 +244,65 @@ const AdminCombosPage = () => {
         </div>
       )}
 
+      <AdminModal
+        open={comboModal.open}
+        onClose={closeComboModal}
+        title={comboModalTitle}
+        subtitle={comboModalSubtitle}
+        size={comboModal.mode === 'detail' ? 'md' : 'lg'}
+      >
+        {comboModal.mode === 'detail' && comboModal.combo && (
+          <div className="space-y-5">
+            <div className="w-full max-w-[200px] mx-auto aspect-square rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+              {comboModal.combo.imageUrl ? (
+                <img src={comboModal.combo.imageUrl} alt={comboModal.combo.name} className="w-full h-full object-cover" />
+              ) : (
+                <ImageIcon className="w-12 h-12 text-gray-600" />
+              )}
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Giá bán</dt>
+                <dd className="text-amber-400 font-bold">{Number(comboModal.combo.price || 0).toLocaleString('vi-VN')} đ</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Trạng thái</dt>
+                <dd className="text-white">{comboModal.combo.status === 'ACTIVE' ? 'Đang bán' : 'Tạm ngưng'}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Mô tả</dt>
+                <dd className="text-gray-300">{comboModal.combo.description || 'Chưa có mô tả'}</dd>
+              </div>
+            </dl>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <PrimaryButton
+                type="button"
+                className="flex-1 justify-center"
+                onClick={() => setComboModal({ open: true, mode: 'edit', combo: comboModal.combo })}
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Chỉnh sửa
+              </PrimaryButton>
+              <GhostButton
+                type="button"
+                className="flex-1 justify-center text-red-400 border-red-500/30 hover:bg-red-500/10"
+                onClick={() => handleDeleteCombo(comboModal.combo)}
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              </GhostButton>
+            </div>
+          </div>
+        )}
+        {(comboModal.mode === 'create' || comboModal.mode === 'edit') && (
+          <ComboFormPanel
+            combo={comboModal.mode === 'edit' ? comboModal.combo : null}
+            onSuccess={handleComboSaved}
+            onCancel={closeComboModal}
+          />
+        )}
+      </AdminModal>
     </div>
   );
 };

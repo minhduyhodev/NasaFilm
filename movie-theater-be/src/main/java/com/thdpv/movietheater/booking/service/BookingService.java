@@ -148,6 +148,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 discountAmount = basePrice.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
@@ -183,11 +192,13 @@ public class BookingService {
             int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
             resolvedPromotion.setUsedCount(currentUsed + 1);
             promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
             bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
         }
 
@@ -291,6 +302,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 // Percentage discount applies to ticket sum (seatTotal)
@@ -326,6 +346,7 @@ public class BookingService {
             int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
             resolvedPromotion.setUsedCount(currentUsed + 1);
             promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
@@ -360,6 +381,7 @@ public class BookingService {
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
             bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
         }
 
@@ -523,8 +545,10 @@ public class BookingService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }
@@ -898,8 +922,9 @@ public class BookingService {
 
         // First play activation
         int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
+        double lockMultiplier = systemConfigService.getOnlineWatchLockMultiplier();
         OffsetDateTime firstPlayedAt = now;
-        OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(durationMinutes * 2L);
+        OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(Math.round(durationMinutes * lockMultiplier));
 
         booking.setFirstPlayedAt(firstPlayedAt);
         booking.setExpiresAt(expiresAt);

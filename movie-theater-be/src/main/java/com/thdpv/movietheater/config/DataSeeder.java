@@ -51,6 +51,7 @@ public class DataSeeder implements CommandLineRunner {
     private final CinemaRepository cinemaRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
+    private final ReferenceMetadataSeeder referenceMetadataSeeder;
 
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
@@ -89,7 +90,8 @@ public class DataSeeder implements CommandLineRunner {
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             CinemaRepository cinemaRepository,
             CinemaRoomRepository cinemaRoomRepository,
-            CinemaService cinemaService) {
+            CinemaService cinemaService,
+            ReferenceMetadataSeeder referenceMetadataSeeder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -101,6 +103,7 @@ public class DataSeeder implements CommandLineRunner {
         this.cinemaRepository = cinemaRepository;
         this.cinemaRoomRepository = cinemaRoomRepository;
         this.cinemaService = cinemaService;
+        this.referenceMetadataSeeder = referenceMetadataSeeder;
     }
 
     @Override
@@ -110,8 +113,7 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
-        seedGenres();
-        seedCountries();
+        referenceMetadataSeeder.seedAll();
         seedMovies();
         // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng có online_price là null
         try {
@@ -243,8 +245,50 @@ public class DataSeeder implements CommandLineRunner {
                     """);
 
             logger.info("Created booking database tables successfully.");
+            migrateVoucherAndScoreSchema();
         } catch (Exception e) {
             logger.error("Failed to create booking database tables", e);
+        }
+    }
+
+    private void migrateVoucherAndScoreSchema() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("""
+                    UPDATE users
+                    SET lifetime_score = GREATEST(COALESCE(score, 0), COALESCE(lifetime_score, 0))
+                    WHERE COALESCE(lifetime_score, 0) = 0
+                    """);
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS points_cost INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_usage_per_user INTEGER");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS user_voucher (
+                        uuid UUID PRIMARY KEY,
+                        user_uuid UUID NOT NULL,
+                        promotion_uuid UUID NOT NULL,
+                        status VARCHAR(32) NOT NULL,
+                        redeemed_at TIMESTAMPTZ NOT NULL,
+                        used_at TIMESTAMPTZ,
+                        booking_uuid UUID
+                    )
+                    """);
+            logger.info("Migrated voucher redemption and lifetime score schema.");
+
+            jdbcTemplate.update("""
+                    UPDATE promotions
+                    SET status = 'ACTIVE',
+                        end_date = ?,
+                        updated_at = ?
+                    WHERE COALESCE(points_cost, 0) = 0
+                      AND (status <> 'ACTIVE' OR end_date IS NULL OR end_date < ?)
+                    """,
+                    java.time.OffsetDateTime.now().plusYears(1),
+                    java.time.OffsetDateTime.now(),
+                    java.time.OffsetDateTime.now());
+        } catch (Exception e) {
+            logger.error("Failed to migrate voucher/score schema", e);
         }
     }
 
@@ -535,39 +579,6 @@ public class DataSeeder implements CommandLineRunner {
         userRoleRepository.save(userRole);
 
         logger.info("Seeded {} user: {}", roleName.name(), email);
-    }
-
-    private void seedGenres() {
-        String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
-                "Phiêu lưu", "Kinh dị" };
-        for (String name : genres) {
-            if (!genreRepository.existsByNameIgnoreCase(name)) {
-                Genre genre = new Genre();
-                genre.setName(name);
-                genreRepository.save(genre);
-                logger.info("Seeded genre: {}", name);
-            }
-        }
-    }
-
-    private void seedCountries() {
-        Object[][] countries = {
-                { "VN", "Việt Nam" },
-                { "US", "Mỹ" },
-                { "JP", "Nhật Bản" },
-                { "CN", "Trung Quốc" }
-        };
-        for (Object[] countryData : countries) {
-            String code = (String) countryData[0];
-            String name = (String) countryData[1];
-            if (!countryRepository.existsByCodeIgnoreCase(code)) {
-                Country country = new Country();
-                country.setCode(code);
-                country.setName(name);
-                countryRepository.save(country);
-                logger.info("Seeded country: {}", name);
-            }
-        }
     }
 
     private void seedMovies() {

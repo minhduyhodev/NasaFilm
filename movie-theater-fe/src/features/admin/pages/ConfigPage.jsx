@@ -1,26 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
+import {
+  DEFAULT_SYSTEM_CONFIG,
+  DEFAULT_ROOM_TYPES,
+  DEFAULT_SCREENING_FORMATS,
+} from '../../../shared/constants/systemConfig';
 import { writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
 import {
   AdminPage,
   PageHeader,
   Section,
   GhostButton,
+  PrimaryButton,
 } from '../components';
 
 const TABS = [
-  { id: 'showtime', label: 'Suat chieu tu dong' },
-  { id: 'pricing', label: 'Dinh gia ve' },
-  { id: 'operations', label: 'Van hanh & bao mat' },
+  { id: 'showtime', label: 'Suất chiếu tự động' },
+  { id: 'pricing', label: 'Định giá vé' },
+  { id: 'limits', label: 'Giới hạn' },
+  { id: 'online', label: 'Phim online' },
+  { id: 'cinema', label: 'Rạp & phòng' },
+  { id: 'operations', label: 'Vận hành & bảo mật' },
 ];
 
 const fieldClass =
   'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/20 transition';
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 const hintClass = 'text-xs text-gray-600 mt-1';
+
+const emptyTypeEntry = () => ({ value: '', label: '', enabled: true });
+
+const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder, labelPlaceholder }) => {
+  const updateItem = (index, field, value) => {
+    onChange(items.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
+  };
+
+  const addItem = () => onChange([...items, emptyTypeEntry()]);
+  const removeItem = (index) => onChange(items.filter((_, i) => i !== index));
+
+  return (
+    <Section title={title} divided>
+      {description && <p className={hintClass + ' mb-4'}>{description}</p>}
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <div
+            key={`${item.value}-${index}`}
+            className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr_auto_auto] gap-3 items-end p-3 rounded-lg bg-white/[0.02] border border-white/5"
+          >
+            <div>
+              <label className={labelClass}>Mã</label>
+              <input
+                type="text"
+                className={fieldClass}
+                value={item.value}
+                placeholder={valuePlaceholder}
+                onChange={(e) => updateItem(index, 'value', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Nhãn hiển thị</label>
+              <input
+                type="text"
+                className={fieldClass}
+                value={item.label}
+                placeholder={labelPlaceholder}
+                onChange={(e) => updateItem(index, 'label', e.target.value)}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-xs text-gray-400 pb-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={item.enabled !== false}
+                onChange={(e) => updateItem(index, 'enabled', e.target.checked)}
+                className="rounded border-white/20 bg-white/5"
+              />
+              Kích hoạt
+            </label>
+            <GhostButton
+              type="button"
+              onClick={() => removeItem(index)}
+              className="text-red-400 hover:text-red-300 pb-2"
+              disabled={items.length <= 1}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </GhostButton>
+          </div>
+        ))}
+      </div>
+      <PrimaryButton type="button" onClick={addItem} className="mt-4 text-xs">
+        <Plus className="w-3.5 h-3.5 mr-1.5" />
+        Thêm mục
+      </PrimaryButton>
+    </Section>
+  );
+};
 
 const ConfigPage = () => {
   const [config, setConfig] = useState(DEFAULT_SYSTEM_CONFIG);
@@ -42,25 +117,25 @@ const ConfigPage = () => {
     try {
       const saved = await systemConfigService.saveConfig(config);
       setConfig(saved);
-      notificationService.success('Da luu cau hinh he thong.');
+      notificationService.success('Đã lưu cấu hình hệ thống.');
     } catch (error) {
-      notificationService.error(error?.message || 'Khong the luu cau hinh.');
+      notificationService.error(error?.message || 'Không thể lưu cấu hình.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleReset = async () => {
-    if (!window.confirm('Khoi phuc tat ca cau hinh ve mac dinh?')) return;
+    if (!window.confirm('Khôi phục tất cả cấu hình về mặc định?')) return;
     setIsSaving(true);
     try {
       const restored = await systemConfigService.saveConfig(DEFAULT_SYSTEM_CONFIG);
       setConfig(restored);
-      notificationService.info('Da khoi phuc cau hinh mac dinh.');
+      notificationService.info('Đã khôi phục cấu hình mặc định.');
     } catch {
       setConfig(DEFAULT_SYSTEM_CONFIG);
       writeCachedSystemConfig(DEFAULT_SYSTEM_CONFIG);
-      notificationService.info('Da khoi phuc cau hinh mac dinh tren trinh duyet.');
+      notificationService.info('Đã khôi phục cấu hình mặc định trên trình duyệt.');
     } finally {
       setIsSaving(false);
     }
@@ -70,10 +145,15 @@ const ConfigPage = () => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const lockPreviewMinutes = (multiplier) => {
+    const m = Number(multiplier) || 2;
+    return `Phim 120 phút → khóa xem ${Math.round(120 * m)} phút (~${(120 * m / 60).toFixed(1)} giờ)`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[320px] text-gray-500 text-sm">
-        Dang tai cau hinh...
+        Đang tải cấu hình...
       </div>
     );
   }
@@ -81,17 +161,17 @@ const ConfigPage = () => {
   return (
     <AdminPage>
       <PageHeader
-        title="Cau hinh he thong"
-        description="Tham so van hanh, dinh gia ve mac dinh va trong so thuat toan suat chieu."
+        title="Cấu hình hệ thống"
+        description="Tham số vận hành, giới hạn đặt vé, phim online và kiểu phòng chiếu."
         primaryAction={{
-          label: 'Luu cau hinh',
+          label: 'Lưu cấu hình',
           onClick: handleSave,
           loading: isSaving,
           disabled: isSaving,
         }}
         menuItems={[
           {
-            label: 'Khoi phuc mac dinh',
+            label: 'Khôi phục mặc định',
             icon: <RotateCcw className="w-3.5 h-3.5" />,
             onClick: handleReset,
             destructive: true,
@@ -115,36 +195,36 @@ const ConfigPage = () => {
 
       {activeTab === 'showtime' && (
         <>
-          <Section title="Khung gio suat chieu">
+          <Section title="Khung giờ suất chiếu">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Gio mo cua</label>
+                <label className={labelClass}>Giờ mở cửa</label>
                 <input type="time" className={fieldClass} value={config.startTime} onChange={(e) => updateField('startTime', e.target.value)} />
-                <p className={hintClass}>Khung gio som nhat thuat toan co the phan bo suat.</p>
+                <p className={hintClass}>Khung giờ sớm nhất thuật toán có thể phân bổ suất.</p>
               </div>
               <div>
-                <label className={labelClass}>Gio dong cua</label>
+                <label className={labelClass}>Giờ đóng cửa</label>
                 <input type="time" className={fieldClass} value={config.endTime} onChange={(e) => updateField('endTime', e.target.value)} />
-                <p className={hintClass}>Thoi gian muon nhat suat phai ket thuc.</p>
+                <p className={hintClass}>Thời gian muộn nhất suất phải kết thúc.</p>
               </div>
               <div>
-                <label className={labelClass}>Thoi gian don dep (phut)</label>
+                <label className={labelClass}>Thời gian dọn dẹp (phút)</label>
                 <input type="number" min="0" max="120" className={fieldClass} value={config.intervalMinutes} onChange={(e) => updateField('intervalMinutes', parseInt(e.target.value) || 0)} />
               </div>
               <div>
-                <label className={labelClass}>Trailer buffer (phut)</label>
+                <label className={labelClass}>Trailer buffer (phút)</label>
                 <input type="number" min="0" max="60" className={fieldClass} value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value) || 0)} />
               </div>
             </div>
           </Section>
 
-          <Section title="Trong so uu tien" divided>
+          <Section title="Trọng số ưu tiên" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { key: 'goldenHourWeight', label: 'Gio vang' },
-                { key: 'weekendWeight', label: 'Cuoi tuan' },
-                { key: 'ratingWeight', label: 'Danh gia phim' },
-                { key: 'genreWeight', label: 'Do hot the loai' },
+                { key: 'goldenHourWeight', label: 'Giờ vàng' },
+                { key: 'weekendWeight', label: 'Cuối tuần' },
+                { key: 'ratingWeight', label: 'Đánh giá phim' },
+                { key: 'genreWeight', label: 'Độ hot thể loại' },
               ].map(({ key, label }) => (
                 <div key={key} className="space-y-2">
                   <div className="flex justify-between text-xs">
@@ -168,28 +248,61 @@ const ConfigPage = () => {
       )}
 
       {activeTab === 'pricing' && (
-        <>
-          <Section title="Gia ve rap">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className={labelClass}>Ve thuong (VND)</label>
-                <input type="number" min="0" step="5000" className={fieldClass} value={config.basePrice} onChange={(e) => updateField('basePrice', parseInt(e.target.value) || 0)} />
-              </div>
-              <div>
-                <label className={labelClass}>Ve VIP (VND)</label>
-                <input type="number" min="0" step="5000" className={fieldClass} value={config.vipPrice} onChange={(e) => updateField('vipPrice', parseInt(e.target.value) || 0)} />
-              </div>
-              <div>
-                <label className={labelClass}>Ve doi (VND)</label>
-                <input type="number" min="0" step="5000" className={fieldClass} value={config.couplePrice} onChange={(e) => updateField('couplePrice', parseInt(e.target.value) || 0)} />
-              </div>
+        <Section title="Giá vé rạp">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClass}>Vé thường (VND)</label>
+              <input type="number" min="0" step="5000" className={fieldClass} value={config.basePrice} onChange={(e) => updateField('basePrice', parseInt(e.target.value) || 0)} />
             </div>
-            <p className={hintClass}>Gia goi y khi tao suat chieu tu dong hoac thu cong.</p>
-          </Section>
+            <div>
+              <label className={labelClass}>Vé VIP (VND)</label>
+              <input type="number" min="0" step="5000" className={fieldClass} value={config.vipPrice} onChange={(e) => updateField('vipPrice', parseInt(e.target.value) || 0)} />
+            </div>
+            <div>
+              <label className={labelClass}>Vé đôi (VND)</label>
+              <input type="number" min="0" step="5000" className={fieldClass} value={config.couplePrice} onChange={(e) => updateField('couplePrice', parseInt(e.target.value) || 0)} />
+            </div>
+          </div>
+          <p className={hintClass}>Giá gợi ý khi tạo suất chiếu tự động hoặc thủ công.</p>
+        </Section>
+      )}
 
-          <Section title="Gia ve streaming (VOD)" divided>
+      {activeTab === 'limits' && (
+        <Section title="Giới hạn đặt vé">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Số ghế tối đa / lần đặt</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                className={fieldClass}
+                value={config.maxSeatsPerBooking}
+                onChange={(e) => updateField('maxSeatsPerBooking', parseInt(e.target.value) || 1)}
+              />
+              <p className={hintClass}>Áp dụng khi khách chọn ghế và xác nhận đặt vé trực tuyến.</p>
+            </div>
+            <div>
+              <label className={labelClass}>Thời gian giữ ghế (phút)</label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                className={fieldClass}
+                value={config.seatLockMinutes}
+                onChange={(e) => updateField('seatLockMinutes', parseInt(e.target.value) || 1)}
+              />
+              <p className={hintClass}>Thời gian đếm ngược trên trang chọn ghế trước khi ghế được giải phóng.</p>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {activeTab === 'online' && (
+        <>
+          <Section title="Giá vé streaming (VOD)">
             <div className="max-w-sm">
-              <label className={labelClass}>Gia mac dinh (VND)</label>
+              <label className={labelClass}>Giá mặc định (VND)</label>
               <input
                 type="number"
                 min="0"
@@ -199,31 +312,84 @@ const ConfigPage = () => {
                 onChange={(e) => updateField('onlineStreamingPrice', parseInt(e.target.value) || 0)}
               />
               <p className={hintClass}>
-                Ap dung khi phim chua co gia VOD rieng. Hien tai:{' '}
-                {Number(config.onlineStreamingPrice || 0).toLocaleString('vi-VN')}d / ve.
+                Áp dụng khi phim chưa có giá VOD riêng. Hiện tại:{' '}
+                {Number(config.onlineStreamingPrice || 0).toLocaleString('vi-VN')}đ / vé.
               </p>
+            </div>
+          </Section>
+
+          <Section title="Thời lượng khóa phim online" divided>
+            <div className="max-w-md space-y-3">
+              <div>
+                <label className={labelClass}>Hệ số thời lượng xem (× thời lượng phim)</label>
+                <input
+                  type="number"
+                  min="0.5"
+                  max="10"
+                  step="0.5"
+                  className={fieldClass}
+                  value={config.onlineWatchLockMultiplier}
+                  onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value) || 2)}
+                />
+                <p className={hintClass}>
+                  Sau khi kích hoạt vé VOD, thời gian xem = thời lượng phim × hệ số.
+                  {' '}{lockPreviewMinutes(config.onlineWatchLockMultiplier)}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Hệ số</span>
+                  <span className="text-gray-300">{config.onlineWatchLockMultiplier}x</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="10"
+                  step="0.5"
+                  className="w-full accent-white cursor-pointer"
+                  value={config.onlineWatchLockMultiplier}
+                  onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value))}
+                />
+              </div>
             </div>
           </Section>
         </>
       )}
 
+      {activeTab === 'cinema' && (
+        <>
+          <ConfigTypeList
+            title="Kiểu phòng chiếu"
+            description="Danh sách kiểu phòng hiển thị khi tạo phòng mới. Mã phải khớp enum backend (STANDARD, IMAX, VIP, ...)."
+            items={config.roomTypes || DEFAULT_ROOM_TYPES}
+            onChange={(roomTypes) => updateField('roomTypes', roomTypes)}
+            valuePlaceholder="STANDARD"
+            labelPlaceholder="Standard 2D/3D"
+          />
+          <ConfigTypeList
+            title="Kiểu rạp chiếu / định dạng"
+            description="Định dạng chiếu phim (2D, 3D, IMAX...) dùng cho hiển thị và quản lý suất chiếu."
+            items={config.screeningFormats || DEFAULT_SCREENING_FORMATS}
+            onChange={(screeningFormats) => updateField('screeningFormats', screeningFormats)}
+            valuePlaceholder="2D"
+            labelPlaceholder="2D Phụ đề"
+          />
+        </>
+      )}
+
       {activeTab === 'operations' && (
-        <Section title="Van hanh & bao mat">
+        <Section title="Vận hành & bảo mật">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Tam giu ghe (phut)</label>
-              <input type="number" min="1" max="30" className={fieldClass} value={config.seatLockMinutes} onChange={(e) => updateField('seatLockMinutes', parseInt(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className={labelClass}>Session timeout (gio)</label>
+              <label className={labelClass}>Session timeout (giờ)</label>
               <input type="number" min="1" className={fieldClass} value={config.sessionTimeoutHours} onChange={(e) => updateField('sessionTimeoutHours', parseInt(e.target.value) || 0)} />
             </div>
             <div>
-              <label className={labelClass}>Ty le tich diem (%)</label>
+              <label className={labelClass}>Tỷ lệ tích điểm (%)</label>
               <input type="number" min="0" max="100" className={fieldClass} value={config.pointsEarningRatio} onChange={(e) => updateField('pointsEarningRatio', parseInt(e.target.value) || 0)} />
             </div>
             <div>
-              <label className={labelClass}>Gia tri 1 diem (VND)</label>
+              <label className={labelClass}>Giá trị 1 điểm (VND)</label>
               <input type="number" min="0" step="100" className={fieldClass} value={config.pointsToCashValue} onChange={(e) => updateField('pointsToCashValue', parseInt(e.target.value) || 0)} />
             </div>
           </div>

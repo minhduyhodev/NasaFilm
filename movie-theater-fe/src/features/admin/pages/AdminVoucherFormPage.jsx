@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { formatDateForInput, formatDateForBackend } from '../utils/voucherFormUtils';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getPointsToCashValue } from '../../../shared/utils/systemConfig';
+import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../utils/voucherFormUtils';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
 
 const inputClass =
@@ -17,16 +19,22 @@ const AdminVoucherFormPage = () => {
 
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
+  const [pointsToCashValue, setPointsToCashValue] = useState(() => getPointsToCashValue());
   const [form, setForm] = useState({
     code: '',
     discountType: 'PERCENTAGE',
     discountValue: '',
     maxUsage: '',
-    oncePerUser: false,
     startDate: '',
     endDate: '',
     status: 'ACTIVE',
   });
+
+  useEffect(() => {
+    systemConfigService.getConfig()
+      .then((cfg) => setPointsToCashValue(getPointsToCashValue(cfg)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -50,7 +58,6 @@ const AdminVoucherFormPage = () => {
               ? String(Math.round(voucher.discountValue * 100))
               : String(voucher.discountValue),
           maxUsage: voucher.maxUsage != null ? String(voucher.maxUsage) : '',
-          oncePerUser: voucher.oncePerUser || false,
           startDate: formatDateForInput(voucher.startDate),
           endDate: formatDateForInput(voucher.endDate),
           status: voucher.status || 'ACTIVE',
@@ -73,17 +80,19 @@ const AdminVoucherFormPage = () => {
       notificationService.error('Ma voucher khong duoc de trong');
       return;
     }
+    const discountError = validateVoucherDiscountValue(form.discountType, form.discountValue, pointsToCashValue);
+    if (discountError) {
+      notificationService.error(discountError);
+      return;
+    }
     const valueNum = parseFloat(form.discountValue);
-    if (Number.isNaN(valueNum) || valueNum <= 0) {
-      notificationService.error('Gia tri giam phai lon hon 0');
-      return;
-    }
-    if (form.discountType === 'PERCENTAGE' && valueNum > 100) {
-      notificationService.error('Phan tram toi da 100%');
-      return;
-    }
-    if (form.startDate && form.endDate && new Date(form.startDate) >= new Date(form.endDate)) {
-      notificationService.error('Ngay bat dau phai truoc ngay ket thuc');
+    const scheduleError = validateVoucherSchedule({
+      startDate: form.startDate,
+      endDate: form.endDate,
+      isEditing,
+    });
+    if (scheduleError) {
+      notificationService.error(scheduleError);
       return;
     }
 
@@ -92,7 +101,7 @@ const AdminVoucherFormPage = () => {
       discountType: form.discountType,
       discountValue: form.discountType === 'PERCENTAGE' ? valueNum / 100 : valueNum,
       maxUsage: form.maxUsage ? parseInt(form.maxUsage, 10) : null,
-      oncePerUser: form.oncePerUser,
+      oncePerUser: false,
       startDate: formatDateForBackend(form.startDate),
       endDate: formatDateForBackend(form.endDate),
       status: form.status,
@@ -141,14 +150,27 @@ const AdminVoucherFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Loai giam gia *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
-                <option value="PERCENTAGE" style={{ background: '#0F1322' }}>Phan tram (%)</option>
-                <option value="FIXED_AMOUNT" style={{ background: '#0F1322' }}>So tien co dinh (VND)</option>
+              <select className={`${inputClass} app-select`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
+                <option value="PERCENTAGE">Phan tram (%)</option>
+                <option value="FIXED_AMOUNT">So tien co dinh (VND)</option>
               </select>
             </div>
             <div>
               <label className={labelClass}>Gia tri giam *</label>
-              <input type="number" min="1" className={inputClass} value={form.discountValue} onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))} required />
+              <input
+                type="number"
+                min={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
+                step={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
+                className={inputClass}
+                value={form.discountValue}
+                onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))}
+                required
+              />
+              {form.discountType === 'FIXED_AMOUNT' && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Toi thieu {pointsToCashValue.toLocaleString('vi-VN')} VND (gia tri 1 diem theo cau hinh he thong)
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Luot dung toi da</label>
@@ -164,16 +186,10 @@ const AdminVoucherFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Trang thai *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-                <option value="ACTIVE" style={{ background: '#0F1322' }}>Hoat dong</option>
-                <option value="INACTIVE" style={{ background: '#0F1322' }}>Vo hieu</option>
+              <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                <option value="ACTIVE">Hoat dong</option>
+                <option value="INACTIVE">Vo hieu</option>
               </select>
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.oncePerUser} onChange={(e) => setForm((p) => ({ ...p, oncePerUser: e.target.checked }))} />
-                <span className="text-sm text-gray-300">Gioi han 1 lan / khach hang</span>
-              </label>
             </div>
           </div>
         </Section>

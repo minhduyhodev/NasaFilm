@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
@@ -6,6 +6,7 @@ import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
   Mail,
@@ -116,7 +117,9 @@ export const ProfilePage = () => {
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [vouchers, setVouchers] = useState([]);
+  const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [redeemingVoucherId, setRedeemingVoucherId] = useState(null);
   const fileInputRef = useRef(null);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const genderDropdownRef = useRef(null);
@@ -187,8 +190,12 @@ export const ProfilePage = () => {
     const fetchVouchers = async () => {
       setIsLoadingVouchers(true);
       try {
-        const data = await promotionService.getMyVouchers();
-        setVouchers(data || []);
+        const [wallet, catalog] = await Promise.all([
+          promotionService.getMyVouchers(),
+          promotionService.getVoucherCatalog(),
+        ]);
+        setVouchers(wallet || []);
+        setVoucherCatalog(catalog || []);
       } catch (err) {
         console.error("Failed to load user vouchers:", err);
       } finally {
@@ -199,6 +206,26 @@ export const ProfilePage = () => {
       fetchVouchers();
     }
   }, [user]);
+
+  const handleRedeemVoucher = async (promotionId) => {
+    setRedeemingVoucherId(promotionId);
+    try {
+      await promotionService.redeemVoucher(promotionId);
+      notificationService.success('Đổi voucher thành công. Voucher đã được thêm vào ví của bạn.');
+      const refreshedProfile = await authService.getProfile();
+      setProfileData(refreshedProfile);
+      const [wallet, catalog] = await Promise.all([
+        promotionService.getMyVouchers(),
+        promotionService.getVoucherCatalog(),
+      ]);
+      setVouchers(wallet || []);
+      setVoucherCatalog(catalog || []);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể đổi voucher');
+    } finally {
+      setRedeemingVoucherId(null);
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -270,14 +297,66 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  // Loyalty levels based on ERD/UI standard (NASA'FRIEND and NASA'VIP)
-  const loyaltyPoints = profileData && typeof profileData.score === 'number'
+  const currentPoints = profileData && typeof profileData.score === 'number'
     ? profileData.score
     : (user && typeof user.score === 'number' ? user.score : 0);
+  const lifetimePoints = profileData && typeof profileData.lifetimeScore === 'number'
+    ? profileData.lifetimeScore
+    : currentPoints;
   const nextTierPoints = 10000;
-  const rawProgress = (loyaltyPoints / nextTierPoints) * 100;
+  const rawProgress = (lifetimePoints / nextTierPoints) * 100;
   const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
-  const loyaltyTier = loyaltyPoints >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+
+  const usableVouchers = useMemo(
+    () => vouchers.filter((v) => !v.used),
+    [vouchers],
+  );
+  const pointVoucherCatalog = useMemo(
+    () => voucherCatalog.filter((item) => item.requiresRedemption !== false),
+    [voucherCatalog],
+  );
+  const availableVoucherCount = useMemo(
+    () => usableVouchers.length + pointVoucherCatalog.filter((v) => v.eligible).length,
+    [usableVouchers, pointVoucherCatalog],
+  );
+
+  const renderCatalogVoucherCard = (item) => (
+    <div key={item.id} className="voucher-card">
+      <div className="voucher-glow-dot" />
+      <div className="voucher-icon-box">
+        <Gift size={24} className="text-amber-500" />
+      </div>
+      <div className="voucher-body text-left">
+        <div className="flex justify-between items-center mb-1 gap-2">
+          <span className="voucher-code">{item.code}</span>
+          <span className="text-[10px] font-bold text-amber-400">{item.pointsCost} điểm</span>
+        </div>
+        <h4 className="voucher-title">{item.description}</h4>
+        <p className="voucher-desc">
+          Hạng: {item.requiredTierLabel}
+          {item.maxUsagePerUser != null ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản` : ""}
+          {item.maxUsage != null ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống` : ""}
+        </p>
+        <div className="flex justify-between items-center mt-3 gap-2">
+          <span className="text-[10px] text-gray-400">
+            {item.endDate ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}` : "Không giới hạn thời gian"}
+          </span>
+          <button
+            type="button"
+            disabled={!item.eligible || redeemingVoucherId === item.id}
+            onClick={() => handleRedeemVoucher(item.id)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {redeemingVoucherId === item.id ? "Đang đổi..." : "Đổi điểm"}
+          </button>
+        </div>
+        {!item.eligible && item.ineligibleReason && (
+          <p className="text-[10px] text-rose-400 mt-2">{item.ineligibleReason}</p>
+        )}
+      </div>
+    </div>
+  );
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -469,19 +548,19 @@ export const ProfilePage = () => {
           <div className="space-hub-header">
             <div className="cosmic-nebula-bg" />
             <div className="twinkling-stars-bg" />
-            
+
             <div className="space-hub-content grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
+
               {/* Left Column: User details with Orbit System around avatar */}
               <div className="lg:col-span-5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
                 <div className="avatar-orbit-container">
                   <div className="orbit-ring orbit-ring-outer" />
                   <div className="orbit-ring orbit-ring-middle" />
                   <div className="orbit-ring orbit-ring-inner" />
-                  
+
                   <div className="orbit-node node-gold-1" />
                   <div className="orbit-node node-purple-1" />
-                  
+
                   <div
                     onClick={() => !isSaving && fileInputRef.current.click()}
                     className={`profile-avatar-frame cursor-pointer ${isSaving ? "opacity-50" : ""}`}
@@ -489,9 +568,11 @@ export const ProfilePage = () => {
                   >
                     {avatarUrl ? (
                       <img
-                        src={avatarUrl}
+                        src={normalizeAvatarUrl(avatarUrl)}
                         alt="Avatar"
                         className="profile-avatar-image"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarUrl('')}
                       />
                     ) : (
                       <div className="profile-avatar-placeholder">
@@ -520,7 +601,7 @@ export const ProfilePage = () => {
                     </span>
                   </div>
                   <p className="text-zinc-400 text-sm font-semibold">{user?.email}</p>
-                  
+
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-1">
                     <div className="profile-badge-item">
                       <MapPin size={12} className="text-amber-500" />
@@ -537,65 +618,96 @@ export const ProfilePage = () => {
               {/* Right Column: Grand Gold Navigator Membership Panel */}
               <div className="lg:col-span-7 flex flex-col md:flex-row items-center gap-8 bg-black/35 backdrop-blur-xl border border-white/5 p-8 rounded-3xl relative overflow-hidden group">
                 <div className="absolute -right-20 -top-20 w-60 h-60 bg-yellow-500/10 rounded-full blur-[80px] group-hover:bg-yellow-500/15 transition-all duration-700" />
-                
-                <div className="relative flex-shrink-0 w-28 h-28 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-white/5 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-amber-500 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                      strokeDasharray={2 * Math.PI * 48}
-                      strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  
-                  <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Điểm</span>
-                    <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{loyaltyPoints}</span>
+
+                <div className="flex flex-shrink-0 items-center gap-6">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-amber-500 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Hiện tại</span>
+                      <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{currentPoints.toLocaleString('vi-VN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/70 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center px-1 text-center">
+                      <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold leading-tight">Tích lũy</span>
+                      <span className="text-lg font-black text-white font-mono leading-none mt-0.5">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 space-y-2 text-center md:text-left">
                   <span className="text-[9px] tracking-widest text-amber-400 font-black uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
                     ★ Hạng thành viên
                   </span>
-                  
+
                   <h2 className="text-xl font-black text-white uppercase tracking-wider mt-2">
                     {loyaltyTier}
                   </h2>
-                  
+
                   <div className="flex justify-center md:justify-start gap-0.5 text-amber-400">
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
                   </div>
-                  
+
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {loyaltyPoints >= 10000 ? (
+                    {lifetimePoints >= 10000 ? (
                       <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
                     ) : (
-                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - loyaltyPoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - lifetimePoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
                     )}
                   </p>
                 </div>
               </div>
 
             </div>
-            
+
             <input
               type="file"
               ref={fileInputRef}
@@ -651,7 +763,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Gift size={20} />
-                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
+                    <span className="rail-badge">{availableVoucherCount}</span>
                   </div>
                   <span className="rail-label">Ưu đãi của tôi</span>
                 </button>
@@ -819,13 +931,13 @@ export const ProfilePage = () => {
                                 <span>
                                   {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chọn giới tính"}
                                 </span>
-                                <ChevronDown 
-                                  size={16} 
-                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`} 
+                                <ChevronDown
+                                  size={16}
+                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`}
                                   style={{ transition: "transform 0.3s ease" }}
                                 />
                               </button>
-                              
+
                               <AnimatePresence>
                                 {showGenderDropdown && (
                                   <motion.div
@@ -927,14 +1039,14 @@ export const ProfilePage = () => {
                           Tích điểm N'VIP MEMBER
                         </span>
                         <span className="text-yellow-400 font-mono text-base">
-                          {loyaltyPoints}/10K
+                          {lifetimePoints}/10K
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.min((loyaltyPoints / 10000) * 100, 100)}%`,
+                            width: `${Math.min((lifetimePoints / 10000) * 100, 100)}%`,
                           }}
                         />
                       </div>
@@ -1018,7 +1130,7 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
                               HẠNG HIỆN TẠI: NASA'VIP
                             </div>
@@ -1106,7 +1218,7 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
                               BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
                             </button>
@@ -1383,49 +1495,111 @@ export const ProfilePage = () => {
                     className="tab-panel-body"
                   >
                     <div className="panel-header">
-                      <h2>Ưu đãi của bạn</h2>
+                      <h2>Ưu đãi & đổi điểm</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Điểm hiện tại: <span className="text-amber-400 font-bold">{currentPoints.toLocaleString('vi-VN')}</span>
+                        {' · '}
+                        Điểm tích lũy: <span className="text-white font-bold">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                      </p>
                     </div>
 
-                    <div className="vouchers-grid">
-                      {vouchers.map((voucher) => {
-                        const formattedExpiry = voucher.endDate 
-                          ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}` 
-                          : 'Hạn dùng: Không thời hạn';
-                        
-                        return (
-                          <div key={voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
-                            <div className="voucher-glow-dot" />
-                            <div className="voucher-icon-box">
-                              <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                    {isLoadingVouchers ? (
+                      <p className="text-gray-500 text-sm">Đang tải voucher...</p>
+                    ) : (
+                      <div className="space-y-8">
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher có thể sử dụng</h3>
+                          {usableVouchers.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên dưới hoặc xem ưu đãi công khai.</p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {usableVouchers.map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
+                                  : 'Hạn dùng: Không thời hạn';
+                                const isDirectUse = voucher.directUse || (voucher.pointsCost ?? 0) === 0;
+
+                                return (
+                                  <div key={voucher.walletId || voucher.id || voucher.code} className="voucher-card">
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift size={24} className={isDirectUse ? "text-green-500" : "text-amber-500"} />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1 gap-2">
+                                        <span className="voucher-code">{voucher.code}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                          isDirectUse
+                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                        }`}>
+                                          {isDirectUse ? 'Miễn phí' : 'Đã kích hoạt'}
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title">{voucher.description}</h4>
+                                      <p className="voucher-desc">
+                                        {voucher.requiredTierLabel ? `Hạng: ${voucher.requiredTierLabel}` : 'Voucher khả dụng'}
+                                        {isDirectUse ? ' · Dùng trực tiếp khi thanh toán' : ' · Đã đổi điểm'}
+                                      </p>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">{formattedExpiry}</span>
+                                        <span className="font-semibold text-green-400">Sẵn sàng dùng</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <div className="voucher-body text-left">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="voucher-code">{voucher.code}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  voucher.used 
-                                    ? 'bg-gray-800 text-gray-400' 
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                }`}>
-                                  {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
-                                </span>
-                              </div>
-                              <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
-                              <p className="voucher-desc">
-                                {voucher.oncePerUser ? 'Áp dụng cho tài khoản đăng ký mới (1 lần duy nhất).' : 'Áp dụng cho tất cả các tài khoản.'}
-                              </p>
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
-                                <span className="voucher-expiry">
-                                  {formattedExpiry}
-                                </span>
-                                <span className="font-semibold text-amber-500">
-                                  Còn lại: {voucher.oncePerUser ? (voucher.used ? 0 : 1) : (voucher.remainingUsage === 999 ? 'Nhiều' : voucher.remainingUsage)} lượt
-                                </span>
-                              </div>
+                          )}
+                        </section>
+
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Đổi điểm lấy voucher</h3>
+                          {pointVoucherCatalog.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher nào khả dụng để đổi.</p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {pointVoucherCatalog.map((item) => renderCatalogVoucherCard(item))}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </section>
+
+                        {vouchers.some((v) => v.used) && (
+                          <section>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher đã sử dụng</h3>
+                            <div className="vouchers-grid">
+                              {vouchers.filter((v) => v.used).map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
+                                  : 'Hạn dùng: Không thời hạn';
+
+                                return (
+                                  <div key={`used-${voucher.walletId || voucher.id || voucher.code}`} className="voucher-card opacity-50 grayscale border-dashed border-gray-600">
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift size={24} className="text-gray-500" />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="voucher-code">{voucher.code}</span>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                                          Đã sử dụng
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title text-gray-500">{voucher.description}</h4>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">{formattedExpiry}</span>
+                                        <span>Đã dùng</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 

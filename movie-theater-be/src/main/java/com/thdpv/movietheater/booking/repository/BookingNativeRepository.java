@@ -166,6 +166,14 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
 
     @Modifying
     @Query(value = """
+            update users
+            set lifetime_score = greatest(coalesce(lifetime_score, 0) + :scoreAdded, 0)
+            where id = :userUuid
+            """, nativeQuery = true)
+    void addLifetimeScore(@Param("userUuid") UUID userUuid, @Param("scoreAdded") int scoreAdded);
+
+    @Modifying
+    @Query(value = """
             insert into score_history (uuid, user_uuid, score_amount, type, description, created_at)
             values (:uuid, :userUuid, :scoreAmount, :type, :description, :createdAt)
             """, nativeQuery = true)

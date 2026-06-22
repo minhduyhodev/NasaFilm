@@ -1,0 +1,17 @@
+.page-transition-root {
+  width: 100%;
+  will-change: opacity, transform;
+}
+
+.tab-transition-root {
+  width: 100%;
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-root,
+  .tab-transition-root {
+    animation: none !important;
+    transition: none !important;
+  }
+}

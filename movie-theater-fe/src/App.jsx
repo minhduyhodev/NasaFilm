@@ -53,6 +53,7 @@ export default function App() {
 
               <Route path="/forgot-password" element={<AuthRoutes mode="forgot-password" />} />
               <Route path="/reset-password" element={<AuthRoutes mode="reset-password" />} />
+              <Route path="/activate-account" element={<AuthRoutes mode="activate-account" />} />
 
               {/* Legacy auth routes */}
               <Route path="/auth/*" element={<AuthRoutes />} />

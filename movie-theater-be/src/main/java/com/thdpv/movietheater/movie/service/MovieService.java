@@ -294,12 +294,16 @@ public class MovieService {
 
     @Transactional(readOnly = true)
     public List<Genre> getAllGenres() {
-        return genreRepository.findAll();
+        return genreRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
-        return countryRepository.findAll();
+        return countryRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Country::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)

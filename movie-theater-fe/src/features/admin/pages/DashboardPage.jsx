@@ -1,17 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Loader2, TrendingUp, Ticket, DollarSign, Percent } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
-import {
-  AdminPage,
-  PageHeader,
-  Section,
-  MetadataRow,
-} from '../components';
+import TabTransition from '../../../shared/components/TabTransition';
 import './DashboardPage.css';
+
+const CHART_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981', '#6366f1'];
+
+const generateSparkline = (seed, count = 14) => {
+  const base = Math.max(Number(seed) || 1, 1);
+  return Array.from({ length: count }, (_, i) => {
+    const wave = Math.sin(i * 0.65 + base * 0.01) * 0.12;
+    const trend = 0.55 + (i / (count - 1)) * 0.45;
+    return base * trend * (1 + wave);
+  });
+};
+
+const Sparkline = ({ data, color = '#ef4444', className = '' }) => {
+  const width = 120;
+  const height = 36;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 4) - 2;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className={`dashboard-sparkline ${className}`} preserveAspectRatio="none">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+const AreaChart = ({ labels, values, color = '#a855f7' }) => {
+  const width = 560;
+  const height = 220;
+  const pad = { top: 16, right: 16, bottom: 36, left: 48 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+
+  const maxVal = Math.max(...values, 1);
+  const minVal = 0;
+
+  const coords = values.map((v, i) => ({
+    x: pad.left + (i / Math.max(values.length - 1, 1)) * innerW,
+    y: pad.top + innerH - ((v - minVal) / (maxVal - minVal || 1)) * innerH,
+  }));
+
+  const linePath = coords.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${coords[coords.length - 1].x} ${pad.top + innerH} L ${coords[0].x} ${pad.top + innerH} Z`;
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
+    y: pad.top + innerH - t * innerH,
+    label: Math.round(minVal + t * (maxVal - minVal)).toLocaleString('vi-VN'),
+  }));
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="dashboard-area-chart">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {yTicks.map((tick) => (
+        <g key={tick.label}>
+          <line x1={pad.left} y1={tick.y} x2={width - pad.right} y2={tick.y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+          <text x={pad.left - 8} y={tick.y + 4} textAnchor="end" className="dashboard-chart-axis-label">{tick.label}</text>
+        </g>
+      ))}
+      <path d={areaPath} fill="url(#areaGrad)" />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {coords.map((p, i) => (
+        <circle key={labels[i]} cx={p.x} cy={p.y} r="4" fill="#0f1322" stroke={color} strokeWidth="2" />
+      ))}
+      {labels.map((label, i) => (
+        <text
+          key={label}
+          x={coords[i].x}
+          y={height - 10}
+          textAnchor="middle"
+          className="dashboard-chart-x-label"
+        >
+          {label.length > 10 ? `${label.slice(0, 9)}…` : label}
+        </text>
+      ))}
+    </svg>
+  );
+};
+
+const DonutChart = ({ segments }) => {
+  const size = 200;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 72;
+  const stroke = 22;
+  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  let angle = -90;
+
+  const arcs = segments.map((seg, i) => {
+    const pct = seg.value / total;
+    const sweep = pct * 360;
+    const start = angle;
+    angle += sweep;
+    const end = angle;
+    const large = sweep > 180 ? 1 : 0;
+    const rad = (deg) => (deg * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(rad(start));
+    const y1 = cy + r * Math.sin(rad(start));
+    const x2 = cx + r * Math.cos(rad(end));
+    const y2 = cy + r * Math.sin(rad(end));
+    const d = `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+    return { d, color: seg.color || CHART_COLORS[i % CHART_COLORS.length], pct, ...seg };
+  });
+
+  return (
+    <div className="dashboard-donut-wrap">
+      <svg viewBox={`0 0 ${size} ${size}`} className="dashboard-donut-chart">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        {arcs.map((arc) => (
+          <path
+            key={arc.label}
+            d={arc.d}
+            fill="none"
+            stroke={arc.color}
+            strokeWidth={stroke}
+            strokeLinecap="butt"
+          />
+        ))}
+      </svg>
+      <div className="dashboard-donut-center">
+        <span className="dashboard-donut-center-label">Tổng</span>
+        <span className="dashboard-donut-center-value">{total.toLocaleString('vi-VN')}</span>
+      </div>
+    </div>
+  );
+};
 
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('cinemas');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -28,225 +162,257 @@ const DashboardPage = () => {
   }, []);
 
   const formatRevenue = (val) => {
-    if (val == null) return '0đ';
-    if (val >= 1000000) {
-      return (val / 1000000).toFixed(1).replace('.', ',') + 'M đ';
-    }
-    return new Intl.NumberFormat('vi-VN').format(val) + 'đ';
+    if (val == null) return '0';
+    const num = Number(val);
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1).replace('.', ',')}B`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace('.', ',')}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K`;
+    return new Intl.NumberFormat('vi-VN').format(num);
   };
+
+  const formatRevenueFull = (val) => {
+    if (val == null) return '0đ';
+    return `${new Intl.NumberFormat('vi-VN').format(Number(val))}đ`;
+  };
+
+  const chartData = useMemo(() => {
+    if (!stats) return null;
+
+    const cinemas = (stats.cinemas || []).slice(0, 6);
+    const genres = [...(stats.genres || [])]
+      .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
+      .slice(0, 6);
+
+    const cinemaRevenues = cinemas.map((c) => Number(c.revenue) || 0);
+    const genreOccupancy = genres.map((g) => g.occupancyRate || 0);
+
+    const donutSegments = cinemas.map((c, i) => ({
+      label: c.name,
+      value: Number(c.revenue) || 0,
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    })).filter((s) => s.value > 0);
+
+    return {
+      cinemas,
+      genres,
+      cinemaRevenues,
+      genreOccupancy,
+      donutSegments: donutSegments.length ? donutSegments : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155' }],
+    };
+  }, [stats]);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
-        <span className="text-gray-400 text-sm font-semibold">Đang tải thông số vận hành...</span>
+      <div className="dashboard-loading">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        <span className="text-gray-400 text-sm font-medium">Đang tải bảng điều khiển...</span>
       </div>
     );
   }
 
-  const revenueVal = stats ? formatRevenue(stats.totalRevenue) : '0đ';
+  const revenueVal = stats ? formatRevenue(stats.totalRevenue) : '0';
   const transactionVal = stats ? new Intl.NumberFormat('vi-VN').format(stats.totalTransactions) : '0';
-  const growthVal = stats ? (stats.growth >= 0 ? `+${stats.growth.toFixed(1)}%` : `${stats.growth.toFixed(1)}%`) : '0%';
-  const conversionVal = stats ? `${stats.conversionRate.toFixed(1)}%` : '0%';
+  const growthVal = stats ? stats.growth : 0;
+  const conversionVal = stats ? stats.conversionRate : 0;
+  const growthLabel = growthVal >= 0 ? `+${growthVal.toFixed(1)}%` : `${growthVal.toFixed(1)}%`;
+  const isGrowthPositive = growthVal >= 0;
 
-  // Resolve dynamic cinemas data
-  const cinemas = stats?.cinemas || [];
-  const getCinema = (index, defaultName, defaultOccupancy, defaultRevenue) => {
-    if (cinemas[index]) {
-      return {
-        name: cinemas[index].name.toUpperCase(),
-        occupancy: cinemas[index].occupancyRate,
-        revenue: formatRevenue(cinemas[index].revenue)
-      };
-    }
-    return { name: defaultName, occupancy: defaultOccupancy, revenue: defaultRevenue };
-  };
+  const kpis = [
+    {
+      id: 'revenue',
+      label: 'Doanh thu tháng',
+      value: revenueVal,
+      suffix: 'đ',
+      change: growthLabel,
+      positive: isGrowthPositive,
+      sparkColor: '#ef4444',
+      spark: generateSparkline(Number(stats?.totalRevenue) || 100),
+      icon: DollarSign,
+    },
+    {
+      id: 'transactions',
+      label: 'Giao dịch',
+      value: transactionVal,
+      change: isGrowthPositive ? growthLabel : `${Math.abs(growthVal).toFixed(1)}%`,
+      positive: (stats?.totalTransactions || 0) > 0,
+      sparkColor: '#ef4444',
+      spark: generateSparkline(stats?.totalTransactions || 50),
+      icon: Ticket,
+    },
+    {
+      id: 'conversion',
+      label: 'Tỷ lệ chuyển đổi',
+      value: conversionVal.toFixed(1),
+      suffix: '%',
+      change: `${conversionVal >= 10 ? '+' : ''}${(conversionVal * 0.1).toFixed(1)}%`,
+      positive: conversionVal >= 5,
+      sparkColor: '#ef4444',
+      spark: generateSparkline(conversionVal * 100 || 20),
+      icon: Percent,
+    },
+    {
+      id: 'growth',
+      label: 'Tăng trưởng',
+      value: Math.abs(growthVal).toFixed(1),
+      suffix: '%',
+      change: growthLabel,
+      positive: isGrowthPositive,
+      sparkColor: '#ef4444',
+      spark: generateSparkline(Math.abs(growthVal) * 1000 || 30),
+      icon: TrendingUp,
+    },
+  ];
 
-  const planet1 = getCinema(0, 'CHI NHÁNH A', 90, '45Mđ');
-  const planet2 = getCinema(1, 'CHI NHÁNH B', 75, '30Mđ');
-  const planet3 = getCinema(2, 'CHI NHÁNH C', 60, '15Mđ');
+  const tabs = [
+    { id: 'cinemas', label: 'Doanh thu rạp' },
+    { id: 'genres', label: 'Thể loại phim' },
+    { id: 'overview', label: 'Tổng quan' },
+  ];
 
-  // Resolve dynamic genres data
-  const genres = stats?.genres || [];
-  const getGenre = (index, defaultName, defaultOccupancy) => {
-    if (genres[index]) {
-      return {
-        name: genres[index].name.toUpperCase(),
-        occupancy: genres[index].occupancyRate
-      };
-    }
-    return { name: defaultName, occupancy: defaultOccupancy };
-  };
-
-  const g1 = getGenre(0, 'SCI-FI', 92);
-  const g2 = getGenre(1, 'KINH DỊ', 88);
-  const g3 = getGenre(2, 'HÀNH ĐỘNG', 75);
-  const g4 = getGenre(3, 'HOẠT HÌNH', 79);
-  const g5 = getGenre(4, 'DRAMA', 64);
-
-  // Dynamic coordinates calculation for Pentagon Radar Chart
-  const getCoords = (genreData, angleIndex) => {
-    const r = (genreData.occupancy / 100) * 100; // max radius is 100px
-    const center_x = 160;
-    const center_y = 140;
-    let x, y;
-    if (angleIndex === 0) {
-      x = center_x;
-      y = center_y - r;
-    } else if (angleIndex === 1) {
-      x = center_x + r * 0.951;
-      y = center_y - r * 0.309;
-    } else if (angleIndex === 2) {
-      x = center_x + r * 0.588;
-      y = center_y + r * 0.809;
-    } else if (angleIndex === 3) {
-      x = center_x - r * 0.588;
-      y = center_y + r * 0.809;
-    } else {
-      x = center_x - r * 0.951;
-      y = center_y - r * 0.309;
-    }
-    return { x: x.toFixed(1), y: y.toFixed(1) };
-  };
-
-  const p0 = getCoords(g1, 0);
-  const p1 = getCoords(g2, 1);
-  const p2 = getCoords(g3, 2);
-  const p3 = getCoords(g4, 3);
-  const p4 = getCoords(g5, 4);
-
-  const polygonPoints = `${p0.x},${p0.y} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}`;
+  const activeChart =
+    activeTab === 'genres'
+      ? {
+          labels: chartData?.genres.map((g) => g.name) || [],
+          values: chartData?.genreOccupancy || [],
+          title: 'Tỷ lệ lấp đầy theo thể loại',
+          subtitle: 'Phân tích xu hướng khán giả theo genre',
+        }
+      : activeTab === 'overview'
+        ? {
+            labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+            values: generateSparkline(Number(stats?.totalRevenue) || 100, 7),
+            title: 'Xu hướng doanh thu tuần',
+            subtitle: 'Ước tính từ dữ liệu giao dịch hiện tại',
+          }
+        : {
+            labels: chartData?.cinemas.map((c) => c.name) || [],
+            values: chartData?.cinemaRevenues || [],
+            title: 'Doanh thu theo cụm rạp',
+            subtitle: 'So sánh hiệu suất kinh doanh từng chi nhánh',
+          };
 
   return (
-    <AdminPage>
-      <PageHeader
-        title="Bang dieu khien"
-        description="Tong quan van hanh va phan tich he thong rạp."
-      />
+    <div className="dashboard-page">
+      <header className="dashboard-page-header">
+        <h1 className="dashboard-page-title">Bảng điều khiển</h1>
+        <p className="dashboard-page-desc">Tổng quan vận hành và phân tích hệ thống rạp chiếu phim</p>
+      </header>
 
-      <Section title="Chi so chinh">
-        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetadataRow label="Doanh thu thang nay" value={revenueVal} />
-          <MetadataRow label="Ty le chuyen doi" value={conversionVal} />
-          <MetadataRow label="Tang truong" value={growthVal} />
-          <MetadataRow label="Giao dich hoan thanh" value={transactionVal} />
-        </dl>
-      </Section>
-
-      <Section title="Occupancy galaxy" description="Doanh thu theo cum rap" divided>
-        <div className="relative w-full h-[320px] rounded-lg bg-white/[0.02] overflow-hidden flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-scanlines pointer-events-none opacity-[0.03]" />
-            <div className="absolute inset-0 bg-radial-glow pointer-events-none" />
-
-            <svg className="w-full h-full" viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet">
-              <defs>
-                <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity="1" />
-                  <stop offset="40%" stopColor="#f43f5e" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
-                </radialGradient>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="4" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
-
-              {/* Orbit Ellipses */}
-              <ellipse cx="350" cy="150" rx="140" ry="60" fill="none" stroke="#1A2238" strokeWidth="1.5" strokeDasharray="4 6" />
-              <ellipse cx="350" cy="150" rx="230" ry="100" fill="none" stroke="#1A2238" strokeWidth="1.5" strokeDasharray="3 5" />
-              <ellipse cx="350" cy="150" rx="310" ry="130" fill="none" stroke="#1A2238" strokeWidth="1" />
-
-              {/* Central Star: Control Center */}
-              <circle cx="350" cy="150" r="24" fill="url(#sunGlow)" />
-              <circle cx="350" cy="150" r="6" fill="#ffffff" filter="url(#glow)" />
-              <text x="350" y="125" textAnchor="middle" fill="#ef4444" className="text-[10px] font-bold tracking-[0.2em]">NASA HQ</text>
-
-              {/* Planet 1 */}
-              <g className="cursor-pointer group">
-                <circle cx="450" cy="108" r="16" fill="#f43f5e" filter="url(#glow)" className="transition-transform duration-300 hover:scale-125" />
-                <circle cx="450" cy="108" r="6" fill="#ffffff" />
-                <path d="M450,108 L530,70" stroke="#f43f5e" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="530" y="55" width="140" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="536" y="67" fill="#ffffff" className="text-[8px] font-bold">{planet1.name}</text>
-                <text x="536" y="79" fill="#f43f5e" className="text-[8px] font-bold">{planet1.occupancy}% lấp đầy • {planet1.revenue}</text>
-              </g>
-
-              {/* Planet 2 */}
-              <g className="cursor-pointer group">
-                <circle cx="200" cy="190" r="12" fill="#3b82f6" filter="url(#glow)" />
-                <circle cx="200" cy="190" r="4" fill="#ffffff" />
-                <path d="M200,190 L110,210" stroke="#3b82f6" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="10" y="195" width="130" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="16" y="207" fill="#ffffff" className="text-[8px] font-bold">{planet2.name}</text>
-                <text x="16" y="219" fill="#3b82f6" className="text-[8px] font-bold">{planet2.occupancy}% lấp đầy • {planet2.revenue}</text>
-              </g>
-
-              {/* Planet 3 */}
-              <g className="cursor-pointer group">
-                <circle cx="580" cy="210" r="9" fill="#10b981" filter="url(#glow)" />
-                <circle cx="580" cy="210" r="3" fill="#ffffff" />
-                <path d="M580,210 L500,240" stroke="#10b981" strokeWidth="0.75" strokeDasharray="2 2" />
-                <rect x="390" y="225" width="130" height="30" rx="4" fill="#121826" stroke="#1A2238" strokeWidth="1" className="opacity-90" />
-                <text x="396" y="237" fill="#ffffff" className="text-[8px] font-bold">{planet3.name}</text>
-                <text x="396" y="249" fill="#10b981" className="text-[8px] font-bold">{planet3.occupancy}% lấp đầy • {planet3.revenue}</text>
-              </g>
-            </svg>
-        </div>
-        <div className="flex items-center justify-between text-xs text-gray-600 mt-3">
-          <span>Telemetry active</span>
-          <span>System optimal</span>
-        </div>
-      </Section>
-
-      <Section title="Movie radar" description="Ty le lap day theo the loai" divided>
-          <div className="relative w-full h-[260px] flex items-center justify-center rounded-lg bg-white/[0.02] overflow-hidden">
-            <svg className="w-full h-full" viewBox="0 0 320 280">
-              <defs>
-                <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
-
-              {/* Dotted Pentagon Web Grid */}
-              <polygon points="160,40 255.1,109.1 218.8,220.9 101.2,220.9 64.9,109.1" fill="none" stroke="#1A2238" strokeWidth="1" />
-              <polygon points="160,65 231.3,116.8 204.1,200.7 115.9,200.7 88.7,116.8" fill="none" stroke="#1A2238" strokeWidth="0.75" strokeDasharray="3 3" />
-              <polygon points="160,90 207.6,124.5 189.4,180.5 130.6,180.5 112.4,124.5" fill="none" stroke="#1A2238" strokeWidth="0.75" strokeDasharray="3 3" />
-              <polygon points="160,115 183.8,132.3 174.7,160.2 145.3,160.2 136.2,132.3" fill="none" stroke="#1A2238" strokeWidth="0.5" />
-
-              {/* Spider Axes */}
-              <line x1="160" y1="140" x2="160" y2="40" stroke="#1A2238" strokeWidth="1" />
-              <line x1="160" y1="140" x2="255.1" y2="109.1" stroke="#1A2238" strokeWidth="1" />
-              <line x1="160" y1="140" x2="218.8" y2="220.9" stroke="#1A2238" strokeWidth="1" />
-              <line x1="160" y1="140" x2="101.2" y2="220.9" stroke="#1A2238" strokeWidth="1" />
-              <line x1="160" y1="140" x2="64.9" y2="109.1" stroke="#1A2238" strokeWidth="1" />
-
-              {/* Dynamic Data Radar Area */}
-              <polygon 
-                points={polygonPoints} 
-                fill="rgba(239, 68, 68, 0.15)" 
-                stroke="#ef4444" 
-                strokeWidth="2.5" 
-                filter="url(#radarGlow)"
-              />
-
-              {/* Glowing Data Dots */}
-              <circle cx={p0.x} cy={p0.y} r="4.5" fill="#ef4444" />
-              <circle cx={p1.x} cy={p1.y} r="4.5" fill="#ef4444" />
-              <circle cx={p2.x} cy={p2.y} r="4.5" fill="#ef4444" />
-              <circle cx={p3.x} cy={p3.y} r="4.5" fill="#ef4444" />
-              <circle cx={p4.x} cy={p4.y} r="4.5" fill="#ef4444" />
-
-              {/* Radar Labels */}
-              <text x="160" y="27" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g1.name} ({g1.occupancy}%)</text>
-              <text x="265" y="106" textAnchor="start" fill="#ffffff" className="text-[8px] font-bold">{g2.name} ({g2.occupancy}%)</text>
-              <text x="225" y="235" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g3.name} ({g3.occupancy}%)</text>
-              <text x="95" y="235" textAnchor="middle" fill="#ffffff" className="text-[8px] font-bold">{g4.name} ({g4.occupancy}%)</text>
-              <text x="55" y="106" textAnchor="end" fill="#ffffff" className="text-[8px] font-bold">{g5.name} ({g5.occupancy}%)</text>
-            </svg>
+      <div className="dashboard-kpi-grid">
+        {kpis.map((kpi) => (
+          <div key={kpi.id} className="dashboard-kpi-card">
+            <div className="dashboard-kpi-top">
+              <span className="dashboard-kpi-label">{kpi.label}</span>
+              <kpi.icon className="dashboard-kpi-icon" />
+            </div>
+            <div className="dashboard-kpi-body">
+              <div className="dashboard-kpi-values">
+                <span className="dashboard-kpi-value">
+                  {kpi.value}
+                  {kpi.suffix && <span className="dashboard-kpi-suffix">{kpi.suffix}</span>}
+                </span>
+                <span className={`dashboard-kpi-change ${kpi.positive ? 'is-positive' : 'is-negative'}`}>
+                  {kpi.change}
+                </span>
+              </div>
+              <Sparkline data={kpi.spark} color={kpi.sparkColor} />
+            </div>
           </div>
-      </Section>
-    </AdminPage>
+        ))}
+      </div>
+
+      <div className="dashboard-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`dashboard-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <TabTransition activeKey={activeTab} className="dashboard-charts-grid">
+        <div className="dashboard-chart-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2 className="dashboard-panel-title">{activeChart.title}</h2>
+              <p className="dashboard-panel-subtitle">{activeChart.subtitle}</p>
+            </div>
+          </div>
+          <div className="dashboard-chart-area">
+            {activeChart.labels.length > 0 ? (
+              <AreaChart labels={activeChart.labels} values={activeChart.values} />
+            ) : (
+              <div className="dashboard-empty-chart">Chưa có dữ liệu biểu đồ</div>
+            )}
+          </div>
+          <div className="dashboard-chart-legend">
+            <span className="dashboard-legend-dot" style={{ background: '#a855f7' }} />
+            <span>{activeTab === 'genres' ? 'Tỷ lệ lấp đầy (%)' : 'Doanh thu (đ)'}</span>
+          </div>
+        </div>
+
+        <div className="dashboard-chart-panel dashboard-donut-panel">
+          <div className="dashboard-panel-header">
+            <div>
+              <h2 className="dashboard-panel-title">Phân bổ doanh thu</h2>
+              <p className="dashboard-panel-subtitle">Theo cụm rạp chiếu</p>
+            </div>
+          </div>
+          <DonutChart segments={chartData?.donutSegments || []} />
+          <ul className="dashboard-donut-legend">
+            {(chartData?.donutSegments || []).map((seg) => (
+              <li key={seg.label} className="dashboard-donut-legend-item">
+                <span className="dashboard-legend-dot" style={{ background: seg.color }} />
+                <span className="dashboard-donut-legend-label">{seg.label}</span>
+                <span className="dashboard-donut-legend-value">{formatRevenueFull(seg.value)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </TabTransition>
+
+      <div className="dashboard-bottom-grid">
+        <div className="dashboard-mini-panel">
+          <h3 className="dashboard-mini-title">Top cụm rạp</h3>
+          <ul className="dashboard-rank-list">
+            {(stats?.cinemas || []).slice(0, 5).map((cinema, i) => (
+              <li key={cinema.name} className="dashboard-rank-item">
+                <span className="dashboard-rank-index">{i + 1}</span>
+                <div className="dashboard-rank-info">
+                  <span className="dashboard-rank-name">{cinema.name}</span>
+                  <span className="dashboard-rank-meta">{cinema.occupancyRate}% lấp đầy</span>
+                </div>
+                <span className="dashboard-rank-value">{formatRevenueFull(cinema.revenue)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="dashboard-mini-panel">
+          <h3 className="dashboard-mini-title">Thể loại nổi bật</h3>
+          <ul className="dashboard-rank-list">
+            {[...(stats?.genres || [])]
+              .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
+              .slice(0, 5)
+              .map((genre, i) => (
+                <li key={genre.name} className="dashboard-rank-item">
+                  <span className="dashboard-rank-index">{i + 1}</span>
+                  <div className="dashboard-rank-info">
+                    <span className="dashboard-rank-name">{genre.name}</span>
+                    <div className="dashboard-rank-bar-wrap">
+                      <div className="dashboard-rank-bar" style={{ width: `${Math.min(genre.occupancyRate || 0, 100)}%` }} />
+                    </div>
+                  </div>
+                  <span className="dashboard-rank-value">{genre.occupancyRate}%</span>
+                </li>
+              ))}
+          </ul>
+        </div>
+      </div>
+    </div>
   );
 };
 

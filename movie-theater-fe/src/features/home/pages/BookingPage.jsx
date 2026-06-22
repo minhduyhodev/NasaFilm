@@ -38,17 +38,17 @@ const BookingPage = () => {
   const bookingState = getInitialState();
 
   // Extract booking details from routing state
-  const { 
+  const {
     showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX', 
-    movie = 'GALACTIC VANGUARD: RISING TIDE', 
+    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
+    movie = 'GALACTIC VANGUARD: RISING TIDE',
     movieUuid = '',
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06', 
-    showtime = '19:30' 
+    date = 'Hôm nay, 10/06',
+    showtime = '19:30'
   } = bookingState;
 
   const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
@@ -81,25 +81,31 @@ const BookingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasGapViolation, setHasGapViolation] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
 
   const selectedSeatsRef = React.useRef([]);
+  useEffect(() => {
+    systemConfigService.getConfig()
+      .then((cfg) => setMaxSeatsPerBooking(getMaxSeatsPerBooking(cfg)))
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     selectedSeatsRef.current = selectedSeats;
   }, [selectedSeats]);
 
   const fetchSeatMap = async (overrideSelectedUuids) => {
     try {
-      const currentSelectedUuids = overrideSelectedUuids !== undefined 
-        ? overrideSelectedUuids 
+      const currentSelectedUuids = overrideSelectedUuids !== undefined
+        ? overrideSelectedUuids
         : selectedSeatsRef.current.map(s => s.seatUuid);
       const data = await bookingService.getSeatMap(showtimeUuid, currentSelectedUuids);
       if (data && data.rows) {
         setSeatRows(data.rows);
-        
+
         const offset = data._serverTimeOffset || 0;
         let gapFound = false;
         let expiresAtVal = null;
-        
+
         // Synchronize selected seats from BE response (seats marked selected: true or locked by me)
         const newSelected = [];
         data.rows.forEach(row => {
@@ -117,7 +123,7 @@ const BookingPage = () => {
               let vietnameseType = 'Ghế Thường';
               if (seat.seatTypeName === 'VIP') vietnameseType = 'Ghế VIP';
               if (seat.seatTypeName === 'COUPLE') vietnameseType = 'Ghế Đôi';
-              
+
               newSelected.push({
                 seatUuid: seat.seatUuid,
                 id: `${row.rowName}${seat.seatNumber}`,
@@ -131,7 +137,7 @@ const BookingPage = () => {
         });
         setSelectedSeats(newSelected);
         setHasGapViolation(gapFound);
-        
+
         if (expiresAtVal) {
           const serverTime = data.serverTime ? new Date(data.serverTime).getTime() : Date.now();
           const secondsLeft = Math.max(0, Math.floor((expiresAtVal - serverTime) / 1000));
@@ -185,8 +191,8 @@ const BookingPage = () => {
 
   const handleSeatClick = async (seat, rowName) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
-    if (!isAlreadySelected && selectedSeats.length >= 8) {
-      notificationService.error("Bạn chỉ được chọn tối đa 8 ghế trong một lần đặt.");
+    if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
+      notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
       return;
     }
 
@@ -244,9 +250,9 @@ const BookingPage = () => {
     } else if (type.includes('đôi') || type.includes('couple')) {
       type = 'couple';
     }
-    
+
     let seatClass = `seat ${type}`;
-    
+
     if (isOccupied) {
       seatClass += ' occupied';
     } else if (isSelected) {
@@ -281,16 +287,16 @@ const BookingPage = () => {
       <Navbar />
 
       <main className="py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-        
+
         {/* Left Column: Seat Selection */}
         <div className="lg:col-span-8 flex flex-col items-center bg-[#111215]/30 border border-white/5 p-6 rounded-2xl">
-          
+
           {/* Screen Indicator */}
           <div className="w-full mb-16 text-center">
             <div className="screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b from-white/45 to-transparent rounded-[50%] screen-glow"></div>
             <p className="text-[10px] md:text-xs font-bold text-gray-400 mt-4 tracking-widest uppercase">MÀN HÌNH CHÍNH</p>
           </div>
-          
+
           {/* Seat Grid */}
           <div className="flex flex-col gap-2.5 overflow-x-auto w-full items-center pb-4 scrollbar-hide select-none">
             {seatRows.map((rowItem) => {
@@ -319,7 +325,7 @@ const BookingPage = () => {
                 <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
                   {/* Row Label Left */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
-                  
+
                   {/* Left Block */}
                   <div className="flex gap-2">
                     {leftSeats.map(seat => renderSeatElement(seat, row))}
@@ -334,7 +340,7 @@ const BookingPage = () => {
                   <div className="flex gap-2">
                     {rightSeats.map(seat => renderSeatElement(seat, row))}
                   </div>
-                  
+
                   {/* Row Label Right */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
                 </div>
@@ -402,9 +408,9 @@ const BookingPage = () => {
 
             {/* Movie Details */}
             <div className="flex gap-4 mb-6 border-b border-white/10 pb-6 items-start">
-              <img 
-                alt="Movie Poster" 
-                className="w-20 h-28 rounded-lg object-cover shadow-xl border border-white/5 bg-[#0f121d]" 
+              <img
+                alt="Movie Poster"
+                className="w-20 h-28 rounded-lg object-cover shadow-xl border border-white/5 bg-[#0f121d]"
                 src={resolvedPoster || undefined}
               />
               <div className="text-left space-y-1">
@@ -417,8 +423,8 @@ const BookingPage = () => {
                   )}
                   {resolvedAge && (
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-                      resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+                      resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' :
+                      resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' :
                       'bg-amber-600/90 text-white'
                     }`}>
                       {resolvedAge}
@@ -429,7 +435,7 @@ const BookingPage = () => {
                 <p className="text-[10px] font-semibold text-gray-500">{theater}</p>
               </div>
             </div>
-            
+
             {/* Selected Seats List */}
             <div className="flex-grow flex flex-col min-h-[160px]">
               <h3 className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-3">Ghế đã chọn</h3>
@@ -451,31 +457,31 @@ const BookingPage = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Price & Checkout */}
             <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-gray-400">Tổng cộng</span>
                 <span className="text-xl font-black text-white">{totalAmount.toLocaleString('vi-VN')} đ</span>
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleConfirm}
                 disabled={selectedSeats.length === 0 || hasGapViolation || isConfirming}
                 className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
                   selectedSeats.length === 0 || hasGapViolation
-                    ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5' 
+                    ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5'
                     : isConfirming
                       ? 'bg-red-700 text-white cursor-wait opacity-80'
                       : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] cursor-pointer active:scale-[0.98]'
                 }`}
               >
-                {isConfirming 
-                  ? 'Đang xử lý...' 
-                  : hasGapViolation 
-                    ? 'Lỗi khoảng trống ghế' 
-                    : selectedSeats.length === 0 
-                      ? 'Xác nhận ghế' 
+                {isConfirming
+                  ? 'Đang xử lý...'
+                  : hasGapViolation
+                    ? 'Lỗi khoảng trống ghế'
+                    : selectedSeats.length === 0
+                      ? 'Xác nhận ghế'
                       : `Xác nhận đặt (${selectedSeats.length} ghế)`}
               </button>
             </div>

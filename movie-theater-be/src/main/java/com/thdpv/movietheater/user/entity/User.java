@@ -69,6 +69,9 @@ public class User {
 
     private Integer score = 0;
 
+    @Column(name = "lifetime_score", nullable = false)
+    private Integer lifetimeScore = 0;
+
     @Column(name = "verification_code")
     private String verificationCode;
 
@@ -225,6 +228,14 @@ public class User {
 
     public void setScore(Integer score) {
         this.score = score;
+    }
+
+    public Integer getLifetimeScore() {
+        return lifetimeScore;
+    }
+
+    public void setLifetimeScore(Integer lifetimeScore) {
+        this.lifetimeScore = lifetimeScore;
     }
 
     public LocalDateTime getCreatedAt() {

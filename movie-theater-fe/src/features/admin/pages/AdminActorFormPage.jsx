@@ -142,13 +142,13 @@ const AdminActorFormPage = () => {
             <div>
               <label className={labelClass}>Quoc tich *</label>
               <select
-                className={`${inputClass} cursor-pointer`}
+                className={`${inputClass} app-select`}
                 value={formData.countryUuid}
                 onChange={(e) => setFormData((p) => ({ ...p, countryUuid: e.target.value }))}
                 required
               >
                 {countriesList.map((c) => (
-                  <option key={c.uuid} value={c.uuid} style={{ background: '#0F1322' }}>
+                  <option key={c.uuid} value={c.uuid}>
                     {c.name} ({c.code})
                   </option>
                 ))}

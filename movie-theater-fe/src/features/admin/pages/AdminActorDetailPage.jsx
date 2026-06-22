@@ -74,7 +74,7 @@ const AdminActorDetailPage = () => {
     <AdminPage>
       <PageHeader
         title={actor.fullName}
-        description={`ID ${actor.uuid}`}
+        description={actor.countryName || 'Hồ sơ diễn viên'}
         backTo="/admin/actors"
       />
 
