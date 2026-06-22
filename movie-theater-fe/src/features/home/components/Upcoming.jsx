@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, X, Star, Bell, BellRing } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, X, Bell, BellRing } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -239,13 +239,6 @@ const Upcoming = () => {
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-          {upcomingMovie.rating != null && (
-            <div className="absolute top-4 right-4 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-yellow-400 text-xs font-bold border border-white/10">
-              <Star className="h-3 w-3 fill-current" />
-              {Number(upcomingMovie.rating).toFixed(1)}
-            </div>
-          )}
 
           {showtimeLabel && (
             <div className="absolute bottom-4 left-4 right-4">

@@ -132,7 +132,26 @@ class BookingService {
       throw authService.handleError(error);
     }
   }
+
+  async resendVodTicketEmail(movieUuid) {
+    try {
+      const response = await authService.api.post(`/api/vod/resend-ticket/${movieUuid}`);
+      return response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
+
+/**
+ * BE VOD API surface (keep in sync with VodController + BookingController):
+ * - POST /api/bookings/confirm-online
+ * - GET  /api/vod/status/{movieUuid}
+ * - POST /api/vod/play/{movieUuid}
+ * - POST /api/vod/heartbeat/{movieUuid}?streamToken=
+ * - POST /api/vod/resend-ticket/{movieUuid}
+ * - GET  /api/bookings/my-bookings (bookingType ONLINE, movieUuid)
+ */
 
 export const bookingService = new BookingService();
 export default bookingService;

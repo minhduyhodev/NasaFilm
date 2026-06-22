@@ -3,62 +3,16 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { notificationService } from '../../../shared/services/notificationService';
+import { vodService } from '../../../shared/services/vodService';
+import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
 import { authService } from '../../auth/api/authService';
 import { comboService } from '../../../shared/services/comboService';
-
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
+import { notificationService } from '../../../shared/services/notificationService';
 
 import './CheckoutPage.css';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
 
 const CheckoutPage = () => {
   const location = useLocation();
@@ -121,7 +75,8 @@ const CheckoutPage = () => {
     durationMinutes = 0
   } = checkoutState;
 
-  const movieInfo = getMovieInfo(movie);
+  const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
+  const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
 
   const [paymentMethod, setPaymentMethod] = useState('wallet');
   const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
@@ -136,6 +91,52 @@ const CheckoutPage = () => {
   const [combosList, setCombosList] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+
+  useEffect(() => {
+    if (!isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setVodMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isVod, movieUuid]);
+
+  useEffect(() => {
+    if (isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setTheaterMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isVod, movieUuid]);
+
+  const resolvedPoster = isVod
+    ? moviePoster || vodMovieMeta.poster
+    : moviePoster || theaterMovieMeta.poster;
+  const resolvedAge = isVod
+    ? movieAgeRestriction || vodMovieMeta.ageRestriction
+    : movieAgeRestriction || theaterMovieMeta.ageRestriction;
+  const resolvedFormat = isVod ? 'VOD Online' : movieFormat;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -195,8 +196,8 @@ const CheckoutPage = () => {
     }
   }, [location.state?.lockExpiresAt]);
 
-  const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
-  const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const memberDiscountRate = getMemberDiscountRate(userScore);
+  const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
   const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
@@ -280,7 +281,7 @@ const CheckoutPage = () => {
     try {
       let response;
       if (isVod) {
-        response = await bookingService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null);
+        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null);
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
         const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
@@ -305,9 +306,9 @@ const CheckoutPage = () => {
         state: {
           bookingUuid: response.bookingUuid,
           movie: movie,
-          moviePoster: moviePoster || movieInfo.poster,
-          movieFormat: isVod ? 'VOD 4K' : (movieFormat || movieInfo.format),
-          movieRating: movieAgeRestriction || movieInfo.age,
+          moviePoster: resolvedPoster,
+          movieFormat: isVod ? 'VOD Online' : resolvedFormat,
+          movieRating: resolvedAge,
           theater: isVod ? 'Trình phát video NASA VOD' : theater,
           date: isVod ? 'Mọi lúc, mọi nơi' : date,
           showtime: isVod ? 'Xem trực tuyến' : showtime,
@@ -351,7 +352,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={moviePoster || movieInfo.poster} />
+                  <img className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -374,16 +375,16 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
-                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                    {(movieAgeRestriction || movieInfo.age) && (
+                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{resolvedFormat}</span>
+                    {resolvedAge && (
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${
-                        (movieAgeRestriction || movieInfo.age).toUpperCase() === 'P' 
+                        resolvedAge.toUpperCase() === 'P' 
                           ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20' 
-                          : (movieAgeRestriction || movieInfo.age).toUpperCase().includes('T18') 
+                          : resolvedAge.toUpperCase().includes('T18') 
                             ? 'bg-red-600/10 text-red-500 border-red-500/20' 
                             : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
                       }`}>
-                        {movieAgeRestriction || movieInfo.age}
+                        {resolvedAge}
                       </span>
                     )}
                   </div>

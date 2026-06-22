@@ -332,32 +332,12 @@
   border-radius: 12px;
   padding: 16px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
 }
 
 .kpi-card:hover {
   border-color: #334155;
   transform: translateY(-1px);
 }
-
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-}
-
-.kpi-card.kpi-total::after { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
-.kpi-card.kpi-selling::after { background: linear-gradient(90deg, #10b981, #34d399); }
-.kpi-card.kpi-upcoming::after { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-.kpi-card.kpi-playing::after { background: linear-gradient(90deg, #a855f7, #c084fc); }
-.kpi-card.kpi-ended::after { background: linear-gradient(90deg, #64748b, #94a3b8); }
-.kpi-card.kpi-cancelled::after { background: linear-gradient(90deg, #f43f5e, #fb7185); }
-.kpi-card.kpi-occupancy::after { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.kpi-card.kpi-revenue::after { background: linear-gradient(90deg, #ec4899, #f472b6); }
 
 /* ---- Bulk Action Bar ---- */
 .bulk-bar {

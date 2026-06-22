@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, Plus, User, Play, Calendar, FileText, Archive, Pause,
-  ChevronDown, ChevronLeft, ChevronRight, Search, Loader2, Film
+  ChevronLeft, ChevronRight, Search, Loader2, Film
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -15,7 +15,9 @@ import {
   Section,
   PrimaryButton,
   GhostButton,
+  AdminSelectDropdown,
 } from '../components';
+import { adminInputClass } from '../components/adminFormStyles';
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '';
@@ -80,8 +82,6 @@ const AdminMovieFormPage = () => {
   });
   const [defaultOnlinePrice, setDefaultOnlinePrice] = useState(getDefaultOnlineStreamingPrice());
 
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
@@ -90,7 +90,6 @@ const AdminMovieFormPage = () => {
   const [isActorSelectorOpen, setIsActorSelectorOpen] = useState(false);
   const [actorSearchTerm, setActorSearchTerm] = useState('');
   const [actorCountryFilter, setActorCountryFilter] = useState('');
-  const [isActorCountryDropdownOpen, setIsActorCountryDropdownOpen] = useState(false);
   const [posterLoadError, setPosterLoadError] = useState(false);
 
   useEffect(() => {
@@ -113,7 +112,12 @@ const AdminMovieFormPage = () => {
     { value: 'INACTIVE', label: 'Tam ngung', icon: <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" /> }
   ];
 
-  const currentStatusOption = statusOptions.find(opt => opt.value === formData.status) || statusOptions[0];
+  const screeningModeOptions = [
+    { value: 'BOTH', label: 'Ca rap & Xem Online' },
+    { value: 'THEATER_ONLY', label: 'Chi chieu rap' },
+    { value: 'ONLINE_ONLY', label: 'Chi xem Online (VOD)' },
+    { value: 'NONE', label: 'Ngung chieu hoan toan' },
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -268,7 +272,6 @@ const AdminMovieFormPage = () => {
     setActiveCastIndex(index);
     setActorSearchTerm('');
     setActorCountryFilter('');
-    setIsActorCountryDropdownOpen(false);
     setIsActorSelectorOpen(true);
   };
 
@@ -373,7 +376,7 @@ const AdminMovieFormPage = () => {
     }
   };
 
-  const inputClass = 'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors';
+  const inputClass = adminInputClass;
   const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
   if (isLoading) {
@@ -526,92 +529,42 @@ const AdminMovieFormPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-              <div className="relative">
-                <label className={labelClass}>Trang thai phim *</label>
-                <button
-                  type="button"
-                  onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                  className={`${inputClass} flex items-center justify-between cursor-pointer h-[38px]`}
-                >
-                  <span className="flex items-center gap-2">
-                    {currentStatusOption.icon}
-                    <span>{currentStatusOption.label}</span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
-                </button>
-                {isStatusDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsStatusDropdownOpen(false)} />
-                    <div className="absolute left-0 right-0 z-50 mt-1 bg-[#0F1322] border border-[#1A2238] rounded-lg shadow-xl py-1 animate-dropdown-fade-in">
-                      {statusOptions.map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => { setFormData(prev => ({ ...prev, status: opt.value })); setIsStatusDropdownOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/[0.04] cursor-pointer flex items-center gap-2 ${formData.status === opt.value ? 'text-red-400 font-bold bg-red-500/10' : 'text-gray-300'}`}
-                        >
-                          {opt.icon}
-                          <span>{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <AdminSelectDropdown
+                label="Trang thai phim *"
+                labelClassName={labelClass}
+                size="sm"
+                value={formData.status}
+                options={statusOptions}
+                onChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}
+              />
 
-              <div className="relative">
-                <label className={labelClass}>Gioi han do tuoi (Age Rating) *</label>
-                <button
-                  type="button"
-                  onClick={() => setIsAgeDropdownOpen(!isAgeDropdownOpen)}
-                  className={`${inputClass} flex items-center justify-between cursor-pointer h-[38px]`}
-                >
-                  <span>{ageRestrictionOptions.find(opt => opt.value === formData.ageRestriction)?.label || 'Chon lua tuoi...'}</span>
-                  <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
-                </button>
-                {isAgeDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsAgeDropdownOpen(false)} />
-                    <div className="absolute left-0 right-0 z-50 mt-1 bg-[#0F1322] border border-[#1A2238] rounded-lg shadow-xl py-1 animate-dropdown-fade-in">
-                      {ageRestrictionOptions.map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => { setFormData(prev => ({ ...prev, ageRestriction: opt.value })); setIsAgeDropdownOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/[0.04] cursor-pointer ${formData.ageRestriction === opt.value ? 'text-red-400 font-bold bg-red-500/10' : 'text-gray-300'}`}
-                        >
-                          <span>{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <AdminSelectDropdown
+                label="Gioi han do tuoi (Age Rating) *"
+                labelClassName={labelClass}
+                size="sm"
+                value={formData.ageRestriction}
+                options={ageRestrictionOptions}
+                onChange={(val) => setFormData((prev) => ({ ...prev, ageRestriction: val }))}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-              <div>
-                <label className={labelClass}>Hinh thuc phat hanh *</label>
-                <select
-                  value={formData.screeningMode}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData(prev => ({
-                      ...prev,
-                      screeningMode: val,
-                      onlinePrice: (val === 'THEATER_ONLY' || val === 'NONE')
-                        ? ''
-                        : (prev.onlinePrice || String(defaultOnlinePrice))
-                    }));
-                  }}
-                  className={`${inputClass} h-[38px] cursor-pointer`}
-                >
-                  <option value="BOTH">Ca rap &amp; Xem Online</option>
-                  <option value="THEATER_ONLY">Chi chieu rap</option>
-                  <option value="ONLINE_ONLY">Chi xem Online (VOD)</option>
-                  <option value="NONE">Ngung chieu hoan toan</option>
-                </select>
-              </div>
+              <AdminSelectDropdown
+                label="Hinh thuc phat hanh *"
+                labelClassName={labelClass}
+                size="sm"
+                value={formData.screeningMode}
+                options={screeningModeOptions}
+                onChange={(val) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    screeningMode: val,
+                    onlinePrice: (val === 'THEATER_ONLY' || val === 'NONE')
+                      ? ''
+                      : (prev.onlinePrice || String(defaultOnlinePrice)),
+                  }));
+                }}
+              />
 
               <div>
                 <label className={labelClass}>Gia ve xem Online (VND)</label>
@@ -742,35 +695,20 @@ const AdminMovieFormPage = () => {
                   className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg pl-8 pr-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50"
                 />
               </div>
-              <div>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsActorCountryDropdownOpen(!isActorCountryDropdownOpen)}
-                    className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-2.5 py-1.5 text-xs text-white flex items-center justify-between focus:outline-none focus:border-red-500/50 cursor-pointer select-none"
-                  >
-                    <span className="truncate">
-                      {actorCountryFilter
-                        ? `${countriesList.find(c => c.uuid === actorCountryFilter)?.name} (${countriesList.find(c => c.uuid === actorCountryFilter)?.code})`
-                        : 'Tat ca quoc tich'}
-                    </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-500 shrink-0 ml-1" />
-                  </button>
-                  {isActorCountryDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsActorCountryDropdownOpen(false)} />
-                      <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-[#0F1322] border border-[#1A2238] rounded-lg shadow-xl z-50 py-1 no-scrollbar animate-dropdown-fade-in">
-                        <button type="button" onClick={() => { setActorCountryFilter(''); setIsActorCountryDropdownOpen(false); }} className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-white/[0.04] cursor-pointer ${!actorCountryFilter ? 'text-red-400 font-bold bg-red-500/10' : 'text-gray-300'}`}>Tat ca quoc tich</button>
-                        {countriesList.map((c) => (
-                          <button key={c.uuid} type="button" onClick={() => { setActorCountryFilter(c.uuid); setIsActorCountryDropdownOpen(false); }} className={`w-full text-left px-3 py-1.5 text-xs transition-colors hover:bg-white/[0.04] cursor-pointer ${actorCountryFilter === c.uuid ? 'text-red-400 font-bold bg-red-500/10' : 'text-gray-300'}`}>
-                            {c.name} ({c.code})
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+              <AdminSelectDropdown
+                size="sm"
+                value={actorCountryFilter}
+                placeholder="Tat ca quoc tich"
+                options={[
+                  { value: '', label: 'Tat ca quoc tich' },
+                  ...countriesList.map((c) => ({
+                    value: c.uuid,
+                    label: `${c.name} (${c.code})`,
+                  })),
+                ]}
+                onChange={setActorCountryFilter}
+                menuClassName="max-h-48 overflow-y-auto custom-scrollbar"
+              />
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1 min-h-[200px]">
               {filteredActorsForSelector.length === 0 ? (

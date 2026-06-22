@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { movieService } from '../../../../shared/services/movieService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass } from '../adminFormStyles';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
 
 const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
   const isEditing = Boolean(actor?.uuid);
@@ -84,13 +84,13 @@ const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
       <div>
         <label className={adminLabelClass}>Quốc tịch *</label>
         <select
-          className={`${adminInputClass} cursor-pointer`}
+          className={adminSelectClass}
           value={formData.countryUuid}
           onChange={(e) => setFormData((p) => ({ ...p, countryUuid: e.target.value }))}
           required
         >
           {countriesList.map((c) => (
-            <option key={c.uuid} value={c.uuid} style={{ background: '#0F1322' }}>
+            <option key={c.uuid} value={c.uuid}>
               {c.name} ({c.code})
             </option>
           ))}

@@ -6,7 +6,7 @@ import { getPointsToCashValue } from '../../../../shared/utils/systemConfig';
 import { TIER_FORM_OPTIONS } from '../../../../shared/utils/memberTiers';
 import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../../utils/voucherFormUtils';
 import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass } from '../adminFormStyles';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
 
 const VOUCHER_TYPES = {
   REDEEM: 'REDEEM',
@@ -196,17 +196,17 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
         )}
         <div>
           <label className={adminLabelClass}>Hạng thành viên *</label>
-          <select className={`${adminInputClass} cursor-pointer`} value={form.minScore} onChange={(e) => setForm((p) => ({ ...p, minScore: Number(e.target.value) }))}>
+          <select className={adminSelectClass} value={form.minScore} onChange={(e) => setForm((p) => ({ ...p, minScore: Number(e.target.value) }))}>
             {TIER_FORM_OPTIONS.map((tier) => (
-              <option key={tier.value} value={tier.value} style={{ background: '#0F1322' }}>{tier.label}</option>
+              <option key={tier.value} value={tier.value}>{tier.label}</option>
             ))}
           </select>
         </div>
         <div>
           <label className={adminLabelClass}>Loại giảm giá *</label>
-          <select className={`${adminInputClass} cursor-pointer`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
-            <option value="PERCENTAGE" style={{ background: '#0F1322' }}>Phần trăm (%)</option>
-            <option value="FIXED_AMOUNT" style={{ background: '#0F1322' }}>Số tiền cố định (VND)</option>
+          <select className={adminSelectClass} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
+            <option value="PERCENTAGE">Phần trăm (%)</option>
+            <option value="FIXED_AMOUNT">Số tiền cố định (VND)</option>
           </select>
         </div>
         <div>
@@ -251,9 +251,9 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
         </div>
         <div>
           <label className={adminLabelClass}>Trạng thái *</label>
-          <select className={`${adminInputClass} cursor-pointer`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-            <option value="ACTIVE" style={{ background: '#0F1322' }}>Hoạt động</option>
-            <option value="INACTIVE" style={{ background: '#0F1322' }}>Vô hiệu</option>
+          <select className={adminSelectClass} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+            <option value="ACTIVE">Hoạt động</option>
+            <option value="INACTIVE">Vô hiệu</option>
           </select>
         </div>
       </div>

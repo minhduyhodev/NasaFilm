@@ -22,11 +22,13 @@ import {
   ChevronRight,
   Sliders,
   Shield,
+  Mail,
   Home,
   Database,
   TrendingUp,
   UserCheck,
   DollarSign,
+  Megaphone,
 } from "lucide-react";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import huyAdmin from "../../../shared/assets/huyadmin.jpg";
@@ -198,9 +200,9 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
                 "text-rose-400",
               )}
               {renderLink(
-                "/admin/actors",
-                User,
-                "Diễn viên",
+                "/admin/media",
+                Megaphone,
+                "Truyền thông",
                 "text-violet-400",
               )}
               {renderLink(
@@ -292,15 +294,9 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
         <div className="space-y-1 text-left">
           {renderGroupHeader("Cấu hình & Bảo mật", "security", Shield)}
           {(!isOpen || openGroups.security) && (
-            <div
-              className={`${isOpen ? "pl-2 border-l border-[#1E293B]/10 ml-4.5 space-y-1" : "space-y-1"}`}
-            >
-              {renderLink(
-                "/admin/config",
-                Sliders,
-                "Cấu hình hệ thống",
-                "text-amber-400",
-              )}
+            <div className={`${isOpen ? 'pl-2 border-l border-[#1E293B]/10 ml-4.5 space-y-1' : 'space-y-1'}`}>
+              {renderLink('/admin/config', Sliders, 'Cấu hình hệ thống', 'text-amber-400')}
+              {renderLink('/admin/email-templates', Mail, 'Mẫu email HTML', 'text-sky-400')}
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { notificationService } from '../../../../shared/services/notificationSer
 import { systemConfigService } from '../../../../shared/services/systemConfigService';
 import { getEnabledRoomTypes } from '../../../../shared/utils/systemConfig';
 import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass } from '../adminFormStyles';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
 const ROOM_STATUSES = [
   { value: 'ACTIVE', label: 'Hoạt động' },
   { value: 'MAINTENANCE', label: 'Bảo trì' },
@@ -91,12 +91,12 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
         <div>
           <label className={adminLabelClass}>Kiểu phòng *</label>
           <select
-            className={`${adminInputClass} cursor-pointer`}
+            className={adminSelectClass}
             value={form.roomType}
             onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}
           >
             {roomTypes.map((t) => (
-              <option key={t.value} value={t.value} style={{ background: '#0F1322' }}>
+              <option key={t.value} value={t.value}>
                 {t.label || t.value}
               </option>
             ))}
@@ -115,12 +115,12 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
         <div className="sm:col-span-2">
           <label className={adminLabelClass}>Trạng thái *</label>
           <select
-            className={`${adminInputClass} cursor-pointer`}
+            className={adminSelectClass}
             value={form.status}
             onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
           >
             {ROOM_STATUSES.map((s) => (
-              <option key={s.value} value={s.value} style={{ background: '#0F1322' }}>{s.label}</option>
+              <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
         </div>

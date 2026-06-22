@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,6 +55,8 @@ import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
+import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.notification.service.TheaterNotificationService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +82,8 @@ public class BookingService {
     private final CinemaRoomRepository cinemaRoomRepository;
     private final MovieRepository movieRepository;
     private final SystemConfigService systemConfigService;
+    private final VodNotificationService vodNotificationService;
+    private final TheaterNotificationService theaterNotificationService;
     private final VoucherRedemptionService voucherRedemptionService;
 
     @Transactional
@@ -95,6 +100,19 @@ public class BookingService {
 
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
+
+        Optional<Booking> existingOpt = bookingJpaRepository
+                .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                        userUuid, request.getMovieUuid(), "ONLINE", BOOKING_STATUS_CONFIRMED);
+        if (existingOpt.isPresent()) {
+            Booking existing = existingOpt.get();
+            boolean stillValid = existing.getFirstPlayedAt() == null
+                    || (existing.getExpiresAt() != null && !now.isAfter(existing.getExpiresAt()));
+            if (stillValid) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Bạn vẫn còn vé xem online còn hiệu lực cho phim này. Vui lòng kích hoạt hoặc xem trước khi mua thêm.");
+            }
+        }
 
         BigDecimal basePrice = movie.getOnlinePrice() != null
                 ? movie.getOnlinePrice()
@@ -183,6 +201,12 @@ public class BookingService {
             bookingRepository.addUserScore(userUuid, scoreAdded);
             bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+        }
+
+        try {
+            vodNotificationService.sendVodTicketEmail(userUuid, bookingUuid, movie.getTitle(), movie.getUuid());
+        } catch (Exception ex) {
+            // Không chặn đặt vé nếu gửi email thất bại
         }
 
         return new BookingResponse(
@@ -381,6 +405,19 @@ public class BookingService {
             // Log warning but do not break booking flow
         }
 
+        try {
+            sendTheaterTicketEmailNotification(
+                    userUuid,
+                    bookingUuid,
+                    request.getShowtimeUuid(),
+                    seatLines,
+                    comboLines,
+                    ticketLines,
+                    totalPrice);
+        } catch (Exception ex) {
+            // Không chặn đặt vé nếu gửi email thất bại
+        }
+
         return new BookingResponse(
                 bookingUuid,
                 request.getShowtimeUuid(),
@@ -538,6 +575,61 @@ public class BookingService {
     private String generateTicketCode() {
         return "TK" + OffsetDateTime.now(ZoneOffset.UTC).toInstant().toEpochMilli()
                 + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private void sendTheaterTicketEmailNotification(
+            UUID userUuid,
+            UUID bookingUuid,
+            UUID showtimeUuid,
+            List<BookingResponse.SeatLine> seatLines,
+            List<BookingResponse.ComboLine> comboLines,
+            List<BookingResponse.TicketLine> ticketLines,
+            BigDecimal totalPrice) {
+        Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
+        if (showtime == null) {
+            return;
+        }
+
+        Movie movie = movieRepository.findById(showtime.getMovieUuid()).orElse(null);
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+
+        String movieTitle = movie != null ? movie.getTitle() : "Phim";
+        String cinemaName = room != null ? room.getName() : "";
+        if (room != null && room.getCinema() != null && room.getCinema().getName() != null) {
+            cinemaName = room.getCinema().getName() + " - " + room.getName();
+        }
+
+        String showtimeLabel = "";
+        if (showtime.getStartTime() != null) {
+            showtimeLabel = showtime.getStartTime()
+                    .withOffsetSameInstant(ZoneOffset.ofHours(7))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"));
+        }
+
+        String seatsLabel = seatLines.stream()
+                .map(seat -> seat.getRowName() + seat.getSeatNumber())
+                .collect(Collectors.joining(", "));
+
+        String combosLabel = comboLines.isEmpty()
+                ? "Không kèm bắp nước"
+                : comboLines.stream()
+                        .map(combo -> combo.getQuantity() + "x " + combo.getName())
+                        .collect(Collectors.joining(", "));
+
+        String ticketCodes = ticketLines.stream()
+                .map(BookingResponse.TicketLine::getTicketCode)
+                .collect(Collectors.joining(", "));
+
+        theaterNotificationService.sendTheaterTicketEmail(
+                userUuid,
+                bookingUuid,
+                movieTitle,
+                cinemaName,
+                showtimeLabel,
+                seatsLabel,
+                combosLabel,
+                formatPrice(totalPrice),
+                ticketCodes);
     }
 
     @Transactional(readOnly = true)
@@ -771,7 +863,33 @@ public class BookingService {
             }
         }
 
-        return new VodStatusResponse(true, playbackState, booking.getFirstPlayedAt(), booking.getExpiresAt(), streamingUrl);
+        return new VodStatusResponse(
+                true,
+                playbackState,
+                booking.getFirstPlayedAt(),
+                booking.getExpiresAt(),
+                streamingUrl);
+    }
+
+    @Transactional
+    public void resendVodTicketEmail(String currentUserEmail, UUID movieUuid) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        Booking booking = bookingJpaRepository
+                .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                        userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé online cho phim này"));
+
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+
+        OffsetDateTime now = OffsetDateTime.now();
+        if (booking.getFirstPlayedAt() != null
+                && booking.getExpiresAt() != null
+                && now.isAfter(booking.getExpiresAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+        }
+
+        vodNotificationService.sendVodTicketEmail(userUuid, booking.getUuid(), movie.getTitle(), movie.getUuid());
     }
 
     @Transactional

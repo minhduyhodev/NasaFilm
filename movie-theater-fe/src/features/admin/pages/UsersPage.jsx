@@ -22,6 +22,7 @@ import UserAvatar from "../../../shared/components/UserAvatar";
 import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
+import { adminFilterSelectClass } from "../components/adminFormStyles";
 import "./UsersPage.css";
 
 const UsersPage = () => {
@@ -322,7 +323,7 @@ const UsersPage = () => {
         <div className="flex items-center gap-2 flex-wrap font-sans sm:ml-auto">
           {/* Status Filter */}
           <select
-            className="bg-[#0B0F19] border border-[#1A2238] text-gray-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+            className={`${adminFilterSelectClass} font-mono`}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -632,7 +633,7 @@ const UsersPage = () => {
                   Trạng thái hoạt động *
                 </label>
                 <select
-                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+                  className={`w-full ${adminFilterSelectClass} font-mono`}
                   value={statusForm}
                   onChange={(e) => setStatusForm(e.target.value)}
                 >

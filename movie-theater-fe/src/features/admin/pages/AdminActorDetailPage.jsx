@@ -29,13 +29,13 @@ const AdminActorDetailPage = () => {
         if (!isMounted) return;
         if (!found) {
           notificationService.error('Khong tim thay dien vien');
-          navigate('/admin/actors');
+          navigate('/admin/media');
           return;
         }
         setActor(found);
       } catch (err) {
         notificationService.error('Khong the tai thong tin dien vien');
-        navigate('/admin/actors');
+        navigate('/admin/media');
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -51,7 +51,7 @@ const AdminActorDetailPage = () => {
     try {
       await movieService.deleteActor(actor.uuid);
       notificationService.success(`Da xoa "${actor.fullName}"`);
-      navigate('/admin/actors');
+      navigate('/admin/media');
     } catch (err) {
       notificationService.error(err.message || 'Xoa that bai');
     } finally {
@@ -75,7 +75,7 @@ const AdminActorDetailPage = () => {
       <PageHeader
         title={actor.fullName}
         description={actor.countryName || 'Hồ sơ diễn viên'}
-        backTo="/admin/actors"
+        backTo="/admin/media"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -92,7 +92,7 @@ const AdminActorDetailPage = () => {
             <PrimaryButton
               type="button"
               className="w-full justify-center py-2.5"
-              onClick={() => navigate(`/admin/actors/${actor.uuid}/edit`)}
+              onClick={() => navigate('/admin/media')}
             >
               <Edit2 className="w-3.5 h-3.5" />
               Chinh sua

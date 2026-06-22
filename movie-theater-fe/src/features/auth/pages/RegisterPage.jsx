@@ -336,21 +336,16 @@ export const RegisterPage = () => {
                 </div>
                 <select
                   {...register("gender")}
-                  className={`w-full px-4 pl-12 pr-10 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 appearance-none cursor-pointer ${
+                  className={`w-full px-4 pl-12 pr-10 py-3 app-select bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 ${
                     errors.gender ? 'border-red-500/50' : ''
                   }`}
                   defaultValue=""
                 >
-                  <option value="" disabled className="bg-[#18181b] text-gray-500">Chọn giới tính</option>
-                  <option value="MALE" className="bg-[#18181b] text-white">Nam</option>
-                  <option value="FEMALE" className="bg-[#18181b] text-white">Nữ</option>
-                  <option value="OTHER" className="bg-[#18181b] text-white">Khác</option>
+                  <option value="" disabled>Chọn giới tính</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                  <option value="OTHER">Khác</option>
                 </select>
-                <div className="absolute right-4 text-gray-400 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-chevron-down" viewBox="0 0 16 16">
-                    <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-                  </svg>
-                </div>
               </div>
               {errors.gender && (
                 <p className="text-sm text-red-500 flex items-center gap-2">

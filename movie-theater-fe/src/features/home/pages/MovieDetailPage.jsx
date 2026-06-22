@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
-  Star,
   Clock,
   Calendar,
   Play,
@@ -19,6 +18,7 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
+import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
 import { getOnlineMoviePath, getOnlineActionLabel } from "../utils/movieUtils";
@@ -68,7 +68,7 @@ const MovieDetailPage = () => {
           dbMovie.screeningMode === "ONLINE_ONLY")
       ) {
         try {
-          const status = await bookingService.getVodStatus(dbMovie.uuid);
+          const status = await vodService.getStatus(dbMovie.uuid);
           setVodStatus(status);
         } catch (err) {
           console.error("Failed to load VOD status:", err);
@@ -224,6 +224,7 @@ const MovieDetailPage = () => {
         showtimeUuid: selectedShowtime.uuid,
         theater,
         movie: movie.title,
+        movieUuid: dbMovie.uuid,
         moviePoster: movie.poster,
         movieRating: movie.rating,
         movieFormat: movie.format,
@@ -248,7 +249,7 @@ const MovieDetailPage = () => {
         movieUuid: dbMovie.uuid,
         movie: dbMovie.title,
         moviePoster: dbMovie.poster || "",
-        movieRating: dbMovie.rating || 8.0,
+        movieRating: dbMovie.rating,
         movieFormat: "VOD 4K",
         movieAgeRestriction: dbMovie.ageRestriction || "P",
         totalAmount: resolveMovieOnlinePrice(dbMovie),
@@ -301,7 +302,7 @@ const MovieDetailPage = () => {
     duration: dbMovie.durationMinutes ? `${dbMovie.durationMinutes} phút` : "",
     releaseDate: dbMovie.releaseDate || "",
     genres: dbMovie.genres || [],
-    rating: dbMovie.rating || 8.0,
+    rating: dbMovie.rating,
     format: dbMovie.format || "2D",
     ageRestriction: dbMovie.ageRestriction || "",
     poster:
@@ -438,12 +439,6 @@ const MovieDetailPage = () => {
                   </span>
                 ))}
 
-                {movie.rating && (
-                  <div className="flex items-center gap-1.5 text-yellow-400 font-bold ml-2">
-                    <Star className="h-4 w-4 fill-current" />
-                    <span>{movie.rating.toFixed(1)} IMDb</span>
-                  </div>
-                )}
               </div>
 
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-wide uppercase">
@@ -497,9 +492,7 @@ const MovieDetailPage = () => {
                         onClick={handleBuyVodClick}
                         className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-purple-600/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                       >
-                        {vodStatus && vodStatus.playbackState === "EXPIRED"
-                          ? "Mua lại xem Online"
-                          : `Mua xem Online`}
+                        Vé xem online
                       </button>
                     )}
                   </>

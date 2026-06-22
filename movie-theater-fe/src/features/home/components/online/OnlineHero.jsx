@@ -1,95 +1,333 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Play, Plus } from 'lucide-react';
-import { getOnlineMoviePath } from '../../utils/movieUtils';
+import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { movieService } from '../../../../shared/services/movieService';
+import {
+  getOnlineMoviePath,
+  getMoviePosterUrl,
+  getHeroTrailerUrl,
+  preloadHeroBackground,
+} from '../../utils/movieUtils';
+import { getHeroBackgroundSource } from '../../utils/videoSourceUtils';
+import './OnlineHero.css';
 
-const OnlineHero = ({ featuredMovie = null, isLoading = false, getOnlinePath, actionLabel = 'Xem ngay' }) => {
-  const title = featuredMovie?.title || 'Vũ Trụ Phim Trực Tuyến';
-  const description = featuredMovie?.description
-    ? featuredMovie.description.slice(0, 180) + (featuredMovie.description.length > 180 ? '...' : '')
-    : 'Thưởng thức kho phim đa dạng mọi lúc mọi nơi với chất lượng cao và trải nghiệm xem phim đỉnh cao trên NASAFilm.';
-  const movieLink = featuredMovie?.uuid
-    ? (getOnlinePath ? getOnlinePath(featuredMovie.uuid) : getOnlineMoviePath(featuredMovie.uuid))
+const HERO_LIMIT = 8;
+const SLIDE_DURATION_MS = 12000;
+const TICK_MS = 80;
+
+const formatDuration = (mins) => {
+  if (!mins) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
+};
+
+const buildSubtitle = (movie, isLoading) => {
+  if (!movie) {
+    return isLoading
+      ? 'Đang tải thư viện phim online...'
+      : 'Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.';
+  }
+  const parts = [];
+  if (movie.durationMinutes) parts.push(formatDuration(movie.durationMinutes));
+  if (movie.genres?.length) parts.push(...movie.genres.slice(0, 2));
+  return parts.length > 0
+    ? parts.join(' · ')
+    : 'Xem trực tuyến chất lượng cao trên NASAFilm.';
+};
+
+const OnlineHero = ({
+  movies = [],
+  isLoading = false,
+  getOnlinePath,
+  getActionLabel,
+  staticHeroBackground,
+}) => {
+  const [enrichedMovies, setEnrichedMovies] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [trailerReady, setTrailerReady] = useState(false);
+  const videoRef = useRef(null);
+  const timerRef = useRef(null);
+  const enrichTokenRef = useRef(0);
+
+  const slides = useMemo(() => {
+    if (enrichedMovies.length > 0) return enrichedMovies.slice(0, HERO_LIMIT);
+    return movies.slice(0, HERO_LIMIT);
+  }, [enrichedMovies, movies]);
+
+  const displayMovie = slides[currentIndex] || null;
+  const contentKey = displayMovie?.uuid || (isLoading ? 'loading' : 'fallback');
+  const title = displayMovie?.title || 'Phim Trực Tuyến';
+  const subtitle = buildSubtitle(displayMovie, isLoading && !displayMovie);
+
+  useEffect(() => {
+    if (!movies?.length) {
+      setEnrichedMovies([]);
+      setCurrentIndex(0);
+      return;
+    }
+
+    setEnrichedMovies(movies.slice(0, HERO_LIMIT));
+    setCurrentIndex(0);
+
+    const token = enrichTokenRef.current + 1;
+    enrichTokenRef.current = token;
+    let cancelled = false;
+
+    const enrich = async () => {
+      const detailed = await Promise.all(
+        movies.slice(0, HERO_LIMIT).map(async (movie) => {
+          try {
+            const detail = await movieService.getMovieDetail(movie.uuid);
+            return {
+              ...movie,
+              ...detail,
+              medias: detail.medias || [],
+              primaryMediaUrl: getMoviePosterUrl(detail) || movie.primaryMediaUrl,
+            };
+          } catch {
+            return movie;
+          }
+        })
+      );
+      if (!cancelled && enrichTokenRef.current === token) {
+        setEnrichedMovies(detailed);
+      }
+    };
+
+    enrich();
+    return () => {
+      cancelled = true;
+    };
+  }, [movies]);
+
+  const goToSlide = useCallback(
+    (index) => {
+      if (!slides.length) return;
+      const next = (index + slides.length) % slides.length;
+      setCurrentIndex(next);
+      setProgress(0);
+    },
+    [slides.length]
+  );
+
+  const goNext = useCallback(() => goToSlide(currentIndex + 1), [currentIndex, goToSlide]);
+  const goPrev = useCallback(() => goToSlide(currentIndex - 1), [currentIndex, goToSlide]);
+
+  useEffect(() => {
+    if (slides.length <= 1 || isPaused) return undefined;
+
+    timerRef.current = window.setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + (TICK_MS / SLIDE_DURATION_MS) * 100;
+        if (next >= 100) {
+          goToSlide(currentIndex + 1);
+          return 0;
+        }
+        return next;
+      });
+    }, TICK_MS);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [slides.length, currentIndex, isPaused, goToSlide]);
+
+  const poster = displayMovie ? getMoviePosterUrl(displayMovie) : '';
+  const trailerUrl = displayMovie ? getHeroTrailerUrl(displayMovie) : '';
+  const heroSource = trailerUrl ? getHeroBackgroundSource(trailerUrl) : { type: 'none' };
+
+  useEffect(() => {
+    if (!displayMovie?.uuid) {
+      setTrailerReady(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setTrailerReady(false);
+
+    const loadTrailer = async () => {
+      await preloadHeroBackground(displayMovie);
+      if (!cancelled) setTrailerReady(true);
+    };
+
+    loadTrailer();
+    setProgress(0);
+
+    const video = videoRef.current;
+    if (video) {
+      video.load();
+      video.play().catch(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayMovie?.uuid]);
+
+  const movieLink = displayMovie?.uuid
+    ? (getOnlinePath ? getOnlinePath(displayMovie.uuid) : getOnlineMoviePath(displayMovie.uuid))
     : '/online';
-  const heroImage = featuredMovie?.primaryMediaUrl || featuredMovie?.poster || '';
+  const actionLabel = displayMovie
+    ? (getActionLabel ? getActionLabel(displayMovie.uuid, 'Xem ngay') : 'Xem ngay')
+    : 'Xem ngay';
 
   return (
-    <section className="relative min-h-[88vh] md:min-h-screen w-full flex items-end pt-20 pb-10 md:pb-14 overflow-hidden bg-black">
-      <div className="absolute inset-0 z-0 select-none pointer-events-none bg-[#0a0a0a]">
-        {heroImage ? (
+    <section
+      className="online-hero online-hero--page"
+      style={staticHeroBackground ? { backgroundImage: `url(${staticHeroBackground})` } : undefined}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="online-hero__backdrop">
+        {poster && (
           <img
-            src={heroImage}
-            alt={title}
-            className="w-full h-full object-cover transition-opacity duration-500 opacity-100"
-          />
-        ) : (
-          <div
-            className={`w-full h-full bg-gradient-to-br from-neutral-950 via-[#121212] to-neutral-900 ${
-              isLoading ? 'animate-pulse' : ''
-            }`}
+            src={poster}
+            alt=""
+            aria-hidden="true"
+            className="online-hero__poster online-hero__poster--base"
+            decoding="async"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-950/55 to-neutral-950/70" />
-        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/80 via-neutral-950/25 to-transparent" />
+
+        {trailerReady && heroSource.type === 'image' && (
+          <motion.img
+            key={`trailer-${displayMovie?.uuid}`}
+            src={heroSource.url}
+            alt=""
+            aria-hidden="true"
+            className="online-hero__poster online-hero__poster--trailer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            decoding="async"
+            onError={(e) => {
+              if (heroSource.fallbackUrl && e.currentTarget.src !== heroSource.fallbackUrl) {
+                e.currentTarget.src = heroSource.fallbackUrl;
+              }
+            }}
+          />
+        )}
+
+        {trailerReady && heroSource.type === 'video' && (
+          <motion.video
+            key={heroSource.url}
+            ref={videoRef}
+            src={heroSource.url}
+            className="online-hero__video online-hero__poster--trailer"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          />
+        )}
+
+        {trailerReady && heroSource.type === 'embed' && (
+          <iframe
+            title=""
+            aria-hidden="true"
+            src={heroSource.embedUrl}
+            className="online-hero__iframe online-hero__poster--trailer"
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            referrerPolicy="no-referrer"
+          />
+        )}
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 lg:px-20 w-full">
-        <div className="max-w-2xl text-left space-y-4 md:space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/20 bg-red-600/10 text-red-400 text-xs font-extrabold uppercase tracking-wider"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-            Xem trực tuyến
-          </motion.div>
+      <div className="online-hero__overlay-cinemas" aria-hidden="true" />
 
-          <motion.h1
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-[1.05]"
+      {slides.length > 1 && (
+        <div className="online-hero__nav-rail">
+          <button
+            type="button"
+            onClick={goPrev}
+            className="online-hero__nav-btn online-hero__nav-btn--prev"
+            aria-label="Phim trước"
           >
-            {featuredMovie ? (
-              title
-            ) : (
-              <>
-                Vũ Trụ Phim <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-500">
-                  Trực Tuyến
-                </span>
-              </>
-            )}
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-lg text-white/70 font-medium tracking-wide max-w-xl"
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            className="online-hero__nav-btn online-hero__nav-btn--next"
+            aria-label="Phim sau"
           >
-            {description}
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap gap-3 pt-1"
-          >
-            <Link to={movieLink} className="btn-gold">
-              <Play className="h-3.5 w-3.5 fill-current" />
-              {actionLabel}
-            </Link>
-            <Link to={movieLink} className="btn-gold-outline">
-              <Plus className="h-3.5 w-3.5" />
-              Thêm vào danh sách
-            </Link>
-          </motion.div>
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
+      )}
+
+      <div className="online-hero__content online-hero__content--centered">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={contentKey}
+            className="online-hero__copy online-hero__copy--centered"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          >
+            <motion.h1
+              className="online-hero__title"
+              title={title}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              {title}
+            </motion.h1>
+            <motion.p
+              className="online-hero__sub"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              {subtitle}
+            </motion.p>
+
+            {displayMovie && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Link to={movieLink} className="btn-gold online-hero__cta online-hero__cta--centered">
+                  <Play className="h-4 w-4 fill-current" />
+                  {actionLabel}
+                </Link>
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
+
+      {slides.length > 1 && (
+        <div className="online-hero__pager online-hero__pager--centered">
+          <div className="online-hero__progress" aria-hidden="true">
+            <div className="online-hero__progress-bar" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="online-hero__dots" role="tablist" aria-label="Chọn phim nổi bật">
+            {slides.map((movie, idx) => (
+              <button
+                key={movie.uuid}
+                type="button"
+                role="tab"
+                aria-selected={idx === currentIndex}
+                onClick={() => goToSlide(idx)}
+                className={`online-hero__dot ${idx === currentIndex ? 'online-hero__dot--active' : ''}`}
+                aria-label={`Xem ${movie.title}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 };
