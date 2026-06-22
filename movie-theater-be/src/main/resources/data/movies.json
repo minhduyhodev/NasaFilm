@@ -92,7 +92,7 @@
         "updatedAt": "2026-06-15T14:10:42.836025Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream11.com/20231125/49519_efc10c2a/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-15T14:10:42.830007Z",
     "updatedAt": "2026-06-15T14:10:42.830007Z"
   },
@@ -162,7 +162,7 @@
         "updatedAt": "2026-06-15T14:10:42.851078Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream90.com/20260608/34303_1bc949fb/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-15T14:10:42.847699Z",
     "updatedAt": "2026-06-15T14:10:42.847699Z"
   },
@@ -204,13 +204,13 @@
         "updatedAt": "2026-06-15T14:10:42.864045Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://www.youtube.com/embed/Psb5qgkdlkw?si=whoeSAr8rXdERtU1",
     "createdAt": "2026-06-15T14:10:42.859305Z",
     "updatedAt": "2026-06-15T14:10:42.860307Z"
   },
   {
     "uuid": "9af9e603-2c43-41d9-90ab-2bda3137d80e",
-    "title": "Thanh Gươm Diệt Quỷ",
+    "title": "Thanh Gươm Diệt Quỷ: Căn nhà phát ra tiếng trống",
     "description": "Tanjirou cùng các trụ cột bước vào cuộc chiến sinh tử chống lại chúa quỷ Muzan trong pháo đài vô tận.",
     "durationMinutes": 105,
     "releaseDate": "2024-02-23",
@@ -255,7 +255,7 @@
     "medias": [
       {
         "uuid": "aafb2faa-1cef-4967-93a0-29571905818a",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif",
+        "mediaUrl": "https://phimmoir.app/storage/images/thanh-guom-diet-quy-can-nha-phat-ra-tieng-trong/thanh-guom-diet-quy-can-nha-phat-ra-tieng-trong-thumb.webp",
         "mediaType": "POSTER",
         "title": "ThanhGuongDietQuy Poster",
         "isPrimary": true,
@@ -274,7 +274,7 @@
         "updatedAt": "2026-06-15T14:10:42.878682Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream16.com/20231111/37169_bb2128cc/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-15T14:10:42.874193Z",
     "updatedAt": "2026-06-15T14:10:42.874193Z"
   },
@@ -316,13 +316,13 @@
         "updatedAt": "2026-06-15T14:10:42.892502Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream90.com/20260305/26519_49cea6b6/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-15T14:10:42.889403Z",
     "updatedAt": "2026-06-15T14:10:42.889403Z"
   },
   {
     "uuid": "89415d01-3189-491e-ad12-e2f488e06608",
-    "title": "Sword Art Online The Movie: Progressive Scherzo of Deep Night",
+    "title": "Sword Art Online Alicization",
     "description": "Lấy bối cảnh hai tháng sau khi thế giới ảo tử thần bắt đầu, phim xoay quanh hành trình của Kirito và Asuna khám phá tầng 4 của pháo đài Aincrad cùng môi trường bí ẩn và các con trùm khó nhằn.",
     "durationMinutes": 101,
     "releaseDate": "2026-06-15",
@@ -341,7 +341,7 @@
         "uuid": "89e4b221-cb21-465b-9d6e-db5015739e2c",
         "mediaUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ7-6TbT5SwzJt4e3085ccNhHNddbdKY2MEt44CXpF5ZA&s=10",
         "mediaType": "POSTER",
-        "title": "SAO Progressive Poster",
+        "title": "SAO Alicization Poster",
         "isPrimary": true,
         "sortOrder": 1,
         "createdAt": "2026-06-15T14:53:41.333921Z",
@@ -351,21 +351,21 @@
         "uuid": "617c4f50-38f4-4003-b831-cc63b80fd33b",
         "mediaUrl": "https://vs-prodamdfandango.akamaized.net/out/v1/b8926cbbb6524b64b320ecd281f84f4e/24179244572d48768920647994272718/55cfc6748196457d965dfd98aa2d46b8/d18057147c904ac6acda75542d2a2d01/1af7b8b9f8ca4653ae82f69b3af973ab/index_1.m3u8",
         "mediaType": "TRAILER",
-        "title": "SAO Progressive Trailer",
+        "title": "SAO Alicization Trailer",
         "isPrimary": false,
         "sortOrder": 2,
         "createdAt": "2026-06-15T14:53:41.335914Z",
         "updatedAt": "2026-06-15T14:53:41.335914Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream16.com/20231101/36544_4f541c5c/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-15T14:53:41.327382Z",
     "updatedAt": "2026-06-15T14:53:41.327382Z"
   },
   {
     "uuid": "b8b70aa9-781e-4c46-90a0-f1047117dd6f",
-    "title": "Phong Thần I: Sóng Gió Triều Ca",
-    "description": "Dựa trên tiểu thuyết cổ điển Phong Thần Diễn Nghĩa, bộ phim tái hiện cuộc chiến thần thánh giữa triều đại Thương và Chu, nơi các vị thần và yêu quái tranh đoạt quyền lực thiên hạ.",
+    "title": "Sword Art Online: Ordinal Scale",
+    "description": "Đao Kiếm Thần Vực: Ranh Giới Hư Ảo - Sword Art Online: Ordinal Scale 2017 Đao Kiếm Thần Vực: Ranh Giới Hư Ảo' là một bộ phim hành động khoa học viễn tưởng hấp dẫn với sự tham gia của các diễn viên tài năng như Ayana Taketatsu, Haruka Tomatsu, và Yoshitsugu Matsuoka. Được đạo diễn bởi Tomohiko Itou, bộ phim là phần tiếp theo của loạt phim nổi tiếng 'Sword Art Online'. 'Câu chuyện của Ranh Giới Hư Ảo' diễn ra vào năm 2026, tập trung vào việc phát triển của công nghệ mới Augma, với khả năng sử dụng Augmented Reality (AR) để mang người chơi vào một thế giới ảo hoàn toàn mới. Đây được coi là sự cải tiến đáng kể so với các phiên bản trước đó như NerveGear và Amusphere.",
     "durationMinutes": 148,
     "releaseDate": "2023-07-20",
     "status": "NOW_SHOWING",
@@ -409,9 +409,9 @@
     "medias": [
       {
         "uuid": "7c3b929e-6d11-4d48-8137-a55fdc5553c0",
-        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/phong-than-1_jjqhco.webp",
+        "mediaUrl": "https://phimmoir.app/storage/images/dao-kiem-than-vuc-ranh-gioi-hu-ao-ngoai-truyen-2/dao-kiem-than-vuc-ranh-gioi-hu-ao-ngoai-truyen-2-thumb.webp",
         "mediaType": "POSTER",
-        "title": "PhongThan1 Poster",
+        "title": "SAO Poster",
         "isPrimary": true,
         "sortOrder": 1,
         "createdAt": "2026-06-17T02:24:22.417197Z",
@@ -419,16 +419,16 @@
       },
       {
         "uuid": "a1373521-7e52-474b-bb8a-c25491e0ad7d",
-        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/video/upload/Phong_th%E1%BA%A7n_I_-_S%C3%B3ng_gi%C3%B3_tri%E1%BB%81u_ca_-_Trailer_oizbjh.mp4",
+        "mediaUrl": "https://www.youtube.com/embed/VNxxReVeVDI?si=lHKBZi0303sl7jPB",
         "mediaType": "TRAILER",
-        "title": "PhongThan1 Trailer",
+        "title": "SAO Trailer",
         "isPrimary": false,
         "sortOrder": 2,
         "createdAt": "2026-06-17T02:24:22.418208Z",
         "updatedAt": "2026-06-17T02:24:22.418208Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream12.com/20220604/17406_220682bd/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-17T02:24:22.410997Z",
     "updatedAt": "2026-06-17T02:24:22.410997Z"
   },
@@ -489,7 +489,7 @@
         "updatedAt": "2026-06-17T02:24:22.436025Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream90.com/20260601/33526_aa721632/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-17T02:24:22.432549Z",
     "updatedAt": "2026-06-17T02:24:22.432549Z"
   },
@@ -1012,7 +1012,7 @@
   {
     "uuid": "00f4bd16-5077-4d8f-a261-644eaf45549b",
     "title": "Làng Quỷ Quái",
-    "description": "Làng Quỷ Quái – hay còn được gọi là Làng Tai Ương – là cái tên rùng rợn dành cho Kokaloak, vùng cấm địa nơi hội tụ hàng trăm loại oan hồn chưa siêu thoát. Bất chấp hiểm nguy, một nhóm thanh niên liều lĩnh xâm nhập nơi này để lần theo một bí mật kinh hoàng… nhưng trớ trêu thay lại dở khóc dở cười. Khi mọi thứ dần vượt khỏi tầm kiểm soát, kế hoạch ban đầu bị đảo lộn hoàn toàn, đẩy cả nhóm vào những tình huống \"khóc không ra nước mắt\". Giữa ranh giới mong manh của sợ hãi và \"ối giời ơi\", liệu họ sẽ đối mặt và thoát ra khỏi cơn ác mộng này bằng cách nào?",
+    "description": "Làng Quỷ Quái hay còn được gọi là Làng Tai Ương là cái tên rùng rợn dành cho Kokaloak, vùng cấm địa nơi hội tụ hàng trăm loại oan hồn chưa siêu thoát. Bất chấp hiểm nguy, một nhóm thanh niên liều lĩnh xâm nhập nơi này để lần theo một bí mật kinh hoàng… nhưng trớ trêu thay lại dở khóc dở cười. Khi mọi thứ dần vượt khỏi tầm kiểm soát, kế hoạch ban đầu bị đảo lộn hoàn toàn, đẩy cả nhóm vào những tình huống \"khóc không ra nước mắt\". Giữa ranh giới mong manh của sợ hãi và \"ối giời ơi\", liệu họ sẽ đối mặt và thoát ra khỏi cơn ác mộng này bằng cách nào?",
     "durationMinutes": 99,
     "releaseDate": "2026-06-27",
     "status": "NOW_SHOWING",
