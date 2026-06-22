@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
@@ -28,7 +29,7 @@ const Navbar = () => {
         <div className="navbar-logo-group">
           <Link to="/" className="navbar-logo-link gap-3">
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
-            <span className="font-heading text-3xl font-black tracking-wider leading-none text-white">
+            <span className="font-heading text-2xl font-black leading-none tracking-wider text-white sm:text-3xl">
               NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
             </span>
           </Link>
@@ -45,23 +46,10 @@ const Navbar = () => {
         <div className="navbar-actions">
           <button
             onClick={handleBookingClick}
-            className="relative hidden overflow-hidden bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-xs uppercase tracking-wider h-11 pl-4 pr-3.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-[0_4px_15px_rgba(220,38,38,0.3)] md:flex items-stretch shrink-0"
+            className="relative hidden h-11 shrink-0 items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-4 text-xs font-extrabold uppercase tracking-wider text-white shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 hover:scale-[1.02] hover:from-red-700 hover:to-red-600 active:scale-95 md:inline-flex"
           >
-            {/* Left section (Star + Text) */}
-            <span className="flex items-center gap-1.5 pr-3.5 border-r border-dashed border-white/30">
-              <Star className="h-4 w-4 fill-white text-white" />
-              <span>MUA VÉ</span>
-            </span>
-            
-            {/* Right section (Hole punch dot) */}
-            <span className="pl-3.5 pr-0.5 flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            </span>
-
-            {/* Ticket Cutout Notch Top */}
-            <span className="absolute top-0 right-[16px] -translate-y-1/2 w-3 h-3 rounded-full bg-[#0f0f0f]" />
-            {/* Ticket Cutout Notch Bottom */}
-            <span className="absolute bottom-0 right-[16px] translate-y-1/2 w-3 h-3 rounded-full bg-[#0f0f0f]" />
+            <Star className="h-4 w-4 fill-white text-white" />
+            <span>MUA VÉ</span>
           </button>
 
           <NotificationBell />
@@ -80,9 +68,43 @@ const Navbar = () => {
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState(null);
+  const anchorRef = useRef(null);
   const { notifications, markAllAsRead, clearAll } = useNotification();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const updatePanelPosition = useCallback(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(416, window.innerWidth - 16);
+    let left = rect.right - width;
+    left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+
+    setPanelStyle({
+      top: rect.bottom + 8,
+      left,
+      width,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPanelStyle(null);
+      return undefined;
+    }
+
+    updatePanelPosition();
+    window.addEventListener('resize', updatePanelPosition);
+    window.addEventListener('scroll', updatePanelPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePanelPosition);
+      window.removeEventListener('scroll', updatePanelPosition, true);
+    };
+  }, [isOpen, updatePanelPosition, notifications.length]);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -117,10 +139,13 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="notif-bell-wrapper" ref={anchorRef}>
       <button
+        type="button"
         onClick={handleToggle}
         className="navbar-btn-notif relative"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -130,20 +155,25 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && panelStyle && createPortal(
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="notif-dropdown-menu">
+          <div className="notif-dropdown-backdrop" onClick={() => setIsOpen(false)} aria-hidden="true" />
+          <div
+            className="notif-dropdown-menu"
+            style={panelStyle}
+            role="dialog"
+            aria-label="Thông báo"
+          >
             <div className="notif-dropdown-header">
               <h3>Thông báo</h3>
               <div className="notif-dropdown-actions">
                 {notifications.length > 0 && (
                   <>
-                    <button onClick={handleMarkAllRead} className="notif-action-btn">
+                    <button type="button" onClick={handleMarkAllRead} className="notif-action-btn">
                       Đọc tất cả
                     </button>
                     <span className="divider">|</span>
-                    <button onClick={handleClearAll} className="notif-action-btn">
+                    <button type="button" onClick={handleClearAll} className="notif-action-btn">
                       Xóa hết
                     </button>
                   </>
@@ -170,7 +200,7 @@ const NotificationBell = () => {
                           <span className="notif-item-title">{notif.title}</span>
                           <span className="notif-item-time">{formatTime(notif.timestamp)}</span>
                         </div>
-                        <p className="notif-item-text">{notif.content}</p>
+                        <p className="notif-item-text mt-1">{notif.content}</p>
                       </div>
                     </div>
                   ))}
@@ -178,7 +208,8 @@ const NotificationBell = () => {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );
@@ -261,7 +292,7 @@ const AuthControls = () => {
           </span>
 
           {/* Chevron Arrow */}
-          <ChevronDown className={`h-4 w-4 text-white/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-4 w-4 shrink-0 text-white/60 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {/* Dropdown Menu */}

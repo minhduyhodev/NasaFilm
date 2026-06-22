@@ -79,6 +79,7 @@ public class BookingService {
     private final CinemaRoomRepository cinemaRoomRepository;
     private final MovieRepository movieRepository;
     private final SystemConfigService systemConfigService;
+    private final VoucherRedemptionService voucherRedemptionService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -130,6 +131,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 discountAmount = basePrice.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
@@ -165,11 +175,13 @@ public class BookingService {
             int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
             resolvedPromotion.setUsedCount(currentUsed + 1);
             promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
             bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
         }
 
@@ -267,6 +279,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 // Percentage discount applies to ticket sum (seatTotal)
@@ -302,6 +323,7 @@ public class BookingService {
             int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
             resolvedPromotion.setUsedCount(currentUsed + 1);
             promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
@@ -336,6 +358,7 @@ public class BookingService {
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
             bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
         }
 

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.booking.dto.request.PromotionRequest;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.booking.service.PromotionLifecycleService;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -36,10 +37,24 @@ public class AdminPromotionController {
 
     private final PromotionRepository promotionRepository;
     private final SystemConfigService systemConfigService;
+    private final PromotionLifecycleService promotionLifecycleService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Promotion>>> getAllPromotions() {
         List<Promotion> promotions = promotionRepository.findAll();
+        OffsetDateTime now = OffsetDateTime.now();
+        boolean changed = false;
+        for (Promotion promotion : promotions) {
+            if (promotion.isDeleted()) {
+                continue;
+            }
+            if (promotionLifecycleService.syncStatusIfNeeded(promotion, now)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            promotionRepository.saveAll(promotions);
+        }
         promotions.sort((p1, p2) -> {
             OffsetDateTime t1 = p1.getCreatedAt();
             OffsetDateTime t2 = p2.getCreatedAt();
@@ -64,6 +79,8 @@ public class AdminPromotionController {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã tồn tại");
         }
 
+        promotionLifecycleService.validateSchedule(request.getStartDate(), request.getEndDate());
+
         Promotion promotion = new Promotion();
         promotion.setId(UUID.randomUUID());
         promotion.setCode(trimmedCode);
@@ -82,6 +99,10 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
+        promotion.setPointsCost(normalizePointsCost(request.getPointsCost()));
+        validatePromotionLimits(request, promotion.getPointsCost());
+        promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
+        promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
         promotion.setUsedCount(0);
         promotion.setCreatedAt(OffsetDateTime.now());
@@ -98,6 +119,9 @@ public class AdminPromotionController {
         
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy khuyến mãi"));
+        if (promotion.isDeleted()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khuyến mãi đã bị xóa");
+        }
 
         String trimmedCode = request.getCode() != null ? request.getCode().trim().toUpperCase() : "";
         if (trimmedCode.isEmpty()) {
@@ -110,6 +134,8 @@ public class AdminPromotionController {
             }
             promotion.setCode(trimmedCode);
         }
+
+        promotionLifecycleService.validateScheduleForUpdate(request.getStartDate(), request.getEndDate());
 
         promotion.setDiscountType(request.getDiscountType());
         
@@ -126,6 +152,10 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
+        promotion.setPointsCost(normalizePointsCost(request.getPointsCost()));
+        validatePromotionLimits(request, promotion.getPointsCost());
+        promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
+        promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
         promotion.setUpdatedAt(OffsetDateTime.now());
 
@@ -137,7 +167,15 @@ public class AdminPromotionController {
     public ResponseEntity<ApiResponse<Void>> deletePromotion(@PathVariable("id") UUID id) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy khuyến mãi"));
-        promotionRepository.delete(promotion);
+        if (promotion.isDeleted()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khuyến mãi đã được xóa trước đó");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        promotion.setDeletedAt(now);
+        promotion.setStatus("DELETED");
+        promotion.setUpdatedAt(now);
+        promotionRepository.save(promotion);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa khuyến mãi thành công"));
     }
 
@@ -150,6 +188,25 @@ public class AdminPromotionController {
             throw new AppException(ErrorCode.BAD_REQUEST,
                     "Giá trị giảm cố định phải tối thiểu " + minAmount
                             + " VND (bằng giá trị 1 điểm trong cấu hình hệ thống)");
+        }
+    }
+
+    private int normalizePointsCost(Integer pointsCost) {
+        return pointsCost != null && pointsCost > 0 ? pointsCost : 0;
+    }
+
+    private void validatePromotionLimits(PromotionRequest request, int pointsCost) {
+        if (pointsCost > 0) {
+            if (request.getMaxUsage() == null && request.getMaxUsagePerUser() == null) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Voucher đổi điểm cần ít nhất một giới hạn: toàn hệ thống hoặc mỗi tài khoản");
+            }
+            return;
+        }
+
+        if (request.getMaxUsage() == null || request.getMaxUsage() <= 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống");
         }
     }
 }
