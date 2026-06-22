@@ -172,7 +172,8 @@ public class UserService {
                 user.getPhoneNumber(),
                 user.getDayOfBirth(),
                 user.getGender(),
-                user.getScore());
+                user.getScore(),
+                user.getLifetimeScore());
     }
 
     @Transactional(readOnly = true)

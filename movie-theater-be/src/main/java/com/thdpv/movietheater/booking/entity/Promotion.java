@@ -44,6 +44,15 @@ public class Promotion {
     @Column(name = "once_per_user")
     private Boolean oncePerUser = false;
 
+    @Column(name = "points_cost", nullable = false)
+    private Integer pointsCost = 0;
+
+    @Column(name = "min_score", nullable = false)
+    private Integer minScore = 0;
+
+    @Column(name = "max_usage_per_user")
+    private Integer maxUsagePerUser;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
@@ -188,5 +197,33 @@ public class Promotion {
 
     public void setOncePerUser(Boolean oncePerUser) {
         this.oncePerUser = oncePerUser;
+    }
+
+    public Integer getPointsCost() {
+        return pointsCost;
+    }
+
+    public void setPointsCost(Integer pointsCost) {
+        this.pointsCost = pointsCost;
+    }
+
+    public Integer getMinScore() {
+        return minScore;
+    }
+
+    public void setMinScore(Integer minScore) {
+        this.minScore = minScore;
+    }
+
+    public Integer getMaxUsagePerUser() {
+        return maxUsagePerUser;
+    }
+
+    public void setMaxUsagePerUser(Integer maxUsagePerUser) {
+        this.maxUsagePerUser = maxUsagePerUser;
+    }
+
+    public boolean requiresPointRedemption() {
+        return pointsCost != null && pointsCost > 0;
     }
 }

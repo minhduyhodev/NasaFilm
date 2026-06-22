@@ -96,6 +96,9 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
+        promotion.setPointsCost(requirePointsCost(request.getPointsCost()));
+        promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
+        promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
         promotion.setUsedCount(0);
         promotion.setCreatedAt(OffsetDateTime.now());
@@ -142,6 +145,9 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
+        promotion.setPointsCost(requirePointsCost(request.getPointsCost()));
+        promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
+        promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
         promotion.setUpdatedAt(OffsetDateTime.now());
 
@@ -167,5 +173,12 @@ public class AdminPromotionController {
                     "Giá trị giảm cố định phải tối thiểu " + minAmount
                             + " VND (bằng giá trị 1 điểm trong cấu hình hệ thống)");
         }
+    }
+
+    private int requirePointsCost(Integer pointsCost) {
+        if (pointsCost == null || pointsCost <= 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Voucher phải có điểm đổi lớn hơn 0");
+        }
+        return pointsCost;
     }
 }
