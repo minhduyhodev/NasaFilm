@@ -122,7 +122,7 @@
         "isMain": true
       },
       {
-        "uuid": "234a6986-a447-4f7d-ae23-83bc0d3ba1f3",
+        "uuid": "5059371d-a068-45be-bb85-df048995a947",
         "fullName": "Lewis Tan",
         "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/LewisTan_jc5hlm.webp",
         "countryName": "Mỹ",
@@ -131,7 +131,7 @@
         "isMain": true
       },
       {
-        "uuid": "866225af-80a9-4e3b-91a0-21d2c8445122",
+        "uuid": "5c424458-9a99-4d69-906d-e49048a1d2f7",
         "fullName": "Jessica McNamee",
         "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/JessicaMcNamee_jsphbu.webp",
         "countryName": "Mỹ",
@@ -568,7 +568,7 @@
         "updatedAt": "2026-06-17T02:24:22.453253Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://aa.opstream6.com/20220217/212_95dbd939/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-17T02:24:22.448661Z",
     "updatedAt": "2026-06-17T02:24:22.448661Z"
   },
@@ -647,7 +647,7 @@
         "updatedAt": "2026-06-17T02:24:22.483509Z"
       }
     ],
-    "streamingUrl": null,
+    "streamingUrl": "https://vip.opstream13.com/20231110/1541_c87336c4/3000k/hls/mixed.m3u8",
     "createdAt": "2026-06-17T02:24:22.480996Z",
     "updatedAt": "2026-06-17T02:24:22.480996Z"
   },
