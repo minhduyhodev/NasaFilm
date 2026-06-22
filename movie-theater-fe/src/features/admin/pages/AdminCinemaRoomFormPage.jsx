@@ -121,9 +121,9 @@ const AdminCinemaRoomFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Kieu phong *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.roomType} onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}>
+              <select className={`${inputClass} app-select`} value={form.roomType} onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}>
                 {roomTypes.map((t) => (
-                  <option key={t.value} value={t.value} style={{ background: '#0F1322' }}>
+                  <option key={t.value} value={t.value}>
                     {t.label || t.value}
                   </option>
                 ))}
@@ -131,9 +131,9 @@ const AdminCinemaRoomFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Trang thai *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+              <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
                 {ROOM_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value} style={{ background: '#0F1322' }}>{s.label}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </div>

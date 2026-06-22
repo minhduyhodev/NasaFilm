@@ -150,9 +150,9 @@ const AdminVoucherFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Loai giam gia *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
-                <option value="PERCENTAGE" style={{ background: '#0F1322' }}>Phan tram (%)</option>
-                <option value="FIXED_AMOUNT" style={{ background: '#0F1322' }}>So tien co dinh (VND)</option>
+              <select className={`${inputClass} app-select`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
+                <option value="PERCENTAGE">Phan tram (%)</option>
+                <option value="FIXED_AMOUNT">So tien co dinh (VND)</option>
               </select>
             </div>
             <div>
@@ -186,9 +186,9 @@ const AdminVoucherFormPage = () => {
             </div>
             <div>
               <label className={labelClass}>Trang thai *</label>
-              <select className={`${inputClass} cursor-pointer`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-                <option value="ACTIVE" style={{ background: '#0F1322' }}>Hoat dong</option>
-                <option value="INACTIVE" style={{ background: '#0F1322' }}>Vo hieu</option>
+              <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                <option value="ACTIVE">Hoat dong</option>
+                <option value="INACTIVE">Vo hieu</option>
               </select>
             </div>
           </div>

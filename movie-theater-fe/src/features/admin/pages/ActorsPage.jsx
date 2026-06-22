@@ -5,8 +5,6 @@ import {
   Search,
   Plus,
   Loader2,
-  Award,
-  MapPin,
   Edit2,
   Trash2,
 } from "lucide-react";
@@ -68,26 +66,9 @@ const ActorsPage = () => {
 
   // Statistics calculations
   const totalActors = actors.length;
-  const totalCountries = countriesList.length;
   const representedNationalities = new Set(
     actors.map((a) => a.countryName).filter(Boolean),
   ).size;
-
-  // Find the country with the most actors
-  const countryCounts = actors.reduce((acc, a) => {
-    if (a.countryName) {
-      acc[a.countryName] = (acc[a.countryName] || 0) + 1;
-    }
-    return acc;
-  }, {});
-  let mostCommonCountry = "Không có";
-  let maxCount = 0;
-  Object.entries(countryCounts).forEach(([country, count]) => {
-    if (count > maxCount) {
-      maxCount = count;
-      mostCommonCountry = country;
-    }
-  });
 
   // Client-side Paginated actors
   const paginatedActors = React.useMemo(() => {
@@ -152,7 +133,7 @@ const ActorsPage = () => {
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         {[
           {
             label: "Tổng Số Diễn Viên",
@@ -167,20 +148,6 @@ const ActorsPage = () => {
             icon: Globe,
             color: "text-emerald-400",
             kpiClass: "kpi-represented",
-          },
-          {
-            label: "Quốc Gia Trong DB",
-            value: totalCountries,
-            icon: MapPin,
-            color: "text-blue-400",
-            kpiClass: "kpi-database",
-          },
-          {
-            label: "Quốc Tịch Phổ Biến",
-            value: mostCommonCountry,
-            icon: Award,
-            color: "text-amber-400",
-            kpiClass: "kpi-popular",
           },
         ].map((kpi) => (
           <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
@@ -201,8 +168,8 @@ const ActorsPage = () => {
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="relative flex-1 min-w-[180px] max-w-sm">
+      <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 mb-4">
+        <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
           <input
             type="text"
@@ -212,9 +179,6 @@ const ActorsPage = () => {
             className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
           />
         </div>
-        <span className="text-sm text-gray-400 font-medium shrink-0">
-          {filteredActors.length} diễn viên
-        </span>
       </div>
 
       {/* ACTOR CARD GRID */}
