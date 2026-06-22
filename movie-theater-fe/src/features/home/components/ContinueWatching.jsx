@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
-import { bookingService } from '../../../shared/services/bookingService';
+import { vodService } from '../../../shared/services/vodService';
+import { VOD_PLAYBACK_STATE, calcVodTicketWindowMinutes } from '../../../shared/constants/vod';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { mapApiMovies, isOnlineBooking, getMoviePosterUrl, getOnlineMoviePath } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
@@ -13,7 +14,8 @@ const formatMeta = (movie, watched) => {
   if (movie.durationMinutes) parts.push(`${movie.durationMinutes} phút`);
   const meta = parts.join(' · ');
   const duration = movie.durationMinutes || 120;
-  return meta ? `${meta} · ${watched}/${duration} phút` : `${watched}/${duration} phút`;
+  const windowMinutes = calcVodTicketWindowMinutes(duration);
+  return meta ? `${meta} · ${watched}/${windowMinutes} phút` : `${watched}/${windowMinutes} phút`;
 };
 
 const calcWatchProgress = (firstPlayedAt, expiresAt, durationMinutes) => {
@@ -47,7 +49,7 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
           return;
         }
 
-        const bookings = await bookingService.getMyBookings();
+        const bookings = await vodService.getMyBookings();
         const onlineBookings = (bookings || []).filter(
           (booking) => isOnlineBooking(booking) && booking.movieUuid
         );
@@ -59,13 +61,13 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
             uniqueMovieIds.map(async (movieUuid) => {
               try {
                 const [status, movieDetail] = await Promise.all([
-                  bookingService.getVodStatus(movieUuid),
+                  vodService.getStatus(movieUuid),
                   movieService.getMovieDetail(movieUuid),
                 ]);
 
                 if (
                   !status?.hasPurchased ||
-                  status?.playbackState !== 'STREAMING' ||
+                  status?.playbackState !== VOD_PLAYBACK_STATE.STREAMING ||
                   !status?.firstPlayedAt
                 ) {
                   return null;

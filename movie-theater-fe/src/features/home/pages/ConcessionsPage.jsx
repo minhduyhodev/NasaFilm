@@ -1,55 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Star, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { comboService } from '../../../shared/services/comboService';
-
-// Import movie poster assets for summary preview (giúp đồng nhất UI với BookingPage)
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, rating: 8.9, format: 'IMAX 4K' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, rating: 7.4, format: 'DOLBY ATMOS' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, rating: 9.2, format: 'PREMIER' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, rating: 8.1, format: 'IMAX 3D' },
-  'KINETIC PULSE': { poster: kineticPulseImg, rating: 7.8, format: '4DX Immersive' },
-  'AETHERIA': { poster: aetheriaImg, rating: 8.5, format: 'IMAX 3D' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, rating: 8.9, format: '2D Lồng Tiếng' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, rating: 4.7, format: '2D Phụ Đề' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, rating: 4.6, format: '2D VN' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', rating: 8.5, format: 'IMAX 3D' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', rating: 8.5, format: 'IMAX 3D' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', rating: 8.2, format: '2D Phụ Đề' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', rating: 7.8, format: '2D Phụ Đề' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', rating: 9.0, format: '2D Lồng Tiếng' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', rating: 7.5, format: '2D Phụ Đề' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDNZGCN-dgL3_iYyo3N9bk9mYRKTuKI0afwrbdNoSV44T8GYG0FUZ5Au3HZF6bCbPWrK3n1K-ZL-kg946Pnffa8Kwx2TUI1gpKu4gZ8usEEasZIgEf08y0j3DHe8eF_uzZ9EONUNNg7PU55HEWnCvIIX7hLaNUOm88ySxdElrkSYcd-AonsJy_gM8VhQrtWxv6-_Ndu2jXqKjx7A6HgQthjwngecceimt-dIoOB3b73-hmfWgpkMoHa7Y_mcxYnVaLBzA9Q1LFMGx8',
-      rating: 8.5,
-      format: 'IMAX 3D'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDNZGCN-dgL3_iYyo3N9bk9mYRKTuKI0afwrbdNoSV44T8GYG0FUZ5Au3HZF6bCbPWrK3n1K-ZL-kg946Pnffa8Kwx2TUI1gpKu4gZ8usEEasZIgEf08y0j3DHe8eF_uzZ9EONUNNg7PU55HEWnCvIIX7hLaNUOm88ySxdElrkSYcd-AonsJy_gM8VhQrtWxv6-_Ndu2jXqKjx7A6HgQthjwngecceimt-dIoOB3b73-hmfWgpkMoHa7Y_mcxYnVaLBzA9Q1LFMGx8',
-    rating: 8.5,
-    format: 'IMAX 3D'
-  };
-};
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
 
 // Định nghĩa thông tin mô tả và hình ảnh bổ sung cho các combo để UI sinh động hơn
 const comboMeta = {
@@ -98,6 +55,7 @@ const ConcessionsPage = () => {
     showtimeUuid = '11111111-1111-1111-1111-111111111111',
     theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
     movie = 'GALACTIC VANGUARD: RISING TIDE',
+    movieUuid = '',
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
@@ -109,7 +67,29 @@ const ConcessionsPage = () => {
     lockExpiresAt = null
   } = bookingState;
 
-  const movieInfo = getMovieInfo(movie);
+  const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
+
+  useEffect(() => {
+    if (!movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [movieUuid]);
+
+  const resolvedPoster = moviePoster || movieMeta.poster;
+  const resolvedAge = movieAgeRestriction || movieMeta.ageRestriction;
 
   const [combos, setCombos] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -386,23 +366,21 @@ const ConcessionsPage = () => {
               <img 
                 alt="Movie Poster" 
                 className="w-20 h-28 rounded-lg object-cover shadow-xl border border-white/5 bg-[#0f121d]" 
-                src={moviePoster || movieInfo.poster} 
+                src={resolvedPoster || undefined} 
               />
               <div className="space-y-1">
                 <h2 className="text-sm font-black text-white uppercase tracking-wide leading-tight line-clamp-2">{movie}</h2>
-                <div className="flex items-center gap-1 text-yellow-400 font-bold text-[11px]">
-                  <Star className="h-3 w-3 fill-current" />
-                  <span>{(movieRating || movieInfo.rating).toFixed(1)} IMDb</span>
-                </div>
                 <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                  {movieAgeRestriction && (
+                  {movieFormat && (
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat}</span>
+                  )}
+                  {resolvedAge && (
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      movieAgeRestriction.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-                      movieAgeRestriction.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+                      resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+                      resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
                       'bg-amber-600/90 text-white'
                     }`}>
-                      {movieAgeRestriction}
+                      {resolvedAge}
                     </span>
                   )}
                 </div>

@@ -6,13 +6,10 @@ import {
   AlertCircle,
   Play,
   Film,
-  Star,
-  Plus,
   ChevronLeft,
-  Maximize2,
   Minimize2,
 } from 'lucide-react';
-import { bookingService } from '../../../shared/services/bookingService';
+import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { filterOnlineMovies, getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly } from '../utils/movieUtils';
@@ -201,7 +198,7 @@ const WatchPage = () => {
         );
         setUpNext(onlineList.slice(0, 3));
 
-        const status = await bookingService.getVodStatus(id);
+        const status = await vodService.getStatus(id);
         if (!active) return;
         if (!status.hasPurchased) {
           throw new Error('Bạn chưa mua vé xem trực tuyến phim này.');
@@ -214,7 +211,7 @@ const WatchPage = () => {
           return;
         }
 
-        const playSession = await bookingService.activateVodPlay(id);
+        const playSession = await vodService.activatePlay(id);
         if (!active) return;
 
         const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movieDetail);
@@ -245,7 +242,7 @@ const WatchPage = () => {
 
     const sendHeartbeat = async () => {
       try {
-        await bookingService.vodHeartbeat(id, streamData.streamToken);
+        await vodService.heartbeat(id, streamData.streamToken);
       } catch (err) {
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
           notificationService.error('Tài khoản đang xem ở thiết bị khác.');
@@ -562,17 +559,6 @@ const WatchPage = () => {
 
                 <div className={`watch-cinema-vignette ${isEmbeddableSource(videoSource) ? 'watch-cinema-vignette--hidden' : ''}`} aria-hidden />
 
-                {isPlaying && !isCinemaMode && (
-                  <button
-                    type="button"
-                    onClick={toggleCinemaMode}
-                    className="watch-zoom-btn"
-                    aria-label="Phóng to xem phim"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
-                )}
-
                 {isPlaying && isCustomCinema && (
                   <div className="watch-cinema-ui">
                     <div className="watch-cinema-ui-top">
@@ -611,9 +597,6 @@ const WatchPage = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="watch-tag">{genreLabel}</span>
                     {releaseYear && <span className="watch-tag">{releaseYear}</span>}
-                    {movie.durationMinutes && (
-                      <span className="watch-tag">{formatDuration(movie.durationMinutes)}</span>
-                    )}
                     {movie.ageRestriction && (
                       <span className="watch-tag border-red-500/30 text-red-400">
                         {movie.ageRestriction}
@@ -622,21 +605,12 @@ const WatchPage = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
-                  {movie.rating != null && (
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 justify-end text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="text-lg font-black">{Number(movie.rating).toFixed(1)}</span>
-                      </div>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Đánh giá</p>
-                    </div>
-                  )}
-                  <button
-                    type="button"
+                  <Link
+                    to="/online"
                     className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-white/80 hover:bg-white/10 transition-colors"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Danh sách
-                  </button>
+                    Xem thêm phim
+                  </Link>
                 </div>
               </div>
 
@@ -719,12 +693,6 @@ const WatchPage = () => {
                         <p className="text-[10px] text-white/40 mt-0.5">
                           {item.genres?.[0]} · {formatDuration(item.durationMinutes)}
                         </p>
-                        {item.rating != null && (
-                          <div className="flex items-center gap-1 mt-1 text-[10px] text-yellow-400">
-                            <Star className="h-3 w-3 fill-current" />
-                            {Number(item.rating).toFixed(1)}
-                          </div>
-                        )}
                       </div>
                     </Link>
                   ))}

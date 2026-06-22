@@ -3,12 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl, maskTicketCode } from '../utils/movieUtils';
 import './BookingConfirmedPage.css';
 
 export const BookingConfirmedPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [fetchedPoster, setFetchedPoster] = useState('');
 
   // Check and extract state, redirect to profile if missing
   const bookingData = location.state;
@@ -21,6 +24,20 @@ export const BookingConfirmedPage = () => {
       navigate('/profile', { replace: true });
     }
   }, [bookingData, navigate]);
+
+  useEffect(() => {
+    if (!bookingData?.isVod || !bookingData?.movieUuid || bookingData?.moviePoster) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(bookingData.movieUuid)
+      .then((detail) => {
+        if (!cancelled) setFetchedPoster(getMoviePosterUrl(detail));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingData]);
 
 
 
@@ -50,12 +67,12 @@ export const BookingConfirmedPage = () => {
 
   const bookingId = `#CL-${bookingUuid.substring(0, 8).toUpperCase()}`;
   const firstTicketCode = tickets[0]?.ticketCode || 'NASAFILM';
+  const maskedTicketCode = maskTicketCode(firstTicketCode);
   
-  // Real QR generation using api.qrserver.com
+  // QR dùng mã đầy đủ để soát vé tại rạp; màn hình chỉ hiển thị mã đã che
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(firstTicketCode)}`;
 
-  // Default fallback poster
-  const defaultPoster = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo';
+  const displayPoster = moviePoster || fetchedPoster;
 
   return (
     <div className="bg-mesh min-h-screen flex flex-col justify-between">
@@ -67,12 +84,16 @@ export const BookingConfirmedPage = () => {
         >
           {/* Left Side: Movie Poster & Success Overlay */}
           <div className="relative w-full md:w-2/5 h-72 md:h-auto overflow-hidden shrink-0 border-r border-white/5">
-            <img 
-              className="absolute inset-0 w-full h-full object-cover" 
-              alt="Cinematic movie poster" 
-              src={avatarLoadFailed ? defaultPoster : moviePoster || defaultPoster}
-              onError={() => setAvatarLoadFailed(true)}
-            />
+            {displayPoster ? (
+              <img 
+                className="absolute inset-0 w-full h-full object-cover" 
+                alt="Cinematic movie poster" 
+                src={displayPoster}
+                onError={() => setAvatarLoadFailed(true)}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-[#121212] to-black" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-transparent to-transparent"></div>
             
             {/* Animated Checkmark Overlay */}
@@ -149,11 +170,23 @@ export const BookingConfirmedPage = () => {
                   />
                 </div>
                 <div>
-                  <span className="block text-white text-xs font-bold mb-1">Mã vé: {firstTicketCode}</span>
-                  <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
-                  <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
-                    {isVod ? 'Mã vé trực tuyến của bạn. Vui lòng vào trang kích hoạt, nhập mã vé rồi bắt đầu xem phim.' : 'Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.'}
-                  </span>
+                  {isVod ? (
+                    <>
+                      <span className="block text-white text-xs font-bold mb-1">Mã vé đã gửi qua email</span>
+                      <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
+                      <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
+                        Kiểm tra hộp thư đăng ký để lấy mã VOD, sau đó vào trang kích hoạt và nhập mã để bắt đầu xem phim.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="block text-white text-xs font-bold mb-1">Mã vé: {maskedTicketCode}</span>
+                      <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
+                      <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
+                        Mã vé đầy đủ đã gửi qua email. Xuất trình mã QR tại lối vào VIP để soát vé vào phòng chiếu.
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -178,10 +211,10 @@ export const BookingConfirmedPage = () => {
               )}
               
               <button 
-                onClick={() => navigate('/movies')}
+                onClick={() => navigate(isVod ? '/online' : '/movies')}
                 className="flex-grow border border-white/10 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl hover:bg-white/5 transition-all duration-300 cursor-pointer active:scale-95"
               >
-                Tiếp tục xem phim
+                {isVod ? 'Về trang online' : 'Tiếp tục xem phim'}
               </button>
             </div>
           </div>
