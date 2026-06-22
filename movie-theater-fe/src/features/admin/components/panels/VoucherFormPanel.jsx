@@ -8,7 +8,13 @@ import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue,
 import { PrimaryButton, GhostButton } from '..';
 import { adminInputClass, adminLabelClass } from '../adminFormStyles';
 
+const VOUCHER_TYPES = {
+  REDEEM: 'REDEEM',
+  DIRECT: 'DIRECT',
+};
+
 const emptyForm = {
+  voucherType: VOUCHER_TYPES.REDEEM,
   code: '',
   discountType: 'PERCENTAGE',
   discountValue: '',
@@ -27,6 +33,8 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
   const [pointsToCashValue, setPointsToCashValue] = useState(() => getPointsToCashValue());
   const [form, setForm] = useState(emptyForm);
 
+  const isDirectType = form.voucherType === VOUCHER_TYPES.DIRECT;
+
   useEffect(() => {
     systemConfigService.getConfig()
       .then((cfg) => setPointsToCashValue(getPointsToCashValue(cfg)))
@@ -38,22 +46,32 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       setForm(emptyForm);
       return;
     }
+    const isDirect = (voucher.pointsCost ?? 0) <= 0;
     setForm({
+      voucherType: isDirect ? VOUCHER_TYPES.DIRECT : VOUCHER_TYPES.REDEEM,
       code: voucher.code || '',
       discountType: voucher.discountType || 'PERCENTAGE',
       discountValue:
         voucher.discountType === 'PERCENTAGE'
           ? String(Math.round(voucher.discountValue * 100))
           : String(voucher.discountValue),
-      pointsCost: voucher.pointsCost != null ? String(voucher.pointsCost) : '',
+      pointsCost: isDirect ? '' : String(voucher.pointsCost ?? ''),
       minScore: voucher.minScore ?? 0,
       maxUsage: voucher.maxUsage != null ? String(voucher.maxUsage) : '',
       maxUsagePerUser: voucher.maxUsagePerUser != null ? String(voucher.maxUsagePerUser) : '',
       startDate: formatDateForInput(voucher.startDate),
       endDate: formatDateForInput(voucher.endDate),
-      status: voucher.status || 'ACTIVE',
+      status: voucher.status === 'DELETED' ? 'INACTIVE' : (voucher.status || 'ACTIVE'),
     });
   }, [voucher]);
+
+  const handleTypeChange = (voucherType) => {
+    setForm((prev) => ({
+      ...prev,
+      voucherType,
+      pointsCost: voucherType === VOUCHER_TYPES.DIRECT ? '' : prev.pointsCost,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,15 +80,25 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       notificationService.error('Mã voucher không được để trống');
       return;
     }
-    const pointsCost = parseInt(form.pointsCost, 10);
-    if (!pointsCost || pointsCost <= 0) {
-      notificationService.error('Voucher phải có điểm đổi lớn hơn 0');
-      return;
+
+    let pointsCost = 0;
+    if (isDirectType) {
+      if (!form.maxUsage) {
+        notificationService.error('Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống');
+        return;
+      }
+    } else {
+      pointsCost = parseInt(form.pointsCost, 10);
+      if (!pointsCost || pointsCost <= 0) {
+        notificationService.error('Voucher đổi điểm phải có số điểm lớn hơn 0');
+        return;
+      }
+      if (!form.maxUsage && !form.maxUsagePerUser) {
+        notificationService.error('Chọn ít nhất một giới hạn: toàn hệ thống hoặc mỗi tài khoản');
+        return;
+      }
     }
-    if (!form.maxUsage && !form.maxUsagePerUser) {
-      notificationService.error('Chọn ít nhất một giới hạn: toàn hệ thống hoặc trên tài khoản');
-      return;
-    }
+
     const discountError = validateVoucherDiscountValue(form.discountType, form.discountValue, pointsToCashValue);
     if (discountError) {
       notificationService.error(discountError);
@@ -120,18 +148,52 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-xs text-gray-500">
-        Voucher chỉ sử dụng được sau khi khách hàng đổi điểm để kích hoạt. Có thể giới hạn theo toàn hệ thống và/hoặc theo từng tài khoản.
-      </p>
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+        <label className={adminLabelClass}>Loại voucher *</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => handleTypeChange(VOUCHER_TYPES.REDEEM)}
+            className={`rounded-lg border px-3 py-2.5 text-left transition ${
+              !isDirectType
+                ? 'border-amber-500/50 bg-amber-500/10 text-white'
+                : 'border-white/10 bg-transparent text-gray-400 hover:border-white/20'
+            }`}
+          >
+            <span className="block text-xs font-bold uppercase tracking-wide">Đổi điểm</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTypeChange(VOUCHER_TYPES.DIRECT)}
+            className={`rounded-lg border px-3 py-2.5 text-left transition ${
+              isDirectType
+                ? 'border-green-500/50 bg-green-500/10 text-white'
+                : 'border-white/10 bg-transparent text-gray-400 hover:border-white/20'
+            }`}
+          >
+            <span className="block text-xs font-bold uppercase tracking-wide">Khả dụng trực tiếp</span>
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={adminLabelClass}>Mã voucher *</label>
           <input className={`${adminInputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
         </div>
-        <div>
-          <label className={adminLabelClass}>Điểm đổi *</label>
-          <input type="number" min="1" className={adminInputClass} value={form.pointsCost} onChange={(e) => setForm((p) => ({ ...p, pointsCost: e.target.value }))} required />
-        </div>
+        {!isDirectType && (
+          <div>
+            <label className={adminLabelClass}>Điểm đổi *</label>
+            <input
+              type="number"
+              min="1"
+              className={adminInputClass}
+              value={form.pointsCost}
+              onChange={(e) => setForm((p) => ({ ...p, pointsCost: e.target.value }))}
+              required={!isDirectType}
+            />
+          </div>
+        )}
         <div>
           <label className={adminLabelClass}>Hạng thành viên *</label>
           <select className={`${adminInputClass} cursor-pointer`} value={form.minScore} onChange={(e) => setForm((p) => ({ ...p, minScore: Number(e.target.value) }))}>
@@ -160,11 +222,23 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           />
         </div>
         <div>
-          <label className={adminLabelClass}>Giới hạn toàn hệ thống</label>
-          <input type="number" min="1" className={adminInputClass} placeholder="Không giới hạn" value={form.maxUsage} onChange={(e) => setForm((p) => ({ ...p, maxUsage: e.target.value }))} />
+          <label className={adminLabelClass}>
+            {isDirectType ? 'Giới hạn lượt sử dụng toàn hệ thống *' : 'Giới hạn lượt đổi toàn hệ thống'}
+          </label>
+          <input
+            type="number"
+            min="1"
+            className={adminInputClass}
+            placeholder={isDirectType ? 'Bắt buộc' : 'Không giới hạn'}
+            value={form.maxUsage}
+            onChange={(e) => setForm((p) => ({ ...p, maxUsage: e.target.value }))}
+            required={isDirectType}
+          />
         </div>
         <div>
-          <label className={adminLabelClass}>Giới hạn mỗi tài khoản</label>
+          <label className={adminLabelClass}>
+            {isDirectType ? 'Giới hạn sử dụng mỗi tài khoản' : 'Giới hạn đổi mỗi tài khoản'}
+          </label>
           <input type="number" min="1" className={adminInputClass} placeholder="Không giới hạn" value={form.maxUsagePerUser} onChange={(e) => setForm((p) => ({ ...p, maxUsagePerUser: e.target.value }))} />
         </div>
         <div>

@@ -65,6 +65,9 @@ public class Promotion {
     @Column(name = "updated_by")
     private UUID updatedBy;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     public Promotion() {
     }
 
@@ -225,5 +228,17 @@ public class Promotion {
 
     public boolean requiresPointRedemption() {
         return pointsCost != null && pointsCost > 0;
+    }
+
+    public OffsetDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

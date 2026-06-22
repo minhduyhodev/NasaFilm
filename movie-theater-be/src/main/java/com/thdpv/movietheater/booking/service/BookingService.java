@@ -131,6 +131,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 discountAmount = basePrice.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
@@ -267,6 +276,15 @@ public class BookingService {
                 boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
                 if (alreadyUsed) {
                     throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
+                }
+            }
+
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
                 }
             }
 

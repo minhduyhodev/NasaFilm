@@ -45,6 +45,9 @@ public class AdminPromotionController {
         OffsetDateTime now = OffsetDateTime.now();
         boolean changed = false;
         for (Promotion promotion : promotions) {
+            if (promotion.isDeleted()) {
+                continue;
+            }
             if (promotionLifecycleService.syncStatusIfNeeded(promotion, now)) {
                 changed = true;
             }
@@ -96,7 +99,8 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
-        promotion.setPointsCost(requirePointsCost(request.getPointsCost()));
+        promotion.setPointsCost(normalizePointsCost(request.getPointsCost()));
+        validatePromotionLimits(request, promotion.getPointsCost());
         promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
         promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
@@ -115,6 +119,9 @@ public class AdminPromotionController {
         
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy khuyến mãi"));
+        if (promotion.isDeleted()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khuyến mãi đã bị xóa");
+        }
 
         String trimmedCode = request.getCode() != null ? request.getCode().trim().toUpperCase() : "";
         if (trimmedCode.isEmpty()) {
@@ -145,7 +152,8 @@ public class AdminPromotionController {
         promotion.setEndDate(request.getEndDate());
         promotion.setMaxUsage(request.getMaxUsage());
         promotion.setOncePerUser(request.getOncePerUser() != null ? request.getOncePerUser() : false);
-        promotion.setPointsCost(requirePointsCost(request.getPointsCost()));
+        promotion.setPointsCost(normalizePointsCost(request.getPointsCost()));
+        validatePromotionLimits(request, promotion.getPointsCost());
         promotion.setMinScore(request.getMinScore() != null ? request.getMinScore() : 0);
         promotion.setMaxUsagePerUser(request.getMaxUsagePerUser());
         promotion.setStatus(request.getStatus() != null ? request.getStatus().trim().toUpperCase() : "ACTIVE");
@@ -159,7 +167,15 @@ public class AdminPromotionController {
     public ResponseEntity<ApiResponse<Void>> deletePromotion(@PathVariable("id") UUID id) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy khuyến mãi"));
-        promotionRepository.delete(promotion);
+        if (promotion.isDeleted()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khuyến mãi đã được xóa trước đó");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        promotion.setDeletedAt(now);
+        promotion.setStatus("DELETED");
+        promotion.setUpdatedAt(now);
+        promotionRepository.save(promotion);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa khuyến mãi thành công"));
     }
 
@@ -175,10 +191,22 @@ public class AdminPromotionController {
         }
     }
 
-    private int requirePointsCost(Integer pointsCost) {
-        if (pointsCost == null || pointsCost <= 0) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Voucher phải có điểm đổi lớn hơn 0");
+    private int normalizePointsCost(Integer pointsCost) {
+        return pointsCost != null && pointsCost > 0 ? pointsCost : 0;
+    }
+
+    private void validatePromotionLimits(PromotionRequest request, int pointsCost) {
+        if (pointsCost > 0) {
+            if (request.getMaxUsage() == null && request.getMaxUsagePerUser() == null) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Voucher đổi điểm cần ít nhất một giới hạn: toàn hệ thống hoặc mỗi tài khoản");
+            }
+            return;
         }
-        return pointsCost;
+
+        if (request.getMaxUsage() == null || request.getMaxUsage() <= 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống");
+        }
     }
 }

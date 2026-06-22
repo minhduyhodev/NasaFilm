@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.booking.service;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -44,7 +45,7 @@ public class VoucherRedemptionService {
 
     @Transactional
     public UserVoucher redeemPromotion(UUID userUuid, UUID promotionId) {
-        Promotion promotion = promotionRepository.findById(promotionId)
+        Promotion promotion = promotionRepository.findByIdAndDeletedAtIsNull(promotionId)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy voucher"));
 
         User user = userRepository.findById(userUuid)
@@ -54,7 +55,8 @@ public class VoucherRedemptionService {
         validatePromotionAvailability(promotion, now);
 
         if (!promotion.requiresPointRedemption()) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Voucher này không hỗ trợ đổi điểm");
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Voucher khả dụng trực tiếp không cần đổi điểm. Hãy dùng mã khi thanh toán.");
         }
 
         int lifetimeScore = user.getLifetimeScore() != null ? user.getLifetimeScore() : 0;
@@ -62,6 +64,12 @@ public class VoucherRedemptionService {
             throw new AppException(ErrorCode.BAD_REQUEST,
                     "Bạn chưa đủ hạng thành viên để đổi voucher này (yêu cầu: "
                             + MemberTierUtils.resolveRequiredTierLabel(promotion.getMinScore()) + ")");
+        }
+
+        long activeWallet = userVoucherRepository.countByUserUuidAndPromotionUuidAndStatus(
+                userUuid, promotionId, USER_VOUCHER_ACTIVE);
+        if (activeWallet > 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Voucher đã có trong ví của bạn");
         }
 
         int currentScore = user.getScore() != null ? user.getScore() : 0;
@@ -100,6 +108,9 @@ public class VoucherRedemptionService {
     }
 
     public void validatePromotionAvailability(Promotion promotion, OffsetDateTime now) {
+        if (promotion.isDeleted()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Voucher không còn hiệu lực");
+        }
         if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Voucher không còn hiệu lực");
         }
@@ -116,13 +127,20 @@ public class VoucherRedemptionService {
 
     @Transactional
     public UserVoucher consumeActiveVoucher(UUID userUuid, Promotion promotion, UUID bookingUuid, OffsetDateTime now) {
+        Optional<UserVoucher> walletOpt = userVoucherRepository
+                .findFirstByUserUuidAndPromotionUuidAndStatusOrderByRedeemedAtAsc(
+                        userUuid, promotion.getId(), USER_VOUCHER_ACTIVE);
+
         if (!promotion.requiresPointRedemption()) {
-            return null;
+            return walletOpt.map(wallet -> {
+                wallet.setStatus(USER_VOUCHER_USED);
+                wallet.setUsedAt(now);
+                wallet.setBookingUuid(bookingUuid);
+                return userVoucherRepository.save(wallet);
+            }).orElse(null);
         }
 
-        UserVoucher userVoucher = userVoucherRepository
-                .findFirstByUserUuidAndPromotionUuidAndStatusOrderByRedeemedAtAsc(
-                        userUuid, promotion.getId(), USER_VOUCHER_ACTIVE)
+        UserVoucher userVoucher = walletOpt
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST,
                         "Bạn cần đổi điểm để kích hoạt voucher trước khi sử dụng"));
 

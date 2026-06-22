@@ -20,6 +20,7 @@ public class MyVoucherResponse {
     private String requiredTierLabel;
     private OffsetDateTime redeemedAt;
     private boolean activated;
+    private boolean directUse;
 
     public MyVoucherResponse() {
     }
@@ -155,5 +156,13 @@ public class MyVoucherResponse {
 
     public void setActivated(boolean activated) {
         this.activated = activated;
+    }
+
+    public boolean isDirectUse() {
+        return directUse;
+    }
+
+    public void setDirectUse(boolean directUse) {
+        this.directUse = directUse;
     }
 }

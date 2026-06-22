@@ -2,8 +2,10 @@ package com.thdpv.movietheater.booking.controller;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -58,7 +60,7 @@ public class PromotionController {
                     false, "", "", null, "", "Mã khuyến mãi không được trống")));
         }
 
-        Optional<Promotion> promoOpt = promotionRepository.findByCodeIgnoreCase(trimmedCode);
+        Optional<Promotion> promoOpt = promotionRepository.findActiveByCodeIgnoreCase(trimmedCode);
         if (promoOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(new PromotionValidateResponse(
                     false, trimmedCode, "", null, "", "Mã khuyến mãi không tồn tại")));
@@ -114,10 +116,7 @@ public class PromotionController {
         OffsetDateTime now = OffsetDateTime.now();
         List<VoucherCatalogResponse> responses = new ArrayList<>();
 
-        for (Promotion promotion : promotionRepository.findAll()) {
-            if (!promotion.requiresPointRedemption()) {
-                continue;
-            }
+        for (Promotion promotion : promotionRepository.findAllByDeletedAtIsNull()) {
             if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
                 continue;
             }
@@ -127,6 +126,19 @@ public class PromotionController {
                 continue;
             }
 
+            boolean requiresRedemption = promotion.requiresPointRedemption();
+            if (!requiresRedemption) {
+                continue;
+            }
+
+            if (userUuid != null) {
+                long activeWallet = userVoucherRepository.countByUserUuidAndPromotionUuidAndStatus(
+                        userUuid, promotion.getId(), VoucherRedemptionService.USER_VOUCHER_ACTIVE);
+                if (activeWallet > 0) {
+                    continue;
+                }
+            }
+
             VoucherCatalogResponse item = new VoucherCatalogResponse();
             item.setId(promotion.getId());
             item.setCode(promotion.getCode());
@@ -134,44 +146,62 @@ public class PromotionController {
             item.setDiscountValue(promotion.getDiscountValue());
             item.setDescription(buildDescription(promotion));
             item.setEndDate(promotion.getEndDate());
-            item.setPointsCost(promotion.getPointsCost());
+            item.setPointsCost(requiresRedemption ? promotion.getPointsCost() : 0);
             item.setMinScore(promotion.getMinScore());
             item.setRequiredTierLabel(MemberTierUtils.resolveRequiredTierLabel(promotion.getMinScore()));
             item.setMaxUsage(promotion.getMaxUsage());
             item.setMaxUsagePerUser(promotion.getMaxUsagePerUser());
+            item.setRequiresRedemption(requiresRedemption);
 
             int remainingGlobal = -1;
             if (promotion.getMaxUsage() != null) {
-                long redeemed = userVoucherRepository.countByPromotionUuid(promotion.getId());
-                remainingGlobal = (int) Math.max(0, promotion.getMaxUsage() - redeemed);
+                if (requiresRedemption) {
+                    long redeemed = userVoucherRepository.countByPromotionUuid(promotion.getId());
+                    remainingGlobal = (int) Math.max(0, promotion.getMaxUsage() - redeemed);
+                } else {
+                    int usedCount = promotion.getUsedCount() != null ? promotion.getUsedCount() : 0;
+                    remainingGlobal = Math.max(0, promotion.getMaxUsage() - usedCount);
+                }
                 if (remainingGlobal <= 0) {
                     continue;
                 }
             }
             item.setRemainingGlobal(remainingGlobal);
 
-            int userRedeemCount = userUuid != null
-                    ? (int) userVoucherRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId())
-                    : 0;
-            int remainingForUser = promotion.getMaxUsagePerUser() != null
-                    ? Math.max(0, promotion.getMaxUsagePerUser() - userRedeemCount)
-                    : -1;
+            int remainingForUser = -1;
+            boolean alreadyMaxedForUser = false;
+            if (requiresRedemption) {
+                int userRedeemCount = userUuid != null
+                        ? (int) userVoucherRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId())
+                        : 0;
+                if (promotion.getMaxUsagePerUser() != null) {
+                    remainingForUser = Math.max(0, promotion.getMaxUsagePerUser() - userRedeemCount);
+                    alreadyMaxedForUser = remainingForUser == 0;
+                }
+            } else if (userUuid != null && Boolean.TRUE.equals(promotion.getOncePerUser())) {
+                boolean alreadyUsed = bookingRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+                remainingForUser = alreadyUsed ? 0 : 1;
+                alreadyMaxedForUser = alreadyUsed;
+            }
             item.setRemainingForUser(remainingForUser);
-            item.setAlreadyMaxedForUser(remainingForUser == 0);
+            item.setAlreadyMaxedForUser(alreadyMaxedForUser);
+
+            if (alreadyMaxedForUser) {
+                continue;
+            }
 
             boolean tierOk = MemberTierUtils.meetsTierRequirement(lifetimeScore, promotion.getMinScore());
-            boolean pointsOk = currentScore >= promotion.getPointsCost();
-            boolean eligible = user != null && tierOk && pointsOk && remainingForUser != 0;
+            boolean pointsOk = !requiresRedemption
+                    || currentScore >= (promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
+            boolean eligible = user != null && tierOk && pointsOk;
             item.setEligible(eligible);
 
             if (user == null) {
-                item.setIneligibleReason("Đăng nhập để đổi voucher");
+                item.setIneligibleReason(requiresRedemption ? "Đăng nhập để đổi voucher" : "Đăng nhập để nhận voucher");
             } else if (!tierOk) {
                 item.setIneligibleReason("Yêu cầu hạng " + item.getRequiredTierLabel());
             } else if (!pointsOk) {
                 item.setIneligibleReason("Không đủ điểm hiện tại");
-            } else if (remainingForUser == 0) {
-                item.setIneligibleReason("Đã đạt giới hạn trên tài khoản");
             }
 
             responses.add(item);
@@ -190,12 +220,12 @@ public class PromotionController {
         }
 
         UserVoucher wallet = voucherRedemptionService.redeemPromotion(userUuid, promotionId);
-        Promotion promotion = promotionRepository.findById(promotionId)
+        Promotion promotion = promotionRepository.findByIdAndDeletedAtIsNull(promotionId)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy voucher"));
 
         return ResponseEntity.ok(ApiResponse.success(
                 mapWalletToResponse(wallet, promotion),
-                "Đổi voucher thành công"));
+                promotion.requiresPointRedemption() ? "Đổi voucher thành công" : "Kích hoạt voucher thành công"));
     }
 
     @GetMapping("/my-vouchers")
@@ -207,14 +237,81 @@ public class PromotionController {
             return ResponseEntity.ok(ApiResponse.success(List.of()));
         }
 
+        User user = userRepository.findById(userUuid).orElse(null);
+        int lifetimeScore = user != null && user.getLifetimeScore() != null ? user.getLifetimeScore() : 0;
+        OffsetDateTime now = OffsetDateTime.now();
+
         List<MyVoucherResponse> responses = new ArrayList<>();
+        Set<UUID> includedPromotionIds = new HashSet<>();
+
         for (UserVoucher wallet : userVoucherRepository.findByUserUuidOrderByRedeemedAtDesc(userUuid)) {
             promotionRepository.findById(wallet.getPromotionUuid()).ifPresent(promotion -> {
+                if (promotion.isDeleted()) {
+                    return;
+                }
+                includedPromotionIds.add(promotion.getId());
                 responses.add(mapWalletToResponse(wallet, promotion));
             });
         }
 
+        for (Promotion promotion : promotionRepository.findAllByDeletedAtIsNull()) {
+            if (promotion.requiresPointRedemption()) {
+                continue;
+            }
+            if (includedPromotionIds.contains(promotion.getId())) {
+                continue;
+            }
+            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
+                continue;
+            }
+            if (promotionLifecycleService.isNotStarted(promotion, now)
+                    || promotionLifecycleService.isExpired(promotion, now)
+                    || promotionLifecycleService.isUsageExhausted(promotion)) {
+                continue;
+            }
+            if (!MemberTierUtils.meetsTierRequirement(lifetimeScore, promotion.getMinScore())) {
+                continue;
+            }
+            if (Boolean.TRUE.equals(promotion.getOncePerUser())
+                    && bookingRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId())) {
+                continue;
+            }
+            if (promotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+                if (userUsageCount >= promotion.getMaxUsagePerUser()) {
+                    continue;
+                }
+            }
+
+            responses.add(mapDirectUseResponse(promotion, userUuid));
+        }
+
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    private MyVoucherResponse mapDirectUseResponse(Promotion promotion, UUID userUuid) {
+        MyVoucherResponse response = new MyVoucherResponse();
+        response.setId(promotion.getId());
+        response.setCode(promotion.getCode());
+        response.setDiscountType(promotion.getDiscountType());
+        response.setDiscountValue(promotion.getDiscountValue());
+        response.setDescription(buildDescription(promotion));
+        response.setEndDate(promotion.getEndDate());
+        response.setOncePerUser(promotion.getOncePerUser());
+        response.setPointsCost(0);
+        response.setMinScore(promotion.getMinScore());
+        response.setRequiredTierLabel(MemberTierUtils.resolveRequiredTierLabel(promotion.getMinScore()));
+        response.setActivated(true);
+        response.setDirectUse(true);
+        response.setUsed(false);
+
+        int remainingUsage = 1;
+        if (promotion.getMaxUsagePerUser() != null) {
+            long userUsageCount = bookingRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+            remainingUsage = Math.max(0, promotion.getMaxUsagePerUser() - (int) userUsageCount);
+        }
+        response.setRemainingUsage(remainingUsage);
+        return response;
     }
 
     private MyVoucherResponse mapWalletToResponse(UserVoucher wallet, Promotion promotion) {
@@ -232,6 +329,7 @@ public class PromotionController {
         response.setRequiredTierLabel(MemberTierUtils.resolveRequiredTierLabel(promotion.getMinScore()));
         response.setRedeemedAt(wallet.getRedeemedAt());
         response.setActivated(true);
+        response.setDirectUse(false);
         boolean used = VoucherRedemptionService.USER_VOUCHER_USED.equalsIgnoreCase(wallet.getStatus());
         response.setUsed(used);
         response.setRemainingUsage(used ? 0 : 1);
@@ -266,8 +364,10 @@ public class PromotionController {
             }
         }
         if (promotion.getMaxUsagePerUser() != null) {
-            long usedCount = userVoucherRepository.countByUserUuidAndPromotionUuidAndStatus(
-                    userUuid, promotion.getId(), VoucherRedemptionService.USER_VOUCHER_USED);
+            long usedCount = promotion.requiresPointRedemption()
+                    ? userVoucherRepository.countByUserUuidAndPromotionUuidAndStatus(
+                            userUuid, promotion.getId(), VoucherRedemptionService.USER_VOUCHER_USED)
+                    : bookingRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId());
             if (usedCount >= promotion.getMaxUsagePerUser()) {
                 return Optional.of("Bạn đã đạt giới hạn sử dụng voucher này");
             }

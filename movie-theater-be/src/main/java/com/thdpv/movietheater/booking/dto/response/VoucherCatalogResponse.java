@@ -21,6 +21,7 @@ public class VoucherCatalogResponse {
     private Integer remainingForUser;
     private boolean eligible;
     private boolean alreadyMaxedForUser;
+    private boolean requiresRedemption;
     private String ineligibleReason;
 
     public VoucherCatalogResponse() {
@@ -152,5 +153,13 @@ public class VoucherCatalogResponse {
 
     public void setIneligibleReason(String ineligibleReason) {
         this.ineligibleReason = ineligibleReason;
+    }
+
+    public boolean isRequiresRedemption() {
+        return requiresRedemption;
+    }
+
+    public void setRequiresRedemption(boolean requiresRedemption) {
+        this.requiresRedemption = requiresRedemption;
     }
 }

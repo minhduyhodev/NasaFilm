@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
@@ -334,6 +334,56 @@ export const ProfilePage = () => {
   const rawProgress = (lifetimePoints / nextTierPoints) * 100;
   const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
   const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+
+  const usableVouchers = useMemo(
+    () => vouchers.filter((v) => !v.used),
+    [vouchers],
+  );
+  const pointVoucherCatalog = useMemo(
+    () => voucherCatalog.filter((item) => item.requiresRedemption !== false),
+    [voucherCatalog],
+  );
+  const availableVoucherCount = useMemo(
+    () => usableVouchers.length + pointVoucherCatalog.filter((v) => v.eligible).length,
+    [usableVouchers, pointVoucherCatalog],
+  );
+
+  const renderCatalogVoucherCard = (item) => (
+    <div key={item.id} className="voucher-card">
+      <div className="voucher-glow-dot" />
+      <div className="voucher-icon-box">
+        <Gift size={24} className="text-amber-500" />
+      </div>
+      <div className="voucher-body text-left">
+        <div className="flex justify-between items-center mb-1 gap-2">
+          <span className="voucher-code">{item.code}</span>
+          <span className="text-[10px] font-bold text-amber-400">{item.pointsCost} điểm</span>
+        </div>
+        <h4 className="voucher-title">{item.description}</h4>
+        <p className="voucher-desc">
+          Hạng: {item.requiredTierLabel}
+          {item.maxUsagePerUser != null ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản` : ""}
+          {item.maxUsage != null ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống` : ""}
+        </p>
+        <div className="flex justify-between items-center mt-3 gap-2">
+          <span className="text-[10px] text-gray-400">
+            {item.endDate ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}` : "Không giới hạn thời gian"}
+          </span>
+          <button
+            type="button"
+            disabled={!item.eligible || redeemingVoucherId === item.id}
+            onClick={() => handleRedeemVoucher(item.id)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {redeemingVoucherId === item.id ? "Đang đổi..." : "Đổi điểm"}
+          </button>
+        </div>
+        {!item.eligible && item.ineligibleReason && (
+          <p className="text-[10px] text-rose-400 mt-2">{item.ineligibleReason}</p>
+        )}
+      </div>
+    </div>
+  );
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -740,7 +790,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Gift size={20} />
-                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
+                    <span className="rail-badge">{availableVoucherCount}</span>
                   </div>
                   <span className="rail-label">Ưu đãi của tôi</span>
                 </button>
@@ -1468,88 +1518,42 @@ export const ProfilePage = () => {
                     ) : (
                       <div className="space-y-8">
                         <section>
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Đổi điểm lấy voucher</h3>
-                          {voucherCatalog.length === 0 ? (
-                            <p className="text-gray-500 text-sm">Chưa có voucher nào khả dụng để đổi.</p>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher có thể sử dụng</h3>
+                          {usableVouchers.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên dưới hoặc xem ưu đãi công khai.</p>
                           ) : (
                             <div className="vouchers-grid">
-                              {voucherCatalog.map((item) => (
-                                <div key={item.id} className="voucher-card">
-                                  <div className="voucher-glow-dot" />
-                                  <div className="voucher-icon-box">
-                                    <Gift size={24} className="text-amber-500" />
-                                  </div>
-                                  <div className="voucher-body text-left">
-                                    <div className="flex justify-between items-center mb-1 gap-2">
-                                      <span className="voucher-code">{item.code}</span>
-                                      <span className="text-[10px] font-bold text-amber-400">{item.pointsCost} điểm</span>
-                                    </div>
-                                    <h4 className="voucher-title">{item.description}</h4>
-                                    <p className="voucher-desc">
-                                      Hạng: {item.requiredTierLabel}
-                                      {item.maxUsagePerUser != null ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản` : ''}
-                                      {item.maxUsage != null ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống` : ''}
-                                    </p>
-                                    <div className="flex justify-between items-center mt-3 gap-2">
-                                      <span className="text-[10px] text-gray-400">
-                                        {item.endDate ? `Hạn: ${new Date(item.endDate).toLocaleDateString('vi-VN')}` : 'Không giới hạn thời gian'}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        disabled={!item.eligible || redeemingVoucherId === item.id}
-                                        onClick={() => handleRedeemVoucher(item.id)}
-                                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
-                                      >
-                                        {redeemingVoucherId === item.id ? 'Đang đổi...' : 'Đổi điểm'}
-                                      </button>
-                                    </div>
-                                    {!item.eligible && item.ineligibleReason && (
-                                      <p className="text-[10px] text-rose-400 mt-2">{item.ineligibleReason}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </section>
-
-                        <section>
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Ví voucher đã kích hoạt</h3>
-                          {vouchers.length === 0 ? (
-                            <p className="text-gray-500 text-sm">Bạn chưa đổi voucher nào. Hãy dùng điểm để kích hoạt voucher ở trên.</p>
-                          ) : (
-                            <div className="vouchers-grid">
-                              {vouchers.map((voucher) => {
+                              {usableVouchers.map((voucher) => {
                                 const formattedExpiry = voucher.endDate
                                   ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
                                   : 'Hạn dùng: Không thời hạn';
+                                const isDirectUse = voucher.directUse || (voucher.pointsCost ?? 0) === 0;
 
                                 return (
-                                  <div key={voucher.walletId || voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
+                                  <div key={voucher.walletId || voucher.id || voucher.code} className="voucher-card">
                                     <div className="voucher-glow-dot" />
                                     <div className="voucher-icon-box">
-                                      <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                                      <Gift size={24} className={isDirectUse ? "text-green-500" : "text-amber-500"} />
                                     </div>
                                     <div className="voucher-body text-left">
-                                      <div className="flex justify-between items-center mb-1">
+                                      <div className="flex justify-between items-center mb-1 gap-2">
                                         <span className="voucher-code">{voucher.code}</span>
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                          voucher.used
-                                            ? 'bg-gray-800 text-gray-400'
-                                            : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                          isDirectUse
+                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                                         }`}>
-                                          {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
+                                          {isDirectUse ? 'Miễn phí' : 'Đã kích hoạt'}
                                         </span>
                                       </div>
-                                      <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
+                                      <h4 className="voucher-title">{voucher.description}</h4>
                                       <p className="voucher-desc">
-                                        {voucher.requiredTierLabel ? `Hạng: ${voucher.requiredTierLabel}` : 'Voucher đã kích hoạt bằng điểm'}
+                                        {voucher.requiredTierLabel ? `Hạng: ${voucher.requiredTierLabel}` : 'Voucher khả dụng'}
+                                        {isDirectUse ? ' · Dùng trực tiếp khi thanh toán' : ' · Đã đổi điểm'}
                                       </p>
                                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
                                         <span className="voucher-expiry">{formattedExpiry}</span>
-                                        <span className="font-semibold text-amber-500">
-                                          {voucher.used ? 'Đã dùng' : 'Sẵn sàng dùng khi thanh toán'}
-                                        </span>
+                                        <span className="font-semibold text-green-400">Sẵn sàng dùng</span>
                                       </div>
                                     </div>
                                   </div>
@@ -1558,6 +1562,52 @@ export const ProfilePage = () => {
                             </div>
                           )}
                         </section>
+
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Đổi điểm lấy voucher</h3>
+                          {pointVoucherCatalog.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher nào khả dụng để đổi.</p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {pointVoucherCatalog.map((item) => renderCatalogVoucherCard(item))}
+                            </div>
+                          )}
+                        </section>
+
+                        {vouchers.some((v) => v.used) && (
+                          <section>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher đã sử dụng</h3>
+                            <div className="vouchers-grid">
+                              {vouchers.filter((v) => v.used).map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
+                                  : 'Hạn dùng: Không thời hạn';
+
+                                return (
+                                  <div key={`used-${voucher.walletId || voucher.id || voucher.code}`} className="voucher-card opacity-50 grayscale border-dashed border-gray-600">
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift size={24} className="text-gray-500" />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="voucher-code">{voucher.code}</span>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                                          Đã sử dụng
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title text-gray-500">{voucher.description}</h4>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">{formattedExpiry}</span>
+                                        <span>Đã dùng</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        )}
                       </div>
                     )}
                   </motion.div>

@@ -26,6 +26,9 @@ public class PromotionLifecycleService {
     }
 
     public boolean syncStatusIfNeeded(Promotion promotion, OffsetDateTime now) {
+        if (promotion.isDeleted()) {
+            return false;
+        }
         if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
             return false;
         }

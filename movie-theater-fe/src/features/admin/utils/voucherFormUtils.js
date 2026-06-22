@@ -33,6 +33,9 @@ export const getVoucherLifecycleStatus = (voucher) => {
   const used = voucher?.usedCount ?? 0;
   const max = voucher?.maxUsage;
 
+  if (voucher?.deletedAt || voucher?.status === 'DELETED') {
+    return { code: 'DELETED', label: 'Đã xóa', tone: 'zinc' };
+  }
   if (voucher?.status !== 'ACTIVE') {
     return { code: 'INACTIVE', label: 'Vô hiệu', tone: 'amber' };
   }

@@ -262,6 +262,7 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS points_cost INTEGER NOT NULL DEFAULT 0");
             jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_score INTEGER NOT NULL DEFAULT 0");
             jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_usage_per_user INTEGER");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
             jdbcTemplate.execute("""
                     CREATE TABLE IF NOT EXISTS user_voucher (
                         uuid UUID PRIMARY KEY,
@@ -274,6 +275,18 @@ public class DataSeeder implements CommandLineRunner {
                     )
                     """);
             logger.info("Migrated voucher redemption and lifetime score schema.");
+
+            jdbcTemplate.update("""
+                    UPDATE promotions
+                    SET status = 'ACTIVE',
+                        end_date = ?,
+                        updated_at = ?
+                    WHERE COALESCE(points_cost, 0) = 0
+                      AND (status <> 'ACTIVE' OR end_date IS NULL OR end_date < ?)
+                    """,
+                    java.time.OffsetDateTime.now().plusYears(1),
+                    java.time.OffsetDateTime.now(),
+                    java.time.OffsetDateTime.now());
         } catch (Exception e) {
             logger.error("Failed to migrate voucher/score schema", e);
         }
