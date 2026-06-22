@@ -2,7 +2,6 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
-
 const HomePage = lazy(() => import('../pages/HomePage'));
 const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
 const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));
@@ -24,7 +23,7 @@ const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'))
 const WatchPage = lazy(() => import('../pages/WatchPage'));
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-[#090b11] flex items-center justify-center">
+  <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500"></div>
   </div>
 );

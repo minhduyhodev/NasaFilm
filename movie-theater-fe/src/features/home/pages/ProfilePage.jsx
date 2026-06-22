@@ -34,57 +34,14 @@ import { notificationService } from "../../../shared/services/notificationServic
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import { promotionService } from "../../../shared/services/promotionService";
+import {
+  enrichBookingsWithMovieMeta,
+  isOnlineBooking,
+  formatDisplayTicketCode,
+  getOnlineMoviePath,
+} from "../utils/movieUtils";
+import { vodService } from "../../../shared/services/vodService";
 import "./ProfilePage.css";
-
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
@@ -93,7 +50,12 @@ export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleTicketClick = (tkt) => {
+  const handleTicketClick = async (tkt) => {
+    if (isOnlineBooking(tkt)) {
+      await handleVodTicketClick(tkt);
+      return;
+    }
+
     let showtime = "";
     let date = "";
     if (tkt.showtime) {
@@ -113,14 +75,12 @@ export const ProfilePage = () => {
       }));
     }
 
-    const movieInfo = getMovieInfo(tkt.movieTitle);
-
     const bookingData = {
       bookingUuid: tkt.bookingUuid || "",
       movie: tkt.movieTitle,
-      moviePoster: movieInfo.poster,
-      movieFormat: movieInfo.format || "IMAX 3D",
-      movieRating: movieInfo.age || "T16",
+      moviePoster: tkt.moviePoster || "",
+      movieFormat: "Rạp chiếu",
+      movieRating: tkt.movieAgeRestriction || "",
       theater: tkt.cinema,
       date: date,
       showtime: showtime,
@@ -130,6 +90,19 @@ export const ProfilePage = () => {
     };
 
     navigate("/booking-confirmed", { state: bookingData });
+  };
+
+  const handleVodTicketClick = async (tkt) => {
+    if (!tkt?.movieUuid) {
+      notificationService.info("Không tìm thấy phim cho vé online này.");
+      return;
+    }
+    try {
+      const status = await vodService.getStatus(tkt.movieUuid);
+      navigate(getOnlineMoviePath(tkt.movieUuid, status));
+    } catch {
+      navigate(`/online/activate/${tkt.movieUuid}`);
+    }
   };
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -165,7 +138,8 @@ export const ProfilePage = () => {
       setIsLoadingBookings(true);
       try {
         const data = await bookingService.getMyBookings();
-        setBookings(data || []);
+        const enriched = await enrichBookingsWithMovieMeta(data || []);
+        setBookings(enriched);
       } catch (err) {
         console.error("Failed to load user bookings:", err);
       } finally {
@@ -1314,6 +1288,7 @@ export const ProfilePage = () => {
                         </div>
                       ) : (
                         bookings.map((tkt) => {
+                          const isVod = isOnlineBooking(tkt);
                           const getMovieGlowClass = (title) => {
                             if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
                             if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
@@ -1323,17 +1298,21 @@ export const ProfilePage = () => {
                           return (
                             <div
                               key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
+                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}${isVod ? ' ticket-boarding-pass--vod' : ''}`}
                               onClick={() => handleTicketClick(tkt)}
-                              style={{ cursor: "pointer" }}
-                              title="Nhấp để xem chi tiết / In lại vé"
+                              style={{ cursor: 'pointer' }}
+                              title={
+                                isVod
+                                  ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
+                                  : 'Nhấp để xem chi tiết / In lại vé'
+                              }
                             >
                               <div className="ticket-notch-top" />
                               <div className="ticket-notch-bottom" />
 
                               <div className="ticket-body-left">
                                 <span className="ticket-format-badge">
-                                  {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
+                                  {isVod ? "VOD ONLINE" : "RẠP CHIẾU"}
                                 </span>
 
                                 <h3 className="ticket-movie-title-text">
@@ -1342,17 +1321,21 @@ export const ProfilePage = () => {
 
                                 <div className="ticket-grid-details">
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">Rạp Chiếu</span>
+                                    <span className="label-text">{isVod ? "Nền tảng" : "Rạp Chiếu"}</span>
                                     <span className="value-text">{tkt.cinema}</span>
                                   </div>
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">Suất Chiếu</span>
-                                    <span className="value-text text-amber-500">{tkt.showtime}</span>
+                                    <span className="label-text">{isVod ? "Hình thức" : "Suất Chiếu"}</span>
+                                    <span className="value-text text-amber-500">
+                                      {isVod ? "Xem trực tuyến" : tkt.showtime || "—"}
+                                    </span>
                                   </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">Đồ ăn & Nước</span>
-                                    <span className="value-text">{tkt.combo}</span>
-                                  </div>
+                                  {!isVod && (
+                                    <div className="ticket-info-unit">
+                                      <span className="label-text">Đồ ăn & Nước</span>
+                                      <span className="value-text">{tkt.combo}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -1361,14 +1344,22 @@ export const ProfilePage = () => {
                               </div>
 
                               <div className="ticket-body-right">
-                                <div className="stub-seats-info">
-                                  <span className="seats-title">Ghế</span>
-                                  <div className="seats-numbers">{tkt.seats}</div>
+                                <div
+                                  className="stub-seats-info"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span className="seats-title">{isVod ? 'Loại vé' : 'Ghế'}</span>
+                                  <div className={`seats-numbers${isVod ? ' seats-numbers--static' : ''}`}>
+                                    {isVod ? 'Online' : (tkt.seats || '—')}
+                                  </div>
                                 </div>
 
                                 <div className="barcode-wrapper-box">
                                   <div className="barcode-lines" />
-                                  <span className="ticket-id">{tkt.id}</span>
+                                  <span className="ticket-id">{formatDisplayTicketCode(tkt)}</span>
+                                  {isVod && (
+                                    <span className="ticket-email-hint">Xem mã đầy đủ trong email</span>
+                                  )}
                                 </div>
 
                                 <span className="stub-price-tag">{tkt.price}</span>

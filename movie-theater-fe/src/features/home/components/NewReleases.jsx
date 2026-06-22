@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { movieService } from '../../../shared/services/movieService';
-import { mapApiMovies, filterOnlineMovies } from '../utils/movieUtils';
+import { mapApiMovies, filterOnlineMovies, sortMoviesByReleaseDate } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
@@ -21,7 +21,7 @@ const NewReleases = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp, get
         const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 12 });
         let list = mapApiMovies(data?.content || []);
         if (onlineOnly) list = filterOnlineMovies(list);
-        setMovies(list.slice(0, 6));
+        setMovies(sortMoviesByReleaseDate(list).slice(0, 6));
       } catch {
         setMovies([]);
       } finally {

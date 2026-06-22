@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { bookingService } from '../../../shared/services/bookingService';
+import { vodService } from '../../../shared/services/vodService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { getOnlineMoviePath, getOnlineActionLabel } from '../utils/movieUtils';
 
@@ -11,8 +11,8 @@ async function loadVodStatus(uuid) {
     const cached = statusCache.get(uuid);
     return cached instanceof Promise ? cached : Promise.resolve(cached);
   }
-  const promise = bookingService
-    .getVodStatus(uuid)
+  const promise = vodService
+    .getStatus(uuid)
     .then((status) => {
       statusCache.set(uuid, status);
       return status;

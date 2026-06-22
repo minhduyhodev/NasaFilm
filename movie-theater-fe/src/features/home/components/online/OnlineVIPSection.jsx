@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMemberTierLabel } from '../../../../shared/constants/member';
 import { authService } from '../../../auth/api/authService';
 import { useAuthContext } from '../../../auth/hooks/useAuthContext';
 import memberRatingImg from '../../../../shared/assets/MemberRating.jpg';
@@ -20,7 +21,7 @@ const OnlineVIPSection = () => {
       .catch(() => setUserScore(null));
   }, [isAuthenticated]);
 
-  const memberTier = userScore != null && userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const memberTier = userScore != null ? getMemberTierLabel(userScore) : null;
 
   return (
     <section className="grid gap-6 lg:grid-cols-2 lg:items-center">
@@ -72,9 +73,9 @@ const OnlineVIPSection = () => {
           </div>
         ) : (
           <div className="absolute bottom-7 left-7 rounded-2xl bg-black/60 px-5 py-3.5 backdrop-blur-xl border border-white/10 text-left">
-            <div className="text-2xl font-black text-white">4.9/5</div>
+            <div className="text-sm font-black text-white">Thành viên NASA Film</div>
             <div className="text-[10px] uppercase tracking-[0.22em] text-white/60 font-bold mt-0.5">
-              Đánh giá thành viên
+              Đăng nhập để xem điểm tích lũy
             </div>
           </div>
         )}

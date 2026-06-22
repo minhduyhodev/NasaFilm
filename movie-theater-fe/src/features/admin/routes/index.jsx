@@ -24,6 +24,7 @@ const AdminCombosPage = lazy(() => import("../pages/AdminCombosPage"));
 const AdminComboFormPage = lazy(() => import("../pages/AdminComboFormPage"));
 const AdminComboDetailPage = lazy(() => import("../pages/AdminComboDetailPage"));
 const ConfigPage = lazy(() => import("../pages/ConfigPage"));
+const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
 
 const AdminPageLoader = () => (
@@ -81,6 +82,7 @@ export const AdminRoutes = () => {
           />
           <Route path="staff" element={<StaffPage />} />
           <Route path="config" element={<ConfigPage />} />
+          <Route path="email-templates" element={<EmailTemplatesPage />} />
         </Route>
       </Routes>
     </Suspense>
