@@ -35,10 +35,17 @@ import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import PageTransition from "../../../shared/components/PageTransition";
 import "./AdminLayout.css";
 
+const getRoleDisplayLabel = (roles = []) => {
+  if (roles.includes("admin")) return "Quản trị viên";
+  if (roles.includes("staff")) return "Nhân viên";
+  return "Thành viên";
+};
+
 const Sidebar = ({ isOpen, onToggle, onClose }) => {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
-  const displayName = user?.fullName || user?.email || "ADMIN";
+  const displayName = user?.fullName || user?.email || "Admin";
+  const roleLabel = getRoleDisplayLabel(user?.roles);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const avatar = avatarLoadFailed
     ? huyAdmin
@@ -311,7 +318,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
             title={displayName}
           >
             <img
-              alt="Admin Profile"
+              alt={displayName}
               className="w-full h-full object-cover"
               src={avatar}
               referrerPolicy="no-referrer"
@@ -321,10 +328,10 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
           {isOpen && (
             <div className="min-w-0 flex-1 text-left">
               <p className="text-xs font-black text-white truncate leading-tight">
-                Quản trị viên Lora
+                {displayName}
               </p>
               <p className="text-[9px] text-gray-400 font-bold tracking-wider uppercase mt-0.5">
-                QUẢN TRỊ VIÊN
+                {roleLabel}
               </p>
             </div>
           )}

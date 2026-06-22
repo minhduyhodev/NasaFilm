@@ -1,19 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  User, Search, Edit2, Users, Loader2, Eye, EyeOff,
-  CheckCircle, Ban, Star, Calendar, UserX, ChevronDown, X
-} from 'lucide-react';
-import { adminUserService } from '../api/adminUserService';
-import { notificationService } from '../../../shared/services/notificationService';
-import UserAvatar from '../../../shared/components/UserAvatar';
-import Pagination from '../../../shared/components/Pagination';
-import './UsersPage.css';
+  User,
+  Search,
+  Edit2,
+  Users,
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  Ban,
+  Star,
+  Calendar,
+  UserX,
+  ChevronDown,
+  X,
+  UserPlus,
+} from "lucide-react";
+import { adminUserService } from "../api/adminUserService";
+import { notificationService } from "../../../shared/services/notificationService";
+import UserAvatar from "../../../shared/components/UserAvatar";
+import Pagination from "../../../shared/components/Pagination";
+import AdminModal from "../components/AdminModal";
+import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
+import "./UsersPage.css";
 
 const UsersPage = () => {
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [visiblePhoneUserIds, setVisiblePhoneUserIds] = useState(new Set());
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,9 +38,10 @@ const UsersPage = () => {
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [scoreForm, setScoreForm] = useState('');
-  const [statusForm, setStatusForm] = useState('');
+  const [scoreForm, setScoreForm] = useState("");
+  const [statusForm, setStatusForm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -33,7 +49,9 @@ const UsersPage = () => {
       const data = await adminUserService.getUsers();
       if (Array.isArray(data)) setUsersList(data);
     } catch (error) {
-      notificationService.error(error.message || 'Không thể tải danh sách khách hàng.');
+      notificationService.error(
+        error.message || "Không thể tải danh sách khách hàng.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -51,10 +69,14 @@ const UsersPage = () => {
     setUpdatingUserId(userId);
     try {
       await adminUserService.updateUserStatus(userId, newStatus);
-      notificationService.success(`Đã cập nhật trạng thái tài khoản: ${userEmail}`);
+      notificationService.success(
+        `Đã cập nhật trạng thái tài khoản: ${userEmail}`,
+      );
       fetchUsers();
     } catch (error) {
-      notificationService.error(error.message || 'Lỗi khi cập nhật trạng thái.');
+      notificationService.error(
+        error.message || "Lỗi khi cập nhật trạng thái.",
+      );
     } finally {
       setUpdatingUserId(null);
     }
@@ -62,8 +84,12 @@ const UsersPage = () => {
 
   const handleOpenDetailModal = (user) => {
     setSelectedUser(user);
-    setScoreForm(user.score !== undefined && user.score !== null ? String(user.score) : '0');
-    setStatusForm(user.status || 'ACTIVE');
+    setScoreForm(
+      user.score !== undefined && user.score !== null
+        ? String(user.score)
+        : "0",
+    );
+    setStatusForm(user.status || "ACTIVE");
     setIsDetailModalOpen(true);
   };
 
@@ -77,49 +103,60 @@ const UsersPage = () => {
       // Update score if changed
       const parsedScore = parseInt(scoreForm, 10);
       if (!isNaN(parsedScore) && parsedScore !== (selectedUser.score || 0)) {
-        promises.push(adminUserService.updateUserScore(selectedUser.id, parsedScore));
+        promises.push(
+          adminUserService.updateUserScore(selectedUser.id, parsedScore),
+        );
         hasChanges = true;
       }
 
       // Update status if changed
       if (statusForm !== selectedUser.status) {
-        promises.push(adminUserService.updateUserStatus(selectedUser.id, statusForm));
+        promises.push(
+          adminUserService.updateUserStatus(selectedUser.id, statusForm),
+        );
         hasChanges = true;
       }
 
       if (hasChanges) {
         await Promise.all(promises);
-        notificationService.success(`Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`);
+        notificationService.success(
+          `Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`,
+        );
         fetchUsers();
       }
       setIsDetailModalOpen(false);
     } catch (error) {
-      notificationService.error(error.message || 'Lỗi khi cập nhật thông tin.');
+      notificationService.error(error.message || "Lỗi khi cập nhật thông tin.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Only display CUSTOMER accounts on this page
-  const customersOnly = usersList.filter(u => u.roles?.includes('CUSTOMER'));
+  const customersOnly = usersList.filter((u) => u.roles?.includes("CUSTOMER"));
 
   const filteredUsers = customersOnly.filter((user) => {
     const normalizedSearch = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !normalizedSearch ||
-      (user.fullName && user.fullName.toLowerCase().includes(normalizedSearch)) ||
+      (user.fullName &&
+        user.fullName.toLowerCase().includes(normalizedSearch)) ||
       (user.email && user.email.toLowerCase().includes(normalizedSearch)) ||
       (user.phoneNumber && user.phoneNumber.includes(normalizedSearch));
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const stats = React.useMemo(() => ({
-    total: customersOnly.length,
-    active: customersOnly.filter(u => u.status === 'ACTIVE').length,
-    suspended: customersOnly.filter(u => u.status === 'SUSPENDED').length,
-    vip: customersOnly.filter(u => (u.score || 0) >= 10000).length,
-  }), [customersOnly]);
+  const stats = React.useMemo(
+    () => ({
+      total: customersOnly.length,
+      active: customersOnly.filter((u) => u.status === "ACTIVE").length,
+      suspended: customersOnly.filter((u) => u.status === "SUSPENDED").length,
+      vip: customersOnly.filter((u) => (u.score || 0) >= 10000).length,
+    }),
+    [customersOnly],
+  );
 
   const paginatedUsers = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -129,32 +166,34 @@ const UsersPage = () => {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
 
   const getStatusLabel = (status) => {
-    if (status === 'ACTIVE') return 'Hoạt động';
-    if (status === 'SUSPENDED') return 'Bị khóa';
-    if (status === 'INACTIVE') return 'Chưa kích hoạt';
+    if (status === "ACTIVE") return "Hoạt động";
+    if (status === "SUSPENDED") return "Bị khóa";
+    if (status === "INACTIVE") return "Chưa kích hoạt";
     return status;
   };
 
   const getStatusCls = (status) => {
-    if (status === 'ACTIVE') return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400';
-    if (status === 'SUSPENDED') return 'bg-rose-500/10 border-rose-500/25 text-rose-400';
-    return 'bg-zinc-500/10 border-zinc-500/25 text-zinc-400';
+    if (status === "ACTIVE")
+      return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+    if (status === "SUSPENDED")
+      return "bg-rose-500/10 border-rose-500/25 text-rose-400";
+    return "bg-zinc-500/10 border-zinc-500/25 text-zinc-400";
   };
 
   const getStatusDot = (status) => {
-    if (status === 'ACTIVE') return 'bg-emerald-400';
-    if (status === 'SUSPENDED') return 'bg-rose-400';
-    return 'bg-zinc-400';
+    if (status === "ACTIVE") return "bg-emerald-400";
+    if (status === "SUSPENDED") return "bg-rose-400";
+    return "bg-zinc-400";
   };
 
   const formatDate = (createdAt) => {
-    if (!createdAt) return '--';
+    if (!createdAt) return "--";
     const date = new Date(createdAt);
-    return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
+    return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
   };
 
   const togglePhoneVisibility = (userId) => {
-    setVisiblePhoneUserIds(prev => {
+    setVisiblePhoneUserIds((prev) => {
       const next = new Set(prev);
       if (next.has(userId)) {
         next.delete(userId);
@@ -167,38 +206,101 @@ const UsersPage = () => {
 
   const getMemberTierBadge = (user) => {
     const points = user.score || 0;
-    if (points >= 10000) return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)] font-sans"><Star className="w-2.5 h-2.5 fill-amber-400" />NASA VIP</span>;
-    if (points >= 5000) return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-blue-500/10 border-blue-500/30 text-blue-400 font-sans"><Star className="w-2.5 h-2.5 fill-blue-400" />NASA FRIEND</span>;
-    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-gray-800/60 border-gray-700 text-gray-400 font-sans"><Star className="w-2.5 h-2.5" />NASA MEMBER</span>;
+    if (points >= 10000)
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)] font-sans">
+          <Star className="w-2.5 h-2.5 fill-amber-400" />
+          NASA VIP
+        </span>
+      );
+    if (points >= 5000)
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-blue-500/10 border-blue-500/30 text-blue-400 font-sans">
+          <Star className="w-2.5 h-2.5 fill-blue-400" />
+          NASA FRIEND
+        </span>
+      );
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-gray-800/60 border-gray-700 text-gray-400 font-sans">
+        <Star className="w-2.5 h-2.5" />
+        NASA MEMBER
+      </span>
+    );
   };
 
   return (
     <div className="space-y-6 text-left">
       {/* PAGE HEADER */}
-      <div className="mb-6 text-left">
-        <h1 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2 font-sans">
-          <Users className="w-6 h-6 text-amber-500" />
-          Danh Sách Khách Hàng
-        </h1>
-        <p className="text-xs text-gray-400 mt-1">
-          Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy và cập nhật trạng thái hoạt động.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2 font-sans">
+            <Users className="w-6 h-6 text-amber-500" />
+            Danh Sách Khách Hàng
+          </h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy
+            và cập nhật trạng thái hoạt động.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs text-black font-bold transition shadow-md shadow-amber-500/10 border-none font-mono cursor-pointer"
+        >
+          <UserPlus className="w-4 h-4" />
+          Tạo khách hàng
+        </button>
       </div>
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Tổng Khách Hàng', value: stats.total, Icon: Users, valueColor: 'text-white', iconColor: 'text-white' },
-          { label: 'Đang Hoạt Động', value: stats.active, Icon: CheckCircle, valueColor: 'text-emerald-400', iconColor: 'text-emerald-400' },
-          { label: 'Tài Khoản Bị Khóa', value: stats.suspended, Icon: Ban, valueColor: 'text-rose-400', iconColor: 'text-rose-400' },
-          { label: 'Hội Viên VIP (>=10k điểm)', value: stats.vip, Icon: Star, valueColor: 'text-amber-400', iconColor: 'text-amber-400' },
+          {
+            label: "Tổng Khách Hàng",
+            value: stats.total,
+            Icon: Users,
+            valueColor: "text-white",
+            iconColor: "text-white",
+          },
+          {
+            label: "Đang Hoạt Động",
+            value: stats.active,
+            Icon: CheckCircle,
+            valueColor: "text-emerald-400",
+            iconColor: "text-emerald-400",
+          },
+          {
+            label: "Tài Khoản Bị Khóa",
+            value: stats.suspended,
+            Icon: Ban,
+            valueColor: "text-rose-400",
+            iconColor: "text-rose-400",
+          },
+          {
+            label: "Hội Viên VIP ",
+            value: stats.vip,
+            Icon: Star,
+            valueColor: "text-amber-400",
+            iconColor: "text-amber-400",
+          },
         ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div key={label} className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-5 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors duration-300 group font-sans">
+          <div
+            key={label}
+            className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-5 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors duration-300 group font-sans"
+          >
             <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block font-sans">{label}</span>
-              <span className={`text-2.5xl font-extrabold ${valueColor} block leading-none font-sans`}>{value}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block font-sans">
+                {label}
+              </span>
+              <span
+                className={`text-2.5xl font-extrabold ${valueColor} block leading-none font-sans`}
+              >
+                {value}
+              </span>
             </div>
-            <div className={`p-3 rounded-xl bg-[#1A2238]/60 border border-[#2C3B5E]/30 ${iconColor} group-hover:scale-105 transition-transform duration-300`}>
+            <div
+              className={`p-3 rounded-xl bg-[#1A2238]/60 border border-[#2C3B5E]/30 ${iconColor} group-hover:scale-105 transition-transform duration-300`}
+            >
               <Icon className="w-5 h-5" />
             </div>
           </div>
@@ -235,7 +337,9 @@ const UsersPage = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4 bg-[#0F1322] border border-[#1A2238] rounded-xl">
           <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-          <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-widest font-sans">Đang tải danh sách khách hàng...</p>
+          <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-widest font-sans">
+            Đang tải danh sách khách hàng...
+          </p>
         </div>
       ) : paginatedUsers.length > 0 ? (
         <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-lg">
@@ -243,40 +347,58 @@ const UsersPage = () => {
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className="border-b border-[#1A2238]">
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Khách Hàng</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Hạng Hội Viên</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Điểm Tích Lũy</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Trạng Thái</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center">Hành Động</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
+                    Khách Hàng
+                  </th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
+                    Hạng Hội Viên
+                  </th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
+                    Điểm Tích Lũy
+                  </th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
+                    Trạng Thái
+                  </th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center">
+                    Hành Động
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedUsers.map((row, index) => {
-                  const isLastRow = index >= paginatedUsers.length - 2 && index > 0;
+                  const isLastRow =
+                    index >= paginatedUsers.length - 2 && index > 0;
                   return (
-                    <tr key={row.id} className="border-b border-[#1A2238]/40 hover:bg-white/[0.01] transition-colors duration-150 font-sans">
+                    <tr
+                      key={row.id}
+                      className="border-b border-[#1A2238]/40 hover:bg-white/[0.01] transition-colors duration-150 font-sans"
+                    >
                       {/* IDENTITY */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 font-sans">
                           <UserAvatar src={row.avatarUrl} name={row.fullName} />
                           <div className="min-w-0 flex-1 font-sans">
                             <div className="flex items-center gap-1.5 flex-wrap font-sans">
-                              <span className="text-xs font-bold text-white font-sans">{row.fullName || '--'}</span>
-                              {row.authProvider === 'GOOGLE' && (
+                              <span className="text-xs font-bold text-white font-sans">
+                                {row.fullName || "--"}
+                              </span>
+                              {row.authProvider === "GOOGLE" && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-bold text-gray-400 shrink-0 font-mono">
                                   G
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-gray-400 break-all leading-tight font-sans">{row.email}</div>
+                            <div className="text-[11px] text-gray-400 break-all leading-tight font-sans">
+                              {row.email}
+                            </div>
                             {row.phoneNumber ? (
                               <div className="flex items-center gap-1.5 mt-0.5 font-sans">
                                 <span className="text-[11px] text-gray-500 font-sans">
                                   {visiblePhoneUserIds.has(row.id)
                                     ? row.phoneNumber
                                     : row.phoneNumber.length >= 6
-                                    ? `${row.phoneNumber.slice(0, 3)}....${row.phoneNumber.slice(-3)}`
-                                    : '....'}
+                                      ? `${row.phoneNumber.slice(0, 3)}....${row.phoneNumber.slice(-3)}`
+                                      : "...."}
                                 </span>
                                 <button
                                   type="button"
@@ -291,26 +413,32 @@ const UsersPage = () => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="text-[11px] text-gray-500 mt-0.5 font-sans">--</div>
+                              <div className="text-[11px] text-gray-500 mt-0.5 font-sans">
+                                --
+                              </div>
                             )}
                             <div className="flex items-center gap-1 mt-1 text-gray-500 text-[9px] font-sans">
                               <Calendar className="w-2.5 h-2.5 shrink-0" />
-                              <span className="font-mono">Ngày tạo: {formatDate(row.createdAt)}</span>
+                              <span className="font-mono">
+                                Ngày tạo: {formatDate(row.createdAt)}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* TIER */}
-                      <td className="px-6 py-4">
-                        {getMemberTierBadge(row)}
-                      </td>
+                      <td className="px-6 py-4">{getMemberTierBadge(row)}</td>
 
                       {/* POINTS */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col font-sans">
-                          <span className="text-base font-extrabold text-amber-500 font-sans">{(row.score || 0).toLocaleString()}</span>
-                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">ĐIỂM</span>
+                          <span className="text-base font-extrabold text-amber-500 font-sans">
+                            {(row.score || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">
+                            ĐIỂM
+                          </span>
                         </div>
                       </td>
 
@@ -320,33 +448,67 @@ const UsersPage = () => {
                           <button
                             type="button"
                             disabled={updatingUserId === row.id}
-                            onClick={() => setOpenStatusDropdownId(openStatusDropdownId === row.id ? null : row.id)}
+                            onClick={() =>
+                              setOpenStatusDropdownId(
+                                openStatusDropdownId === row.id ? null : row.id,
+                              )
+                            }
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border font-mono cursor-pointer transition-all duration-200 focus:outline-none hover:bg-white/[0.04] disabled:opacity-85 ${getStatusCls(row.status)}`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(row.status)}`} />
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${getStatusDot(row.status)}`}
+                            />
                             <span>{getStatusLabel(row.status)}</span>
-                            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${openStatusDropdownId === row.id ? 'rotate-180' : ''}`} />
+                            <ChevronDown
+                              className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${openStatusDropdownId === row.id ? "rotate-180" : ""}`}
+                            />
                           </button>
 
                           {openStatusDropdownId === row.id && (
                             <>
-                              <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpenStatusDropdownId(null)}></div>
-                              <div className={`absolute left-0 w-36 bg-[#0B0F19] border border-[#1A2238] rounded-lg shadow-xl p-1 space-y-0.5 z-50 text-left ${isLastRow ? 'bottom-full mb-1' : 'mt-1 top-full'}`}>
+                              <div
+                                className="fixed inset-0 z-40 bg-transparent"
+                                onClick={() => setOpenStatusDropdownId(null)}
+                              ></div>
+                              <div
+                                className={`absolute left-0 w-36 bg-[#0B0F19] border border-[#1A2238] rounded-lg shadow-xl p-1 space-y-0.5 z-50 text-left ${isLastRow ? "bottom-full mb-1" : "mt-1 top-full"}`}
+                              >
                                 {[
-                                  { value: 'ACTIVE', label: 'Hoạt động', dot: 'bg-emerald-400', cls: 'text-emerald-400 hover:bg-emerald-500/10' },
-                                  { value: 'SUSPENDED', label: 'Bị khóa', dot: 'bg-rose-400', cls: 'text-rose-400 hover:bg-rose-500/10' },
-                                  { value: 'INACTIVE', label: 'Chưa kích hoạt', dot: 'bg-zinc-400', cls: 'text-zinc-400 hover:bg-zinc-500/10' }
+                                  {
+                                    value: "ACTIVE",
+                                    label: "Hoạt động",
+                                    dot: "bg-emerald-400",
+                                    cls: "text-emerald-400 hover:bg-emerald-500/10",
+                                  },
+                                  {
+                                    value: "SUSPENDED",
+                                    label: "Bị khóa",
+                                    dot: "bg-rose-400",
+                                    cls: "text-rose-400 hover:bg-rose-500/10",
+                                  },
+                                  {
+                                    value: "INACTIVE",
+                                    label: "Chưa kích hoạt",
+                                    dot: "bg-zinc-400",
+                                    cls: "text-zinc-400 hover:bg-zinc-500/10",
+                                  },
                                 ].map((opt) => (
                                   <button
                                     key={opt.value}
                                     type="button"
                                     onClick={() => {
-                                      handleStatusChange(row.id, row.email, opt.value);
+                                      handleStatusChange(
+                                        row.id,
+                                        row.email,
+                                        opt.value,
+                                      );
                                       setOpenStatusDropdownId(null);
                                     }}
-                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[10px] font-bold transition-all duration-200 cursor-pointer ${opt.cls} ${row.status === opt.value ? 'bg-[#0f172a]' : 'border border-transparent'}`}
+                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[10px] font-bold transition-all duration-200 cursor-pointer ${opt.cls} ${row.status === opt.value ? "bg-[#0f172a]" : "border border-transparent"}`}
                                   >
-                                    <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${opt.dot}`}
+                                    />
                                     <span>{opt.label}</span>
                                   </button>
                                 ))}
@@ -377,8 +539,12 @@ const UsersPage = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-28 gap-3 bg-[#0F1322] border border-[#1A2238] rounded-xl mb-4 font-sans">
           <UserX className="w-14 h-14 text-gray-700" />
-          <p className="text-sm font-bold uppercase tracking-wider text-gray-400 font-sans">Không tìm thấy khách hàng nào</p>
-          <p className="text-xs text-gray-600 font-sans">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
+          <p className="text-sm font-bold uppercase tracking-wider text-gray-400 font-sans">
+            Không tìm thấy khách hàng nào
+          </p>
+          <p className="text-xs text-gray-600 font-sans">
+            Thử thay đổi từ khóa hoặc bộ lọc của bạn.
+          </p>
         </div>
       )}
 
@@ -413,7 +579,10 @@ const UsersPage = () => {
       {/* ==================== DETAIL EDIT MODAL ==================== */}
       {isDetailModalOpen && selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsDetailModalOpen(false)}></div>
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setIsDetailModalOpen(false)}
+          ></div>
           <div className="relative w-full max-w-md bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300 font-sans">
             <div className="flex justify-between items-center mb-5 border-b border-[#1A2238]/60 pb-3">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
@@ -428,18 +597,27 @@ const UsersPage = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-[#0B0F19] border border-[#1A2238] rounded-lg">
-                <UserAvatar src={selectedUser.avatarUrl} name={selectedUser.fullName} />
+                <UserAvatar
+                  src={selectedUser.avatarUrl}
+                  name={selectedUser.fullName}
+                />
                 <div>
-                  <h4 className="text-xs font-bold text-white leading-tight">{selectedUser.fullName || '--'}</h4>
-                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">{selectedUser.email}</p>
+                  <h4 className="text-xs font-bold text-white leading-tight">
+                    {selectedUser.fullName || "--"}
+                  </h4>
+                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">
+                    {selectedUser.email}
+                  </p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Điểm tích lũy hội viên</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">
+                  Điểm tích lũy hội viên
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -450,7 +628,9 @@ const UsersPage = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Trạng thái hoạt động *</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">
+                  Trạng thái hoạt động *
+                </label>
                 <select
                   className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
                   value={statusForm}
@@ -484,6 +664,23 @@ const UsersPage = () => {
           </div>
         </div>
       )}
+
+      <AdminModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Tạo tài khoản khách hàng"
+        subtitle="Hệ thống gửi email kích hoạt với mật khẩu tạm thời"
+        size="lg"
+      >
+        <AdminUserFormPanel
+          mode="CUSTOMER"
+          onSuccess={() => {
+            setIsCreateModalOpen(false);
+            fetchUsers();
+          }}
+          onCancel={() => setIsCreateModalOpen(false)}
+        />
+      </AdminModal>
     </div>
   );
 };
