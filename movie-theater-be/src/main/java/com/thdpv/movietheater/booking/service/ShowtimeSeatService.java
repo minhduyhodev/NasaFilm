@@ -31,6 +31,7 @@ import com.thdpv.movietheater.cinema.service.CinemaService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 import lombok.RequiredArgsConstructor;
 import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
@@ -40,11 +41,10 @@ import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 @RequiredArgsConstructor
 public class ShowtimeSeatService {
 
-    private static final int LOCK_TTL_SECONDS = 300;
-
     @Value("${app.showtime.auto-slide-enabled:false}")
     private boolean autoSlideEnabled;
 
+    private final SystemConfigService systemConfigService;
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
@@ -99,12 +99,13 @@ public class ShowtimeSeatService {
             responseRows.add(new ShowtimeSeatMapResponse.RowItem(entry.getKey(), entry.getValue()));
         }
 
+        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,
                 startTime,
                 endTime,
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 now,
                 responseRows);
     }
@@ -117,7 +118,8 @@ public class ShowtimeSeatService {
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
-        OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
+        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        OffsetDateTime expiresAt = now.plusSeconds(lockTtlSeconds);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
@@ -145,7 +147,7 @@ public class ShowtimeSeatService {
 
         return new SeatLockSyncResponse(
                 request.getShowtimeUuid(),
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 requestedSeatUuids.isEmpty() ? null : expiresAt,
                 now,
                 requestedSeatUuids);
@@ -367,8 +369,10 @@ public class ShowtimeSeatService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }

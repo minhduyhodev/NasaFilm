@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { adminUserService } from '../api/adminUserService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
 import './UsersPage.css';
 
@@ -258,15 +258,7 @@ const UsersPage = () => {
                       {/* IDENTITY */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 font-sans">
-                          <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden border border-[#1A2238] flex items-center justify-center">
-                            {row.avatarUrl ? (
-                              <img src={normalizeAvatarUrl(row.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-amber-900/40 to-orange-950/40 flex items-center justify-center">
-                                <User className="w-4 h-4 text-amber-500" />
-                              </div>
-                            )}
-                          </div>
+                          <UserAvatar src={row.avatarUrl} name={row.fullName} />
                           <div className="min-w-0 flex-1 font-sans">
                             <div className="flex items-center gap-1.5 flex-wrap font-sans">
                               <span className="text-xs font-bold text-white font-sans">{row.fullName || '--'}</span>
@@ -439,9 +431,7 @@ const UsersPage = () => {
             
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-[#0B0F19] border border-[#1A2238] rounded-lg">
-                <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden border border-[#1A2238] flex items-center justify-center">
-                  <img src={normalizeAvatarUrl(selectedUser.avatarUrl) || ''} alt="User" className="w-full h-full object-cover" onError={(e)=>{e.target.src="https://via.placeholder.com/150"}} />
-                </div>
+                <UserAvatar src={selectedUser.avatarUrl} name={selectedUser.fullName} />
                 <div>
                   <h4 className="text-xs font-bold text-white leading-tight">{selectedUser.fullName || '--'}</h4>
                   <p className="text-[11px] text-gray-400 font-mono mt-0.5">{selectedUser.email}</p>

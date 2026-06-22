@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.booking.controller;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.booking.dto.request.PromotionRequest;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -33,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminPromotionController {
 
     private final PromotionRepository promotionRepository;
+    private final SystemConfigService systemConfigService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Promotion>>> getAllPromotions() {
@@ -71,9 +74,7 @@ public class AdminPromotionController {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị giảm giá theo phần trăm phải nằm trong khoảng (0, 1]");
             }
         } else {
-            if (request.getDiscountValue() == null || request.getDiscountValue().doubleValue() <= 0) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị giảm giá cố định phải lớn hơn 0");
-            }
+            validateFixedDiscountValue(request.getDiscountValue());
         }
         promotion.setDiscountValue(request.getDiscountValue());
         
@@ -117,9 +118,7 @@ public class AdminPromotionController {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị giảm giá theo phần trăm phải nằm trong khoảng (0, 1]");
             }
         } else {
-            if (request.getDiscountValue() == null || request.getDiscountValue().doubleValue() <= 0) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị giảm giá cố định phải lớn hơn 0");
-            }
+            validateFixedDiscountValue(request.getDiscountValue());
         }
         promotion.setDiscountValue(request.getDiscountValue());
         
@@ -140,5 +139,17 @@ public class AdminPromotionController {
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy khuyến mãi"));
         promotionRepository.delete(promotion);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa khuyến mãi thành công"));
+    }
+
+    private void validateFixedDiscountValue(BigDecimal discountValue) {
+        if (discountValue == null || discountValue.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Giá trị giảm giá cố định phải lớn hơn 0");
+        }
+        int minAmount = systemConfigService.getPointsToCashValue();
+        if (discountValue.compareTo(BigDecimal.valueOf(minAmount)) < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Giá trị giảm cố định phải tối thiểu " + minAmount
+                            + " VND (bằng giá trị 1 điểm trong cấu hình hệ thống)");
+        }
     }
 }

@@ -32,6 +32,7 @@ import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import huyAdmin from "../../../shared/assets/huyadmin.jpg";
 import nasaLogo from "../../../shared/assets/NASAFILM.jpg";
 import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
+import PageTransition from "../../../shared/components/PageTransition";
 import "./AdminLayout.css";
 
 const Sidebar = ({ isOpen, onToggle, onClose }) => {
@@ -364,30 +365,9 @@ const AdminLayout = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const scrollToTop = () => {
-      if (mainRef.current) {
-        mainRef.current.scrollTop = 0;
-      }
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-
-    scrollToTop();
-
-    const t1 = setTimeout(scrollToTop, 0);
-    const t2 = setTimeout(scrollToTop, 50);
-    const t3 = setTimeout(scrollToTop, 150);
-    const t4 = setTimeout(scrollToTop, 300);
-    const t5 = setTimeout(scrollToTop, 600);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-    };
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
   }, [location.pathname]);
 
   return (
@@ -412,6 +392,7 @@ const AdminLayout = ({ children }) => {
 
       <main
         ref={mainRef}
+        data-scroll-container="admin-main"
         className={`min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10 bg-[#080B14] font-sans transition-all duration-300 ${
           isSidebarOpen ? "lg:ml-64" : "lg:ml-16"
         }`}
@@ -447,7 +428,9 @@ const AdminLayout = ({ children }) => {
         </div>
 
         <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-8">
-          {children ?? <Outlet />}
+          <PageTransition scrollTarget='[data-scroll-container="admin-main"]'>
+            {children ?? <Outlet />}
+          </PageTransition>
         </div>
       </main>
     </div>

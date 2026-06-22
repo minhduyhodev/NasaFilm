@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Calendar, X, Copy, Check } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import TabTransition from '../../../shared/components/TabTransition';
 
 // Import image assets
 import heroBg from '../../../shared/assets/offers_hero_bg.png';
@@ -112,7 +113,7 @@ const OffersPage = () => {
         </div>
 
         {/* Offers List (Editorial Banners style) */}
-        <div className="flex flex-col gap-16">
+        <TabTransition activeKey={activeTab} className="flex flex-col gap-16">
           {filteredOffers.map((offer, index) => (
             <div 
               key={offer.id} 
@@ -151,7 +152,7 @@ const OffersPage = () => {
               </div>
             </div>
           ))}
-        </div>
+        </TabTransition>
       </main>
 
       {/* Offer Modal details popup */}

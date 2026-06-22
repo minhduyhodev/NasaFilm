@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   User,
   Globe,
@@ -8,18 +7,24 @@ import {
   Loader2,
   Award,
   MapPin,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { movieService } from "../../../shared/services/movieService";
 import { notificationService } from "../../../shared/services/notificationService";
 import Pagination from "../../../shared/components/Pagination";
+import AdminModal from "../components/AdminModal";
+import ActorFormPanel from "../components/panels/ActorFormPanel";
+import { PrimaryButton, GhostButton } from "../components";
 import "./ActorsPage.css";
 
 const ActorsPage = () => {
-  const navigate = useNavigate();
   const [actors, setActors] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actorModal, setActorModal] = useState({ open: false, mode: "create", actor: null });
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,6 +95,38 @@ const ActorsPage = () => {
     return filteredActors.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredActors, currentPage, itemsPerPage]);
 
+  const closeActorModal = () => setActorModal({ open: false, mode: "create", actor: null });
+
+  const handleActorSaved = async () => {
+    closeActorModal();
+    await fetchActorsAndCountries();
+  };
+
+  const handleDeleteActor = async (actor) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa diễn viên "${actor.fullName}"?`)) return;
+    setIsDeleting(true);
+    try {
+      await movieService.deleteActor(actor.uuid);
+      notificationService.success(`Đã xóa "${actor.fullName}"`);
+      closeActorModal();
+      await fetchActorsAndCountries();
+    } catch (err) {
+      notificationService.error(err.message || "Xóa thất bại");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const actorModalTitle =
+    actorModal.mode === "create"
+      ? "Thêm diễn viên mới"
+      : actorModal.mode === "edit"
+        ? "Chỉnh sửa diễn viên"
+        : actorModal.actor?.fullName || "Chi tiết diễn viên";
+
+  const actorModalSubtitle =
+    actorModal.mode === "detail" ? actorModal.actor?.countryName || "Hồ sơ diễn viên" : undefined;
+
   return (
     <div className="space-y-6 text-left">
       {/* HEADER */}
@@ -107,7 +144,7 @@ const ActorsPage = () => {
         </div>
         <button
           className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
-          onClick={() => navigate("/admin/actors/new")}
+          onClick={() => setActorModal({ open: true, mode: "create", actor: null })}
         >
           <Plus size={16} />
           Thêm Diễn Viên
@@ -205,7 +242,7 @@ const ActorsPage = () => {
               <button
                 key={actor.uuid}
                 type="button"
-                onClick={() => navigate(`/admin/actors/${actor.uuid}`)}
+                onClick={() => setActorModal({ open: true, mode: "detail", actor })}
                 className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 hover:border-gray-600 transition-all duration-200 group flex flex-col gap-3 text-left cursor-pointer w-full"
               >
                 {/* Avatar */}
@@ -254,6 +291,59 @@ const ActorsPage = () => {
           onItemsPerPageChange={setItemsPerPage}
         />
       )}
+
+      <AdminModal
+        open={actorModal.open}
+        onClose={closeActorModal}
+        title={actorModalTitle}
+        subtitle={actorModalSubtitle}
+        size={actorModal.mode === "detail" ? "md" : "lg"}
+      >
+        {actorModal.mode === "detail" && actorModal.actor && (
+          <div className="space-y-5">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 flex items-center justify-center">
+                {actorModal.actor.avatarUrl ? (
+                  <img src={actorModal.actor.avatarUrl} alt={actorModal.actor.fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-10 h-10 text-gray-500" />
+                )}
+              </div>
+              <div className="inline-flex items-center gap-1.5 bg-zinc-500/10 border border-zinc-500/20 text-zinc-300 text-xs px-3 py-1 rounded-full">
+                <Globe className="w-3.5 h-3.5" />
+                {actorModal.actor.countryName || "Không xác định"}
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <PrimaryButton
+                type="button"
+                className="flex-1 justify-center"
+                onClick={() => setActorModal({ open: true, mode: "edit", actor: actorModal.actor })}
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Chỉnh sửa
+              </PrimaryButton>
+              <GhostButton
+                type="button"
+                className="flex-1 justify-center text-red-400 border-red-500/30 hover:bg-red-500/10"
+                onClick={() => handleDeleteActor(actorModal.actor)}
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? "Đang xóa..." : "Xóa"}
+              </GhostButton>
+            </div>
+          </div>
+        )}
+        {(actorModal.mode === "create" || actorModal.mode === "edit") && (
+          <ActorFormPanel
+            actor={actorModal.mode === "edit" ? actorModal.actor : null}
+            countriesList={countriesList}
+            onSuccess={handleActorSaved}
+            onCancel={closeActorModal}
+          />
+        )}
+      </AdminModal>
     </div>
   );
 };

@@ -73,7 +73,11 @@ const AdminVoucherDetailPage = () => {
 
   return (
     <AdminPage>
-      <PageHeader title={voucher.code} description={`ID ${voucher.id}`} backTo="/admin/vouchers" />
+      <PageHeader
+        title={voucher.code}
+        description={voucher.description || `Giảm giá ${formatDiscountDisplay(voucher)}`}
+        backTo="/admin/vouchers"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col gap-3">
@@ -105,7 +109,6 @@ const AdminVoucherDetailPage = () => {
               <MetadataRow label="Trang thai" value={voucher.status === 'ACTIVE' ? 'Hoat dong' : 'Vo hieu'} />
               <MetadataRow label="Loai giam" value={voucher.discountType === 'PERCENTAGE' ? 'Phan tram' : 'Co dinh'} />
               <MetadataRow label="Da su dung" value={`${voucher.usedCount ?? 0} / ${voucher.maxUsage ?? '∞'}`} />
-              <MetadataRow label="1 lan / KH" value={voucher.oncePerUser ? 'Co' : 'Khong'} />
               <MetadataRow label="Bat dau" value={voucher.startDate ? formatDateTimeDisplay(formatDateForInput(voucher.startDate)) : '—'} />
               <MetadataRow label="Ket thuc" value={voucher.endDate ? formatDateTimeDisplay(formatDateForInput(voucher.endDate)) : '—'} />
             </dl>

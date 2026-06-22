@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import HomeAnimatedLayout from '../layouts/HomeAnimatedLayout';
 
 const HomePage = lazy(() => import('../pages/HomePage'));
 const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
@@ -52,67 +53,69 @@ export const HomeRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route index element={<HomePage />} />
-        <Route path="online" element={<OnlineMoviesPage />} />
-        <Route path="online/activate/:movieId" element={<TicketActivationPage />} />
-        <Route path="movies" element={<MoviesPage />} />
-        <Route path="cinemas" element={<CinemasPage />} />
-        <Route path="offers" element={<OffersPage />} />
-        <Route path="about" element={<AboutPage />} />
-        <Route path="terms" element={<TermsPage />} />
-        <Route path="privacy" element={<PrivacyPage />} />
-        <Route path="payment-policy" element={<PaymentPolicyPage />} />
-        <Route path="refund-policy" element={<RefundPolicyPage />} />
-        <Route path="faq" element={<FaqPage />} />
-        <Route path="movie/:id" element={<MovieDetailPage />} />
-        <Route
-          path="booking"
-          element={
-            <ProtectedRoute>
-              <BookingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="concessions"
-          element={
-            <ProtectedRoute>
-              <ConcessionsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="checkout"
-          element={
-            <ProtectedRoute>
-              <CheckoutPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="booking-confirmed"
-          element={
-            <ProtectedRoute>
-              <BookingConfirmedPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="watch/:id"
-          element={
-            <ProtectedRoute>
-              <WatchPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<HomeAnimatedLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="online" element={<OnlineMoviesPage />} />
+          <Route path="online/activate/:movieId" element={<TicketActivationPage />} />
+          <Route path="movies" element={<MoviesPage />} />
+          <Route path="cinemas" element={<CinemasPage />} />
+          <Route path="offers" element={<OffersPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="terms" element={<TermsPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="payment-policy" element={<PaymentPolicyPage />} />
+          <Route path="refund-policy" element={<RefundPolicyPage />} />
+          <Route path="faq" element={<FaqPage />} />
+          <Route path="movie/:id" element={<MovieDetailPage />} />
+          <Route
+            path="booking"
+            element={
+              <ProtectedRoute>
+                <BookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="concessions"
+            element={
+              <ProtectedRoute>
+                <ConcessionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="booking-confirmed"
+            element={
+              <ProtectedRoute>
+                <BookingConfirmedPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="watch/:id"
+            element={
+              <ProtectedRoute>
+                <WatchPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
       </Routes>
     </Suspense>
   );

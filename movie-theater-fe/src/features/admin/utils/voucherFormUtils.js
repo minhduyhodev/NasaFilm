@@ -29,3 +29,19 @@ export const formatDiscountDisplay = (voucher) => {
   }
   return `${Number(voucher.discountValue).toLocaleString('vi-VN')} VND`;
 };
+
+export const validateVoucherDiscountValue = (discountType, discountValue, pointsToCashValue) => {
+  const valueNum = parseFloat(discountValue);
+  if (Number.isNaN(valueNum) || valueNum <= 0) {
+    return 'Giá trị giảm phải lớn hơn 0';
+  }
+  if (discountType === 'PERCENTAGE') {
+    if (valueNum > 100) return 'Phần trăm tối đa 100%';
+    return null;
+  }
+  const minAmount = Number(pointsToCashValue) || 1000;
+  if (valueNum < minAmount) {
+    return `Giá trị giảm cố định phải tối thiểu ${minAmount.toLocaleString('vi-VN')} VND (bằng giá trị 1 điểm trong cấu hình hệ thống)`;
+  }
+  return null;
+};

@@ -1,0 +1,82 @@
+.admin-modal-root {
+  @apply fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6;
+}
+
+.admin-modal-backdrop {
+  @apply absolute inset-0 bg-black/70 backdrop-blur-sm border-none cursor-pointer;
+  animation: admin-modal-fade-in 0.2s ease-out;
+}
+
+.admin-modal-panel {
+  @apply relative flex flex-col w-full max-h-[90vh] rounded-2xl border border-white/10 bg-[#0f1322] shadow-2xl shadow-black/50 overflow-hidden;
+  animation: admin-modal-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-modal-panel-md {
+  @apply max-w-md;
+}
+
+.admin-modal-panel-lg {
+  @apply max-w-2xl;
+}
+
+.admin-modal-panel-xl {
+  @apply max-w-3xl;
+}
+
+.admin-modal-header {
+  @apply flex items-start justify-between gap-4 px-5 py-4 border-b border-white/10 bg-[#121826]/80 shrink-0;
+}
+
+.admin-modal-title {
+  @apply text-lg font-black text-white uppercase tracking-wide font-heading leading-tight;
+}
+
+.admin-modal-subtitle {
+  @apply mt-1 text-sm text-gray-400;
+}
+
+.admin-modal-close {
+  @apply shrink-0 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent;
+}
+
+.admin-modal-body {
+  @apply flex-1 overflow-y-auto px-5 py-5;
+}
+
+.admin-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.admin-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.admin-modal-footer {
+  @apply shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-white/10 bg-[#0b0f19]/60;
+}
+
+@keyframes admin-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
