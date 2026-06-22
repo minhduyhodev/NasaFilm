@@ -42,6 +42,7 @@ import {
   getOnlineMoviePath,
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
+import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {

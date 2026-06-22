@@ -2,6 +2,8 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import HomeAnimatedLayout from '../layouts/HomeAnimatedLayout';
+
 const HomePage = lazy(() => import('../pages/HomePage'));
 const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
 const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));

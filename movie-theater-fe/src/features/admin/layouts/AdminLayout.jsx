@@ -294,8 +294,8 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
           {renderGroupHeader("Cấu hình & Bảo mật", "security", Shield)}
           {(!isOpen || openGroups.security) && (
             <div className={`${isOpen ? 'pl-2 border-l border-[#1E293B]/10 ml-4.5 space-y-1' : 'space-y-1'}`}>
-              {renderLink('/admin/config', Sliders, 'Cấu hình hệ thống', 'text-amber-400')}
-              {renderLink('/admin/email-templates', Mail, 'Mẫu email HTML', 'text-sky-400')}
+              {renderLink('/admin/config', Sliders, 'C?u h�nh h? th?ng', 'text-amber-400')}
+              {renderLink('/admin/email-templates', Mail, 'M?u email HTML', 'text-sky-400')}
             </div>
           )}
         </div>

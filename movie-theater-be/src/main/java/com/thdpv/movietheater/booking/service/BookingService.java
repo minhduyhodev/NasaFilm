@@ -84,6 +84,7 @@ public class BookingService {
     private final SystemConfigService systemConfigService;
     private final VodNotificationService vodNotificationService;
     private final TheaterNotificationService theaterNotificationService;
+    private final VoucherRedemptionService voucherRedemptionService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
