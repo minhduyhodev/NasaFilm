@@ -1,0 +1,20 @@
+[
+  {
+    "uuid": "55555555-5555-5555-5555-555555555555",
+    "name": "Combo Bắp Nước",
+    "price": 90000,
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-666666666666",
+    "name": "Combo Solo (1 Bắp + 1 Nước)",
+    "price": 70000,
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-777777777777",
+    "name": "Combo Gia Đình (2 Bắp + 4 Nước)",
+    "price": 160000,
+    "status": "ACTIVE"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "uuid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "name": "STANDARD",
+    "basePrice": 85000,
+    "priceModifier": 1.0
+  },
+  {
+    "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "name": "VIP",
+    "basePrice": 120000,
+    "priceModifier": 1.0
+  },
+  {
+    "uuid": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "name": "COUPLE",
+    "basePrice": 160000,
+    "priceModifier": 1.0
+  }
+]
