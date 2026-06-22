@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Edit2, Trash2, Loader2, Ticket } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { formatDateForInput, formatDateTimeDisplay, formatDiscountDisplay } from '../utils/voucherFormUtils';
+import { formatDateForInput, formatDateTimeDisplay, formatDiscountDisplay, getVoucherLifecycleStatus } from '../utils/voucherFormUtils';
 import {
   AdminPage,
   PageHeader,
@@ -106,7 +106,7 @@ const AdminVoucherDetailPage = () => {
         <div className="lg:col-span-8">
           <Section title="Chi tiet">
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <MetadataRow label="Trang thai" value={voucher.status === 'ACTIVE' ? 'Hoat dong' : 'Vo hieu'} />
+              <MetadataRow label="Trang thai" value={getVoucherLifecycleStatus(voucher).label} />
               <MetadataRow label="Loai giam" value={voucher.discountType === 'PERCENTAGE' ? 'Phan tram' : 'Co dinh'} />
               <MetadataRow label="Da su dung" value={`${voucher.usedCount ?? 0} / ${voucher.maxUsage ?? '∞'}`} />
               <MetadataRow label="Bat dau" value={voucher.startDate ? formatDateTimeDisplay(formatDateForInput(voucher.startDate)) : '—'} />

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.booking.dto.request.PromotionRequest;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.booking.service.PromotionLifecycleService;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -36,10 +37,21 @@ public class AdminPromotionController {
 
     private final PromotionRepository promotionRepository;
     private final SystemConfigService systemConfigService;
+    private final PromotionLifecycleService promotionLifecycleService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Promotion>>> getAllPromotions() {
         List<Promotion> promotions = promotionRepository.findAll();
+        OffsetDateTime now = OffsetDateTime.now();
+        boolean changed = false;
+        for (Promotion promotion : promotions) {
+            if (promotionLifecycleService.syncStatusIfNeeded(promotion, now)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            promotionRepository.saveAll(promotions);
+        }
         promotions.sort((p1, p2) -> {
             OffsetDateTime t1 = p1.getCreatedAt();
             OffsetDateTime t2 = p2.getCreatedAt();
@@ -63,6 +75,8 @@ public class AdminPromotionController {
         if (promotionRepository.findByCodeIgnoreCase(trimmedCode).isPresent()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã tồn tại");
         }
+
+        promotionLifecycleService.validateSchedule(request.getStartDate(), request.getEndDate());
 
         Promotion promotion = new Promotion();
         promotion.setId(UUID.randomUUID());
@@ -110,6 +124,8 @@ public class AdminPromotionController {
             }
             promotion.setCode(trimmedCode);
         }
+
+        promotionLifecycleService.validateScheduleForUpdate(request.getStartDate(), request.getEndDate());
 
         promotion.setDiscountType(request.getDiscountType());
         

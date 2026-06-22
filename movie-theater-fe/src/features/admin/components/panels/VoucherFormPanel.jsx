@@ -3,7 +3,7 @@ import { adminPromotionService } from '../../api/adminPromotionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';
 import { getPointsToCashValue } from '../../../../shared/utils/systemConfig';
-import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue } from '../../utils/voucherFormUtils';
+import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../../utils/voucherFormUtils';
 import { PrimaryButton, GhostButton } from '..';
 import { adminInputClass, adminLabelClass } from '../adminFormStyles';
 
@@ -60,8 +60,14 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       notificationService.error(discountError);
       return;
     }
-    const valueNum = parseFloat(form.discountValue);    if (form.startDate && form.endDate && new Date(form.startDate) >= new Date(form.endDate)) {
-      notificationService.error('Ngày bắt đầu phải trước ngày kết thúc');
+    const valueNum = parseFloat(form.discountValue);
+    const scheduleError = validateVoucherSchedule({
+      startDate: form.startDate,
+      endDate: form.endDate,
+      isEditing,
+    });
+    if (scheduleError) {
+      notificationService.error(scheduleError);
       return;
     }
 

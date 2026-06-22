@@ -8,7 +8,7 @@ import Pagination from '../../../shared/components/Pagination';
 import AdminModal from '../components/AdminModal';
 import VoucherFormPanel from '../components/panels/VoucherFormPanel';
 import { PrimaryButton, GhostButton } from '../components';
-import { formatDateForInput, formatDateTimeDisplay, formatDiscountDisplay } from '../utils/voucherFormUtils';
+import { formatDateForInput, formatDateTimeDisplay, formatDiscountDisplay, getVoucherLifecycleStatus, getVoucherStatusClassName } from '../utils/voucherFormUtils';
 import './VouchersPage.css';
 
 const VouchersPage = () => {
@@ -45,13 +45,17 @@ const VouchersPage = () => {
   const filteredVouchers = vouchersList.filter((v) => {
     const matchesSearch =
       !searchQuery || v.code.toLowerCase().includes(searchQuery.toLowerCase().trim());
-    const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
+    const lifecycle = getVoucherLifecycleStatus(v);
+    const matchesStatus =
+      statusFilter === 'all'
+      || (statusFilter === 'ACTIVE' && lifecycle.code === 'ACTIVE')
+      || (statusFilter === 'INACTIVE' && lifecycle.code !== 'ACTIVE');
     return matchesSearch && matchesStatus;
   });
 
   const totalVouchers = vouchersList.length;
-  const activeVouchers = vouchersList.filter((v) => v.status === 'ACTIVE').length;
-  const inactiveVouchers = vouchersList.filter((v) => v.status === 'INACTIVE').length;
+  const activeVouchers = vouchersList.filter((v) => getVoucherLifecycleStatus(v).code === 'ACTIVE').length;
+  const inactiveVouchers = vouchersList.filter((v) => getVoucherLifecycleStatus(v).code !== 'ACTIVE').length;
   const totalUsedCount = vouchersList.reduce((acc, curr) => acc + (curr.usedCount || 0), 0);
 
   const paginatedVouchers = React.useMemo(() => {
@@ -207,10 +211,7 @@ const VouchersPage = () => {
               </thead>
               <tbody>
                 {paginatedVouchers.map((v) => {
-                  const now = new Date();
-                  const endDateObj = v.endDate ? new Date(v.endDate) : null;
-                  const isExpired = endDateObj && endDateObj < now;
-                  const isSoonExpiring = endDateObj && !isExpired && endDateObj - now < 7 * 24 * 3600 * 1000;
+                  const lifecycle = getVoucherLifecycleStatus(v);
                   const usedCount = v.usedCount ?? 0;
                   const pct = v.maxUsage > 0 ? Math.min(100, Math.round((usedCount / v.maxUsage) * 100)) : 0;
                   const progressColor = pct >= 85 ? 'bg-rose-500' : pct >= 60 ? 'bg-amber-500' : 'bg-emerald-500';
@@ -225,16 +226,12 @@ const VouchersPage = () => {
                         <div className="flex flex-col gap-1 items-start">
                           <span className="text-base font-extrabold text-white tracking-widest uppercase font-sans">{v.code}</span>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            {v.status === 'ACTIVE' ? (
-                              <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 font-sans">
-                                <span className="w-1 h-1 rounded-full bg-emerald-400" />
-                                Hoạt động
-                              </span>
-                            ) : (
-                              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 font-sans">
-                                <span className="w-1 h-1 rounded-full bg-amber-400" />
-                                Vô hiệu
-                              </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 font-sans border ${getVoucherStatusClassName(lifecycle.tone)}`}>
+                              <span className={`w-1 h-1 rounded-full ${lifecycle.tone === 'emerald' ? 'bg-emerald-400' : lifecycle.tone === 'rose' ? 'bg-rose-400' : lifecycle.tone === 'amber' ? 'bg-amber-400' : 'bg-zinc-400'}`} />
+                              {lifecycle.label}
+                            </span>
+                            {lifecycle.soonExpiring && (
+                              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">Sắp hết hạn</span>
                             )}
                           </div>
                         </div>
@@ -278,14 +275,6 @@ const VouchersPage = () => {
                               Đến: {formatDateTimeDisplay(formatDateForInput(v.endDate))}
                             </span>
                           )}
-                          <div className="flex gap-1 flex-wrap mt-0.5">
-                            {isExpired && (
-                              <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">Hết hạn</span>
-                            )}
-                            {isSoonExpiring && (
-                              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold">Sắp hết hạn</span>
-                            )}
-                          </div>
                         </div>
                       </td>
                     </tr>
@@ -321,7 +310,7 @@ const VouchersPage = () => {
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Trạng thái</dt>
-                <dd className="text-white">{voucherModal.voucher.status === 'ACTIVE' ? 'Hoạt động' : 'Vô hiệu'}</dd>
+                <dd className="text-white">{getVoucherLifecycleStatus(voucherModal.voucher).label}</dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Loại giảm</dt>
