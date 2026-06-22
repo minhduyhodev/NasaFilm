@@ -27,6 +27,7 @@ import {
   TrendingUp,
   UserCheck,
   DollarSign,
+  Megaphone,
 } from "lucide-react";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import huyAdmin from "../../../shared/assets/huyadmin.jpg";
@@ -198,9 +199,9 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
                 "text-rose-400",
               )}
               {renderLink(
-                "/admin/actors",
-                User,
-                "Diễn viên",
+                "/admin/media",
+                Megaphone,
+                "Truyền thông",
                 "text-violet-400",
               )}
               {renderLink(
