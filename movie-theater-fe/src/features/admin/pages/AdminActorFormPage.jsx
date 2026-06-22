@@ -35,7 +35,7 @@ const AdminActorFormPage = () => {
           const actor = (actors || []).find((a) => a.uuid === actorUuid);
           if (!actor) {
             notificationService.error('Khong tim thay dien vien');
-            navigate('/admin/actors');
+            navigate('/admin/media');
             return;
           }
           setFormData({
@@ -52,7 +52,7 @@ const AdminActorFormPage = () => {
       } catch (err) {
         console.error(err);
         notificationService.error('Khong the tai du lieu');
-        navigate('/admin/actors');
+        navigate('/admin/media');
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -77,12 +77,12 @@ const AdminActorFormPage = () => {
       if (isEditing) {
         await movieService.updateActor(actorUuid, payload);
         notificationService.success(`Cap nhat thanh cong "${payload.fullName}"`);
-        navigate(`/admin/actors/${actorUuid}`);
+        navigate('/admin/media');
       } else {
         const created = await movieService.createActor(payload);
         notificationService.success(`Them moi thanh cong "${payload.fullName}"`);
-        if (created?.uuid) navigate(`/admin/actors/${created.uuid}`);
-        else navigate('/admin/actors');
+        if (created?.uuid) navigate('/admin/media');
+        else navigate('/admin/media');
       }
     } catch (err) {
       notificationService.error(err.message || 'Luu thong tin that bai');
@@ -104,7 +104,7 @@ const AdminActorFormPage = () => {
     <AdminPage>
       <PageHeader
         title={isEditing ? 'Chinh sua dien vien' : 'Them dien vien moi'}
-        backTo={isEditing ? `/admin/actors/${actorUuid}` : '/admin/actors'}
+        backTo={isEditing ? `/admin/media/${actorUuid}` : '/admin/media'}
       />
 
       <form onSubmit={handleSubmit}>
@@ -158,7 +158,7 @@ const AdminActorFormPage = () => {
         </Section>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.06]">
-          <GhostButton type="button" onClick={() => navigate(isEditing ? `/admin/actors/${actorUuid}` : '/admin/actors')}>
+          <GhostButton type="button" onClick={() => navigate('/admin/media')}>
             Huy
           </GhostButton>
           <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>

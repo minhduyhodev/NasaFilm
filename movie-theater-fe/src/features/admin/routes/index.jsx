@@ -13,7 +13,7 @@ const AdminMovieFormPage = lazy(() => import("../pages/AdminMovieFormPage"));
 const AdminMovieDetailPage = lazy(
   () => import("../pages/AdminMovieDetailPage"),
 );
-const ActorsPage = lazy(() => import("../pages/ActorsPage"));
+const MediaCatalogPage = lazy(() => import("../pages/MediaCatalogPage"));
 const BookingsPage = lazy(() => import("../pages/BookingsPage"));
 const ShowtimesPage = lazy(() => import("../pages/ShowtimesPage"));
 const CinemasPage = lazy(() => import("../pages/CinemasPage"));
@@ -62,10 +62,11 @@ export const AdminRoutes = () => {
             element={<AdminMovieFormPage />}
           />
           <Route path="movies/:movieUuid" element={<AdminMovieDetailPage />} />
-          <Route path="actors" element={<ActorsPage />} />
-          <Route path="actors/new" element={<Navigate to="/admin/actors" replace />} />
-          <Route path="actors/:actorUuid/edit" element={<Navigate to="/admin/actors" replace />} />
-          <Route path="actors/:actorUuid" element={<Navigate to="/admin/actors" replace />} />
+          <Route path="media" element={<MediaCatalogPage />} />
+          <Route path="actors" element={<Navigate to="/admin/media" replace />} />
+          <Route path="actors/new" element={<Navigate to="/admin/media" replace />} />
+          <Route path="actors/:actorUuid/edit" element={<Navigate to="/admin/media" replace />} />
+          <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />

@@ -28,7 +28,9 @@ import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
+import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.GenreRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
@@ -54,6 +56,8 @@ import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.movie.repository.MovieActorRepository;
+import com.thdpv.movietheater.movie.repository.MovieCountryRepository;
+import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.config.service.SystemConfigService;
@@ -76,6 +80,8 @@ public class MovieService {
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
     private final MovieActorRepository movieActorRepository;
+    private final MovieGenreRepository movieGenreRepository;
+    private final MovieCountryRepository movieCountryRepository;
     private final ShowtimeRepository showtimeRepository;
     private final SystemConfigService systemConfigService;
 
@@ -355,6 +361,85 @@ public class MovieService {
         }
 
         actorRepository.delete(actor);
+    }
+
+    @Transactional
+    public Genre createGenre(GenreRequest request) {
+        String name = trim(request.getName());
+        if (genreRepository.existsByNameIgnoreCase(name)) {
+            throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+        }
+        Genre genre = new Genre();
+        genre.setName(name);
+        return genreRepository.save(genre);
+    }
+
+    @Transactional
+    public Genre updateGenre(UUID genreUuid, GenreRequest request) {
+        Genre genre = genreRepository.findById(genreUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai"));
+        String name = trim(request.getName());
+        genreRepository.findByNameIgnoreCase(name)
+                .filter(existing -> !existing.getUuid().equals(genreUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+                });
+        genre.setName(name);
+        return genreRepository.save(genre);
+    }
+
+    @Transactional
+    public void deleteGenre(UUID genreUuid) {
+        if (!genreRepository.existsById(genreUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai");
+        }
+        if (movieGenreRepository.existsByGenre_Uuid(genreUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "The loai dang duoc su dung trong phim, khong the xoa");
+        }
+        genreRepository.deleteById(genreUuid);
+    }
+
+    @Transactional
+    public Country createCountry(CountryRequest request) {
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        if (countryRepository.existsByCodeIgnoreCase(code)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+        }
+        Country country = new Country();
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public Country updateCountry(UUID countryUuid, CountryRequest request) {
+        Country country = countryRepository.findById(countryUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai"));
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        countryRepository.findByCodeIgnoreCase(code)
+                .filter(existing -> !existing.getUuid().equals(countryUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+                });
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public void deleteCountry(UUID countryUuid) {
+        if (!countryRepository.existsById(countryUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai");
+        }
+        if (movieCountryRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung trong phim, khong the xoa");
+        }
+        if (actorRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung boi dien vien, khong the xoa");
+        }
+        countryRepository.deleteById(countryUuid);
     }
 
     @Transactional
