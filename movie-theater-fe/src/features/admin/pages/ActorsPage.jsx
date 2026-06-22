@@ -1,17 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Globe, Search, Plus, Loader2, Award, MapPin } from 'lucide-react';
-import { movieService } from '../../../shared/services/movieService';
-import { notificationService } from '../../../shared/services/notificationService';
-import Pagination from '../../../shared/components/Pagination';
-import './ActorsPage.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Globe,
+  Search,
+  Plus,
+  Loader2,
+  Award,
+  MapPin,
+} from "lucide-react";
+import { movieService } from "../../../shared/services/movieService";
+import { notificationService } from "../../../shared/services/notificationService";
+import Pagination from "../../../shared/components/Pagination";
+import "./ActorsPage.css";
 
 const ActorsPage = () => {
   const navigate = useNavigate();
   const [actors, setActors] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,13 +30,15 @@ const ActorsPage = () => {
     try {
       const [actorsData, countriesData] = await Promise.all([
         movieService.getActors(),
-        movieService.getCountries()
+        movieService.getCountries(),
       ]);
       setActors(actorsData || []);
       setCountriesList(countriesData || []);
     } catch (err) {
       console.error("Failed to load actors or countries:", err);
-      notificationService.error("Không thể tải danh mục diễn viên hoặc quốc gia");
+      notificationService.error(
+        "Không thể tải danh mục diễn viên hoặc quốc gia",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -44,15 +54,19 @@ const ActorsPage = () => {
   }, [searchTerm]);
 
   // Filter logic
-  const filteredActors = actors.filter(actor =>
-    actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (actor.countryName && actor.countryName.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredActors = actors.filter(
+    (actor) =>
+      actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (actor.countryName &&
+        actor.countryName.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Statistics calculations
   const totalActors = actors.length;
   const totalCountries = countriesList.length;
-  const representedNationalities = new Set(actors.map(a => a.countryName).filter(Boolean)).size;
+  const representedNationalities = new Set(
+    actors.map((a) => a.countryName).filter(Boolean),
+  ).size;
 
   // Find the country with the most actors
   const countryCounts = actors.reduce((acc, a) => {
@@ -61,7 +75,7 @@ const ActorsPage = () => {
     }
     return acc;
   }, {});
-  let mostCommonCountry = 'Không có';
+  let mostCommonCountry = "Không có";
   let maxCount = 0;
   Object.entries(countryCounts).forEach(([country, count]) => {
     if (count > maxCount) {
@@ -81,15 +95,19 @@ const ActorsPage = () => {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Cơ Sở Dữ Liệu Nghệ Sĩ</p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Diễn Viên</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">
+            Cơ Sở Dữ Liệu Nghệ Sĩ
+          </p>
+          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">
+            Quản Lý Diễn Viên
+          </h1>
           <p className="text-sm text-gray-400 mt-2">
             Danh mục cơ sở dữ liệu diễn viên và quốc tịch nghệ sĩ toàn hệ thống.
           </p>
         </div>
         <button
           className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
-          onClick={() => navigate('/admin/actors/new')}
+          onClick={() => navigate("/admin/actors/new")}
         >
           <Plus size={16} />
           Thêm Diễn Viên
@@ -99,17 +117,48 @@ const ActorsPage = () => {
       {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Tổng Số Diễn Viên', value: totalActors, icon: User, color: 'text-indigo-400', kpiClass: 'kpi-total' },
-          { label: 'Quốc Tịch Đại Diện', value: representedNationalities, icon: Globe, color: 'text-emerald-400', kpiClass: 'kpi-represented' },
-          { label: 'Quốc Gia Trong DB', value: totalCountries, icon: MapPin, color: 'text-blue-400', kpiClass: 'kpi-database' },
-          { label: 'Quốc Tịch Phổ Biến', value: mostCommonCountry, icon: Award, color: 'text-amber-400', kpiClass: 'kpi-popular' }
-        ].map(kpi => (
+          {
+            label: "Tổng Số Diễn Viên",
+            value: totalActors,
+            icon: User,
+            color: "text-indigo-400",
+            kpiClass: "kpi-total",
+          },
+          {
+            label: "Quốc Tịch Đại Diện",
+            value: representedNationalities,
+            icon: Globe,
+            color: "text-emerald-400",
+            kpiClass: "kpi-represented",
+          },
+          {
+            label: "Quốc Gia Trong DB",
+            value: totalCountries,
+            icon: MapPin,
+            color: "text-blue-400",
+            kpiClass: "kpi-database",
+          },
+          {
+            label: "Quốc Tịch Phổ Biến",
+            value: mostCommonCountry,
+            icon: Award,
+            color: "text-amber-400",
+            kpiClass: "kpi-popular",
+          },
+        ].map((kpi) => (
           <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">
+                {kpi.label}
+              </span>
               <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
             </div>
-            <p className={`text-xl font-black ${kpi.color} truncate leading-none`} title={kpi.value.toString()}>{kpi.value}</p>
+            <p
+              className={`text-xl font-black ${kpi.color} truncate leading-none`}
+              title={kpi.value.toString()}
+            >
+              {kpi.value}
+            </p>
           </div>
         ))}
       </div>
@@ -136,7 +185,9 @@ const ActorsPage = () => {
         {isLoading ? (
           <div className="min-h-[300px] flex flex-col items-center justify-center gap-4">
             <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
-            <p className="text-sm text-gray-400 font-medium">Đang tải danh sách diễn viên...</p>
+            <p className="text-sm text-gray-400 font-medium">
+              Đang tải danh sách diễn viên...
+            </p>
           </div>
         ) : paginatedActors.length === 0 ? (
           <div className="min-h-[300px] flex flex-col items-center justify-center gap-3 text-center">
@@ -166,7 +217,8 @@ const ActorsPage = () => {
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100';
+                        e.target.src =
+                          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100";
                       }}
                     />
                   ) : (
@@ -183,7 +235,7 @@ const ActorsPage = () => {
                 <div className="flex justify-center">
                   <span className="inline-flex items-center gap-1.5 bg-zinc-500/10 border border-zinc-500/20 text-zinc-300 text-xs px-2.5 py-1 rounded-full">
                     <Globe className="w-3.5 h-3.5 text-zinc-400" />
-                    {actor.countryName || 'Không xác định'}
+                    {actor.countryName || "Không xác định"}
                   </span>
                 </div>
               </button>
@@ -202,7 +254,6 @@ const ActorsPage = () => {
           onItemsPerPageChange={setItemsPerPage}
         />
       )}
-
     </div>
   );
 };
