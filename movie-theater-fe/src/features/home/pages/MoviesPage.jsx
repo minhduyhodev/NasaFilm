@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
@@ -48,6 +48,8 @@ const MoviesPage = () => {
   const [movies, setMovies] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [titleSearch, setTitleSearch] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   // Sync tab from URL query params
   useEffect(() => {
@@ -59,6 +61,17 @@ const MoviesPage = () => {
       setSearchParams({ tab: 'now-showing' }, { replace: true });
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchKeyword(titleSearch.trim());
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [titleSearch]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword]);
 
   // Scroll to top when activeTab or currentPage changes (pagination and tab switching)
   useEffect(() => {
@@ -99,7 +112,16 @@ const MoviesPage = () => {
         const pageIndex = currentPage - 1;
 
         let data;
-        if (activeTab === 'coming-soon') {
+        const trimmedKeyword = searchKeyword.trim();
+        const hasFilters =
+          selectedGenre ||
+          selectedCountry ||
+          selectedActor ||
+          selectedCinema ||
+          selectedShowtimeDate ||
+          selectedAgeRestriction;
+
+        if (activeTab === 'coming-soon' && !trimmedKeyword && !hasFilters) {
           data = await movieService.getUpcomingMovies({ page: pageIndex, size: 6 });
         } else {
           const queryParams = {
@@ -108,6 +130,9 @@ const MoviesPage = () => {
             size: 6,
           };
 
+          if (trimmedKeyword) {
+            queryParams.keyword = trimmedKeyword;
+          }
           if (selectedGenre) {
             queryParams.genreUuids = [selectedGenre];
           }
@@ -146,7 +171,7 @@ const MoviesPage = () => {
       }
     };
     fetchMovies();
-  }, [activeTab, currentPage, selectedGenre, selectedCountry, selectedActor, selectedCinema, selectedShowtimeDate, selectedAgeRestriction]);
+  }, [activeTab, currentPage, searchKeyword, selectedGenre, selectedCountry, selectedActor, selectedCinema, selectedShowtimeDate, selectedAgeRestriction]);
 
   // Generate showtime dates for the next 7 days
   const filterDates = useMemo(() => {
@@ -216,6 +241,8 @@ const MoviesPage = () => {
     setSelectedShowtimeDate(null);
     setSelectedCinema(null);
     setSelectedAgeRestriction(null);
+    setTitleSearch('');
+    setSearchKeyword('');
     setCurrentPage(1);
   };
 
@@ -306,6 +333,17 @@ const MoviesPage = () => {
         });
       }
     }
+    if (searchKeyword) {
+      filters.push({
+        key: 'search',
+        label: `"${searchKeyword}"`,
+        onRemove: () => {
+          setTitleSearch('');
+          setSearchKeyword('');
+          setCurrentPage(1);
+        },
+      });
+    }
     return filters;
   }, [
     selectedCountry,
@@ -320,6 +358,7 @@ const MoviesPage = () => {
     filterDates,
     ageRestrictions,
     dbActors,
+    searchKeyword,
   ]);
 
   const activeFilterCount = activeFilters.length;
@@ -430,6 +469,8 @@ const MoviesPage = () => {
     setTempAgeRestriction(null);
     setCountryQuery('');
     setGenreQuery('');
+    setTitleSearch('');
+    setSearchKeyword('');
     setCurrentPage(1);
   };
 
@@ -461,6 +502,32 @@ const MoviesPage = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="movie-title-search">
+          <Search className="movie-title-search-icon" aria-hidden="true" />
+          <input
+            type="search"
+            value={titleSearch}
+            onChange={(e) => setTitleSearch(e.target.value)}
+            placeholder="Tìm kiếm tên phim..."
+            className="movie-title-search-input"
+            aria-label="Tìm kiếm tên phim"
+          />
+          {titleSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setTitleSearch('');
+                setSearchKeyword('');
+                setCurrentPage(1);
+              }}
+              className="movie-title-search-clear"
+              aria-label="Xóa từ khóa tìm kiếm"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {activeTab !== 'coming-soon' && (
