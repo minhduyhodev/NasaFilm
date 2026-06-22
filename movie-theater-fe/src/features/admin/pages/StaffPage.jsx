@@ -9,6 +9,7 @@ import UserAvatar from '../../../shared/components/UserAvatar';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import AdminModal from '../components/AdminModal';
 import AdminUserFormPanel from '../components/panels/AdminUserFormPanel';
+import { adminFilterSelectClass } from '../components/adminFormStyles';
 
 const StaffPage = () => {
   const { user: currentUser } = useAuthContext();
@@ -225,7 +226,7 @@ const StaffPage = () => {
         <div className="flex items-center gap-2 flex-wrap font-sans sm:ml-auto">
           {/* Role Filter */}
           <select
-            className="bg-[#0B0F19] border border-[#1A2238] text-gray-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+            className={`${adminFilterSelectClass} font-mono`}
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
@@ -236,7 +237,7 @@ const StaffPage = () => {
 
           {/* Status Filter */}
           <select
-            className="bg-[#0B0F19] border border-[#1A2238] text-gray-300 text-xs px-3 py-2 rounded-lg focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+            className={`${adminFilterSelectClass} font-mono`}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -439,7 +440,7 @@ const StaffPage = () => {
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Phân quyền tài khoản *</label>
                 <select
                   disabled={selectedUser.id === currentUser?.id}
-                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+                  className={`w-full ${adminFilterSelectClass} font-mono`}
                   value={roleForm}
                   onChange={(e) => setRoleForm(e.target.value)}
                 >
@@ -455,7 +456,7 @@ const StaffPage = () => {
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 font-mono">Trạng thái vận hành *</label>
                 <select
                   disabled={selectedUser.id === currentUser?.id}
-                  className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50 cursor-pointer font-mono"
+                  className={`w-full ${adminFilterSelectClass} font-mono`}
                   value={statusForm}
                   onChange={(e) => setStatusForm(e.target.value)}
                 >
