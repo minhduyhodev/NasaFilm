@@ -51,6 +51,7 @@ public class DataSeeder implements CommandLineRunner {
     private final CinemaRepository cinemaRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
+    private final ReferenceMetadataSeeder referenceMetadataSeeder;
 
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
@@ -89,7 +90,8 @@ public class DataSeeder implements CommandLineRunner {
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             CinemaRepository cinemaRepository,
             CinemaRoomRepository cinemaRoomRepository,
-            CinemaService cinemaService) {
+            CinemaService cinemaService,
+            ReferenceMetadataSeeder referenceMetadataSeeder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -101,6 +103,7 @@ public class DataSeeder implements CommandLineRunner {
         this.cinemaRepository = cinemaRepository;
         this.cinemaRoomRepository = cinemaRoomRepository;
         this.cinemaService = cinemaService;
+        this.referenceMetadataSeeder = referenceMetadataSeeder;
     }
 
     @Override
@@ -110,8 +113,7 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
-        seedGenres();
-        seedCountries();
+        referenceMetadataSeeder.seedAll();
         seedMovies();
         // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng có online_price là null
         try {
@@ -535,39 +537,6 @@ public class DataSeeder implements CommandLineRunner {
         userRoleRepository.save(userRole);
 
         logger.info("Seeded {} user: {}", roleName.name(), email);
-    }
-
-    private void seedGenres() {
-        String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
-                "Phiêu lưu", "Kinh dị" };
-        for (String name : genres) {
-            if (!genreRepository.existsByNameIgnoreCase(name)) {
-                Genre genre = new Genre();
-                genre.setName(name);
-                genreRepository.save(genre);
-                logger.info("Seeded genre: {}", name);
-            }
-        }
-    }
-
-    private void seedCountries() {
-        Object[][] countries = {
-                { "VN", "Việt Nam" },
-                { "US", "Mỹ" },
-                { "JP", "Nhật Bản" },
-                { "CN", "Trung Quốc" }
-        };
-        for (Object[] countryData : countries) {
-            String code = (String) countryData[0];
-            String name = (String) countryData[1];
-            if (!countryRepository.existsByCodeIgnoreCase(code)) {
-                Country country = new Country();
-                country.setCode(code);
-                country.setName(name);
-                countryRepository.save(country);
-                logger.info("Seeded country: {}", name);
-            }
-        }
     }
 
     private void seedMovies() {
