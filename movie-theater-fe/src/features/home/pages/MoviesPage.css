@@ -34,6 +34,22 @@
   @apply bg-white/10 border-white/10 text-[#FFD875] font-black shadow-lg shadow-black/20 scale-[1.02];
 }
 
+.movie-title-search {
+  @apply relative flex items-center w-full mb-8;
+}
+
+.movie-title-search-icon {
+  @apply absolute left-4 h-4 w-4 text-gray-500 pointer-events-none;
+}
+
+.movie-title-search-input {
+  @apply w-full pl-11 pr-11 py-3.5 text-sm text-white bg-[#11141e]/80 border border-white/10 rounded-2xl placeholder:text-gray-500 focus:outline-none focus:border-[#FFD875]/50 focus:ring-1 focus:ring-[#FFD875]/20 transition-all;
+}
+
+.movie-title-search-clear {
+  @apply absolute right-3 p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer focus:outline-none;
+}
+
 .movie-list-layout {
   @apply w-full;
 }
