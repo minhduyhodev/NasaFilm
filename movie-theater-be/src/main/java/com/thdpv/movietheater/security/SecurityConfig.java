@@ -49,6 +49,7 @@ public class SecurityConfig {
             "/api/register/verify",
             "/api/forgot-password",
             "/api/reset-password",
+            "/api/activate-account",
             "/api/movies",
             "/api/movies/**",
             "/api/showtimes",

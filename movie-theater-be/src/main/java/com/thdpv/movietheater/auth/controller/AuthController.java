@@ -12,8 +12,10 @@ import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
+import com.thdpv.movietheater.auth.dto.ActivateAccountRequest;
 import com.thdpv.movietheater.auth.dto.ForgotPasswordRequest;
 import com.thdpv.movietheater.auth.dto.ResetPasswordRequest;
+import com.thdpv.movietheater.auth.service.AccountActivationService;
 import com.thdpv.movietheater.auth.service.AuthService;
 import com.thdpv.movietheater.auth.service.PasswordResetService;
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -27,10 +29,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final AccountActivationService accountActivationService;
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService,
+            AccountActivationService accountActivationService) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
+        this.accountActivationService = accountActivationService;
     }
 
     @PostMapping("/login")
@@ -82,5 +87,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponse.success(null, "Mật khẩu đã được cập nhật thành công"));
+    }
+
+    @PostMapping("/activate-account")
+    public ResponseEntity<ApiResponse<Void>> activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
+        accountActivationService.activateAccount(
+                request.getToken(), request.getTemporaryPassword(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Kích hoạt tài khoản thành công"));
     }
 }

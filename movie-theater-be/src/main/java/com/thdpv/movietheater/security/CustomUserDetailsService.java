@@ -28,10 +28,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmailIgnoreCase(email)
+    public UserDetails loadUserByUsername(String loginIdentifier) throws UsernameNotFoundException {
+        User user = userRepository.findByEmailIgnoreCase(loginIdentifier)
+                .or(() -> userRepository.findByUsernameIgnoreCase(loginIdentifier))
                 .orElseThrow(() -> new UsernameNotFoundException(
-                        "User not found with email: " + email));
+                        "User not found with identifier: " + loginIdentifier));
 
         List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
 
