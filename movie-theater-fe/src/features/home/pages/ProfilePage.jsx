@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
@@ -6,6 +6,7 @@ import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
   Mail,
@@ -34,57 +35,14 @@ import { notificationService } from "../../../shared/services/notificationServic
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import { promotionService } from "../../../shared/services/promotionService";
+import {
+  enrichBookingsWithMovieMeta,
+  isOnlineBooking,
+  formatDisplayTicketCode,
+  getOnlineMoviePath,
+} from "../utils/movieUtils";
+import { vodService } from "../../../shared/services/vodService";
 import "./ProfilePage.css";
-
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
@@ -93,7 +51,12 @@ export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleTicketClick = (tkt) => {
+  const handleTicketClick = async (tkt) => {
+    if (isOnlineBooking(tkt)) {
+      await handleVodTicketClick(tkt);
+      return;
+    }
+
     let showtime = "";
     let date = "";
     if (tkt.showtime) {
@@ -113,14 +76,12 @@ export const ProfilePage = () => {
       }));
     }
 
-    const movieInfo = getMovieInfo(tkt.movieTitle);
-
     const bookingData = {
       bookingUuid: tkt.bookingUuid || "",
       movie: tkt.movieTitle,
-      moviePoster: movieInfo.poster,
-      movieFormat: movieInfo.format || "IMAX 3D",
-      movieRating: movieInfo.age || "T16",
+      moviePoster: tkt.moviePoster || "",
+      movieFormat: "Rạp chiếu",
+      movieRating: tkt.movieAgeRestriction || "",
       theater: tkt.cinema,
       date: date,
       showtime: showtime,
@@ -130,6 +91,19 @@ export const ProfilePage = () => {
     };
 
     navigate("/booking-confirmed", { state: bookingData });
+  };
+
+  const handleVodTicketClick = async (tkt) => {
+    if (!tkt?.movieUuid) {
+      notificationService.info("Không tìm thấy phim cho vé online này.");
+      return;
+    }
+    try {
+      const status = await vodService.getStatus(tkt.movieUuid);
+      navigate(getOnlineMoviePath(tkt.movieUuid, status));
+    } catch {
+      navigate(`/online/activate/${tkt.movieUuid}`);
+    }
   };
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -143,7 +117,9 @@ export const ProfilePage = () => {
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [vouchers, setVouchers] = useState([]);
+  const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [redeemingVoucherId, setRedeemingVoucherId] = useState(null);
   const fileInputRef = useRef(null);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const genderDropdownRef = useRef(null);
@@ -165,7 +141,8 @@ export const ProfilePage = () => {
       setIsLoadingBookings(true);
       try {
         const data = await bookingService.getMyBookings();
-        setBookings(data || []);
+        const enriched = await enrichBookingsWithMovieMeta(data || []);
+        setBookings(enriched);
       } catch (err) {
         console.error("Failed to load user bookings:", err);
       } finally {
@@ -213,8 +190,12 @@ export const ProfilePage = () => {
     const fetchVouchers = async () => {
       setIsLoadingVouchers(true);
       try {
-        const data = await promotionService.getMyVouchers();
-        setVouchers(data || []);
+        const [wallet, catalog] = await Promise.all([
+          promotionService.getMyVouchers(),
+          promotionService.getVoucherCatalog(),
+        ]);
+        setVouchers(wallet || []);
+        setVoucherCatalog(catalog || []);
       } catch (err) {
         console.error("Failed to load user vouchers:", err);
       } finally {
@@ -225,6 +206,26 @@ export const ProfilePage = () => {
       fetchVouchers();
     }
   }, [user]);
+
+  const handleRedeemVoucher = async (promotionId) => {
+    setRedeemingVoucherId(promotionId);
+    try {
+      await promotionService.redeemVoucher(promotionId);
+      notificationService.success('Đổi voucher thành công. Voucher đã được thêm vào ví của bạn.');
+      const refreshedProfile = await authService.getProfile();
+      setProfileData(refreshedProfile);
+      const [wallet, catalog] = await Promise.all([
+        promotionService.getMyVouchers(),
+        promotionService.getVoucherCatalog(),
+      ]);
+      setVouchers(wallet || []);
+      setVoucherCatalog(catalog || []);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể đổi voucher');
+    } finally {
+      setRedeemingVoucherId(null);
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -296,14 +297,66 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  // Loyalty levels based on ERD/UI standard (NASA'FRIEND and NASA'VIP)
-  const loyaltyPoints = profileData && typeof profileData.score === 'number'
+  const currentPoints = profileData && typeof profileData.score === 'number'
     ? profileData.score
     : (user && typeof user.score === 'number' ? user.score : 0);
+  const lifetimePoints = profileData && typeof profileData.lifetimeScore === 'number'
+    ? profileData.lifetimeScore
+    : currentPoints;
   const nextTierPoints = 10000;
-  const rawProgress = (loyaltyPoints / nextTierPoints) * 100;
+  const rawProgress = (lifetimePoints / nextTierPoints) * 100;
   const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
-  const loyaltyTier = loyaltyPoints >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+
+  const usableVouchers = useMemo(
+    () => vouchers.filter((v) => !v.used),
+    [vouchers],
+  );
+  const pointVoucherCatalog = useMemo(
+    () => voucherCatalog.filter((item) => item.requiresRedemption !== false),
+    [voucherCatalog],
+  );
+  const availableVoucherCount = useMemo(
+    () => usableVouchers.length + pointVoucherCatalog.filter((v) => v.eligible).length,
+    [usableVouchers, pointVoucherCatalog],
+  );
+
+  const renderCatalogVoucherCard = (item) => (
+    <div key={item.id} className="voucher-card">
+      <div className="voucher-glow-dot" />
+      <div className="voucher-icon-box">
+        <Gift size={24} className="text-amber-500" />
+      </div>
+      <div className="voucher-body text-left">
+        <div className="flex justify-between items-center mb-1 gap-2">
+          <span className="voucher-code">{item.code}</span>
+          <span className="text-[10px] font-bold text-amber-400">{item.pointsCost} điểm</span>
+        </div>
+        <h4 className="voucher-title">{item.description}</h4>
+        <p className="voucher-desc">
+          Hạng: {item.requiredTierLabel}
+          {item.maxUsagePerUser != null ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản` : ""}
+          {item.maxUsage != null ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống` : ""}
+        </p>
+        <div className="flex justify-between items-center mt-3 gap-2">
+          <span className="text-[10px] text-gray-400">
+            {item.endDate ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}` : "Không giới hạn thời gian"}
+          </span>
+          <button
+            type="button"
+            disabled={!item.eligible || redeemingVoucherId === item.id}
+            onClick={() => handleRedeemVoucher(item.id)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {redeemingVoucherId === item.id ? "Đang đổi..." : "Đổi điểm"}
+          </button>
+        </div>
+        {!item.eligible && item.ineligibleReason && (
+          <p className="text-[10px] text-rose-400 mt-2">{item.ineligibleReason}</p>
+        )}
+      </div>
+    </div>
+  );
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -495,19 +548,19 @@ export const ProfilePage = () => {
           <div className="space-hub-header">
             <div className="cosmic-nebula-bg" />
             <div className="twinkling-stars-bg" />
-            
+
             <div className="space-hub-content grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
+
               {/* Left Column: User details with Orbit System around avatar */}
               <div className="lg:col-span-5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
                 <div className="avatar-orbit-container">
                   <div className="orbit-ring orbit-ring-outer" />
                   <div className="orbit-ring orbit-ring-middle" />
                   <div className="orbit-ring orbit-ring-inner" />
-                  
+
                   <div className="orbit-node node-gold-1" />
                   <div className="orbit-node node-purple-1" />
-                  
+
                   <div
                     onClick={() => !isSaving && fileInputRef.current.click()}
                     className={`profile-avatar-frame cursor-pointer ${isSaving ? "opacity-50" : ""}`}
@@ -515,9 +568,11 @@ export const ProfilePage = () => {
                   >
                     {avatarUrl ? (
                       <img
-                        src={avatarUrl}
+                        src={normalizeAvatarUrl(avatarUrl)}
                         alt="Avatar"
                         className="profile-avatar-image"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarUrl('')}
                       />
                     ) : (
                       <div className="profile-avatar-placeholder">
@@ -546,7 +601,7 @@ export const ProfilePage = () => {
                     </span>
                   </div>
                   <p className="text-zinc-400 text-sm font-semibold">{user?.email}</p>
-                  
+
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-1">
                     <div className="profile-badge-item">
                       <MapPin size={12} className="text-amber-500" />
@@ -563,65 +618,96 @@ export const ProfilePage = () => {
               {/* Right Column: Grand Gold Navigator Membership Panel */}
               <div className="lg:col-span-7 flex flex-col md:flex-row items-center gap-8 bg-black/35 backdrop-blur-xl border border-white/5 p-8 rounded-3xl relative overflow-hidden group">
                 <div className="absolute -right-20 -top-20 w-60 h-60 bg-yellow-500/10 rounded-full blur-[80px] group-hover:bg-yellow-500/15 transition-all duration-700" />
-                
-                <div className="relative flex-shrink-0 w-28 h-28 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-white/5 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-amber-500 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                      strokeDasharray={2 * Math.PI * 48}
-                      strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  
-                  <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Điểm</span>
-                    <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{loyaltyPoints}</span>
+
+                <div className="flex flex-shrink-0 items-center gap-6">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-amber-500 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Hiện tại</span>
+                      <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{currentPoints.toLocaleString('vi-VN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/70 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center px-1 text-center">
+                      <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold leading-tight">Tích lũy</span>
+                      <span className="text-lg font-black text-white font-mono leading-none mt-0.5">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 space-y-2 text-center md:text-left">
                   <span className="text-[9px] tracking-widest text-amber-400 font-black uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
                     ★ Hạng thành viên
                   </span>
-                  
+
                   <h2 className="text-xl font-black text-white uppercase tracking-wider mt-2">
                     {loyaltyTier}
                   </h2>
-                  
+
                   <div className="flex justify-center md:justify-start gap-0.5 text-amber-400">
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
                   </div>
-                  
+
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {loyaltyPoints >= 10000 ? (
+                    {lifetimePoints >= 10000 ? (
                       <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
                     ) : (
-                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - loyaltyPoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - lifetimePoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
                     )}
                   </p>
                 </div>
               </div>
 
             </div>
-            
+
             <input
               type="file"
               ref={fileInputRef}
@@ -677,7 +763,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Gift size={20} />
-                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
+                    <span className="rail-badge">{availableVoucherCount}</span>
                   </div>
                   <span className="rail-label">Ưu đãi của tôi</span>
                 </button>
@@ -845,13 +931,13 @@ export const ProfilePage = () => {
                                 <span>
                                   {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chọn giới tính"}
                                 </span>
-                                <ChevronDown 
-                                  size={16} 
-                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`} 
+                                <ChevronDown
+                                  size={16}
+                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`}
                                   style={{ transition: "transform 0.3s ease" }}
                                 />
                               </button>
-                              
+
                               <AnimatePresence>
                                 {showGenderDropdown && (
                                   <motion.div
@@ -953,14 +1039,14 @@ export const ProfilePage = () => {
                           Tích điểm N'VIP MEMBER
                         </span>
                         <span className="text-yellow-400 font-mono text-base">
-                          {loyaltyPoints}/10K
+                          {lifetimePoints}/10K
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.min((loyaltyPoints / 10000) * 100, 100)}%`,
+                            width: `${Math.min((lifetimePoints / 10000) * 100, 100)}%`,
                           }}
                         />
                       </div>
@@ -1044,7 +1130,7 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
                               HẠNG HIỆN TẠI: NASA'VIP
                             </div>
@@ -1132,7 +1218,7 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
                               BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
                             </button>
@@ -1314,6 +1400,7 @@ export const ProfilePage = () => {
                         </div>
                       ) : (
                         bookings.map((tkt) => {
+                          const isVod = isOnlineBooking(tkt);
                           const getMovieGlowClass = (title) => {
                             if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
                             if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
@@ -1323,17 +1410,21 @@ export const ProfilePage = () => {
                           return (
                             <div
                               key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
+                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}${isVod ? ' ticket-boarding-pass--vod' : ''}`}
                               onClick={() => handleTicketClick(tkt)}
-                              style={{ cursor: "pointer" }}
-                              title="Nhấp để xem chi tiết / In lại vé"
+                              style={{ cursor: 'pointer' }}
+                              title={
+                                isVod
+                                  ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
+                                  : 'Nhấp để xem chi tiết / In lại vé'
+                              }
                             >
                               <div className="ticket-notch-top" />
                               <div className="ticket-notch-bottom" />
 
                               <div className="ticket-body-left">
                                 <span className="ticket-format-badge">
-                                  {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
+                                  {isVod ? "VOD ONLINE" : "RẠP CHIẾU"}
                                 </span>
 
                                 <h3 className="ticket-movie-title-text">
@@ -1342,17 +1433,21 @@ export const ProfilePage = () => {
 
                                 <div className="ticket-grid-details">
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">Rạp Chiếu</span>
+                                    <span className="label-text">{isVod ? "Nền tảng" : "Rạp Chiếu"}</span>
                                     <span className="value-text">{tkt.cinema}</span>
                                   </div>
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">Suất Chiếu</span>
-                                    <span className="value-text text-amber-500">{tkt.showtime}</span>
+                                    <span className="label-text">{isVod ? "Hình thức" : "Suất Chiếu"}</span>
+                                    <span className="value-text text-amber-500">
+                                      {isVod ? "Xem trực tuyến" : tkt.showtime || "—"}
+                                    </span>
                                   </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">Đồ ăn & Nước</span>
-                                    <span className="value-text">{tkt.combo}</span>
-                                  </div>
+                                  {!isVod && (
+                                    <div className="ticket-info-unit">
+                                      <span className="label-text">Đồ ăn & Nước</span>
+                                      <span className="value-text">{tkt.combo}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -1361,14 +1456,22 @@ export const ProfilePage = () => {
                               </div>
 
                               <div className="ticket-body-right">
-                                <div className="stub-seats-info">
-                                  <span className="seats-title">Ghế</span>
-                                  <div className="seats-numbers">{tkt.seats}</div>
+                                <div
+                                  className="stub-seats-info"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span className="seats-title">{isVod ? 'Loại vé' : 'Ghế'}</span>
+                                  <div className={`seats-numbers${isVod ? ' seats-numbers--static' : ''}`}>
+                                    {isVod ? 'Online' : (tkt.seats || '—')}
+                                  </div>
                                 </div>
 
                                 <div className="barcode-wrapper-box">
                                   <div className="barcode-lines" />
-                                  <span className="ticket-id">{tkt.id}</span>
+                                  <span className="ticket-id">{formatDisplayTicketCode(tkt)}</span>
+                                  {isVod && (
+                                    <span className="ticket-email-hint">Xem mã đầy đủ trong email</span>
+                                  )}
                                 </div>
 
                                 <span className="stub-price-tag">{tkt.price}</span>
@@ -1392,49 +1495,111 @@ export const ProfilePage = () => {
                     className="tab-panel-body"
                   >
                     <div className="panel-header">
-                      <h2>Ưu đãi của bạn</h2>
+                      <h2>Ưu đãi & đổi điểm</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Điểm hiện tại: <span className="text-amber-400 font-bold">{currentPoints.toLocaleString('vi-VN')}</span>
+                        {' · '}
+                        Điểm tích lũy: <span className="text-white font-bold">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                      </p>
                     </div>
 
-                    <div className="vouchers-grid">
-                      {vouchers.map((voucher) => {
-                        const formattedExpiry = voucher.endDate 
-                          ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}` 
-                          : 'Hạn dùng: Không thời hạn';
-                        
-                        return (
-                          <div key={voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
-                            <div className="voucher-glow-dot" />
-                            <div className="voucher-icon-box">
-                              <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                    {isLoadingVouchers ? (
+                      <p className="text-gray-500 text-sm">Đang tải voucher...</p>
+                    ) : (
+                      <div className="space-y-8">
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher có thể sử dụng</h3>
+                          {usableVouchers.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên dưới hoặc xem ưu đãi công khai.</p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {usableVouchers.map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
+                                  : 'Hạn dùng: Không thời hạn';
+                                const isDirectUse = voucher.directUse || (voucher.pointsCost ?? 0) === 0;
+
+                                return (
+                                  <div key={voucher.walletId || voucher.id || voucher.code} className="voucher-card">
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift size={24} className={isDirectUse ? "text-green-500" : "text-amber-500"} />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1 gap-2">
+                                        <span className="voucher-code">{voucher.code}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                          isDirectUse
+                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                        }`}>
+                                          {isDirectUse ? 'Miễn phí' : 'Đã kích hoạt'}
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title">{voucher.description}</h4>
+                                      <p className="voucher-desc">
+                                        {voucher.requiredTierLabel ? `Hạng: ${voucher.requiredTierLabel}` : 'Voucher khả dụng'}
+                                        {isDirectUse ? ' · Dùng trực tiếp khi thanh toán' : ' · Đã đổi điểm'}
+                                      </p>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">{formattedExpiry}</span>
+                                        <span className="font-semibold text-green-400">Sẵn sàng dùng</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <div className="voucher-body text-left">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="voucher-code">{voucher.code}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  voucher.used 
-                                    ? 'bg-gray-800 text-gray-400' 
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                }`}>
-                                  {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
-                                </span>
-                              </div>
-                              <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
-                              <p className="voucher-desc">
-                                {voucher.oncePerUser ? 'Áp dụng cho tài khoản đăng ký mới (1 lần duy nhất).' : 'Áp dụng cho tất cả các tài khoản.'}
-                              </p>
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
-                                <span className="voucher-expiry">
-                                  {formattedExpiry}
-                                </span>
-                                <span className="font-semibold text-amber-500">
-                                  Còn lại: {voucher.oncePerUser ? (voucher.used ? 0 : 1) : (voucher.remainingUsage === 999 ? 'Nhiều' : voucher.remainingUsage)} lượt
-                                </span>
-                              </div>
+                          )}
+                        </section>
+
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Đổi điểm lấy voucher</h3>
+                          {pointVoucherCatalog.length === 0 ? (
+                            <p className="text-gray-500 text-sm">Chưa có voucher nào khả dụng để đổi.</p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {pointVoucherCatalog.map((item) => renderCatalogVoucherCard(item))}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </section>
+
+                        {vouchers.some((v) => v.used) && (
+                          <section>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher đã sử dụng</h3>
+                            <div className="vouchers-grid">
+                              {vouchers.filter((v) => v.used).map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
+                                  : 'Hạn dùng: Không thời hạn';
+
+                                return (
+                                  <div key={`used-${voucher.walletId || voucher.id || voucher.code}`} className="voucher-card opacity-50 grayscale border-dashed border-gray-600">
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift size={24} className="text-gray-500" />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="voucher-code">{voucher.code}</span>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                                          Đã sử dụng
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title text-gray-500">{voucher.description}</h4>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">{formattedExpiry}</span>
+                                        <span>Đã dùng</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 

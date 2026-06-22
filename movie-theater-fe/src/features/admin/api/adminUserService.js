@@ -12,6 +12,15 @@ class AdminUserService {
     }
   }
 
+  async createUser(userData) {
+    try {
+      const response = await authService.api.post('/api/admin/users', userData);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async updateUserStatus(userId, status) {
     try {
       const response = await authService.api.put(`/api/admin/users/${userId}/status`, { status });

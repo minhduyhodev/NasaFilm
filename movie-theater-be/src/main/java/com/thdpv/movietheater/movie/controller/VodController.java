@@ -57,4 +57,14 @@ public class VodController {
                 streamToken);
         return ResponseEntity.ok(ApiResponse.success(null, "Heartbeat OK"));
     }
+
+    @PostMapping("/resend-ticket/{movieUuid}")
+    public ResponseEntity<ApiResponse<Void>> resendVodTicket(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable("movieUuid") UUID movieUuid) {
+        bookingService.resendVodTicketEmail(
+                userDetails != null ? userDetails.getUsername() : null,
+                movieUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Mã vé đã được gửi tới email của bạn"));
+    }
 }

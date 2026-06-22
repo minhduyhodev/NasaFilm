@@ -14,6 +14,13 @@ public class MyVoucherResponse {
     private Boolean oncePerUser;
     private boolean used;
     private int remainingUsage;
+    private UUID walletId;
+    private Integer pointsCost;
+    private Integer minScore;
+    private String requiredTierLabel;
+    private OffsetDateTime redeemedAt;
+    private boolean activated;
+    private boolean directUse;
 
     public MyVoucherResponse() {
     }
@@ -101,5 +108,61 @@ public class MyVoucherResponse {
 
     public void setRemainingUsage(int remainingUsage) {
         this.remainingUsage = remainingUsage;
+    }
+
+    public UUID getWalletId() {
+        return walletId;
+    }
+
+    public void setWalletId(UUID walletId) {
+        this.walletId = walletId;
+    }
+
+    public Integer getPointsCost() {
+        return pointsCost;
+    }
+
+    public void setPointsCost(Integer pointsCost) {
+        this.pointsCost = pointsCost;
+    }
+
+    public Integer getMinScore() {
+        return minScore;
+    }
+
+    public void setMinScore(Integer minScore) {
+        this.minScore = minScore;
+    }
+
+    public String getRequiredTierLabel() {
+        return requiredTierLabel;
+    }
+
+    public void setRequiredTierLabel(String requiredTierLabel) {
+        this.requiredTierLabel = requiredTierLabel;
+    }
+
+    public OffsetDateTime getRedeemedAt() {
+        return redeemedAt;
+    }
+
+    public void setRedeemedAt(OffsetDateTime redeemedAt) {
+        this.redeemedAt = redeemedAt;
+    }
+
+    public boolean isActivated() {
+        return activated;
+    }
+
+    public void setActivated(boolean activated) {
+        this.activated = activated;
+    }
+
+    public boolean isDirectUse() {
+        return directUse;
+    }
+
+    public void setDirectUse(boolean directUse) {
+        this.directUse = directUse;
     }
 }

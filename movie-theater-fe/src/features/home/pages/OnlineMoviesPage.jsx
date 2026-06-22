@@ -12,76 +12,99 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { mapApiMovies, filterOnlineMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
+import heroBg from '../../../shared/assets/cinema_hero_bg.png';
 import '../styles/home-premium.css';
+import './OnlineMoviesPage.css';
 
 const OnlineMoviesPage = () => {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(movies.map((m) => m.uuid));
 
+  const fetchOnline = async () => {
+    setIsLoading(true);
+    setFetchError('');
+    try {
+      const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 50 });
+      setMovies(filterOnlineMovies(mapApiMovies(data?.content || [])));
+    } catch (err) {
+      setMovies([]);
+      setFetchError(
+        err?.message ||
+          'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
+    window.scrollTo(0, 0);
     systemConfigService.getConfig().catch(() => {});
-    const fetchOnline = async () => {
-      setIsLoading(true);
-      try {
-        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 50 });
-        setMovies(filterOnlineMovies(mapApiMovies(data?.content || [])));
-      } catch {
-        setMovies([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchOnline();
   }, []);
 
   return (
-    <div className="text-white min-h-screen bg-black">
+    <div className="online-page-wrapper">
       <Navbar />
-      <main>
-        <OnlineHero
-          featuredMovie={movies[0] || null}
-          isLoading={isLoading}
-          getOnlinePath={getOnlinePath}
-          actionLabel={movies[0] ? getActionLabel(movies[0].uuid, 'Xem ngay') : 'Xem ngay'}
-        />
-        <section className="mt-12 px-4 md:px-8 lg:px-20">
-          <div className="max-w-7xl mx-auto space-y-14 md:space-y-16">
-            <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />
-            <NewReleases onlineOnly getOnlinePath={getOnlinePath} getActionLabel={getActionLabel} />
 
-            <section>
-              <div className="section-heading-row">
-                <h2 className="section-heading">Tất cả phim trực tuyến</h2>
-              </div>
-              {isLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <MovieCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : movies.length === 0 ? (
-                <p className="text-center py-12 text-white/45">Chưa có phim trực tuyến.</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-                  {movies.map((movie) => (
-                    <MovieCard
-                      key={movie.uuid}
-                      {...movie}
-                      actionLabel={getActionLabel(movie.uuid, 'Xem ngay')}
-                      fromOnline
-                      getOnlinePath={getOnlinePath}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+      <OnlineHero
+        movies={movies}
+        isLoading={isLoading}
+        getOnlinePath={getOnlinePath}
+        getActionLabel={getActionLabel}
+        staticHeroBackground={heroBg}
+      />
 
-            <ExclusiveCollection onlineOnly getOnlinePath={getOnlinePath} />
-            <OnlineVIPSection />
+      <main className="online-page-container">
+        {!isLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isLoading && (
+          <NewReleases onlineOnly getOnlinePath={getOnlinePath} getActionLabel={getActionLabel} />
+        )}
+
+        <section>
+          <div className="section-heading-row">
+            <h2 className="section-heading">Tất cả phim trực tuyến</h2>
           </div>
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <MovieCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : fetchError ? (
+            <div className="text-center py-12 space-y-4">
+              <p className="text-red-400 font-medium">{fetchError}</p>
+              <button
+                type="button"
+                onClick={fetchOnline}
+                className="inline-flex items-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-red-700 transition"
+              >
+                Thử tải lại
+              </button>
+            </div>
+          ) : movies.length === 0 ? (
+            <p className="text-center py-12 text-white/45">Chưa có phim trực tuyến.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
+              {movies.map((movie) => (
+                <MovieCard
+                  key={movie.uuid}
+                  {...movie}
+                  actionLabel={getActionLabel(movie.uuid, 'Xem ngay')}
+                  fromOnline
+                  getOnlinePath={getOnlinePath}
+                />
+              ))}
+            </div>
+          )}
         </section>
+
+        {!isLoading && <ExclusiveCollection onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isLoading && <OnlineVIPSection />}
       </main>
+
       <Footer />
     </div>
   );

@@ -28,6 +28,12 @@ public class PromotionRequest {
 
     private String status;
 
+    private Integer pointsCost;
+
+    private Integer minScore;
+
+    private Integer maxUsagePerUser;
+
     public PromotionRequest() {
     }
 
@@ -104,5 +110,29 @@ public class PromotionRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Integer getPointsCost() {
+        return pointsCost;
+    }
+
+    public void setPointsCost(Integer pointsCost) {
+        this.pointsCost = pointsCost;
+    }
+
+    public Integer getMinScore() {
+        return minScore;
+    }
+
+    public void setMinScore(Integer minScore) {
+        this.minScore = minScore;
+    }
+
+    public Integer getMaxUsagePerUser() {
+        return maxUsagePerUser;
+    }
+
+    public void setMaxUsagePerUser(Integer maxUsagePerUser) {
+        this.maxUsagePerUser = maxUsagePerUser;
     }
 }

@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.booking.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,7 +17,14 @@ import jakarta.persistence.LockModeType;
 public interface PromotionRepository extends JpaRepository<Promotion, UUID> {
     Optional<Promotion> findByCodeIgnoreCase(String code);
 
+    List<Promotion> findAllByDeletedAtIsNull();
+
+    Optional<Promotion> findByIdAndDeletedAtIsNull(UUID id);
+
+    @Query("select p from Promotion p where lower(p.code) = lower(:code) and p.deletedAt is null")
+    Optional<Promotion> findActiveByCodeIgnoreCase(@Param("code") String code);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select p from Promotion p where lower(p.code) = lower(:code)")
+    @Query("select p from Promotion p where lower(p.code) = lower(:code) and p.deletedAt is null")
     Optional<Promotion> findByCodeIgnoreCaseForUpdate(@Param("code") String code);
 }

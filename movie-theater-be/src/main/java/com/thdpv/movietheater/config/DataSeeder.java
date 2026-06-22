@@ -51,6 +51,7 @@ public class DataSeeder implements CommandLineRunner {
     private final CinemaRepository cinemaRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
+    private final ReferenceMetadataSeeder referenceMetadataSeeder;
 
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
@@ -89,7 +90,8 @@ public class DataSeeder implements CommandLineRunner {
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             CinemaRepository cinemaRepository,
             CinemaRoomRepository cinemaRoomRepository,
-            CinemaService cinemaService) {
+            CinemaService cinemaService,
+            ReferenceMetadataSeeder referenceMetadataSeeder) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -101,6 +103,7 @@ public class DataSeeder implements CommandLineRunner {
         this.cinemaRepository = cinemaRepository;
         this.cinemaRoomRepository = cinemaRoomRepository;
         this.cinemaService = cinemaService;
+        this.referenceMetadataSeeder = referenceMetadataSeeder;
     }
 
     @Override
@@ -110,8 +113,7 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
-        seedGenres();
-        seedCountries();
+        referenceMetadataSeeder.seedAll();
         seedMovies();
         // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng có online_price là null
         try {
@@ -243,8 +245,50 @@ public class DataSeeder implements CommandLineRunner {
                     """);
 
             logger.info("Created booking database tables successfully.");
+            migrateVoucherAndScoreSchema();
         } catch (Exception e) {
             logger.error("Failed to create booking database tables", e);
+        }
+    }
+
+    private void migrateVoucherAndScoreSchema() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("""
+                    UPDATE users
+                    SET lifetime_score = GREATEST(COALESCE(score, 0), COALESCE(lifetime_score, 0))
+                    WHERE COALESCE(lifetime_score, 0) = 0
+                    """);
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS points_cost INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_usage_per_user INTEGER");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS user_voucher (
+                        uuid UUID PRIMARY KEY,
+                        user_uuid UUID NOT NULL,
+                        promotion_uuid UUID NOT NULL,
+                        status VARCHAR(32) NOT NULL,
+                        redeemed_at TIMESTAMPTZ NOT NULL,
+                        used_at TIMESTAMPTZ,
+                        booking_uuid UUID
+                    )
+                    """);
+            logger.info("Migrated voucher redemption and lifetime score schema.");
+
+            jdbcTemplate.update("""
+                    UPDATE promotions
+                    SET status = 'ACTIVE',
+                        end_date = ?,
+                        updated_at = ?
+                    WHERE COALESCE(points_cost, 0) = 0
+                      AND (status <> 'ACTIVE' OR end_date IS NULL OR end_date < ?)
+                    """,
+                    java.time.OffsetDateTime.now().plusYears(1),
+                    java.time.OffsetDateTime.now(),
+                    java.time.OffsetDateTime.now());
+        } catch (Exception e) {
+            logger.error("Failed to migrate voucher/score schema", e);
         }
     }
 
@@ -537,39 +581,6 @@ public class DataSeeder implements CommandLineRunner {
         logger.info("Seeded {} user: {}", roleName.name(), email);
     }
 
-    private void seedGenres() {
-        String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
-                "Phiêu lưu", "Kinh dị" };
-        for (String name : genres) {
-            if (!genreRepository.existsByNameIgnoreCase(name)) {
-                Genre genre = new Genre();
-                genre.setName(name);
-                genreRepository.save(genre);
-                logger.info("Seeded genre: {}", name);
-            }
-        }
-    }
-
-    private void seedCountries() {
-        Object[][] countries = {
-                { "VN", "Việt Nam" },
-                { "US", "Mỹ" },
-                { "JP", "Nhật Bản" },
-                { "CN", "Trung Quốc" }
-        };
-        for (Object[] countryData : countries) {
-            String code = (String) countryData[0];
-            String name = (String) countryData[1];
-            if (!countryRepository.existsByCodeIgnoreCase(code)) {
-                Country country = new Country();
-                country.setCode(code);
-                country.setName(name);
-                countryRepository.save(country);
-                logger.info("Seeded country: {}", name);
-            }
-        }
-    }
-
     private void seedMovies() {
         removeObsoleteComingSoonMovies();
 
@@ -599,8 +610,7 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
                                 "TRAILER", "KeAnDanh Trailer", false, 2)),
-                "T13",
-                7.5);
+                "T13");
 
         // 2. Mortal Kombat 2
         createMovieIfNotExists(
@@ -618,8 +628,7 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
                                 "TRAILER", "MortalKombat2 Trailer", false, 2)),
-                "T18",
-                8.2);
+                "T18");
 
         // 3. Mưa Đỏ
         createMovieIfNotExists(
@@ -635,8 +644,7 @@ public class DataSeeder implements CommandLineRunner {
                                 "POSTER", "MuaDo Poster", true, 1),
                         new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
                                 "TRAILER", "MuaDo Trailer", false, 2)),
-                "T13",
-                7.0);
+                "T13");
 
         // 4. Thanh Gươm Diệt Quỷ
         createMovieIfNotExists(
@@ -654,8 +662,7 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
                                 "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)),
-                "T16",
-                8.9);
+                "T16");
 
         // 5. Truy Tìm Long Diên Hương
         createMovieIfNotExists(
@@ -673,8 +680,7 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
                                 "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)),
-                "P",
-                6.8);
+                "P");
         // 6. Sword Art Online The Movie: Progressive Scherzo of Deep Night
         createMovieIfNotExists(
                 "Sword Art Online The Movie: Progressive Scherzo of Deep Night",
@@ -691,8 +697,7 @@ public class DataSeeder implements CommandLineRunner {
                         new MovieMediaData(
                                 "https://vs-prodamdfandango.akamaized.net/out/v1/b8926cbbb6524b64b320ecd281f84f4e/24179244572d48768920647994272718/55cfc6748196457d965dfd98aa2d46b8/d18057147c904ac6acda75542d2a2d01/1af7b8b9f8ca4653ae82f69b3af973ab/index_1.m3u8",
                                 "TRAILER", "SAO Progressive Trailer", false, 2)),
-                "T13",
-                8.5);
+                "T13");
 
         // Self-healing: đồng bộ streaming_url từ TRAILER cho phim online chưa có link phát
         try {
@@ -733,20 +738,6 @@ public class DataSeeder implements CommandLineRunner {
             }
         } catch (Exception e) {
             logger.error("Failed to sync movie status by release date", e);
-        }
-
-        // Self-healing: Cập nhật rating cho các phim đã tồn tại nếu rating là null
-        try {
-            jdbcTemplate.update("UPDATE movie SET rating = 7.5 WHERE title = 'Kẻ Ẩn Danh' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 8.2 WHERE title = 'Mortal Kombat 2' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 7.0 WHERE title = 'Mưa Đỏ' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 8.9 WHERE title = 'Thanh Gươm Diệt Quỷ' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 6.8 WHERE title = 'Truy Tìm Long Diên Hương' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 8.5 WHERE title = 'Sword Art Online The Movie: Progressive Scherzo of Deep Night' AND rating IS NULL");
-            jdbcTemplate.update("UPDATE movie SET rating = 8.0 WHERE rating IS NULL");
-            logger.info("Successfully self-healed ratings for existing movies.");
-        } catch (Exception e) {
-            logger.error("Failed to self-heal ratings", e);
         }
     }
 
@@ -803,8 +794,7 @@ public class DataSeeder implements CommandLineRunner {
             List<String> genreNames,
             List<String> countryCodes,
             List<MovieMediaData> mediaList,
-            String ageRestriction,
-            Double rating) {
+            String ageRestriction) {
 
         if (movieRepository.existsByTitleIgnoreCase(title)) {
             return;
@@ -818,7 +808,6 @@ public class DataSeeder implements CommandLineRunner {
         movie.setStatus(status);
         movie.setAgeRestriction(ageRestriction);
         movie.setOnlinePrice(java.math.BigDecimal.valueOf(45000));
-        movie.setRating(rating);
 
         // Add Genres
         for (String genreName : genreNames) {

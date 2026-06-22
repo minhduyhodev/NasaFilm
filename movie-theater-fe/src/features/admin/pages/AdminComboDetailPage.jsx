@@ -74,7 +74,11 @@ const AdminComboDetailPage = () => {
 
   return (
     <AdminPage>
-      <PageHeader title={combo.name} description={`ID ${combo.uuid}`} backTo="/admin/combos" />
+      <PageHeader
+        title={combo.name}
+        description={isActive ? 'Đang bán · Combo bắp nước' : 'Tạm ngưng · Combo bắp nước'}
+        backTo="/admin/combos"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col gap-3">

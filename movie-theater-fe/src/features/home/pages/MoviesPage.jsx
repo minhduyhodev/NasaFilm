@@ -1,11 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Filter, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import { movieService } from '../../../shared/services/movieService';
+import MovieFilterPanel from '../components/MovieFilterPanel';
+import TabTransition from '../../../shared/components/TabTransition';
 import './MoviesPage.css';
 
 const MoviesPage = () => {
@@ -35,6 +37,12 @@ const MoviesPage = () => {
   const [tempShowtimeDate, setTempShowtimeDate] = useState(null);
   const [tempCinema, setTempCinema] = useState(null);
   const [tempAgeRestriction, setTempAgeRestriction] = useState(null);
+  const [actorQuery, setActorQuery] = useState('');
+  const [isActorDropdownOpen, setIsActorDropdownOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState('');
+  const [genreQuery, setGenreQuery] = useState('');
+
+  const actorSearchRef = useRef(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [movies, setMovies] = useState([]);
@@ -174,12 +182,180 @@ const MoviesPage = () => {
     { value: 'T18', label: 'T18 (18 tuổi trở lên)' }
   ];
 
+  const filteredActors = useMemo(() => {
+    const query = actorQuery.trim().toLowerCase();
+    if (!query) {
+      return dbActors.slice(0, 8);
+    }
+    return dbActors
+      .filter((actor) => actor.fullName?.toLowerCase().includes(query))
+      .slice(0, 8);
+  }, [actorQuery, dbActors]);
+
+  const getActorNameByUuid = (uuid) =>
+    dbActors.find((actor) => actor.uuid === uuid)?.fullName || '';
+
+  const handleClearTempFilters = () => {
+    setTempCountry(null);
+    setTempActor(null);
+    setActorQuery('');
+    setTempGenre(null);
+    setTempShowtimeDate(null);
+    setTempCinema(null);
+    setTempAgeRestriction(null);
+    setCountryQuery('');
+    setGenreQuery('');
+    setIsActorDropdownOpen(false);
+  };
+
+  const handleClearAppliedFilters = () => {
+    handleClearTempFilters();
+    setSelectedCountry(null);
+    setSelectedActor(null);
+    setSelectedGenre(null);
+    setSelectedShowtimeDate(null);
+    setSelectedCinema(null);
+    setSelectedAgeRestriction(null);
+    setCurrentPage(1);
+  };
+
+  const activeFilters = useMemo(() => {
+    const filters = [];
+    if (selectedCountry) {
+      const name = dbCountries.find((c) => c.uuid === selectedCountry)?.name;
+      if (name) {
+        filters.push({
+          key: 'country',
+          label: name,
+          onRemove: () => {
+            setSelectedCountry(null);
+            setTempCountry(null);
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    if (selectedGenre) {
+      const name = dbGenres.find((g) => g.uuid === selectedGenre)?.name;
+      if (name) {
+        filters.push({
+          key: 'genre',
+          label: name,
+          onRemove: () => {
+            setSelectedGenre(null);
+            setTempGenre(null);
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    if (selectedActor) {
+      const name = getActorNameByUuid(selectedActor);
+      if (name) {
+        filters.push({
+          key: 'actor',
+          label: name,
+          onRemove: () => {
+            setSelectedActor(null);
+            setTempActor(null);
+            setActorQuery('');
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    if (selectedShowtimeDate) {
+      const label = filterDates.find((d) => d.dateStr === selectedShowtimeDate)?.label;
+      if (label) {
+        filters.push({
+          key: 'showtime',
+          label: label,
+          onRemove: () => {
+            setSelectedShowtimeDate(null);
+            setTempShowtimeDate(null);
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    if (selectedCinema) {
+      const name = dbCinemas.find((c) => c.uuid === selectedCinema)?.name;
+      if (name) {
+        filters.push({
+          key: 'cinema',
+          label: name,
+          onRemove: () => {
+            setSelectedCinema(null);
+            setTempCinema(null);
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    if (selectedAgeRestriction) {
+      const label = ageRestrictions.find((r) => r.value === selectedAgeRestriction)?.label;
+      if (label) {
+        filters.push({
+          key: 'rating',
+          label: label,
+          onRemove: () => {
+            setSelectedAgeRestriction(null);
+            setTempAgeRestriction(null);
+            setCurrentPage(1);
+          },
+        });
+      }
+    }
+    return filters;
+  }, [
+    selectedCountry,
+    selectedGenre,
+    selectedActor,
+    selectedShowtimeDate,
+    selectedCinema,
+    selectedAgeRestriction,
+    dbCountries,
+    dbGenres,
+    dbCinemas,
+    filterDates,
+    ageRestrictions,
+    dbActors,
+  ]);
+
+  const activeFilterCount = activeFilters.length;
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (actorSearchRef.current && !actorSearchRef.current.contains(event.target)) {
+        setIsActorDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleCountrySelect = (uuid) => {
     setTempCountry(uuid);
   };
 
-  const handleActorSelect = (uuid) => {
-    setTempActor(uuid);
+  const handleActorInputChange = (value) => {
+    setActorQuery(value);
+    setIsActorDropdownOpen(true);
+    if (!value.trim()) {
+      setTempActor(null);
+    }
+  };
+
+  const handleActorSelect = (actor) => {
+    if (!actor) {
+      setTempActor(null);
+      setActorQuery('');
+      setIsActorDropdownOpen(false);
+      return;
+    }
+    setTempActor(actor.uuid);
+    setActorQuery(actor.fullName);
+    setIsActorDropdownOpen(false);
   };
 
   const handleGenreSelect = (uuid) => {
@@ -213,6 +389,7 @@ const MoviesPage = () => {
       // Sync temp selections with active selections when opening
       setTempCountry(selectedCountry);
       setTempActor(selectedActor);
+      setActorQuery(selectedActor ? getActorNameByUuid(selectedActor) : '');
       setTempGenre(selectedGenre);
       setTempShowtimeDate(selectedShowtimeDate);
       setTempCinema(selectedCinema);
@@ -226,6 +403,7 @@ const MoviesPage = () => {
     // Revert temp selections back to current active selections
     setTempCountry(selectedCountry);
     setTempActor(selectedActor);
+    setActorQuery(selectedActor ? getActorNameByUuid(selectedActor) : '');
     setTempGenre(selectedGenre);
     setTempShowtimeDate(selectedShowtimeDate);
     setTempCinema(selectedCinema);
@@ -245,10 +423,13 @@ const MoviesPage = () => {
     // Reset temp filters
     setTempCountry(null);
     setTempActor(null);
+    setActorQuery('');
     setTempGenre(null);
     setTempShowtimeDate(null);
     setTempCinema(null);
     setTempAgeRestriction(null);
+    setCountryQuery('');
+    setGenreQuery('');
     setCurrentPage(1);
   };
 
@@ -282,174 +463,49 @@ const MoviesPage = () => {
           </div>
         </div>
 
-        {/* Horizontal Filters Section */}
-        <div className={`horizontal-filters-panel mb-8 py-3 md:py-4 ${isFiltersOpen ? 'border border-white/10 rounded-xl px-4 md:px-5 -mx-4 md:-mx-5' : 'px-0'}`}>
-          <div 
-            onClick={handleToggleFilters}
-            className="flex items-center gap-4 cursor-pointer select-none"
-          >
-            <div className="flex items-center gap-2 text-white font-black text-sm tracking-wider hover:text-[#FFD875] transition-colors">
-              <Filter className="h-4 w-4 text-[#FFD875]" fill="#FFD875" /> Bộ lọc
-            </div>
-          </div>
-
-          {isFiltersOpen && (
-            <div className="space-y-4 mt-4 pt-4 border-t border-white/5">
-              {/* Quốc gia */}
-              <div className="filter-row">
-                <span className="filter-row-label">Quốc gia:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleCountrySelect(null)}
-                    className={`filter-badge ${tempCountry === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {dbCountries.map(country => (
-                    <button
-                      key={country.uuid}
-                      onClick={() => handleCountrySelect(country.uuid)}
-                      className={`filter-badge ${tempCountry === country.uuid ? 'filter-badge-active' : ''}`}
-                    >
-                      {country.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Diễn viên */}
-              <div className="filter-row">
-                <span className="filter-row-label">Diễn viên:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleActorSelect(null)}
-                    className={`filter-badge ${tempActor === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {dbActors.map(actor => (
-                    <button
-                      key={actor.uuid}
-                      onClick={() => handleActorSelect(actor.uuid)}
-                      className={`filter-badge ${tempActor === actor.uuid ? 'filter-badge-active' : ''}`}
-                    >
-                      {actor.fullName}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thể loại */}
-              <div className="filter-row">
-                <span className="filter-row-label">Thể loại:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleGenreSelect(null)}
-                    className={`filter-badge ${tempGenre === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {dbGenres.map(genre => (
-                    <button
-                      key={genre.uuid}
-                      onClick={() => handleGenreSelect(genre.uuid)}
-                      className={`filter-badge ${tempGenre === genre.uuid ? 'filter-badge-active' : ''}`}
-                    >
-                      {genre.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Ngày chiếu */}
-              <div className="filter-row">
-                <span className="filter-row-label">Suất chiếu:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleShowtimeDateSelect(null)}
-                    className={`filter-badge ${tempShowtimeDate === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {filterDates.map(dateObj => (
-                    <button
-                      key={dateObj.dateStr}
-                      onClick={() => handleShowtimeDateSelect(dateObj.dateStr)}
-                      className={`filter-badge ${tempShowtimeDate === dateObj.dateStr ? 'filter-badge-active' : ''}`}
-                    >
-                      {dateObj.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cụm rạp */}
-              <div className="filter-row">
-                <span className="filter-row-label">Cụm rạp:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleCinemaSelect(null)}
-                    className={`filter-badge ${tempCinema === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {dbCinemas.map(cinema => (
-                    <button
-                      key={cinema.uuid}
-                      onClick={() => handleCinemaSelect(cinema.uuid)}
-                      className={`filter-badge ${tempCinema === cinema.uuid ? 'filter-badge-active' : ''}`}
-                    >
-                      {cinema.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Xếp hạng */}
-              <div className="filter-row">
-                <span className="filter-row-label">Xếp hạng:</span>
-                <div className="filter-badges-container">
-                  <button
-                    onClick={() => handleAgeRestrictionSelect(null)}
-                    className={`filter-badge ${tempAgeRestriction === null ? 'filter-badge-active' : ''}`}
-                  >
-                    Tất cả
-                  </button>
-                  {ageRestrictions.map(ratingObj => (
-                    <button
-                      key={ratingObj.value}
-                      onClick={() => handleAgeRestrictionSelect(ratingObj.value)}
-                      className={`filter-badge ${tempAgeRestriction === ratingObj.value ? 'filter-badge-active' : ''}`}
-                    >
-                      {ratingObj.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-4 pt-4 mt-2 border-t border-white/5">
-                <button
-                  onClick={handleApplyFilters}
-                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-neutral-900 bg-[#FFD875] hover:bg-[#ffe194] rounded-full transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0"
-                >
-                  Lọc kết quả <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleCloseFilters}
-                  className="px-6 py-2 text-sm font-bold text-gray-300 hover:text-white bg-transparent border border-white/20 hover:border-white/40 rounded-full transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {activeTab !== 'coming-soon' && (
+          <MovieFilterPanel
+            isOpen={isFiltersOpen}
+            onToggle={handleToggleFilters}
+            onClose={handleCloseFilters}
+            onApply={handleApplyFilters}
+            onClearTemp={handleClearTempFilters}
+            activeFilterCount={activeFilterCount}
+            activeFilters={activeFilters}
+            onClearApplied={handleClearAppliedFilters}
+            tempCountry={tempCountry}
+            tempGenre={tempGenre}
+            tempShowtimeDate={tempShowtimeDate}
+            tempCinema={tempCinema}
+            tempAgeRestriction={tempAgeRestriction}
+            onCountrySelect={handleCountrySelect}
+            onGenreSelect={handleGenreSelect}
+            onShowtimeDateSelect={handleShowtimeDateSelect}
+            onCinemaSelect={handleCinemaSelect}
+            onAgeRestrictionSelect={handleAgeRestrictionSelect}
+            countryQuery={countryQuery}
+            onCountryQueryChange={setCountryQuery}
+            genreQuery={genreQuery}
+            onGenreQueryChange={setGenreQuery}
+            dbCountries={dbCountries}
+            dbGenres={dbGenres}
+            dbCinemas={dbCinemas}
+            filterDates={filterDates}
+            ageRestrictions={ageRestrictions}
+            actorQuery={actorQuery}
+            onActorInputChange={handleActorInputChange}
+            onActorSelect={handleActorSelect}
+            isActorDropdownOpen={isActorDropdownOpen}
+            setIsActorDropdownOpen={setIsActorDropdownOpen}
+            actorSearchRef={actorSearchRef}
+            filteredActors={filteredActors}
+            tempActor={tempActor}
+          />
+        )}
 
         {/* Main Grid Layout */}
         <div className="movie-list-layout">
-          {/* Movie Cards Grid */}
-          <div className="movie-grid-area">
+          <TabTransition activeKey={activeTab} className="movie-grid-area">
             {isLoading ? (
               <div className="movie-grid">
                 {Array.from({ length: 6 }).map((_, idx) => (
@@ -473,7 +529,6 @@ const MoviesPage = () => {
               </div>
             )}
 
-            {/* Pagination Controls */}
             {!isLoading && displayedMovies.length > 0 && totalPages > 1 && (
               <div className="movie-pagination">
                 <button
@@ -505,7 +560,7 @@ const MoviesPage = () => {
                 </button>
               </div>
             )}
-          </div>
+          </TabTransition>
         </div>
       </main>
 

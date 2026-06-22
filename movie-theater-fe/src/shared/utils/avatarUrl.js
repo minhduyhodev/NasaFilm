@@ -4,7 +4,15 @@ export const normalizeAvatarUrl = (value) => {
   }
 
   const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  return trimmed;
 };
 
 export const resolveAvatarUrl = (payload = {}) => {

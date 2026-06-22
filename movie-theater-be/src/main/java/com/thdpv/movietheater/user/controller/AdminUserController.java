@@ -3,10 +3,12 @@ package com.thdpv.movietheater.user.controller;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.user.dto.AdminCreateUserRequest;
+import com.thdpv.movietheater.user.dto.AdminCreateUserResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
 import com.thdpv.movietheater.user.dto.UpdateRoleRequest;
 import com.thdpv.movietheater.user.dto.UpdateScoreRequest;
@@ -38,6 +42,13 @@ public class AdminUserController {
             @RequestParam(value = "query", required = false) String query) {
         List<AdminUserResponse> users = userService.getAllUsers(query);
         return ResponseEntity.ok(ApiResponse.success(users));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<AdminCreateUserResponse>> createUser(
+            @Valid @RequestBody AdminCreateUserRequest request) {
+        AdminCreateUserResponse created = userService.createUserByAdmin(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(created));
     }
 
     @PutMapping("/{id}/status")

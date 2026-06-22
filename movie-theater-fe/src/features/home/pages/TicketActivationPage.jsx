@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { KeyRound, ArrowRight, Check, HelpCircle, Loader2 } from 'lucide-react';
+import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { movieService } from '../../../shared/services/movieService';
-import { bookingService } from '../../../shared/services/bookingService';
+import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, isOnlineBooking, getMoviePosterUrl, getMovieGalleryImages } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket } from '../utils/movieUtils';
+import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
 import '../styles/home-premium.css';
@@ -17,13 +18,13 @@ import './TicketActivationPage.css';
 const STEPS = [
   {
     num: '01',
-    title: 'Kiểm tra vé online',
-    desc: 'Sau khi mua vé online, mã vé dạng VOD-XXXXXXXX sẽ có trong lịch sử đặt vé của bạn.',
+    title: 'Kiểm tra email',
+    desc: 'Sau khi mua vé online, mã vé VOD-XXXXXXXX được gửi tự động tới email đăng ký của bạn.',
   },
   {
     num: '02',
     title: 'Nhập mã vé',
-    desc: 'Nhập mã VOD-XXXXXXXX hoặc mã booking UUID và bấm "Kích hoạt ngay".',
+    desc: 'Mở email, sao chép mã VOD-XXXXXXXX hoặc mã booking UUID rồi nhập vào ô bên dưới.',
   },
   {
     num: '03',
@@ -32,20 +33,36 @@ const STEPS = [
   },
 ];
 
-const FEATURES = ['Sẵn sàng 4K Ultra HD', 'Kích hoạt tức thì', 'Nhiều thiết bị'];
+const maskEmail = (email) => {
+  if (!email) return 'email đã đăng ký';
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  const visible = local.slice(0, Math.min(2, local.length));
+  const hidden = '*'.repeat(Math.max(1, local.length - visible.length));
+  return `${visible}${hidden}@${domain}`;
+};
+
+const FEATURES = ['Sẵn sàng 4K Ultra HD', 'Kích hoạt tức thì', 'Tương thích nhiều thiết bị'];
+
+const EXPIRED_TICKET_MESSAGE = 'Vé xem phim của bạn đã hết hạn. Vui lòng mua lại vé';
+
+const isExpiredTicketError = (message) =>
+  typeof message === 'string' &&
+  (message.includes('hết hạn') || message.toLowerCase().includes('expired'));
 
 const formatAccessKey = (value) => value.toUpperCase().replace(/\s+/g, '').slice(0, 40);
 
 const TicketActivationPage = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, user } = useAuthContext();
   const [movie, setMovie] = useState(null);
   const [accessKey, setAccessKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isActivating, setIsActivating] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
-  const [myOnlineBooking, setMyOnlineBooking] = useState(null);
+  const [vodStatus, setVodStatus] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -60,14 +77,13 @@ const TicketActivationPage = () => {
 
         if (isAuthenticated) {
           try {
-            const bookings = await bookingService.getMyBookings();
-            const owned = (bookings || []).find(
-              (b) => isOnlineBooking(b) && b.movieUuid === movieId
-            );
-            setMyOnlineBooking(owned || null);
+            const status = await vodService.getStatus(movieId);
+            setVodStatus(status);
           } catch {
-            /* chưa mua vé online */
+            setVodStatus(null);
           }
+        } else {
+          setVodStatus(null);
         }
       } catch {
         setMovie(null);
@@ -91,7 +107,7 @@ const TicketActivationPage = () => {
         movieUuid: movie.uuid,
         movie: movie.title,
         moviePoster: getMoviePosterUrl(movie),
-        movieRating: movie.rating || 8.0,
+        movieRating: movie.rating,
         movieFormat: 'VOD 4K',
         movieAgeRestriction: movie.ageRestriction || 'P',
         totalAmount: resolveMovieOnlinePrice(movie),
@@ -102,6 +118,25 @@ const TicketActivationPage = () => {
         durationMinutes: movie.durationMinutes || 120,
       },
     });
+  };
+
+  const handleResendTicketEmail = async () => {
+    if (!isAuthenticated) {
+      notificationService.info('Vui lòng đăng nhập để nhận mã vé qua email.');
+      navigate('/login', { state: { from: `/online/activate/${movieId}` } });
+      return;
+    }
+
+    setIsResending(true);
+    setError('');
+    try {
+      await vodService.resendTicketEmail(movieId);
+      notificationService.success(`Mã vé đã được gửi tới ${maskEmail(user?.email)}. Vui lòng kiểm tra hộp thư.`);
+    } catch (err) {
+      setError(err?.message || 'Không thể gửi email mã vé. Vui lòng thử lại sau.');
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleActivate = async (e) => {
@@ -122,7 +157,7 @@ const TicketActivationPage = () => {
 
     setIsActivating(true);
     try {
-      const bookings = await bookingService.getMyBookings();
+      const bookings = await vodService.getMyBookings();
       const matched = (bookings || []).find((b) => matchBookingCode(b, code, movieId));
 
       if (!matched) {
@@ -130,22 +165,26 @@ const TicketActivationPage = () => {
         return;
       }
 
-      const status = await bookingService.getVodStatus(movieId);
+      const status = await vodService.getStatus(movieId);
       if (!status?.hasPurchased) {
         setError('Vé đã khớp nhưng chưa có quyền xem online cho phim này. Hãy mua vé online trước.');
         return;
       }
-      if (status?.playbackState === 'EXPIRED') {
-        setError('Vé xem phim trực tuyến của bạn đã hết hạn.');
+      if (status?.playbackState === VOD_PLAYBACK_STATE.EXPIRED) {
+        setError(EXPIRED_TICKET_MESSAGE);
         return;
       }
 
-      await bookingService.activateVodPlay(movieId);
+      await vodService.activatePlay(movieId);
       invalidateVodStatus(movieId);
       notificationService.success('Kích hoạt thành công! Bạn có thể xem phim ngay.');
       navigate(`/watch/${movieId}`);
     } catch (err) {
-      setError(err?.message || 'Không thể kích hoạt mã. Vui lòng thử lại.');
+      setError(
+        isExpiredTicketError(err?.message)
+          ? EXPIRED_TICKET_MESSAGE
+          : err?.message || 'Không thể kích hoạt mã. Vui lòng thử lại.'
+      );
     } finally {
       setIsActivating(false);
     }
@@ -176,6 +215,8 @@ const TicketActivationPage = () => {
 
   const poster = getMoviePosterUrl(movie);
   const galleryImages = getMovieGalleryImages(movie, 4);
+  const ticketActive = isVodTicketActive(vodStatus);
+  const showBuyButton = canPurchaseVodTicket(vodStatus);
 
   return (
     <div className="ticket-activation-page text-white min-h-screen">
@@ -231,13 +272,35 @@ const TicketActivationPage = () => {
                   />
                 </div>
 
-                {myOnlineBooking && (
-                  <div className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                    Bạn đã có vé online cho phim này. Mã vé:{' '}
-                    <strong className="font-mono">{myOnlineBooking.id}</strong>
-                    <p className="mt-2 text-xs text-emerald-200/80">
-                      Nhập mã vé vào ô phía trên rồi bấm &quot;Kích hoạt ngay&quot; để bắt đầu xem phim.
+                {ticketActive && (
+                  <div className="mb-4 rounded-lg border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+                    <p>
+                      Bạn đã có vé online cho phim này. Mã vé đã được gửi tới{' '}
+                      <strong>{maskEmail(user?.email)}</strong>.
                     </p>
+                    <p className="mt-2 text-xs text-sky-200/80">
+                      Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên.
+                    </p>
+                    {vodStatus?.playbackState === 'WAITING_FOR_PLAY' && (
+                    <button
+                      type="button"
+                      onClick={handleResendTicketEmail}
+                      disabled={isResending}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-bold uppercase tracking-wider text-sky-200 hover:bg-sky-500/15 disabled:opacity-60"
+                    >
+                      {isResending ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Đang gửi...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-3.5 w-3.5" />
+                          Gửi lại mã vé qua email
+                        </>
+                      )}
+                    </button>
+                    )}
                   </div>
                 )}
 
@@ -269,14 +332,16 @@ const TicketActivationPage = () => {
                 </div>
               </form>
 
-              {!myOnlineBooking && (
-              <button
-                type="button"
-                onClick={handleBuyOnline}
-                className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm font-bold uppercase tracking-wider text-red-400 transition hover:bg-red-500/15"
-              >
-                Chưa có vé? Mua xem online
-              </button>
+              {showBuyButton && (
+              <div className="activation-btn-buy-wrap">
+                <button
+                  type="button"
+                  onClick={handleBuyOnline}
+                  className="activation-btn-buy"
+                >
+                  Vé xem online
+                </button>
+              </div>
               )}
 
               {galleryImages.length > 0 && (

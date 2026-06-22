@@ -1433,7 +1433,7 @@ const ShowtimesPage = () => {
                               <span className="font-bold truncate max-w-[150px]">{movie.title}</span>
                             </div>
                             <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black shrink-0 font-mono">
-                              ★ {movie.rating ? movie.rating.toFixed(1) : '8.0'}
+                              ★ {movie.rating != null ? movie.rating.toFixed(1) : '—'}
                             </span>
                           </label>
                         ))}
