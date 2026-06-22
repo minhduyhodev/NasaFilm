@@ -158,6 +158,18 @@ const buildHlsSource = (provider, streamUrl) => ({
   url: streamUrl,
 });
 
+const buildYoutubeHeroEmbedUrl = (videoId) => {
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? encodeURIComponent(window.location.origin)
+      : '';
+  const originParam = origin ? `&origin=${origin}` : '';
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${videoId}&playsinline=1&modestbranding=1&iv_load_policy=3&enablejsapi=1${originParam}`;
+};
+
+const buildYoutubeThumbnailUrl = (videoId) =>
+  `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
 export const VIDEO_PROVIDER_LABELS = {
   youtube: 'YouTube',
   vimeo: 'Vimeo',
@@ -197,7 +209,7 @@ export const getVideoSource = (url) => {
   if (youtubeId) {
     return buildEmbedSource(
       'youtube',
-      `https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`,
+      buildYoutubeHeroEmbedUrl(youtubeId),
       youtubeId
     );
   }
@@ -330,3 +342,45 @@ export const getPlaybackUrl = (source) => {
 
 export const getProviderLabel = (source) =>
   VIDEO_PROVIDER_LABELS[source?.provider] || 'Nguồn phát';
+
+/** Muted autoplay background for hero banners (direct/HLS preferred; YouTube uses poster thumbnail). */
+export const getHeroBackgroundSource = (url) => {
+  const source = getVideoSource(url);
+  if (!source || source.type === 'none' || source.type === 'unsupported') {
+    return { type: 'none' };
+  }
+
+  if (source.type === 'embed') {
+    if (source.provider === 'youtube' && source.id) {
+      // YouTube often blocks iframe embed (error 150) on localhost or by owner policy.
+      // Use high-res thumbnail + Ken Burns instead of a broken player overlay.
+      return {
+        type: 'image',
+        provider: 'youtube',
+        url: buildYoutubeThumbnailUrl(source.id),
+        fallbackUrl: `https://img.youtube.com/vi/${source.id}/hqdefault.jpg`,
+      };
+    }
+    if (source.provider === 'vimeo' && source.id) {
+      return {
+        type: 'embed',
+        provider: 'vimeo',
+        embedUrl: `https://player.vimeo.com/video/${source.id}?autoplay=1&muted=1&background=1&loop=1&autopause=0`,
+      };
+    }
+    if (source.provider === 'dailymotion' && source.id) {
+      return {
+        type: 'embed',
+        provider: 'dailymotion',
+        embedUrl: `https://www.dailymotion.com/embed/video/${source.id}?autoplay=1&mute=1&loop=1`,
+      };
+    }
+    return { type: 'embed', provider: source.provider, embedUrl: source.embedUrl };
+  }
+
+  if (source.type === 'direct' || source.type === 'hls') {
+    return { type: 'video', provider: source.provider, url: source.url };
+  }
+
+  return { type: 'none' };
+};

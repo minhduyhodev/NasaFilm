@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { movieService } from '../../../shared/services/movieService';
-import { mapApiMovies, filterOnlineMovies, getMovieDetailPath } from '../utils/movieUtils';
+import { mapApiMovies, filterOnlineMovies, getMovieDetailPath, sortMoviesByReleaseDate } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 
 const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp }) => {
@@ -25,7 +25,7 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
         let list = filterOnlineMovies(mapApiMovies(data?.content || []));
         const onlineOnlyList = list.filter((m) => m.screeningMode === 'ONLINE_ONLY');
         const bothList = list.filter((m) => m.screeningMode === 'BOTH');
-        const curated = [...onlineOnlyList, ...bothList].slice(0, 4);
+        const curated = sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4);
         setMovies(curated);
       } catch {
         setMovies([]);
@@ -95,7 +95,6 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
                 </h3>
                 <p className="text-[10px] text-white/50 mt-1">
                   {movie.genres?.slice(0, 2).join(' · ')}
-                  {movie.rating != null ? ` · ${Number(movie.rating).toFixed(1)}★` : ''}
                 </p>
               </div>
             </Link>

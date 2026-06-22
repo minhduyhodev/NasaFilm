@@ -1,9 +1,9 @@
 import React from 'react';
-import { Star, Tag, Clock, Globe } from 'lucide-react';
+import { Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getMovieDetailPath, getOnlineMoviePath } from '../utils/movieUtils';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
+const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -24,7 +24,6 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
   const displayPoster = primaryMediaUrl || poster;
   const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
   const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
-  const displayRating = rating ? rating : '0.0';
 
   // Format badge color mappings matching mockup styles
   const getFormatBadgeStyle = (fmt) => {
@@ -64,12 +63,6 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
             </span>
           )}
         </div>
-        {rating && (
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-black/60 backdrop-blur-md text-yellow-400 border border-white/10">
-            <Star className="h-3 w-3 fill-current text-yellow-400" />
-            <span>{parseFloat(displayRating).toFixed(1)}</span>
-          </div>
-        )}
 
         {/* Hover Details Overlay on Poster */}
         {hoverDetails && (
