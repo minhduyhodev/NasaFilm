@@ -3,6 +3,9 @@ import { MapPin, Search, Plus, Tv, Activity, Grid } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import AdminModal from '../components/AdminModal';
+import CinemaFormPanel from '../components/panels/CinemaFormPanel';
+import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 
 const CinemasPage = () => {
   const navigate = useNavigate();
@@ -16,6 +19,8 @@ const CinemasPage = () => {
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [cinemaModal, setCinemaModal] = useState({ open: false, mode: 'create', cinema: null });
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
   const roomsSectionRef = useRef(null);
 
   const fetchCinemasAndGlobalStats = async (keepSelection = true) => {
@@ -111,17 +116,38 @@ const CinemasPage = () => {
   );
 
   const handleAddCinemaClick = () => {
-    navigate('/admin/cinemas/new');
+    setCinemaModal({ open: true, mode: 'create', cinema: null });
   };
 
   const handleEditCinemaClick = (cinema, e) => {
     e.stopPropagation();
-    navigate(`/admin/cinemas/${cinema.uuid}/edit`);
+    setCinemaModal({ open: true, mode: 'edit', cinema });
+  };
+
+  const closeCinemaModal = () => setCinemaModal({ open: false, mode: 'create', cinema: null });
+
+  const handleCinemaSaved = async (savedCinema) => {
+    closeCinemaModal();
+    await fetchCinemasAndGlobalStats(true);
+    if (savedCinema?.uuid && cinemaModal.mode === 'create') {
+      setSelectedCinema(savedCinema);
+      requestAnimationFrame(() => {
+        roomsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   };
 
   const handleAddRoomClick = () => {
     if (!selectedCinema) return;
-    navigate(`/admin/cinemas/${selectedCinema.uuid}/rooms/new`);
+    setRoomModalOpen(true);
+  };
+
+  const handleRoomSaved = async () => {
+    setRoomModalOpen(false);
+    if (selectedCinema) {
+      await fetchRooms(selectedCinema.uuid);
+      await fetchCinemasAndGlobalStats(true);
+    }
   };
 
   const handleSelectCinema = (cinema) => {
@@ -328,6 +354,37 @@ const CinemasPage = () => {
           )}
         </div>
       )}
+
+      <AdminModal
+        open={cinemaModal.open}
+        onClose={closeCinemaModal}
+        title={cinemaModal.mode === 'edit' ? 'Chỉnh sửa chi nhánh' : 'Thêm rạp mới'}
+        subtitle={cinemaModal.mode === 'edit' ? cinemaModal.cinema?.name : 'Thông tin chi nhánh rạp chiếu'}
+        size="md"
+      >
+        <CinemaFormPanel
+          cinema={cinemaModal.mode === 'edit' ? cinemaModal.cinema : null}
+          onSuccess={handleCinemaSaved}
+          onCancel={closeCinemaModal}
+        />
+      </AdminModal>
+
+      <AdminModal
+        open={roomModalOpen}
+        onClose={() => setRoomModalOpen(false)}
+        title="Thêm phòng chiếu mới"
+        subtitle={selectedCinema?.name}
+        size="lg"
+      >
+        {selectedCinema && (
+          <CinemaRoomFormPanel
+            cinemaUuid={selectedCinema.uuid}
+            cinemaName={selectedCinema.name}
+            onSuccess={handleRoomSaved}
+            onCancel={() => setRoomModalOpen(false)}
+          />
+        )}
+      </AdminModal>
     </>
   );
 };

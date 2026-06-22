@@ -77,7 +77,10 @@ const AdminMovieDetailPage = () => {
     <AdminPage>
       <PageHeader
         title={movie.title}
-        description={`ID ${movie.uuid}`}
+        description={[
+          getMovieStatusLabel(movie.status),
+          movie.releaseDate ? formatDateDisplay(movie.releaseDate) : null,
+        ].filter(Boolean).join(' · ')}
         backTo="/admin/movies"
       />
 

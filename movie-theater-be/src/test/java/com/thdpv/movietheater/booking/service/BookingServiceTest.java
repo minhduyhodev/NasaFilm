@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -46,6 +47,7 @@ import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -80,6 +82,9 @@ class BookingServiceTest {
     @Mock
     private PromotionRepository promotionRepository;
 
+    @Mock
+    private SystemConfigService systemConfigService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -95,6 +100,8 @@ class BookingServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(bookingService, "autoSlideEnabled", true);
+        lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
+        lenient().when(systemConfigService.getOnlineWatchLockMultiplier()).thenReturn(2.0);
     }
 
     @Test

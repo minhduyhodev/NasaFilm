@@ -486,8 +486,10 @@ public class BookingService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }
@@ -780,8 +782,9 @@ public class BookingService {
 
         // First play activation
         int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
+        double lockMultiplier = systemConfigService.getOnlineWatchLockMultiplier();
         OffsetDateTime firstPlayedAt = now;
-        OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(durationMinutes * 2L);
+        OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(Math.round(durationMinutes * lockMultiplier));
 
         booking.setFirstPlayedAt(firstPlayedAt);
         booking.setExpiresAt(expiresAt);

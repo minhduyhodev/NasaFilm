@@ -6,6 +6,7 @@ import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
   Mail,
@@ -515,9 +516,11 @@ export const ProfilePage = () => {
                   >
                     {avatarUrl ? (
                       <img
-                        src={avatarUrl}
+                        src={normalizeAvatarUrl(avatarUrl)}
                         alt="Avatar"
                         className="profile-avatar-image"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarUrl('')}
                       />
                     ) : (
                       <div className="profile-avatar-placeholder">

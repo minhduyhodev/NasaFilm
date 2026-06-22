@@ -7,6 +7,7 @@ import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import { movieService } from '../../../shared/services/movieService';
 import MovieFilterPanel from '../components/MovieFilterPanel';
+import TabTransition from '../../../shared/components/TabTransition';
 import './MoviesPage.css';
 
 const MoviesPage = () => {
@@ -504,8 +505,7 @@ const MoviesPage = () => {
 
         {/* Main Grid Layout */}
         <div className="movie-list-layout">
-          {/* Movie Cards Grid */}
-          <div className="movie-grid-area">
+          <TabTransition activeKey={activeTab} className="movie-grid-area">
             {isLoading ? (
               <div className="movie-grid">
                 {Array.from({ length: 6 }).map((_, idx) => (
@@ -529,7 +529,6 @@ const MoviesPage = () => {
               </div>
             )}
 
-            {/* Pagination Controls */}
             {!isLoading && displayedMovies.length > 0 && totalPages > 1 && (
               <div className="movie-pagination">
                 <button
@@ -561,7 +560,7 @@ const MoviesPage = () => {
                 </button>
               </div>
             )}
-          </div>
+          </TabTransition>
         </div>
       </main>
 

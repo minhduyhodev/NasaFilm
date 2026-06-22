@@ -4,6 +4,8 @@ import { Star, X, AlertTriangle, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 
 // Import movie poster assets for summary preview
 import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
@@ -107,8 +109,14 @@ const BookingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasGapViolation, setHasGapViolation] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
 
   const selectedSeatsRef = React.useRef([]);
+  useEffect(() => {
+    systemConfigService.getConfig()
+      .then((cfg) => setMaxSeatsPerBooking(getMaxSeatsPerBooking(cfg)))
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     selectedSeatsRef.current = selectedSeats;
   }, [selectedSeats]);
@@ -211,8 +219,8 @@ const BookingPage = () => {
 
   const handleSeatClick = async (seat, rowName) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
-    if (!isAlreadySelected && selectedSeats.length >= 8) {
-      notificationService.error("Bạn chỉ được chọn tối đa 8 ghế trong một lần đặt.");
+    if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
+      notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
       return;
     }
 

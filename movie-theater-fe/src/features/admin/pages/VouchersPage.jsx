@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Ticket, Plus, Search, Activity, CheckCircle, Pause, ChevronDown,
+  Ticket, Plus, Search, Activity, CheckCircle, Pause, ChevronDown, Edit2, Trash2,
 } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
-import { formatDateForInput, formatDateTimeDisplay } from '../utils/voucherFormUtils';
+import AdminModal from '../components/AdminModal';
+import VoucherFormPanel from '../components/panels/VoucherFormPanel';
+import { PrimaryButton, GhostButton } from '../components';
+import { formatDateForInput, formatDateTimeDisplay, formatDiscountDisplay } from '../utils/voucherFormUtils';
 import './VouchersPage.css';
 
 const VouchersPage = () => {
-  const navigate = useNavigate();
   const [vouchersList, setVouchersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +19,8 @@ const VouchersPage = () => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [voucherModal, setVoucherModal] = useState({ open: false, mode: 'create', voucher: null });
 
   const fetchVouchers = useCallback(async () => {
     setIsLoading(true);
@@ -63,6 +66,40 @@ const VouchersPage = () => {
   ];
   const currentFilter = filterOptions.find((opt) => opt.value === statusFilter) || filterOptions[0];
 
+  const closeVoucherModal = () => setVoucherModal({ open: false, mode: 'create', voucher: null });
+
+  const handleVoucherSaved = async () => {
+    closeVoucherModal();
+    await fetchVouchers();
+  };
+
+  const handleDeleteVoucher = async (voucher) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa mã "${voucher.code}"?`)) return;
+    setIsDeleting(true);
+    try {
+      await adminPromotionService.deletePromotion(voucher.id);
+      notificationService.success('Đã xóa voucher');
+      closeVoucherModal();
+      await fetchVouchers();
+    } catch (err) {
+      notificationService.error(err.message || 'Xóa thất bại');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const voucherModalTitle =
+    voucherModal.mode === 'create'
+      ? 'Tạo voucher mới'
+      : voucherModal.mode === 'edit'
+        ? 'Chỉnh sửa voucher'
+        : voucherModal.voucher?.code || 'Chi tiết voucher';
+
+  const voucherModalSubtitle =
+    voucherModal.mode === 'detail' && voucherModal.voucher
+      ? voucherModal.voucher.description || `Giảm giá ${formatDiscountDisplay(voucherModal.voucher)}`
+      : undefined;
+
   return (
     <div className="space-y-6 text-left">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -75,7 +112,7 @@ const VouchersPage = () => {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/admin/vouchers/new')}
+          onClick={() => setVoucherModal({ open: true, mode: 'create', voucher: null })}
           className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm text-white font-bold transition shadow-md cursor-pointer shrink-0 self-start md:self-auto"
         >
           <Plus size={16} /> Tạo Voucher Mới
@@ -181,7 +218,7 @@ const VouchersPage = () => {
                   return (
                     <tr
                       key={v.id}
-                      onClick={() => navigate(`/admin/vouchers/${v.id}`)}
+                      onClick={() => setVoucherModal({ open: true, mode: 'detail', voucher: v })}
                       className="border-b border-[#242d42]/30 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
                     >
                       <td className="px-6 py-4">
@@ -197,11 +234,6 @@ const VouchersPage = () => {
                               <span className="bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 font-sans">
                                 <span className="w-1 h-1 rounded-full bg-amber-400" />
                                 Vô hiệu
-                              </span>
-                            )}
-                            {v.oncePerUser && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 font-bold font-sans">
-                                1 lần/người
                               </span>
                             )}
                           </div>
@@ -271,6 +303,76 @@ const VouchersPage = () => {
           />
         </>
       )}
+
+      <AdminModal
+        open={voucherModal.open}
+        onClose={closeVoucherModal}
+        title={voucherModalTitle}
+        subtitle={voucherModalSubtitle}
+        size={voucherModal.mode === 'detail' ? 'md' : 'lg'}
+      >
+        {voucherModal.mode === 'detail' && voucherModal.voucher && (
+          <div className="space-y-5">
+            <div className="flex flex-col items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <Ticket className="w-10 h-10 text-red-500" />
+              <span className="text-xl font-black text-white uppercase tracking-widest">{voucherModal.voucher.code}</span>
+              <span className="text-lg font-bold text-amber-400">{formatDiscountDisplay(voucherModal.voucher)}</span>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Trạng thái</dt>
+                <dd className="text-white">{voucherModal.voucher.status === 'ACTIVE' ? 'Hoạt động' : 'Vô hiệu'}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Loại giảm</dt>
+                <dd className="text-white">{voucherModal.voucher.discountType === 'PERCENTAGE' ? 'Phần trăm' : 'Cố định'}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Đã sử dụng</dt>
+                <dd className="text-white">{voucherModal.voucher.usedCount ?? 0} / {voucherModal.voucher.maxUsage ?? '∞'}</dd>
+              </div>
+              {voucherModal.voucher.startDate && (
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Bắt đầu</dt>
+                  <dd className="text-white">{formatDateTimeDisplay(formatDateForInput(voucherModal.voucher.startDate))}</dd>
+                </div>
+              )}
+              {voucherModal.voucher.endDate && (
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Kết thúc</dt>
+                  <dd className="text-white">{formatDateTimeDisplay(formatDateForInput(voucherModal.voucher.endDate))}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <PrimaryButton
+                type="button"
+                className="flex-1 justify-center"
+                onClick={() => setVoucherModal({ open: true, mode: 'edit', voucher: voucherModal.voucher })}
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                Chỉnh sửa
+              </PrimaryButton>
+              <GhostButton
+                type="button"
+                className="flex-1 justify-center text-red-400 border-red-500/30 hover:bg-red-500/10"
+                onClick={() => handleDeleteVoucher(voucherModal.voucher)}
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              </GhostButton>
+            </div>
+          </div>
+        )}
+        {(voucherModal.mode === 'create' || voucherModal.mode === 'edit') && (
+          <VoucherFormPanel
+            voucher={voucherModal.mode === 'edit' ? voucherModal.voucher : null}
+            onSuccess={handleVoucherSaved}
+            onCancel={closeVoucherModal}
+          />
+        )}
+      </AdminModal>
     </div>
   );
 };
