@@ -149,5 +149,4 @@ public class EmailService {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;");
     }
-
 }
