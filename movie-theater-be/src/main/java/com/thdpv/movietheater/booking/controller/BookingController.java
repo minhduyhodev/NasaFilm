@@ -21,6 +21,7 @@ import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
+import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -59,6 +60,14 @@ public class BookingController {
     public ResponseEntity<ApiResponse<List<CustomerBookingHistoryResponse>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails) {
         List<CustomerBookingHistoryResponse> response = bookingService.getMyBookings(
+                userDetails != null ? userDetails.getUsername() : null);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/purchase-history")
+    public ResponseEntity<ApiResponse<List<PurchaseHistoryResponse>>> getPurchaseHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        List<PurchaseHistoryResponse> response = bookingService.getPurchaseHistory(
                 userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

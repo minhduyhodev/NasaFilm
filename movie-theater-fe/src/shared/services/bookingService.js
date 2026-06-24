@@ -65,6 +65,15 @@ class BookingService {
     }
   }
 
+  async getPurchaseHistory() {
+    try {
+      const response = await authService.api.get('/api/bookings/purchase-history');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getAdminBookings(keyword = '') {
     try {
       const params = {};

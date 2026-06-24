@@ -17,6 +17,8 @@ public class CancellationPreviewResponse {
     private OffsetDateTime showtimeStart;
     private boolean refundable;
     private List<String> blockedReasons;
+    private String bookingType;
+    private boolean vodActivated;
 
     public CancellationPreviewResponse() {
     }
@@ -99,5 +101,21 @@ public class CancellationPreviewResponse {
 
     public void setBlockedReasons(List<String> blockedReasons) {
         this.blockedReasons = blockedReasons;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public boolean isVodActivated() {
+        return vodActivated;
+    }
+
+    public void setVodActivated(boolean vodActivated) {
+        this.vodActivated = vodActivated;
     }
 }

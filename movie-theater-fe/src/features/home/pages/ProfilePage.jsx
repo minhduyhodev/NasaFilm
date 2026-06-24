@@ -26,7 +26,6 @@ import {
   Camera,
   Star,
   X,
-  Search,
   History,
   Phone,
   ChevronDown,
@@ -35,6 +34,7 @@ import { notificationService } from "../../../shared/services/notificationServic
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
+import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
   enrichBookingsWithMovieMeta,
@@ -131,7 +131,10 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (genderDropdownRef.current && !genderDropdownRef.current.contains(event.target)) {
+      if (
+        genderDropdownRef.current &&
+        !genderDropdownRef.current.contains(event.target)
+      ) {
         setShowGenderDropdown(false);
       }
     };
@@ -171,6 +174,11 @@ export const ProfilePage = () => {
 
   const sortedBookings = useMemo(
     () => sortBookingsForDisplay(bookings),
+    [bookings],
+  );
+
+  const liveTicketCount = useMemo(
+    () => bookings.filter(isLiveTicket).length,
     [bookings],
   );
 
@@ -231,7 +239,9 @@ export const ProfilePage = () => {
     setRedeemingVoucherId(promotionId);
     try {
       await promotionService.redeemVoucher(promotionId);
-      notificationService.success('Đổi voucher thành công. Voucher đã được thêm vào ví của bạn.');
+      notificationService.success(
+        "Đổi voucher thành công. Voucher đã được thêm vào ví của bạn.",
+      );
       const refreshedProfile = await authService.getProfile();
       setProfileData(refreshedProfile);
       const [wallet, catalog] = await Promise.all([
@@ -241,7 +251,7 @@ export const ProfilePage = () => {
       setVouchers(wallet || []);
       setVoucherCatalog(catalog || []);
     } catch (err) {
-      notificationService.error(err.message || 'Không thể đổi voucher');
+      notificationService.error(err.message || "Không thể đổi voucher");
     } finally {
       setRedeemingVoucherId(null);
     }
@@ -299,12 +309,6 @@ export const ProfilePage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
 
-  // Purchase History Modal States
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState("all");
-  const [historySearch, setHistorySearch] = useState("");
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-
   // Derived user details
   const displayRole = user?.roles?.includes("admin")
     ? "Quản trị viên"
@@ -317,12 +321,16 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  const currentPoints = profileData && typeof profileData.score === 'number'
-    ? profileData.score
-    : (user && typeof user.score === 'number' ? user.score : 0);
-  const lifetimePoints = profileData && typeof profileData.lifetimeScore === 'number'
-    ? profileData.lifetimeScore
-    : currentPoints;
+  const currentPoints =
+    profileData && typeof profileData.score === "number"
+      ? profileData.score
+      : user && typeof user.score === "number"
+        ? user.score
+        : 0;
+  const lifetimePoints =
+    profileData && typeof profileData.lifetimeScore === "number"
+      ? profileData.lifetimeScore
+      : currentPoints;
   const nextTierPoints = 10000;
   const rawProgress = (lifetimePoints / nextTierPoints) * 100;
   const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
@@ -337,7 +345,9 @@ export const ProfilePage = () => {
     [voucherCatalog],
   );
   const availableVoucherCount = useMemo(
-    () => usableVouchers.length + pointVoucherCatalog.filter((v) => v.eligible).length,
+    () =>
+      usableVouchers.length +
+      pointVoucherCatalog.filter((v) => v.eligible).length,
     [usableVouchers, pointVoucherCatalog],
   );
 
@@ -350,17 +360,25 @@ export const ProfilePage = () => {
       <div className="voucher-body text-left">
         <div className="flex justify-between items-center mb-1 gap-2">
           <span className="voucher-code">{item.code}</span>
-          <span className="text-[10px] font-bold text-amber-400">{item.pointsCost} điểm</span>
+          <span className="text-[10px] font-bold text-amber-400">
+            {item.pointsCost} điểm
+          </span>
         </div>
         <h4 className="voucher-title">{item.description}</h4>
         <p className="voucher-desc">
           Hạng: {item.requiredTierLabel}
-          {item.maxUsagePerUser != null ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản` : ""}
-          {item.maxUsage != null ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống` : ""}
+          {item.maxUsagePerUser != null
+            ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản`
+            : ""}
+          {item.maxUsage != null
+            ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống`
+            : ""}
         </p>
         <div className="flex justify-between items-center mt-3 gap-2">
           <span className="text-[10px] text-gray-400">
-            {item.endDate ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}` : "Không giới hạn thời gian"}
+            {item.endDate
+              ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}`
+              : "Không giới hạn thời gian"}
           </span>
           <button
             type="button"
@@ -372,7 +390,9 @@ export const ProfilePage = () => {
           </button>
         </div>
         {!item.eligible && item.ineligibleReason && (
-          <p className="text-[10px] text-rose-400 mt-2">{item.ineligibleReason}</p>
+          <p className="text-[10px] text-rose-400 mt-2">
+            {item.ineligibleReason}
+          </p>
         )}
       </div>
     </div>
@@ -520,28 +540,6 @@ export const ProfilePage = () => {
     }
   };
 
-  // Dynamic Transactions based on real bookings
-  const transactions = bookings.map((tkt) => {
-    const hasCombo = tkt.combo && !tkt.combo.toLowerCase().includes("không kèm") && tkt.combo !== "";
-    return {
-      id: tkt.id,
-      type: hasCombo ? "combo" : "ticket",
-      itemName: tkt.movieTitle,
-      date: tkt.showtime,
-      amount: tkt.price,
-      method: "Ví NASA",
-      hasCombo: hasCombo,
-      details: {
-        cinema: tkt.cinema,
-        seats: tkt.seats || "N/A",
-        combo: tkt.combo || "Không kèm bắp nước",
-        price: tkt.price,
-        comboPrice: "Đã bao gồm",
-        total: tkt.price
-      }
-    };
-  });
-
   if (isLoading) {
     return (
       <>
@@ -570,7 +568,6 @@ export const ProfilePage = () => {
             <div className="twinkling-stars-bg" />
 
             <div className="space-hub-content grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-
               {/* Left Column: User details with Orbit System around avatar */}
               <div className="lg:col-span-5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
                 <div className="avatar-orbit-container">
@@ -592,7 +589,7 @@ export const ProfilePage = () => {
                         alt="Avatar"
                         className="profile-avatar-image"
                         referrerPolicy="no-referrer"
-                        onError={() => setAvatarUrl('')}
+                        onError={() => setAvatarUrl("")}
                       />
                     ) : (
                       <div className="profile-avatar-placeholder">
@@ -620,7 +617,9 @@ export const ProfilePage = () => {
                       {displayRole}
                     </span>
                   </div>
-                  <p className="text-zinc-400 text-sm font-semibold">{user?.email}</p>
+                  <p className="text-zinc-400 text-sm font-semibold">
+                    {user?.email}
+                  </p>
 
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-1">
                     <div className="profile-badge-item">
@@ -658,14 +657,20 @@ export const ProfilePage = () => {
                         strokeWidth="5"
                         fill="transparent"
                         strokeDasharray={2 * Math.PI * 48}
-                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeDashoffset={
+                          2 * Math.PI * 48 * (1 - progressPercent / 100)
+                        }
                         strokeLinecap="round"
                       />
                     </svg>
 
                     <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Hiện tại</span>
-                      <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{currentPoints.toLocaleString('vi-VN')}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">
+                        Hiện tại
+                      </span>
+                      <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">
+                        {currentPoints.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                   </div>
 
@@ -687,14 +692,20 @@ export const ProfilePage = () => {
                         strokeWidth="5"
                         fill="transparent"
                         strokeDasharray={2 * Math.PI * 48}
-                        strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
+                        strokeDashoffset={
+                          2 * Math.PI * 48 * (1 - progressPercent / 100)
+                        }
                         strokeLinecap="round"
                       />
                     </svg>
 
                     <div className="absolute flex flex-col items-center justify-center px-1 text-center">
-                      <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold leading-tight">Tích lũy</span>
-                      <span className="text-lg font-black text-white font-mono leading-none mt-0.5">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                      <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold leading-tight">
+                        Tích lũy
+                      </span>
+                      <span className="text-lg font-black text-white font-mono leading-none mt-0.5">
+                        {lifetimePoints.toLocaleString("vi-VN")}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -712,20 +723,44 @@ export const ProfilePage = () => {
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
-                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
-                    <Star size={14} className={lifetimePoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star
+                      size={14}
+                      className={
+                        lifetimePoints >= 10000
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
+                    <Star
+                      size={14}
+                      className={
+                        lifetimePoints >= 10000
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
                   </div>
 
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
                     {lifetimePoints >= 10000 ? (
-                      <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
+                      <span>
+                        Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.
+                      </span>
                     ) : (
-                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - lifetimePoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                      <span>
+                        Còn{" "}
+                        <span className="text-amber-400 font-bold">
+                          {(nextTierPoints - lifetimePoints).toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          điểm
+                        </span>{" "}
+                        nữa để nâng cấp lên hạng thành viên NASA'VIP.
+                      </span>
                     )}
                   </p>
                 </div>
               </div>
-
             </div>
 
             <input
@@ -771,7 +806,9 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Ticket size={20} />
-                    <span className="rail-badge">{bookings.length}</span>
+                    {liveTicketCount > 0 && (
+                      <span className="rail-badge">{liveTicketCount}</span>
+                    )}
                   </div>
                   <span className="rail-label">Vé của tôi</span>
                 </button>
@@ -802,8 +839,8 @@ export const ProfilePage = () => {
                 )}
 
                 <button
-                  onClick={() => setShowHistoryModal(true)}
-                  className="rail-item text-slate-400 hover:text-white"
+                  onClick={() => setActiveTab("history")}
+                  className={`rail-item ${activeTab === "history" ? "active" : ""}`}
                   title="Lịch sử mua hàng"
                 >
                   <div className="rail-icon-wrapper">
@@ -941,19 +978,32 @@ export const ProfilePage = () => {
                         </div>
                         <div className="info-row-right">
                           {isEditing ? (
-                            <div className="relative w-full" ref={genderDropdownRef} style={{ position: "relative", width: "100%" }}>
+                            <div
+                              className="relative w-full"
+                              ref={genderDropdownRef}
+                              style={{ position: "relative", width: "100%" }}
+                            >
                               <button
                                 type="button"
-                                onClick={() => !isSaving && setShowGenderDropdown(!showGenderDropdown)}
+                                onClick={() =>
+                                  !isSaving &&
+                                  setShowGenderDropdown(!showGenderDropdown)
+                                }
                                 disabled={isSaving}
-                                className={`custom-gender-select-btn ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`custom-gender-select-btn ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
                               >
                                 <span>
-                                  {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chọn giới tính"}
+                                  {gender === "MALE"
+                                    ? "Nam"
+                                    : gender === "FEMALE"
+                                      ? "Nữ"
+                                      : gender === "OTHER"
+                                        ? "Khác"
+                                        : "Chọn giới tính"}
                                 </span>
                                 <ChevronDown
                                   size={16}
-                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`}
+                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? "rotate-180 text-yellow-500" : ""}`}
                                   style={{ transition: "transform 0.3s ease" }}
                                 />
                               </button>
@@ -964,26 +1014,38 @@ export const ProfilePage = () => {
                                     initial={{ opacity: 0, y: -8, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                                    transition={{ duration: 0.15, ease: "easeOut" }}
+                                    transition={{
+                                      duration: 0.15,
+                                      ease: "easeOut",
+                                    }}
                                     className="custom-gender-dropdown-list"
                                   >
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("MALE"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("MALE");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "MALE" ? "active" : ""}`}
                                     >
                                       Nam
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("FEMALE"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("FEMALE");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "FEMALE" ? "active" : ""}`}
                                     >
                                       Nữ
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("OTHER"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("OTHER");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "OTHER" ? "active" : ""}`}
                                     >
                                       Khác
@@ -1404,7 +1466,7 @@ export const ProfilePage = () => {
                     <div className="panel-header">
                       <h2>Vé của tôi</h2>
                       <button
-                        onClick={() => setShowHistoryModal(true)}
+                        onClick={() => setActiveTab("history")}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
                       >
                         <History size={14} />
@@ -1415,7 +1477,10 @@ export const ProfilePage = () => {
                     <div className="tickets-list">
                       {bookings.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500 font-medium w-full">
-                          <Ticket size={48} className="mx-auto mb-4 opacity-30 text-red-500" />
+                          <Ticket
+                            size={48}
+                            className="mx-auto mb-4 opacity-30 text-red-500"
+                          />
                           <p>Bạn chưa có lịch sử đặt vé nào.</p>
                         </div>
                       ) : (
@@ -1423,23 +1488,32 @@ export const ProfilePage = () => {
                           const isVod = isOnlineBooking(tkt);
                           const isLive = isLiveTicket(tkt);
                           const getMovieGlowClass = (title) => {
-                            if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
-                            if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
+                            if (
+                              title.toUpperCase().includes("STELLAR") ||
+                              title.toUpperCase().includes("MORTAL")
+                            )
+                              return "glow-gold";
+                            if (
+                              title.toUpperCase().includes("AETHERIA") ||
+                              title.toUpperCase().includes("RED") ||
+                              title.toUpperCase().includes("MƯA")
+                            )
+                              return "glow-purple";
                             return "glow-cyan";
                           };
                           const glowClass = getMovieGlowClass(tkt.movieTitle);
                           return (
                             <div
                               key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${isLive ? 'ticket-boarding-pass--live' : 'ticket-boarding-pass--inactive'}${isVod ? ' ticket-boarding-pass--vod' : ''}`}
-                              onClick={() => handleTicketClick(tkt)}
-                              style={{ cursor: isLive ? 'pointer' : 'default' }}
+                              className={`ticket-boarding-pass ${glowClass} ${isLive ? "ticket-boarding-pass--live" : "ticket-boarding-pass--inactive"}${isVod ? " ticket-boarding-pass--vod" : ""}`}
+                              onClick={() => isLive && handleTicketClick(tkt)}
+                              style={{ cursor: isLive ? "pointer" : "default" }}
                               title={
                                 !isLive
-                                  ? 'Vé đã hết hạn hoặc không còn hiệu lực'
+                                  ? "Vé đã hết hạn hoặc không còn hiệu lực"
                                   : isVod
-                                    ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
-                                    : 'Nhấp để xem chi tiết / In lại vé'
+                                    ? "Nhấn để kích hoạt hoặc tiếp tục xem phim online"
+                                    : "Nhấp để xem chi tiết / In lại vé"
                               }
                             >
                               <div className="ticket-notch-top" />
@@ -1456,28 +1530,44 @@ export const ProfilePage = () => {
 
                                 <div className="ticket-grid-details">
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">{isVod ? "Nền tảng" : "Rạp Chiếu"}</span>
-                                    <span className="value-text">{tkt.cinema}</span>
+                                    <span className="label-text">
+                                      {isVod ? "Nền tảng" : "Rạp Chiếu"}
+                                    </span>
+                                    <span className="value-text">
+                                      {tkt.cinema}
+                                    </span>
                                   </div>
                                   <div className="ticket-info-unit">
-                                    <span className="label-text">{isVod ? "Hình thức" : "Suất Chiếu"}</span>
+                                    <span className="label-text">
+                                      {isVod ? "Hình thức" : "Suất Chiếu"}
+                                    </span>
                                     <span className="value-text text-amber-500">
-                                      {isVod ? "Xem trực tuyến" : tkt.showtime || "—"}
+                                      {isVod
+                                        ? "Xem trực tuyến"
+                                        : tkt.showtime || "—"}
                                     </span>
                                   </div>
                                   {!isVod && (
                                     <div className="ticket-info-unit">
-                                      <span className="label-text">Đồ ăn & Nước</span>
-                                      <span className="value-text">{tkt.combo}</span>
+                                      <span className="label-text">
+                                        Đồ ăn & Nước
+                                      </span>
+                                      <span className="value-text">
+                                        {tkt.combo}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
 
                                 <div className="ticket-code-row">
                                   <span className="label-text">Mã vé</span>
-                                  <span className="ticket-code-value">{formatDisplayTicketCode(tkt)}</span>
+                                  <span className="ticket-code-value">
+                                    {formatDisplayTicketCode(tkt)}
+                                  </span>
                                   {isVod && (
-                                    <span className="ticket-email-hint">Xem mã đầy đủ trong email</span>
+                                    <span className="ticket-email-hint">
+                                      Xem mã đầy đủ trong email
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -1491,9 +1581,13 @@ export const ProfilePage = () => {
                                   className="stub-seats-info"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <span className="seats-title">{isVod ? 'Loại vé' : 'Ghế'}</span>
-                                  <div className={`seats-numbers${isVod ? ' seats-numbers--static' : ''}`}>
-                                    {isVod ? 'Online' : (tkt.seats || '—')}
+                                  <span className="seats-title">
+                                    {isVod ? "Loại vé" : "Ghế"}
+                                  </span>
+                                  <div
+                                    className={`seats-numbers${isVod ? " seats-numbers--static" : ""}`}
+                                  >
+                                    {isVod ? "Online" : tkt.seats || "—"}
                                   </div>
                                 </div>
 
@@ -1501,8 +1595,10 @@ export const ProfilePage = () => {
                                   <div className="barcode-lines" />
                                 </div>
 
-                                <span className="stub-price-tag">{tkt.price}</span>
-                                {!isVod && isLive && tkt.bookingUuid && (
+                                <span className="stub-price-tag">
+                                  {tkt.price}
+                                </span>
+                                {tkt.cancellable && tkt.bookingUuid && (
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -1511,8 +1607,13 @@ export const ProfilePage = () => {
                                     }}
                                     className="mt-2 text-[10px] font-bold uppercase tracking-wide text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md cursor-pointer"
                                   >
-                                    Hủy vé
+                                    {isVod ? "Hủy vé" : "Hủy vé"}
                                   </button>
+                                )}
+                                {isVod && isLive && tkt.vodActivated && (
+                                  <span className="mt-2 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+                                    Đã kích hoạt — không hủy
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -1536,53 +1637,98 @@ export const ProfilePage = () => {
                     <div className="panel-header">
                       <h2>Ưu đãi & đổi điểm</h2>
                       <p className="text-sm text-gray-400 mt-1">
-                        Điểm hiện tại: <span className="text-amber-400 font-bold">{currentPoints.toLocaleString('vi-VN')}</span>
-                        {' · '}
-                        Điểm tích lũy: <span className="text-white font-bold">{lifetimePoints.toLocaleString('vi-VN')}</span>
+                        Điểm hiện tại:{" "}
+                        <span className="text-amber-400 font-bold">
+                          {currentPoints.toLocaleString("vi-VN")}
+                        </span>
+                        {" · "}
+                        Điểm tích lũy:{" "}
+                        <span className="text-white font-bold">
+                          {lifetimePoints.toLocaleString("vi-VN")}
+                        </span>
                       </p>
                     </div>
 
                     {isLoadingVouchers ? (
-                      <p className="text-gray-500 text-sm">Đang tải voucher...</p>
+                      <p className="text-gray-500 text-sm">
+                        Đang tải voucher...
+                      </p>
                     ) : (
                       <div className="space-y-8">
                         <section>
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher có thể sử dụng</h3>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                            Voucher có thể sử dụng
+                          </h3>
                           {usableVouchers.length === 0 ? (
-                            <p className="text-gray-500 text-sm">Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên dưới hoặc xem ưu đãi công khai.</p>
+                            <p className="text-gray-500 text-sm">
+                              Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên
+                              dưới hoặc xem ưu đãi công khai.
+                            </p>
                           ) : (
                             <div className="vouchers-grid">
                               {usableVouchers.map((voucher) => {
                                 const formattedExpiry = voucher.endDate
-                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
-                                  : 'Hạn dùng: Không thời hạn';
-                                const isDirectUse = voucher.directUse || (voucher.pointsCost ?? 0) === 0;
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString("vi-VN")}`
+                                  : "Hạn dùng: Không thời hạn";
+                                const isDirectUse =
+                                  voucher.directUse ||
+                                  (voucher.pointsCost ?? 0) === 0;
 
                                 return (
-                                  <div key={voucher.walletId || voucher.id || voucher.code} className="voucher-card">
+                                  <div
+                                    key={
+                                      voucher.walletId ||
+                                      voucher.id ||
+                                      voucher.code
+                                    }
+                                    className="voucher-card"
+                                  >
                                     <div className="voucher-glow-dot" />
                                     <div className="voucher-icon-box">
-                                      <Gift size={24} className={isDirectUse ? "text-green-500" : "text-amber-500"} />
+                                      <Gift
+                                        size={24}
+                                        className={
+                                          isDirectUse
+                                            ? "text-green-500"
+                                            : "text-amber-500"
+                                        }
+                                      />
                                     </div>
                                     <div className="voucher-body text-left">
                                       <div className="flex justify-between items-center mb-1 gap-2">
-                                        <span className="voucher-code">{voucher.code}</span>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                          isDirectUse
-                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                        }`}>
-                                          {isDirectUse ? 'Miễn phí' : 'Đã kích hoạt'}
+                                        <span className="voucher-code">
+                                          {voucher.code}
+                                        </span>
+                                        <span
+                                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                            isDirectUse
+                                              ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                          }`}
+                                        >
+                                          {isDirectUse
+                                            ? "Miễn phí"
+                                            : "Đã kích hoạt"}
                                         </span>
                                       </div>
-                                      <h4 className="voucher-title">{voucher.description}</h4>
+                                      <h4 className="voucher-title">
+                                        {voucher.description}
+                                      </h4>
                                       <p className="voucher-desc">
-                                        {voucher.requiredTierLabel ? `Hạng: ${voucher.requiredTierLabel}` : 'Voucher khả dụng'}
-                                        {isDirectUse ? ' · Dùng trực tiếp khi thanh toán' : ' · Đã đổi điểm'}
+                                        {voucher.requiredTierLabel
+                                          ? `Hạng: ${voucher.requiredTierLabel}`
+                                          : "Voucher khả dụng"}
+                                        {isDirectUse
+                                          ? " · Dùng trực tiếp khi thanh toán"
+                                          : " · Đã đổi điểm"}
                                       </p>
                                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
-                                        <span className="voucher-expiry">{formattedExpiry}</span>
-                                        <span className="font-semibold text-green-400">Sẵn sàng dùng</span>
+                                        <span className="voucher-expiry">
+                                          {formattedExpiry}
+                                        </span>
+                                        <span className="font-semibold text-green-400">
+                                          Sẵn sàng dùng
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
@@ -1593,47 +1739,69 @@ export const ProfilePage = () => {
                         </section>
 
                         <section>
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Đổi điểm lấy voucher</h3>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                            Đổi điểm lấy voucher
+                          </h3>
                           {pointVoucherCatalog.length === 0 ? (
-                            <p className="text-gray-500 text-sm">Chưa có voucher nào khả dụng để đổi.</p>
+                            <p className="text-gray-500 text-sm">
+                              Chưa có voucher nào khả dụng để đổi.
+                            </p>
                           ) : (
                             <div className="vouchers-grid">
-                              {pointVoucherCatalog.map((item) => renderCatalogVoucherCard(item))}
+                              {pointVoucherCatalog.map((item) =>
+                                renderCatalogVoucherCard(item),
+                              )}
                             </div>
                           )}
                         </section>
 
                         {vouchers.some((v) => v.used) && (
                           <section>
-                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Voucher đã sử dụng</h3>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                              Voucher đã sử dụng
+                            </h3>
                             <div className="vouchers-grid">
-                              {vouchers.filter((v) => v.used).map((voucher) => {
-                                const formattedExpiry = voucher.endDate
-                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}`
-                                  : 'Hạn dùng: Không thời hạn';
+                              {vouchers
+                                .filter((v) => v.used)
+                                .map((voucher) => {
+                                  const formattedExpiry = voucher.endDate
+                                    ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString("vi-VN")}`
+                                    : "Hạn dùng: Không thời hạn";
 
-                                return (
-                                  <div key={`used-${voucher.walletId || voucher.id || voucher.code}`} className="voucher-card opacity-50 grayscale border-dashed border-gray-600">
-                                    <div className="voucher-glow-dot" />
-                                    <div className="voucher-icon-box">
-                                      <Gift size={24} className="text-gray-500" />
-                                    </div>
-                                    <div className="voucher-body text-left">
-                                      <div className="flex justify-between items-center mb-1">
-                                        <span className="voucher-code">{voucher.code}</span>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
-                                          Đã sử dụng
-                                        </span>
+                                  return (
+                                    <div
+                                      key={`used-${voucher.walletId || voucher.id || voucher.code}`}
+                                      className="voucher-card opacity-50 grayscale border-dashed border-gray-600"
+                                    >
+                                      <div className="voucher-glow-dot" />
+                                      <div className="voucher-icon-box">
+                                        <Gift
+                                          size={24}
+                                          className="text-gray-500"
+                                        />
                                       </div>
-                                      <h4 className="voucher-title text-gray-500">{voucher.description}</h4>
-                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
-                                        <span className="voucher-expiry">{formattedExpiry}</span>
-                                        <span>Đã dùng</span>
+                                      <div className="voucher-body text-left">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="voucher-code">
+                                            {voucher.code}
+                                          </span>
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                                            Đã sử dụng
+                                          </span>
+                                        </div>
+                                        <h4 className="voucher-title text-gray-500">
+                                          {voucher.description}
+                                        </h4>
+                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                          <span className="voucher-expiry">
+                                            {formattedExpiry}
+                                          </span>
+                                          <span>Đã dùng</span>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
                             </div>
                           </section>
                         )}
@@ -1643,6 +1811,19 @@ export const ProfilePage = () => {
                 )}
 
                 {/* TAB 4: Security Settings */}
+                {activeTab === "history" && (
+                  <motion.div
+                    key="history"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <PurchaseHistoryPanel />
+                  </motion.div>
+                )}
+
                 {activeTab === "security" && authProvider !== "GOOGLE" && (
                   <motion.div
                     key="security"
@@ -1675,7 +1856,9 @@ export const ProfilePage = () => {
                       <form
                         onSubmit={handlePasswordChange}
                         className="password-change-form"
-                      >                        <div className="info-field-group">
+                      >
+                        {" "}
+                        <div className="info-field-group">
                           <label>Mật khẩu hiện tại</label>
                           <AuthInput
                             placeholder="••••••••"
@@ -1690,7 +1873,8 @@ export const ProfilePage = () => {
                               setShowCurrentPassword((prev) => !prev)
                             }
                           />
-                        </div>                        <div className="info-field-group">
+                        </div>{" "}
+                        <div className="info-field-group">
                           <label>Mật khẩu mới</label>
                           <AuthInput
                             placeholder="Mật khẩu tối thiểu 6 ký tự"
@@ -1705,7 +1889,8 @@ export const ProfilePage = () => {
                               setShowNewPassword((prev) => !prev)
                             }
                           />
-                        </div>                        <div className="info-field-group">
+                        </div>{" "}
+                        <div className="info-field-group">
                           <label>Xác nhận mật khẩu mới</label>
                           <AuthInput
                             placeholder="Nhập lại mật khẩu mới"
@@ -1721,7 +1906,6 @@ export const ProfilePage = () => {
                             }
                           />
                         </div>
-
                         <button
                           type="submit"
                           disabled={isChangingPass}
@@ -1739,300 +1923,6 @@ export const ProfilePage = () => {
             </div>
           </div>
         </div>
-
-        {/* Purchase History Modal */}
-        {showHistoryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0b0f19] border border-white/10 rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
-            >
-              {/* Modal Header */}
-              <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-white/5">
-                <div className="flex items-center gap-2">
-                  <History className="text-yellow-400" size={20} />
-                  <h3 className="text-lg font-bold text-white">
-                    Lịch sử mua hàng
-                  </h3>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowHistoryModal(false);
-                    setSelectedTransaction(null);
-                  }}
-                  className="text-slate-400 hover:text-white transition duration-200"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Spend Summary */}
-              <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-white/[0.02] border-b border-white/5 text-center">
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Tổng chi tiêu
-                  </p>
-                  <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500 mt-1">
-                    {transactions.length === 0
-                      ? "0đ"
-                      : transactions
-                          .reduce(
-                            (sum, txn) =>
-                              sum + parseInt(txn.amount.replace(/\D/g, "") || "0"),
-                            0,
-                          )
-                          .toLocaleString("vi-VN") + "đ"}
-                  </p>
-                </div>
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Số lượng vé
-                  </p>
-                  <p className="text-lg font-black text-red-500 mt-1">
-                    {transactions.length === 0
-                      ? "0"
-                      : transactions.reduce((sum, txn) => sum + (txn.details.seats && txn.details.seats !== "N/A" ? txn.details.seats.split(",").filter(Boolean).length : 0), 0)}{" "}
-                    vé
-                  </p>
-                </div>
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Số lượng combo
-                  </p>
-                  <p className="text-lg font-black text-amber-500 mt-1">
-                    {transactions.length === 0
-                      ? "0"
-                      : transactions.filter((txn) => txn.hasCombo)
-                          .length}{" "}
-                    combo
-                  </p>
-                </div>
-              </div>
-
-              {/* Filter and Search controls */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01]">
-                {/* Filter Tabs */}
-                <div className="flex gap-2 bg-slate-900 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
-                  <button
-                    onClick={() => setHistoryFilter("all")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "all" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Tất cả
-                  </button>
-                  <button
-                    onClick={() => setHistoryFilter("ticket")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "ticket" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Vé xem phim
-                  </button>
-                  <button
-                    onClick={() => setHistoryFilter("combo")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "combo" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Bắp nước
-                  </button>
-                </div>
-
-                {/* Search Box */}
-                <div className="relative w-full sm:w-64">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={14}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tìm theo mã giao dịch, tên..."
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-6 no-scrollbar min-h-[300px]">
-                {selectedTransaction ? (
-                  /* Detailed Transaction Receipt */
-                  <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 max-w-lg mx-auto shadow-inner relative">
-                    <button
-                      onClick={() => setSelectedTransaction(null)}
-                      className="absolute top-4 left-4 text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-1"
-                    >
-                      ← Quay lại
-                    </button>
-
-                    <div className="text-center border-b border-dashed border-white/10 pb-4 mb-4 mt-4">
-                      <h4 className="text-base font-bold text-white uppercase tracking-wider">
-                        Hóa đơn điện tử
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Mã GD: {selectedTransaction.id}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {selectedTransaction.date}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3 text-sm text-slate-300 mb-6">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Địa điểm rạp:</span>
-                        <span className="font-semibold text-white text-right max-w-[200px]">
-                          {selectedTransaction.details.cinema}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Vị trí ghế:</span>
-                        <span className="font-semibold text-white">
-                          {selectedTransaction.details.seats}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Đồ ăn thức uống:</span>
-                        <span className="font-semibold text-white text-right max-w-[200px]">
-                          {selectedTransaction.details.combo}
-                        </span>
-                      </div>
-                      <div className="border-t border-slate-800 my-2 pt-2" />
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Tiền vé:</span>
-                        <span>{selectedTransaction.details.price}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Tiền combo:</span>
-                        <span>{selectedTransaction.details.comboPrice}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Phương thức:</span>
-                        <span className="text-red-500 font-bold">
-                          {selectedTransaction.method}
-                        </span>
-                      </div>
-                      <div className="border-t-2 border-dashed border-white/10 my-2 pt-3" />
-                      <div className="flex justify-between text-base font-extrabold">
-                        <span className="text-white">Tổng cộng:</span>
-                        <span className="text-yellow-400">
-                          {selectedTransaction.details.total}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Mock Barcode inside Invoice */}
-                    <div className="flex flex-col items-center justify-center pt-2 border-t border-slate-800">
-                      <div className="h-10 w-48 bg-repeating-linear-gradient(90deg,#fff,#fff 2px,#0f172a 2px,#0f172a 6px,#fff 6px,#fff 8px) opacity-50 mb-2" />
-                      <span className="text-[10px] font-mono text-slate-500">
-                        NSF-{selectedTransaction.id}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Transaction List */
-                  <div className="space-y-3">
-                    {transactions
-                      .filter(
-                        (txn) =>
-                          historyFilter === "all" ||
-                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
-                          (historyFilter === "combo" && txn.hasCombo),
-                      )
-                      .filter(
-                        (txn) =>
-                          txn.id
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()) ||
-                          txn.itemName
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()),
-                      )
-                      .map((txn) => (
-                        <div
-                          key={txn.id}
-                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-xl transition duration-200 gap-4"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${txn.type === "ticket" ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-500"}`}
-                            >
-                              {txn.type === "ticket" ? (
-                                <Ticket size={18} />
-                              ) : (
-                                <Gift size={18} />
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-white leading-snug">
-                                {txn.itemName}
-                              </h4>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                {txn.date} | Mã GD:{" "}
-                                <span className="font-mono text-slate-300">
-                                  {txn.id}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex sm:flex-col items-end justify-between w-full sm:w-auto border-t sm:border-0 border-white/5 pt-2 sm:pt-0 gap-2">
-                            <span className="text-sm font-black text-yellow-400">
-                              {txn.amount}
-                            </span>
-                            <button
-                              onClick={() => setSelectedTransaction(txn)}
-                              className="text-xs font-bold text-red-500 hover:text-red-400 hover:underline transition duration-200"
-                            >
-                              Chi tiết hóa đơn →
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-
-                    {/* Empty State */}
-                    {transactions
-                      .filter(
-                        (txn) =>
-                          historyFilter === "all" ||
-                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
-                          (historyFilter === "combo" && txn.hasCombo),
-                      )
-                      .filter(
-                        (txn) =>
-                          txn.id
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()) ||
-                          txn.itemName
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()),
-                      ).length === 0 && (
-                      <div className="text-center py-12">
-                        <History
-                          className="mx-auto text-slate-600 mb-3"
-                          size={40}
-                        />
-                        <p className="text-sm text-slate-400">
-                          Không tìm thấy giao dịch nào phù hợp
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-[#white/5]">
-                <button
-                  onClick={() => {
-                    setShowHistoryModal(false);
-                    setSelectedTransaction(null);
-                  }}
-                  className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-lg transition duration-200"
-                >
-                  Đóng
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </div>
       <Footer />
       <CancelBookingModal
@@ -2040,7 +1930,7 @@ export const ProfilePage = () => {
         open={Boolean(cancelTargetUuid)}
         onClose={() => setCancelTargetUuid(null)}
         onSuccess={(result) => {
-          notificationService.success(result?.message || 'Hủy vé thành công');
+          notificationService.success(result?.message || "Hủy vé thành công");
           reloadBookings();
         }}
       />

@@ -28,6 +28,7 @@ import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 import com.thdpv.movietheater.booking.repository.CancellationRequestRepository;
 import com.thdpv.movietheater.booking.repository.PaymentRepository;
+import com.thdpv.movietheater.booking.repository.PromotionRepository;
 import com.thdpv.movietheater.booking.repository.RefundRepository;
 import com.thdpv.movietheater.booking.repository.TicketRepository;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -64,6 +65,8 @@ public class CancellationRefundService {
     private final AuditLogService auditLogService;
     private final SeatMapEventPublisher seatMapEventPublisher;
     private final RealtimeEventPublisher realtimeEventPublisher;
+    private final PromotionRepository promotionRepository;
+    private final VoucherRedemptionService voucherRedemptionService;
 
     @Transactional(readOnly = true)
     public CancellationPreviewResponse getCancellationPreview(UUID bookingUuid, UUID actorUuid, boolean adminOverride,
@@ -79,6 +82,8 @@ public class CancellationRefundService {
         preview.setBookingUuid(bookingUuid);
         preview.setTotalPaid(booking.getTotalPrice());
         preview.setCancellationCutoffMinutes(systemConfigService.getCancellationCutoffMinutes());
+        preview.setBookingType(booking.getBookingType());
+        preview.setVodActivated(booking.getFirstPlayedAt() != null);
 
         List<String> blocked = validateCancellationRules(booking, showtimeCancelled);
         preview.setBlockedReasons(blocked);
@@ -95,6 +100,14 @@ public class CancellationRefundService {
 
         if (!blocked.isEmpty()) {
             preview.setMessage(String.join("; ", blocked));
+        } else if (isOnlineBooking(booking)) {
+            if (preview.isRefundable()) {
+                preview.setMessage("Hủy vé xem online chưa kích hoạt. Bạn sẽ được hoàn "
+                        + formatMoney(calc.refundAmount())
+                        + (calc.fee().compareTo(BigDecimal.ZERO) > 0 ? " (phí hủy " + formatMoney(calc.fee()) + ")" : ""));
+            } else {
+                preview.setMessage("Vé online sẽ bị hủy và không được hoàn tiền theo chính sách.");
+            }
         } else if (preview.isRefundable()) {
             preview.setMessage("Bạn sẽ được hoàn " + formatMoney(calc.refundAmount())
                     + (calc.fee().compareTo(BigDecimal.ZERO) > 0 ? " (phí hủy " + formatMoney(calc.fee()) + ")" : ""));
@@ -162,6 +175,8 @@ public class CancellationRefundService {
         booking.setUpdatedAt(now);
         bookingRepository.save(booking);
 
+        restorePromotionAndVoucher(booking);
+
         request.setStatus("COMPLETED");
         request.setCompletedAt(now);
         request.setUpdatedAt(now);
@@ -190,7 +205,10 @@ public class CancellationRefundService {
         if (refund != null) {
             response.setRefundUuid(refund.getUuid());
         }
-        response.setMessage(refund != null ? "Hủy vé thành công. Tiền hoàn sẽ về trong 3-7 ngày làm việc."
+        response.setMessage(refund != null
+                ? (isOnlineBooking(booking)
+                        ? "Hủy vé online thành công. Tiền hoàn sẽ về trong 3-7 ngày làm việc."
+                        : "Hủy vé thành công. Tiền hoàn sẽ về trong 3-7 ngày làm việc.")
                 : "Hủy vé thành công. Vé không được hoàn tiền theo chính sách.");
         return response;
     }
@@ -348,7 +366,8 @@ public class CancellationRefundService {
             return blocked;
         }
 
-        if ("ONLINE".equalsIgnoreCase(booking.getBookingType())) {
+        if ("ONLINE".equalsIgnoreCase(booking.getBookingType())
+                || isOnlineBookingLabel(booking)) {
             if (booking.getFirstPlayedAt() != null) {
                 blocked.add("Vé online đã kích hoạt, không thể hủy");
             }
@@ -430,6 +449,31 @@ public class CancellationRefundService {
 
     private String formatMoney(BigDecimal amount) {
         return new java.text.DecimalFormat("#,###").format(amount) + "đ";
+    }
+
+    private boolean isOnlineBooking(Booking booking) {
+        return booking != null && ("ONLINE".equalsIgnoreCase(booking.getBookingType())
+                || isOnlineBookingLabel(booking));
+    }
+
+    private boolean isOnlineBookingLabel(Booking booking) {
+        if (booking == null || booking.getShowtimeUuid() != null) {
+            return false;
+        }
+        return booking.getMovieUuid() != null;
+    }
+
+    private void restorePromotionAndVoucher(Booking booking) {
+        if (booking.getPromotionUuid() != null) {
+            promotionRepository.findById(booking.getPromotionUuid()).ifPresent(promotion -> {
+                int used = promotion.getUsedCount() != null ? promotion.getUsedCount() : 0;
+                if (used > 0) {
+                    promotion.setUsedCount(used - 1);
+                    promotionRepository.save(promotion);
+                }
+            });
+        }
+        voucherRedemptionService.releaseVoucherForBooking(booking.getUuid());
     }
 
     private record RefundCalculation(BigDecimal fee, BigDecimal refundAmount) {

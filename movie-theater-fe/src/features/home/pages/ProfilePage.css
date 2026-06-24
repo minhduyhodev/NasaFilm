@@ -922,6 +922,10 @@ select.info-row-input option:disabled {
 }
 
 .ticket-boarding-pass--vod {
+  cursor: pointer;
+}
+
+.ticket-boarding-pass--vod.ticket-boarding-pass--inactive {
   cursor: default;
 }
 

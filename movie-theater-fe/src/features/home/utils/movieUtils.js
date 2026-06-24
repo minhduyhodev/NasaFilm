@@ -280,8 +280,14 @@ export const isOnlineBooking = (booking) =>
   (booking?.cinema || '').toLowerCase().includes('vod');
 
 /** Vé còn hiệu lực (chưa hết hạn, chưa hủy, chưa sử dụng). */
-export const isLiveTicket = (booking) =>
-  (booking?.status || '').toLowerCase() === 'active';
+export const isLiveTicket = (booking) => {
+  const status = (booking?.status || '').toLowerCase();
+  if (status === 'cancelled' || status === 'used') return false;
+  if (status === 'active') return true;
+  // VOD chưa kích hoạt vẫn sáng (kể cả khi BE gán nhầm expired)
+  if (isOnlineBooking(booking) && booking?.vodActivated !== true) return true;
+  return false;
+};
 
 /** Vé hết hạn / đã hủy / đã dùng — đẩy xuống cuối danh sách. */
 export const sortBookingsForDisplay = (bookings = []) =>
