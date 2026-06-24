@@ -35,3 +35,10 @@ build/
 
 ### Environment files ###
 .env
+
+
+### Cursor ###
+.Cursor/
+
+
+/skills-lock.json
