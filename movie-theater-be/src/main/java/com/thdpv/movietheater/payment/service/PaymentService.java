@@ -33,6 +33,14 @@ public class PaymentService {
         return paymentProvider;
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Optional<Payment> findLatestPayment(UUID bookingUuid) {
+        if (bookingUuid == null) {
+            return java.util.Optional.empty();
+        }
+        return paymentRepository.findFirstByBookingUuidOrderByCreatedAtDesc(bookingUuid);
+    }
+
     @Transactional
     public Payment chargeBooking(UUID bookingUuid, BigDecimal amount, String method, String idempotencyKey) {
         if (bookingUuid == null) {

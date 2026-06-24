@@ -149,4 +149,17 @@ public class VoucherRedemptionService {
         userVoucher.setBookingUuid(bookingUuid);
         return userVoucherRepository.save(userVoucher);
     }
+
+    @Transactional
+    public void releaseVoucherForBooking(UUID bookingUuid) {
+        if (bookingUuid == null) {
+            return;
+        }
+        userVoucherRepository.findFirstByBookingUuid(bookingUuid).ifPresent(wallet -> {
+            wallet.setStatus(USER_VOUCHER_ACTIVE);
+            wallet.setUsedAt(null);
+            wallet.setBookingUuid(null);
+            userVoucherRepository.save(wallet);
+        });
+    }
 }

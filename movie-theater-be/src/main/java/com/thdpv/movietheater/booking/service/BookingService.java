@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
+import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.BookingCombo;
@@ -668,15 +669,43 @@ public class BookingService {
             String ticketStatus = stringValue(row[10]);
             UUID movieUuid = toUuid(row[11]);
             String bookingType = stringValue(row[12]);
+            OffsetDateTime firstPlayedAt = bookingRepository.toOffsetDateTime(row[13]);
+            OffsetDateTime expiresAt = bookingRepository.toOffsetDateTime(row[14]);
+            if (firstPlayedAt != null) {
+                firstPlayedAt = firstPlayedAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            if (expiresAt != null) {
+                expiresAt = expiresAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
 
             String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
+            String cinemaLabel = roomName;
+            boolean isOnline = isOnlineBookingType(bookingType, cinemaLabel);
+            boolean vodActivated = isOnline && firstPlayedAt != null;
+            OffsetDateTime now = OffsetDateTime.now();
 
-            // Status: active if movie hasn't started yet, completed if movie has started/finished
-            String status = startTime != null && startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
-            if ("CANCELLED".equalsIgnoreCase(bookingStatus) || "USED".equalsIgnoreCase(ticketStatus)) {
-                status = "completed";
+            // active = còn dùng được; cancelled / used / expired = vé không còn hiệu lực
+            String status;
+            if (isCancelledBookingStatus(bookingStatus)) {
+                status = "cancelled";
+            } else if ("USED".equalsIgnoreCase(ticketStatus)) {
+                status = "used";
+            } else if (isOnline) {
+                if (vodActivated && expiresAt != null && now.isAfter(expiresAt)) {
+                    status = "expired";
+                } else {
+                    status = "active";
+                }
+            } else if (startTime != null && startTime.isAfter(now)) {
+                status = "active";
+            } else {
+                status = "expired";
             }
+
+            boolean cancellable = "CONFIRMED".equalsIgnoreCase(bookingStatus)
+                    && "active".equals(status)
+                    && (!isOnline || !vodActivated);
 
             responses.add(new CustomerBookingHistoryResponse(
                     bookingUuid,
@@ -691,11 +720,98 @@ public class BookingService {
                     priceStr,
                     status,
                     movieUuid,
-                    bookingType
+                    bookingType,
+                    cancellable,
+                    vodActivated
             ));
         }
 
         return responses;
+    }
+
+    @Transactional(readOnly = true)
+    public List<PurchaseHistoryResponse> getPurchaseHistory(String email) {
+        UUID userUuid = resolveRequiredUserUuid(email);
+        List<Object[]> rows = bookingRepository.loadPurchaseHistory(userUuid);
+        List<PurchaseHistoryResponse> responses = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            String ticketCode = stringValue(row[1]);
+            String movieTitle = stringValue(row[2]);
+            String cinemaName = stringValue(row[3]);
+            String roomName = stringValue(row[4]);
+            OffsetDateTime showtimeRaw = bookingRepository.toOffsetDateTime(row[5]);
+            if (showtimeRaw != null) {
+                showtimeRaw = showtimeRaw.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            String seatsStr = stringValue(row[6]);
+            String combosStr = stringValue(row[7]);
+            BigDecimal totalPrice = toBigDecimal(row[8]);
+            String bookingStatus = stringValue(row[9]);
+            String bookingType = stringValue(row[10]);
+            String promotionCode = stringValue(row[11]);
+            String promotionDiscountType = stringValue(row[12]);
+            BigDecimal promotionDiscountValue = promotionCode == null ? null : toBigDecimal(row[13]);
+            OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[14]);
+            if (createdAt != null) {
+                createdAt = createdAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            UUID movieUuid = toUuid(row[15]);
+
+            PurchaseHistoryResponse item = new PurchaseHistoryResponse();
+            item.setBookingUuid(bookingUuid);
+            item.setTicketCode(ticketCode);
+            item.setMovieTitle(movieTitle);
+            item.setMovieUuid(movieUuid);
+            item.setCinemaName(cinemaName);
+            item.setRoomName(roomName);
+            item.setShowtime(showtimeRaw != null
+                    ? showtimeRaw.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                    : "");
+            item.setSeats(seatsStr);
+            item.setCombo(combosStr);
+            item.setTotalPrice(formatPrice(totalPrice));
+            item.setBookingStatus(bookingStatus);
+            item.setBookingType(bookingType);
+            item.setPromotionCode(promotionCode);
+            item.setPromotionDescription(formatPromotionDescription(promotionDiscountType, promotionDiscountValue));
+            paymentService.findLatestPayment(bookingUuid).ifPresentOrElse(payment -> {
+                item.setPaymentMethod(formatPaymentMethodLabel(payment.getMethod()));
+                item.setPaymentStatus(payment.getStatus());
+            }, () -> item.setPaymentMethod("Ví NASA"));
+            item.setPurchasedAt(createdAt != null
+                    ? createdAt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                    : "");
+            responses.add(item);
+        }
+
+        return responses;
+    }
+
+    private String formatPaymentMethodLabel(String method) {
+        if (method == null || method.isBlank()) {
+            return "Ví NASA";
+        }
+        return switch (method.toUpperCase()) {
+            case "MOCK" -> "Thanh toán mô phỏng";
+            case "WALLET" -> "Ví NASA";
+            case "CARD" -> "Thẻ ngân hàng";
+            case "MOMO" -> "Ví MoMo";
+            case "VNPAY" -> "VNPay";
+            case "CASH" -> "Tiền mặt";
+            default -> method;
+        };
+    }
+
+    private String formatPromotionDescription(String discountType, BigDecimal discountValue) {
+        if (discountType == null || discountValue == null) {
+            return null;
+        }
+        if ("PERCENTAGE".equalsIgnoreCase(discountType)) {
+            return "Giảm " + discountValue.stripTrailingZeros().toPlainString() + "%";
+        }
+        return "Giảm " + formatPrice(discountValue);
     }
 
 
@@ -772,6 +888,29 @@ public class BookingService {
             return BigDecimal.valueOf(number.doubleValue());
         }
         return new BigDecimal(value.toString());
+    }
+
+    private boolean isCancelledBookingStatus(String bookingStatus) {
+        if (bookingStatus == null) {
+            return false;
+        }
+        String normalized = bookingStatus.toUpperCase();
+        return "CANCELLED".equals(normalized)
+                || "REFUNDED".equals(normalized)
+                || "REFUND_PENDING".equals(normalized)
+                || "REFUND_PROCESSING".equals(normalized)
+                || "CANCELLING".equals(normalized);
+    }
+
+    private boolean isOnlineBookingType(String bookingType, String cinemaLabel) {
+        if ("ONLINE".equalsIgnoreCase(bookingType)) {
+            return true;
+        }
+        if (cinemaLabel == null || cinemaLabel.isBlank()) {
+            return false;
+        }
+        String label = cinemaLabel.toUpperCase();
+        return label.contains("VOD") || label.contains("XEM ONLINE") || label.contains("TRỰC TUYẾN");
     }
 
     private String formatPrice(BigDecimal price) {

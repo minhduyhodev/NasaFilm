@@ -158,7 +158,7 @@ const TicketFilters = () => {
       setIsLoading(true);
       try {
         const [moviesData, cinemasData, showtimesData] = await Promise.all([
-          movieService.getMovies({ status: 'NOW_SHOWING', size: 100 }),
+          movieService.getMovies({ status: 'NOW_SHOWING', size: 100, requireBookableShowtime: true }),
           movieService.getCinemas(),
           showtimeService.getPublicShowtimes()
         ]);

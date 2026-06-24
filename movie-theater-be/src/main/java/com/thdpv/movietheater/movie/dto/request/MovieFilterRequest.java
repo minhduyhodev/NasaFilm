@@ -18,6 +18,9 @@ public class MovieFilterRequest {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate showtimeDate;
 
+    /** Chỉ lấy phim có suất chiếu rạp còn đặt được (OPEN_FOR_BOOKING / SOLD_OUT, startTime > now). */
+    private Boolean requireBookableShowtime;
+
     public MovieFilterRequest() {
     }
 
@@ -95,5 +98,13 @@ public class MovieFilterRequest {
 
     public void setShowtimeDate(LocalDate showtimeDate) {
         this.showtimeDate = showtimeDate;
+    }
+
+    public Boolean getRequireBookableShowtime() {
+        return requireBookableShowtime;
+    }
+
+    public void setRequireBookableShowtime(Boolean requireBookableShowtime) {
+        this.requireBookableShowtime = requireBookableShowtime;
     }
 }

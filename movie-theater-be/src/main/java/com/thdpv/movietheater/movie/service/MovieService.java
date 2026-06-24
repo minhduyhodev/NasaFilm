@@ -178,8 +178,13 @@ public class MovieService {
             }
 
             String status = filter.getStatus();
+            boolean bookableShowtimeFilter = Boolean.TRUE.equals(filter.getRequireBookableShowtime());
             if (status != null && !status.isBlank()) {
-                predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
+                String normalizedStatus = status.trim().toUpperCase();
+                // Có suất chiếu còn đặt được = đang chiếu thực tế, không phụ thuộc movie.status
+                if (!(bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus))) {
+                    predicates.add(cb.equal(root.get("status"), normalizedStatus));
+                }
             }
 
             List<UUID> genreUuids = filter.getGenreUuids();
@@ -232,6 +237,23 @@ public class MovieService {
 
                 subquery.where(subPredicates.toArray(new Predicate[0]));
                 predicates.add(root.get("uuid").in(subquery));
+            }
+
+            if (bookableShowtimeFilter) {
+                OffsetDateTime now = OffsetDateTime.now();
+                Subquery<UUID> bookableSubquery = query.subquery(UUID.class);
+                Root<Showtime> bookableRoot = bookableSubquery.from(Showtime.class);
+                bookableSubquery.select(bookableRoot.get("movieUuid"));
+                bookableSubquery.where(
+                        cb.greaterThan(bookableRoot.get("startTime"), now),
+                        cb.or(
+                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.OPEN_FOR_BOOKING),
+                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.SOLD_OUT)));
+                predicates.add(root.get("uuid").in(bookableSubquery));
+                predicates.add(cb.or(
+                        cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                        cb.isNull(root.get("screeningMode"))));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

@@ -311,6 +311,25 @@ public class DataSeeder implements CommandLineRunner {
                         booking_uuid UUID
                     )
                     """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS payment (
+                        uuid UUID PRIMARY KEY,
+                        booking_uuid UUID NOT NULL,
+                        amount NUMERIC(15, 2) NOT NULL,
+                        currency VARCHAR(16) NOT NULL DEFAULT 'VND',
+                        method VARCHAR(64),
+                        status VARCHAR(32) NOT NULL,
+                        gateway_provider VARCHAR(64),
+                        gateway_transaction_id VARCHAR(255),
+                        idempotency_key VARCHAR(255) UNIQUE,
+                        paid_at TIMESTAMPTZ,
+                        created_at TIMESTAMPTZ NOT NULL,
+                        updated_at TIMESTAMPTZ NOT NULL
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_payment_booking ON payment (booking_uuid)
+                    """);
             logger.info("Migrated voucher redemption and lifetime score schema.");
 
             jdbcTemplate.update("""
