@@ -15,6 +15,7 @@ import {
   DangerButton,
   PrimaryButton,
 } from '../components';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const AdminMovieDetailPage = () => {
   const { movieUuid } = useParams();
@@ -87,9 +88,10 @@ const AdminMovieDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col items-start gap-3">
           {posterUrl ? (
-            <img
+            <PosterImage
               src={posterUrl}
               alt={movie.title}
+              width={400}
               className="w-full max-w-xs aspect-[2/3] object-cover rounded-lg"
             />
           ) : (

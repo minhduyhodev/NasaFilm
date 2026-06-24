@@ -6,14 +6,53 @@ export const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400';
 
 /** unknown | proxy | cdn */
-let routingMode = 'unknown';
+let routingMode = 'cdn';
 let initPromise = null;
+
+try {
+  const cached = sessionStorage.getItem(ROUTING_CACHE_KEY);
+  if (cached === 'proxy' || cached === 'cdn') {
+    routingMode = cached;
+  } else if (cached === 'fallback') {
+    routingMode = 'cdn';
+  }
+} catch {
+  // ignore storage errors
+}
 
 export const isTmdbUrl = (url) =>
   typeof url === 'string' && url.includes(TMDB_HOST);
 
 export const toWsrvProxyUrl = (url, width = 400) =>
   `${WSRV_PROXY}?url=${encodeURIComponent(url.trim())}&w=${width}&fit=cover&output=webp`;
+
+/** Lấy lại URL TMDB gốc nếu đã bị bọc qua wsrv hoặc proxy BE. */
+export const unwrapMediaUrl = (url) => {
+  if (!url?.trim()) {
+    return '';
+  }
+  const trimmed = url.trim();
+  try {
+    if (trimmed.includes('wsrv.nl')) {
+      const inner = new URL(trimmed).searchParams.get('url');
+      if (inner) {
+        return decodeURIComponent(inner);
+      }
+    }
+    if (trimmed.includes('/api/media/proxy')) {
+      const parsed = trimmed.startsWith('http')
+        ? new URL(trimmed)
+        : new URL(trimmed, 'http://localhost');
+      const inner = parsed.searchParams.get('url');
+      if (inner) {
+        return decodeURIComponent(inner);
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return trimmed;
+};
 
 const applyRoutingMode = (mode) => {
   const normalized = mode === 'fallback' ? 'cdn' : mode;
@@ -75,7 +114,7 @@ export const resolveMediaUrl = (url, width = 400) => {
     return '';
   }
 
-  const trimmed = url.trim();
+  const trimmed = unwrapMediaUrl(url);
 
   if (isTmdbUrl(trimmed)) {
     if (routingMode === 'proxy') {
@@ -94,13 +133,24 @@ export const handlePosterError = (event) => {
     return;
   }
 
-  const originalUrl = img.dataset.originalUrl;
-  const attempt = img.dataset.loadAttempt || '0';
+  const originalUrl = unwrapMediaUrl(img.dataset.originalUrl || '');
+  const attempt = parseInt(img.dataset.loadAttempt || '0', 10);
+  const width = parseInt(img.dataset.width || '400', 10);
 
-  if (originalUrl && isTmdbUrl(originalUrl) && attempt === '0' && routingMode === 'proxy') {
-    img.dataset.loadAttempt = '1';
-    img.src = toWsrvProxyUrl(originalUrl);
-    return;
+  if (originalUrl && isTmdbUrl(originalUrl) && attempt < 2) {
+    img.dataset.loadAttempt = String(attempt + 1);
+    const currentSrc = img.src || '';
+
+    if (attempt === 0 && !currentSrc.includes('wsrv.nl')) {
+      img.src = toWsrvProxyUrl(originalUrl, width);
+      return;
+    }
+
+    if (attempt === 1 && !currentSrc.includes('/api/media/proxy')) {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      img.src = `${apiBase}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`;
+      return;
+    }
   }
 
   img.onerror = null;

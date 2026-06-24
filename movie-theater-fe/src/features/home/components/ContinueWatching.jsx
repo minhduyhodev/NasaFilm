@@ -5,7 +5,8 @@ import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { VOD_PLAYBACK_STATE, calcVodTicketWindowMinutes } from '../../../shared/constants/vod';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
-import { mapApiMovies, isOnlineBooking, getMoviePosterUrl, getOnlineMoviePath } from '../utils/movieUtils';
+import { mapApiMovies, isOnlineBooking, pickPosterMediaUrl, getOnlineMoviePath } from '../utils/movieUtils';
+import PosterImage from '../../../shared/components/PosterImage';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 
 const formatMeta = (movie, watched) => {
@@ -133,13 +134,11 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
                   className="flex-none w-[72%] sm:w-[45%] md:w-[calc(25%-12px)] group"
                 >
                   <div className="relative aspect-[16/9] overflow-hidden rounded border border-white/5">
-                    <img
-                      src={getMoviePosterUrl(movie)}
+                    <PosterImage
+                      src={pickPosterMediaUrl(movie)}
                       alt={movie.title}
+                      width={480}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
                     />
                     <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
                       <div className="h-full bg-red-600" style={{ width: `${movie.progress}%` }} />

@@ -11,10 +11,13 @@ import { notificationService } from '../../../shared/services/notificationServic
 import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
+import PosterImage from '../../../shared/components/PosterImage';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import './BookingsPage.css';
 
 const BookingsPage = () => {
+  useMediaUrlRouting();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -211,12 +214,19 @@ const BookingsPage = () => {
       const moviesList = moviesData?.content || [];
       const moviesMapping = {};
       moviesList.forEach(m => {
-        if (m.title) moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        if (m.title && m.primaryMediaUrl) {
+          moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        }
+      });
+      const showtimesData = await showtimeService.getAdminShowtimes();
+      (showtimesData || []).forEach((st) => {
+        if (st.movieTitle && st.moviePosterUrl) {
+          moviesMapping[st.movieTitle.toLowerCase().trim()] = st.moviePosterUrl;
+        }
       });
       setMoviesMap(moviesMapping);
       const cinemasData = await movieService.getCinemas();
       setCinemasList(cinemasData || []);
-      const showtimesData = await showtimeService.getAdminShowtimes();
       setShowtimes(showtimesData || []);
     } catch (err) {
       console.error('Failed to fetch auxiliary data:', err);
@@ -673,7 +683,7 @@ const BookingsPage = () => {
           <div className="divide-y divide-[#1A2238]/50">
             {paginatedBookings.map((row) => {
               const statusCfg = getStatusConfig(row.status);
-              const posterUrl = moviesMap[row.movieTitle?.toLowerCase().trim()];
+              const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
               const seatList = row.seats ? row.seats.split(',').map(s => s.trim()).filter(Boolean) : [];
               const st = getBookingShowtime(row);
               const showtimeStr = st && st.startTime
@@ -706,7 +716,14 @@ const BookingsPage = () => {
                   {/* SECTION 2: MOVIE + SHOWTIME */}
                   <div className="flex-1 px-5 py-4 border-r border-[#1A2238]/50 flex items-center gap-4 min-w-0">
                     <div className="w-12 h-16 rounded-lg overflow-hidden border border-[#1A2238] shadow-md shrink-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                      {posterUrl ? (<img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />) : (<Film className="w-5 h-5 text-gray-600" />)}
+                      {rawPoster ? (
+                        <PosterImage
+                          src={rawPoster}
+                          alt="Poster"
+                          width={96}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (<Film className="w-5 h-5 text-gray-600" />)}
                     </div>
                     <div className="min-w-0 space-y-1.5">
                       <div className="text-sm font-black text-white leading-snug break-words uppercase tracking-wide">{row.movieTitle || 'N/A'}</div>

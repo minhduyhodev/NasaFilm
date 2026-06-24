@@ -11,6 +11,7 @@ import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import PosterImage from '../../../shared/components/PosterImage';
 
 import './CheckoutPage.css';
 
@@ -352,7 +353,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} />
+                  <PosterImage className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} width={400} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>

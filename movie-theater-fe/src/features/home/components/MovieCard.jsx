@@ -1,7 +1,8 @@
 import React from 'react';
 import { Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getMovieDetailPath, getOnlineMoviePath } from '../utils/movieUtils';
+import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
   const formatDuration = (mins) => {
@@ -21,7 +22,6 @@ const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, durati
       ? resolveOnlinePath(uuid)
       : getMovieDetailPath(uuid || slug, { online: false });
   const watchTarget = linkTarget;
-  const displayPoster = primaryMediaUrl || poster;
   const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
   const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
 
@@ -39,9 +39,10 @@ const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, durati
       {/* Clickable Poster Frame */}
       <div className="relative w-full aspect-[2/3] overflow-hidden rounded-[20px] transition-transform duration-500 group-hover:scale-[1.02] shadow-[0_15px_35px_rgba(0,0,0,0.4)]">
         <Link to={linkTarget} className="block w-full h-full">
-          <img
-            src={displayPoster}
+          <PosterImage
+            src={pickPosterMediaUrl({ uuid, primaryMediaUrl, poster })}
             alt={title}
+            width={400}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         </Link>

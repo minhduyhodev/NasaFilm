@@ -8,7 +8,9 @@ import {
   getMoviePosterUrl,
   getHeroTrailerUrl,
   preloadHeroBackground,
+  pickPosterMediaUrl,
 } from '../../utils/movieUtils';
+import PosterImage from '../../../../shared/components/PosterImage';
 import { getHeroBackgroundSource } from '../../utils/videoSourceUtils';
 import './OnlineHero.css';
 
@@ -86,7 +88,7 @@ const OnlineHero = ({
               ...movie,
               ...detail,
               medias: detail.medias || [],
-              primaryMediaUrl: getMoviePosterUrl(detail) || movie.primaryMediaUrl,
+              primaryMediaUrl: pickPosterMediaUrl(detail) || pickPosterMediaUrl(movie),
             };
           } catch {
             return movie;
@@ -136,7 +138,7 @@ const OnlineHero = ({
     };
   }, [slides.length, currentIndex, isPaused, goToSlide]);
 
-  const poster = displayMovie ? getMoviePosterUrl(displayMovie) : '';
+  const posterRaw = displayMovie ? pickPosterMediaUrl(displayMovie) : '';
   const trailerUrl = displayMovie ? getHeroTrailerUrl(displayMovie) : '';
   const heroSource = trailerUrl ? getHeroBackgroundSource(trailerUrl) : { type: 'none' };
 
@@ -183,13 +185,14 @@ const OnlineHero = ({
       onMouseLeave={() => setIsPaused(false)}
     >
       <div className="online-hero__backdrop">
-        {poster && (
-          <img
-            src={poster}
+        {posterRaw && (
+          <PosterImage
+            src={posterRaw}
             alt=""
             aria-hidden="true"
+            width={1400}
+            loading="eager"
             className="online-hero__poster online-hero__poster--base"
-            decoding="async"
           />
         )}
 
