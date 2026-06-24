@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.booking.dto.response.MyVoucherResponse;
 import com.thdpv.movietheater.booking.dto.response.PromotionValidateResponse;
+import com.thdpv.movietheater.booking.dto.response.PublicPromotionResponse;
 import com.thdpv.movietheater.booking.dto.response.VoucherCatalogResponse;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.entity.UserVoucher;
@@ -101,6 +102,42 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.success(new PromotionValidateResponse(
                 true, promotion.getCode(), promotion.getDiscountType(), promotion.getDiscountValue(),
                 buildDescription(promotion), null)));
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<List<PublicPromotionResponse>>> getPublicPromotions() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<PublicPromotionResponse> responses = new ArrayList<>();
+
+        for (Promotion promotion : promotionRepository.findAllByDeletedAtIsNull()) {
+            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
+                continue;
+            }
+            if (promotionLifecycleService.isNotStarted(promotion, now)
+                    || promotionLifecycleService.isExpired(promotion, now)
+                    || promotionLifecycleService.isUsageExhausted(promotion)) {
+                continue;
+            }
+
+            PublicPromotionResponse item = new PublicPromotionResponse();
+            item.setId(promotion.getId());
+            item.setCode(promotion.getCode());
+            item.setDiscountType(promotion.getDiscountType());
+            item.setDiscountValue(promotion.getDiscountValue());
+            item.setDescription(buildDescription(promotion));
+            item.setEndDate(promotion.getEndDate());
+            item.setOncePerUser(Boolean.TRUE.equals(promotion.getOncePerUser()));
+            item.setRequiresRedemption(promotion.requiresPointRedemption());
+            item.setPointsCost(promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
+            item.setBadge(buildBadge(promotion));
+            item.setTitle(buildPublicTitle(promotion));
+            item.setCategory(buildPublicCategory(promotion));
+            item.setDetails(buildPublicDetails(promotion));
+            responses.add(item);
+        }
+
+        responses.sort((a, b) -> a.getCode().compareToIgnoreCase(b.getCode()));
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     @GetMapping("/catalog")
@@ -387,9 +424,51 @@ public class PromotionController {
     private String buildDescription(Promotion promotion) {
         if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
             return "Giảm " + promotion.getDiscountValue().multiply(java.math.BigDecimal.valueOf(100)).intValue()
-                    + "% tiền vé";
+                    + "% tiền vé khi đặt vé trực tuyến trên hệ thống NASA Film.";
         }
-        return "Giảm " + formatPrice(promotion.getDiscountValue()) + " đ";
+        return "Giảm " + formatPrice(promotion.getDiscountValue())
+                + " đ trực tiếp vào hóa đơn đặt vé xem phim trực tuyến.";
+    }
+
+    private String buildBadge(Promotion promotion) {
+        if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
+            return "-" + promotion.getDiscountValue().multiply(java.math.BigDecimal.valueOf(100)).intValue() + "%";
+        }
+        java.math.BigDecimal value = promotion.getDiscountValue();
+        if (value != null && value.remainder(java.math.BigDecimal.valueOf(1000)).compareTo(java.math.BigDecimal.ZERO) == 0) {
+            return "-" + value.divide(java.math.BigDecimal.valueOf(1000)).intValue() + "K";
+        }
+        return "-" + formatPrice(value) + "đ";
+    }
+
+    private String buildPublicTitle(Promotion promotion) {
+        if (promotion.requiresPointRedemption()) {
+            return "Voucher thành viên " + promotion.getCode();
+        }
+        if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            return "Quà tặng thành viên mới " + promotion.getCode();
+        }
+        return "Khuyến mãi " + promotion.getCode();
+    }
+
+    private String buildPublicCategory(Promotion promotion) {
+        if (promotion.requiresPointRedemption() || Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            return "VIP / Member";
+        }
+        return "Vé Xem Phim";
+    }
+
+    private String buildPublicDetails(Promotion promotion) {
+        StringBuilder details = new StringBuilder(buildDescription(promotion));
+        if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            details.append(" Giới hạn mỗi tài khoản chỉ được sử dụng một lần.");
+        }
+        if (promotion.requiresPointRedemption()) {
+            details.append(" Voucher yêu cầu đổi điểm thưởng trước khi áp dụng khi thanh toán.");
+        } else {
+            details.append(" Nhập mã khi thanh toán để áp dụng ưu đãi.");
+        }
+        return details.toString();
     }
 
     private String formatPrice(java.math.BigDecimal price) {

@@ -19,6 +19,15 @@ class PromotionService {
     }
   }
 
+  async getPublicPromotions() {
+    try {
+      const response = await authService.api.get('/api/promotions/public');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async redeemVoucher(promotionId) {
     try {
       const response = await authService.api.post(`/api/promotions/${promotionId}/redeem`);

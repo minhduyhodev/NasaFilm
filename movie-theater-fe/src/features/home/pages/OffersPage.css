@@ -42,6 +42,10 @@
   @apply grid sm:grid-cols-2 lg:grid-cols-3 gap-8;
 }
 
+.offers-state-box {
+  @apply text-center py-20 bg-[#11141e]/50 border border-white/5 rounded-3xl;
+}
+
 .offer-card {
   @apply bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/20 hover:shadow-red-500/5 flex flex-col;
 }
