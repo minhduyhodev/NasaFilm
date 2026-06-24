@@ -7,7 +7,7 @@ const base =
 export const PrimaryButton = ({ children, loading, className = '', type = 'button', ...props }) => (
   <button
     type={type}
-    className={`${base} bg-white text-[#0B0F19] hover:bg-gray-100 px-3.5 py-2 ${className}`}
+    className={`${base} adm-btn adm-btn--primary px-3.5 py-2 ${className}`}
     disabled={loading || props.disabled}
     {...props}
   >
@@ -31,7 +31,7 @@ export const DangerButton = ({ children, loading, className = '', type = 'button
 export const GhostButton = ({ children, className = '', ...props }) => (
   <button
     type="button"
-    className={`${base} bg-transparent text-gray-400 hover:text-white hover:bg-white/[0.05] px-3 py-2 ${className}`}
+    className={`${base} adm-btn adm-btn--ghost px-3 py-2 ${className}`}
     {...props}
   >
     {children}

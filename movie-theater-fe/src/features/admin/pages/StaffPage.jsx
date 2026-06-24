@@ -10,6 +10,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import AdminModal from '../components/AdminModal';
 import AdminUserFormPanel from '../components/panels/AdminUserFormPanel';
 import { adminFilterSelectClass } from '../components/adminFormStyles';
+import { AdminPage, PageHeader } from '../components';
 
 const StaffPage = () => {
   const { user: currentUser } = useAuthContext();
@@ -167,44 +168,32 @@ const StaffPage = () => {
   };
 
   return (
-    <div className="space-y-6 text-left">
-      {/* PAGE HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2 font-sans">
-            <Shield className="w-6 h-6 text-amber-500" />
-            Quản Lý Nhân Sự & Tài Khoản
-          </h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Quản lý quyền hạn tài khoản nhân viên (Staff) và quản trị viên (Admin), tạm khóa hoặc kích hoạt tài khoản nhân sự.
-          </p>
-        </div>
-        <div>
-          <button
-            type="button"
-            onClick={() => setIsStaffModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs text-black font-bold transition shadow-md shadow-amber-500/10 border-none font-mono cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            Thêm Nhân Sự
-          </button>
-        </div>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Nhân sự & khách hàng"
+        title="Quản lý nhân sự"
+        description="Quản lý quyền hạn tài khoản nhân viên (Staff) và quản trị viên (Admin), tạm khóa hoặc kích hoạt tài khoản nhân sự."
+        variant="display"
+        primaryAction={{
+          label: 'Thêm nhân sự',
+          onClick: () => setIsStaffModalOpen(true),
+          icon: <UserPlus className="w-4 h-4" />,
+        }}
+      />
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="adm-kpi-grid adm-kpi-grid--4">
         {[
           { label: 'Tổng Nhân Sự', value: stats.total, Icon: Users, valueColor: 'text-white', iconColor: 'text-white' },
           { label: 'Đang Hoạt Động', value: stats.active, Icon: CheckCircle, valueColor: 'text-emerald-400', iconColor: 'text-emerald-400' },
           { label: 'Tài Khoản Bị Khóa', value: stats.suspended, Icon: Ban, valueColor: 'text-rose-400', iconColor: 'text-rose-400' },
           { label: 'Quản Trị Viên (Admin)', value: stats.admins, Icon: ShieldAlert, valueColor: 'text-purple-400', iconColor: 'text-purple-400' },
         ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div key={label} className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-5 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors duration-300 group font-sans">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block font-sans">{label}</span>
-              <span className={`text-2.5xl font-extrabold ${valueColor} block leading-none font-sans`}>{value}</span>
+          <div key={label} className="adm-kpi-card flex items-center justify-between gap-3">
+            <div>
+              <span className="adm-kpi-card__label">{label}</span>
+              <span className={`adm-kpi-card__value ${valueColor}`}>{value}</span>
             </div>
-            <div className={`p-3 rounded-xl bg-[#1A2238]/60 border border-[#2C3B5E]/30 ${iconColor} group-hover:scale-105 transition-transform duration-300`}>
+            <div className={`p-2.5 rounded-xl bg-[#1a2238]/60 border border-[#2c3b5e]/30 ${iconColor}`}>
               <Icon className="w-5 h-5" />
             </div>
           </div>
@@ -504,7 +493,7 @@ const StaffPage = () => {
           onCancel={() => setIsStaffModalOpen(false)}
         />
       </AdminModal>
-    </div>
+    </AdminPage>
   );
 };
 
