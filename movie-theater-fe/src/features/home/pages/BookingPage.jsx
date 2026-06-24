@@ -10,6 +10,8 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { getMoviePosterUrl } from '../utils/movieUtils';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
 
 import './BookingPage.css';
 

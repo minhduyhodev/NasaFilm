@@ -22,8 +22,8 @@ async function fetchAndCacheOnlineMovies() {
 
   const firstUuid = onlineMovies[0]?.uuid;
   if (firstUuid && heroPreloadedFor !== firstUuid) {
-    await preloadHeroBackground(onlineMovies[0]);
     heroPreloadedFor = firstUuid;
+    preloadHeroBackground(onlineMovies[0]).catch(() => {});
   }
 
   cachedMovies = onlineMovies;

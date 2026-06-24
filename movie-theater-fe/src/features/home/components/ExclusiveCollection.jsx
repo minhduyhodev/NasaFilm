@@ -5,9 +5,14 @@ import { mapApiMovies, filterOnlineMovies, getMovieDetailPath, sortMoviesByRelea
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import PosterImage from '../../../shared/components/PosterImage';
 
-const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp }) => {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const ExclusiveCollection = ({ onlineOnly = false, movies: moviesProp, getOnlinePath: getOnlinePathProp }) => {
+  const [movies, setMovies] = useState(() => {
+    if (!moviesProp?.length) return [];
+    const onlineOnlyList = moviesProp.filter((m) => m.screeningMode === 'ONLINE_ONLY');
+    const bothList = moviesProp.filter((m) => m.screeningMode === 'BOTH');
+    return sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4);
+  });
+  const [isLoading, setIsLoading] = useState(!moviesProp?.length);
   const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(
     onlineOnly ? movies.map((m) => m.uuid) : []
   );
@@ -19,6 +24,14 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
   };
 
   useEffect(() => {
+    if (moviesProp?.length) {
+      const onlineOnlyList = moviesProp.filter((m) => m.screeningMode === 'ONLINE_ONLY');
+      const bothList = moviesProp.filter((m) => m.screeningMode === 'BOTH');
+      setMovies(sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4));
+      setIsLoading(false);
+      return;
+    }
+
     const load = async () => {
       setIsLoading(true);
       try {
@@ -35,7 +48,7 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
       }
     };
     load();
-  }, []);
+  }, [moviesProp]);
 
   if (!isLoading && movies.length === 0) return null;
 
