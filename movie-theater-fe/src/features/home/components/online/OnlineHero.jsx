@@ -1,42 +1,46 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
-import { movieService } from '../../../../shared/services/movieService';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { movieService } from "../../../../shared/services/movieService";
 import {
   getOnlineMoviePath,
   getMoviePosterUrl,
   getHeroTrailerUrl,
   preloadHeroBackground,
   pickPosterMediaUrl,
-} from '../../utils/movieUtils';
-import PosterImage from '../../../../shared/components/PosterImage';
-import { getHeroBackgroundSource } from '../../utils/videoSourceUtils';
-import './OnlineHero.css';
+} from "../../utils/movieUtils";
+import PosterImage from "../../../../shared/components/PosterImage";
+import { getHeroBackgroundSource } from "../../utils/videoSourceUtils";
+import "./OnlineHero.css";
 
 const HERO_LIMIT = 8;
 const SLIDE_DURATION_MS = 12000;
 const TICK_MS = 80;
 
 const formatDuration = (mins) => {
-  if (!mins) return '';
+  if (!mins) return "";
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 };
 
-const buildSubtitle = (movie, isLoading) => {
+const buildSubtitle = (movie) => {
   if (!movie) {
-    return isLoading
-      ? 'Đang tải thư viện phim online...'
-      : 'Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.';
+    return "Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.";
   }
   const parts = [];
   if (movie.durationMinutes) parts.push(formatDuration(movie.durationMinutes));
   if (movie.genres?.length) parts.push(...movie.genres.slice(0, 2));
   return parts.length > 0
-    ? parts.join(' · ')
-    : 'Xem trực tuyến chất lượng cao trên NASAFilm.';
+    ? parts.join(" · ")
+    : "Xem trực tuyến chất lượng cao trên NASAFilm.";
 };
 
 const OnlineHero = ({
@@ -61,9 +65,10 @@ const OnlineHero = ({
   }, [enrichedMovies, movies]);
 
   const displayMovie = slides[currentIndex] || null;
-  const contentKey = displayMovie?.uuid || (isLoading ? 'loading' : 'fallback');
-  const title = displayMovie?.title || 'Phim Trực Tuyến';
-  const subtitle = buildSubtitle(displayMovie, isLoading && !displayMovie);
+  const showLoadingSkeleton = isLoading && !displayMovie;
+  const contentKey = displayMovie?.uuid || "fallback";
+  const title = displayMovie?.title || "Phim Trực Tuyến";
+  const subtitle = buildSubtitle(displayMovie);
 
   useEffect(() => {
     if (!movies?.length) {
@@ -88,12 +93,13 @@ const OnlineHero = ({
               ...movie,
               ...detail,
               medias: detail.medias || [],
-              primaryMediaUrl: pickPosterMediaUrl(detail) || pickPosterMediaUrl(movie),
+              primaryMediaUrl:
+                pickPosterMediaUrl(detail) || pickPosterMediaUrl(movie),
             };
           } catch {
             return movie;
           }
-        })
+        }),
       );
       if (!cancelled && enrichTokenRef.current === token) {
         setEnrichedMovies(detailed);
@@ -113,11 +119,17 @@ const OnlineHero = ({
       setCurrentIndex(next);
       setProgress(0);
     },
-    [slides.length]
+    [slides.length],
   );
 
-  const goNext = useCallback(() => goToSlide(currentIndex + 1), [currentIndex, goToSlide]);
-  const goPrev = useCallback(() => goToSlide(currentIndex - 1), [currentIndex, goToSlide]);
+  const goNext = useCallback(
+    () => goToSlide(currentIndex + 1),
+    [currentIndex, goToSlide],
+  );
+  const goPrev = useCallback(
+    () => goToSlide(currentIndex - 1),
+    [currentIndex, goToSlide],
+  );
 
   useEffect(() => {
     if (slides.length <= 1 || isPaused) return undefined;
@@ -138,9 +150,11 @@ const OnlineHero = ({
     };
   }, [slides.length, currentIndex, isPaused, goToSlide]);
 
-  const posterRaw = displayMovie ? pickPosterMediaUrl(displayMovie) : '';
-  const trailerUrl = displayMovie ? getHeroTrailerUrl(displayMovie) : '';
-  const heroSource = trailerUrl ? getHeroBackgroundSource(trailerUrl) : { type: 'none' };
+  const posterRaw = displayMovie ? pickPosterMediaUrl(displayMovie) : "";
+  const trailerUrl = displayMovie ? getHeroTrailerUrl(displayMovie) : "";
+  const heroSource = trailerUrl
+    ? getHeroBackgroundSource(trailerUrl)
+    : { type: "none" };
 
   useEffect(() => {
     if (!displayMovie?.uuid) {
@@ -171,16 +185,24 @@ const OnlineHero = ({
   }, [displayMovie?.uuid]);
 
   const movieLink = displayMovie?.uuid
-    ? (getOnlinePath ? getOnlinePath(displayMovie.uuid) : getOnlineMoviePath(displayMovie.uuid))
-    : '/online';
+    ? getOnlinePath
+      ? getOnlinePath(displayMovie.uuid)
+      : getOnlineMoviePath(displayMovie.uuid)
+    : "/online";
   const actionLabel = displayMovie
-    ? (getActionLabel ? getActionLabel(displayMovie.uuid, 'Xem ngay') : 'Xem ngay')
-    : 'Xem ngay';
+    ? getActionLabel
+      ? getActionLabel(displayMovie.uuid, "Xem ngay")
+      : "Xem ngay"
+    : "Xem ngay";
 
   return (
     <section
       className="online-hero online-hero--page"
-      style={staticHeroBackground ? { backgroundImage: `url(${staticHeroBackground})` } : undefined}
+      style={
+        staticHeroBackground
+          ? { backgroundImage: `url(${staticHeroBackground})` }
+          : undefined
+      }
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -196,7 +218,7 @@ const OnlineHero = ({
           />
         )}
 
-        {trailerReady && heroSource.type === 'image' && (
+        {trailerReady && heroSource.type === "image" && (
           <motion.img
             key={`trailer-${displayMovie?.uuid}`}
             src={heroSource.url}
@@ -208,14 +230,17 @@ const OnlineHero = ({
             transition={{ duration: 0.5 }}
             decoding="async"
             onError={(e) => {
-              if (heroSource.fallbackUrl && e.currentTarget.src !== heroSource.fallbackUrl) {
+              if (
+                heroSource.fallbackUrl &&
+                e.currentTarget.src !== heroSource.fallbackUrl
+              ) {
                 e.currentTarget.src = heroSource.fallbackUrl;
               }
             }}
           />
         )}
 
-        {trailerReady && heroSource.type === 'video' && (
+        {trailerReady && heroSource.type === "video" && (
           <motion.video
             key={heroSource.url}
             ref={videoRef}
@@ -232,7 +257,7 @@ const OnlineHero = ({
           />
         )}
 
-        {trailerReady && heroSource.type === 'embed' && (
+        {trailerReady && heroSource.type === "embed" && (
           <iframe
             title=""
             aria-hidden="true"
@@ -268,55 +293,77 @@ const OnlineHero = ({
       )}
 
       <div className="online-hero__content online-hero__content--centered">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={contentKey}
-            className="online-hero__copy online-hero__copy--centered"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
+        {showLoadingSkeleton ? (
+          <div
+            className="online-hero__skeleton online-hero__copy--centered"
+            aria-busy="true"
+            aria-label="Đang tải phim trực tuyến"
           >
-            <motion.h1
-              className="online-hero__title"
-              title={title}
-              initial={{ opacity: 0, y: 30 }}
+            <div className="online-hero__skeleton-title" />
+            <div className="online-hero__skeleton-sub" />
+            <div className="online-hero__skeleton-cta" />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={contentKey}
+              className="online-hero__copy online-hero__copy--centered"
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
             >
-              {title}
-            </motion.h1>
-            <motion.p
-              className="online-hero__sub"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              {subtitle}
-            </motion.p>
-
-            {displayMovie && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
+              <motion.h1
+                className="online-hero__title"
+                title={title}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.6 }}
               >
-                <Link to={movieLink} className="btn-gold online-hero__cta online-hero__cta--centered">
-                  <Play className="h-4 w-4 fill-current" />
-                  {actionLabel}
-                </Link>
-              </motion.div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                {title}
+              </motion.h1>
+              <motion.p
+                className="online-hero__sub"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                {subtitle}
+              </motion.p>
+
+              {displayMovie && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <Link
+                    to={movieLink}
+                    className="btn-gold online-hero__cta online-hero__cta--centered"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    {actionLabel}
+                  </Link>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       {slides.length > 1 && (
         <div className="online-hero__pager online-hero__pager--centered">
           <div className="online-hero__progress" aria-hidden="true">
-            <div className="online-hero__progress-bar" style={{ width: `${progress}%` }} />
+            <div
+              className="online-hero__progress-bar"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-          <div className="online-hero__dots" role="tablist" aria-label="Chọn phim nổi bật">
+          <div
+            className="online-hero__dots"
+            role="tablist"
+            aria-label="Chọn phim nổi bật"
+          >
             {slides.map((movie, idx) => (
               <button
                 key={movie.uuid}
@@ -324,7 +371,7 @@ const OnlineHero = ({
                 role="tab"
                 aria-selected={idx === currentIndex}
                 onClick={() => goToSlide(idx)}
-                className={`online-hero__dot ${idx === currentIndex ? 'online-hero__dot--active' : ''}`}
+                className={`online-hero__dot ${idx === currentIndex ? "online-hero__dot--active" : ""}`}
                 aria-label={`Xem ${movie.title}`}
               />
             ))}
