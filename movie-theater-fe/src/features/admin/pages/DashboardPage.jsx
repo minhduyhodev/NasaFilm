@@ -70,8 +70,8 @@ const AreaChart = ({ labels, values, color = '#a855f7' }) => {
           <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      {yTicks.map((tick) => (
-        <g key={tick.label}>
+      {yTicks.map((tick, i) => (
+        <g key={`y-tick-${i}`}>
           <line x1={pad.left} y1={tick.y} x2={width - pad.right} y2={tick.y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
           <text x={pad.left - 8} y={tick.y + 4} textAnchor="end" className="dashboard-chart-axis-label">{tick.label}</text>
         </g>
@@ -79,11 +79,11 @@ const AreaChart = ({ labels, values, color = '#a855f7' }) => {
       <path d={areaPath} fill="url(#areaGrad)" />
       <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {coords.map((p, i) => (
-        <circle key={labels[i]} cx={p.x} cy={p.y} r="4" fill="#0f1322" stroke={color} strokeWidth="2" />
+        <circle key={`point-${i}`} cx={p.x} cy={p.y} r="4" fill="#0f1322" stroke={color} strokeWidth="2" />
       ))}
       {labels.map((label, i) => (
         <text
-          key={label}
+          key={`x-label-${i}`}
           x={coords[i].x}
           y={height - 10}
           textAnchor="middle"
@@ -125,9 +125,9 @@ const DonutChart = ({ segments }) => {
     <div className="dashboard-donut-wrap">
       <svg viewBox={`0 0 ${size} ${size}`} className="dashboard-donut-chart">
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
-        {arcs.map((arc) => (
+        {arcs.map((arc, i) => (
           <path
-            key={arc.label}
+            key={`${arc.label}-${i}`}
             d={arc.d}
             fill="none"
             stroke={arc.color}
@@ -369,8 +369,8 @@ const DashboardPage = () => {
           </div>
           <DonutChart segments={chartData?.donutSegments || []} />
           <ul className="dashboard-donut-legend">
-            {(chartData?.donutSegments || []).map((seg) => (
-              <li key={seg.label} className="dashboard-donut-legend-item">
+            {(chartData?.donutSegments || []).map((seg, i) => (
+              <li key={`${seg.label}-${i}`} className="dashboard-donut-legend-item">
                 <span className="dashboard-legend-dot" style={{ background: seg.color }} />
                 <span className="dashboard-donut-legend-label">{seg.label}</span>
                 <span className="dashboard-donut-legend-value">{formatRevenueFull(seg.value)}</span>
@@ -385,7 +385,7 @@ const DashboardPage = () => {
           <h3 className="dashboard-mini-title">Top cụm rạp</h3>
           <ul className="dashboard-rank-list">
             {(stats?.cinemas || []).slice(0, 5).map((cinema, i) => (
-              <li key={cinema.name} className="dashboard-rank-item">
+              <li key={`cinema-${i}-${cinema.name}`} className="dashboard-rank-item">
                 <span className="dashboard-rank-index">{i + 1}</span>
                 <div className="dashboard-rank-info">
                   <span className="dashboard-rank-name">{cinema.name}</span>
@@ -403,7 +403,7 @@ const DashboardPage = () => {
               .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
               .slice(0, 5)
               .map((genre, i) => (
-                <li key={genre.name} className="dashboard-rank-item">
+                <li key={`genre-${i}-${genre.name}`} className="dashboard-rank-item">
                   <span className="dashboard-rank-index">{i + 1}</span>
                   <div className="dashboard-rank-info">
                     <span className="dashboard-rank-name">{genre.name}</span>
