@@ -7,6 +7,8 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
 
 import './BookingPage.css';
 
