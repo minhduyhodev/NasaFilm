@@ -276,6 +276,8 @@ const ConcessionsPage = () => {
             {combos.map((combo) => {
               const qty = quantities[combo.uuid] || 0;
               const meta = getMeta(combo.name);
+              const displayImage = combo.imageUrl || meta.image;
+              const displayDescription = combo.description || meta.description;
               
               return (
                 <div 
@@ -285,7 +287,7 @@ const ConcessionsPage = () => {
                   {/* Ảnh Combo */}
                   <div className="w-full h-44 overflow-hidden relative bg-[#0f121d]">
                     <img 
-                      src={meta.image} 
+                      src={displayImage} 
                       alt={combo.name} 
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
@@ -303,7 +305,7 @@ const ConcessionsPage = () => {
                         {combo.name}
                       </h3>
                       <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 min-h-[34px]">
-                        {meta.description}
+                        {displayDescription}
                       </p>
                     </div>
 

@@ -83,7 +83,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     long countBookedSeats(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
 
     @Query(value = """
-            select uuid, name, price, status
+            select uuid, name, description, price, image_url, status
             from combo
             where uuid in (:comboUuids)
             """, nativeQuery = true)
@@ -96,13 +96,20 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         List<Object[]> rows = queryCombos(comboUuids);
         List<ComboPrice> combos = new java.util.ArrayList<>();
         for (Object[] row : rows) {
-            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+            combos.add(new ComboPrice(
+                toUuid(row[0]), 
+                stringValue(row[1]), 
+                stringValue(row[2]), 
+                toBigDecimal(row[3]), 
+                stringValue(row[4]), 
+                stringValue(row[5])
+            ));
         }
         return combos;
     }
 
     @Query(value = """
-            select uuid, name, price, status
+            select uuid, name, description, price, image_url, status
             from combo
             where status = 'ACTIVE'
             """, nativeQuery = true)
@@ -112,7 +119,14 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         List<Object[]> rows = queryActiveCombos();
         List<ComboPrice> combos = new java.util.ArrayList<>();
         for (Object[] row : rows) {
-            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+            combos.add(new ComboPrice(
+                toUuid(row[0]), 
+                stringValue(row[1]), 
+                stringValue(row[2]), 
+                toBigDecimal(row[3]), 
+                stringValue(row[4]), 
+                stringValue(row[5])
+            ));
         }
         return combos;
     }
@@ -530,7 +544,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     record LockedSeat(UUID seatUuid, String rowName, Integer seatNumber, BigDecimal price) {
     }
 
-    record ComboPrice(UUID comboUuid, String name, BigDecimal unitPrice, String status) {
+    record ComboPrice(UUID comboUuid, String name, String description, BigDecimal unitPrice, String imageUrl, String status) {
     }
 
     record SeatGapState(UUID seatUuid, String rowName, Integer seatNumber, String seatStatus,

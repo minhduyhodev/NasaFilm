@@ -27,7 +27,9 @@ public class ComboController {
                 .map(combo -> new ComboResponse(
                         combo.comboUuid(),
                         combo.name(),
+                        combo.description(),
                         combo.unitPrice(),
+                        combo.imageUrl(),
                         combo.status()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(responses));

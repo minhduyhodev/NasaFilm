@@ -1185,7 +1185,9 @@ public class DataSeeder implements CommandLineRunner {
             for (Map<String, Object> comboData : combosToSeed) {
                 String uuidStr = (String) comboData.get("uuid");
                 String name = (String) comboData.get("name");
+                String description = (String) comboData.get("description");
                 Object priceObj = comboData.get("price");
+                String imageUrl = (String) comboData.get("imageUrl");
                 String status = (String) comboData.get("status");
 
                 if (uuidStr == null || name == null || priceObj == null) {
@@ -1196,9 +1198,12 @@ public class DataSeeder implements CommandLineRunner {
                 BigDecimal price = new BigDecimal(priceObj.toString());
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
                         uuid) == 0) {
-                    jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                            uuid, name, price, status != null ? status : "ACTIVE");
+                    jdbcTemplate.update("INSERT INTO combo (uuid, name, description, price, image_url, status) VALUES (?, ?, ?, ?, ?, ?)",
+                            uuid, name, description, price, imageUrl, status != null ? status : "ACTIVE");
                     logger.info("Seeded combo from JSON: {}", name);
+                } else {
+                    jdbcTemplate.update("UPDATE combo SET name = ?, description = ?, price = ?, image_url = ?, status = ? WHERE uuid = ?",
+                            name, description, price, imageUrl, status != null ? status : "ACTIVE", uuid);
                 }
             }
         }

@@ -181,7 +181,26 @@
     "countries": [
       "Việt Nam"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Quyền Linh",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "d3bca6c1-75e8-421e-a6ec-c07a663a86f9"
+      },
+      {
+        "fullName": "Chi Bảo",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai phụ",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "a48c88a4-4acd-4e14-b6e7-05eaff11ba95"
+      }
+    ],
     "medias": [
       {
         "uuid": "66ca5452-ec1c-481a-b242-323ffa6e08e0",
@@ -293,7 +312,26 @@
     "countries": [
       "Trung Quốc"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Tiến Luật",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "318b6cc3-2d50-467e-85fb-30ff18b1fc6c"
+      },
+      {
+        "fullName": "Huỳnh Lập",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Pháp sư",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "520496aa-70fd-40c1-b0e3-7834b4667e19"
+      }
+    ],
     "medias": [
       {
         "uuid": "48306047-df3d-4a29-a46f-5a8c4ffdefc9",
@@ -667,7 +705,35 @@
     "countries": [
       "Mỹ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Shameik Moore",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Miles Morales",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "f42130a8-6e01-49d8-9daa-15887d1a51f7"
+      },
+      {
+        "fullName": "Hailee Steinfeld",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Gwen Stacy",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "8291a8d6-861a-4d9e-ac61-4a1555c833fa"
+      },
+      {
+        "fullName": "Oscar Isaac",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Miguel O'Hara",
+        "castOrder": 3,
+        "isMain": false,
+        "uuid": "c1a713e7-642a-4f22-8d43-7f9a8ef7efa3"
+      }
+    ],
     "medias": [
       {
         "uuid": "b00a6ab9-271c-4c0d-8dd2-a57a48d741fb",
@@ -804,7 +870,26 @@
     "countries": [
       "Mỹ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Pedro Pascal",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "The Mandalorian",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "cd41c913-334e-47f9-a9f0-0d199179c383"
+      },
+      {
+        "fullName": "Sigourney Weaver",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Vai chưa tiết lộ",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "fd29a022-ccf6-44d5-9046-c6f35ff23a10"
+      }
+    ],
     "medias": [
       {
         "uuid": "2f85e746-a2c7-47f1-93f2-3ef2d2068025",
@@ -898,7 +983,26 @@
     "countries": [
       "Trung Quốc"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Hoàng Yến Chibi",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính nữ",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "43527bcf-c755-46a1-bbbc-d51107e6af92"
+      },
+      {
+        "fullName": "Quốc Huy",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính nam",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "d411da93-8394-465f-b65b-7f82136b67cc"
+      }
+    ],
     "medias": [
       {
         "uuid": "9ef0c340-0a2d-4d80-92af-a5ed4ed85ebd",
@@ -982,7 +1086,26 @@
     "countries": [
       "Trung Quốc"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Chinawut Indracusin",
+        "avatarUrl": "",
+        "countryName": "Thái Lan",
+        "characterName": "Nong",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "b3430ecd-5ee3-4993-8391-6558b497e28f"
+      },
+      {
+        "fullName": "Bhuripat Vejvongsatechawat",
+        "avatarUrl": "",
+        "countryName": "Thái Lan",
+        "characterName": "First",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "1bd425ca-1429-46de-8c18-eb0d7d6a35e9"
+      }
+    ],
     "medias": [
       {
         "uuid": "7217dc52-847e-4ba4-a342-fd6296c4a1cd",
@@ -1022,7 +1145,26 @@
       "Kinh dị"
     ],
     "countries": [],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Cao Minh Đạt",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Trưởng làng",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "8bd0483d-4b2c-4551-b668-bbc5e499d6dc"
+      },
+      {
+        "fullName": "Oanh Kiều",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Mận",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "6d11d1b3-0613-4b97-ba56-36bebefe3be8"
+      }
+    ],
     "medias": [
       {
         "uuid": "d600483f-6a33-4506-8229-617abc1e88ea",
@@ -1147,7 +1289,26 @@
     "countries": [
       "Nhật Bản"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Minami Takayama",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Conan Edogawa",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "4862f57b-3b82-47bf-bf57-cf8178c09c55"
+      },
+      {
+        "fullName": "Wakana Yamazaki",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Ran Mouri",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "5601fa42-426a-4ccb-9267-e942c762ca91"
+      }
+    ],
     "medias": [
       {
         "uuid": "b9ab8c2f-70fc-4acd-a07b-835c1c7501b1",
@@ -1188,7 +1349,26 @@
     "countries": [
       "Nhật Bản"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Tomokazu Sugita",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Gintoki Sakata",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "4cc4f246-e54a-4fea-8225-82fa8c50e07b"
+      },
+      {
+        "fullName": "Rie Kugimiya",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Kagura",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "d086ec6f-9ed0-41f5-a3ba-ab942e77b4f4"
+      }
+    ],
     "medias": [
       {
         "uuid": "6ee3ef6f-2661-4dd2-9417-5163132eabe5",
@@ -1358,7 +1538,26 @@
     "countries": [
       "Mỹ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Tom Hanks",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Woody",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "c0acc594-a2ae-4387-a771-aa30ee235a22"
+      },
+      {
+        "fullName": "Tim Allen",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Buzz Lightyear",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "a87d8ae9-3d96-472e-ab57-8cbda9c1fbdc"
+      }
+    ],
     "medias": [
       {
         "uuid": "tmdb-1084244-poster",
@@ -3130,7 +3329,26 @@
     "countries": [
       "Hoa Kỳ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Ginnifer Goodwin",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Judy Hopps",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "2543a63d-8a63-4368-8f4c-b7b225cf97d1"
+      },
+      {
+        "fullName": "Jason Bateman",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Nick Wilde",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "3caabce7-3a77-47fc-9bfb-cc386af8f4c8"
+      }
+    ],
     "medias": [
       {
         "uuid": "2af02da2-82b6-448e-a719-b854f5a104be",
@@ -3625,7 +3843,35 @@
     "countries": [
       "Hoa Kỳ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Mike Myers",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Shrek",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "ed708c42-b89b-49df-a2f6-5acd918b4ca7"
+      },
+      {
+        "fullName": "Eddie Murphy",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Donkey",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "fa28a41b-ee75-4c93-8f30-baa144beec32"
+      },
+      {
+        "fullName": "Cameron Diaz",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Fiona",
+        "castOrder": 3,
+        "isMain": true,
+        "uuid": "7934aa7a-e6ea-4fa8-8911-529965bb3294"
+      }
+    ],
     "medias": [
       {
         "uuid": "b439ce94-35f2-4a44-80c3-05a3693ecacd",
@@ -3919,7 +4165,35 @@
     "countries": [
       "Hoa Kỳ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "David Corenswet",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Clark Kent / Superman",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "c841abf2-c227-4cd6-a36e-1d70eb9c852a"
+      },
+      {
+        "fullName": "Rachel Brosnahan",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Lois Lane",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "a1b74db0-af3f-4469-a7c6-93da5470f38b"
+      },
+      {
+        "fullName": "Nicholas Hoult",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Lex Luthor",
+        "castOrder": 3,
+        "isMain": false,
+        "uuid": "109f6b72-e48f-465c-904b-01c2ff7ee7fe"
+      }
+    ],
     "medias": [
       {
         "uuid": "ac0c0038-cd02-47e9-9920-3167a9016f56",
@@ -4115,7 +4389,26 @@
     "countries": [
       "Hoa Kỳ"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Robert Downey Jr.",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Doctor Doom",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "9967c2c4-e7ff-416e-b50a-3a064973ade4"
+      },
+      {
+        "fullName": "Pedro Pascal",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Reed Richards / Mr. Fantastic",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "b0a224ba-9d72-470a-9c77-95968671341a"
+      }
+    ],
     "medias": [
       {
         "uuid": "25f52982-3bf8-4456-ae75-547be4749abf",
@@ -4180,7 +4473,26 @@
     "countries": [
       "Khác"
     ],
-    "actors": [],
+    "actors": [
+      {
+        "fullName": "Natsuki Hanae",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Tanjiro Kamado",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "fc0bebeb-ab13-4b26-a640-eadd5971d333"
+      },
+      {
+        "fullName": "Yoshitsugu Matsuoka",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Inosuke Hashibira",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "1fcd9ef8-2319-4d91-b901-873d52b40904"
+      }
+    ],
     "medias": [
       {
         "uuid": "05ae3ed7-8e47-4806-bafa-00651531c24f",
