@@ -23,11 +23,9 @@ const formatDuration = (mins) => {
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 };
 
-const buildSubtitle = (movie, isLoading) => {
+const buildSubtitle = (movie) => {
   if (!movie) {
-    return isLoading
-      ? 'Đang tải thư viện phim online...'
-      : 'Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.';
+    return 'Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.';
   }
   const parts = [];
   if (movie.durationMinutes) parts.push(formatDuration(movie.durationMinutes));
@@ -59,9 +57,10 @@ const OnlineHero = ({
   }, [enrichedMovies, movies]);
 
   const displayMovie = slides[currentIndex] || null;
-  const contentKey = displayMovie?.uuid || (isLoading ? 'loading' : 'fallback');
+  const showLoadingSkeleton = isLoading && !displayMovie;
+  const contentKey = displayMovie?.uuid || 'fallback';
   const title = displayMovie?.title || 'Phim Trực Tuyến';
-  const subtitle = buildSubtitle(displayMovie, isLoading && !displayMovie);
+  const subtitle = buildSubtitle(displayMovie);
 
   useEffect(() => {
     if (!movies?.length) {
@@ -183,9 +182,9 @@ const OnlineHero = ({
       onMouseLeave={() => setIsPaused(false)}
     >
       <div className="online-hero__backdrop">
-        {poster && (
+        {(poster || staticHeroBackground) && (
           <img
-            src={poster}
+            src={poster || staticHeroBackground}
             alt=""
             aria-hidden="true"
             className="online-hero__poster online-hero__poster--base"
@@ -265,47 +264,59 @@ const OnlineHero = ({
       )}
 
       <div className="online-hero__content online-hero__content--centered">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={contentKey}
-            className="online-hero__copy online-hero__copy--centered"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
+        {showLoadingSkeleton ? (
+          <div
+            className="online-hero__skeleton online-hero__copy--centered"
+            aria-busy="true"
+            aria-label="Đang tải phim trực tuyến"
           >
-            <motion.h1
-              className="online-hero__title"
-              title={title}
-              initial={{ opacity: 0, y: 30 }}
+            <div className="online-hero__skeleton-title" />
+            <div className="online-hero__skeleton-sub" />
+            <div className="online-hero__skeleton-cta" />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={contentKey}
+              className="online-hero__copy online-hero__copy--centered"
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
             >
-              {title}
-            </motion.h1>
-            <motion.p
-              className="online-hero__sub"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              {subtitle}
-            </motion.p>
-
-            {displayMovie && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
+              <motion.h1
+                className="online-hero__title"
+                title={title}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.6 }}
               >
-                <Link to={movieLink} className="btn-gold online-hero__cta online-hero__cta--centered">
-                  <Play className="h-4 w-4 fill-current" />
-                  {actionLabel}
-                </Link>
-              </motion.div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                {title}
+              </motion.h1>
+              <motion.p
+                className="online-hero__sub"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                {subtitle}
+              </motion.p>
+
+              {displayMovie && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <Link to={movieLink} className="btn-gold online-hero__cta online-hero__cta--centered">
+                    <Play className="h-4 w-4 fill-current" />
+                    {actionLabel}
+                  </Link>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       {slides.length > 1 && (
