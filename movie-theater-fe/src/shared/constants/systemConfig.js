@@ -36,6 +36,11 @@ export const DEFAULT_SYSTEM_CONFIG = {
   pointsEarningRatio: 5,
   pointsToCashValue: 1000,
   sessionTimeoutHours: 24,
+  cancellationCutoffMinutes: 60,
+  cancellationFeePercent: 10,
+  customerRefundEnabled: true,
+  fullRefundOnShowtimeCancel: true,
+  refundManualApprovalRequired: false,
   roomTypes: DEFAULT_ROOM_TYPES,
   screeningFormats: DEFAULT_SCREENING_FORMATS,
 };

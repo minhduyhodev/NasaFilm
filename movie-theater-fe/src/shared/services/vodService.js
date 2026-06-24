@@ -28,8 +28,8 @@ export const vodService = {
     return bookingService.resendVodTicketEmail(movieUuid);
   },
 
-  confirmOnlineBooking(movieUuid, promotionCode = null) {
-    return bookingService.confirmOnlineBooking(movieUuid, promotionCode);
+  confirmOnlineBooking(movieUuid, promotionCode = null, paymentMethod = null) {
+    return bookingService.confirmOnlineBooking(movieUuid, promotionCode, paymentMethod);
   },
 
   getMyBookings() {

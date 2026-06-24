@@ -21,7 +21,8 @@ import { bookingService } from "../../../shared/services/bookingService";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
-import { getOnlineMoviePath, getOnlineActionLabel } from "../utils/movieUtils";
+import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl } from "../utils/movieUtils";
+import PosterImage from "../../../shared/components/PosterImage";
 
 import "./MovieDetailPage.css";
 
@@ -296,6 +297,15 @@ const MovieDetailPage = () => {
     );
   }
 
+  const posterRaw =
+    dbMovie.medias?.find((m) => m.isPrimary)?.mediaUrl ||
+    dbMovie.medias?.find((m) => m.mediaType === "POSTER")?.mediaUrl ||
+    "";
+  const backdropRaw =
+    dbMovie.medias?.find((m) => m.mediaType === "BACKDROP")?.mediaUrl ||
+    posterRaw ||
+    "";
+
   const movie = {
     title: dbMovie.title || "",
     description: dbMovie.description || "",
@@ -305,14 +315,10 @@ const MovieDetailPage = () => {
     rating: dbMovie.rating,
     format: dbMovie.format || "2D",
     ageRestriction: dbMovie.ageRestriction || "",
-    poster:
-      dbMovie.medias?.find((m) => m.isPrimary)?.mediaUrl ||
-      dbMovie.medias?.find((m) => m.mediaType === "POSTER")?.mediaUrl ||
-      "",
-    backdrop:
-      dbMovie.medias?.find((m) => m.mediaType === "BACKDROP")?.mediaUrl ||
-      dbMovie.medias?.find((m) => m.mediaType === "POSTER")?.mediaUrl ||
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200",
+    posterRaw,
+    backdropRaw,
+    poster: getMoviePosterUrl(dbMovie),
+    backdrop: backdropRaw || posterRaw,
     trailer:
       dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "",
     cast:
@@ -347,10 +353,11 @@ const MovieDetailPage = () => {
         {/* Hero Section */}
         <section className="relative h-[650px] md:h-[780px] w-full overflow-hidden bg-black">
           {/* Base Backdrop Image Layer (Always visible, z-index: 0) */}
-          <img
+          <PosterImage
             alt="Movie backdrop"
             className={`movie-backdrop-img ${isVideoActive ? "video-active" : ""}`}
-            src={movie.backdrop}
+            src={movie.backdropRaw || movie.posterRaw}
+            width={1200}
           />
 
           {/* Video Trailer Background Layer (Absolute on top, z-index: 10) */}
@@ -407,10 +414,11 @@ const MovieDetailPage = () => {
           <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 lg:px-20 pb-12 md:pb-16 flex flex-col md:flex-row gap-8 items-end z-30">
             {/* Poster */}
             <div className="hidden lg:block w-64 h-[380px] rounded-2xl overflow-hidden shadow-2xl poster-hover flex-shrink-0 border border-white/10 bg-[#0f121d]">
-              <img
+              <PosterImage
                 alt="High-res Movie Poster"
                 className="w-full h-full object-contain"
-                src={movie.poster}
+                src={movie.posterRaw}
+                width={500}
               />
             </div>
 

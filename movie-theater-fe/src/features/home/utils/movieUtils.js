@@ -1,24 +1,54 @@
 import { getVideoSource, getHeroBackgroundSource } from './videoSourceUtils';
 import { movieService } from '../../../shared/services/movieService';
+import { resolveMediaUrl, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 
 export const isOnlineMovie = (movie) =>
   movie?.screeningMode === 'ONLINE_ONLY' || movie?.screeningMode === 'BOTH';
 
-export const getMoviePosterUrl = (movie) => {
+/** URL poster gốc từ API (chưa qua CDN/proxy). */
+const isPosterImageUrl = (url) => {
+  if (!url?.trim()) return false;
+  const trimmed = url.trim();
+  if (/\.(mp4|webm|m3u8|m3u|mov|avi|mkv|flv)(\?.*)?$/i.test(trimmed)) return false;
+  if (/youtube\.com|youtu\.be|vimeo\.com/i.test(trimmed)) return false;
+  return true;
+};
+
+export const pickPosterMediaUrl = (movie) => {
   if (!movie) return '';
 
-  if (movie.primaryMediaUrl) return movie.primaryMediaUrl;
-  if (movie.poster) return movie.poster;
+  if (movie.posterRaw?.trim() && isPosterImageUrl(movie.posterRaw)) {
+    return unwrapMediaUrl(movie.posterRaw);
+  }
 
   const medias = movie.medias || [];
-  const primaryMedia = medias.find((m) => m.isPrimary)?.mediaUrl;
-  if (primaryMedia) return primaryMedia;
 
   const posterMedia = medias.find((m) => m.mediaType === 'POSTER')?.mediaUrl;
-  if (posterMedia) return posterMedia;
+  if (posterMedia?.trim() && isPosterImageUrl(posterMedia)) {
+    return unwrapMediaUrl(posterMedia);
+  }
+
+  const primaryMedia = medias.find((m) => m.isPrimary)?.mediaUrl;
+  if (primaryMedia?.trim() && isPosterImageUrl(primaryMedia)) {
+    return unwrapMediaUrl(primaryMedia);
+  }
 
   const backdropMedia = medias.find((m) => m.mediaType === 'BACKDROP')?.mediaUrl;
-  return backdropMedia || '';
+  if (backdropMedia?.trim() && isPosterImageUrl(backdropMedia)) {
+    return unwrapMediaUrl(backdropMedia);
+  }
+
+  const fallback = movie.primaryMediaUrl || movie.poster;
+  if (fallback?.trim() && isPosterImageUrl(fallback)) {
+    return unwrapMediaUrl(fallback);
+  }
+
+  return '';
+};
+
+export const getMoviePosterUrl = (movie) => {
+  const raw = pickPosterMediaUrl(movie);
+  return raw ? resolveMediaUrl(raw) : '';
 };
 
 export const getMovieStreamingUrl = (movie) => {
@@ -109,9 +139,11 @@ export const getMovieGalleryImages = (movie, limit = 4) => {
   const urls = [];
 
   const addUrl = (url) => {
-    if (!isDisplayableImageUrl(url) || seen.has(url)) return;
-    seen.add(url);
-    urls.push(url);
+    if (!isDisplayableImageUrl(url)) return;
+    const resolved = resolveMediaUrl(unwrapMediaUrl(url.trim()));
+    if (!resolved || seen.has(resolved)) return;
+    seen.add(resolved);
+    urls.push(resolved);
   };
 
   addUrl(getMoviePosterUrl(movie));
@@ -127,11 +159,12 @@ export const getMovieGalleryImages = (movie, limit = 4) => {
 
 export const mapApiMovies = (content = []) =>
   content.map((m) => {
-    const posterUrl = getMoviePosterUrl(m);
+    const rawPoster = pickPosterMediaUrl(m);
     return {
       ...m,
-      primaryMediaUrl: posterUrl,
-      poster: posterUrl,
+      posterRaw: rawPoster,
+      primaryMediaUrl: rawPoster,
+      poster: rawPoster,
       hoverDetails: {
         fullTitle: m.title,
         genre: m.genres ? m.genres.join(', ') : '',

@@ -18,6 +18,7 @@ import {
   AdminSelectDropdown,
 } from '../components';
 import { adminInputClass } from '../components/adminFormStyles';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '';
@@ -402,9 +403,10 @@ const AdminMovieFormPage = () => {
               <div className="shrink-0">
                 <div className="aspect-[2/3] w-full max-w-[148px] rounded-lg overflow-hidden bg-white/[0.03] flex items-center justify-center">
                   {formData.posterUrl?.trim() && !posterLoadError ? (
-                    <img
+                    <PosterImage
                       src={formData.posterUrl.trim()}
                       alt={formData.title || 'Poster phim'}
+                      width={300}
                       className="w-full h-full object-cover"
                       onError={() => setPosterLoadError(true)}
                     />

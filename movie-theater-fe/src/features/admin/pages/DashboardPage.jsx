@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, TrendingUp, Ticket, DollarSign, Percent } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
 import TabTransition from '../../../shared/components/TabTransition';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import './DashboardPage.css';
 
 const CHART_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981', '#6366f1'];
@@ -147,19 +149,22 @@ const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cinemas');
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await adminDashboardService.getDashboardStats();
-        setStats(data);
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchStats();
+  const fetchStats = useCallback(async () => {
+    try {
+      const data = await adminDashboardService.getDashboardStats();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_DASHBOARD, fetchStats);
 
   const formatRevenue = (val) => {
     if (val == null) return '0';

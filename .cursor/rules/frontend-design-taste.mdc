@@ -1,0 +1,43 @@
+---
+description: Quy tắc UI/UX frontend — Taste Skill (anti-slop) cho movie-theater-fe
+globs: movie-theater-fe/**/*.{jsx,tsx,css,js,ts}
+alwaysApply: false
+---
+
+# Frontend Design Taste (movie-theater-fe)
+
+Khi tạo hoặc sửa giao diện trong `movie-theater-fe`, **đọc và tuân theo** skill Taste Skill v2:
+
+- `.cursor/skills/design-taste-frontend/SKILL.md` — landing, marketing, checkout, profile, chi tiết phim
+- `.cursor/skills/redesign-existing-projects/SKILL.md` — nâng cấp trang đã có (audit-first, không rewrite từ đầu)
+
+Gõ `/design-taste-frontend` hoặc `/redesign-existing-projects` trong Agent chat để nạp đầy đủ skill.
+
+## Design Read cho dự án này
+
+Trước khi viết UI, khai báo một dòng Design Read. Mặc định cho rạp phim THD PV:
+
+**"Reading this as: premium consumer cinema app for moviegoers, dark cinematic language with red accent, leaning toward existing Tailwind + glass-panel patterns."**
+
+## Brand đã có (giữ nhất quán)
+
+- Nền tối: `#0B0F19`, `#1A2238`, `glass-panel`
+- Accent: `red-600` / `red-700` (CTA, highlight)
+- Typography: uppercase tracking cho tiêu đề section, font-bold/black
+- Stack: React + Vite + Tailwind — **không** đổi framework khi chỉ sửa UI
+
+## Phạm vi theo loại trang
+
+| Khu vực | Skill | Ghi chú |
+|---------|-------|---------|
+| `features/home/**` | design-taste-frontend | VARIANCE 7–8, MOTION 6–7, DENSITY 3–4 |
+| `features/auth/**` | design-taste-frontend | Trust-first, form states rõ ràng |
+| `features/admin/**` | redesign-existing-projects | DENSITY 5–6, giữ bảng dữ liệu & workflow admin |
+| `shared/components/**` | cả hai | Component tái sử dụng, không phá API props |
+
+## Checklist nhanh
+
+1. Khai báo Design Read + 3 dial (VARIANCE / MOTION / DENSITY)
+2. Tránh AI-slop: gradient tím, 3 card feature bằng nhau, glassmorphism mọi nơi, Inter mặc định
+3. Giữ accessibility: contrast, focus ring, `cursor-pointer` trên control
+4. Khớp pattern hiện có trước khi thêm style mới

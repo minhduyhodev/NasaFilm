@@ -62,6 +62,9 @@ class ShowtimeSeatServiceTest {
     @Mock
     private SystemConfigService systemConfigService;
 
+    @Mock
+    private SeatMapEventPublisher seatMapEventPublisher;
+
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;
 

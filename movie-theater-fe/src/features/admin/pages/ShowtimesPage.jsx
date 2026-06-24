@@ -13,6 +13,8 @@ import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
+import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import './ShowtimesPage.css';
 
 // ========== CONSTANTS ==========
@@ -54,7 +56,8 @@ const STATUS_CONFIG = {
   },
 };
 
-const FALLBACK_POSTER = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+const getPosterSrc = (rawUrl, width = 120) =>
+  rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
 
 const SORT_OPTIONS = [
   { value: 'startTime_asc', label: 'Giờ chiếu (sớm → muộn)' },
@@ -209,6 +212,8 @@ const SectionHeader = ({ status, count, isCollapsed, onToggle }) => {
 // ========== MAIN COMPONENT ==========
 
 const ShowtimesPage = () => {
+  useMediaUrlRouting();
+
   // ---------- STATE ----------
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
@@ -652,7 +657,7 @@ const ShowtimesPage = () => {
     
     // Resolve poster URL
     const movieObj = movies.find(m => m.uuid === row.movieUuid);
-    const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
+    const rawPoster = movieObj?.primaryMediaUrl || row.moviePosterUrl;
 
     return (
       <div
@@ -663,13 +668,13 @@ const ShowtimesPage = () => {
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg overflow-hidden border border-[#1a2238] bg-[#0F1322] relative shadow-md">
             <img
-              src={posterUrl}
+              src={getPosterSrc(rawPoster, 160)}
+              data-original-url={rawPoster || ''}
               alt={row.movieTitle}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = FALLBACK_POSTER;
-              }}
+              onError={handlePosterError}
             />
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -817,15 +822,18 @@ const ShowtimesPage = () => {
                 {Object.entries(movieMap).map(([movieTitle, sts]) => {
                   const firstSt = sts[0];
                   const movieObj = movies.find(m => m.uuid === firstSt?.movieUuid);
-                  const posterUrl = movieObj?.primaryMediaUrl || firstSt?.moviePosterUrl || FALLBACK_POSTER;
+                  const rawPoster = movieObj?.primaryMediaUrl || firstSt?.moviePosterUrl;
                   return (
                     <div key={movieTitle} className="ml-5 mb-3">
                       <div className="text-xs font-bold text-white/80 mb-2 flex items-center gap-2">
                         <img
-                          src={posterUrl}
+                          src={getPosterSrc(rawPoster, 80)}
+                          data-original-url={rawPoster || ''}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="w-6 h-8 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0"
-                          onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                          onError={handlePosterError}
                         />
                         <span>{movieTitle}</span>
                       </div>
@@ -910,7 +918,7 @@ const ShowtimesPage = () => {
           const trans = getValidTransitions(row.status);
           const isSelected = selectedIds.has(row.uuid);
           const movieObj = movies.find(m => m.uuid === row.movieUuid);
-          const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
+          const rawPoster = movieObj?.primaryMediaUrl || row.moviePosterUrl;
           return (
             <div key={row.uuid} className={`list-row ${isSelected ? 'selected' : ''}`}>
               <div>
@@ -918,13 +926,13 @@ const ShowtimesPage = () => {
               </div>
               <div className="flex items-center gap-3 min-w-0">
                 <img
-                  src={posterUrl}
+                  src={getPosterSrc(rawPoster, 80)}
+                  data-original-url={rawPoster || ''}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="w-8 h-10 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0 shadow-sm"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = FALLBACK_POSTER;
-                  }}
+                  onError={handlePosterError}
                 />
                 <span className="font-bold text-white text-xs truncate" title={row.movieTitle}>{row.movieTitle}</span>
               </div>
@@ -1657,10 +1665,13 @@ const ShowtimesPage = () => {
 
                         <div className="w-10 h-14 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
                           <img
-                            src={p.moviePosterUrl || FALLBACK_POSTER}
+                            src={getPosterSrc(p.moviePosterUrl, 80)}
+                            data-original-url={p.moviePosterUrl || ''}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
-                            onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                            onError={handlePosterError}
                           />
                         </div>
 
