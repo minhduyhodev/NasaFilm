@@ -8,32 +8,36 @@ import OnlineVIPSection from '../components/online/OnlineVIPSection';
 import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
-import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { mapApiMovies, filterOnlineMovies } from '../utils/movieUtils';
+import { getCachedOnlineMovies, prefetchOnlineMovies } from '../utils/onlineMoviesCache';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import heroBg from '../../../shared/assets/cinema_hero_bg.png';
 import '../styles/home-premium.css';
 import './OnlineMoviesPage.css';
 
 const OnlineMoviesPage = () => {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [movies, setMovies] = useState(() => getCachedOnlineMovies() ?? []);
+  const [isLoading, setIsLoading] = useState(() => (getCachedOnlineMovies() ?? []).length === 0);
   const [fetchError, setFetchError] = useState('');
   const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(movies.map((m) => m.uuid));
 
-  const fetchOnline = async () => {
-    setIsLoading(true);
+  const fetchOnline = async ({ silent = false } = {}) => {
+    const hasCachedData = movies.length > 0 || Boolean(getCachedOnlineMovies()?.length);
+    if (!silent && !hasCachedData) {
+      setIsLoading(true);
+    }
     setFetchError('');
     try {
-      const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 50 });
-      setMovies(filterOnlineMovies(mapApiMovies(data?.content || [])));
+      const onlineMovies = await prefetchOnlineMovies();
+      setMovies(onlineMovies);
     } catch (err) {
-      setMovies([]);
-      setFetchError(
-        err?.message ||
-          'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.'
-      );
+      if (!hasCachedData) {
+        setMovies([]);
+        setFetchError(
+          err?.message ||
+            'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +46,8 @@ const OnlineMoviesPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     systemConfigService.getConfig().catch(() => {});
-    fetchOnline();
+    const cached = getCachedOnlineMovies();
+    fetchOnline({ silent: Boolean(cached?.length) });
   }, []);
 
   return (
@@ -60,14 +65,19 @@ const OnlineMoviesPage = () => {
       <main className="online-page-container">
         {!isLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
         {!isLoading && (
-          <NewReleases onlineOnly getOnlinePath={getOnlinePath} getActionLabel={getActionLabel} />
+          <NewReleases
+            onlineOnly
+            movies={movies}
+            getOnlinePath={getOnlinePath}
+            getActionLabel={getActionLabel}
+          />
         )}
 
         <section>
           <div className="section-heading-row">
             <h2 className="section-heading">Tất cả phim trực tuyến</h2>
           </div>
-          {isLoading ? (
+          {isLoading && movies.length === 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {Array.from({ length: 10 }).map((_, i) => (
                 <MovieCardSkeleton key={i} />
@@ -101,7 +111,7 @@ const OnlineMoviesPage = () => {
           )}
         </section>
 
-        {!isLoading && <ExclusiveCollection onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isLoading && <ExclusiveCollection onlineOnly movies={movies} getOnlinePath={getOnlinePath} />}
         {!isLoading && <OnlineVIPSection />}
       </main>
 

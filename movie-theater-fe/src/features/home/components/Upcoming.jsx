@@ -6,6 +6,7 @@ import { movieService } from '../../../shared/services/movieService';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import tokenService from '../../../features/auth/utils/tokenService';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const REMINDER_STORAGE_KEY = 'nasa_movie_reminders';
 
@@ -232,9 +233,10 @@ const Upcoming = () => {
           className="w-full md:w-3/5 aspect-[16/10] md:aspect-[3/4] overflow-hidden rounded-[32px] shadow-[0_25px_60px_rgba(0,0,0,0.5)] relative bg-[#111216] block"
         >
           {displayPoster && (
-            <img
+            <PosterImage
               src={displayPoster}
               alt={upcomingMovie.title}
+              width={600}
               className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
             />
           )}

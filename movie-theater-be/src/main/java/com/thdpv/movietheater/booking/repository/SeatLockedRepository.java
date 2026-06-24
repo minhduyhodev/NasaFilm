@@ -20,6 +20,9 @@ public interface SeatLockedRepository extends JpaRepository<SeatLocked, UUID> {
     @Query("delete from SeatLocked sl where sl.showtimeUuid = :showtimeUuid and sl.expiredAt <= :now")
     void deleteExpiredLocks(@Param("showtimeUuid") UUID showtimeUuid, @Param("now") OffsetDateTime now);
 
+    @Query("select distinct sl.showtimeUuid from SeatLocked sl where sl.expiredAt <= :now")
+    List<UUID> findShowtimeUuidsWithExpiredLocks(@Param("now") OffsetDateTime now);
+
     @Modifying
     @Query("delete from SeatLocked sl where sl.expiredAt <= :now")
     void deleteExpiredLocksScheduled(@Param("now") OffsetDateTime now);

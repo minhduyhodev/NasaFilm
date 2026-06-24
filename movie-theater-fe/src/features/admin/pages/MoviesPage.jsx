@@ -11,6 +11,8 @@ import {
   GhostButton,
 } from '../components';
 import { getMovieStatusLabel } from '../utils/statusLabels';
+import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import './MoviesPage.css';
 
 const FilterDropdown = ({ label, value, options, onChange, searchable = false, className = '' }) => {
@@ -117,6 +119,7 @@ const FilterDropdown = ({ label, value, options, onChange, searchable = false, c
 
 const MoviesPage = () => {
   const navigate = useNavigate();
+  useMediaUrlRouting();
   const [movies, setMovies] = useState([]);
   const [totalMoviesCount, setTotalMoviesCount] = useState(0);
   const [overallStats, setOverallStats] = useState({ total: 0, nowShowing: 0, comingSoon: 0, inactive: 0 });
@@ -388,10 +391,13 @@ const MoviesPage = () => {
                   <div className="relative aspect-[2/3] rounded-[20px] overflow-hidden bg-[#0f172a] mb-2 shadow-[0_15px_35px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-[1.02]">
                     {movie.primaryMediaUrl ? (
                       <img
-                        src={movie.primaryMediaUrl}
+                        src={resolveMediaUrl(movie.primaryMediaUrl, 400)}
+                        data-original-url={movie.primaryMediaUrl}
                         alt={movie.title}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-80"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onError={handlePosterError}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

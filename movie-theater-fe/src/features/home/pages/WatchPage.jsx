@@ -13,6 +13,8 @@ import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { filterOnlineMovies, getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly } from '../utils/movieUtils';
+import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import Navbar from '../components/Navbar';
@@ -26,14 +28,15 @@ const formatDuration = (mins) => {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
-const getPoster = (movie) =>
+const getPosterRaw = (movie) =>
   movie?.medias?.find((m) => m.isPrimary)?.mediaUrl ||
   movie?.medias?.find((m) => m.mediaType === 'POSTER')?.mediaUrl ||
   movie?.primaryMediaUrl ||
+  movie?.poster ||
   '';
 
-const getBackdrop = (movie) =>
-  movie?.medias?.find((m) => m.mediaType === 'BACKDROP')?.mediaUrl || getPoster(movie);
+const getBackdropRaw = (movie) =>
+  movie?.medias?.find((m) => m.mediaType === 'BACKDROP')?.mediaUrl || getPosterRaw(movie);
 
 const WatchPage = () => {
   const { id } = useParams();
@@ -412,7 +415,7 @@ const WatchPage = () => {
     );
   }
 
-  const backdrop = getBackdrop(movie);
+  const backdrop = getBackdropRaw(movie);
   const releaseYear = movie.releaseDate
     ? new Date(movie.releaseDate).getFullYear()
     : null;
@@ -537,7 +540,7 @@ const WatchPage = () => {
                 >
                 {!isPlaying && (
                   <>
-                    <img src={backdrop} alt={movie.title} className="watch-player-poster" />
+                    <PosterImage src={backdrop} alt={movie.title} width={1200} className="watch-player-poster" />
                     <div className="watch-player-overlay" />
                     {!isCinemaMode && (
                       <div className="watch-vod-badge">
@@ -683,9 +686,10 @@ const WatchPage = () => {
                       to={getOnlineActivatePath(item.uuid)}
                       className="watch-sidebar-card"
                     >
-                      <img
+                      <PosterImage
                         src={item.primaryMediaUrl || item.poster}
                         alt={item.title}
+                        width={96}
                         className="h-16 w-24 shrink-0 rounded object-cover"
                       />
                       <div className="min-w-0 py-0.5">
@@ -706,7 +710,7 @@ const WatchPage = () => {
               <Link to={getOnlineActivatePath(upNext[0].uuid)} className="watch-feature-box block group">
                 <div
                   className="absolute inset-0 opacity-25 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url(${upNext[0].primaryMediaUrl || upNext[0].poster})` }}
+                  style={{ backgroundImage: `url(${resolveMediaUrl(upNext[0].primaryMediaUrl || upNext[0].poster, 600)})` }}
                 />
                 <div className="relative">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">

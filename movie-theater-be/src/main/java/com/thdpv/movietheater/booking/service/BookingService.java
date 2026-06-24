@@ -57,6 +57,7 @@ import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
+import com.thdpv.movietheater.payment.service.PaymentService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +86,10 @@ public class BookingService {
     private final VodNotificationService vodNotificationService;
     private final TheaterNotificationService theaterNotificationService;
     private final VoucherRedemptionService voucherRedemptionService;
+    private final SeatMapEventPublisher seatMapEventPublisher;
+    private final RealtimeEventPublisher realtimeEventPublisher;
+    private final CancellationRefundService cancellationRefundService;
+    private final PaymentService paymentService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -172,6 +177,8 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid);
+
         Booking booking = new Booking();
         booking.setUuid(bookingUuid);
         booking.setUserUuid(userUuid);
@@ -208,6 +215,8 @@ public class BookingService {
         } catch (Exception ex) {
             // Không chặn đặt vé nếu gửi email thất bại
         }
+
+        realtimeEventPublisher.notifyOnlineBookingConfirmed(bookingUuid);
 
         return new BookingResponse(
                 bookingUuid,
@@ -329,6 +338,8 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid);
+
         Booking booking = new Booking(
                 bookingUuid,
                 userUuid,
@@ -417,6 +428,9 @@ public class BookingService {
         } catch (Exception ex) {
             // Không chặn đặt vé nếu gửi email thất bại
         }
+
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
+        realtimeEventPublisher.notifyBookingConfirmed(bookingUuid, request.getShowtimeUuid());
 
         return new BookingResponse(
                 bookingUuid,
@@ -785,49 +799,16 @@ public class BookingService {
         ticket.setStatus("USED");
         ticket.setCheckedInAt(OffsetDateTime.now());
         ticketRepository.save(ticket);
+
+        Booking booking = bookingJpaRepository.findById(ticket.getBookingUuid()).orElse(null);
+        UUID showtimeUuid = booking != null ? booking.getShowtimeUuid() : null;
+        realtimeEventPublisher.notifyTicketCheckedIn(ticket.getBookingUuid(), showtimeUuid, ticketCode.trim());
     }
 
     @Transactional
     public void cancelBooking(UUID bookingUuid, String email) {
-        Booking booking = bookingJpaRepository.findById(bookingUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
-
-        if (email != null && !email.isBlank()) {
-            UUID userUuid = resolveRequiredUserUuid(email);
-            if (!booking.getUserUuid().equals(userUuid)) {
-                throw new AppException(ErrorCode.FORBIDDEN, "Không có quyền hủy đặt vé này");
-            }
-        }
-
-        if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Hóa đơn không ở trạng thái CONFIRMED, không thể hủy");
-        }
-
-        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(booking.getShowtimeUuid());
-        if (startTime == null) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
-        }
-
-        if (OffsetDateTime.now().plusHours(2).isAfter(startTime)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Không thể hủy vé trước giờ chiếu ít hơn 2 tiếng");
-        }
-
-        booking.setStatus("CANCELLED");
-        booking.setCancelledAt(OffsetDateTime.now());
-        bookingJpaRepository.save(booking);
-
-        // Xóa các dòng ghế đã đặt (BookingSeat)
-        bookingSeatRepository.deleteByBookingUuid(bookingUuid);
-
-        // Xóa các liên kết combo bắp nước (BookingCombo)
-        bookingComboRepository.deleteByBookingUuid(bookingUuid);
-
-        // Khấu trừ điểm thành viên đã tích lũy
-        int scoreDeducted = calculateScore(booking.getTotalPrice());
-        if (scoreDeducted > 0) {
-            bookingRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
-            bookingRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, OffsetDateTime.now());
-        }
+        UUID actorUuid = email != null && !email.isBlank() ? resolveRequiredUserUuid(email) : null;
+        cancellationRefundService.cancelBooking(bookingUuid, actorUuid, "CUSTOMER", false, null, false);
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {

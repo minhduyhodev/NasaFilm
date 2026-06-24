@@ -335,8 +335,10 @@ public class AuthService {
         String email = request.getEmail().trim().toLowerCase();
         java.time.LocalDateTime lastRequest = otpRequestCooldown.get(email);
         if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(java.time.LocalDateTime.now())) {
-            long secondsLeft = java.time.Duration.between(java.time.LocalDateTime.now(), lastRequest.plusSeconds(60)).toSeconds();
-            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
+            long secondsLeft = java.time.Duration.between(java.time.LocalDateTime.now(), lastRequest.plusSeconds(60))
+                    .toSeconds();
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
         }
 
         java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
@@ -348,7 +350,9 @@ public class AuthService {
             }
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                    ? request.getPhoneNumber().trim()
+                    : null);
             user.setDayOfBirth(request.getDayOfBirth());
             user.setGender(request.getGender());
         } else {
@@ -358,7 +362,9 @@ public class AuthService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setStatus(UserStatus.PENDING_VERIFICATION);
             user.setAuthProvider(AuthProvider.LOCAL);
-            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                    ? request.getPhoneNumber().trim()
+                    : null);
             user.setDayOfBirth(request.getDayOfBirth());
             user.setGender(request.getGender());
         }
@@ -389,26 +395,32 @@ public class AuthService {
             long secondsLeft = java.time.Duration.between(LocalDateTime.now(), lockTime).toSeconds();
             if (secondsLeft > 60) {
                 long minutesLeft = (secondsLeft + 59) / 60;
-                throw new AppException(ErrorCode.BAD_REQUEST, "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft + " phút.");
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft
+                                + " phút.");
             } else {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft + " giây.");
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft
+                                + " giây.");
             }
         }
 
         if (user.getVerificationCode() == null
                 || !user.getVerificationCode().equals(request.getCode().trim())
                 || user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-            
+
             int attempts = (user.getVerificationAttempts() != null ? user.getVerificationAttempts() : 0) + 1;
             if (attempts >= 5) {
                 user.setVerificationLockTime(LocalDateTime.now().plusMinutes(15));
                 user.setVerificationAttempts(0);
                 userRepository.save(user);
-                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID, "Mã xác thực không hợp lệ. Bạn đã nhập sai quá 5 lần, tài khoản bị tạm khóa 15 phút.");
+                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
+                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá 5 lần, tài khoản bị tạm khóa 15 phút.");
             } else {
                 user.setVerificationAttempts(attempts);
                 userRepository.save(user);
-                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID, "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (5 - attempts) + " lần thử.");
+                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
+                        "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (5 - attempts) + " lần thử.");
             }
         }
 
@@ -434,7 +446,7 @@ public class AuthService {
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 2 * * ?") // Chạy vào 2h sáng mỗi ngày
+    @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupExpiredSessions() {
         userSessionRepository.deleteByExpiredAtBeforeOrStatus(LocalDateTime.now(), "REVOKED");
     }

@@ -5,6 +5,7 @@ import java.util.UUID;
 public class ConfirmOnlineBookingRequest {
     private UUID movieUuid;
     private String promotionCode;
+    private String paymentMethod;
 
     public ConfirmOnlineBookingRequest() {
     }
@@ -28,5 +29,13 @@ public class ConfirmOnlineBookingRequest {
 
     public void setPromotionCode(String promotionCode) {
         this.promotionCode = promotionCode;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 }

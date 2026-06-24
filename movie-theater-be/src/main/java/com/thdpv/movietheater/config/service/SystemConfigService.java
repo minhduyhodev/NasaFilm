@@ -86,6 +86,26 @@ public class SystemConfigService {
         return readInt(getConfig().get("pointsToCashValue"), 1000, 1, 1_000_000);
     }
 
+    public int getCancellationCutoffMinutes() {
+        return readInt(getConfig().get("cancellationCutoffMinutes"), 60, 0, 24 * 60);
+    }
+
+    public int getCancellationFeePercent() {
+        return readInt(getConfig().get("cancellationFeePercent"), 10, 0, 100);
+    }
+
+    public boolean isCustomerRefundEnabled() {
+        return readBoolean(getConfig().get("customerRefundEnabled"), true);
+    }
+
+    public boolean isFullRefundOnShowtimeCancel() {
+        return readBoolean(getConfig().get("fullRefundOnShowtimeCancel"), true);
+    }
+
+    public boolean isRefundManualApprovalRequired() {
+        return readBoolean(getConfig().get("refundManualApprovalRequired"), false);
+    }
+
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getRoomTypes() {
         Object value = getConfig().get("roomTypes");
@@ -154,6 +174,11 @@ public class SystemConfigService {
         defaults.put("pointsEarningRatio", 5);
         defaults.put("pointsToCashValue", 1000);
         defaults.put("sessionTimeoutHours", 24);
+        defaults.put("cancellationCutoffMinutes", 60);
+        defaults.put("cancellationFeePercent", 10);
+        defaults.put("customerRefundEnabled", true);
+        defaults.put("fullRefundOnShowtimeCancel", true);
+        defaults.put("refundManualApprovalRequired", false);
         defaults.put("roomTypes", defaultRoomTypes());
         defaults.put("screeningFormats", defaultScreeningFormats());
         return defaults;
@@ -226,6 +251,16 @@ public class SystemConfigService {
             return fallback;
         }
         return Math.max(min, Math.min(max, parsed));
+    }
+
+    private boolean readBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return Boolean.parseBoolean(text.trim());
+        }
+        return fallback;
     }
 
     private Map<String, Object> parseConfigJson(String json) {
