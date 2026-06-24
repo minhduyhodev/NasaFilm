@@ -10,8 +10,6 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { getMoviePosterUrl } from '../utils/movieUtils';
-import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
-import { systemConfigService } from '../../../shared/services/systemConfigService';
 
 import './BookingPage.css';
 
@@ -71,7 +69,7 @@ const BookingPage = () => {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -92,7 +90,7 @@ const BookingPage = () => {
   useEffect(() => {
     systemConfigService.getConfig()
       .then((cfg) => setMaxSeatsPerBooking(getMaxSeatsPerBooking(cfg)))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   useEffect(() => {
     selectedSeatsRef.current = selectedSeats;
@@ -388,7 +386,7 @@ const BookingPage = () => {
               <div className="w-9 h-6 border-2 border-dashed border-red-500 bg-red-500/5 rounded-lg flex items-center justify-center text-[9px] font-bold text-red-500">1</div>
               <span className="text-xs font-bold text-gray-300">Cảnh báo khe hở</span>
             </div>
-             <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
               <div className="w-9 h-6 border-2 border-emerald-500/40 bg-emerald-500/10 rounded-lg"></div>
               <span className="text-xs font-bold text-gray-300">Vùng trung tâm</span>
             </div>
@@ -426,11 +424,10 @@ const BookingPage = () => {
                     </span>
                   )}
                   {resolvedAge && (
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' :
-                      resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' :
-                      'bg-amber-600/90 text-white'
-                    }`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' :
+                        resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' :
+                          'bg-amber-600/90 text-white'
+                      }`}>
                       {resolvedAge}
                     </span>
                   )}
@@ -472,13 +469,12 @@ const BookingPage = () => {
               <button
                 onClick={handleConfirm}
                 disabled={selectedSeats.length === 0 || hasGapViolation || isConfirming}
-                className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
-                  selectedSeats.length === 0 || hasGapViolation
+                className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${selectedSeats.length === 0 || hasGapViolation
                     ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5'
                     : isConfirming
                       ? 'bg-red-700 text-white cursor-wait opacity-80'
                       : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] cursor-pointer active:scale-[0.98]'
-                }`}
+                  }`}
               >
                 {isConfirming
                   ? 'Đang xử lý...'
