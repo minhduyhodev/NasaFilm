@@ -18,6 +18,8 @@ public interface UserVoucherRepository extends JpaRepository<UserVoucher, UUID> 
 
     List<UserVoucher> findByUserUuidOrderByRedeemedAtDesc(UUID userUuid);
 
+    Optional<UserVoucher> findFirstByBookingUuid(UUID bookingUuid);
+
     Optional<UserVoucher> findFirstByUserUuidAndPromotionUuidAndStatusOrderByRedeemedAtAsc(
             UUID userUuid, UUID promotionUuid, String status);
 }

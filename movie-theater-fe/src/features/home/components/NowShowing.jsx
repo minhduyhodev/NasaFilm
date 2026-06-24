@@ -26,7 +26,12 @@ const NowShowing = () => {
     const fetchNowShowing = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 20 });
+        const data = await movieService.getMovies({
+          status: 'NOW_SHOWING',
+          page: 0,
+          size: 20,
+          requireBookableShowtime: true,
+        });
         if (data?.content?.length > 0) {
           setMoviesList(mapApiMovies(data.content));
         } else {

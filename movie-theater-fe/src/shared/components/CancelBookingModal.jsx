@@ -14,6 +14,8 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const isOnline = (preview?.bookingType || '').toUpperCase() === 'ONLINE';
+
   useEffect(() => {
     if (!open || !bookingUuid) return;
     let cancelled = false;
@@ -56,7 +58,9 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-[#121826] border border-white/10 shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-          <h3 className="text-lg font-bold text-white">Xác nhận hủy vé</h3>
+          <h3 className="text-lg font-bold text-white">
+            {isOnline ? 'Hủy vé xem online' : 'Xác nhận hủy vé'}
+          </h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-white bg-transparent border-none cursor-pointer">
             <X className="w-5 h-5" />
           </button>
@@ -87,6 +91,11 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
               ) : (
                 <>
                   <p className="text-sm text-gray-300">{preview.message}</p>
+                  {isOnline && (
+                    <p className="text-xs text-violet-300/90 bg-violet-500/10 border border-violet-500/20 rounded-lg px-3 py-2">
+                      Chỉ hủy được khi vé online chưa kích hoạt xem phim. Sau khi hủy, quyền truy cập VOD sẽ bị thu hồi.
+                    </p>
+                  )}
                   <div className="rounded-xl bg-[#0f172a] border border-white/5 p-4 space-y-2 text-sm">
                     <div className="flex justify-between text-gray-400">
                       <span>Đã thanh toán</span>
@@ -135,7 +144,7 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
               onClick={handleConfirm}
               className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm disabled:opacity-50 cursor-pointer border-none"
             >
-              {submitting ? 'Đang xử lý...' : 'Xác nhận hủy'}
+              {submitting ? 'Đang xử lý...' : isOnline ? 'Xác nhận hủy & hoàn tiền' : 'Xác nhận hủy'}
             </button>
           )}
         </div>
