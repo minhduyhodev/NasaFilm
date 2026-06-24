@@ -65,7 +65,12 @@ const OnlineMoviesPage = () => {
       <main className="online-page-container">
         {!isLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
         {!isLoading && (
-          <NewReleases onlineOnly getOnlinePath={getOnlinePath} getActionLabel={getActionLabel} />
+          <NewReleases
+            onlineOnly
+            movies={movies}
+            getOnlinePath={getOnlinePath}
+            getActionLabel={getActionLabel}
+          />
         )}
 
         <section>
@@ -106,7 +111,7 @@ const OnlineMoviesPage = () => {
           )}
         </section>
 
-        {!isLoading && <ExclusiveCollection onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isLoading && <ExclusiveCollection onlineOnly movies={movies} getOnlinePath={getOnlinePath} />}
         {!isLoading && <OnlineVIPSection />}
       </main>
 
