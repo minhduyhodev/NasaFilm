@@ -279,6 +279,18 @@ export const isOnlineBooking = (booking) =>
   booking?.bookingType === 'ONLINE' ||
   (booking?.cinema || '').toLowerCase().includes('vod');
 
+/** Vé còn hiệu lực (chưa hết hạn, chưa hủy, chưa sử dụng). */
+export const isLiveTicket = (booking) =>
+  (booking?.status || '').toLowerCase() === 'active';
+
+/** Vé hết hạn / đã hủy / đã dùng — đẩy xuống cuối danh sách. */
+export const sortBookingsForDisplay = (bookings = []) =>
+  [...bookings].sort((a, b) => {
+    const aLive = isLiveTicket(a) ? 0 : 1;
+    const bLive = isLiveTicket(b) ? 0 : 1;
+    return aLive - bLive;
+  });
+
 export const enrichBookingsWithMovieMeta = async (bookings = []) => {
   const movieIds = [...new Set(bookings.map((b) => b.movieUuid).filter(Boolean))];
   const metaByMovie = new Map();

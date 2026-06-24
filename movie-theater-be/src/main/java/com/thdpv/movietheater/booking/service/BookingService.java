@@ -672,10 +672,18 @@ public class BookingService {
             String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
 
-            // Status: active if movie hasn't started yet, completed if movie has started/finished
-            String status = startTime != null && startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
-            if ("CANCELLED".equalsIgnoreCase(bookingStatus) || "USED".equalsIgnoreCase(ticketStatus)) {
-                status = "completed";
+            // active = còn dùng được; cancelled / used / expired = vé không còn hiệu lực
+            String status;
+            if ("CANCELLED".equalsIgnoreCase(bookingStatus)) {
+                status = "cancelled";
+            } else if ("USED".equalsIgnoreCase(ticketStatus)) {
+                status = "used";
+            } else if ("ONLINE".equalsIgnoreCase(bookingType)) {
+                status = "active";
+            } else if (startTime != null && startTime.isAfter(OffsetDateTime.now())) {
+                status = "active";
+            } else {
+                status = "expired";
             }
 
             responses.add(new CustomerBookingHistoryResponse(

@@ -39,6 +39,8 @@ import { promotionService } from "../../../shared/services/promotionService";
 import {
   enrichBookingsWithMovieMeta,
   isOnlineBooking,
+  isLiveTicket,
+  sortBookingsForDisplay,
   formatDisplayTicketCode,
   getOnlineMoviePath,
 } from "../utils/movieUtils";
@@ -166,6 +168,11 @@ export const ProfilePage = () => {
       console.error("Failed to reload bookings:", err);
     }
   };
+
+  const sortedBookings = useMemo(
+    () => sortBookingsForDisplay(bookings),
+    [bookings],
+  );
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -1412,8 +1419,9 @@ export const ProfilePage = () => {
                           <p>Bạn chưa có lịch sử đặt vé nào.</p>
                         </div>
                       ) : (
-                        bookings.map((tkt) => {
+                        sortedBookings.map((tkt) => {
                           const isVod = isOnlineBooking(tkt);
+                          const isLive = isLiveTicket(tkt);
                           const getMovieGlowClass = (title) => {
                             if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
                             if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
@@ -1423,13 +1431,15 @@ export const ProfilePage = () => {
                           return (
                             <div
                               key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}${isVod ? ' ticket-boarding-pass--vod' : ''}`}
+                              className={`ticket-boarding-pass ${glowClass} ${isLive ? 'ticket-boarding-pass--live' : 'ticket-boarding-pass--inactive'}${isVod ? ' ticket-boarding-pass--vod' : ''}`}
                               onClick={() => handleTicketClick(tkt)}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: isLive ? 'pointer' : 'default' }}
                               title={
-                                isVod
-                                  ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
-                                  : 'Nhấp để xem chi tiết / In lại vé'
+                                !isLive
+                                  ? 'Vé đã hết hạn hoặc không còn hiệu lực'
+                                  : isVod
+                                    ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
+                                    : 'Nhấp để xem chi tiết / In lại vé'
                               }
                             >
                               <div className="ticket-notch-top" />
@@ -1462,6 +1472,14 @@ export const ProfilePage = () => {
                                     </div>
                                   )}
                                 </div>
+
+                                <div className="ticket-code-row">
+                                  <span className="label-text">Mã vé</span>
+                                  <span className="ticket-code-value">{formatDisplayTicketCode(tkt)}</span>
+                                  {isVod && (
+                                    <span className="ticket-email-hint">Xem mã đầy đủ trong email</span>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="ticket-divider-line-container">
@@ -1481,14 +1499,10 @@ export const ProfilePage = () => {
 
                                 <div className="barcode-wrapper-box">
                                   <div className="barcode-lines" />
-                                  <span className="ticket-id">{formatDisplayTicketCode(tkt)}</span>
-                                  {isVod && (
-                                    <span className="ticket-email-hint">Xem mã đầy đủ trong email</span>
-                                  )}
                                 </div>
 
                                 <span className="stub-price-tag">{tkt.price}</span>
-                                {!isVod && tkt.status === 'active' && tkt.bookingUuid && (
+                                {!isVod && isLive && tkt.bookingUuid && (
                                   <button
                                     type="button"
                                     onClick={(e) => {
