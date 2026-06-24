@@ -3,10 +3,16 @@ import { Link } from 'react-router-dom';
 import { movieService } from '../../../shared/services/movieService';
 import { mapApiMovies, filterOnlineMovies, getMovieDetailPath, sortMoviesByReleaseDate } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
+import PosterImage from '../../../shared/components/PosterImage';
 
-const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp }) => {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const ExclusiveCollection = ({ onlineOnly = false, movies: moviesProp, getOnlinePath: getOnlinePathProp }) => {
+  const [movies, setMovies] = useState(() => {
+    if (!moviesProp?.length) return [];
+    const onlineOnlyList = moviesProp.filter((m) => m.screeningMode === 'ONLINE_ONLY');
+    const bothList = moviesProp.filter((m) => m.screeningMode === 'BOTH');
+    return sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4);
+  });
+  const [isLoading, setIsLoading] = useState(!moviesProp?.length);
   const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(
     onlineOnly ? movies.map((m) => m.uuid) : []
   );
@@ -18,6 +24,14 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
   };
 
   useEffect(() => {
+    if (moviesProp?.length) {
+      const onlineOnlyList = moviesProp.filter((m) => m.screeningMode === 'ONLINE_ONLY');
+      const bothList = moviesProp.filter((m) => m.screeningMode === 'BOTH');
+      setMovies(sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4));
+      setIsLoading(false);
+      return;
+    }
+
     const load = async () => {
       setIsLoading(true);
       try {
@@ -34,7 +48,7 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
       }
     };
     load();
-  }, []);
+  }, [moviesProp]);
 
   if (!isLoading && movies.length === 0) return null;
 
@@ -59,9 +73,10 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
               to={resolvePath(featured.uuid)}
               className="md:row-span-2 relative overflow-hidden rounded-sm border border-white/5 group min-h-[260px] md:min-h-0"
             >
-              <img
+              <PosterImage
                 src={featured.primaryMediaUrl || featured.poster}
                 alt={featured.title}
+                width={600}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
@@ -83,9 +98,10 @@ const ExclusiveCollection = ({ onlineOnly = false, getOnlinePath: getOnlinePathP
               to={resolvePath(movie.uuid)}
               className={`relative overflow-hidden rounded-sm border border-white/5 group ${rest.indexOf(movie) === 0 ? 'md:col-span-2' : ''}`}
             >
-              <img
+              <PosterImage
                 src={movie.primaryMediaUrl || movie.poster}
                 alt={movie.title}
+                width={500}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />

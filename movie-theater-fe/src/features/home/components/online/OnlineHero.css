@@ -311,3 +311,50 @@
     transform: scale(1.14);
   }
 }
+
+.online-hero__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.online-hero__skeleton-title,
+.online-hero__skeleton-sub,
+.online-hero__skeleton-cta {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: online-hero-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.online-hero__skeleton-title {
+  width: min(100%, 28rem);
+  height: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.online-hero__skeleton-sub {
+  width: min(100%, 20rem);
+  height: 1.125rem;
+}
+
+.online-hero__skeleton-cta {
+  width: 12rem;
+  height: 2.75rem;
+  margin-top: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+@keyframes online-hero-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

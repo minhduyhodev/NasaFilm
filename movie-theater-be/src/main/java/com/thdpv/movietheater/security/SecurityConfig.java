@@ -60,6 +60,11 @@ public class SecurityConfig {
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
             "/api/system-config",
+            "/api/media/proxy",
+            "/api/media/tmdb-status",
+            "/api/payments/webhook",
+            "/api/payments/config",
+            "/ws/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"

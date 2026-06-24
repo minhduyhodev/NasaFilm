@@ -26,8 +26,8 @@ const PageHeader = ({
   };
 
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex items-start gap-3 min-w-0">
+    <header className="adm-page-header">
+      <div className="flex items-start gap-3 min-w-0 adm-page-header__main">
         {(backTo || onBack) && (
           <GhostButton
             type="button"
@@ -39,28 +39,16 @@ const PageHeader = ({
           </GhostButton>
         )}
         <div className="min-w-0">
-          {eyebrow && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5 font-heading">
-              {eyebrow}
-            </p>
-          )}
-          <h1
-            className={`text-white tracking-tight truncate font-heading ${
-              variant === 'display'
-                ? 'text-3xl sm:text-4xl font-black uppercase leading-none'
-                : 'text-2xl font-bold'
-            }`}
-          >
+          {eyebrow && <p className="adm-eyebrow">{eyebrow}</p>}
+          <h1 className={`adm-title ${variant === 'default' ? 'adm-title--sm' : ''} truncate`}>
             {title}
           </h1>
-          {description && (
-            <p className="mt-2 text-sm text-gray-400 leading-relaxed max-w-2xl">{description}</p>
-          )}
+          {description && <p className="adm-desc">{description}</p>}
         </div>
       </div>
 
       {(primaryAction || secondaryActions.length > 0 || menuItems.length > 0) && (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="adm-page-actions">
           {secondaryActions.map((action) => (
             <GhostButton
               key={action.label}

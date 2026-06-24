@@ -23,6 +23,7 @@ import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
+import { AdminPage, PageHeader } from "../components";
 import "./UsersPage.css";
 
 const UsersPage = () => {
@@ -230,31 +231,20 @@ const UsersPage = () => {
   };
 
   return (
-    <div className="space-y-6 text-left">
-      {/* PAGE HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2 font-sans">
-            <Users className="w-6 h-6 text-amber-500" />
-            Danh Sách Khách Hàng
-          </h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy
-            và cập nhật trạng thái hoạt động.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs text-black font-bold transition shadow-md shadow-amber-500/10 border-none font-mono cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          Tạo khách hàng
-        </button>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Nhân sự & khách hàng"
+        title="Danh sách khách hàng"
+        description="Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy và cập nhật trạng thái hoạt động."
+        variant="display"
+        primaryAction={{
+          label: "Tạo khách hàng",
+          onClick: () => setIsCreateModalOpen(true),
+          icon: <UserPlus className="w-4 h-4" />,
+        }}
+      />
 
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="adm-kpi-grid adm-kpi-grid--4">
         {[
           {
             label: "Tổng Khách Hàng",
@@ -285,23 +275,12 @@ const UsersPage = () => {
             iconColor: "text-amber-400",
           },
         ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div
-            key={label}
-            className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-5 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors duration-300 group font-sans"
-          >
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 block font-sans">
-                {label}
-              </span>
-              <span
-                className={`text-2.5xl font-extrabold ${valueColor} block leading-none font-sans`}
-              >
-                {value}
-              </span>
+          <div key={label} className="adm-kpi-card flex items-center justify-between gap-3">
+            <div>
+              <span className="adm-kpi-card__label">{label}</span>
+              <span className={`adm-kpi-card__value ${valueColor}`}>{value}</span>
             </div>
-            <div
-              className={`p-3 rounded-xl bg-[#1A2238]/60 border border-[#2C3B5E]/30 ${iconColor} group-hover:scale-105 transition-transform duration-300`}
-            >
+            <div className={`p-2.5 rounded-xl bg-[#1a2238]/60 border border-[#2c3b5e]/30 ${iconColor}`}>
               <Icon className="w-5 h-5" />
             </div>
           </div>
@@ -682,7 +661,7 @@ const UsersPage = () => {
           onCancel={() => setIsCreateModalOpen(false)}
         />
       </AdminModal>
-    </div>
+    </AdminPage>
   );
 };
 

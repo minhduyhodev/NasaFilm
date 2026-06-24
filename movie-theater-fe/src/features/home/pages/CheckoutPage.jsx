@@ -11,6 +11,7 @@ import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import PosterImage from '../../../shared/components/PosterImage';
 
 import './CheckoutPage.css';
 
@@ -281,11 +282,11 @@ const CheckoutPage = () => {
     try {
       let response;
       if (isVod) {
-        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null);
+        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null, paymentMethod);
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
         const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null, paymentMethod);
       }
       
       const successMessage = isVod
@@ -352,7 +353,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} />
+                  <PosterImage className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} width={400} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -486,7 +487,10 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <p className="text-[11px] text-amber-400/90 font-semibold mb-6 px-1">
+                Chế độ demo — thanh toán qua Mock Gateway, không trừ tiền thật. Cổng VNPay/MoMo sẽ được tích hợp sau.
+              </p>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
                 <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${

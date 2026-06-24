@@ -14,11 +14,13 @@ public class CustomerBookingHistoryResponse {
     private String status;
     private UUID movieUuid;
     private String bookingType;
+    private boolean cancellable;
+    private boolean vodActivated;
 
     public CustomerBookingHistoryResponse() {
     }
 
-    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType) {
+    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType, boolean cancellable, boolean vodActivated) {
         this.bookingUuid = bookingUuid;
         this.id = id;
         this.movieTitle = movieTitle;
@@ -30,6 +32,8 @@ public class CustomerBookingHistoryResponse {
         this.status = status;
         this.movieUuid = movieUuid;
         this.bookingType = bookingType;
+        this.cancellable = cancellable;
+        this.vodActivated = vodActivated;
     }
 
     public String getId() {
@@ -118,5 +122,21 @@ public class CustomerBookingHistoryResponse {
 
     public void setBookingType(String bookingType) {
         this.bookingType = bookingType;
+    }
+
+    public boolean isCancellable() {
+        return cancellable;
+    }
+
+    public void setCancellable(boolean cancellable) {
+        this.cancellable = cancellable;
+    }
+
+    public boolean isVodActivated() {
+        return vodActivated;
+    }
+
+    public void setVodActivated(boolean vodActivated) {
+        this.vodActivated = vodActivated;
     }
 }

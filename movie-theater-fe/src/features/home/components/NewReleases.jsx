@@ -5,9 +5,16 @@ import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
 
-const NewReleases = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp, getActionLabel: getActionLabelProp }) => {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const NewReleases = ({
+  onlineOnly = false,
+  movies: moviesProp,
+  getOnlinePath: getOnlinePathProp,
+  getActionLabel: getActionLabelProp,
+}) => {
+  const [movies, setMovies] = useState(() =>
+    moviesProp?.length ? sortMoviesByReleaseDate(moviesProp).slice(0, 6) : []
+  );
+  const [isLoading, setIsLoading] = useState(!moviesProp?.length);
   const { getOnlinePath: getOnlinePathLocal, getActionLabel: getActionLabelLocal } = useOnlineVodRoutes(
     onlineOnly ? movies.map((m) => m.uuid) : []
   );
@@ -15,6 +22,12 @@ const NewReleases = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp, get
   const getActionLabel = getActionLabelProp || getActionLabelLocal;
 
   useEffect(() => {
+    if (moviesProp?.length) {
+      setMovies(sortMoviesByReleaseDate(moviesProp).slice(0, 6));
+      setIsLoading(false);
+      return;
+    }
+
     const fetchMovies = async () => {
       setIsLoading(true);
       try {
@@ -29,7 +42,7 @@ const NewReleases = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp, get
       }
     };
     fetchMovies();
-  }, [onlineOnly]);
+  }, [onlineOnly, moviesProp]);
 
   if (!isLoading && movies.length === 0) return null;
 

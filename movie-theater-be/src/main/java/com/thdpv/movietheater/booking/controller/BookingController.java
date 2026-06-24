@@ -21,6 +21,7 @@ import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
+import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -63,6 +64,14 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/purchase-history")
+    public ResponseEntity<ApiResponse<List<PurchaseHistoryResponse>>> getPurchaseHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        List<PurchaseHistoryResponse> response = bookingService.getPurchaseHistory(
+                userDetails != null ? userDetails.getUsername() : null);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<ApiResponse<List<AdminBookingListResponse>>> getAdminBookings(
@@ -78,13 +87,5 @@ public class BookingController {
     public ResponseEntity<ApiResponse<Void>> checkInTicket(@PathVariable("code") String code) {
         bookingService.checkInTicket(code);
         return ResponseEntity.ok(ApiResponse.success(null, "Soát vé thành công"));
-    }
-
-    @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<Void>> cancelBooking(
-            @PathVariable("id") UUID id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        bookingService.cancelBooking(id, userDetails != null ? userDetails.getUsername() : null);
-        return ResponseEntity.ok(ApiResponse.success(null, "Hủy đặt vé thành công"));
     }
 }

@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Film, Search, Plus, Calendar, Tv, X, Play,
   Ban, CheckCircle, MapPin, CreditCard, LayoutGrid,
-  AlignJustify, Clock, ChevronDown,
+  AlignJustify, Clock, ChevronDown, ChevronsDown, ChevronsUp,
   Layers,
   CalendarDays, Building2,
-  Eye, XCircle, Ticket, Hash,
+  Eye, EyeOff, XCircle, Ticket, Hash,
   DoorOpen, CalendarClock
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
@@ -13,6 +13,9 @@ import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
+import { AdminPage, PageHeader } from '../components';
+import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import './ShowtimesPage.css';
 
 // ========== CONSTANTS ==========
@@ -54,7 +57,8 @@ const STATUS_CONFIG = {
   },
 };
 
-const FALLBACK_POSTER = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=120';
+const getPosterSrc = (rawUrl, width = 120) =>
+  rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
 
 const SORT_OPTIONS = [
   { value: 'startTime_asc', label: 'Giờ chiếu (sớm → muộn)' },
@@ -66,8 +70,21 @@ const SORT_OPTIONS = [
 const VIEW_MODES = [
   { key: 'grid', icon: LayoutGrid, label: 'Lưới' },
   { key: 'list', icon: AlignJustify, label: 'Danh sách' },
-  { key: 'room', icon: DoorOpen, label: 'Phòng chiếu' },
 ];
+
+const DEFAULT_COLLAPSED_SECTIONS = {
+  FINISHED: true,
+  CANCELLED: true,
+};
+
+const KPI_STATUS_MAP = {
+  'Tổng': '',
+  'Đang Mở Bán': 'OPEN_FOR_BOOKING',
+  'Sắp Chiếu': 'SCHEDULED',
+  'Đang Chiếu': 'OPEN_FOR_BOOKING',
+  'Đã Kết Thúc': 'FINISHED',
+  'Đã Hủy': 'CANCELLED',
+};
 
 // ========== HELPERS ==========
 
@@ -180,35 +197,52 @@ const EmptyState = ({ icon: Icon, title, subtitle }) => (
 );
 
 /** Section Header for status groups */
-const SectionHeader = ({ status, count, isCollapsed, onToggle }) => {
+const SectionHeader = ({ status, count, isCollapsed, onToggle, onSelectAll, allSelected }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
   const Icon = cfg.icon;
   return (
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center gap-3 py-3 px-1 group cursor-pointer text-left"
-    >
-      <ChevronDown
-        className={`w-4 h-4 text-gray-500 section-header-chevron ${isCollapsed ? 'rotated' : ''}`}
-      />
-      <div
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
-        style={{ background: cfg.accentBg, borderColor: cfg.accent + '30' }}
+    <div className="st-section-header">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="st-section-header__toggle group"
       >
-        <Icon className="w-3.5 h-3.5" style={{ color: cfg.accent }} />
-        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: cfg.accent }}>
-          {cfg.section}
-        </span>
-      </div>
-      <span className="text-[11px] font-bold text-gray-500 tabular-nums">{count} suất chiếu</span>
-      <div className="flex-1 h-px bg-[#1a2238] group-hover:bg-[#2a3450] transition-colors" />
-    </button>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-500 section-header-chevron shrink-0 ${isCollapsed ? 'rotated' : ''}`}
+        />
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border shrink-0"
+          style={{ background: cfg.accentBg, borderColor: cfg.accent + '30' }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color: cfg.accent }} />
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: cfg.accent }}>
+            {cfg.section}
+          </span>
+        </div>
+        <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0">{count} suất chiếu</span>
+        <div className="flex-1 h-px bg-[#1a2238] group-hover:bg-[#2a3450] transition-colors min-w-[12px]" />
+      </button>
+      {onSelectAll && count > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectAll();
+          }}
+          className="st-section-header__select"
+        >
+          {allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
+        </button>
+      )}
+    </div>
   );
 };
 
 // ========== MAIN COMPONENT ==========
 
 const ShowtimesPage = () => {
+  useMediaUrlRouting();
+
   // ---------- STATE ----------
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
@@ -220,6 +254,7 @@ const ShowtimesPage = () => {
   // Filters & search
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [hideCancelled, setHideCancelled] = useState(true);
   const [cinemaFilter, setCinemaFilter] = useState('');
   const [sortKey, setSortKey] = useState('startTime_asc');
   const [groupBy, setGroupBy] = useState('status'); // 'status' | 'cinema'
@@ -233,7 +268,7 @@ const ShowtimesPage = () => {
   const [itemsPerPage, setItemsPerPage] = useState(12);
 
   // Sections collapse state
-  const [collapsedSections, setCollapsedSections] = useState({});
+  const [collapsedSections, setCollapsedSections] = useState({ ...DEFAULT_COLLAPSED_SECTIONS });
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -334,7 +369,7 @@ const ShowtimesPage = () => {
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds(new Set());
-  }, [searchTerm, statusFilter, cinemaFilter, selectedDate, sortKey]);
+  }, [searchTerm, statusFilter, hideCancelled, cinemaFilter, selectedDate, sortKey]);
 
   const handleAutoClick = () => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -522,9 +557,53 @@ const ShowtimesPage = () => {
     });
   }, []);
 
+  const toggleSelectAllInGroup = useCallback((items) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      const uuids = items.map((s) => s.uuid).filter(Boolean);
+      const allSelected = uuids.length > 0 && uuids.every((id) => next.has(id));
+      uuids.forEach((id) => {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      });
+      return next;
+    });
+  }, []);
+
   const toggleSection = useCallback((key) => {
     setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
+
+  const expandAllStatusSections = useCallback(() => {
+    setCollapsedSections({});
+  }, []);
+
+  const collapseInactiveSections = useCallback(() => {
+    setCollapsedSections({ ...DEFAULT_COLLAPSED_SECTIONS });
+  }, []);
+
+  const handleKpiClick = useCallback((label) => {
+    const mapped = KPI_STATUS_MAP[label];
+    if (mapped === undefined) return;
+    setStatusFilter(mapped);
+    if (mapped === 'CANCELLED') setHideCancelled(false);
+    if (mapped === 'FINISHED' || mapped === 'CANCELLED') {
+      setCollapsedSections((prev) => ({ ...prev, [mapped]: false }));
+    }
+    setCurrentPage(1);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setCinemaFilter('');
+    setHideCancelled(true);
+    setCurrentPage(1);
+  }, []);
+
+  const hasActiveFilters = Boolean(
+    searchTerm || statusFilter || cinemaFilter || !hideCancelled,
+  );
 
   // ---------- DERIVED DATA ----------
   const today = useMemo(() => new Date(), []);
@@ -574,10 +653,12 @@ const ShowtimesPage = () => {
         st.cinemaName?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = !statusFilter || st.status === statusFilter;
       const matchesCinema = !cinemaFilter || st.cinemaName === cinemaFilter;
-      return matchesSearch && matchesStatus && matchesCinema;
+      const matchesCancelledHide =
+        !hideCancelled || statusFilter === 'CANCELLED' || st.status !== 'CANCELLED';
+      return matchesSearch && matchesStatus && matchesCinema && matchesCancelledHide;
     });
     return sortShowtimes(result, sortKey);
-  }, [dateFilteredShowtimes, searchTerm, statusFilter, cinemaFilter, sortKey]);
+  }, [dateFilteredShowtimes, searchTerm, statusFilter, hideCancelled, cinemaFilter, sortKey]);
 
   // KPI stats for the selected date
   const stats = useMemo(() => {
@@ -603,21 +684,27 @@ const ShowtimesPage = () => {
     return filteredShowtimes.slice(start, start + itemsPerPage);
   }, [filteredShowtimes, currentPage, itemsPerPage]);
 
-  // Group by status
+  // Group by status (full filtered set — not paginated slice)
   const statusGroups = useMemo(() => {
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    paginatedShowtimes.forEach(st => {
+    filteredShowtimes.forEach(st => {
       if (groups[st.status]) groups[st.status].push(st);
       else groups[st.status] = [st];
     });
-    return STATUS_ORDER.map(s => ({ status: s, items: groups[s] || [] })).filter(g => g.items.length > 0);
-  }, [paginatedShowtimes]);
+    const ordered = STATUS_ORDER
+      .map(s => ({ status: s, items: groups[s] || [] }))
+      .filter(g => g.items.length > 0);
+    const extras = Object.keys(groups)
+      .filter((s) => !STATUS_ORDER.includes(s) && groups[s]?.length > 0)
+      .map((s) => ({ status: s, items: groups[s] }));
+    return [...ordered, ...extras];
+  }, [filteredShowtimes]);
 
-  // Group by cinema → room → movie
+  // Group by cinema → room → movie (full filtered set)
   const cinemaGroups = useMemo(() => {
     const map = {};
-    paginatedShowtimes.forEach(st => {
+    filteredShowtimes.forEach(st => {
       const cinema = st.cinemaName || 'Không rõ rạp';
       const room = st.cinemaRoomName || 'Không rõ phòng';
       if (!map[cinema]) map[cinema] = {};
@@ -627,16 +714,6 @@ const ShowtimesPage = () => {
       map[cinema][room][movie].push(st);
     });
     return map;
-  }, [paginatedShowtimes]);
-
-  // Unique rooms for timeline/room views
-  const uniqueRooms = useMemo(() => {
-    const roomMap = {};
-    filteredShowtimes.forEach(st => {
-      const key = `${st.cinemaName}__${st.cinemaRoomName}`;
-      if (!roomMap[key]) roomMap[key] = { cinema: st.cinemaName, room: st.cinemaRoomName, key };
-    });
-    return Object.values(roomMap).sort((a, b) => a.cinema.localeCompare(b.cinema) || a.room.localeCompare(b.room));
   }, [filteredShowtimes]);
 
   // Movie selection for modal
@@ -652,7 +729,7 @@ const ShowtimesPage = () => {
     
     // Resolve poster URL
     const movieObj = movies.find(m => m.uuid === row.movieUuid);
-    const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
+    const rawPoster = movieObj?.primaryMediaUrl || row.moviePosterUrl;
 
     return (
       <div
@@ -663,13 +740,13 @@ const ShowtimesPage = () => {
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg overflow-hidden border border-[#1a2238] bg-[#0F1322] relative shadow-md">
             <img
-              src={posterUrl}
+              src={getPosterSrc(rawPoster, 160)}
+              data-original-url={rawPoster || ''}
               alt={row.movieTitle}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = FALLBACK_POSTER;
-              }}
+              onError={handlePosterError}
             />
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -761,16 +838,17 @@ const ShowtimesPage = () => {
         {statusGroups.map(({ status, items }) => {
           const isCollapsed = collapsedSections[status];
           return (
-            <div key={status}>
+            <div key={status} className="st-status-group">
               <SectionHeader
                 status={status}
                 count={items.length}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleSection(status)}
+                onSelectAll={() => toggleSelectAllInGroup(items)}
+                allSelected={items.length > 0 && items.every((s) => selectedIds.has(s.uuid))}
               />
               <div
                 className={`section-collapsible ${isCollapsed ? 'collapsed' : 'expanded'}`}
-                style={{ maxHeight: isCollapsed ? 0 : items.length * 400 + 'px' }}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
                   {items.map(row => renderCard(row))}
@@ -817,15 +895,18 @@ const ShowtimesPage = () => {
                 {Object.entries(movieMap).map(([movieTitle, sts]) => {
                   const firstSt = sts[0];
                   const movieObj = movies.find(m => m.uuid === firstSt?.movieUuid);
-                  const posterUrl = movieObj?.primaryMediaUrl || firstSt?.moviePosterUrl || FALLBACK_POSTER;
+                  const rawPoster = movieObj?.primaryMediaUrl || firstSt?.moviePosterUrl;
                   return (
                     <div key={movieTitle} className="ml-5 mb-3">
                       <div className="text-xs font-bold text-white/80 mb-2 flex items-center gap-2">
                         <img
-                          src={posterUrl}
+                          src={getPosterSrc(rawPoster, 80)}
+                          data-original-url={rawPoster || ''}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="w-6 h-8 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0"
-                          onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                          onError={handlePosterError}
                         />
                         <span>{movieTitle}</span>
                       </div>
@@ -910,7 +991,7 @@ const ShowtimesPage = () => {
           const trans = getValidTransitions(row.status);
           const isSelected = selectedIds.has(row.uuid);
           const movieObj = movies.find(m => m.uuid === row.movieUuid);
-          const posterUrl = movieObj?.primaryMediaUrl || row.moviePosterUrl || FALLBACK_POSTER;
+          const rawPoster = movieObj?.primaryMediaUrl || row.moviePosterUrl;
           return (
             <div key={row.uuid} className={`list-row ${isSelected ? 'selected' : ''}`}>
               <div>
@@ -918,13 +999,13 @@ const ShowtimesPage = () => {
               </div>
               <div className="flex items-center gap-3 min-w-0">
                 <img
-                  src={posterUrl}
+                  src={getPosterSrc(rawPoster, 80)}
+                  data-original-url={rawPoster || ''}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="w-8 h-10 object-cover rounded border border-[#1a2238] bg-[#0F1322] shrink-0 shadow-sm"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = FALLBACK_POSTER;
-                  }}
+                  onError={handlePosterError}
                 />
                 <span className="font-bold text-white text-xs truncate" title={row.movieTitle}>{row.movieTitle}</span>
               </div>
@@ -960,124 +1041,29 @@ const ShowtimesPage = () => {
     </div>
   );
 
-
-
-  /** Room View */
-  const renderRoomView = () => {
-    const hours = Array.from({ length: 17 }, (_, i) => i + 7);
-    const now = new Date();
-    const nowHour = now.getHours() + now.getMinutes() / 60;
-    const nowPct = ((nowHour - 7) / 16) * 100;
-
-    return (
-      <div className="space-y-3 view-fade-enter">
-        {uniqueRooms.length === 0 ? (
-          <EmptyState icon={DoorOpen} title="Không có phòng chiếu" subtitle="Chọn ngày có suất chiếu." />
-        ) : (
-          uniqueRooms.map(({ cinema, room, key }) => {
-            const roomShowtimes = filteredShowtimes.filter(
-              s => s.cinemaName === cinema && s.cinemaRoomName === room
-            );
-            const totalSlots = roomShowtimes.length;
-            const activeSlots = roomShowtimes.filter(s => s.status === 'OPEN_FOR_BOOKING' || s.status === 'SOLD_OUT').length;
-            return (
-              <div key={key} className="bg-[#0B0F19]/70 border border-[#1a2238] rounded-xl overflow-hidden">
-                {/* Room header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2238]">
-                  <div className="flex items-center gap-3">
-                    <DoorOpen className="w-4 h-4 text-blue-400" />
-                    <div>
-                      <p className="text-xs font-bold text-white">{room}</p>
-                      <p className="text-[10px] text-gray-500">{cinema}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-gray-500 font-semibold">{totalSlots} suất</span>
-                    <span className="text-[10px] text-emerald-400 font-semibold">{activeSlots} hoạt động</span>
-                  </div>
-                </div>
-                {/* Timeline */}
-                <div className="timeline-container st-scroll">
-                  <div style={{ minWidth: '900px' }}>
-                    {/* Hour labels */}
-                    <div className="flex border-b border-[#1a2238]/50">
-                      {hours.map(h => (
-                        <div key={h} className="flex-1 text-center py-1.5 border-r border-[#1a2238]/30 text-[9px] font-bold text-gray-600 tabular-nums">
-                          {String(h).padStart(2, '0')}
-                        </div>
-                      ))}
-                    </div>
-                    {/* Blocks */}
-                    <div className="relative" style={{ height: '48px' }}>
-                      {selectedDate === 'today' && nowPct >= 0 && nowPct <= 100 && (
-                        <div className="now-indicator" style={{ left: `${nowPct}%` }} />
-                      )}
-                      {roomShowtimes.map(st => {
-                        if (!st.startTime || !st.endTime) return null;
-                        const start = new Date(st.startTime);
-                        const end = new Date(st.endTime);
-                        const startH = start.getHours() + start.getMinutes() / 60;
-                        const endH = end.getHours() + end.getMinutes() / 60;
-                        const leftPct = ((startH - 7) / 16) * 100;
-                        const widthPct = ((endH - startH) / 16) * 100;
-                        const cfg = STATUS_CONFIG[st.status] || STATUS_CONFIG.DRAFT;
-                        return (
-                          <div
-                            key={st.uuid}
-                            className="room-block"
-                            style={{
-                              left: `${Math.max(0, leftPct)}%`,
-                              width: `${Math.min(widthPct, 100 - leftPct)}%`,
-                              background: cfg.accentBg,
-                              borderLeft: `3px solid ${cfg.accent}`,
-                              color: cfg.accent,
-                            }}
-                            title={`${st.movieTitle} • ${formatTimeOnly(st.startTime)}–${formatTimeOnly(st.endTime)}`}
-                          >
-                            <span className="truncate text-white text-[10px] font-bold">{st.movieTitle}</span>
-                            <span className="text-[9px] opacity-70">{formatTimeOnly(st.startTime)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    );
-  };
-
   // ========== MAIN RENDER ==========
   return (
-    <div className="space-y-6 text-left">
-      {/* ==================== HEADER ==================== */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Vận Hành Rạp</p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Lịch Chiếu Phim</h1>
-          <p className="text-sm text-gray-400 mt-2">Điều phối trạng thái, khởi tạo và phân bổ khung giờ chiếu phim trên toàn hệ thống rạp.</p>
-        </div>
-        <div className="flex flex-wrap gap-2 shrink-0">
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-amber-600/10 cursor-pointer shrink-0"
-            onClick={handleAutoClick}
-          >
-            <CalendarDays className="w-4 h-4" /> Tạo Lịch Tự Động
-          </button>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0"
-            onClick={handleAddClick}
-          >
-            <Plus className="w-4 h-4" /> Thêm Lịch Chiếu
-          </button>
-        </div>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Trung tâm vận hành rạp"
+        title="Quản lý lịch chiếu phim"
+        description="Điều phối trạng thái, khởi tạo và phân bổ khung giờ chiếu phim trên toàn hệ thống rạp."
+        variant="display"
+        secondaryActions={[
+          {
+            label: 'Tạo lịch tự động',
+            onClick: handleAutoClick,
+            icon: <CalendarDays className="w-4 h-4" />,
+          },
+        ]}
+        primaryAction={{
+          label: 'Thêm lịch chiếu',
+          onClick: handleAddClick,
+          icon: <Plus className="w-4 h-4" />,
+        }}
+      />
 
-      {/* ==================== KPI CARDS ==================== */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
+      <div className="adm-kpi-grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
         {[
           { label: 'Tổng', value: stats.total, icon: Film, color: 'text-indigo-400', kpiClass: 'kpi-total' },
           { label: 'Đang Mở Bán', value: stats.selling, icon: Ticket, color: 'text-emerald-400', kpiClass: 'kpi-selling' },
@@ -1087,13 +1073,23 @@ const ShowtimesPage = () => {
           { label: 'Đã Hủy', value: stats.cancelled, icon: Ban, color: 'text-rose-400', kpiClass: 'kpi-cancelled' },
           { label: 'Doanh Thu', value: stats.revenue >= 1000000 ? `${(stats.revenue / 1000000).toFixed(1)}M` : stats.revenue.toLocaleString('vi-VN') + 'đ', icon: CreditCard, color: 'text-pink-400', kpiClass: 'kpi-revenue' },
         ].map(kpi => (
-          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
+          <button
+            key={kpi.label}
+            type="button"
+            onClick={() => handleKpiClick(kpi.label)}
+            className={`adm-kpi-card kpi-card kpi-card--clickable ${kpi.kpiClass}${
+              (kpi.label === 'Tổng' ? !statusFilter : statusFilter === KPI_STATUS_MAP[kpi.label])
+                ? ' kpi-card--active'
+                : ''
+            }`}
+            title={`Lọc theo: ${kpi.label}`}
+          >
             <div className="flex items-center justify-between mb-2">
               <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
               <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
             </div>
             <p className={`text-xl font-black ${kpi.color} tabular-nums leading-none`}>{kpi.value}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -1132,110 +1128,144 @@ const ShowtimesPage = () => {
       </div>
 
       {/* ==================== TOOLBAR ==================== */}
-      <div className="bg-[#0B0F19]/70 border border-[#1a2238] rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-          <input
-            id="showtime-search"
-            className="w-full rounded-lg bg-[#0F1322] border border-[#1a2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-colors"
-            placeholder="Tìm phim, rạp, phòng..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="st-toolbar">
+        <div className="st-toolbar__row">
+          <div className="st-toolbar__search">
+            <Search className="st-toolbar__search-icon" />
+            <input
+              id="showtime-search"
+              className="st-control st-control--search"
+              placeholder="Tìm phim, rạp..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <select
+            id="showtime-status-filter"
+            className="st-control st-control--select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="DRAFT">Nháp</option>
+            <option value="SCHEDULED">Sắp Chiếu</option>
+            <option value="OPEN_FOR_BOOKING">Đang Mở Bán</option>
+            <option value="SOLD_OUT">Hết Ghế</option>
+            <option value="CANCELLED">Đã Hủy</option>
+            <option value="FINISHED">Đã Kết Thúc</option>
+          </select>
+
+          <select
+            id="showtime-cinema-filter"
+            className="st-control st-control--select"
+            value={cinemaFilter}
+            onChange={(e) => setCinemaFilter(e.target.value)}
+          >
+            <option value="">Tất cả rạp</option>
+            {uniqueCinemaNames.map(n => (<option key={n} value={n}>{n}</option>))}
+          </select>
+
+          <select
+            id="showtime-sort"
+            className="st-control st-control--select"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value)}
+          >
+            {SORT_OPTIONS.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => setHideCancelled((prev) => !prev)}
+            title={hideCancelled ? 'Hiện suất chiếu đã hủy' : 'Ẩn suất chiếu đã hủy'}
+            className={`st-chip ${hideCancelled ? 'st-chip--active st-chip--danger' : ''}`}
+          >
+            {hideCancelled ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {hideCancelled ? 'Ẩn đã hủy' : 'Hiện đã hủy'}
+          </button>
         </div>
 
-        {/* Status filter */}
-        <select
-          id="showtime-status-filter"
-          className="rounded-lg bg-[#0F1322] border border-[#1a2238] px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-red-500/50 cursor-pointer"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="DRAFT">Nháp</option>
-          <option value="SCHEDULED">Sắp Chiếu</option>
-          <option value="OPEN_FOR_BOOKING">Đang Mở Bán</option>
-          <option value="SOLD_OUT">Hết Ghế</option>
-          <option value="CANCELLED">Đã Hủy</option>
-          <option value="FINISHED">Đã Kết Thúc</option>
-        </select>
-
-        {/* Cinema filter */}
-        <select
-          id="showtime-cinema-filter"
-          className="rounded-lg bg-[#0F1322] border border-[#1a2238] px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-red-500/50 cursor-pointer"
-          value={cinemaFilter}
-          onChange={(e) => setCinemaFilter(e.target.value)}
-        >
-          <option value="">Tất cả rạp</option>
-          {uniqueCinemaNames.map(n => (<option key={n} value={n}>{n}</option>))}
-        </select>
-
-        {/* Sort */}
-        <select
-          id="showtime-sort"
-          className="rounded-lg bg-[#0F1322] border border-[#1a2238] px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-red-500/50 cursor-pointer"
-          value={sortKey}
-          onChange={(e) => setSortKey(e.target.value)}
-        >
-          {SORT_OPTIONS.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-        </select>
-
-        {/* Bulk select all toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            const allSelected = filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid));
-            const next = new Set(selectedIds);
-            filteredShowtimes.forEach(s => {
-              if (allSelected) {
-                next.delete(s.uuid);
-              } else {
-                next.add(s.uuid);
-              }
-            });
-            setSelectedIds(next);
-          }}
-          className="rounded-lg bg-[#0F1322] border border-[#1a2238] px-3.5 py-2 text-xs font-bold text-gray-300 hover:text-white hover:border-gray-600 transition-colors cursor-pointer"
-        >
-          {filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-        </button>
-
-        {/* Group by toggle (grid view only) */}
-        {viewMode === 'grid' && (
-          <div className="flex items-center gap-1 bg-[#0F1322] border border-[#1a2238] rounded-lg p-1">
-            <button
-              onClick={() => setGroupBy('status')}
-              className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${groupBy === 'status' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
-              title="Nhóm theo trạng thái"
-            >
-              <Layers className="w-3.5 h-3.5 inline mr-1" />Trạng thái
-            </button>
-            <button
-              onClick={() => setGroupBy('cinema')}
-              className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${groupBy === 'cinema' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
-              title="Nhóm theo Rạp → Phòng → Phim"
-            >
-              <Building2 className="w-3.5 h-3.5 inline mr-1" />Rạp
-            </button>
+        <div className="st-toolbar__row st-toolbar__row--actions">
+          <div className="st-toolbar__summary">
+            <span>
+              Hiển thị <strong>{filteredShowtimes.length}</strong>
+              {filteredShowtimes.length !== dateFilteredShowtimes.length && (
+                <> / {dateFilteredShowtimes.length}</>
+              )}{' '}
+              suất
+            </span>
+            {statusGroups.length > 0 && viewMode === 'grid' && groupBy === 'status' && (
+              <span className="st-toolbar__meta">{statusGroups.length} nhóm trạng thái</span>
+            )}
+            {hasActiveFilters && (
+              <button type="button" className="st-toolbar__clear" onClick={clearFilters}>
+                Xóa bộ lọc
+              </button>
+            )}
           </div>
-        )}
 
-        <div className="flex-1" />
+          {viewMode === 'grid' && groupBy === 'status' && statusGroups.length > 0 && (
+            <div className="st-toolbar__group-actions">
+              <button type="button" className="st-btn-ghost" onClick={expandAllStatusSections}>
+                <ChevronsDown className="w-3.5 h-3.5" /> Mở tất cả
+              </button>
+              <button type="button" className="st-btn-ghost" onClick={collapseInactiveSections}>
+                <ChevronsUp className="w-3.5 h-3.5" /> Thu gọn cũ
+              </button>
+            </div>
+          )}
 
-        {/* View mode switcher */}
-        <div className="flex items-center gap-1 bg-[#0F1322] border border-[#1a2238] rounded-lg p-1">
-          {VIEW_MODES.map(vm => (
-            <button
-              key={vm.key}
-              onClick={() => setViewMode(vm.key)}
-              title={vm.label}
-              className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === vm.key ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <vm.icon className="w-4 h-4" />
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => {
+              const allSelected = filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid));
+              const next = new Set(selectedIds);
+              filteredShowtimes.forEach(s => {
+                if (allSelected) next.delete(s.uuid);
+                else next.add(s.uuid);
+              });
+              setSelectedIds(next);
+            }}
+            className="st-btn-ghost"
+          >
+            {filteredShowtimes.length > 0 && filteredShowtimes.every(s => selectedIds.has(s.uuid)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+          </button>
+
+          {viewMode === 'grid' && (
+            <div className="st-segment">
+              <button
+                type="button"
+                onClick={() => setGroupBy('status')}
+                className={`st-segment__btn ${groupBy === 'status' ? 'is-active' : ''}`}
+                title="Nhóm theo trạng thái"
+              >
+                <Layers className="w-3.5 h-3.5" /> Trạng thái
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupBy('cinema')}
+                className={`st-segment__btn ${groupBy === 'cinema' ? 'is-active' : ''}`}
+                title="Nhóm theo Rạp → Phòng → Phim"
+              >
+                <Building2 className="w-3.5 h-3.5" /> Rạp
+              </button>
+            </div>
+          )}
+
+          <div className="st-segment">
+            {VIEW_MODES.map(vm => (
+              <button
+                key={vm.key}
+                type="button"
+                onClick={() => setViewMode(vm.key)}
+                title={vm.label}
+                className={`st-segment__btn st-segment__btn--icon ${viewMode === vm.key ? 'is-active' : ''}`}
+              >
+                <vm.icon className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1286,10 +1316,9 @@ const ShowtimesPage = () => {
         <>
           {viewMode === 'grid' && renderGridView()}
           {viewMode === 'list' && renderListView()}
-          {viewMode === 'room' && renderRoomView()}
 
-          {/* Centralized Pagination for grid and list views */}
-          {(viewMode === 'grid' || viewMode === 'list') && filteredShowtimes.length > itemsPerPage && (
+          {/* Pagination — list view only; grid groups show full filtered set */}
+          {viewMode === 'list' && filteredShowtimes.length > itemsPerPage && (
             <div className="mt-6 flex justify-end">
               <Pagination
                 currentPage={currentPage}
@@ -1657,10 +1686,13 @@ const ShowtimesPage = () => {
 
                         <div className="w-10 h-14 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
                           <img
-                            src={p.moviePosterUrl || FALLBACK_POSTER}
+                            src={getPosterSrc(p.moviePosterUrl, 80)}
+                            data-original-url={p.moviePosterUrl || ''}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
-                            onError={(e) => { e.target.src = FALLBACK_POSTER; }}
+                            onError={handlePosterError}
                           />
                         </div>
 
@@ -1927,7 +1959,7 @@ const ShowtimesPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </AdminPage>
   );
 };
 

@@ -5,8 +5,13 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { bookingService } from '../../../shared/services/bookingService';
+import { seatMapSocketService } from '../../../shared/services/seatMapSocketService';
 import { movieService } from '../../../shared/services/movieService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { getMoviePosterUrl } from '../utils/movieUtils';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
 
 import './BookingPage.css';
 
@@ -181,12 +186,11 @@ const BookingPage = () => {
     window.scrollTo(0, 0);
     fetchSeatMap();
 
-    // Poll the seat map every 10 seconds to keep seating map fresh
-    const interval = setInterval(() => {
+    const unsubscribe = seatMapSocketService.subscribe(showtimeUuid, () => {
       fetchSeatMap();
-    }, 10000);
+    });
 
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [showtimeUuid]);
 
   const handleSeatClick = async (seat, rowName) => {

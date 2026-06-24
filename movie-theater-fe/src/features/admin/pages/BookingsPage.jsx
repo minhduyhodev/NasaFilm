@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, User, Film,
+  Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, Film,
   MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
-  Filter, X, ChevronDown, ChevronLeft, ChevronRight
+  X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, SlidersHorizontal
 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
@@ -10,13 +10,21 @@ import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
+import PosterImage from '../../../shared/components/PosterImage';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { AdminPage, PageHeader, GhostButton } from '../components';
 import './BookingsPage.css';
 
 const BookingsPage = () => {
+  useMediaUrlRouting();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [hideCancelled, setHideCancelled] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [moviesMap, setMoviesMap] = useState({});
   const [cinemasList, setCinemasList] = useState([]);
@@ -209,19 +217,26 @@ const BookingsPage = () => {
       const moviesList = moviesData?.content || [];
       const moviesMapping = {};
       moviesList.forEach(m => {
-        if (m.title) moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        if (m.title && m.primaryMediaUrl) {
+          moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        }
+      });
+      const showtimesData = await showtimeService.getAdminShowtimes();
+      (showtimesData || []).forEach((st) => {
+        if (st.movieTitle && st.moviePosterUrl) {
+          moviesMapping[st.movieTitle.toLowerCase().trim()] = st.moviePosterUrl;
+        }
       });
       setMoviesMap(moviesMapping);
       const cinemasData = await movieService.getCinemas();
       setCinemasList(cinemasData || []);
-      const showtimesData = await showtimeService.getAdminShowtimes();
       setShowtimes(showtimesData || []);
     } catch (err) {
       console.error('Failed to fetch auxiliary data:', err);
     }
   };
 
-  const fetchBookings = async (keyword = '') => {
+  const fetchBookings = useCallback(async (keyword = '') => {
     setIsLoading(true);
     try {
       const data = await bookingService.getAdminBookings(keyword);
@@ -232,18 +247,20 @@ const BookingsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => { fetchAuxiliaryData(); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBookings(searchTerm); }, 450);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchBookings]);
+
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, () => fetchBookings(searchTerm));
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCinema, selectedShowtime]);
+  }, [searchTerm, statusFilter, hideCancelled, startDate, endDate, selectedCinema, selectedShowtime]);
 
   const handleClearFilters = () => {
     setStartDate('');
@@ -251,7 +268,20 @@ const BookingsPage = () => {
     setSelectedCinema('');
     setSelectedShowtime('');
     setStatusFilter('ALL');
+    setHideCancelled(true);
     setSearchTerm('');
+  };
+
+  const handleKpiClick = (label) => {
+    if (label === 'THÀNH CÔNG' || label === 'DOANH THU') {
+      setStatusFilter('CONFIRMED');
+    } else if (label === 'ĐÃ HỦY') {
+      setStatusFilter('CANCELLED');
+      setHideCancelled(false);
+    } else if (label === 'TỔNG ĐƠN HÀNG') {
+      setStatusFilter('ALL');
+    }
+    setCurrentPage(1);
   };
 
   const handleCancelBookingDirect = async (row) => {
@@ -293,8 +323,8 @@ const BookingsPage = () => {
   };
 
   const formatPrice = (price) => {
-    if (price === undefined || price === null) return '0 d';
-    return `${price.toLocaleString('vi-VN')} d`;
+    if (price === undefined || price === null) return '0đ';
+    return `${price.toLocaleString('vi-VN')}đ`;
   };
 
   const getBookingShowtime = (booking) => {
@@ -324,25 +354,38 @@ const BookingsPage = () => {
     return options.sort();
   }, [showtimes]);
 
-  const filteredBookings = bookings.filter((b) => {
-    if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
-    if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
-    if (startDate) {
-      const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-      const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
-      if (bDate < sDate) return false;
-    }
-    if (endDate) {
-      const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-      const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
-      if (bDate > eDate) return false;
-    }
-    if (selectedShowtime) {
-      const stTime = getBookingShowtimeTime(b);
-      if (stTime !== selectedShowtime) return false;
-    }
-    return true;
-  });
+  const filteredBookings = React.useMemo(() => {
+    const list = bookings.filter((b) => {
+      if (hideCancelled && statusFilter !== 'CANCELLED' && b.status?.toUpperCase() === 'CANCELLED') {
+        return false;
+      }
+      if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
+      if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
+      if (startDate) {
+        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
+        const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
+        if (bDate < sDate) return false;
+      }
+      if (endDate) {
+        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
+        const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
+        if (bDate > eDate) return false;
+      }
+      if (selectedShowtime) {
+        const stTime = getBookingShowtimeTime(b);
+        if (stTime !== selectedShowtime) return false;
+      }
+      return true;
+    });
+
+    const statusRank = { PENDING: 0, CONFIRMED: 1, CANCELLED: 2 };
+    return list.sort((a, b) => {
+      const ra = statusRank[a.status?.toUpperCase()] ?? 1;
+      const rb = statusRank[b.status?.toUpperCase()] ?? 1;
+      if (ra !== rb) return ra - rb;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [bookings, hideCancelled, statusFilter, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
 
   const stats = React.useMemo(() => {
     const baseListForStats = bookings.filter((b) => {
@@ -377,162 +420,183 @@ const BookingsPage = () => {
     return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredBookings, currentPage, itemsPerPage]);
 
-  const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm;
+  const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm || !hideCancelled;
+
+  const kpiActive = (label) => {
+    if (label === 'TỔNG ĐƠN HÀNG') return statusFilter === 'ALL' && hideCancelled;
+    if (label === 'THÀNH CÔNG' || label === 'DOANH THU') return statusFilter === 'CONFIRMED';
+    if (label === 'ĐÃ HỦY') return statusFilter === 'CANCELLED';
+    return false;
+  };
 
   const getStatusConfig = (status) => {
     const s = status?.toUpperCase();
     if (s === 'CONFIRMED') return {
       label: 'Thành công',
       accentBg: 'bg-emerald-500',
+      accentBorder: 'bk-order-row--confirmed',
       badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
       dot: 'bg-emerald-400 animate-pulse',
     };
     if (s === 'CANCELLED') return {
       label: 'Đã hủy',
       accentBg: 'bg-rose-500',
+      accentBorder: 'bk-order-row--cancelled',
       badgeCls: 'bg-rose-500/15 border border-rose-500/30 text-rose-400',
       dot: 'bg-rose-400',
     };
     return {
       label: 'Chờ xử lý',
       accentBg: 'bg-amber-500',
+      accentBorder: 'bk-order-row--pending',
       badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
       dot: 'bg-amber-400',
     };
   };
 
   return (
-    <div className="space-y-6 text-left">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Vận Hành Đơn Hàng</p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Đơn Hàng &amp; Doanh Thu</h1>
-          <p className="text-sm text-gray-400 mt-2">Theo dõi, tra cứu và đối soát trạng thái giao dịch đặt vé của khách hàng trên toàn bộ chi nhánh.</p>
-        </div>
-        <div className="flex items-center gap-2.5 shrink-0">
-          {hasActiveFilters && (
-            <button onClick={handleClearFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-400 hover:text-white border border-[#1A2238] rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer">
-              <X className="w-3.5 h-3.5" />
-              Đặt lại bộ lọc
-            </button>
-          )}
-        </div>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Trung tâm vận hành đơn hàng"
+        title="Quản lý đơn hàng & doanh thu"
+        description="Theo dõi, tra cứu và đối soát trạng thái giao dịch đặt vé của khách hàng trên toàn bộ chi nhánh."
+        variant="display"
+        secondaryActions={
+          hasActiveFilters
+            ? [{ label: 'Đặt lại bộ lọc', onClick: handleClearFilters, icon: <X className="w-3.5 h-3.5" /> }]
+            : []
+        }
+      />
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6 text-left">
+      <div className="adm-kpi-grid adm-kpi-grid--5">
         {[
-          { label: 'DOANH THU', value: formatPrice(stats.totalRevenue), badge: 'Đơn thành công', icon: DollarSign, color: 'text-amber-400', kpiClass: 'kpi-revenue' },
-          { label: 'THÀNH CÔNG', value: stats.confirmedCount, badge: 'đơn đặt vé', icon: CheckCircle2, color: 'text-emerald-400', kpiClass: 'kpi-success' },
-          { label: 'ĐÃ HỦY', value: stats.cancelledCount, badge: 'đơn đã hủy', icon: XCircle, color: 'text-rose-400', kpiClass: 'kpi-cancelled' },
-          { label: 'TỔNG ĐƠN HÀNG', value: stats.totalCount, badge: 'tổng giao dịch', icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total' },
-          { label: 'GIÁ TRỊ AOV', value: formatPrice(stats.avgOrderValue), badge: 'trung bình/đơn', icon: Sparkles, color: 'text-blue-400', kpiClass: 'kpi-aov' }
-        ].map(kpi => (
-          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
-              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
-            </div>
-            <p className={`text-xl font-black ${kpi.color} leading-none truncate`} title={kpi.value.toString()}>{kpi.value}</p>
-            <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
-          </div>
-        ))}
+          { label: 'DOANH THU', value: formatPrice(stats.totalRevenue), badge: 'Đơn thành công', icon: DollarSign, color: 'text-amber-400', kpiClass: 'kpi-revenue', clickable: true },
+          { label: 'THÀNH CÔNG', value: stats.confirmedCount, badge: 'đơn đặt vé', icon: CheckCircle2, color: 'text-emerald-400', kpiClass: 'kpi-success', clickable: true },
+          { label: 'ĐÃ HỦY', value: stats.cancelledCount, badge: 'đơn đã hủy', icon: XCircle, color: 'text-rose-400', kpiClass: 'kpi-cancelled', clickable: true },
+          { label: 'TỔNG ĐƠN HÀNG', value: stats.totalCount, badge: 'tổng giao dịch', icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total', clickable: true },
+          { label: 'GIÁ TRỊ AOV', value: formatPrice(stats.avgOrderValue), badge: 'trung bình/đơn', icon: Sparkles, color: 'text-blue-400', kpiClass: 'kpi-aov', clickable: false }
+        ].map(kpi => {
+          const Tag = kpi.clickable ? 'button' : 'div';
+          return (
+            <Tag
+              key={kpi.label}
+              type={kpi.clickable ? 'button' : undefined}
+              onClick={kpi.clickable ? () => handleKpiClick(kpi.label) : undefined}
+              className={`adm-kpi-card kpi-card ${kpi.kpiClass} ${kpi.clickable ? 'adm-kpi-card--clickable kpi-card--clickable' : ''} ${kpiActive(kpi.label) ? 'adm-kpi-card--active kpi-card--active' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+                <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
+              </div>
+              <p className={`text-xl font-black ${kpi.color} leading-none truncate`} title={kpi.value.toString()}>{kpi.value}</p>
+              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
+            </Tag>
+          );
+        })}
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="bg-[#1c2333]/50 border border-[#242d42] rounded-2xl p-5 space-y-4 backdrop-blur-md shadow-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+      <div className="bk-toolbar">
+        <div className="bk-toolbar__row">
+          <div className="bk-toolbar__search">
+            <Search className="bk-toolbar__search-icon" />
             <input
-              className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-605 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 font-sans"
+              className="bk-control bk-control--search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên khách, email, phim..."
             />
           </div>
-          <div className="flex items-center bg-[#0b0f19] border border-[#242d42] p-1 rounded-xl self-start sm:self-auto shrink-0 shadow-inner">
-            {[{ key: 'ALL', label: 'Tất cả' }, { key: 'CONFIRMED', label: 'Thành công' }, { key: 'CANCELLED', label: 'Đã hủy' }].map(({ key, label }) => (
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[{ key: 'ALL', label: 'Tất cả', chip: 'muted' }, { key: 'CONFIRMED', label: 'Thành công', chip: 'success' }, { key: 'CANCELLED', label: 'Đã hủy', chip: 'danger' }].map(({ key, label, chip }) => (
               <button
                 key={key}
-                onClick={() => setStatusFilter(key)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer border-0 ${
-                  statusFilter === key
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5 bg-transparent'
-                }`}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(key);
+                  if (key === 'CANCELLED') setHideCancelled(false);
+                }}
+                className={`bk-chip ${statusFilter === key ? `bk-chip--active ${chip === 'success' ? 'bk-chip--success' : chip === 'muted' ? 'bk-chip--muted' : ''}` : ''}`}
               >
                 {label}
               </button>
             ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setHideCancelled((v) => !v)}
+            className={`bk-chip ${hideCancelled ? 'bk-chip--active' : ''}`}
+            title={hideCancelled ? 'Đang ẩn đơn đã hủy' : 'Hiện cả đơn đã hủy'}
+          >
+            {hideCancelled ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {hideCancelled ? 'Ẩn đã hủy' : 'Hiện đã hủy'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className={`bk-chip ${advancedOpen ? 'bk-chip--active bk-chip--muted' : ''}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Bộ lọc nâng cao
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Từ ngày mua</label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => openDatePicker('startDate')}
-                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
-              >
-                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-                <span className={startDate ? 'text-white' : 'text-gray-600'}>
-                  {startDate ? startDate : 'yyyy-mm-dd'}
-                </span>
-              </button>
-            </div>
-            {activeDatePickerField === 'startDate' && (
-              <>
-                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
-                <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
-                  {renderCalendarContent('startDate')}
-                </div>
-              </>
-            )}
-          </div>
+        {advancedOpen && (
+          <div className="bk-toolbar__row bk-toolbar__row--advanced">
 
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Đến ngày mua</label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => openDatePicker('endDate')}
-                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
-              >
-                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-                <span className={endDate ? 'text-white' : 'text-gray-600'}>
-                  {endDate ? endDate : 'yyyy-mm-dd'}
-                </span>
-              </button>
+            <div className="bk-filter-field">
+              <label>Từ ngày mua</label>
+              <div className="relative">
+                <button type="button" onClick={() => openDatePicker('startDate')} className="bk-filter-trigger">
+                  <Calendar className="bk-filter-trigger__icon" />
+                  <span className={startDate ? 'text-white' : 'text-gray-600'}>{startDate || 'yyyy-mm-dd'}</span>
+                </button>
+                {activeDatePickerField === 'startDate' && (
+                  <>
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                      {renderCalendarContent('startDate')}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            {activeDatePickerField === 'endDate' && (
-              <>
-                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)}></div>
-                <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
-                  {renderCalendarContent('endDate')}
-                </div>
-              </>
-            )}
-          </div>
 
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Rạp chiếu / Chi nhánh</label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema');
-                  setActiveDatePickerField(null);
-                }}
-                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
-              >
-                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-                <span className="truncate">{selectedCinema ? selectedCinema : 'Tất cả rạp'}</span>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-              </button>
+            <div className="bk-filter-field">
+              <label>Đến ngày mua</label>
+              <div className="relative">
+                <button type="button" onClick={() => openDatePicker('endDate')} className="bk-filter-trigger">
+                  <Calendar className="bk-filter-trigger__icon" />
+                  <span className={endDate ? 'text-white' : 'text-gray-600'}>{endDate || 'yyyy-mm-dd'}</span>
+                </button>
+                {activeDatePickerField === 'endDate' && (
+                  <>
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                      {renderCalendarContent('endDate')}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="bk-filter-field">
+              <label>Rạp chiếu</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema'); setActiveDatePickerField(null); }}
+                  className="bk-filter-trigger"
+                >
+                  <MapPin className="bk-filter-trigger__icon" />
+                  <span className="truncate block pr-2">{selectedCinema || 'Tất cả rạp'}</span>
+                  <ChevronDown className="bk-filter-trigger__chevron" />
+                </button>
 
               {activeDropdown === 'cinema' && (
                 <>
@@ -569,23 +633,20 @@ const BookingsPage = () => {
                 </>
               )}
             </div>
-          </div>
+            </div>
 
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 leading-tight">Khung giờ suất chiếu</label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime');
-                  setActiveDatePickerField(null);
-                }}
-                className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300 cursor-pointer font-sans text-left flex items-center h-[38px] relative"
-              >
-                <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-                <span className="truncate">{selectedShowtime ? selectedShowtime : 'Tất cả khung giờ'}</span>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
-              </button>
+            <div className="bk-filter-field">
+              <label>Khung giờ suất chiếu</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime'); setActiveDatePickerField(null); }}
+                  className="bk-filter-trigger"
+                >
+                  <Clock className="bk-filter-trigger__icon" />
+                  <span className="truncate block pr-2">{selectedShowtime || 'Tất cả khung giờ'}</span>
+                  <ChevronDown className="bk-filter-trigger__chevron" />
+                </button>
 
               {activeDropdown === 'showtime' && (
                 <>
@@ -622,30 +683,32 @@ const BookingsPage = () => {
                 </>
               )}
             </div>
-          </div>
-        </div>
-
-        {hasActiveFilters && (
-          <div className="flex items-center gap-2 pt-1 border-t border-[#242d42]/30">
-            <Filter className="w-3.5 h-3.5 text-red-400" />
-            <span className="text-[11px] text-gray-400">
-              Bộ lọc đang hoạt động —{' '}
-              <button
-                onClick={handleClearFilters}
-                className="text-red-500 hover:text-red-400 font-bold cursor-pointer transition-colors border-0 bg-transparent p-0"
-              >
-                Xóa bộ lọc
-              </button>
-            </span>
+            </div>
           </div>
         )}
+
+        <div className="bk-toolbar__summary">
+          <span>Hiển thị <strong>{filteredBookings.length}</strong> / {bookings.length} đơn</span>
+          {hideCancelled && statusFilter !== 'CANCELLED' && (
+            <span className="bk-toolbar__meta">Ẩn đã hủy</span>
+          )}
+          {hasActiveFilters && (
+            <button type="button" onClick={handleClearFilters} className="text-[10px] font-bold text-red-400 hover:text-red-300 border-0 bg-transparent cursor-pointer p-0">
+              Xóa bộ lọc
+            </button>
+          )}
+        </div>
       </div>
 
       {/* BOOKING CARDS LIST */}
-      <div className="bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1A2238] bg-white/[0.015]">
-          <span className="text-sm font-bold text-white">Danh sách đơn hàng <span className="ml-2 text-xs font-normal text-gray-500">({filteredBookings.length} đơn)</span></span>
-          {!isLoading && filteredBookings.length > 0 && (<span className="text-[10px] text-gray-600 font-mono">Trang {currentPage} / {Math.ceil(filteredBookings.length / itemsPerPage)}</span>)}
+      <div className="bk-list-panel">
+        <div className="bk-list-header">
+          <span className="text-sm font-bold text-white">Danh sách đơn hàng</span>
+          {!isLoading && filteredBookings.length > 0 && (
+            <span className="text-[10px] text-gray-600 font-mono">
+              Trang {currentPage} / {Math.ceil(filteredBookings.length / itemsPerPage)}
+            </span>
+          )}
         </div>
 
         {isLoading ? (
@@ -666,122 +729,103 @@ const BookingsPage = () => {
             {hasActiveFilters && (<button onClick={handleClearFilters} className="px-4 py-2 rounded-lg bg-red-600/10 border border-red-600/20 text-red-400 text-xs font-bold cursor-pointer hover:bg-red-600/20 transition-all">Xóa bộ lọc</button>)}
           </div>
         ) : (
-          <div className="divide-y divide-[#1A2238]/50">
+          <div>
             {paginatedBookings.map((row) => {
               const statusCfg = getStatusConfig(row.status);
-              const posterUrl = moviesMap[row.movieTitle?.toLowerCase().trim()];
+              const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
               const seatList = row.seats ? row.seats.split(',').map(s => s.trim()).filter(Boolean) : [];
               const st = getBookingShowtime(row);
               const showtimeStr = st && st.startTime
-                ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} | ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
+                ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
                 : null;
               const isConfirmed = row.status?.toUpperCase() === 'CONFIRMED';
 
               return (
-                <div key={row.bookingUuid} className="flex items-stretch min-h-[120px] hover:bg-white/[0.012] transition-colors duration-150">
-                  {/* LEFT ACCENT BAR */}
-                  <div className={`w-1 self-stretch shrink-0 ${statusCfg.accentBg} opacity-80`} />
-
-                  {/* SECTION 1: CUSTOMER */}
-                  <div className="w-52 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center gap-2">
-                    <div className="flex items-start gap-3">
+                <div key={row.bookingUuid} className={`bk-order-row ${statusCfg.accentBorder}`}>
+                  <div className="bk-order-cell bk-order-cell--customer">
+                    <div className="bk-order-customer">
                       <UserAvatar
                         src={row.customerAvatarUrl}
                         name={row.customerName}
                         fallbackClassName="bg-slate-800"
                         borderClassName="border border-white/10"
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white leading-snug break-words">{row.customerName || 'N/A'}</div>
-                        <div className="text-xs text-gray-400 break-words mt-0.5">{row.customerEmail || 'N/A'}</div>
-                        <div className="text-[10px] text-gray-600 font-mono uppercase mt-1 tracking-wider">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
+                      <div className="min-w-0">
+                        <div className="bk-order-customer__name">{row.customerName || 'N/A'}</div>
+                        <div className="bk-order-customer__email">{row.customerEmail || 'N/A'}</div>
+                        <div className="bk-order-customer__id">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* SECTION 2: MOVIE + SHOWTIME */}
-                  <div className="flex-1 px-5 py-4 border-r border-[#1A2238]/50 flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-16 rounded-lg overflow-hidden border border-[#1A2238] shadow-md shrink-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                      {posterUrl ? (<img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />) : (<Film className="w-5 h-5 text-gray-600" />)}
-                    </div>
-                    <div className="min-w-0 space-y-1.5">
-                      <div className="text-sm font-black text-white leading-snug break-words uppercase tracking-wide">{row.movieTitle || 'N/A'}</div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <MapPin className="w-3 h-3 shrink-0 text-gray-500" />
-                        <span className="break-words">{row.cinemaRoomName || 'N/A'}</span>
+                  <div className="bk-order-cell">
+                    <div className="bk-order-movie">
+                      <div className="bk-order-movie__poster">
+                        {rawPoster ? (
+                          <PosterImage src={rawPoster} alt="Poster" width={80} className="w-full h-full object-cover" />
+                        ) : (<Film className="w-4 h-4 text-gray-600" />)}
                       </div>
-                      {showtimeStr ? (
-                        <div className="flex items-center gap-1 text-xs">
-                          <Clock className="w-3 h-3 shrink-0 text-blue-400" />
-                          <span className="font-mono text-blue-400/80">{showtimeStr}</span>
+                      <div className="min-w-0">
+                        <div className="bk-order-movie__title">{row.movieTitle || 'N/A'}</div>
+                        <div className="bk-order-movie__meta">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{row.cinemaRoomName || 'N/A'}</span>
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>Chưa ghép suất chiếu</span>
+                        {showtimeStr ? (
+                          <div className="bk-order-movie__showtime">{showtimeStr}</div>
+                        ) : (
+                          <div className="bk-order-movie__meta mt-1">
+                            <AlertCircle className="w-3 h-3" />
+                            <span>Chưa ghép suất chiếu</span>
+                          </div>
+                        )}
+                        <div className="bk-order-movie__meta mt-1">
+                          <Calendar className="w-3 h-3 shrink-0" />
+                          <span className="font-mono text-[10px]">{formatDateTime(row.createdAt)}</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Calendar className="w-3 h-3 shrink-0" />
-                        <span className="font-mono text-[11px]">{formatDateTime(row.createdAt)}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* SECTION 3: SEATS */}
-                  <div className="w-44 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-2">Ghế đã đặt</p>
+                  <div className="bk-order-cell">
+                    <p className="bk-order-label">Ghế</p>
                     {seatList.length > 0 ? (
-                      <>
-                        <div className="flex flex-wrap gap-1 mb-1.5">
-                          {seatList.map((seat) => (
-                            <span key={seat} className="px-1.5 py-0.5 rounded bg-[#1A2238] border border-[#252E44] text-[10px] font-mono text-gray-300">{seat}</span>
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">{seatList.length} ghế</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-600">-</span>
-                    )}
-                    {row.combos && (
-                      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                        <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span className="truncate" title={row.combos}>Combo: {row.combos}</span>
+                      <div>
+                        {seatList.map((seat) => (
+                          <span key={seat} className="bk-seat-tag">{seat}</span>
+                        ))}
+                        {row.combos && (
+                          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                            <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+                            <span className="truncate" title={row.combos}>{row.combos}</span>
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
                     )}
                   </div>
 
-                  {/* SECTION 4: PAYMENT */}
-                  <div className="w-36 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center gap-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Tổng thanh toán</p>
-                    <p className="text-xl font-black text-amber-400 font-mono leading-tight">{formatPrice(row.totalPrice)}</p>
+                  <div className="bk-order-cell">
+                    <p className="bk-order-label">Thanh toán</p>
+                    <p className="bk-order-price">{formatPrice(row.totalPrice)}</p>
                     {row.paymentMethod && (
-                      <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-[#1A2238] border border-[#252E44] text-[10px] font-bold text-gray-400 uppercase tracking-wider">{row.paymentMethod}</span>
+                      <span className="mt-1 inline-block px-1.5 py-0.5 rounded bg-[#1A2238] text-[9px] font-bold text-gray-500 uppercase">{row.paymentMethod}</span>
                     )}
                   </div>
 
-                  {/* SECTION 5: STATUS + ACTIONS */}
-                  <div className="w-40 shrink-0 px-5 py-4 flex flex-col justify-center items-start gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusCfg.badgeCls}`}>
+                  <div className="bk-order-cell bk-order-cell--actions gap-2">
+                    <span className={`bk-status-badge ${statusCfg.badgeCls}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                       {statusCfg.label}
                     </span>
-                    <span className="text-[10px] text-gray-600 font-mono">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString('vi-VN') : ''}
-                    </span>
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <button
-                        onClick={() => handleCheckInDirect(row)}
-                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 transition-all duration-150 cursor-pointer"
-                      >
+                    <div className="flex flex-col gap-1 w-full">
+                      <button type="button" onClick={() => handleCheckInDirect(row)} className="bk-action-btn bk-action-btn--checkin">
                         <QrCode className="w-3 h-3" />
                         Check-in
                       </button>
                       {isConfirmed && (
-                        <button
-                          onClick={() => handleCancelBookingDirect(row)}
-                          className="w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] font-bold hover:bg-rose-500/20 transition-all duration-150 cursor-pointer"
-                        >
+                        <button type="button" onClick={() => handleCancelBookingDirect(row)} className="bk-action-btn bk-action-btn--cancel">
                           <XCircle className="w-3 h-3" />
                           Hủy đơn
                         </button>
@@ -805,7 +849,7 @@ const BookingsPage = () => {
           onItemsPerPageChange={setItemsPerPage}
         />
       )}
-    </div>
+    </AdminPage>
   );
 };
 

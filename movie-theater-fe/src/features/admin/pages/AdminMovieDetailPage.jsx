@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { User, Edit2, Trash2, Loader2, ExternalLink, Film } from 'lucide-react';
+import { User, Edit2, Trash2, Loader2, Film } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatDateDisplay, getScreeningModeLabel } from '../utils/adminMovieUtils.jsx';
@@ -12,9 +12,9 @@ import {
   Section,
   MetadataRow,
   GhostButton,
-  DangerButton,
   PrimaryButton,
 } from '../components';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const AdminMovieDetailPage = () => {
   const { movieUuid } = useParams();
@@ -60,7 +60,6 @@ const AdminMovieDetailPage = () => {
   };
 
   const posterUrl = movie?.medias?.find((m) => m.mediaType === 'POSTER')?.mediaUrl;
-  const trailerUrl = movie?.medias?.find((m) => m.mediaType === 'TRAILER')?.mediaUrl;
 
   if (isLoading) {
     return (
@@ -87,9 +86,10 @@ const AdminMovieDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col items-start gap-3">
           {posterUrl ? (
-            <img
+            <PosterImage
               src={posterUrl}
               alt={movie.title}
+              width={400}
               className="w-full max-w-xs aspect-[2/3] object-cover rounded-lg"
             />
           ) : (
@@ -99,17 +99,6 @@ const AdminMovieDetailPage = () => {
           )}
 
           <div className="w-full max-w-xs flex flex-col gap-2">
-            {trailerUrl && (
-              <DangerButton
-                type="button"
-                className="w-full justify-center py-2.5"
-                onClick={() => window.open(trailerUrl, '_blank', 'noopener,noreferrer')}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Trailer
-              </DangerButton>
-            )}
-
             <PrimaryButton
               type="button"
               className="w-full justify-center py-2.5"

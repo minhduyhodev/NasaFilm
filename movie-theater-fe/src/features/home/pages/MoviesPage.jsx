@@ -130,6 +130,10 @@ const MoviesPage = () => {
             size: 6,
           };
 
+          if (activeTab === 'now-showing') {
+            queryParams.requireBookableShowtime = true;
+          }
+
           if (trimmedKeyword) {
             queryParams.keyword = trimmedKeyword;
           }

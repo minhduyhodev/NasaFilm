@@ -43,3 +43,13 @@ bin/
 thdpv-movie-theater-fe/
 docs/movie_theater.sql
 
+# Agent skills (installed via npx skills add; canonical copy in .cursor/skills)
+.agents/
+
+
+### Cursor ###
+.Cursor/
+
+
+/skills-lock.json
+

@@ -1,5 +1,10 @@
 .combo-revenue-page .combo-revenue-eyebrow {
-  @apply text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1.5;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--adm-accent, #ef4444);
+  margin-bottom: 6px;
 }
 
 .combo-revenue-table-panel {

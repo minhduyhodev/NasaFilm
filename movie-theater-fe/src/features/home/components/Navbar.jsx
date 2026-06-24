@@ -7,6 +7,7 @@ import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { useNotification } from '../../../shared/context/NotificationContext';
+import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -21,6 +22,17 @@ const Navbar = () => {
       notificationService.info("Vui lòng chọn phim hoặc rạp để xem lịch chiếu & đặt vé.");
       navigate('/movies');
     }
+  };
+
+  const handleOnlineNav = async (e) => {
+    if (getCachedOnlineMovies()) return;
+    e.preventDefault();
+    try {
+      await prefetchOnlinePage();
+    } catch {
+      // still navigate; page shows error state
+    }
+    navigate('/online');
   };
 
   return (
@@ -38,7 +50,16 @@ const Navbar = () => {
         <nav className="navbar-nav">
           <Link to="/movies" className="navbar-nav-link">Phim</Link>
           <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
-          <Link to="/online" className="navbar-nav-link">Trực Tuyến</Link>
+          <Link
+            to="/online"
+            className="navbar-nav-link"
+            onClick={handleOnlineNav}
+            onMouseEnter={prefetchOnlinePage}
+            onFocus={prefetchOnlinePage}
+            onTouchStart={prefetchOnlinePage}
+          >
+            Trực Tuyến
+          </Link>
           <Link to="/offers" className="navbar-nav-link">Ưu Đãi</Link>
           <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
         </nav>
