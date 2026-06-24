@@ -51,6 +51,7 @@ public class ShowtimeSeatService {
     private final CinemaService cinemaService;
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final SeatMapEventPublisher seatMapEventPublisher;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -144,6 +145,8 @@ public class ShowtimeSeatService {
         releaseSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToRelease);
         refreshSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToKeep, now, expiresAt);
         insertSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToInsert, now, expiresAt);
+
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
 
         return new SeatLockSyncResponse(
                 request.getShowtimeUuid(),
@@ -283,7 +286,12 @@ public class ShowtimeSeatService {
     @Scheduled(fixedDelay = 30000)
     public void cleanupExpiredLocksScheduled() {
         OffsetDateTime now = OffsetDateTime.now();
+        List<UUID> affectedShowtimes = seatLockedRepository.findShowtimeUuidsWithExpiredLocks(now);
+        if (affectedShowtimes.isEmpty()) {
+            return;
+        }
         seatLockedRepository.deleteExpiredLocksScheduled(now);
+        affectedShowtimes.forEach(seatMapEventPublisher::notifySeatMapUpdated);
     }
 
     private void validateRequestedSeatsBelongToShowtime(UUID showtimeUuid, List<UUID> requestedSeatUuids) {

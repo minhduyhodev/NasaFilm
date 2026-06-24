@@ -22,6 +22,9 @@ public class ConfirmBookingRequest {
 
     private String promotionCode;
 
+    /** wallet | card | apple | momo — mapped by PaymentService when provider=mock */
+    private String paymentMethod;
+
     public ConfirmBookingRequest() {
     }
 
@@ -45,6 +48,14 @@ public class ConfirmBookingRequest {
 
     public void setPromotionCode(String promotionCode) {
         this.promotionCode = promotionCode;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public UUID getShowtimeUuid() {

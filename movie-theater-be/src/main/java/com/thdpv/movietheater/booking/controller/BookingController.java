@@ -79,12 +79,4 @@ public class BookingController {
         bookingService.checkInTicket(code);
         return ResponseEntity.ok(ApiResponse.success(null, "Soát vé thành công"));
     }
-
-    @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<Void>> cancelBooking(
-            @PathVariable("id") UUID id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        bookingService.cancelBooking(id, userDetails != null ? userDetails.getUsername() : null);
-        return ResponseEntity.ok(ApiResponse.success(null, "Hủy đặt vé thành công"));
-    }
 }

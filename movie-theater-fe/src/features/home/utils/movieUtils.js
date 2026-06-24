@@ -1,5 +1,6 @@
 import { getVideoSource, getHeroBackgroundSource } from './videoSourceUtils';
 import { movieService } from '../../../shared/services/movieService';
+import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 
 export const isOnlineMovie = (movie) =>
   movie?.screeningMode === 'ONLINE_ONLY' || movie?.screeningMode === 'BOTH';
@@ -7,18 +8,18 @@ export const isOnlineMovie = (movie) =>
 export const getMoviePosterUrl = (movie) => {
   if (!movie) return '';
 
-  if (movie.primaryMediaUrl) return movie.primaryMediaUrl;
-  if (movie.poster) return movie.poster;
+  if (movie.primaryMediaUrl) return resolveMediaUrl(movie.primaryMediaUrl);
+  if (movie.poster) return resolveMediaUrl(movie.poster);
 
   const medias = movie.medias || [];
   const primaryMedia = medias.find((m) => m.isPrimary)?.mediaUrl;
-  if (primaryMedia) return primaryMedia;
+  if (primaryMedia) return resolveMediaUrl(primaryMedia);
 
   const posterMedia = medias.find((m) => m.mediaType === 'POSTER')?.mediaUrl;
-  if (posterMedia) return posterMedia;
+  if (posterMedia) return resolveMediaUrl(posterMedia);
 
   const backdropMedia = medias.find((m) => m.mediaType === 'BACKDROP')?.mediaUrl;
-  return backdropMedia || '';
+  return backdropMedia ? resolveMediaUrl(backdropMedia) : '';
 };
 
 export const getMovieStreamingUrl = (movie) => {

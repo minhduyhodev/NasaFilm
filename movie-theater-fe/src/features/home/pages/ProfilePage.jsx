@@ -34,6 +34,7 @@ import {
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
+import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
   enrichBookingsWithMovieMeta,
@@ -117,6 +118,7 @@ export const ProfilePage = () => {
   const [profileData, setProfileData] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
   const [vouchers, setVouchers] = useState([]);
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
@@ -154,6 +156,16 @@ export const ProfilePage = () => {
       fetchBookings();
     }
   }, [user]);
+
+  const reloadBookings = async () => {
+    try {
+      const data = await bookingService.getMyBookings();
+      const enriched = await enrichBookingsWithMovieMeta(data || []);
+      setBookings(enriched);
+    } catch (err) {
+      console.error("Failed to reload bookings:", err);
+    }
+  };
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -1476,6 +1488,18 @@ export const ProfilePage = () => {
                                 </div>
 
                                 <span className="stub-price-tag">{tkt.price}</span>
+                                {!isVod && tkt.status === 'active' && tkt.bookingUuid && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCancelTargetUuid(tkt.bookingUuid);
+                                    }}
+                                    className="mt-2 text-[10px] font-bold uppercase tracking-wide text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md cursor-pointer"
+                                  >
+                                    Hủy vé
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
@@ -1997,6 +2021,15 @@ export const ProfilePage = () => {
         )}
       </div>
       <Footer />
+      <CancelBookingModal
+        bookingUuid={cancelTargetUuid}
+        open={Boolean(cancelTargetUuid)}
+        onClose={() => setCancelTargetUuid(null)}
+        onSuccess={(result) => {
+          notificationService.success(result?.message || 'Hủy vé thành công');
+          reloadBookings();
+        }}
+      />
     </>
   );
 };

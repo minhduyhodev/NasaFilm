@@ -10,6 +10,7 @@ import { NotificationProvider } from './shared/context/NotificationContext';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
+import { initMediaUrlRouting } from './shared/utils/mediaUrlUtils';
 import './index.css';
 
 function ScrollToTop() {
@@ -23,6 +24,10 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  useEffect(() => {
+    initMediaUrlRouting();
+  }, []);
+
   return (
     <ErrorBoundary>
       <GlobalStyles />

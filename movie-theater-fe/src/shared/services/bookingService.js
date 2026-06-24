@@ -36,7 +36,7 @@ class BookingService {
     }
   }
 
-  async confirmBooking(showtimeUuid, seatUuids, combos = [], promotionCode = null) {
+  async confirmBooking(showtimeUuid, seatUuids, combos = [], promotionCode = null, paymentMethod = null) {
     try {
       const payload = {
         showtimeUuid,
@@ -45,6 +45,9 @@ class BookingService {
       };
       if (promotionCode) {
         payload.promotionCode = promotionCode;
+      }
+      if (paymentMethod) {
+        payload.paymentMethod = paymentMethod;
       }
       const response = await authService.api.post('/api/bookings/confirm', payload);
       return response.data.data ?? response.data;
@@ -75,10 +78,47 @@ class BookingService {
     }
   }
 
-  async cancelBooking(bookingUuid) {
+  async cancelBooking(bookingUuid, reason = null) {
     try {
-      const response = await authService.api.post(`/api/bookings/${bookingUuid}/cancel`);
+      const payload = reason ? { reason } : {};
+      const response = await authService.api.post(`/api/bookings/${bookingUuid}/cancel`, payload);
       return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getCancellationPreview(bookingUuid) {
+    try {
+      const response = await authService.api.get(`/api/bookings/${bookingUuid}/cancellation-preview`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getRefundStatus(bookingUuid) {
+    try {
+      const response = await authService.api.get(`/api/bookings/${bookingUuid}/refund-status`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getAdminPendingRefunds() {
+    try {
+      const response = await authService.api.get('/api/admin/refunds');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async approveRefund(refundUuid) {
+    try {
+      const response = await authService.api.post(`/api/admin/refunds/${refundUuid}/approve`);
+      return response.data;
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -93,11 +133,14 @@ class BookingService {
     }
   }
 
-  async confirmOnlineBooking(movieUuid, promotionCode = null) {
+  async confirmOnlineBooking(movieUuid, promotionCode = null, paymentMethod = null) {
     try {
       const payload = { movieUuid };
       if (promotionCode) {
         payload.promotionCode = promotionCode;
+      }
+      if (paymentMethod) {
+        payload.paymentMethod = paymentMethod;
       }
       const response = await authService.api.post('/api/bookings/confirm-online', payload);
       return response.data.data ?? response.data;

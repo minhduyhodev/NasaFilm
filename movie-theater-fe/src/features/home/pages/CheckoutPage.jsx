@@ -281,11 +281,11 @@ const CheckoutPage = () => {
     try {
       let response;
       if (isVod) {
-        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null);
+        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null, paymentMethod);
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
         const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null, paymentMethod);
       }
       
       const successMessage = isVod
@@ -486,7 +486,10 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <p className="text-[11px] text-amber-400/90 font-semibold mb-6 px-1">
+                Chế độ demo — thanh toán qua Mock Gateway, không trừ tiền thật. Cổng VNPay/MoMo sẽ được tích hợp sau.
+              </p>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
                 <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${

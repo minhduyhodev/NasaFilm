@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, User, Film,
   MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
@@ -10,6 +10,8 @@ import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import './BookingsPage.css';
 
 const BookingsPage = () => {
@@ -221,7 +223,7 @@ const BookingsPage = () => {
     }
   };
 
-  const fetchBookings = async (keyword = '') => {
+  const fetchBookings = useCallback(async (keyword = '') => {
     setIsLoading(true);
     try {
       const data = await bookingService.getAdminBookings(keyword);
@@ -232,14 +234,16 @@ const BookingsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => { fetchAuxiliaryData(); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBookings(searchTerm); }, 450);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchBookings]);
+
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, () => fetchBookings(searchTerm));
 
   useEffect(() => {
     setCurrentPage(1);
