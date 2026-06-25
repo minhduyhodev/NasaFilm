@@ -57,16 +57,6 @@ function formatShowtimeDate(startTime) {
   });
 }
 
-function groupShowtimesByCinema(showtimes) {
-  const map = new Map();
-  for (const st of showtimes) {
-    const cinemaName = st.cinemaName || '';
-    if (!map.has(cinemaName)) map.set(cinemaName, []);
-    map.get(cinemaName).push(st);
-  }
-  return map;
-}
-
 function groupShowtimesByMovie(showtimes) {
   const map = new Map();
   for (const st of showtimes) {
@@ -93,6 +83,7 @@ const CinemasPage = () => {
   const [expandedCinemaId, setExpandedCinemaId] = useState(null);
   const [cinemas, setCinemas] = useState([]);
   const [showtimesByCinema, setShowtimesByCinema] = useState(new Map());
+  const [loadingShowtimesId, setLoadingShowtimesId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -103,26 +94,14 @@ const CinemasPage = () => {
       setLoading(true);
       setError('');
       try {
-        const [cinemaData, showtimeData] = await Promise.all([
-          cinemaService.getCinemas('', 0, 100),
-          showtimeService.getPublicShowtimes(),
-        ]);
+        const cinemaData = await cinemaService.getCinemasWithRooms('', 0, 100);
 
         if (cancelled) return;
 
-        const cinemaList = cinemaData.content || cinemaData || [];
-        const showtimeList = Array.isArray(showtimeData) ? showtimeData : [];
-
-        const roomsResults = await Promise.all(
-          cinemaList.map((cinema) =>
-            cinemaService.getRoomsByCinema(cinema.uuid).catch(() => [])
-          )
-        );
-
-        if (cancelled) return;
+        const cinemaList = Array.isArray(cinemaData) ? cinemaData : cinemaData.content || [];
 
         const enriched = cinemaList.map((cinema, index) => {
-          const rooms = roomsResults[index] || [];
+          const rooms = cinema.rooms || [];
           const techs = rooms
             .map((room) => ROOM_TYPE_LABELS[room.roomType] || room.name)
             .filter(Boolean);
@@ -141,7 +120,6 @@ const CinemasPage = () => {
         });
 
         setCinemas(enriched);
-        setShowtimesByCinema(groupShowtimesByCinema(showtimeList));
       } catch (err) {
         if (!cancelled) {
           console.error('Failed to load cinemas:', err);
@@ -180,12 +158,29 @@ const CinemasPage = () => {
 
   const expandedShowtimes = useMemo(() => {
     if (!expandedCinema) return [];
-    const raw = showtimesByCinema.get(expandedCinema.name) || [];
+    const raw = showtimesByCinema.get(expandedCinema.id) || [];
     return groupShowtimesByMovie(raw);
   }, [expandedCinema, showtimesByCinema]);
 
-  const toggleShowtimes = (cinemaId) => {
-    setExpandedCinemaId((prev) => (prev === cinemaId ? null : cinemaId));
+  const toggleShowtimes = async (cinemaId) => {
+    if (expandedCinemaId === cinemaId) {
+      setExpandedCinemaId(null);
+      return;
+    }
+    setExpandedCinemaId(cinemaId);
+    if (!showtimesByCinema.has(cinemaId)) {
+      setLoadingShowtimesId(cinemaId);
+      try {
+        const data = await showtimeService.getPublicShowtimes({ cinemaUuid: cinemaId });
+        const list = Array.isArray(data) ? data : [];
+        setShowtimesByCinema((prev) => new Map(prev).set(cinemaId, list));
+      } catch (err) {
+        console.error('Failed to load showtimes:', err);
+        setShowtimesByCinema((prev) => new Map(prev).set(cinemaId, []));
+      } finally {
+        setLoadingShowtimesId(null);
+      }
+    }
   };
 
   const handleShowtimeClick = (cinema, showtime) => {
@@ -351,7 +346,12 @@ const CinemasPage = () => {
                       </h4>
                     </div>
 
-                    {expandedShowtimes.length > 0 ? (
+                    {loadingShowtimesId === expandedCinema.id ? (
+                      <div className="text-center py-6">
+                        <Loader2 className="h-8 w-8 text-red-500 mx-auto mb-2 animate-spin" />
+                        <p className="text-gray-500 text-sm">Đang tải lịch chiếu...</p>
+                      </div>
+                    ) : expandedShowtimes.length > 0 ? (
                       <div className="space-y-1">
                         {expandedShowtimes.map((group) => (
                           <div key={group.movieUuid || group.movieTitle} className="showtimes-movie-row">

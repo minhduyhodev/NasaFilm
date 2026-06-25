@@ -1475,7 +1475,11 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="tickets-list">
-                      {bookings.length === 0 ? (
+                      {isLoadingBookings ? (
+                        <div className="text-center py-12 text-zinc-500 font-medium w-full">
+                          <p>Đang tải vé của bạn...</p>
+                        </div>
+                      ) : bookings.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500 font-medium w-full">
                           <Ticket
                             size={48}

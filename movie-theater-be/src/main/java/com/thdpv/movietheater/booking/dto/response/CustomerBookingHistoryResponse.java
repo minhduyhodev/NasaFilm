@@ -13,6 +13,7 @@ public class CustomerBookingHistoryResponse {
     private String price;
     private String status;
     private UUID movieUuid;
+    private String moviePosterUrl;
     private String bookingType;
     private boolean cancellable;
     private boolean vodActivated;
@@ -114,6 +115,14 @@ public class CustomerBookingHistoryResponse {
 
     public void setMovieUuid(UUID movieUuid) {
         this.movieUuid = movieUuid;
+    }
+
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
+
+    public void setMoviePosterUrl(String moviePosterUrl) {
+        this.moviePosterUrl = moviePosterUrl;
     }
 
     public String getBookingType() {

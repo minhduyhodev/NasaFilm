@@ -23,6 +23,7 @@ import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
 import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.CinemaWithRoomsResponse;
 import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 
@@ -58,6 +59,15 @@ public class CinemaController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Page<CinemaResponse> response = cinemaService.getCinemas(keyword, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/cinemas/with-rooms")
+    public ResponseEntity<ApiResponse<List<CinemaWithRoomsResponse>>> getCinemasWithRooms(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        List<CinemaWithRoomsResponse> response = cinemaService.getCinemasWithRooms(keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

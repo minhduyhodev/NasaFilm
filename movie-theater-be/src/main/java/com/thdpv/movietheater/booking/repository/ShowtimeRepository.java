@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 
 @Repository
 public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
@@ -90,4 +91,24 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     OffsetDateTime findEarliestScheduledStart(
             @Param("movieUuid") UUID movieUuid,
             @Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.status IN :statuses
+              AND s.startTime > :now
+              AND (:cinemaUuid IS NULL OR s.cinemaRoomUuid IN (
+                  SELECT r.uuid FROM CinemaRoom r WHERE r.cinema.uuid = :cinemaUuid))
+              AND (:rangeStart IS NULL OR s.startTime >= :rangeStart)
+              AND (:rangeEnd IS NULL OR s.startTime < :rangeEnd)
+            ORDER BY s.startTime ASC
+            """)
+    List<Showtime> findUpcomingFiltered(
+            @Param("statuses") Collection<ShowtimeStatus> statuses,
+            @Param("now") OffsetDateTime now,
+            @Param("cinemaUuid") UUID cinemaUuid,
+            @Param("rangeStart") OffsetDateTime rangeStart,
+            @Param("rangeEnd") OffsetDateTime rangeEnd);
+
+    @Query("SELECT s FROM Showtime s ORDER BY s.startTime DESC")
+    List<Showtime> findAllOrderByStartTimeDesc();
 }

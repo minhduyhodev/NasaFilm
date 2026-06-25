@@ -123,7 +123,7 @@ const OffersPage = () => {
   const [combos, setCombos] = useState([]);
   const [cinemas, setCinemas] = useState([]);
   const [loadingCombos, setLoadingCombos] = useState(true);
-  const [loadingCinemas, setLoadingCinemas] = useState(true);
+  const [loadingCinemas, setLoadingCinemas] = useState(false);
   const [comboError, setComboError] = useState('');
   const [cinemaError, setCinemaError] = useState('');
 
@@ -148,17 +148,18 @@ const OffersPage = () => {
     };
   }, []);
 
+  const [cinemasLoaded, setCinemasLoaded] = useState(false);
+
   useEffect(() => {
+    if (activeTab === TABS[0] || cinemasLoaded) return;
+
     let cancelled = false;
     const load = async () => {
       setLoadingCinemas(true);
       setCinemaError('');
       try {
-        const cinemaData = await cinemaService.getCinemas('', 0, 100);
-        const cinemaList = cinemaData.content || cinemaData || [];
-        const roomsResults = await Promise.all(
-          cinemaList.map((c) => cinemaService.getRoomsByCinema(c.uuid).catch(() => []))
-        );
+        const cinemaData = await cinemaService.getCinemasWithRooms('', 0, 100);
+        const cinemaList = Array.isArray(cinemaData) ? cinemaData : cinemaData.content || [];
         if (cancelled) return;
         setCinemas(
           cinemaList.map((cinema, index) => ({
@@ -166,11 +167,12 @@ const OffersPage = () => {
             name: cinema.name,
             address: cinema.address,
             phone: cinema.phoneNumber || '',
-            totalRooms: cinema.totalRooms ?? roomsResults[index]?.length ?? 0,
-            rooms: roomsResults[index] || [],
+            totalRooms: cinema.totalRooms ?? cinema.rooms?.length ?? 0,
+            rooms: cinema.rooms || [],
             image: CINEMA_IMAGES[index % CINEMA_IMAGES.length],
           }))
         );
+        setCinemasLoaded(true);
       } catch (err) {
         if (!cancelled) {
           console.error('Failed to load cinemas:', err);
@@ -184,7 +186,7 @@ const OffersPage = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeTab, cinemasLoaded]);
 
   const activeRoomTypes = useMemo(() => {
     const types = new Set();

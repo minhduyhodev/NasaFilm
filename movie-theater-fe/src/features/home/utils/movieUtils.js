@@ -298,29 +298,33 @@ export const sortBookingsForDisplay = (bookings = []) =>
   });
 
 export const enrichBookingsWithMovieMeta = async (bookings = []) => {
-  const movieIds = [...new Set(bookings.map((b) => b.movieUuid).filter(Boolean))];
+  const needsFetch = bookings.filter((b) => b.movieUuid && !b.moviePosterUrl);
+  const movieIds = [...new Set(needsFetch.map((b) => b.movieUuid))];
   const metaByMovie = new Map();
 
-  await Promise.all(
-    movieIds.map(async (uuid) => {
-      try {
-        const detail = await movieService.getMovieDetail(uuid);
-        metaByMovie.set(uuid, {
-          poster: getMoviePosterUrl(detail),
-          ageRestriction: detail.ageRestriction || '',
-        });
-      } catch {
-        /* skip */
-      }
-    })
-  );
+  if (movieIds.length > 0) {
+    await Promise.all(
+      movieIds.map(async (uuid) => {
+        try {
+          const detail = await movieService.getMovieDetail(uuid);
+          metaByMovie.set(uuid, {
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        } catch {
+          /* skip */
+        }
+      })
+    );
+  }
 
   return bookings.map((booking) => {
+    const posterFromApi = booking.moviePosterUrl || booking.moviePoster;
     const meta = booking.movieUuid ? metaByMovie.get(booking.movieUuid) : null;
     return {
       ...booking,
-      moviePoster: meta?.poster || '',
-      movieAgeRestriction: meta?.ageRestriction || '',
+      moviePoster: posterFromApi || meta?.poster || '',
+      movieAgeRestriction: booking.movieAgeRestriction || meta?.ageRestriction || '',
     };
   });
 };

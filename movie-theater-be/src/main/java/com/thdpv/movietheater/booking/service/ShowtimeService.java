@@ -2,6 +2,7 @@ package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -172,26 +173,47 @@ public class ShowtimeService {
 
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getAdminShowtimes() {
-        return showtimeRepository.findAll().stream()
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
-                .collect(Collectors.toList());
+        List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();
+        return mapShowtimesToResponses(showtimes);
     }
 
     @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getPublicShowtimes() {
+    public List<ShowtimeResponse> getPublicShowtimes(UUID cinemaUuid, LocalDate date) {
         OffsetDateTime now = OffsetDateTime.now();
-        return showtimeRepository.findAll().stream()
-                .filter(st -> (st.getStatus() == ShowtimeStatus.OPEN_FOR_BOOKING || st.getStatus() == ShowtimeStatus.SOLD_OUT)
-                        && st.getStartTime().isAfter(now))
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
+        OffsetDateTime rangeStart = null;
+        OffsetDateTime rangeEnd = null;
+        if (date != null) {
+            ZoneOffset offset = ZoneOffset.ofHours(7);
+            rangeStart = date.atStartOfDay().atOffset(offset);
+            rangeEnd = date.plusDays(1).atStartOfDay().atOffset(offset);
+        }
+        List<Showtime> showtimes = showtimeRepository.findUpcomingFiltered(
+                List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT),
+                now,
+                cinemaUuid,
+                rangeStart,
+                rangeEnd);
+        return mapShowtimesToResponses(showtimes);
+    }
+
+    private List<ShowtimeResponse> mapShowtimesToResponses(List<Showtime> showtimes) {
+        if (showtimes.isEmpty()) {
+            return List.of();
+        }
+
+        Set<UUID> movieUuids = showtimes.stream().map(Showtime::getMovieUuid).collect(Collectors.toSet());
+        Set<UUID> roomUuids = showtimes.stream().map(Showtime::getCinemaRoomUuid).collect(Collectors.toSet());
+
+        Map<UUID, Movie> movieMap = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, m -> m));
+        Map<UUID, CinemaRoom> roomMap = cinemaRoomRepository.findAllByIdWithCinema(roomUuids).stream()
+                .collect(Collectors.toMap(CinemaRoom::getUuid, r -> r));
+
+        return showtimes.stream()
+                .map(st -> toShowtimeResponse(
+                        st,
+                        movieMap.get(st.getMovieUuid()),
+                        roomMap.get(st.getCinemaRoomUuid())))
                 .collect(Collectors.toList());
     }
 
@@ -215,8 +237,9 @@ public class ShowtimeService {
         String moviePosterUrl = resolvePrimaryMediaUrl(movie);
         String roomName = room != null ? room.getName() : "Unknown Room";
         String cinemaName = (room != null && room.getCinema() != null) ? room.getCinema().getName() : "Unknown Cinema";
+        UUID cinemaUuid = (room != null && room.getCinema() != null) ? room.getCinema().getUuid() : null;
 
-        return new ShowtimeResponse(
+        ShowtimeResponse response = new ShowtimeResponse(
                 showtime.getUuid(),
                 showtime.getMovieUuid(),
                 movieTitle,
@@ -231,6 +254,8 @@ public class ShowtimeService {
                 showtime.getCouplePrice(),
                 showtime.getStatus()
         );
+        response.setCinemaUuid(cinemaUuid);
+        return response;
     }
 
     @Transactional(readOnly = true)

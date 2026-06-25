@@ -7,10 +7,10 @@ import { vodService } from '../../../shared/services/vodService';
 import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
 import { authService } from '../../auth/api/authService';
-import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import { promotionService } from '../../../shared/services/promotionService';
 import PosterImage from '../../../shared/components/PosterImage';
 
 import './CheckoutPage.css';
@@ -19,13 +19,12 @@ const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Try to restore from sessionStorage if location.state is not available
-  const getInitialState = () => {
+  const [checkoutState] = useState(() => {
     if (location.state) {
       try {
         sessionStorage.setItem('checkout_state', JSON.stringify(location.state));
       } catch (e) {
-        console.error("Failed to save checkout state to sessionStorage:", e);
+        console.error('Failed to save checkout state to sessionStorage:', e);
       }
       return location.state;
     }
@@ -35,52 +34,37 @@ const CheckoutPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error("Failed to parse checkout state from sessionStorage:", e);
+      console.error('Failed to parse checkout state from sessionStorage:', e);
     }
     return null;
-  };
+  });
 
-  const checkoutState = getInitialState();
-
-  const isStateValid = checkoutState && (
-    (checkoutState.isVod && checkoutState.movieUuid) ||
-    (!checkoutState.isVod && checkoutState.showtimeUuid)
+  const isStateValid = Boolean(
+    checkoutState &&
+      ((checkoutState.isVod && checkoutState.movieUuid) ||
+        (!checkoutState.isVod && checkoutState.showtimeUuid))
   );
 
-  useEffect(() => {
-    if (!isStateValid) {
-      notificationService.error("Phiên giao dịch không hợp lệ hoặc đã hết hạn.");
-      navigate('/', { replace: true });
-    }
-  }, [isStateValid, navigate]);
-
-  if (!isStateValid) {
-    return null;
-  }
-
-  // Extract payment details from state
-  const {
-    showtimeUuid = '',
-    theater = '',
-    movie = '',
-    moviePoster = '',
-    movieRating = null,
-    movieFormat = '',
-    movieAgeRestriction = '',
-    date = '',
-    showtime = '',
-    selectedSeats = [],
-    totalAmount = 0,
-    isVod = false,
-    movieUuid = '',
-    durationMinutes = 0
-  } = checkoutState;
+  const isVod = checkoutState?.isVod ?? false;
+  const showtimeUuid = checkoutState?.showtimeUuid ?? '';
+  const theater = checkoutState?.theater ?? '';
+  const movie = checkoutState?.movie ?? '';
+  const moviePoster = checkoutState?.moviePoster ?? '';
+  const movieRating = checkoutState?.movieRating ?? null;
+  const movieFormat = checkoutState?.movieFormat ?? '';
+  const movieAgeRestriction = checkoutState?.movieAgeRestriction ?? '';
+  const date = checkoutState?.date ?? '';
+  const showtime = checkoutState?.showtime ?? '';
+  const selectedSeats = checkoutState?.selectedSeats ?? [];
+  const totalAmount = checkoutState?.totalAmount ?? 0;
+  const movieUuid = checkoutState?.movieUuid ?? '';
+  const durationMinutes = checkoutState?.durationMinutes ?? 0;
+  const lockExpiresAt = checkoutState?.lockExpiresAt ?? null;
 
   const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
-
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
+  const [checkoutCombos, setCheckoutCombos] = useState(() => checkoutState?.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -89,12 +73,18 @@ const CheckoutPage = () => {
   const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [combosList, setCombosList] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   useEffect(() => {
-    if (!isVod || !movieUuid) return;
+    if (!isStateValid) {
+      notificationService.error('Phiên giao dịch không hợp lệ hoặc đã hết hạn.');
+      navigate('/', { replace: true });
+    }
+  }, [isStateValid, navigate]);
+
+  useEffect(() => {
+    if (!isStateValid || !isVod || !movieUuid) return;
     let cancelled = false;
     movieService
       .getMovieDetail(movieUuid)
@@ -110,10 +100,10 @@ const CheckoutPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isVod, movieUuid]);
+  }, [isStateValid, isVod, movieUuid]);
 
   useEffect(() => {
-    if (isVod || !movieUuid) return;
+    if (!isStateValid || isVod || !movieUuid) return;
     let cancelled = false;
     movieService
       .getMovieDetail(movieUuid)
@@ -129,7 +119,7 @@ const CheckoutPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isVod, movieUuid]);
+  }, [isStateValid, isVod, movieUuid]);
 
   const resolvedPoster = isVod
     ? moviePoster || vodMovieMeta.poster
@@ -140,6 +130,7 @@ const CheckoutPage = () => {
   const resolvedFormat = isVod ? 'VOD Online' : movieFormat;
 
   useEffect(() => {
+    if (!isStateValid) return;
     window.scrollTo(0, 0);
     const fetchProfile = async () => {
       try {
@@ -148,42 +139,32 @@ const CheckoutPage = () => {
           setUserScore(data.score || 0);
         }
       } catch (err) {
-        console.error("Failed to load user profile in CheckoutPage:", err);
+        console.error('Failed to load user profile in CheckoutPage:', err);
       } finally {
         setLoadingProfile(false);
       }
     };
-    const fetchCombos = async () => {
-      try {
-        const data = await comboService.getActiveCombos();
-        setCombosList(data || []);
-      } catch (err) {
-        console.error("Failed to load combos in CheckoutPage:", err);
-      }
-    };
     const fetchVouchers = async () => {
       try {
-        const response = await authService.api.get('/api/promotions/my-vouchers');
-        const data = response.data.data ?? response.data;
+        const data = await promotionService.getMyVouchers();
         if (Array.isArray(data)) {
-          setMyVouchers(data.filter(v => v.remainingUsage > 0));
+          setMyVouchers(data.filter((v) => v.remainingUsage > 0));
         }
       } catch (err) {
-        console.error("Failed to load user vouchers in CheckoutPage:", err);
+        console.error('Failed to load user vouchers in CheckoutPage:', err);
       } finally {
         setLoadingVouchers(false);
       }
     };
     fetchProfile();
-    fetchCombos();
     fetchVouchers();
-  }, []);
+  }, [isStateValid]);
 
   useEffect(() => {
-    if (isVod) return;
-    if (location.state?.lockExpiresAt) {
+    if (!isStateValid || isVod) return;
+    if (lockExpiresAt) {
       const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((location.state.lockExpiresAt - Date.now()) / 1000));
+        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
         if (diff <= 0) {
           setIsExpired(true);
           setTimeLeft(0);
@@ -195,7 +176,7 @@ const CheckoutPage = () => {
       const interval = setInterval(calculateTimeLeft, 1000);
       return () => clearInterval(interval);
     }
-  }, [location.state?.lockExpiresAt]);
+  }, [isStateValid, isVod, lockExpiresAt]);
 
   const memberDiscountRate = getMemberDiscountRate(userScore);
   const memberTier = getMemberTierLabel(userScore);
@@ -329,6 +310,10 @@ const CheckoutPage = () => {
       setIsPaying(false);
     }
   };
+
+  if (!isStateValid) {
+    return null;
+  }
 
   return (
     <div className="checkout-wrapper">
