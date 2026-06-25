@@ -118,3 +118,8 @@ export const sortShowtimes = (arr, sortKey) => {
     default: return sorted;
   }
 };
+
+export const normalizeActiveRooms = (data) => {
+  const list = Array.isArray(data) ? data : (data?.content ?? []);
+  return list.filter((room) => String(room?.status ?? '').toUpperCase() === 'ACTIVE');
+};

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Film, Search, ChevronDown } from 'lucide-react';
 
 const ShowtimesCreateModal = ({
@@ -7,6 +8,7 @@ const ShowtimesCreateModal = ({
   setFormData,
   cinemas,
   rooms,
+  isLoadingRooms,
   movies,
   filteredMovies,
   selectedMovie,
@@ -17,9 +19,17 @@ const ShowtimesCreateModal = ({
   setSearchMovieKeyword,
   handleCinemaChange,
   handleSubmit,
-}) => (
+}) => {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  return createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button
               className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
@@ -130,9 +140,11 @@ const ShowtimesCreateModal = ({
                   value={formData.cinemaRoomUuid}
                   onChange={(e) => setFormData(prev => ({ ...prev, cinemaRoomUuid: e.target.value }))}
                   required
-                  disabled={!formData.cinemaUuid}
+                  disabled={!formData.cinemaUuid || isLoadingRooms}
                 >
-                  <option value="">-- Chọn Phòng Chiếu --</option>
+                  <option value="">
+                    {isLoadingRooms ? 'Đang tải phòng chiếu...' : '-- Chọn Phòng Chiếu --'}
+                  </option>
                   {rooms.map(r => (
                     <option key={r.uuid} value={r.uuid}>{r.name} ({r.roomCode} · {r.roomType})</option>
                   ))}
@@ -212,7 +224,9 @@ const ShowtimesCreateModal = ({
               </div>
             </form>
           </div>
-        </div>
-);
+        </div>,
+    document.body,
+  );
+};
 
 export default ShowtimesCreateModal;

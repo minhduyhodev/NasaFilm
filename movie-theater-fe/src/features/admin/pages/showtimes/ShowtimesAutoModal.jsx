@@ -1,7 +1,11 @@
-import React from 'react';
-import { X, CalendarDays, Clock, Film, Search } from 'lucide-react';
-import { cinemaService } from '../../../../shared/services/cinemaService';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, CalendarDays, Clock, Film } from 'lucide-react';
+import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
 import { formatTimeOnly, formatDateShort, formatWeekday } from './showtimesConstants';
+
+const getPosterSrc = (rawUrl, width = 120) =>
+  rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
 
 const ShowtimesAutoModal = ({
   onClose,
@@ -10,18 +14,29 @@ const ShowtimesAutoModal = ({
   setAutoFormData,
   cinemas,
   rooms,
-  setRooms,
+  isLoadingRooms,
+  onCinemaChange,
   movies,
   handleAutoSubmit,
   previewGenerated,
   selectedPreviewUuids,
+  setSelectedPreviewUuids,
   togglePreviewSelection,
   handleSaveAuto,
   isAutoLoading,
   isSavingAuto,
   setIsAutoPreviewOpen,
-}) => (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+}) => {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[95vh] overflow-y-auto custom-scrollbar flex flex-col">
             <button
               className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
@@ -72,20 +87,7 @@ const ShowtimesAutoModal = ({
                       <select
                         className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
                         value={autoFormData.cinemaUuid}
-                        onChange={async (e) => {
-                          const cinemaUuid = e.target.value;
-                          setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
-                          if (cinemaUuid) {
-                            try {
-                              const data = await cinemaService.getRoomsByCinema(cinemaUuid);
-                              setRooms(data.filter(r => r.status === 'ACTIVE'));
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          } else {
-                            setRooms([]);
-                          }
-                        }}
+                        onChange={(e) => onCinemaChange(e.target.value)}
                         required
                       >
                         <option value="">-- Chọn Rạp --</option>
@@ -98,7 +100,12 @@ const ShowtimesAutoModal = ({
                     <div>
                       <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phòng Chiếu *</label>
                       <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
-                        {rooms.map(room => (
+                        {isLoadingRooms ? (
+                          <span className="text-[10px] text-gray-500 col-span-2">Đang tải phòng chiếu...</span>
+                        ) : rooms.length === 0 ? (
+                          <span className="text-[10px] text-gray-500 col-span-2">Vui lòng chọn rạp chiếu trước</span>
+                        ) : null}
+                        {!isLoadingRooms && rooms.map(room => (
                           <label key={room.uuid} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white">
                             <input
                               type="checkbox"
@@ -117,7 +124,6 @@ const ShowtimesAutoModal = ({
                             <span>{room.name}</span>
                           </label>
                         ))}
-                        {rooms.length === 0 && <span className="text-[10px] text-gray-500 col-span-2">Vui lòng chọn rạp chiếu trước</span>}
                       </div>
                     </div>
                   </div>
@@ -146,7 +152,7 @@ const ShowtimesAutoModal = ({
                               <span className="font-bold truncate max-w-[150px]">{movie.title}</span>
                             </div>
                             <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black shrink-0 font-mono">
-                              ★ {movie.rating != null ? movie.rating.toFixed(1) : '—'}
+                              ★ {movie.rating != null ? Number(movie.rating).toFixed(1) : '—'}
                             </span>
                           </label>
                         ))}
@@ -408,9 +414,9 @@ const ShowtimesAutoModal = ({
                               <span className="ml-1 text-gray-600">({formatDateShort(new Date(p.startTime))} {formatWeekday(new Date(p.startTime))})</span>
                             </div>
                             <div className="flex gap-1.5 text-[8px] font-black uppercase text-gray-500">
-                              {p.scoreBreakdown.weekendScore > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
-                              {p.scoreBreakdown.goldenHourScore > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
-                              {p.scoreBreakdown.genreScore > 4.0 && <span className="text-blue-500/80">HOT Genre</span>}
+                              {(p.scoreBreakdown?.weekendScore ?? 0) > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
+                              {(p.scoreBreakdown?.goldenHourScore ?? 0) > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
+                              {(p.scoreBreakdown?.genreScore ?? 0) > 4.0 && <span className="text-blue-500/80">HOT Genre</span>}
                             </div>
                           </div>
                         </div>
@@ -445,7 +451,9 @@ const ShowtimesAutoModal = ({
               </div>
             )}
           </div>
-        </div>
-);
+        </div>,
+    document.body,
+  );
+};
 
 export default ShowtimesAutoModal;

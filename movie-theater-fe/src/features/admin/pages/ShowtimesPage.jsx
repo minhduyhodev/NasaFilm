@@ -28,6 +28,7 @@ import {
   getValidTransitions,
   getTransitionBtnClass,
   sortShowtimes,
+  normalizeActiveRooms,
 } from './showtimes/showtimesConstants';
 import {
   StatusBadge,
@@ -54,7 +55,10 @@ const ShowtimesPage = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [createRooms, setCreateRooms] = useState([]);
+  const [autoRooms, setAutoRooms] = useState([]);
+  const [isLoadingCreateRooms, setIsLoadingCreateRooms] = useState(false);
+  const [isLoadingAutoRooms, setIsLoadingAutoRooms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMovies, setIsLoadingMovies] = useState(false);
 
@@ -178,6 +182,57 @@ const ShowtimesPage = () => {
     setSelectedIds(new Set());
   }, [searchTerm, statusFilter, hideCancelled, cinemaFilter, selectedDate, sortKey]);
 
+  const loadCreateRooms = useCallback(async (cinemaUuid) => {
+    if (!cinemaUuid) {
+      setCreateRooms([]);
+      return;
+    }
+    setIsLoadingCreateRooms(true);
+    try {
+      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
+      setCreateRooms(normalizeActiveRooms(data));
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+      setCreateRooms([]);
+      notificationService.error('Không tải được danh sách phòng chiếu');
+    } finally {
+      setIsLoadingCreateRooms(false);
+    }
+  }, []);
+
+  const loadAutoRooms = useCallback(async (cinemaUuid) => {
+    if (!cinemaUuid) {
+      setAutoRooms([]);
+      return;
+    }
+    setIsLoadingAutoRooms(true);
+    try {
+      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
+      setAutoRooms(normalizeActiveRooms(data));
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+      setAutoRooms([]);
+      notificationService.error('Không tải được danh sách phòng chiếu');
+    } finally {
+      setIsLoadingAutoRooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    loadCreateRooms(formData.cinemaUuid);
+  }, [isModalOpen, formData.cinemaUuid, loadCreateRooms]);
+
+  useEffect(() => {
+    if (!isAutoModalOpen) return;
+    loadAutoRooms(autoFormData.cinemaUuid);
+  }, [isAutoModalOpen, autoFormData.cinemaUuid, loadAutoRooms]);
+
+  const scrollAdminMainToTop = useCallback(() => {
+    const main = document.querySelector('[data-scroll-container="admin-main"]');
+    if (main) main.scrollTop = 0;
+  }, []);
+
   const handleAutoClick = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrow = new Date();
@@ -202,17 +257,12 @@ const ShowtimesPage = () => {
       ratingWeight: 1.0,
       genreWeight: 1.0,
     });
-    setRooms([]);
+    setAutoRooms([]);
     setPreviewGenerated([]);
     setSelectedPreviewUuids(new Set());
     setIsAutoPreviewOpen(false);
     setIsAutoModalOpen(true);
-
-    if (cinemas[0]?.uuid) {
-      cinemaService.getRoomsByCinema(cinemas[0].uuid)
-        .then(data => setRooms(data.filter(r => r.status === 'ACTIVE')))
-        .catch(console.error);
-    }
+    scrollAdminMainToTop();
   };
 
   const handleAutoSubmit = async (e) => {
@@ -281,15 +331,12 @@ const ShowtimesPage = () => {
   };
 
   // ---------- HANDLERS ----------
-  const handleCinemaChange = async (cinemaUuid) => {
+  const handleCinemaChange = (cinemaUuid) => {
     setFormData(prev => ({ ...prev, cinemaUuid, cinemaRoomUuid: '' }));
-    if (!cinemaUuid) { setRooms([]); return; }
-    try {
-      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
-      setRooms(data.filter(r => r.status === 'ACTIVE'));
-    } catch (error) {
-      console.error('Failed to fetch rooms:', error);
-    }
+  };
+
+  const handleAutoCinemaChange = (cinemaUuid) => {
+    setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
   };
 
   const handleAddClick = () => {
@@ -297,10 +344,10 @@ const ShowtimesPage = () => {
       movieUuid: movies[0]?.uuid || '', cinemaUuid: cinemas[0]?.uuid || '',
       cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
     });
-    if (cinemas[0]?.uuid) handleCinemaChange(cinemas[0].uuid);
     setIsMovieDropdownOpen(false);
     setSearchMovieKeyword('');
     setIsModalOpen(true);
+    scrollAdminMainToTop();
   };
 
   const handleSubmit = async (e) => {
@@ -1022,12 +1069,14 @@ const ShowtimesPage = () => {
             autoFormData={autoFormData}
             setAutoFormData={setAutoFormData}
             cinemas={cinemas}
-            rooms={rooms}
-            setRooms={setRooms}
+            rooms={autoRooms}
+            isLoadingRooms={isLoadingAutoRooms}
+            onCinemaChange={handleAutoCinemaChange}
             movies={movies}
             handleAutoSubmit={handleAutoSubmit}
             previewGenerated={previewGenerated}
             selectedPreviewUuids={selectedPreviewUuids}
+            setSelectedPreviewUuids={setSelectedPreviewUuids}
             togglePreviewSelection={togglePreviewSelection}
             handleSaveAuto={handleSaveAuto}
             isAutoLoading={isAutoLoading}
@@ -1043,7 +1092,8 @@ const ShowtimesPage = () => {
             formData={formData}
             setFormData={setFormData}
             cinemas={cinemas}
-            rooms={rooms}
+            rooms={createRooms}
+            isLoadingRooms={isLoadingCreateRooms}
             movies={movies}
             filteredMovies={filteredMovies}
             selectedMovie={selectedMovie}
