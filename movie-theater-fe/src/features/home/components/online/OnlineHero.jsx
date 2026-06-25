@@ -85,22 +85,25 @@ const OnlineHero = ({
     let cancelled = false;
 
     const enrich = async () => {
-      const detailed = await Promise.all(
-        movies.slice(0, HERO_LIMIT).map(async (movie) => {
-          try {
-            const detail = await movieService.getMovieDetail(movie.uuid);
-            return {
-              ...movie,
-              ...detail,
-              medias: detail.medias || [],
-              primaryMediaUrl:
-                pickPosterMediaUrl(detail) || pickPosterMediaUrl(movie),
-            };
-          } catch {
-            return movie;
-          }
-        }),
-      );
+      const targetMovies = movies.slice(0, HERO_LIMIT);
+      let summaries = [];
+      try {
+        summaries = await movieService.getMovieSummaries(targetMovies.map((m) => m.uuid));
+      } catch {
+        summaries = [];
+      }
+      const summaryByUuid = new Map(summaries.map((s) => [s.uuid, s]));
+
+      const detailed = targetMovies.map((movie) => {
+        const summary = summaryByUuid.get(movie.uuid);
+        if (!summary) return movie;
+        return {
+          ...movie,
+          title: summary.title || movie.title,
+          ageRestriction: summary.ageRestriction || movie.ageRestriction,
+          primaryMediaUrl: summary.primaryMediaUrl || pickPosterMediaUrl(movie),
+        };
+      });
       if (!cancelled && enrichTokenRef.current === token) {
         setEnrichedMovies(detailed);
       }

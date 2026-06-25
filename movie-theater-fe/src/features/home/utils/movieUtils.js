@@ -354,24 +354,24 @@ export const sortBookingsForDisplay = (bookings = []) =>
   });
 
 export const enrichBookingsWithMovieMeta = async (bookings = []) => {
-  const needsFetch = bookings.filter((b) => b.movieUuid && !b.moviePosterUrl);
+  const needsFetch = bookings.filter(
+    (b) => b.movieUuid && (!b.moviePosterUrl || !b.movieAgeRestriction)
+  );
   const movieIds = [...new Set(needsFetch.map((b) => b.movieUuid))];
   const metaByMovie = new Map();
 
   if (movieIds.length > 0) {
-    await Promise.all(
-      movieIds.map(async (uuid) => {
-        try {
-          const detail = await movieService.getMovieDetail(uuid);
-          metaByMovie.set(uuid, {
-            poster: getMoviePosterUrl(detail),
-            ageRestriction: detail.ageRestriction || '',
-          });
-        } catch {
-          /* skip */
-        }
-      })
-    );
+    try {
+      const summaries = await movieService.getMovieSummaries(movieIds);
+      summaries.forEach((summary) => {
+        metaByMovie.set(summary.uuid, {
+          poster: summary.primaryMediaUrl || '',
+          ageRestriction: summary.ageRestriction || '',
+        });
+      });
+    } catch {
+      /* skip */
+    }
   }
 
   return bookings.map((booking) => {

@@ -5,24 +5,22 @@ import { getOnlineMoviePath, getOnlineActionLabel } from '../utils/movieUtils';
 
 const statusCache = new Map();
 
-async function loadVodStatus(uuid) {
-  if (!uuid) return null;
-  if (statusCache.has(uuid)) {
-    const cached = statusCache.get(uuid);
-    return cached instanceof Promise ? cached : Promise.resolve(cached);
+async function loadVodStatusBatch(uuids) {
+  const filtered = uuids.filter(Boolean);
+  const missing = filtered.filter((uuid) => !statusCache.has(uuid));
+
+  if (missing.length > 0) {
+    try {
+      const batch = await vodService.getStatusBatch(missing);
+      missing.forEach((uuid) => {
+        statusCache.set(uuid, batch?.[uuid] ?? null);
+      });
+    } catch {
+      missing.forEach((uuid) => statusCache.set(uuid, null));
+    }
   }
-  const promise = vodService
-    .getStatus(uuid)
-    .then((status) => {
-      statusCache.set(uuid, status);
-      return status;
-    })
-    .catch(() => {
-      statusCache.set(uuid, null);
-      return null;
-    });
-  statusCache.set(uuid, promise);
-  return promise;
+
+  return Object.fromEntries(filtered.map((uuid) => [uuid, statusCache.get(uuid) ?? null]));
 }
 
 export const invalidateVodStatus = (uuid) => {
@@ -39,9 +37,9 @@ export function useOnlineVodRoutes(movieUuids = []) {
 
   const uniqueUuids = useMemo(
     () => [...new Set((movieUuids || []).filter(Boolean))],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [movieUuids.join('|')]
+    [movieUuids]
   );
+  const uuidKey = uniqueUuids.join(',');
 
   useEffect(() => {
     if (!isAuthenticated || uniqueUuids.length === 0) {
@@ -50,17 +48,14 @@ export function useOnlineVodRoutes(movieUuids = []) {
     }
 
     let active = true;
-    (async () => {
-      const entries = await Promise.all(
-        uniqueUuids.map(async (uuid) => [uuid, await loadVodStatus(uuid)])
-      );
-      if (active) setStatusMap(Object.fromEntries(entries));
-    })();
+    loadVodStatusBatch(uniqueUuids).then((map) => {
+      if (active) setStatusMap(map);
+    });
 
     return () => {
       active = false;
     };
-  }, [isAuthenticated, uniqueUuids.join('|')]);
+  }, [isAuthenticated, uuidKey, uniqueUuids]);
 
   const getOnlinePath = useCallback(
     (uuid) => getOnlineMoviePath(uuid, isAuthenticated ? statusMap[uuid] : null),

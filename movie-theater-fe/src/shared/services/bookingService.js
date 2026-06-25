@@ -176,6 +176,19 @@ class BookingService {
     }
   }
 
+  async getVodStatusBatch(movieUuids = []) {
+    const unique = [...new Set((movieUuids || []).filter(Boolean))];
+    if (unique.length === 0) return {};
+    try {
+      const response = await authService.api.post('/api/vod/status/batch', {
+        movieUuids: unique.slice(0, 50),
+      });
+      return response.data.data ?? response.data ?? {};
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async activateVodPlay(movieUuid, bookingUuid = null) {
     try {
       const params = bookingUuid ? `?bookingUuid=${encodeURIComponent(bookingUuid)}` : '';
