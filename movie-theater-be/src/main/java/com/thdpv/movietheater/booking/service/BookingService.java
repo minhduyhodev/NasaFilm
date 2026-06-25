@@ -93,6 +93,7 @@ public class BookingService {
     private final RealtimeEventPublisher realtimeEventPublisher;
     private final CancellationRefundService cancellationRefundService;
     private final PaymentService paymentService;
+    private final ShowtimeCapacityService showtimeCapacityService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -247,7 +248,7 @@ public class BookingService {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
-        validateRoomCapacity(request.getShowtimeUuid(), seatUuids.size());
+        showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
         List<LockedSeat> lockedSeats = bookingRepository.lockActiveSeatsForConfirm(
@@ -461,25 +462,6 @@ public class BookingService {
         CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
         if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
-        }
-    }
-
-    private void validateRoomCapacity(UUID showtimeUuid, int requestedSeatCount) {
-        if (requestedSeatCount <= 0) {
-            return;
-        }
-        Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-        if (showtime == null) {
-            return;
-        }
-        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
-        if (room == null || room.getCapacity() == null || room.getCapacity() <= 0) {
-            return;
-        }
-        long bookedSeats = bookingSeatRepository.countByShowtimeUuid(showtimeUuid);
-        if (bookedSeats + requestedSeatCount > room.getCapacity()) {
-            throw new AppException(ErrorCode.CONFLICT,
-                    "Phong chieu chi con " + Math.max(0, room.getCapacity() - bookedSeats) + " cho trong");
         }
     }
 
@@ -807,6 +789,18 @@ public class BookingService {
         UUID userUuid = resolveRequiredUserUuid(email);
         List<Object[]> rows = bookingRepository.loadPurchaseHistory(userUuid);
         List<PurchaseHistoryResponse> responses = new ArrayList<>();
+        List<UUID> bookingUuids = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            if (bookingUuid != null) {
+                bookingUuids.add(bookingUuid);
+            }
+        }
+
+        Map<UUID, com.thdpv.movietheater.booking.entity.Payment> paymentsByBooking = bookingUuids.isEmpty()
+                ? Map.of()
+                : paymentService.findLatestPayments(bookingUuids);
 
         for (Object[] row : rows) {
             UUID bookingUuid = toUuid(row[0]);
@@ -849,10 +843,13 @@ public class BookingService {
             item.setBookingType(bookingType);
             item.setPromotionCode(promotionCode);
             item.setPromotionDescription(formatPromotionDescription(promotionDiscountType, promotionDiscountValue));
-            paymentService.findLatestPayment(bookingUuid).ifPresentOrElse(payment -> {
+            var payment = paymentsByBooking.get(bookingUuid);
+            if (payment != null) {
                 item.setPaymentMethod(formatPaymentMethodLabel(payment.getMethod()));
                 item.setPaymentStatus(payment.getStatus());
-            }, () -> item.setPaymentMethod("Ví NASA"));
+            } else {
+                item.setPaymentMethod("Ví NASA");
+            }
             item.setPurchasedAt(createdAt != null
                     ? createdAt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
                     : "");

@@ -50,6 +50,15 @@ public class PaymentService {
         return paymentRepository.findFirstByBookingUuidOrderByCreatedAtDesc(bookingUuid);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, Payment> findLatestPayments(java.util.Collection<UUID> bookingUuids) {
+        if (bookingUuids == null || bookingUuids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return paymentRepository.findLatestByBookingUuidIn(bookingUuids).stream()
+                .collect(java.util.stream.Collectors.toMap(Payment::getBookingUuid, p -> p, (a, b) -> a));
+    }
+
     @Transactional
     public Payment chargeBooking(UUID bookingUuid, BigDecimal amount, String method, String idempotencyKey) {
         return chargeBooking(bookingUuid, amount, method, idempotencyKey, null);
@@ -66,9 +75,16 @@ public class PaymentService {
                 ? idempotencyKey.trim()
                 : "pay-" + bookingUuid;
 
-        return paymentRepository.findByIdempotencyKey(key)
-                .filter(p -> PaymentStatus.COMPLETED.name().equals(p.getStatus()))
-                .orElseGet(() -> executeCharge(bookingUuid, chargeAmount, method, key, payerUserUuid));
+        java.util.Optional<Payment> existing = paymentRepository.findByIdempotencyKey(key);
+        if (existing.isPresent()) {
+            Payment payment = existing.get();
+            if (PaymentStatus.COMPLETED.name().equals(payment.getStatus())) {
+                return payment;
+            }
+            return retryCharge(payment, chargeAmount, method, payerUserUuid);
+        }
+
+        return executeCharge(bookingUuid, chargeAmount, method, key, payerUserUuid);
     }
 
     @Transactional
@@ -79,6 +95,18 @@ public class PaymentService {
                         booking.getTotalPrice(),
                         method != null ? method : "MOCK",
                         "pay-" + booking.getUuid()));
+    }
+
+    private Payment retryCharge(Payment payment, BigDecimal amount, String method, UUID payerUserUuid) {
+        if (PaymentStatus.COMPLETED.name().equals(payment.getStatus())) {
+            return payment;
+        }
+        payment.setAmount(amount);
+        payment.setMethod(normalizeMethod(method));
+        payment.setStatus(PaymentStatus.PENDING.name());
+        payment.setUpdatedAt(OffsetDateTime.now());
+        paymentRepository.save(payment);
+        return completeCharge(payment, payerUserUuid);
     }
 
     private Payment executeCharge(UUID bookingUuid, BigDecimal amount, String method, String idempotencyKey,
@@ -98,16 +126,23 @@ public class PaymentService {
         payment.setUpdatedAt(now);
         paymentRepository.save(payment);
 
+        return completeCharge(payment, payerUserUuid);
+    }
+
+    private Payment completeCharge(Payment payment, UUID payerUserUuid) {
+        OffsetDateTime now = OffsetDateTime.now();
+        String normalizedMethod = payment.getMethod();
+
         if ("WALLET".equals(normalizedMethod)) {
             UUID userUuid = payerUserUuid;
             if (userUuid == null) {
-                userUuid = bookingRepository.findById(bookingUuid)
+                userUuid = bookingRepository.findById(payment.getBookingUuid())
                         .map(Booking::getUserUuid)
                         .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
             }
             walletService.debitForPayment(
                     userUuid,
-                    amount,
+                    payment.getAmount(),
                     payment.getUuid(),
                     "Thanh toán đặt vé");
             payment.setStatus(PaymentStatus.COMPLETED.name());
@@ -118,7 +153,7 @@ public class PaymentService {
         }
 
         PaymentGatewayService.GatewayChargeResult gatewayResult = paymentGatewayService.charge(
-                payment.getUuid(), amount, idempotencyKey);
+                payment.getUuid(), payment.getAmount(), payment.getIdempotencyKey());
 
         if (!gatewayResult.success()) {
             payment.setStatus(PaymentStatus.FAILED.name());

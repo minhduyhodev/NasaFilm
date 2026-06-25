@@ -117,6 +117,17 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             @Param("now") OffsetDateTime now);
 
     @Query("""
+            SELECT s.movieUuid, MIN(s.startTime) FROM Showtime s
+            WHERE s.movieUuid IN :movieUuids
+              AND s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED
+              AND s.startTime > :now
+            GROUP BY s.movieUuid
+            """)
+    List<Object[]> findEarliestScheduledStarts(
+            @Param("movieUuids") Collection<UUID> movieUuids,
+            @Param("now") OffsetDateTime now);
+
+    @Query("""
             SELECT s FROM Showtime s
             WHERE s.status IN :statuses
               AND s.startTime > :now

@@ -56,6 +56,7 @@ public class ShowtimeSeatService {
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatMapEventPublisher seatMapEventPublisher;
+    private final ShowtimeCapacityService showtimeCapacityService;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -119,7 +120,8 @@ public class ShowtimeSeatService {
         cleanupExpiredLocks(request.getShowtimeUuid(), now);
         validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsAreBookable(request.getShowtimeUuid(), requestedSeatUuids);
-        validateRoomCapacity(request.getShowtimeUuid(), requestedSeatUuids.size());
+        showtimeCapacityService.validateCapacity(
+                request.getShowtimeUuid(), requestedSeatUuids.size(), currentUserUuid, now);
         validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsNotLockedByOther(request.getShowtimeUuid(), requestedSeatUuids, currentUserUuid, now);
 
@@ -251,25 +253,6 @@ public class ShowtimeSeatService {
         CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
         if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
-        }
-    }
-
-    private void validateRoomCapacity(UUID showtimeUuid, int requestedSeatCount) {
-        if (requestedSeatCount <= 0) {
-            return;
-        }
-        Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-        if (showtime == null) {
-            return;
-        }
-        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
-        if (room == null || room.getCapacity() == null || room.getCapacity() <= 0) {
-            return;
-        }
-        long bookedSeats = bookingSeatRepository.countByShowtimeUuid(showtimeUuid);
-        if (bookedSeats + requestedSeatCount > room.getCapacity()) {
-            throw new AppException(ErrorCode.CONFLICT,
-                    "Phong chieu chi con " + Math.max(0, room.getCapacity() - bookedSeats) + " cho trong");
         }
     }
 
