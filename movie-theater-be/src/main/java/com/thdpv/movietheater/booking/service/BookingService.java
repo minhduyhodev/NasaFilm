@@ -179,7 +179,7 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid);
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking();
         booking.setUuid(bookingUuid);
@@ -340,7 +340,7 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid);
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking(
                 bookingUuid,
@@ -723,7 +723,8 @@ public class BookingService {
                     movieUuid,
                     bookingType,
                     cancellable,
-                    vodActivated
+                    vodActivated,
+                    bookingStatus
             ));
         }
 
