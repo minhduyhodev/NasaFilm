@@ -289,6 +289,34 @@ export const isLiveTicket = (booking) => {
   return false;
 };
 
+/** Nhãn trạng thái cho vé không còn hiệu lực. */
+export const getTicketArchiveMeta = (booking) => {
+  const status = (booking?.status || '').toLowerCase();
+  const bookingStatus = (booking?.bookingStatus || '').toUpperCase();
+  if (status === 'cancelled') {
+    if (bookingStatus === 'REFUND_PENDING') {
+      return { label: 'Đã hủy · Chờ hoàn tiền', tone: 'cancelled' };
+    }
+    if (bookingStatus === 'REFUNDED' || bookingStatus === 'REFUND_PROCESSING') {
+      return { label: 'Đã hủy · Đã hoàn tiền', tone: 'cancelled' };
+    }
+    return { label: 'Đã hủy', tone: 'cancelled' };
+  }
+  if (status === 'used') return { label: 'Đã sử dụng', tone: 'used' };
+  if (status === 'expired') return { label: 'Hết hạn', tone: 'expired' };
+  return { label: 'Không còn hiệu lực', tone: 'expired' };
+};
+
+export const partitionBookingsByLive = (bookings = []) => {
+  const live = [];
+  const archived = [];
+  bookings.forEach((b) => {
+    if (isLiveTicket(b)) live.push(b);
+    else archived.push(b);
+  });
+  return { live, archived };
+};
+
 /** Vé hết hạn / đã hủy / đã dùng — đẩy xuống cuối danh sách. */
 export const sortBookingsForDisplay = (bookings = []) =>
   [...bookings].sort((a, b) => {

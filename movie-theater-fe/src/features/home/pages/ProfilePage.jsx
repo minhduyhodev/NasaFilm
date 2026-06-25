@@ -34,14 +34,15 @@ import { notificationService } from "../../../shared/services/notificationServic
 import { useNotification } from "../../../shared/context/NotificationContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
+import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
   enrichBookingsWithMovieMeta,
   isOnlineBooking,
   isLiveTicket,
-  sortBookingsForDisplay,
-  formatDisplayTicketCode,
+  partitionBookingsByLive,
   getOnlineMoviePath,
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
@@ -121,6 +122,8 @@ export const ProfilePage = () => {
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
+  const [refundTargetUuid, setRefundTargetUuid] = useState(null);
+  const [showArchivedTickets, setShowArchivedTickets] = useState(false);
   const [vouchers, setVouchers] = useState([]);
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
@@ -172,8 +175,8 @@ export const ProfilePage = () => {
     }
   };
 
-  const sortedBookings = useMemo(
-    () => sortBookingsForDisplay(bookings),
+  const { live: liveBookings, archived: archivedBookings } = useMemo(
+    () => partitionBookingsByLive(bookings),
     [bookings],
   );
 
@@ -1488,141 +1491,72 @@ export const ProfilePage = () => {
                           <p>Bạn chưa có lịch sử đặt vé nào.</p>
                         </div>
                       ) : (
-                        sortedBookings.map((tkt) => {
-                          const isVod = isOnlineBooking(tkt);
-                          const isLive = isLiveTicket(tkt);
-                          const getMovieGlowClass = (title) => {
-                            if (
-                              title.toUpperCase().includes("STELLAR") ||
-                              title.toUpperCase().includes("MORTAL")
-                            )
-                              return "glow-gold";
-                            if (
-                              title.toUpperCase().includes("AETHERIA") ||
-                              title.toUpperCase().includes("RED") ||
-                              title.toUpperCase().includes("MƯA")
-                            )
-                              return "glow-purple";
-                            return "glow-cyan";
-                          };
-                          const glowClass = getMovieGlowClass(tkt.movieTitle);
-                          return (
-                            <div
-                              key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${isLive ? "ticket-boarding-pass--live" : "ticket-boarding-pass--inactive"}${isVod ? " ticket-boarding-pass--vod" : ""}`}
-                              onClick={() => isLive && handleTicketClick(tkt)}
-                              style={{ cursor: isLive ? "pointer" : "default" }}
-                              title={
-                                !isLive
-                                  ? "Vé đã hết hạn hoặc không còn hiệu lực"
-                                  : isVod
-                                    ? "Nhấn để kích hoạt hoặc tiếp tục xem phim online"
-                                    : "Nhấp để xem chi tiết / In lại vé"
-                              }
-                            >
-                              <div className="ticket-notch-top" />
-                              <div className="ticket-notch-bottom" />
-
-                              <div className="ticket-body-left">
-                                <span className="ticket-format-badge">
-                                  {isVod ? "VOD ONLINE" : "RẠP CHIẾU"}
-                                </span>
-
-                                <h3 className="ticket-movie-title-text">
-                                  {tkt.movieTitle}
-                                </h3>
-
-                                <div className="ticket-grid-details">
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">
-                                      {isVod ? "Nền tảng" : "Rạp Chiếu"}
-                                    </span>
-                                    <span className="value-text">
-                                      {tkt.cinema}
-                                    </span>
-                                  </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">
-                                      {isVod ? "Hình thức" : "Suất Chiếu"}
-                                    </span>
-                                    <span className="value-text text-amber-500">
-                                      {isVod
-                                        ? "Xem trực tuyến"
-                                        : tkt.showtime || "—"}
-                                    </span>
-                                  </div>
-                                  {!isVod && (
-                                    <div className="ticket-info-unit">
-                                      <span className="label-text">
-                                        Đồ ăn & Nước
-                                      </span>
-                                      <span className="value-text">
-                                        {tkt.combo}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="ticket-code-row">
-                                  <span className="label-text">Mã vé</span>
-                                  <span className="ticket-code-value">
-                                    {formatDisplayTicketCode(tkt)}
-                                  </span>
-                                  {isVod && (
-                                    <span className="ticket-email-hint">
-                                      Xem mã đầy đủ trong email
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="ticket-divider-line-container">
-                                <div className="dashed-perforation" />
-                              </div>
-
-                              <div className="ticket-body-right">
-                                <div
-                                  className="stub-seats-info"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <span className="seats-title">
-                                    {isVod ? "Loại vé" : "Ghế"}
-                                  </span>
-                                  <div
-                                    className={`seats-numbers${isVod ? " seats-numbers--static" : ""}`}
-                                  >
-                                    {isVod ? "Online" : tkt.seats || "—"}
-                                  </div>
-                                </div>
-
-                                <div className="barcode-wrapper-box">
-                                  <div className="barcode-lines" />
-                                </div>
-
-                                <span className="stub-price-tag">
-                                  {tkt.price}
-                                </span>
-                                {tkt.cancellable && tkt.bookingUuid && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCancelTargetUuid(tkt.bookingUuid);
-                                    }}
-                                    className="mt-2 text-[10px] font-bold uppercase tracking-wide text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md cursor-pointer"
-                                  >
-                                    {isVod ? "Hủy vé" : "Hủy vé"}
-                                  </button>
-                                )}
-                                {isVod && isLive && tkt.vodActivated && (
-                                  <span className="mt-2 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
-                                    Đã kích hoạt — không hủy
-                                  </span>
-                                )}
-                              </div>
+                        <>
+                          <section className="tickets-section">
+                            <div className="tickets-section__header">
+                              <h3 className="tickets-section__title">
+                                Vé đang hiệu lực
+                              </h3>
+                              <span className="tickets-section__count">
+                                {liveBookings.length} vé
+                              </span>
                             </div>
-                          );
-                        })
+                            {liveBookings.length === 0 ? (
+                              <p className="tickets-section__empty">
+                                Không có vé nào đang hiệu lực.
+                              </p>
+                            ) : (
+                              <div className="tickets-section__grid">
+                                {liveBookings.map((tkt) => (
+                                  <ProfileTicketCard
+                                    key={tkt.id}
+                                    tkt={tkt}
+                                    onTicketClick={handleTicketClick}
+                                    onCancel={setCancelTargetUuid}
+                                    onRefund={setRefundTargetUuid}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </section>
+
+                          {archivedBookings.length > 0 && (
+                            <section className="tickets-section tickets-section--archived">
+                              <button
+                                type="button"
+                                className="tickets-section__toggle"
+                                onClick={() => setShowArchivedTickets((v) => !v)}
+                                aria-expanded={showArchivedTickets}
+                              >
+                                <div className="tickets-section__header tickets-section__header--toggle">
+                                  <h3 className="tickets-section__title">
+                                    Vé đã sử dụng / hết hạn
+                                  </h3>
+                                  <span className="tickets-section__count">
+                                    {archivedBookings.length} vé
+                                  </span>
+                                </div>
+                                <ChevronDown
+                                  size={18}
+                                  className={`tickets-section__chevron${showArchivedTickets ? ' tickets-section__chevron--open' : ''}`}
+                                />
+                              </button>
+                              {showArchivedTickets && (
+                                <div className="tickets-section__grid tickets-section__grid--archived">
+                                  {archivedBookings.map((tkt) => (
+                                    <ProfileTicketCard
+                                      key={tkt.id}
+                                      tkt={tkt}
+                                      onTicketClick={handleTicketClick}
+                                      onCancel={setCancelTargetUuid}
+                                      onRefund={setRefundTargetUuid}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </section>
+                          )}
+                        </>
                       )}
                     </div>
                   </motion.div>
@@ -1937,6 +1871,11 @@ export const ProfilePage = () => {
           notificationService.success(result?.message || "Hủy vé thành công");
           reloadBookings();
         }}
+      />
+      <RefundDetailModal
+        bookingUuid={refundTargetUuid}
+        open={Boolean(refundTargetUuid)}
+        onClose={() => setRefundTargetUuid(null)}
       />
     </>
   );
