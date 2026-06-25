@@ -261,19 +261,47 @@ export const matchBookingCode = (booking, input, movieUuid = null) => {
   if (movieUuid && booking?.movieUuid && booking.movieUuid !== movieUuid) {
     return false;
   }
+  const status = (booking?.status || '').toLowerCase();
+  if (status === 'cancelled' || status === 'expired' || status === 'used') {
+    return false;
+  }
   const code = normalizeBookingCode(input);
   if (!code) return false;
 
   const ticketCode = normalizeBookingCode(booking?.id || '');
   const bookingUuid = normalizeBookingCode(booking?.bookingUuid || '');
 
-  return (
-    ticketCode === code ||
-    bookingUuid === code ||
-    (code.length >= 8 && bookingUuid.startsWith(code)) ||
-    (code.length >= 8 && ticketCode.includes(code))
-  );
+  return ticketCode === code || bookingUuid === code;
 };
+
+/** Chuẩn hóa hiển thị suất chiếu từ chuỗi BE `HH:mm | dd/MM/yyyy` hoặc ISO. */
+export const formatShowtimeDisplay = (value, mode = 'full') => {
+  if (!value) return '—';
+  const raw = String(value).trim();
+  if (raw.includes(' | ')) {
+    const [timePart, datePart] = raw.split(' | ').map((s) => s.trim());
+    if (mode === 'time') return timePart || raw;
+    if (mode === 'date') return datePart || raw;
+    return `${timePart} · ${datePart}`;
+  }
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  if (mode === 'time') {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+  if (mode === 'date') {
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const VOD_VERIFIED_KEY = (movieUuid) => `vodVerified:${movieUuid}`;
 
 export const isOnlineBooking = (booking) =>
   booking?.bookingType === 'ONLINE' ||

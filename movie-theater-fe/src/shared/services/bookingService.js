@@ -176,9 +176,10 @@ class BookingService {
     }
   }
 
-  async activateVodPlay(movieUuid) {
+  async activateVodPlay(movieUuid, bookingUuid = null) {
     try {
-      const response = await authService.api.post(`/api/vod/play/${movieUuid}`);
+      const params = bookingUuid ? `?bookingUuid=${encodeURIComponent(bookingUuid)}` : '';
+      const response = await authService.api.post(`/api/vod/play/${movieUuid}${params}`);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

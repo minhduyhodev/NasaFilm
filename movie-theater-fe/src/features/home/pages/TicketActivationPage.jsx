@@ -8,7 +8,7 @@ import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, VOD_VERIFIED_KEY, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
@@ -164,6 +164,10 @@ const TicketActivationPage = () => {
         setError('Không tìm thấy vé online khớp mã này cho phim đang chọn.');
         return;
       }
+      if (!isLiveTicket(matched)) {
+        setError(EXPIRED_TICKET_MESSAGE);
+        return;
+      }
 
       const status = await vodService.getStatus(movieId);
       if (!status?.hasPurchased) {
@@ -175,10 +179,16 @@ const TicketActivationPage = () => {
         return;
       }
 
-      await vodService.activatePlay(movieId);
+      if (canWatchOnlineDirectly(status)) {
+        invalidateVodStatus(movieId);
+        navigate(getOnlineWatchPath(movieId));
+        return;
+      }
+
+      sessionStorage.setItem(VOD_VERIFIED_KEY(movieId), matched.bookingUuid);
       invalidateVodStatus(movieId);
-      notificationService.success('Kích hoạt thành công! Bạn có thể xem phim ngay.');
-      navigate(`/watch/${movieId}`);
+      notificationService.success('Xác thực mã vé thành công! Nhấn Play để bắt đầu xem.');
+      navigate(getOnlineWatchPath(movieId));
     } catch (err) {
       setError(
         isExpiredTicketError(err?.message)

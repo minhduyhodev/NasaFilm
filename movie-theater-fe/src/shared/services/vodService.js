@@ -16,8 +16,8 @@ export const vodService = {
     return bookingService.getVodStatus(movieUuid);
   },
 
-  activatePlay(movieUuid) {
-    return bookingService.activateVodPlay(movieUuid);
+  activatePlay(movieUuid, bookingUuid = null) {
+    return bookingService.activateVodPlay(movieUuid, bookingUuid);
   },
 
   heartbeat(movieUuid, streamToken) {
