@@ -256,6 +256,12 @@ public class MovieService {
                         cb.isNull(root.get("screeningMode"))));
             }
 
+            if (Boolean.TRUE.equals(filter.getOnlineOnly())) {
+                predicates.add(cb.or(
+                        cb.equal(root.get("screeningMode"), ScreeningMode.ONLINE_ONLY),
+                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH)));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 

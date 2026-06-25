@@ -96,13 +96,50 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             SELECT s FROM Showtime s
             WHERE s.status IN :statuses
               AND s.startTime > :now
-              AND (:cinemaUuid IS NULL OR s.cinemaRoomUuid IN (
-                  SELECT r.uuid FROM CinemaRoom r WHERE r.cinema.uuid = :cinemaUuid))
-              AND (:rangeStart IS NULL OR s.startTime >= :rangeStart)
-              AND (:rangeEnd IS NULL OR s.startTime < :rangeEnd)
             ORDER BY s.startTime ASC
             """)
-    List<Showtime> findUpcomingFiltered(
+    List<Showtime> findUpcomingPublic(
+            @Param("statuses") Collection<ShowtimeStatus> statuses,
+            @Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.status IN :statuses
+              AND s.startTime > :now
+              AND s.cinemaRoomUuid IN (
+                  SELECT r.uuid FROM CinemaRoom r WHERE r.cinema.uuid = :cinemaUuid)
+            ORDER BY s.startTime ASC
+            """)
+    List<Showtime> findUpcomingByCinema(
+            @Param("statuses") Collection<ShowtimeStatus> statuses,
+            @Param("now") OffsetDateTime now,
+            @Param("cinemaUuid") UUID cinemaUuid);
+
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.status IN :statuses
+              AND s.startTime > :now
+              AND s.startTime >= :rangeStart
+              AND s.startTime < :rangeEnd
+            ORDER BY s.startTime ASC
+            """)
+    List<Showtime> findUpcomingByDateRange(
+            @Param("statuses") Collection<ShowtimeStatus> statuses,
+            @Param("now") OffsetDateTime now,
+            @Param("rangeStart") OffsetDateTime rangeStart,
+            @Param("rangeEnd") OffsetDateTime rangeEnd);
+
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.status IN :statuses
+              AND s.startTime > :now
+              AND s.cinemaRoomUuid IN (
+                  SELECT r.uuid FROM CinemaRoom r WHERE r.cinema.uuid = :cinemaUuid)
+              AND s.startTime >= :rangeStart
+              AND s.startTime < :rangeEnd
+            ORDER BY s.startTime ASC
+            """)
+    List<Showtime> findUpcomingByCinemaAndDateRange(
             @Param("statuses") Collection<ShowtimeStatus> statuses,
             @Param("now") OffsetDateTime now,
             @Param("cinemaUuid") UUID cinemaUuid,

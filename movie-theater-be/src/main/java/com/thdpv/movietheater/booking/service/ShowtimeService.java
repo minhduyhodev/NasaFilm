@@ -180,20 +180,28 @@ public class ShowtimeService {
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getPublicShowtimes(UUID cinemaUuid, LocalDate date) {
         OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime rangeStart = null;
-        OffsetDateTime rangeEnd = null;
-        if (date != null) {
-            ZoneOffset offset = ZoneOffset.ofHours(7);
-            rangeStart = date.atStartOfDay().atOffset(offset);
-            rangeEnd = date.plusDays(1).atStartOfDay().atOffset(offset);
+        List<ShowtimeStatus> statuses = List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT);
+        List<Showtime> showtimes;
+
+        if (cinemaUuid != null && date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByCinemaAndDateRange(
+                    statuses, now, cinemaUuid, rangeStart, rangeEnd);
+        } else if (cinemaUuid != null) {
+            showtimes = showtimeRepository.findUpcomingByCinema(statuses, now, cinemaUuid);
+        } else if (date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByDateRange(statuses, now, rangeStart, rangeEnd);
+        } else {
+            showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
         }
-        List<Showtime> showtimes = showtimeRepository.findUpcomingFiltered(
-                List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT),
-                now,
-                cinemaUuid,
-                rangeStart,
-                rangeEnd);
         return mapShowtimesToResponses(showtimes);
+    }
+
+    private OffsetDateTime toDayStart(LocalDate date) {
+        return date.atStartOfDay().atOffset(ZoneOffset.ofHours(7));
     }
 
     private List<ShowtimeResponse> mapShowtimesToResponses(List<Showtime> showtimes) {
