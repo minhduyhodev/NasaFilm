@@ -39,10 +39,12 @@ public class VodController {
     @PostMapping("/play/{movieUuid}")
     public ResponseEntity<ApiResponse<VodPlayResponse>> activateVodPlay(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable("movieUuid") UUID movieUuid) {
+            @PathVariable("movieUuid") UUID movieUuid,
+            @RequestParam(value = "bookingUuid", required = false) UUID bookingUuid) {
         VodPlayResponse response = bookingService.activateVodPlay(
                 userDetails != null ? userDetails.getUsername() : null,
-                movieUuid);
+                movieUuid,
+                bookingUuid);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
