@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -266,8 +268,31 @@ public class MovieService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return movieRepository.findAll(specification, safePageable)
-                .map(this::toMovieListResponse);
+        org.springframework.data.domain.Page<Movie> moviePage = movieRepository.findAll(specification, safePageable);
+        List<MovieListResponse> content = toMovieListResponses(moviePage.getContent());
+        return new org.springframework.data.domain.PageImpl<>(content, safePageable, moviePage.getTotalElements());
+    }
+
+    private List<MovieListResponse> toMovieListResponses(List<Movie> movies) {
+        if (movies == null || movies.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
+        Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
+        return movies.stream()
+                .map(movie -> toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie)))
+                .collect(Collectors.toList());
+    }
+
+    private Map<UUID, Movie> loadMoviesWithListRelations(Collection<UUID> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Movie> loaded = movieRepository.findAllByIdWithMedias(uuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie, (left, right) -> left));
+        movieRepository.findAllByIdWithGenres(uuids);
+        movieRepository.findAllByIdWithCountries(uuids);
+        return loaded;
     }
 
     @Transactional(readOnly = true)
@@ -276,46 +301,42 @@ public class MovieService {
 
         Pageable safePageable = PageRequest.of(
                 Math.max(pageable.getPageNumber(), 0),
-                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10,
-                Sort.by(Sort.Direction.ASC, "releaseDate"));
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10);
 
-        Specification<Movie> specification = (root, query, cb) -> {
-            query.distinct(true);
+        long total = movieRepository.countUpcomingMovies(now);
+        if (total == 0) {
+            return new PageImpl<>(List.of(), safePageable, 0);
+        }
 
-            Subquery<UUID> scheduledSubquery = query.subquery(UUID.class);
-            Root<Showtime> showtimeRoot = scheduledSubquery.from(Showtime.class);
-            scheduledSubquery.select(showtimeRoot.get("movieUuid"));
-            scheduledSubquery.where(
-                    cb.equal(showtimeRoot.get("status"), ShowtimeStatus.SCHEDULED),
-                    cb.greaterThan(showtimeRoot.get("startTime"), now));
+        List<UUID> pageUuids = movieRepository.findUpcomingMovieUuids(
+                now,
+                safePageable.getPageSize(),
+                safePageable.getOffset());
 
-            return cb.and(
-                    cb.not(root.get("status").in("DELETED", "INACTIVE")),
-                    cb.or(
-                            cb.equal(root.get("status"), "COMING_SOON"),
-                            root.get("uuid").in(scheduledSubquery)));
-        };
+        if (pageUuids.isEmpty()) {
+            return new PageImpl<>(List.of(), safePageable, total);
+        }
 
-        List<MovieListResponse> items = movieRepository.findAll(specification).stream()
+        Map<UUID, Movie> movieByUuid = loadMoviesWithListRelations(pageUuids);
+
+        Map<UUID, OffsetDateTime> nextStarts = showtimeRepository
+                .findEarliestScheduledStarts(pageUuids, now).stream()
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> (OffsetDateTime) row[1],
+                        (a, b) -> a));
+
+        List<MovieListResponse> pageContent = pageUuids.stream()
+                .map(movieByUuid::get)
+                .filter(Objects::nonNull)
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(movie);
-                    OffsetDateTime nextStart = showtimeRepository.findEarliestScheduledStart(movie.getUuid(), now);
-                    response.setNextShowtimeStart(nextStart);
+                    response.setNextShowtimeStart(nextStarts.get(movie.getUuid()));
                     return response;
                 })
-                .sorted(Comparator
-                        .comparing((MovieListResponse m) -> m.getNextShowtimeStart() == null)
-                        .thenComparing(MovieListResponse::getNextShowtimeStart,
-                                Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList();
+                .collect(Collectors.toList());
 
-        int start = (int) safePageable.getOffset();
-        int end = Math.min(start + safePageable.getPageSize(), items.size());
-        List<MovieListResponse> pageContent = start >= items.size()
-                ? List.of()
-                : items.subList(start, end);
-
-        return new PageImpl<>(pageContent, safePageable, items.size());
+        return new PageImpl<>(pageContent, safePageable, total);
     }
 
     @Transactional(readOnly = true)
