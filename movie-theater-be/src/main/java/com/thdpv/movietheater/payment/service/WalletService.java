@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 
 @Service
 public class WalletService {
+
+    private static final int WALLET_WRITE_RETRIES = 4;
 
     public static final String TYPE_TOP_UP = "TOP_UP";
     public static final String TYPE_WITHDRAW = "WITHDRAW";
@@ -68,7 +71,7 @@ public class WalletService {
 
     @Transactional(readOnly = true)
     public WalletSummaryResponse getSummary(UUID userUuid) {
-        User user = requireUser(userUuid);
+        User user = findUser(userUuid);
         ensureWalletInitialized(user);
 
         WalletSummaryResponse response = new WalletSummaryResponse();
@@ -89,18 +92,16 @@ public class WalletService {
     @Transactional
     public WalletSummaryResponse mockTopUp(UUID userUuid, BigDecimal amount) {
         validateAmount(amount);
-        User user = requireUser(userUuid);
-        ensureWalletInitialized(user);
-        credit(user, amount, null, "Nạp tiền mô phỏng (Mock Gateway)");
+        ensureWalletInitialized(findUser(userUuid));
+        runWalletWriteWithRetry(userUuid, user -> credit(user, amount, null, "Nạp tiền mô phỏng (Mock Gateway)"));
         return getSummary(userUuid);
     }
 
     @Transactional
     public WalletSummaryResponse mockWithdraw(UUID userUuid, BigDecimal amount) {
         validateAmount(amount);
-        User user = requireUser(userUuid);
-        ensureWalletInitialized(user);
-        debit(user, amount, null, "Rút tiền mô phỏng (Mock Gateway)");
+        ensureWalletInitialized(findUser(userUuid));
+        runWalletWriteWithRetry(userUuid, user -> debit(user, amount, null, "Rút tiền mô phỏng (Mock Gateway)"));
         return getSummary(userUuid);
     }
 
@@ -109,9 +110,9 @@ public class WalletService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
-        User user = requireUser(userUuid);
-        ensureWalletInitialized(user);
-        debit(user, amount, paymentUuid, description != null ? description : "Thanh toán đặt vé");
+        ensureWalletInitialized(findUser(userUuid));
+        runWalletWriteWithRetry(userUuid, user ->
+                debit(user, amount, paymentUuid, description != null ? description : "Thanh toán đặt vé"));
     }
 
     @Transactional
@@ -119,9 +120,9 @@ public class WalletService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
-        User user = requireUser(userUuid);
-        ensureWalletInitialized(user);
-        credit(user, amount, refundUuid, description != null ? description : "Hoàn tiền hủy vé");
+        ensureWalletInitialized(findUser(userUuid));
+        runWalletWriteWithRetry(userUuid, user ->
+                credit(user, amount, refundUuid, description != null ? description : "Hoàn tiền hủy vé"));
     }
 
     private void debit(User user, BigDecimal amount, UUID referenceUuid, String description) {
@@ -173,7 +174,7 @@ public class WalletService {
                 .findTop20ByUserUuidOrderByCreatedAtDesc(user.getId())
                 .isEmpty();
         if (!hasTransactions && user.getWalletBalance().compareTo(BigDecimal.ZERO) == 0) {
-            credit(user, defaultBalance, null, "Số dư khởi tạo demo");
+            runWalletWriteWithRetry(user.getId(), loaded -> credit(loaded, defaultBalance, null, "Số dư khởi tạo demo"));
         }
     }
 
@@ -186,12 +187,34 @@ public class WalletService {
         }
     }
 
-    private User requireUser(UUID userUuid) {
+    private User findUser(UUID userUuid) {
         if (userUuid == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
         return userRepository.findById(userUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy người dùng"));
+    }
+
+    @FunctionalInterface
+    private interface WalletMutation {
+        void apply(User user);
+    }
+
+    private void runWalletWriteWithRetry(UUID userUuid, WalletMutation mutation) {
+        for (int attempt = 0; attempt < WALLET_WRITE_RETRIES; attempt++) {
+            User user = findUser(userUuid);
+            if (user.getWalletBalance() == null) {
+                user.setWalletBalance(BigDecimal.ZERO);
+            }
+            try {
+                mutation.apply(user);
+                return;
+            } catch (ObjectOptimisticLockingFailureException ex) {
+                if (attempt == WALLET_WRITE_RETRIES - 1) {
+                    throw new AppException(ErrorCode.CONFLICT, "Giao dịch ví đang bận, vui lòng thử lại.");
+                }
+            }
+        }
     }
 
     private WalletTransactionResponse mapTransaction(WalletTransaction tx) {
