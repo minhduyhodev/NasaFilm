@@ -720,6 +720,10 @@ select.info-row-input option:disabled {
   margin-top: 1rem;
 }
 
+.tickets-section .pagination-wrap {
+  margin-top: 1rem;
+}
+
 .ticket-archive-badge {
   position: absolute;
   top: 0.85rem;

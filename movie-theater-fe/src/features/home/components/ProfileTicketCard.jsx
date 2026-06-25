@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   formatDisplayTicketCode,
+  formatShowtimeDisplay,
   getTicketArchiveMeta,
   isLiveTicket,
   isOnlineBooking,
@@ -59,7 +60,7 @@ const ProfileTicketCard = ({ tkt, onTicketClick, onCancel, onRefund }) => {
           <div className="ticket-info-unit">
             <span className="label-text">{isVod ? 'Hình thức' : 'Suất Chiếu'}</span>
             <span className="value-text text-amber-500">
-              {isVod ? 'Xem trực tuyến' : tkt.showtime || '—'}
+              {isVod ? 'Xem trực tuyến' : formatShowtimeDisplay(tkt.showtime)}
             </span>
           </div>
           {!isVod && (

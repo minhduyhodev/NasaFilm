@@ -36,6 +36,7 @@ import { bookingService } from "../../../shared/services/bookingService";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import Pagination from "../../../shared/components/Pagination";
 import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
@@ -124,6 +125,9 @@ export const ProfilePage = () => {
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
   const [refundTargetUuid, setRefundTargetUuid] = useState(null);
   const [showArchivedTickets, setShowArchivedTickets] = useState(false);
+  const [liveTicketPage, setLiveTicketPage] = useState(1);
+  const [archivedTicketPage, setArchivedTicketPage] = useState(1);
+  const [ticketsPerPage, setTicketsPerPage] = useState(4);
   const [vouchers, setVouchers] = useState([]);
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
@@ -184,6 +188,21 @@ export const ProfilePage = () => {
     () => bookings.filter(isLiveTicket).length,
     [bookings],
   );
+
+  const paginatedLiveBookings = useMemo(() => {
+    const start = (liveTicketPage - 1) * ticketsPerPage;
+    return liveBookings.slice(start, start + ticketsPerPage);
+  }, [liveBookings, liveTicketPage, ticketsPerPage]);
+
+  const paginatedArchivedBookings = useMemo(() => {
+    const start = (archivedTicketPage - 1) * ticketsPerPage;
+    return archivedBookings.slice(start, start + ticketsPerPage);
+  }, [archivedBookings, archivedTicketPage, ticketsPerPage]);
+
+  useEffect(() => {
+    setLiveTicketPage(1);
+    setArchivedTicketPage(1);
+  }, [bookings.length]);
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -1506,8 +1525,9 @@ export const ProfilePage = () => {
                                 Không có vé nào đang hiệu lực.
                               </p>
                             ) : (
+                              <>
                               <div className="tickets-section__grid">
-                                {liveBookings.map((tkt) => (
+                                {paginatedLiveBookings.map((tkt) => (
                                   <ProfileTicketCard
                                     key={tkt.id}
                                     tkt={tkt}
@@ -1517,6 +1537,19 @@ export const ProfilePage = () => {
                                   />
                                 ))}
                               </div>
+                              {liveBookings.length > ticketsPerPage && (
+                                <Pagination
+                                  currentPage={liveTicketPage}
+                                  totalItems={liveBookings.length}
+                                  itemsPerPage={ticketsPerPage}
+                                  onPageChange={setLiveTicketPage}
+                                  onItemsPerPageChange={(size) => {
+                                    setTicketsPerPage(size);
+                                    setLiveTicketPage(1);
+                                  }}
+                                />
+                              )}
+                              </>
                             )}
                           </section>
 
@@ -1542,8 +1575,9 @@ export const ProfilePage = () => {
                                 />
                               </button>
                               {showArchivedTickets && (
+                                <>
                                 <div className="tickets-section__grid tickets-section__grid--archived">
-                                  {archivedBookings.map((tkt) => (
+                                  {paginatedArchivedBookings.map((tkt) => (
                                     <ProfileTicketCard
                                       key={tkt.id}
                                       tkt={tkt}
@@ -1553,6 +1587,19 @@ export const ProfilePage = () => {
                                     />
                                   ))}
                                 </div>
+                                {archivedBookings.length > ticketsPerPage && (
+                                  <Pagination
+                                    currentPage={archivedTicketPage}
+                                    totalItems={archivedBookings.length}
+                                    itemsPerPage={ticketsPerPage}
+                                    onPageChange={setArchivedTicketPage}
+                                    onItemsPerPageChange={(size) => {
+                                      setTicketsPerPage(size);
+                                      setArchivedTicketPage(1);
+                                    }}
+                                  />
+                                )}
+                                </>
                               )}
                             </section>
                           )}

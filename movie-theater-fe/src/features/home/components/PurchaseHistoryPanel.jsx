@@ -19,7 +19,7 @@ import {
 import { bookingService } from '../../../shared/services/bookingService';
 import RefundDetailModal from '../../../shared/components/RefundDetailModal';
 import Pagination from '../../../shared/components/Pagination';
-import { maskTicketCode } from '../utils/movieUtils';
+import { maskTicketCode, formatShowtimeDisplay } from '../utils/movieUtils';
 import './PurchaseHistoryPanel.css';
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -415,7 +415,7 @@ const PurchaseHistoryPanel = () => {
                       {item.roomName ? ` · ${item.roomName}` : ''}
                     </p>
                     <p className="ph-card__meta ph-card__meta--muted">
-                      {item.purchasedAt || item.showtime}
+                      {formatShowtimeDisplay(item.showtime || item.purchasedAt)}
                       {' · '}
                       <span className="ph-mono">{maskTicketCode(item.ticketCode)}</span>
                     </p>
