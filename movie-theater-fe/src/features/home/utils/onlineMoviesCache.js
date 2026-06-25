@@ -1,69 +1,28 @@
-import { movieService } from '../../../shared/services/movieService';
-import { mapApiMovies, preloadHeroBackground } from './movieUtils';
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-let cachedMovies = null;
-let cachedAt = 0;
-let inflightPromise = null;
-let heroPreloadedFor = null;
-let onlinePageChunkPromise = null;
+import { queryClient } from '../../../app/providers/QueryProvider';
+import { prefetchOnlineSpotlight } from '../../../shared/hooks/queries/useOnlineQueries';
+import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
+import { mapApiMovies } from './movieUtils';
 
 export function getCachedOnlineMovies() {
-  if (cachedMovies && Date.now() - cachedAt < CACHE_TTL_MS) {
-    return cachedMovies;
-  }
-  return null;
-}
-
-async function fetchAndCacheOnlineMovies() {
-  const data = await movieService.getMovies({
-    status: 'NOW_SHOWING',
-    page: 0,
-    size: 50,
-    onlineOnly: true,
-  });
-  const onlineMovies = mapApiMovies(data?.content || []);
-
-  const firstUuid = onlineMovies[0]?.uuid;
-  if (firstUuid && heroPreloadedFor !== firstUuid) {
-    heroPreloadedFor = firstUuid;
-    preloadHeroBackground(onlineMovies[0]).catch(() => {});
-  }
-
-  cachedMovies = onlineMovies;
-  cachedAt = Date.now();
-  return onlineMovies;
+  const cached = queryClient.getQueryData(queryKeys.onlineSpotlight);
+  return cached?.length ? cached : null;
 }
 
 export async function prefetchOnlineMovies({ force = false } = {}) {
-  const existing = getCachedOnlineMovies();
-  if (!force && existing) return existing;
-
-  if (inflightPromise) return inflightPromise;
-
-  inflightPromise = fetchAndCacheOnlineMovies()
-    .catch((err) => {
-      if (cachedMovies) return cachedMovies;
-      throw err;
-    })
-    .finally(() => {
-      inflightPromise = null;
-    });
-
-  return inflightPromise;
+  if (!force) {
+    const existing = getCachedOnlineMovies();
+    if (existing) return existing;
+  }
+  return prefetchOnlineSpotlight(queryClient);
 }
 
 export function prefetchOnlinePage() {
   prefetchOnlineMovies().catch(() => {});
-  if (!onlinePageChunkPromise) {
-    onlinePageChunkPromise = import('../pages/OnlineMoviesPage');
-  }
-  return onlinePageChunkPromise;
+  return import('../pages/OnlineMoviesPage');
 }
 
 export function invalidateOnlineMoviesCache() {
-  cachedMovies = null;
-  cachedAt = 0;
-  heroPreloadedFor = null;
+  queryClient.invalidateQueries({ queryKey: queryKeys.onlineSpotlight });
 }
+
+export { mapApiMovies };

@@ -1,10 +1,16 @@
-import { queryClient } from '../../../app/providers/QueryProvider';
+import { useQuery } from '@tanstack/react-query';
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
-import { homeQueryKeys } from '../hooks/useHomeQueries';
 
-export function prefetchNowShowingMovies() {
-  return queryClient.fetchQuery({
+export const homeQueryKeys = {
+  nowShowing: ['home', 'nowShowing'],
+  upcoming: ['home', 'upcoming'],
+  cinemas: ['home', 'cinemas'],
+  publicShowtimes: ['home', 'publicShowtimes'],
+};
+
+export function useNowShowingMovies() {
+  return useQuery({
     queryKey: homeQueryKeys.nowShowing,
     queryFn: () =>
       movieService.getMovies({
@@ -16,31 +22,23 @@ export function prefetchNowShowingMovies() {
   });
 }
 
-export function prefetchUpcomingMovies() {
-  return queryClient.fetchQuery({
+export function useUpcomingMovies() {
+  return useQuery({
     queryKey: homeQueryKeys.upcoming,
     queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 20 }),
   });
 }
 
-export function prefetchCinemas() {
-  return queryClient.fetchQuery({
+export function useHomeCinemas() {
+  return useQuery({
     queryKey: homeQueryKeys.cinemas,
     queryFn: () => movieService.getCinemas(),
   });
 }
 
-export function prefetchPublicShowtimes() {
-  return queryClient.fetchQuery({
+export function usePublicShowtimes() {
+  return useQuery({
     queryKey: homeQueryKeys.publicShowtimes,
     queryFn: () => showtimeService.getPublicShowtimes(),
   });
-}
-
-export function prefetchTicketFilterData() {
-  return Promise.all([
-    prefetchNowShowingMovies(),
-    prefetchCinemas(),
-    prefetchPublicShowtimes(),
-  ]);
 }

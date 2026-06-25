@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, Bell, BellRing } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
-import { prefetchUpcomingMovies } from '../utils/homePageCache';
+import { useUpcomingMovies } from '../hooks/useHomeQueries';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
@@ -35,11 +35,11 @@ const formatShowtimeLabel = (isoString) => {
 const Upcoming = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
-  const [upcomingMovies, setUpcomingMovies] = useState([]);
+  const { data: moviesData, isLoading } = useUpcomingMovies();
+  const upcomingMovies = moviesData?.content || [];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [movieDetail, setMovieDetail] = useState(null);
   const [familyCombo, setFamilyCombo] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerLoading, setTrailerLoading] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState('');
@@ -58,34 +58,25 @@ const Upcoming = () => {
   }, [refreshReminders]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+    const fetchCombos = async () => {
       try {
-        const [moviesData, combos] = await Promise.all([
-          prefetchUpcomingMovies(),
-          comboService.getActiveCombos().catch(() => []),
-        ]);
-
-        if (moviesData?.content?.length > 0) {
-          setUpcomingMovies(moviesData.content);
-          setCurrentIndex(0);
-        } else {
-          setUpcomingMovies([]);
-        }
-
+        const combos = await comboService.getActiveCombos().catch(() => []);
         const family = (combos || []).find(c =>
           c.name?.toLowerCase().includes('gia đình') || c.name?.toLowerCase().includes('gia dinh')
         );
         setFamilyCombo(family || combos?.[0] || null);
       } catch (err) {
-        console.error('Failed to fetch upcoming spotlight:', err);
-        setUpcomingMovies([]);
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to fetch combo data:', err);
       }
     };
-    fetchData();
+    fetchCombos();
   }, []);
+
+  useEffect(() => {
+    if (currentIndex >= upcomingMovies.length && upcomingMovies.length > 0) {
+      setCurrentIndex(0);
+    }
+  }, [currentIndex, upcomingMovies.length]);
 
   useEffect(() => {
     if (!upcomingMovie?.uuid) {

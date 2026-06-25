@@ -4,8 +4,6 @@ import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
@@ -32,7 +30,7 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
-import { bookingService } from "../../../shared/services/bookingService";
+import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/queries/useBookingQueries";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
@@ -40,7 +38,6 @@ import Pagination from "../../../shared/components/Pagination";
 import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
-  enrichBookingsWithMovieMeta,
   isOnlineBooking,
   isLiveTicket,
   partitionBookingsByLive,
@@ -120,8 +117,8 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
-  const [bookings, setBookings] = useState([]);
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const { data: bookings = [], isLoading: isLoadingBookings, refetch: refetchBookings } = useMyBookings(Boolean(user));
+  const invalidateBookings = useInvalidateMyBookings();
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
   const [refundTargetUuid, setRefundTargetUuid] = useState(null);
   const [showArchivedTickets, setShowArchivedTickets] = useState(false);
@@ -151,32 +148,9 @@ export const ProfilePage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoadingBookings(true);
-      try {
-        const data = await bookingService.getMyBookings();
-        const enriched = await enrichBookingsWithMovieMeta(data || []);
-        setBookings(enriched);
-      } catch (err) {
-        console.error("Failed to load user bookings:", err);
-      } finally {
-        setIsLoadingBookings(false);
-      }
-    };
-    if (user) {
-      fetchBookings();
-    }
-  }, [user]);
-
   const reloadBookings = async () => {
-    try {
-      const data = await bookingService.getMyBookings();
-      const enriched = await enrichBookingsWithMovieMeta(data || []);
-      setBookings(enriched);
-    } catch (err) {
-      console.error("Failed to reload bookings:", err);
-    }
+    await invalidateBookings();
+    await refetchBookings();
   };
 
   const { live: liveBookings, archived: archivedBookings } = useMemo(
@@ -565,7 +539,6 @@ export const ProfilePage = () => {
   if (isLoading) {
     return (
       <>
-        <Navbar />
         <div className="profile-wrapper flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
@@ -574,14 +547,12 @@ export const ProfilePage = () => {
             </p>
           </div>
         </div>
-        <Footer />
       </>
     );
   }
 
   return (
     <>
-      <Navbar />
       <div className="profile-wrapper">
         <div className="profile-container">
           {/* Space Hub Header (Hero Section) */}
@@ -1909,7 +1880,6 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
-      <Footer />
       <CancelBookingModal
         bookingUuid={cancelTargetUuid}
         open={Boolean(cancelTargetUuid)}

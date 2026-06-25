@@ -7,6 +7,7 @@ import { AdminRoutes } from './features/admin/routes/index.jsx';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
 import { PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
+import { QueryProvider } from './app/providers/QueryProvider';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
@@ -43,6 +44,7 @@ export default function App() {
       <GlobalStyles />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
+        <QueryProvider>
         <AuthProvider>
           <NotificationProvider>
             <Routes>
@@ -98,6 +100,7 @@ export default function App() {
 
           <ToastViewport />
         </AuthProvider>
+        </QueryProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );
