@@ -18,8 +18,7 @@ import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { useHomeChrome } from '../context/HomeChromeContext';
 import './WatchPage.css';
 
 const formatDuration = (mins) => {
@@ -55,6 +54,7 @@ const WatchPage = () => {
   const [previewReady, setPreviewReady] = useState(false);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [cinemaModeType, setCinemaModeType] = useState(null);
+  const { setHideChrome } = useHomeChrome();
   const [cinemaRect, setCinemaRect] = useState(null);
   const [cinemaUiVisible, setCinemaUiVisible] = useState(true);
   const [videoError, setVideoError] = useState('');
@@ -188,6 +188,11 @@ const WatchPage = () => {
     }
     return () => document.body.classList.remove('watch-cinema-active');
   }, [isCinemaMode, cinemaModeType]);
+
+  useEffect(() => {
+    setHideChrome(isCinemaMode && cinemaModeType === 'custom');
+    return () => setHideChrome(false);
+  }, [isCinemaMode, cinemaModeType, setHideChrome]);
 
   useEffect(() => {
     let active = true;
@@ -527,8 +532,6 @@ const WatchPage = () => {
     <div className="watch-page min-h-screen flex flex-col text-white">
       <div className={`watch-cinema-backdrop ${isCustomCinema ? 'watch-cinema-backdrop--visible' : ''}`} />
 
-      {!isCustomCinema && <Navbar />}
-
       <main className={`flex-1 px-4 md:px-8 lg:px-16 xl:px-20 py-6 md:py-8 ${isCustomCinema ? 'pointer-events-none' : ''}`}>
         <div className={`max-w-[1440px] mx-auto watch-page-content ${isCustomCinema ? 'watch-page-content--cinema' : ''}`}>
           {/* Top bar */}
@@ -768,8 +771,6 @@ const WatchPage = () => {
           </div>
         </div>
       </main>
-
-      {!isCustomCinema && <Footer />}
     </div>
   );
 };

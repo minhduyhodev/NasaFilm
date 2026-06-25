@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -211,14 +209,12 @@ const TicketActivationPage = () => {
   if (!movie) {
     return (
       <div className="ticket-activation-page min-h-screen text-white">
-        <Navbar />
         <main className="pt-28 px-4 text-center">
           <p className="text-lg font-semibold">Không tìm thấy phim.</p>
           <Link to="/online" className="inline-block mt-4 text-red-500 hover:text-red-400">
             Quay lại trang trực tuyến
           </Link>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -230,7 +226,6 @@ const TicketActivationPage = () => {
 
   return (
     <div className="ticket-activation-page text-white min-h-screen">
-      <Navbar />
 
       <main className="pt-24 pb-16 px-4 md:px-8 lg:px-20">
         <div className="max-w-7xl mx-auto">
@@ -410,8 +405,6 @@ const TicketActivationPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

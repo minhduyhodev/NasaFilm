@@ -10,8 +10,6 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import TabTransition from '../../../shared/components/TabTransition';
 import { comboService } from '../../../shared/services/comboService';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
@@ -225,7 +223,6 @@ const OffersPage = () => {
 
   return (
     <div className="offers-page-wrapper">
-      <Navbar />
 
       <section className="offers-hero" style={{ backgroundImage: `url(${heroBg})` }}>
         <div className="offers-hero-overlay" />
@@ -464,8 +461,6 @@ const OffersPage = () => {
           )}
         </TabTransition>
       </main>
-
-      <Footer />
     </div>
   );
 };

@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, BellRing, Calendar, Trash2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import PosterImage from '../../../shared/components/PosterImage';
 import { notificationService } from '../../../shared/services/notificationService';
 import {
@@ -37,7 +35,6 @@ const RemindersPage = () => {
 
   return (
     <div className="text-white min-h-screen bg-[#0b0f19]">
-      <Navbar />
 
       <main className="pt-28 pb-16 px-4 md:px-8 lg:px-20">
         <div className="max-w-3xl mx-auto">
@@ -136,8 +133,6 @@ const RemindersPage = () => {
           )}
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

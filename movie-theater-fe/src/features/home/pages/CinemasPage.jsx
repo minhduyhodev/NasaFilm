@@ -6,8 +6,6 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 
 import heroBg from '../../../shared/assets/cinema_hero_bg.png';
 import landmark81Img from '../../../shared/assets/cinema_landmark81.png';
@@ -211,7 +209,6 @@ const CinemasPage = () => {
 
   return (
     <div className="cinemas-page-wrapper">
-      <Navbar />
 
       <section className="cinemas-hero" style={{ backgroundImage: `url(${heroBg})` }}>
         <div className="cinemas-hero-overlay" />
@@ -396,8 +393,6 @@ const CinemasPage = () => {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 };

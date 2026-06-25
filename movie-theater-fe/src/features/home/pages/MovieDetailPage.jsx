@@ -10,8 +10,6 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { notificationService } from "../../../shared/services/notificationService";
 import { movieService } from "../../../shared/services/movieService";
 import { showtimeService } from "../../../shared/services/showtimeService";
@@ -347,7 +345,6 @@ const MovieDetailPage = () => {
 
   return (
     <div className="movie-detail-wrapper">
-      <Navbar />
 
       <main className="relative pt-0">
         {/* Hero Section */}
@@ -790,8 +787,6 @@ const MovieDetailPage = () => {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 };

@@ -1,17 +1,14 @@
 import React from 'react';
-import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import TicketFilters from '../components/TicketFilters';
 import NowShowing from '../components/NowShowing';
 import ComingSoon from '../components/ComingSoon';
 import Upcoming from '../components/Upcoming';
 import VIPSection from '../components/VIPSection';
-import Footer from '../components/Footer';
 
 const HomePage = () => {
 	return (
 		<div className="text-white min-h-screen">
-			<Navbar />
 
 			<main className="pt-0">
 				<Hero />
@@ -46,8 +43,6 @@ const HomePage = () => {
 					</div>
 				</section>
 			</main>
-
-			<Footer />
 		</div>
 	);
 };

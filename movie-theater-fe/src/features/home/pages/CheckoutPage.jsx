@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { vodService } from '../../../shared/services/vodService';
 import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -330,7 +328,6 @@ const CheckoutPage = () => {
 
   return (
     <div className="checkout-wrapper">
-      <Navbar />
       
       <main className="mt-8 flex-grow pt-4 pb-20 px-4 md:px-16 lg:px-20 max-w-7xl mx-auto w-full">
         {/* Navigation Breadcrumb / Back Action */}
@@ -668,8 +665,6 @@ const CheckoutPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
 
       {isExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
