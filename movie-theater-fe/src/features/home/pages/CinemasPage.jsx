@@ -102,9 +102,11 @@ const CinemasPage = () => {
 
         const enriched = cinemaList.map((cinema, index) => {
           const rooms = cinema.rooms || [];
-          const techs = rooms
-            .map((room) => ROOM_TYPE_LABELS[room.roomType] || room.name)
-            .filter(Boolean);
+          const techs = [...new Set(
+            rooms
+              .map((room) => ROOM_TYPE_LABELS[room.roomType] || room.name)
+              .filter(Boolean)
+          )];
           return {
             id: cinema.uuid,
             uuid: cinema.uuid,
