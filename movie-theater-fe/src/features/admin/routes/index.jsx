@@ -31,6 +31,7 @@ const AdminComboRevenuePage = lazy(() => import("../pages/AdminComboRevenuePage"
 const ConfigPage = lazy(() => import("../pages/ConfigPage"));
 const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
+const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -68,6 +69,7 @@ export const AdminRoutes = () => {
           <Route path="actors/:actorUuid/edit" element={<Navigate to="/admin/media" replace />} />
           <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
           <Route path="bookings" element={<BookingsPage />} />
+          <Route path="refunds" element={<RefundsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="cinemas/new" element={<Navigate to="/admin/cinemas" replace />} />

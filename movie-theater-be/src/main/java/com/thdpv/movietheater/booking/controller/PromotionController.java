@@ -2,11 +2,15 @@ package com.thdpv.movietheater.booking.controller;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.booking.dto.response.MyVoucherResponse;
 import com.thdpv.movietheater.booking.dto.response.PromotionValidateResponse;
+import com.thdpv.movietheater.booking.dto.response.PublicPromotionResponse;
 import com.thdpv.movietheater.booking.dto.response.VoucherCatalogResponse;
 import com.thdpv.movietheater.booking.entity.Promotion;
 import com.thdpv.movietheater.booking.entity.UserVoucher;
@@ -103,6 +108,37 @@ public class PromotionController {
                 buildDescription(promotion), null)));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<List<PublicPromotionResponse>>> getPublicPromotions() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<PublicPromotionResponse> responses = new ArrayList<>();
+
+        for (Promotion promotion : promotionRepository.findEligiblePromotions(now)) {
+            if (promotionLifecycleService.isUsageExhausted(promotion)) {
+                continue;
+            }
+
+            PublicPromotionResponse item = new PublicPromotionResponse();
+            item.setId(promotion.getId());
+            item.setCode(promotion.getCode());
+            item.setDiscountType(promotion.getDiscountType());
+            item.setDiscountValue(promotion.getDiscountValue());
+            item.setDescription(buildDescription(promotion));
+            item.setEndDate(promotion.getEndDate());
+            item.setOncePerUser(Boolean.TRUE.equals(promotion.getOncePerUser()));
+            item.setRequiresRedemption(promotion.requiresPointRedemption());
+            item.setPointsCost(promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
+            item.setBadge(buildBadge(promotion));
+            item.setTitle(buildPublicTitle(promotion));
+            item.setCategory(buildPublicCategory(promotion));
+            item.setDetails(buildPublicDetails(promotion));
+            responses.add(item);
+        }
+
+        responses.sort((a, b) -> a.getCode().compareToIgnoreCase(b.getCode()));
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
     @GetMapping("/catalog")
     public ResponseEntity<ApiResponse<List<VoucherCatalogResponse>>> getVoucherCatalog(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -114,29 +150,31 @@ public class PromotionController {
         int currentScore = user != null && user.getScore() != null ? user.getScore() : 0;
 
         OffsetDateTime now = OffsetDateTime.now();
+        List<Promotion> redeemablePromotions = promotionRepository.findEligiblePromotions(now).stream()
+                .filter(Promotion::requiresPointRedemption)
+                .filter(p -> !promotionLifecycleService.isUsageExhausted(p))
+                .collect(Collectors.toList());
+
+        if (redeemablePromotions.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(List.of()));
+        }
+
+        List<UUID> promotionIds = redeemablePromotions.stream().map(Promotion::getId).collect(Collectors.toList());
+        Map<UUID, Long> globalRedeemCounts = toCountMap(
+                userVoucherRepository.countRedeemedGroupByPromotion(promotionIds));
+        Set<UUID> activeWalletPromotionIds = userUuid != null
+                ? new HashSet<>(userVoucherRepository.findPromotionUuidsByUserAndStatus(
+                        userUuid, promotionIds, VoucherRedemptionService.USER_VOUCHER_ACTIVE))
+                : Set.of();
+        Map<UUID, Long> userRedeemCounts = userUuid != null
+                ? toCountMap(userVoucherRepository.countByUserAndPromotionGroup(userUuid, promotionIds))
+                : Map.of();
+
         List<VoucherCatalogResponse> responses = new ArrayList<>();
 
-        for (Promotion promotion : promotionRepository.findAllByDeletedAtIsNull()) {
-            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
+        for (Promotion promotion : redeemablePromotions) {
+            if (userUuid != null && activeWalletPromotionIds.contains(promotion.getId())) {
                 continue;
-            }
-            if (promotionLifecycleService.isNotStarted(promotion, now)
-                    || promotionLifecycleService.isExpired(promotion, now)
-                    || promotionLifecycleService.isUsageExhausted(promotion)) {
-                continue;
-            }
-
-            boolean requiresRedemption = promotion.requiresPointRedemption();
-            if (!requiresRedemption) {
-                continue;
-            }
-
-            if (userUuid != null) {
-                long activeWallet = userVoucherRepository.countByUserUuidAndPromotionUuidAndStatus(
-                        userUuid, promotion.getId(), VoucherRedemptionService.USER_VOUCHER_ACTIVE);
-                if (activeWallet > 0) {
-                    continue;
-                }
             }
 
             VoucherCatalogResponse item = new VoucherCatalogResponse();
@@ -146,22 +184,17 @@ public class PromotionController {
             item.setDiscountValue(promotion.getDiscountValue());
             item.setDescription(buildDescription(promotion));
             item.setEndDate(promotion.getEndDate());
-            item.setPointsCost(requiresRedemption ? promotion.getPointsCost() : 0);
+            item.setPointsCost(promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
             item.setMinScore(promotion.getMinScore());
             item.setRequiredTierLabel(MemberTierUtils.resolveRequiredTierLabel(promotion.getMinScore()));
             item.setMaxUsage(promotion.getMaxUsage());
             item.setMaxUsagePerUser(promotion.getMaxUsagePerUser());
-            item.setRequiresRedemption(requiresRedemption);
+            item.setRequiresRedemption(true);
 
             int remainingGlobal = -1;
             if (promotion.getMaxUsage() != null) {
-                if (requiresRedemption) {
-                    long redeemed = userVoucherRepository.countByPromotionUuid(promotion.getId());
-                    remainingGlobal = (int) Math.max(0, promotion.getMaxUsage() - redeemed);
-                } else {
-                    int usedCount = promotion.getUsedCount() != null ? promotion.getUsedCount() : 0;
-                    remainingGlobal = Math.max(0, promotion.getMaxUsage() - usedCount);
-                }
+                long redeemed = globalRedeemCounts.getOrDefault(promotion.getId(), 0L);
+                remainingGlobal = (int) Math.max(0, promotion.getMaxUsage() - redeemed);
                 if (remainingGlobal <= 0) {
                     continue;
                 }
@@ -170,18 +203,10 @@ public class PromotionController {
 
             int remainingForUser = -1;
             boolean alreadyMaxedForUser = false;
-            if (requiresRedemption) {
-                int userRedeemCount = userUuid != null
-                        ? (int) userVoucherRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId())
-                        : 0;
-                if (promotion.getMaxUsagePerUser() != null) {
-                    remainingForUser = Math.max(0, promotion.getMaxUsagePerUser() - userRedeemCount);
-                    alreadyMaxedForUser = remainingForUser == 0;
-                }
-            } else if (userUuid != null && Boolean.TRUE.equals(promotion.getOncePerUser())) {
-                boolean alreadyUsed = bookingRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId());
-                remainingForUser = alreadyUsed ? 0 : 1;
-                alreadyMaxedForUser = alreadyUsed;
+            if (promotion.getMaxUsagePerUser() != null) {
+                long userRedeemCount = userRedeemCounts.getOrDefault(promotion.getId(), 0L);
+                remainingForUser = Math.max(0, promotion.getMaxUsagePerUser() - (int) userRedeemCount);
+                alreadyMaxedForUser = remainingForUser == 0;
             }
             item.setRemainingForUser(remainingForUser);
             item.setAlreadyMaxedForUser(alreadyMaxedForUser);
@@ -191,13 +216,12 @@ public class PromotionController {
             }
 
             boolean tierOk = MemberTierUtils.meetsTierRequirement(lifetimeScore, promotion.getMinScore());
-            boolean pointsOk = !requiresRedemption
-                    || currentScore >= (promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
+            boolean pointsOk = currentScore >= (promotion.getPointsCost() != null ? promotion.getPointsCost() : 0);
             boolean eligible = user != null && tierOk && pointsOk;
             item.setEligible(eligible);
 
             if (user == null) {
-                item.setIneligibleReason(requiresRedemption ? "Đăng nhập để đổi voucher" : "Đăng nhập để nhận voucher");
+                item.setIneligibleReason("Đăng nhập để đổi voucher");
             } else if (!tierOk) {
                 item.setIneligibleReason("Yêu cầu hạng " + item.getRequiredTierLabel());
             } else if (!pointsOk) {
@@ -244,52 +268,69 @@ public class PromotionController {
         List<MyVoucherResponse> responses = new ArrayList<>();
         Set<UUID> includedPromotionIds = new HashSet<>();
 
-        for (UserVoucher wallet : userVoucherRepository.findByUserUuidOrderByRedeemedAtDesc(userUuid)) {
-            promotionRepository.findById(wallet.getPromotionUuid()).ifPresent(promotion -> {
-                if (promotion.isDeleted()) {
-                    return;
-                }
-                includedPromotionIds.add(promotion.getId());
-                responses.add(mapWalletToResponse(wallet, promotion));
-            });
+        List<UserVoucher> wallets = userVoucherRepository.findByUserUuidOrderByRedeemedAtDesc(userUuid);
+        List<UUID> walletPromotionIds = wallets.stream()
+                .map(UserVoucher::getPromotionUuid)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<UUID, Promotion> walletPromotionMap = walletPromotionIds.isEmpty()
+                ? Map.of()
+                : promotionRepository.findAllById(walletPromotionIds).stream()
+                        .filter(p -> !p.isDeleted())
+                        .collect(Collectors.toMap(Promotion::getId, Function.identity()));
+
+        for (UserVoucher wallet : wallets) {
+            Promotion promotion = walletPromotionMap.get(wallet.getPromotionUuid());
+            if (promotion == null) {
+                continue;
+            }
+            includedPromotionIds.add(promotion.getId());
+            responses.add(mapWalletToResponse(wallet, promotion));
         }
 
-        for (Promotion promotion : promotionRepository.findAllByDeletedAtIsNull()) {
-            if (promotion.requiresPointRedemption()) {
-                continue;
-            }
-            if (includedPromotionIds.contains(promotion.getId())) {
-                continue;
-            }
-            if (!"ACTIVE".equalsIgnoreCase(promotion.getStatus())) {
-                continue;
-            }
-            if (promotionLifecycleService.isNotStarted(promotion, now)
-                    || promotionLifecycleService.isExpired(promotion, now)
-                    || promotionLifecycleService.isUsageExhausted(promotion)) {
-                continue;
-            }
-            if (!MemberTierUtils.meetsTierRequirement(lifetimeScore, promotion.getMinScore())) {
-                continue;
-            }
-            if (Boolean.TRUE.equals(promotion.getOncePerUser())
-                    && bookingRepository.existsByUserUuidAndPromotionUuid(userUuid, promotion.getId())) {
-                continue;
-            }
-            if (promotion.getMaxUsagePerUser() != null) {
-                long userUsageCount = bookingRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId());
-                if (userUsageCount >= promotion.getMaxUsagePerUser()) {
+        List<Promotion> directPromotions = promotionRepository.findEligiblePromotions(now).stream()
+                .filter(p -> !p.requiresPointRedemption())
+                .filter(p -> !includedPromotionIds.contains(p.getId()))
+                .filter(p -> !promotionLifecycleService.isUsageExhausted(p))
+                .filter(p -> MemberTierUtils.meetsTierRequirement(lifetimeScore, p.getMinScore()))
+                .collect(Collectors.toList());
+
+        if (!directPromotions.isEmpty()) {
+            List<UUID> directIds = directPromotions.stream().map(Promotion::getId).collect(Collectors.toList());
+            Map<UUID, Long> userBookingCounts = toCountMap(
+                    bookingRepository.countByUserAndPromotionGroup(userUuid, directIds));
+            Set<UUID> usedOncePromotionIds = new HashSet<>(
+                    bookingRepository.findUsedPromotionUuidsForUser(userUuid, directIds));
+
+            for (Promotion promotion : directPromotions) {
+                if (Boolean.TRUE.equals(promotion.getOncePerUser())
+                        && usedOncePromotionIds.contains(promotion.getId())) {
                     continue;
                 }
+                if (promotion.getMaxUsagePerUser() != null) {
+                    long userUsageCount = userBookingCounts.getOrDefault(promotion.getId(), 0L);
+                    if (userUsageCount >= promotion.getMaxUsagePerUser()) {
+                        continue;
+                    }
+                }
+                responses.add(mapDirectUseResponse(promotion, userBookingCounts));
             }
-
-            responses.add(mapDirectUseResponse(promotion, userUuid));
         }
 
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
-    private MyVoucherResponse mapDirectUseResponse(Promotion promotion, UUID userUuid) {
+    private Map<UUID, Long> toCountMap(List<Object[]> rows) {
+        Map<UUID, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row[0] != null && row[1] != null) {
+                map.put((UUID) row[0], ((Number) row[1]).longValue());
+            }
+        }
+        return map;
+    }
+
+    private MyVoucherResponse mapDirectUseResponse(Promotion promotion, Map<UUID, Long> userBookingCounts) {
         MyVoucherResponse response = new MyVoucherResponse();
         response.setId(promotion.getId());
         response.setCode(promotion.getCode());
@@ -307,7 +348,7 @@ public class PromotionController {
 
         int remainingUsage = 1;
         if (promotion.getMaxUsagePerUser() != null) {
-            long userUsageCount = bookingRepository.countByUserUuidAndPromotionUuid(userUuid, promotion.getId());
+            long userUsageCount = userBookingCounts.getOrDefault(promotion.getId(), 0L);
             remainingUsage = Math.max(0, promotion.getMaxUsagePerUser() - (int) userUsageCount);
         }
         response.setRemainingUsage(remainingUsage);
@@ -387,9 +428,51 @@ public class PromotionController {
     private String buildDescription(Promotion promotion) {
         if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
             return "Giảm " + promotion.getDiscountValue().multiply(java.math.BigDecimal.valueOf(100)).intValue()
-                    + "% tiền vé";
+                    + "% tiền vé khi đặt vé trực tuyến trên hệ thống NASA Film.";
         }
-        return "Giảm " + formatPrice(promotion.getDiscountValue()) + " đ";
+        return "Giảm " + formatPrice(promotion.getDiscountValue())
+                + " đ trực tiếp vào hóa đơn đặt vé xem phim trực tuyến.";
+    }
+
+    private String buildBadge(Promotion promotion) {
+        if ("PERCENTAGE".equalsIgnoreCase(promotion.getDiscountType())) {
+            return "-" + promotion.getDiscountValue().multiply(java.math.BigDecimal.valueOf(100)).intValue() + "%";
+        }
+        java.math.BigDecimal value = promotion.getDiscountValue();
+        if (value != null && value.remainder(java.math.BigDecimal.valueOf(1000)).compareTo(java.math.BigDecimal.ZERO) == 0) {
+            return "-" + value.divide(java.math.BigDecimal.valueOf(1000)).intValue() + "K";
+        }
+        return "-" + formatPrice(value) + "đ";
+    }
+
+    private String buildPublicTitle(Promotion promotion) {
+        if (promotion.requiresPointRedemption()) {
+            return "Voucher thành viên " + promotion.getCode();
+        }
+        if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            return "Quà tặng thành viên mới " + promotion.getCode();
+        }
+        return "Khuyến mãi " + promotion.getCode();
+    }
+
+    private String buildPublicCategory(Promotion promotion) {
+        if (promotion.requiresPointRedemption() || Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            return "VIP / Member";
+        }
+        return "Vé Xem Phim";
+    }
+
+    private String buildPublicDetails(Promotion promotion) {
+        StringBuilder details = new StringBuilder(buildDescription(promotion));
+        if (Boolean.TRUE.equals(promotion.getOncePerUser())) {
+            details.append(" Giới hạn mỗi tài khoản chỉ được sử dụng một lần.");
+        }
+        if (promotion.requiresPointRedemption()) {
+            details.append(" Voucher yêu cầu đổi điểm thưởng trước khi áp dụng khi thanh toán.");
+        } else {
+            details.append(" Nhập mã khi thanh toán để áp dụng ưu đãi.");
+        }
+        return details.toString();
     }
 
     private String formatPrice(java.math.BigDecimal price) {

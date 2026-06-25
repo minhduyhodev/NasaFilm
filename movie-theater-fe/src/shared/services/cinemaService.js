@@ -12,6 +12,17 @@ class CinemaService {
     }
   }
 
+  async getCinemasWithRooms(keyword = '', page = 0, size = 100) {
+    try {
+      const response = await authService.api.get('/api/cinemas/with-rooms', {
+        params: { keyword, page, size },
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getCinemaDetail(cinemaUuid) {
     try {
       const response = await authService.api.get(`/api/cinemas/${cinemaUuid}`);

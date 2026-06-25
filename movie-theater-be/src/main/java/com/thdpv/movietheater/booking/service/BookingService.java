@@ -49,6 +49,7 @@ import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
@@ -726,7 +727,36 @@ public class BookingService {
             ));
         }
 
+        Set<UUID> movieUuids = responses.stream()
+                .map(CustomerBookingHistoryResponse::getMovieUuid)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!movieUuids.isEmpty()) {
+            Map<UUID, String> posterByMovie = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                    .collect(Collectors.toMap(Movie::getUuid, this::resolvePrimaryPosterUrl));
+            for (CustomerBookingHistoryResponse response : responses) {
+                if (response.getMovieUuid() != null) {
+                    response.setMoviePosterUrl(posterByMovie.get(response.getMovieUuid()));
+                }
+            }
+        }
+
         return responses;
+    }
+
+    private String resolvePrimaryPosterUrl(Movie movie) {
+        if (movie == null || movie.getMovieMedias() == null) {
+            return null;
+        }
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

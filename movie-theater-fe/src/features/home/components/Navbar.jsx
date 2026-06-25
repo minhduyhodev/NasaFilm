@@ -60,7 +60,7 @@ const Navbar = () => {
           >
             Trực Tuyến
           </Link>
-          <Link to="/offers" className="navbar-nav-link">Ưu Đãi</Link>
+          <Link to="/offers" className="navbar-nav-link">Bắp Nước</Link>
           <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
         </nav>
 

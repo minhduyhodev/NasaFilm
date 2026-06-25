@@ -127,7 +127,7 @@ class BookingService {
   async approveRefund(refundUuid) {
     try {
       const response = await authService.api.post(`/api/admin/refunds/${refundUuid}/approve`);
-      return response.data;
+      return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -188,7 +188,7 @@ class BookingService {
   async resendVodTicketEmail(movieUuid) {
     try {
       const response = await authService.api.post(`/api/vod/resend-ticket/${movieUuid}`);
-      return response.data;
+      return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
     }

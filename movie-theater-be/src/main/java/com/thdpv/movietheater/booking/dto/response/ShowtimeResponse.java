@@ -13,6 +13,7 @@ public class ShowtimeResponse {
     private UUID cinemaRoomUuid;
     private String cinemaRoomName;
     private String cinemaName;
+    private UUID cinemaUuid;
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private BigDecimal basePrice;
@@ -114,6 +115,14 @@ public class ShowtimeResponse {
 
     public void setCinemaName(String cinemaName) {
         this.cinemaName = cinemaName;
+    }
+
+    public UUID getCinemaUuid() {
+        return cinemaUuid;
+    }
+
+    public void setCinemaUuid(UUID cinemaUuid) {
+        this.cinemaUuid = cinemaUuid;
     }
 
     public OffsetDateTime getStartTime() {

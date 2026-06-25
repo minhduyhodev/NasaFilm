@@ -253,6 +253,12 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
                 "text-orange-400",
               )}
               {renderLink(
+                "/admin/refunds",
+                DollarSign,
+                "Duyệt hoàn tiền",
+                "text-emerald-400",
+              )}
+              {renderLink(
                 "/admin/combos/revenue",
                 TrendingUp,
                 "Doanh thu bắp nước",

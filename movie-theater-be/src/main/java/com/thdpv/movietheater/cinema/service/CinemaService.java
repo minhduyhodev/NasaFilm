@@ -3,6 +3,7 @@ package com.thdpv.movietheater.cinema.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,7 @@ import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
 import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.CinemaWithRoomsResponse;
 import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
@@ -93,6 +95,27 @@ public class CinemaService {
             cinemas = cinemaRepository.findAll(pageable);
         }
         return cinemas.map(this::toCinemaResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CinemaWithRoomsResponse> getCinemasWithRooms(String keyword, int page, int size) {
+        Page<CinemaResponse> cinemaPage = getCinemas(keyword, page, size);
+        List<CinemaResponse> cinemas = cinemaPage.getContent();
+        if (cinemas.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> cinemaUuids = cinemas.stream().map(CinemaResponse::getUuid).collect(Collectors.toList());
+        Map<UUID, List<CinemaRoomResponse>> roomsByCinema = cinemaRoomRepository
+                .findByCinemaUuidInWithCinema(cinemaUuids).stream()
+                .map(this::toCinemaRoomResponse)
+                .collect(Collectors.groupingBy(CinemaRoomResponse::getCinemaUuid));
+
+        return cinemas.stream()
+                .map(cinema -> new CinemaWithRoomsResponse(
+                        cinema,
+                        roomsByCinema.getOrDefault(cinema.getUuid(), List.of())))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

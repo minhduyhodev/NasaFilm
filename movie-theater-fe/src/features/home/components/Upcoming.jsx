@@ -351,15 +351,15 @@ const Upcoming = () => {
           to="/offers"
           className="p-8 rounded-[28px] bg-[#111216]/40 backdrop-blur-xl border border-white/5 hover:border-amber-500/20 transition-all duration-300 block group"
         >
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Độc Quyền</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Dịch Vụ Rạp</span>
           <h4 className="mt-1.5 text-xl font-black text-white uppercase font-heading group-hover:text-amber-400 transition-colors">
-            Đêm Công Chiếu
+            Loại Phòng &amp; Combo
           </h4>
           <p className="mt-3 text-sm leading-relaxed text-gray-300">
-            Giữ chỗ sớm cho suất chiếu giới hạn với trải nghiệm VIP và quà tặng độc quyền dành riêng cho thành viên.
+            Khám phá combo bắp nước, các loại phòng IMAX, 4DX, Gold Class và hệ thống rạp NASA Film.
           </p>
           <span className="inline-block mt-4 text-[10px] font-black uppercase tracking-wider text-amber-500 group-hover:underline">
-            Xem ưu đãi →
+            Xem chi tiết →
           </span>
         </Link>
       </div>
