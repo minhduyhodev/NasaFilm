@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
-import { movieService } from '../../../shared/services/movieService';
+import { prefetchNowShowingMovies } from '../utils/homePageCache';
 
 const mapApiMovies = (content) =>
   content.map(m => ({
@@ -26,12 +26,7 @@ const NowShowing = () => {
     const fetchNowShowing = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getMovies({
-          status: 'NOW_SHOWING',
-          page: 0,
-          size: 20,
-          requireBookableShowtime: true,
-        });
+        const data = await prefetchNowShowingMovies();
         if (data?.content?.length > 0) {
           setMoviesList(mapApiMovies(data.content));
         } else {

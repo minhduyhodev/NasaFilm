@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
-import { movieService } from '../../../shared/services/movieService';
+import { prefetchUpcomingMovies } from '../utils/homePageCache';
 
 const mapApiMovies = (content) =>
   content.map(m => ({
@@ -27,7 +27,7 @@ const ComingSoon = () => {
     const fetchComingSoon = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getUpcomingMovies({ page: 0, size: 20 });
+        const data = await prefetchUpcomingMovies();
         if (data?.content?.length > 0) {
           setMoviesList(mapApiMovies(data.content));
         } else {

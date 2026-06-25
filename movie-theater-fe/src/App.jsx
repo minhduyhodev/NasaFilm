@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
-import { UnauthorizedPage, LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, PublicRoute } from './features/auth';
+import { UnauthorizedPage, LoginPage, RegisterPage, PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
 import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
@@ -73,15 +73,11 @@ export default function App() {
                 }
               />
 
-              {/* Home routes */}
-              <Route path="/*" element={<HomeRoutes />} />
-
-
-              {/* Unauthorized page */}
+              {/* Unauthorized — must be before /* splat */}
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-              {/* Catch all - redirect to home */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Home routes */}
+              <Route path="/*" element={<HomeRoutes />} />
             </Routes>
           </NotificationProvider>
 

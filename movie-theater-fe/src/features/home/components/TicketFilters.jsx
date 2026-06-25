@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useNotification } from '../../../shared/context/NotificationContext';
 import { notificationService } from '../../../shared/services/notificationService';
-import { movieService } from '../../../shared/services/movieService';
-import { showtimeService } from '../../../shared/services/showtimeService';
+import { prefetchTicketFilterData } from '../utils/homePageCache';
 
 // Styles for custom dropdown scrollbar and animations
 const dropdownStyles = `
@@ -157,11 +156,7 @@ const TicketFilters = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [moviesData, cinemasData, showtimesData] = await Promise.all([
-          movieService.getMovies({ status: 'NOW_SHOWING', size: 100, requireBookableShowtime: true }),
-          movieService.getCinemas(),
-          showtimeService.getPublicShowtimes()
-        ]);
+        const [moviesData, cinemasData, showtimesData] = await prefetchTicketFilterData();
         setMoviesList(moviesData?.content || moviesData || []);
         setCinemasList(cinemasData?.content || cinemasData || []);
         setShowtimesList(showtimesData || []);

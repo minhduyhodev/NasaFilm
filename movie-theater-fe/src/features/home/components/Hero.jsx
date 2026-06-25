@@ -1,20 +1,54 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import interstellarTrailer from '../../../shared/assets/Interstellar-Trailer.mp4';
+import React, { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const Hero = () => {
+  const reduceMotion = useReducedMotion();
+  const [videoSrc, setVideoSrc] = useState('');
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+
+    let cancelled = false;
+    const loadVideo = () => {
+      import('../../../shared/assets/Interstellar-Trailer.mp4')
+        .then((mod) => {
+          if (!cancelled) setVideoSrc(mod.default);
+        })
+        .catch(() => {});
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(loadVideo, { timeout: 2000 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(idleId);
+      };
+    }
+
+    const timerId = window.setTimeout(loadVideo, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [reduceMotion]);
+
   return (
     <section className="relative min-h-[90vh] md:min-h-screen w-full flex items-center pt-24 pb-32 overflow-hidden bg-black">
       {/* 1. Background Video Layer */}
       <div className="absolute inset-0 z-0 select-none pointer-events-none">
-        <video
-          src={interstellarTrailer}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        />
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="none"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
+        )}
         {/* Cinematic dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-950/40 to-neutral-950/70" />
       </div>

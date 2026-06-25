@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, Bell, BellRing } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
+import { prefetchUpcomingMovies } from '../utils/homePageCache';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
@@ -61,7 +62,7 @@ const Upcoming = () => {
       setIsLoading(true);
       try {
         const [moviesData, combos] = await Promise.all([
-          movieService.getUpcomingMovies({ page: 0, size: 10 }),
+          prefetchUpcomingMovies(),
           comboService.getActiveCombos().catch(() => []),
         ]);
 
