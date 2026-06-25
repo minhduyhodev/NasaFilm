@@ -1,5 +1,7 @@
 package com.thdpv.movietheater.movie.controller;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -8,15 +10,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thdpv.movietheater.booking.dto.request.VodStatusBatchRequest;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -33,6 +38,16 @@ public class VodController {
         VodStatusResponse response = bookingService.getVodStatus(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/status/batch")
+    public ResponseEntity<ApiResponse<Map<UUID, VodStatusResponse>>> getVodStatusBatch(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody VodStatusBatchRequest request) {
+        Map<UUID, VodStatusResponse> response = bookingService.getVodStatusBatch(
+                userDetails != null ? userDetails.getUsername() : null,
+                request.getMovieUuids());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

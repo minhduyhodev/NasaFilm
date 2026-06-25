@@ -771,11 +771,15 @@ public class BookingService {
                 .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
         if (!movieUuids.isEmpty()) {
-            Map<UUID, String> posterByMovie = movieRepository.findAllByIdWithMedias(movieUuids).stream()
-                    .collect(Collectors.toMap(Movie::getUuid, this::resolvePrimaryPosterUrl));
+            Map<UUID, Movie> moviesByUuid = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                    .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
             for (CustomerBookingHistoryResponse response : responses) {
                 if (response.getMovieUuid() != null) {
-                    response.setMoviePosterUrl(posterByMovie.get(response.getMovieUuid()));
+                    Movie movie = moviesByUuid.get(response.getMovieUuid());
+                    if (movie != null) {
+                        response.setMoviePosterUrl(resolvePrimaryPosterUrl(movie));
+                        response.setMovieAgeRestriction(movie.getAgeRestriction());
+                    }
                 }
             }
         }
@@ -1039,7 +1043,44 @@ public class BookingService {
         Movie movie = movieRepository.findById(movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
 
+        return buildVodStatusResponse(booking, movie, OffsetDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, VodStatusResponse> getVodStatusBatch(String currentUserEmail, List<UUID> movieUuids) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        List<UUID> uniqueUuids = movieUuids == null
+                ? List.of()
+                : movieUuids.stream().filter(java.util.Objects::nonNull).distinct().limit(50).toList();
+
+        Map<UUID, VodStatusResponse> result = new java.util.LinkedHashMap<>();
+        for (UUID movieUuid : uniqueUuids) {
+            result.put(movieUuid, new VodStatusResponse(false, "NONE", null, null, null));
+        }
+        if (uniqueUuids.isEmpty()) {
+            return result;
+        }
+
+        List<Booking> bookings = bookingJpaRepository.findOnlineConfirmedBookingsForUserAndMovies(userUuid, uniqueUuids);
+        Map<UUID, Booking> latestByMovie = new java.util.LinkedHashMap<>();
+        for (Booking booking : bookings) {
+            latestByMovie.putIfAbsent(booking.getMovieUuid(), booking);
+        }
+
+        Map<UUID, Movie> moviesByUuid = movieRepository.findAllById(latestByMovie.keySet()).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
+
         OffsetDateTime now = OffsetDateTime.now();
+        for (Map.Entry<UUID, Booking> entry : latestByMovie.entrySet()) {
+            Movie movie = moviesByUuid.get(entry.getKey());
+            if (movie != null) {
+                result.put(entry.getKey(), buildVodStatusResponse(entry.getValue(), movie, now));
+            }
+        }
+        return result;
+    }
+
+    private VodStatusResponse buildVodStatusResponse(Booking booking, Movie movie, OffsetDateTime now) {
         String playbackState = "WAITING_FOR_PLAY";
         String streamingUrl = null;
 

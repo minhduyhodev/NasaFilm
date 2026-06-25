@@ -40,6 +40,7 @@ import com.thdpv.movietheater.movie.dto.response.ActorResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
 import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.Country;
@@ -324,6 +325,25 @@ public class MovieService {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
         return toMovieDetailResponse(movie);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MovieSummaryResponse> getMovieSummaries(List<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uniqueUuids = movieUuids.stream().filter(java.util.Objects::nonNull).distinct().limit(50).toList();
+        if (uniqueUuids.isEmpty()) {
+            return List.of();
+        }
+        return movieRepository.findAllByIdWithMedias(uniqueUuids).stream()
+                .filter(movie -> !"DELETED".equalsIgnoreCase(movie.getStatus()))
+                .map(movie -> new MovieSummaryResponse(
+                        movie.getUuid(),
+                        movie.getTitle(),
+                        movie.getAgeRestriction(),
+                        resolvePrimaryMediaUrl(movie)))
+                .toList();
     }
 
     @Transactional(readOnly = true)
