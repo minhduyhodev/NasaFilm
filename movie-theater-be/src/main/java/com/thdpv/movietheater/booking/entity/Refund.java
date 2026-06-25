@@ -48,6 +48,9 @@ public class Refund {
     @Column(name = "approved_by_uuid")
     private UUID approvedByUuid;
 
+    @Column(name = "approved_by_role")
+    private String approvedByRole;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -138,6 +141,14 @@ public class Refund {
 
     public void setApprovedByUuid(UUID approvedByUuid) {
         this.approvedByUuid = approvedByUuid;
+    }
+
+    public String getApprovedByRole() {
+        return approvedByRole;
+    }
+
+    public void setApprovedByRole(String approvedByRole) {
+        this.approvedByRole = approvedByRole;
     }
 
     public OffsetDateTime getCreatedAt() {

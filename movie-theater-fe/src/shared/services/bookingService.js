@@ -124,6 +124,15 @@ class BookingService {
     }
   }
 
+  async getAdminRefundHistory() {
+    try {
+      const response = await authService.api.get('/api/admin/refunds/history');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async approveRefund(refundUuid) {
     try {
       const response = await authService.api.post(`/api/admin/refunds/${refundUuid}/approve`);

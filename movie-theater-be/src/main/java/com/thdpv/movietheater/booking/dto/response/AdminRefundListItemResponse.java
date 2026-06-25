@@ -12,12 +12,24 @@ public class AdminRefundListItemResponse {
     private String customerEmail;
     private String movieTitle;
     private String createdAt;
+    private String cancellationReason;
+    private BigDecimal cancellationFee;
+    private String approvedByEmail;
+    private String approvedByName;
+    private String approvedByRole;
+    private String approvedAt;
 
     public AdminRefundListItemResponse() {
     }
 
     public AdminRefundListItemResponse(UUID refundUuid, UUID bookingUuid, BigDecimal amount, String status,
             String customerEmail, String movieTitle, String createdAt) {
+        this(refundUuid, bookingUuid, amount, status, customerEmail, movieTitle, createdAt, null, null);
+    }
+
+    public AdminRefundListItemResponse(UUID refundUuid, UUID bookingUuid, BigDecimal amount, String status,
+            String customerEmail, String movieTitle, String createdAt, String cancellationReason,
+            BigDecimal cancellationFee) {
         this.refundUuid = refundUuid;
         this.bookingUuid = bookingUuid;
         this.amount = amount;
@@ -25,6 +37,8 @@ public class AdminRefundListItemResponse {
         this.customerEmail = customerEmail;
         this.movieTitle = movieTitle;
         this.createdAt = createdAt;
+        this.cancellationReason = cancellationReason;
+        this.cancellationFee = cancellationFee;
     }
 
     public UUID getRefundUuid() {
@@ -81,5 +95,53 @@ public class AdminRefundListItemResponse {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public BigDecimal getCancellationFee() {
+        return cancellationFee;
+    }
+
+    public void setCancellationFee(BigDecimal cancellationFee) {
+        this.cancellationFee = cancellationFee;
+    }
+
+    public String getApprovedByEmail() {
+        return approvedByEmail;
+    }
+
+    public void setApprovedByEmail(String approvedByEmail) {
+        this.approvedByEmail = approvedByEmail;
+    }
+
+    public String getApprovedByName() {
+        return approvedByName;
+    }
+
+    public void setApprovedByName(String approvedByName) {
+        this.approvedByName = approvedByName;
+    }
+
+    public String getApprovedByRole() {
+        return approvedByRole;
+    }
+
+    public void setApprovedByRole(String approvedByRole) {
+        this.approvedByRole = approvedByRole;
+    }
+
+    public String getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(String approvedAt) {
+        this.approvedAt = approvedAt;
     }
 }

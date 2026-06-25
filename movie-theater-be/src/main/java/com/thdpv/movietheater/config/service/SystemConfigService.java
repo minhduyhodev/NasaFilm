@@ -103,7 +103,7 @@ public class SystemConfigService {
     }
 
     public boolean isRefundManualApprovalRequired() {
-        return readBoolean(getConfig().get("refundManualApprovalRequired"), false);
+        return readBoolean(getConfig().get("refundManualApprovalRequired"), true);
     }
 
     @SuppressWarnings("unchecked")
@@ -178,7 +178,7 @@ public class SystemConfigService {
         defaults.put("cancellationFeePercent", 10);
         defaults.put("customerRefundEnabled", true);
         defaults.put("fullRefundOnShowtimeCancel", true);
-        defaults.put("refundManualApprovalRequired", false);
+        defaults.put("refundManualApprovalRequired", true);
         defaults.put("roomTypes", defaultRoomTypes());
         defaults.put("screeningFormats", defaultScreeningFormats());
         return defaults;

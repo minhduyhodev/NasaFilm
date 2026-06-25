@@ -1,9 +1,10 @@
 import React from 'react';
-import { CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, XCircle, Clock } from 'lucide-react';
 
 const statusIcon = (status) => {
   if (status === 'COMPLETED') return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
   if (status === 'FAILED') return <XCircle className="w-4 h-4 text-red-400" />;
+  if (status === 'PENDING') return <Clock className="w-4 h-4 text-amber-400" />;
   if (status === 'PROCESSING') return <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />;
   return <Circle className="w-4 h-4 text-gray-500" />;
 };
