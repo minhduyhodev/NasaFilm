@@ -44,9 +44,12 @@ export const EmptyState = ({ icon: Icon, title, subtitle }) => (
   </div>
 );
 
-export const SectionHeader = ({ status, count, isCollapsed, onToggle, onSelectAll, allSelected }) => {
+export const SectionHeader = ({ status, count, pageCount, isCollapsed, onToggle, onSelectAll, allSelected }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
   const Icon = cfg.icon;
+  const countLabel = pageCount != null && pageCount !== count
+    ? `${pageCount} / ${count} suất chiếu`
+    : `${count} suất chiếu`;
   return (
     <div className="st-section-header">
       <button
@@ -66,7 +69,7 @@ export const SectionHeader = ({ status, count, isCollapsed, onToggle, onSelectAl
             {cfg.section}
           </span>
         </div>
-        <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0">{count} suất chiếu</span>
+        <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0">{countLabel}</span>
         <div className="flex-1 h-px bg-[#1a2238] group-hover:bg-[#2a3450] transition-colors min-w-[12px]" />
       </button>
       {onSelectAll && count > 0 && (

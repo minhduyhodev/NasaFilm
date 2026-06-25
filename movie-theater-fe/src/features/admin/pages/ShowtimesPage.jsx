@@ -532,17 +532,29 @@ const ShowtimesPage = () => {
     return { total: data.length, selling, scheduled, soldOut, playing, finished, cancelled, revenue };
   }, [dateFilteredShowtimes]);
 
-  // Paginated for grid/list views
+  // Paginated slice for grid/list rendering
   const paginatedShowtimes = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredShowtimes.slice(start, start + itemsPerPage);
   }, [filteredShowtimes, currentPage, itemsPerPage]);
 
-  // Group by status (full filtered set — not paginated slice)
-  const statusGroups = useMemo(() => {
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredShowtimes.length / itemsPerPage) || 1);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredShowtimes.length, itemsPerPage, currentPage]);
+
+  const handleShowtimesPageChange = useCallback((page) => {
+    setCurrentPage(page);
+    scrollAdminMainToTop();
+  }, [scrollAdminMainToTop]);
+
+  // Group current page for grid views
+  const pageStatusGroups = useMemo(() => {
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       if (groups[st.status]) groups[st.status].push(st);
       else groups[st.status] = [st];
     });
@@ -553,12 +565,11 @@ const ShowtimesPage = () => {
       .filter((s) => !STATUS_ORDER.includes(s) && groups[s]?.length > 0)
       .map((s) => ({ status: s, items: groups[s] }));
     return [...ordered, ...extras];
-  }, [filteredShowtimes]);
+  }, [paginatedShowtimes]);
 
-  // Group by cinema → room → movie (full filtered set)
-  const cinemaGroups = useMemo(() => {
+  const pageCinemaGroups = useMemo(() => {
     const map = {};
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       const cinema = st.cinemaName || 'Không rõ rạp';
       const room = st.cinemaRoomName || 'Không rõ phòng';
       if (!map[cinema]) map[cinema] = {};
@@ -568,6 +579,15 @@ const ShowtimesPage = () => {
       map[cinema][room][movie].push(st);
     });
     return map;
+  }, [paginatedShowtimes]);
+
+  // Totals per status on full filtered set (for section header hints)
+  const statusTotals = useMemo(() => {
+    const totals = {};
+    filteredShowtimes.forEach(st => {
+      totals[st.status] = (totals[st.status] || 0) + 1;
+    });
+    return totals;
   }, [filteredShowtimes]);
 
   // Movie selection for modal
@@ -582,13 +602,15 @@ const ShowtimesPage = () => {
 
     return (
       <div className="space-y-2 view-fade-enter">
-        {statusGroups.map(({ status, items }) => {
+        {pageStatusGroups.map(({ status, items }) => {
           const isCollapsed = collapsedSections[status];
+          const totalInStatus = statusTotals[status] || items.length;
           return (
             <div key={status} className="st-status-group">
               <SectionHeader
                 status={status}
-                count={items.length}
+                count={totalInStatus}
+                pageCount={items.length}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleSection(status)}
                 onSelectAll={() => toggleSelectAllInGroup(items)}
@@ -614,7 +636,7 @@ const ShowtimesPage = () => {
             </div>
           );
         })}
-        {statusGroups.length === 0 && (
+        {pageStatusGroups.length === 0 && (
           <EmptyState
             icon={Calendar}
             title="Không có suất chiếu nào"
@@ -628,7 +650,7 @@ const ShowtimesPage = () => {
   /** Grid View — Cinema Grouped */
   const renderCinemaGroupedGrid = () => (
     <div className="space-y-6 view-fade-enter">
-      {Object.entries(cinemaGroups).map(([cinemaName, rooms]) => (
+      {Object.entries(pageCinemaGroups).map(([cinemaName, rooms]) => (
         <div key={cinemaName}>
           <button
             onClick={() => toggleSection(`cinema_${cinemaName}`)}
@@ -709,7 +731,7 @@ const ShowtimesPage = () => {
           </div>
         </div>
       ))}
-      {Object.keys(cinemaGroups).length === 0 && (
+      {Object.keys(pageCinemaGroups).length === 0 && (
         <EmptyState icon={Building2} title="Không có dữ liệu" subtitle="Thử thay đổi bộ lọc hoặc chọn ngày khác." />
       )}
     </div>
@@ -924,8 +946,8 @@ const ShowtimesPage = () => {
               )}{' '}
               suất
             </span>
-            {statusGroups.length > 0 && viewMode === 'grid' && groupBy === 'status' && (
-              <span className="st-toolbar__meta">{statusGroups.length} nhóm trạng thái</span>
+            {Object.keys(statusTotals).length > 0 && viewMode === 'grid' && groupBy === 'status' && (
+              <span className="st-toolbar__meta">{Object.keys(statusTotals).length} nhóm trạng thái</span>
             )}
             {hasActiveFilters && (
               <button type="button" className="st-toolbar__clear" onClick={clearFilters}>
@@ -934,7 +956,7 @@ const ShowtimesPage = () => {
             )}
           </div>
 
-          {viewMode === 'grid' && groupBy === 'status' && statusGroups.length > 0 && (
+          {viewMode === 'grid' && groupBy === 'status' && Object.keys(statusTotals).length > 0 && (
             <div className="st-toolbar__group-actions">
               <button type="button" className="st-btn-ghost" onClick={expandAllStatusSections}>
                 <ChevronsDown className="w-3.5 h-3.5" /> Mở tất cả
@@ -1046,15 +1068,15 @@ const ShowtimesPage = () => {
           {viewMode === 'grid' && renderGridView()}
           {viewMode === 'list' && renderListView()}
 
-          {/* Pagination — list view only; grid groups show full filtered set */}
-          {viewMode === 'list' && filteredShowtimes.length > itemsPerPage && (
-            <div className="mt-6 flex justify-end">
+          {filteredShowtimes.length > 0 && (
+            <div className="mt-6">
               <Pagination
                 currentPage={currentPage}
                 totalItems={filteredShowtimes.length}
                 itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
+                onPageChange={handleShowtimesPageChange}
+                onItemsPerPageChange={setItemsPerPage}
+                itemsPerPageOptions={[12, 24, 48, 96]}
               />
             </div>
           )}
