@@ -58,6 +58,7 @@ public class ShowtimeService {
     private final BookingComboRepository bookingComboRepository;
     private final TicketRepository ticketRepository;
     private final BookingNativeRepository bookingNativeRepository;
+    private final CancellationRefundService cancellationRefundService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -138,26 +139,22 @@ public class ShowtimeService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            // Handle confirmed bookings cancellation and score deduction
+            // Refund confirmed bookings through cancellation service
             List<Booking> bookings = bookingRepository.findByShowtimeUuid(showtimeUuid);
             for (Booking booking : bookings) {
-                if ("CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-                    booking.setStatus("CANCELLED");
-                    booking.setCancelledAt(OffsetDateTime.now());
-                    bookingRepository.save(booking);
-
-                    // Delete related seats, combos, and tickets
-                    bookingSeatRepository.deleteByBookingUuid(booking.getUuid());
-                    bookingComboRepository.deleteByBookingUuid(booking.getUuid());
-                    ticketRepository.deleteByBookingUuid(booking.getUuid());
-
-                    // Deduct user score points
-                    BigDecimal price = booking.getTotalPrice();
-                    int scoreDeducted = price.divide(BigDecimal.valueOf(10000), 0, java.math.RoundingMode.DOWN).intValue();
-                    if (scoreDeducted > 0) {
-                        bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
-                        bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, booking.getUuid(), OffsetDateTime.now());
-                    }
+                if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
+                    continue;
+                }
+                try {
+                    cancellationRefundService.cancelBooking(
+                            booking.getUuid(),
+                            null,
+                            "SYSTEM",
+                            true,
+                            "Suat chieu bi huy boi quan tri",
+                            true);
+                } catch (AppException ex) {
+                    // Skip bookings that cannot be cancelled (e.g. already processing)
                 }
             }
         }
@@ -169,6 +166,21 @@ public class ShowtimeService {
         CinemaRoom room = cinemaRoomRepository.findById(updatedShowtime.getCinemaRoomUuid()).orElse(null);
 
         return toShowtimeResponse(updatedShowtime, movie, room);
+    }
+
+    @Transactional
+    public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
+        List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
+        int cancelled = 0;
+        for (Showtime showtime : showtimes) {
+            if (showtime.getStatus() == ShowtimeStatus.CANCELLED
+                    || showtime.getStatus() == ShowtimeStatus.FINISHED) {
+                continue;
+            }
+            updateShowtimeStatus(showtime.getUuid(), ShowtimeStatus.CANCELLED);
+            cancelled++;
+        }
+        return cancelled;
     }
 
     @Transactional(readOnly = true)

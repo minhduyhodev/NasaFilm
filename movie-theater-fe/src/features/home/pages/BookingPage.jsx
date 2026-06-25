@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X, AlertTriangle, Clock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { bookingService } from '../../../shared/services/bookingService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -323,16 +321,13 @@ const BookingPage = () => {
   if (isLoading) {
     return (
       <div className="booking-wrapper min-h-screen bg-[#0f121d] flex items-center justify-center text-white">
-        <Navbar />
         <p className="text-xl font-bold animate-pulse">Đang tải sơ đồ ghế...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="booking-wrapper">
-      <Navbar />
 
       <main className="py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
 
@@ -527,8 +522,6 @@ const BookingPage = () => {
           </div>
         </aside>
       </main>
-
-      <Footer />
     </div>
   );
 };

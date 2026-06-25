@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
@@ -38,7 +38,8 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
   const { isAuthenticated } = useAuthContext();
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(movies.map((m) => m.uuid));
+  const routeMovieIds = useMemo(() => movies.map((m) => m.uuid), [movies]);
+  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(routeMovieIds);
   const resolveOnlinePath = getOnlinePathProp || getOnlinePathLocal;
 
   useEffect(() => {
@@ -57,37 +58,40 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
 
         const uniqueMovieIds = [...new Set(onlineBookings.map((b) => b.movieUuid))];
 
-        const watching = (
-          await Promise.all(
-            uniqueMovieIds.map(async (movieUuid) => {
-              try {
-                const [status, movieDetail] = await Promise.all([
-                  vodService.getStatus(movieUuid),
-                  movieService.getMovieDetail(movieUuid),
-                ]);
+        const [statusBatch, summaries] = await Promise.all([
+          vodService.getStatusBatch(uniqueMovieIds),
+          movieService.getMovieSummaries(uniqueMovieIds),
+        ]);
+        const summaryByUuid = new Map((summaries || []).map((s) => [s.uuid, s]));
 
-                if (
-                  !status?.hasPurchased ||
-                  status?.playbackState !== VOD_PLAYBACK_STATE.STREAMING ||
-                  !status?.firstPlayedAt
-                ) {
-                  return null;
-                }
+        const watching = uniqueMovieIds
+          .map((movieUuid) => {
+            const status = statusBatch?.[movieUuid];
+            const summary = summaryByUuid.get(movieUuid);
+            if (
+              !status?.hasPurchased ||
+              status?.playbackState !== VOD_PLAYBACK_STATE.STREAMING ||
+              !status?.firstPlayedAt ||
+              !summary
+            ) {
+              return null;
+            }
 
-                const mapped = mapApiMovies([movieDetail])[0];
-                const { progress, watched } = calcWatchProgress(
-                  status.firstPlayedAt,
-                  status.expiresAt,
-                  mapped.durationMinutes
-                );
+            const mapped = mapApiMovies([{
+              uuid: summary.uuid,
+              title: summary.title,
+              ageRestriction: summary.ageRestriction,
+              primaryMediaUrl: summary.primaryMediaUrl,
+            }])[0];
+            const { progress, watched } = calcWatchProgress(
+              status.firstPlayedAt,
+              status.expiresAt,
+              mapped.durationMinutes
+            );
 
-                return { ...mapped, progress, watched, vodStatus: status };
-              } catch {
-                return null;
-              }
-            })
-          )
-        ).filter(Boolean);
+            return { ...mapped, progress, watched, vodStatus: status };
+          })
+          .filter(Boolean);
 
         setMovies(watching.slice(0, 8));
       } catch {

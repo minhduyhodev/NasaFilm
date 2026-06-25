@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, Loader2, RefreshCw, Wallet } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { walletService } from '../../../shared/services/walletService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { useWalletSummary, useInvalidateWallet } from '../../../shared/hooks/queries/useWalletQuery';
 
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 
@@ -31,26 +30,12 @@ const txLabel = (type) => {
 };
 
 const WalletPage = () => {
-  const [summary, setSummary] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: summary, isLoading, refetch, isFetching } = useWalletSummary();
+  const invalidateWallet = useInvalidateWallet();
   const [amount, setAmount] = useState('200000');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadWallet = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await walletService.getWallet();
-      setSummary(data);
-    } catch (err) {
-      notificationService.error(err?.message || 'Không thể tải thông tin ví');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadWallet();
-  }, [loadWallet]);
+  const refreshWallet = () => refetch();
 
   const handleTopUp = async () => {
     const value = Number(amount);
@@ -60,8 +45,8 @@ const WalletPage = () => {
     }
     setIsSubmitting(true);
     try {
-      const data = await walletService.topUp(value);
-      setSummary(data);
+      await walletService.topUp(value);
+      await invalidateWallet();
       notificationService.success(`Nạp ${formatMoney(value)} vào ví thành công (mock)`);
     } catch (err) {
       notificationService.error(err?.message || 'Nạp tiền thất bại');
@@ -78,8 +63,8 @@ const WalletPage = () => {
     }
     setIsSubmitting(true);
     try {
-      const data = await walletService.withdraw(value);
-      setSummary(data);
+      await walletService.withdraw(value);
+      await invalidateWallet();
       notificationService.success(`Rút ${formatMoney(value)} thành công (mock)`);
     } catch (err) {
       notificationService.error(err?.message || 'Rút tiền thất bại');
@@ -92,7 +77,6 @@ const WalletPage = () => {
 
   return (
     <div className="text-white min-h-screen bg-[#0b0f19]">
-      <Navbar />
 
       <main className="pt-28 pb-16 px-4 md:px-8 lg:px-20">
         <div className="max-w-3xl mx-auto">
@@ -106,7 +90,7 @@ const WalletPage = () => {
             </div>
             <button
               type="button"
-              onClick={loadWallet}
+              onClick={refreshWallet}
               disabled={isLoading}
               className="rounded-full border border-white/10 p-3 hover:bg-white/5 transition-colors disabled:opacity-50"
               aria-label="Làm mới"
@@ -225,8 +209,6 @@ const WalletPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

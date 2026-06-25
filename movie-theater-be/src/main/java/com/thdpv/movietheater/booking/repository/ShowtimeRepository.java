@@ -51,6 +51,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                AND sl.seatUuid = s.uuid
                AND sl.expiredAt > :now
             WHERE st.uuid = :showtimeUuid
+              AND s.isActive = true
             ORDER BY s.rowName ASC, s.seatNumber ASC
             """)
     List<SeatViewDto> getShowtimeSeatViews(@Param("showtimeUuid") UUID showtimeUuid, @Param("now") OffsetDateTime now);
@@ -64,6 +65,19 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     @Query("SELECT COUNT(s) > 0 FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.startTime > :now AND (s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED OR s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING)")
     boolean existsFutureActiveShowtimes(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
 
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.cinemaRoomUuid = :roomUuid
+              AND s.startTime > :now
+              AND s.status IN (
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.SOLD_OUT
+              )
+            ORDER BY s.startTime ASC
+            """)
+    List<Showtime> findFutureActiveShowtimesByRoom(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
+
     @Query("SELECT s FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.uuid <> :excludeUuid AND s.status <> com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED AND s.startTime < :endTimeWithBuffer AND s.endTime > :startTimeWithBuffer")
     List<Showtime> findOverlappingShowtimes(
         @Param("roomUuid") UUID roomUuid,
@@ -71,6 +85,16 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
         @Param("startTimeWithBuffer") OffsetDateTime startTimeWithBuffer,
         @Param("endTimeWithBuffer") OffsetDateTime endTimeWithBuffer
     );
+
+    @Query("""
+            SELECT COUNT(s) FROM Showtime st
+            JOIN Seat s ON s.cinemaRoom.uuid = st.cinemaRoomUuid
+            WHERE st.uuid = :showtimeUuid
+              AND s.uuid IN :seatUuids
+              AND s.isActive = true
+              AND s.status = com.thdpv.movietheater.cinema.enums.SeatStatus.ACTIVE
+            """)
+    long countBookableSeats(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
 
     @Query("select count(s) from Showtime st join Seat s on s.cinemaRoom.uuid = st.cinemaRoomUuid where st.uuid = :showtimeUuid and s.uuid in :seatUuids")
     long countSeatsBelongingToShowtime(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
@@ -90,6 +114,17 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             """)
     OffsetDateTime findEarliestScheduledStart(
             @Param("movieUuid") UUID movieUuid,
+            @Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT s.movieUuid, MIN(s.startTime) FROM Showtime s
+            WHERE s.movieUuid IN :movieUuids
+              AND s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED
+              AND s.startTime > :now
+            GROUP BY s.movieUuid
+            """)
+    List<Object[]> findEarliestScheduledStarts(
+            @Param("movieUuids") Collection<UUID> movieUuids,
             @Param("now") OffsetDateTime now);
 
     @Query("""

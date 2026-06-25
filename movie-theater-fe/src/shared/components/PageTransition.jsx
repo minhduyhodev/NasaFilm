@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -11,6 +11,7 @@ import './PageTransition.css';
 const PageTransition = ({ children, className = '', scrollTarget }) => {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -22,14 +23,17 @@ const PageTransition = ({ children, className = '', scrollTarget }) => {
   }, [location.pathname, scrollTarget]);
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
         className={`page-transition-root ${className}`.trim()}
         variants={pageTransition}
-        initial="initial"
+        initial={hasAnimated.current ? false : 'initial'}
         animate="animate"
         exit="exit"
+        onAnimationComplete={() => {
+          hasAnimated.current = true;
+        }}
         transition={{ duration: reduceMotion ? 0 : pageTransitionMs, ease: smoothEase }}
       >
         {children}

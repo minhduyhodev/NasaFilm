@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { movieService } from '../../../shared/services/movieService';
 import { mapApiMovies, filterOnlineMovies, sortMoviesByReleaseDate } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
@@ -15,9 +15,11 @@ const NewReleases = ({
     moviesProp?.length ? sortMoviesByReleaseDate(moviesProp).slice(0, 6) : []
   );
   const [isLoading, setIsLoading] = useState(!moviesProp?.length);
-  const { getOnlinePath: getOnlinePathLocal, getActionLabel: getActionLabelLocal } = useOnlineVodRoutes(
-    onlineOnly ? movies.map((m) => m.uuid) : []
+  const routeMovieIds = useMemo(
+    () => (onlineOnly ? movies.map((m) => m.uuid) : []),
+    [onlineOnly, movies]
   );
+  const { getOnlinePath: getOnlinePathLocal, getActionLabel: getActionLabelLocal } = useOnlineVodRoutes(routeMovieIds);
   const getOnlinePath = getOnlinePathProp || getOnlinePathLocal;
   const getActionLabel = getActionLabelProp || getActionLabelLocal;
 

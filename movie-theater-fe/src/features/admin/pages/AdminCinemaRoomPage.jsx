@@ -12,6 +12,11 @@ import {
   TEMPLATE_PRESETS,
 } from './cinemaSeatConstants';
 
+const computeDefaultAisles = (cols) => {
+  if (!cols || cols <= 8) return [];
+  return [Math.ceil(cols / 2)];
+};
+
 const AdminCinemaRoomPage = () => {
   const { cinemaUuid, roomUuid } = useParams();
   const navigate = useNavigate();
@@ -31,7 +36,7 @@ const AdminCinemaRoomPage = () => {
   const [activePaintBrushType, setActivePaintBrushType] = useState('SELECT'); // Pointer tool is default
   const [builderRows, setBuilderRows] = useState(8);
   const [builderCols, setBuilderCols] = useState(12);
-  const [aisleColumns, setAisleColumns] = useState([4, 11]); // Vertical aisles layout (Mockup defaults: 4 and 11)
+  const [aisleColumns, setAisleColumns] = useState(() => computeDefaultAisles(12));
   const [isDragSelecting, setIsDragSelecting] = useState(false);
   const [showBookingPreview, setShowBookingPreview] = useState(false); // Customer View Simulator
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
@@ -150,6 +155,10 @@ const AdminCinemaRoomPage = () => {
       setOriginalSeats([]);
     }
   }, [room]);
+
+  useEffect(() => {
+    setAisleColumns(computeDefaultAisles(builderCols));
+  }, [builderCols]);
 
   // ---------- HANDLERS & ACTIONS ----------
 

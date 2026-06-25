@@ -15,6 +15,8 @@ public interface SeatRepository extends JpaRepository<Seat, UUID> {
     
     List<Seat> findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(UUID cinemaRoomUuid);
 
+    List<Seat> findByCinemaRoom_UuidAndIsActiveTrueOrderByRowNameAscSeatNumberAsc(UUID cinemaRoomUuid);
+
     long countByCinemaRoom_Uuid(UUID cinemaRoomUuid);
 
     @Modifying

@@ -136,6 +136,11 @@ const AdminCinemaRoomFormPage = () => {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+              {(form.status === 'DISABLED' || form.status === 'MAINTENANCE') && (
+                <p className="mt-2 text-xs text-amber-400/90 leading-relaxed">
+                  Các suất chiếu tương lai của phòng sẽ tự động bị hủy khi lưu trạng thái này.
+                </p>
+              )}
             </div>
           </div>
         </Section>

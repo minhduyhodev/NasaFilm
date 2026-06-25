@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
@@ -199,17 +197,14 @@ const ConcessionsPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0f121d] flex flex-col items-center justify-center text-white">
-        <Navbar />
         <Loader2 className="h-10 w-10 animate-spin text-red-500 mb-4" />
         <p className="text-xl font-bold animate-pulse">Đang tải menu bắp nước...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#0f121d] text-white flex flex-col">
-      <Navbar />
 
       <main className="flex-grow py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
         
@@ -440,8 +435,6 @@ const ConcessionsPage = () => {
         </div>
 
       </main>
-
-      <Footer />
     </div>
   );
 };

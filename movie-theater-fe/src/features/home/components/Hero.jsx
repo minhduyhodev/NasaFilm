@@ -1,20 +1,52 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import interstellarTrailer from '../../../shared/assets/Interstellar-Trailer.mp4';
+import React, { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+
+const HERO_VIDEO_URL = '/Interstellar-Trailer.mp4';
 
 const Hero = () => {
+  const reduceMotion = useReducedMotion();
+  const [videoSrc, setVideoSrc] = useState('');
+
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+
+    let cancelled = false;
+    const loadVideo = () => {
+      if (!cancelled) setVideoSrc(HERO_VIDEO_URL);
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(loadVideo, { timeout: 2000 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(idleId);
+      };
+    }
+
+    const timerId = window.setTimeout(loadVideo, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [reduceMotion]);
+
   return (
     <section className="relative min-h-[90vh] md:min-h-screen w-full flex items-center pt-24 pb-32 overflow-hidden bg-black">
       {/* 1. Background Video Layer */}
       <div className="absolute inset-0 z-0 select-none pointer-events-none">
-        <video
-          src={interstellarTrailer}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        />
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="none"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
+        )}
         {/* Cinematic dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-950/40 to-neutral-950/70" />
       </div>
@@ -47,16 +79,15 @@ const Hero = () => {
             </span>
           </motion.h1>
 
-          {/* Description */}
+          {/* Subheading */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-lg text-white/70 font-medium tracking-wide max-w-xl"
+            className="text-sm md:text-base text-gray-300 max-w-lg leading-relaxed font-medium"
           >
-            Trải nghiệm những thước phim bom tấn đỉnh cao với hệ thống âm thanh vòm sống động và màn hình sắc nét tại NASA FILM.
+            Trải nghiệm điện ảnh đỉnh cao với hệ thống rạp hiện đại, đặt vé nhanh chóng và thưởng thức phim bom tấn mới nhất.
           </motion.p>
-          
         </div>
       </div>
     </section>

@@ -1,18 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, X } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
 import NewReleases from '../components/NewReleases';
 import ExclusiveCollection from '../components/ExclusiveCollection';
 import OnlineVIPSection from '../components/online/OnlineVIPSection';
-import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import Pagination from '../../../shared/components/Pagination';
-import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { getCachedOnlineMovies, prefetchOnlineMovies } from '../utils/onlineMoviesCache';
+import { useOnlineSpotlightMovies, useOnlineCatalog } from '../../../shared/hooks/queries/useOnlineQueries';
 import { mapApiMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import heroBg from '../../../shared/assets/cinema_hero_bg.png';
@@ -24,21 +21,38 @@ const CATALOG_PAGE_SIZE_OPTIONS = [10, 20, 30];
 const OnlineMoviesPage = () => {
   const catalogRef = useRef(null);
 
-  const [spotlightMovies, setSpotlightMovies] = useState(() => getCachedOnlineMovies() ?? []);
-  const [isSpotlightLoading, setIsSpotlightLoading] = useState(
-    () => (getCachedOnlineMovies() ?? []).length === 0
-  );
-  const [spotlightError, setSpotlightError] = useState('');
-
-  const [catalogMovies, setCatalogMovies] = useState([]);
-  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
-  const [catalogError, setCatalogError] = useState('');
-  const [catalogReloadKey, setCatalogReloadKey] = useState(0);
   const [titleSearch, setTitleSearch] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  const spotlightQuery = useOnlineSpotlightMovies();
+  const spotlightMovies = spotlightQuery.data || [];
+  const isSpotlightLoading = spotlightQuery.isLoading;
+  const spotlightError = spotlightQuery.isError
+    ? (spotlightQuery.error?.message ||
+        'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.')
+    : '';
+
+  const catalogParams = useMemo(
+    () => ({
+      keyword: searchKeyword,
+      page: currentPage - 1,
+      size: itemsPerPage,
+    }),
+    [searchKeyword, currentPage, itemsPerPage]
+  );
+
+  const catalogQuery = useOnlineCatalog(catalogParams);
+  const catalogMovies = useMemo(
+    () => mapApiMovies(catalogQuery.data?.content || []),
+    [catalogQuery.data]
+  );
+  const totalItems = catalogQuery.data?.totalElements ?? catalogMovies.length;
+  const isCatalogLoading = catalogQuery.isLoading;
+  const catalogError = catalogQuery.isError
+    ? (catalogQuery.error?.message || 'Không thể tải danh sách phim. Vui lòng thử lại sau.')
+    : '';
 
   const routeMovieIds = useMemo(() => {
     const ids = new Set();
@@ -49,28 +63,6 @@ const OnlineMoviesPage = () => {
   }, [spotlightMovies, catalogMovies]);
 
   const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(routeMovieIds);
-
-  const fetchSpotlight = async ({ silent = false } = {}) => {
-    const hasCachedData = spotlightMovies.length > 0 || Boolean(getCachedOnlineMovies()?.length);
-    if (!silent && !hasCachedData) {
-      setIsSpotlightLoading(true);
-    }
-    setSpotlightError('');
-    try {
-      const onlineMovies = await prefetchOnlineMovies();
-      setSpotlightMovies(onlineMovies);
-    } catch (err) {
-      if (!hasCachedData) {
-        setSpotlightMovies([]);
-        setSpotlightError(
-          err?.message ||
-            'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.'
-        );
-      }
-    } finally {
-      setIsSpotlightLoading(false);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -86,49 +78,7 @@ const OnlineMoviesPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     systemConfigService.getConfig().catch(() => {});
-    const cached = getCachedOnlineMovies();
-    fetchSpotlight({ silent: Boolean(cached?.length) });
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchCatalog = async () => {
-      setIsCatalogLoading(true);
-      setCatalogError('');
-      try {
-        const data = await movieService.getMovies({
-          status: 'NOW_SHOWING',
-          onlineOnly: true,
-          keyword: searchKeyword || undefined,
-          page: currentPage - 1,
-          size: itemsPerPage,
-        });
-
-        if (cancelled) return;
-
-        const content = mapApiMovies(data?.content || []);
-        setCatalogMovies(content);
-        setTotalItems(data?.totalElements ?? content.length);
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Failed to load online catalog:', err);
-          setCatalogMovies([]);
-          setTotalItems(0);
-          setCatalogError(
-            err?.message || 'Không thể tải danh sách phim. Vui lòng thử lại sau.'
-          );
-        }
-      } finally {
-        if (!cancelled) setIsCatalogLoading(false);
-      }
-    };
-
-    fetchCatalog();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPage, itemsPerPage, searchKeyword, catalogReloadKey]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -146,7 +96,6 @@ const OnlineMoviesPage = () => {
 
   return (
     <div className="online-page-wrapper">
-      <Navbar />
 
       <OnlineHero
         movies={spotlightMovies}
@@ -213,7 +162,7 @@ const OnlineMoviesPage = () => {
           ) : catalogError ? (
             <div className="online-catalog-state online-catalog-state--error">
               <p>{catalogError}</p>
-              <button type="button" className="btn-gold" onClick={() => setCatalogReloadKey((k) => k + 1)}>
+              <button type="button" className="btn-gold" onClick={() => catalogQuery.refetch()}>
                 Thử tải lại
               </button>
             </div>
@@ -276,13 +225,11 @@ const OnlineMoviesPage = () => {
       {spotlightError && spotlightMovies.length === 0 && (
         <div className="online-spotlight-error" role="alert">
           <p>{spotlightError}</p>
-          <button type="button" className="btn-gold" onClick={() => fetchSpotlight()}>
+          <button type="button" className="btn-gold" onClick={() => spotlightQuery.refetch()}>
             Thử tải lại
           </button>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 };

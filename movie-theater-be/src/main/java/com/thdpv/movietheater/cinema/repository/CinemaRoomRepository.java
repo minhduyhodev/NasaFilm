@@ -25,6 +25,9 @@ public interface CinemaRoomRepository extends JpaRepository<CinemaRoom, UUID> {
     @Query("SELECT DISTINCT r FROM CinemaRoom r JOIN FETCH r.cinema WHERE r.uuid IN :uuids")
     List<CinemaRoom> findAllByIdWithCinema(@Param("uuids") Collection<UUID> uuids);
 
+    @Query("SELECT r.cinema.uuid AS cinemaUuid, COUNT(r) AS roomCount FROM CinemaRoom r WHERE r.cinema.uuid IN :cinemaUuids GROUP BY r.cinema.uuid")
+    List<Object[]> countRoomsByCinemaUuids(@Param("cinemaUuids") Collection<UUID> cinemaUuids);
+
     @Query("SELECT DISTINCT r FROM CinemaRoom r JOIN FETCH r.cinema WHERE r.cinema.uuid IN :cinemaUuids ORDER BY r.name ASC")
     List<CinemaRoom> findByCinemaUuidInWithCinema(@Param("cinemaUuids") Collection<UUID> cinemaUuids);
 }

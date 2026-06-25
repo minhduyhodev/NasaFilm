@@ -37,6 +37,17 @@ class MovieService {
     }
   }
 
+  async getMovieSummaries(uuids = []) {
+    const unique = [...new Set((uuids || []).filter(Boolean))];
+    if (unique.length === 0) return [];
+    try {
+      const response = await authService.api.post('/api/movies/summaries', { uuids: unique.slice(0, 50) });
+      return response.data.data ?? response.data ?? [];
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   clearMetadataCache() {
     this.genresCache = null;
     this.countriesCache = null;

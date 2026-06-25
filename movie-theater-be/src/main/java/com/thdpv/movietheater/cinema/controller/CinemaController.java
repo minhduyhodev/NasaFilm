@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -93,6 +94,13 @@ public class CinemaController {
             @Valid @RequestBody CinemaRoomRequest request) {
         CinemaRoomResponse response = cinemaService.updateRoom(roomUuid, request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/admin/rooms/{roomUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable UUID roomUuid) {
+        cinemaService.deleteRoom(roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xoa phong chieu thanh cong"));
     }
 
     @GetMapping("/cinemas/{cinemaUuid}/rooms")

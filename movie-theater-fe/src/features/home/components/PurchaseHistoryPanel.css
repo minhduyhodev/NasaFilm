@@ -1,5 +1,15 @@
 .ph-panel {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: min(78vh, 920px);
+}
+
+.ph-panel__body,
+.ph-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .ph-panel__intro {

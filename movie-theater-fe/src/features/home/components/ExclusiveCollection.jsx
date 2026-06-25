@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { movieService } from '../../../shared/services/movieService';
 import { mapApiMovies, filterOnlineMovies, getMovieDetailPath, sortMoviesByReleaseDate } from '../utils/movieUtils';
@@ -13,9 +13,11 @@ const ExclusiveCollection = ({ onlineOnly = false, movies: moviesProp, getOnline
     return sortMoviesByReleaseDate([...onlineOnlyList, ...bothList]).slice(0, 4);
   });
   const [isLoading, setIsLoading] = useState(!moviesProp?.length);
-  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(
-    onlineOnly ? movies.map((m) => m.uuid) : []
+  const routeMovieIds = useMemo(
+    () => (onlineOnly ? movies.map((m) => m.uuid) : []),
+    [onlineOnly, movies]
   );
+  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(routeMovieIds);
   const resolvePath = (uuid) => {
     if (onlineOnly) {
       return getOnlinePathProp ? getOnlinePathProp(uuid) : getOnlinePathLocal(uuid);

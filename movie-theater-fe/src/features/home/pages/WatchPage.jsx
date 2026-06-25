@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Clock,
@@ -12,13 +12,13 @@ import {
 import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { filterOnlineMovies, getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly } from '../utils/movieUtils';
+import { filterOnlineMovies, getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getOnlineMoviePath, VOD_VERIFIED_KEY } from '../utils/movieUtils';
+import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { useHomeChrome } from '../context/HomeChromeContext';
 import './WatchPage.css';
 
 const formatDuration = (mins) => {
@@ -50,8 +50,11 @@ const WatchPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isStartingPlay, setIsStartingPlay] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [cinemaModeType, setCinemaModeType] = useState(null);
+  const { setHideChrome } = useHomeChrome();
   const [cinemaRect, setCinemaRect] = useState(null);
   const [cinemaUiVisible, setCinemaUiVisible] = useState(true);
   const [videoError, setVideoError] = useState('');
@@ -59,6 +62,9 @@ const WatchPage = () => {
   const [remainingTimeText, setRemainingTimeText] = useState('');
   const heartbeatIntervalRef = useRef(null);
   const cinemaUiTimerRef = useRef(null);
+
+  const sidebarUuids = useMemo(() => upNext.map((m) => m.uuid), [upNext]);
+  const { getOnlinePath } = useOnlineVodRoutes(sidebarUuids);
 
   const getFullscreenRect = () => ({
     top: 0,
@@ -184,6 +190,11 @@ const WatchPage = () => {
   }, [isCinemaMode, cinemaModeType]);
 
   useEffect(() => {
+    setHideChrome(isCinemaMode && cinemaModeType === 'custom');
+    return () => setHideChrome(false);
+  }, [isCinemaMode, cinemaModeType, setHideChrome]);
+
+  useEffect(() => {
     let active = true;
     const initializeStream = async () => {
       setIsLoading(true);
@@ -209,22 +220,30 @@ const WatchPage = () => {
         if (status.playbackState === 'EXPIRED') {
           throw new Error('Vé xem phim trực tuyến của bạn đã hết hạn.');
         }
-        if (!canWatchOnlineDirectly(status)) {
-          navigate(getOnlineActivatePath(id), { replace: true });
-          return;
-        }
 
-        const playSession = await vodService.activatePlay(id);
-        if (!active) return;
-
-        const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movieDetail);
+        const resolvedStreamUrl = getMovieStreamingUrl(movieDetail);
         if (!resolvedStreamUrl?.trim()) {
           throw new Error(
             'Phim chưa được cấu hình link phát trực tuyến. Admin cần thêm URL video (.mp4) hoặc YouTube/Vimeo trong trang quản lý phim.'
           );
         }
 
-        setStreamData({ ...playSession, streamingUrl: resolvedStreamUrl.trim() });
+        if (canWatchOnlineDirectly(status)) {
+          const playSession = await vodService.activatePlay(id);
+          if (!active) return;
+          setStreamData({ ...playSession, streamingUrl: playSession.streamingUrl || resolvedStreamUrl.trim() });
+          setPreviewReady(false);
+          setIsPlaying(true);
+          return;
+        }
+
+        const verifiedBookingUuid = sessionStorage.getItem(VOD_VERIFIED_KEY(id));
+        if (!verifiedBookingUuid) {
+          navigate(getOnlineActivatePath(id), { replace: true });
+          return;
+        }
+
+        setPreviewReady(true);
       } catch (err) {
         if (!active) return;
         setError(err.message || 'Không thể bắt đầu luồng phát phim trực tuyến.');
@@ -286,9 +305,30 @@ const WatchPage = () => {
     return () => clearInterval(timer);
   }, [streamData, id, navigate]);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     setVideoError('');
-    setIsPlaying(true);
+    if (streamData?.streamToken) {
+      setIsPlaying(true);
+      return;
+    }
+    if (isStartingPlay) return;
+    setIsStartingPlay(true);
+    try {
+      const verifiedBookingUuid = sessionStorage.getItem(VOD_VERIFIED_KEY(id));
+      const playSession = await vodService.activatePlay(id, verifiedBookingUuid || undefined);
+      const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movie);
+      if (!resolvedStreamUrl?.trim()) {
+        throw new Error('Phim chưa được cấu hình link phát trực tuyến.');
+      }
+      sessionStorage.removeItem(VOD_VERIFIED_KEY(id));
+      setStreamData({ ...playSession, streamingUrl: resolvedStreamUrl.trim() });
+      setPreviewReady(false);
+      setIsPlaying(true);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể bắt đầu phát phim.');
+    } finally {
+      setIsStartingPlay(false);
+    }
   };
 
   const streamUrl = streamData?.streamingUrl || movie?.streamingUrl || '';
@@ -492,8 +532,6 @@ const WatchPage = () => {
     <div className="watch-page min-h-screen flex flex-col text-white">
       <div className={`watch-cinema-backdrop ${isCustomCinema ? 'watch-cinema-backdrop--visible' : ''}`} />
 
-      {!isCustomCinema && <Navbar />}
-
       <main className={`flex-1 px-4 md:px-8 lg:px-16 xl:px-20 py-6 md:py-8 ${isCustomCinema ? 'pointer-events-none' : ''}`}>
         <div className={`max-w-[1440px] mx-auto watch-page-content ${isCustomCinema ? 'watch-page-content--cinema' : ''}`}>
           {/* Top bar */}
@@ -538,7 +576,7 @@ const WatchPage = () => {
                   }
                   onMouseMove={isCustomCinema ? showCinemaUi : undefined}
                 >
-                {!isPlaying && (
+                {!isPlaying && (previewReady || streamData) && (
                   <>
                     <PosterImage src={backdrop} alt={movie.title} width={1200} className="watch-player-poster" />
                     <div className="watch-player-overlay" />
@@ -683,7 +721,7 @@ const WatchPage = () => {
                   {upNext.map((item) => (
                     <Link
                       key={item.uuid}
-                      to={getOnlineActivatePath(item.uuid)}
+                      to={getOnlinePath(item.uuid)}
                       className="watch-sidebar-card"
                     >
                       <PosterImage
@@ -707,7 +745,7 @@ const WatchPage = () => {
               </div>
 
               {upNext[0] && (
-              <Link to={getOnlineActivatePath(upNext[0].uuid)} className="watch-feature-box block group">
+              <Link to={getOnlinePath(upNext[0].uuid)} className="watch-feature-box block group">
                 <div
                   className="absolute inset-0 opacity-25 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                   style={{ backgroundImage: `url(${resolveMediaUrl(upNext[0].primaryMediaUrl || upNext[0].poster, 600)})` }}
@@ -733,8 +771,6 @@ const WatchPage = () => {
           </div>
         </div>
       </main>
-
-      {!isCustomCinema && <Footer />}
     </div>
   );
 };

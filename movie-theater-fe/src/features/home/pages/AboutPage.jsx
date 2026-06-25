@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Gem, Users } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import heroBg from '../../../shared/assets/about_hero_bg.png';
 import projectorImg from '../../../shared/assets/about_projector.png';
 import julianAvatar from '../../../shared/assets/avatar_julian.png';
@@ -34,7 +32,6 @@ const AboutPage = () => {
 
   return (
     <div className="about-page-wrapper">
-      <Navbar />
 
       {/* Hero Section */}
       <section 
@@ -224,8 +221,6 @@ const AboutPage = () => {
           </div>
         </motion.div>
       </section>
-
-      <Footer />
     </div>
   );
 };

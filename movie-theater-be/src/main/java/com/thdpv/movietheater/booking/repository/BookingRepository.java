@@ -40,7 +40,20 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByShowtimeUuid(UUID showtimeUuid);
     java.util.Optional<Booking> findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(UUID userUuid, UUID movieUuid, String bookingType, String status);
+    List<Booking> findByUserUuidAndMovieUuidAndBookingTypeAndStatus(UUID userUuid, UUID movieUuid, String bookingType, String status);
     List<Booking> findByUserUuidAndBookingTypeAndStatus(UUID userUuid, String bookingType, String status);
+
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.userUuid = :userUuid
+              AND b.movieUuid IN :movieUuids
+              AND b.bookingType = 'ONLINE'
+              AND b.status = 'CONFIRMED'
+            ORDER BY b.createdAt DESC
+            """)
+    List<Booking> findOnlineConfirmedBookingsForUserAndMovies(
+            @Param("userUuid") UUID userUuid,
+            @Param("movieUuids") Collection<UUID> movieUuids);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Booking b set b.status = :newStatus, b.updatedAt = :now where b.uuid = :uuid and b.status = :expectedStatus")
