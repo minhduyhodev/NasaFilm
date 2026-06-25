@@ -24,6 +24,8 @@ const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
 const WatchPage = lazy(() => import('../pages/WatchPage'));
+const RemindersPage = lazy(() => import('../pages/RemindersPage'));
+const WalletPage = lazy(() => import('../pages/WalletPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -109,6 +111,22 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reminders"
+            element={
+              <ProtectedRoute>
+                <RemindersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="wallet"
+            element={
+              <ProtectedRoute>
+                <WalletPage />
               </ProtectedRoute>
             }
           />

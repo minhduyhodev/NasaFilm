@@ -378,7 +378,65 @@ const ConfigPage = () => {
       )}
 
       {activeTab === 'operations' && (
-        <Section title="Vận hành & bảo mật">
+        <>
+          <Section title="Hủy vé & hoàn tiền">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Chặn hủy trước giờ chiếu (phút)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className={fieldClass}
+                  value={config.cancellationCutoffMinutes}
+                  onChange={(e) => updateField('cancellationCutoffMinutes', parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Phí hủy vé (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  className={fieldClass}
+                  value={config.cancellationFeePercent}
+                  onChange={(e) => updateField('cancellationFeePercent', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.customerRefundEnabled !== false}
+                  onChange={(e) => updateField('customerRefundEnabled', e.target.checked)}
+                  className="rounded border-white/20 bg-white/5"
+                />
+                Cho phép hoàn tiền khi khách hủy vé
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.fullRefundOnShowtimeCancel !== false}
+                  onChange={(e) => updateField('fullRefundOnShowtimeCancel', e.target.checked)}
+                  className="rounded border-white/20 bg-white/5"
+                />
+                Hoàn 100% khi suất chiếu bị hủy
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.refundManualApprovalRequired !== false}
+                  onChange={(e) => updateField('refundManualApprovalRequired', e.target.checked)}
+                  className="rounded border-white/20 bg-white/5"
+                />
+                Bắt buộc admin duyệt hoàn tiền (hiển thị tại trang Duyệt hoàn tiền)
+              </label>
+            </div>
+            <p className={hintClass + ' mt-3'}>
+              Khi bật duyệt thủ công: khách hủy vé → đơn chờ hoàn tiền → admin duyệt tại /admin/refunds → tiền về ví hoặc Mock Gateway.
+            </p>
+          </Section>
+          <Section title="Vận hành & bảo mật" divided>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Session timeout (giờ)</label>
@@ -394,6 +452,7 @@ const ConfigPage = () => {
             </div>
           </div>
         </Section>
+        </>
       )}
     </AdminPage>
   );

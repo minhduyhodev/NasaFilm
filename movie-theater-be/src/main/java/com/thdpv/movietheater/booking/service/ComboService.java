@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.thdpv.movietheater.booking.dto.request.ComboRequest;
+import com.thdpv.movietheater.booking.dto.response.ComboResponse;
 import com.thdpv.movietheater.booking.entity.Combo;
 import com.thdpv.movietheater.booking.repository.ComboRepository;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -28,6 +29,23 @@ public class ComboService {
     @Transactional(readOnly = true)
     public List<Combo> getAllCombos() {
         return comboRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ComboResponse> getActiveComboResponses() {
+        return comboRepository.findByStatusIgnoreCaseOrderByNameAsc("ACTIVE").stream()
+                .map(this::toComboResponse)
+                .toList();
+    }
+
+    private ComboResponse toComboResponse(Combo combo) {
+        return new ComboResponse(
+                combo.getUuid(),
+                combo.getName(),
+                combo.getDescription(),
+                combo.getPrice(),
+                combo.getImageUrl(),
+                combo.getStatus());
     }
 
     @Transactional

@@ -36,8 +36,11 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.payment.service.PaymentGatewayService;
 import com.thdpv.movietheater.payment.service.PaymentService;
+import com.thdpv.movietheater.payment.service.WalletService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -67,6 +70,8 @@ public class CancellationRefundService {
     private final RealtimeEventPublisher realtimeEventPublisher;
     private final PromotionRepository promotionRepository;
     private final VoucherRedemptionService voucherRedemptionService;
+    private final WalletService walletService;
+    private final MovieRepository movieRepository;
 
     @Transactional(readOnly = true)
     public CancellationPreviewResponse getCancellationPreview(UUID bookingUuid, UUID actorUuid, boolean adminOverride,
@@ -84,6 +89,7 @@ public class CancellationRefundService {
         preview.setCancellationCutoffMinutes(systemConfigService.getCancellationCutoffMinutes());
         preview.setBookingType(booking.getBookingType());
         preview.setVodActivated(booking.getFirstPlayedAt() != null);
+        preview.setManualApprovalRequired(systemConfigService.isRefundManualApprovalRequired());
 
         List<String> blocked = validateCancellationRules(booking, showtimeCancelled);
         preview.setBlockedReasons(blocked);
@@ -204,12 +210,26 @@ public class CancellationRefundService {
         response.setRefundAmount(calc.refundAmount());
         if (refund != null) {
             response.setRefundUuid(refund.getUuid());
+            response.setRefundStatus(refund.getStatus());
         }
-        response.setMessage(refund != null
-                ? (isOnlineBooking(booking)
-                        ? "Hủy vé online thành công. Tiền hoàn sẽ về trong 3-7 ngày làm việc."
-                        : "Hủy vé thành công. Tiền hoàn sẽ về trong 3-7 ngày làm việc.")
-                : "Hủy vé thành công. Vé không được hoàn tiền theo chính sách.");
+        if (refund != null) {
+            boolean walletRefund = paymentRepository.findById(refund.getPaymentUuid())
+                    .map(p -> "WALLET".equalsIgnoreCase(p.getMethod()))
+                    .orElse(false);
+            if (RefundStatus.PENDING.name().equals(refund.getStatus())) {
+                response.setMessage("Hủy vé thành công. Yêu cầu hoàn "
+                        + formatMoney(calc.refundAmount())
+                        + " đang chờ admin duyệt tại trang Duyệt hoàn tiền.");
+            } else if (walletRefund) {
+                response.setMessage("Hủy vé thành công. Tiền đã hoàn về Ví NASA.");
+            } else {
+                response.setMessage(isOnlineBooking(booking)
+                        ? "Hủy vé online thành công. Tiền hoàn qua Mock Gateway trong 3-7 ngày làm việc."
+                        : "Hủy vé thành công. Tiền hoàn qua Mock Gateway trong 3-7 ngày làm việc.");
+            }
+        } else {
+            response.setMessage("Hủy vé thành công. Vé không được hoàn tiền theo chính sách.");
+        }
         return response;
     }
 
@@ -261,18 +281,66 @@ public class CancellationRefundService {
         List<Refund> refunds = refundRepository.findByStatusOrderByCreatedAtDesc(RefundStatus.PENDING.name());
         List<AdminRefundListItemResponse> items = new ArrayList<>();
         for (Refund refund : refunds) {
-            Booking booking = bookingRepository.findById(refund.getBookingUuid()).orElse(null);
-            User user = booking != null ? userRepository.findById(booking.getUserUuid()).orElse(null) : null;
-            items.add(new AdminRefundListItemResponse(
-                    refund.getUuid(),
-                    refund.getBookingUuid(),
-                    refund.getAmount(),
-                    refund.getStatus(),
-                    user != null ? user.getEmail() : null,
-                    null,
-                    refund.getCreatedAt() != null ? refund.getCreatedAt().toString() : null));
+            items.add(buildAdminRefundItem(refund));
         }
         return items;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminRefundListItemResponse> listRefundHistory() {
+        List<Refund> refunds = refundRepository.findByStatusInOrderByCompletedAtDesc(
+                List.of(RefundStatus.COMPLETED.name(), RefundStatus.FAILED.name()));
+        List<AdminRefundListItemResponse> items = new ArrayList<>();
+        for (Refund refund : refunds) {
+            items.add(buildAdminRefundItem(refund));
+        }
+        return items;
+    }
+
+    private AdminRefundListItemResponse buildAdminRefundItem(Refund refund) {
+        Booking booking = bookingRepository.findById(refund.getBookingUuid()).orElse(null);
+        User customer = booking != null ? userRepository.findById(booking.getUserUuid()).orElse(null) : null;
+        String movieTitle = null;
+        if (booking != null && booking.getMovieUuid() != null) {
+            movieTitle = movieRepository.findById(booking.getMovieUuid()).map(Movie::getTitle).orElse(null);
+        }
+        CancellationRequest cancelReq = null;
+        if (refund.getCancellationRequestUuid() != null) {
+            cancelReq = cancellationRequestRepository.findById(refund.getCancellationRequestUuid()).orElse(null);
+        }
+        if (cancelReq == null && booking != null) {
+            cancelReq = cancellationRequestRepository.findFirstByBookingUuidOrderByCreatedAtDesc(booking.getUuid())
+                    .orElse(null);
+        }
+        String cancellationReason = cancelReq != null && cancelReq.getReason() != null
+                && !cancelReq.getReason().isBlank() ? cancelReq.getReason().trim() : null;
+        BigDecimal cancellationFee = cancelReq != null ? cancelReq.getCancellationFee() : null;
+
+        AdminRefundListItemResponse item = new AdminRefundListItemResponse(
+                refund.getUuid(),
+                refund.getBookingUuid(),
+                refund.getAmount(),
+                refund.getStatus(),
+                customer != null ? customer.getEmail() : null,
+                movieTitle,
+                refund.getCreatedAt() != null ? refund.getCreatedAt().toString() : null,
+                cancellationReason,
+                cancellationFee);
+
+        if (refund.getApprovedByUuid() != null) {
+            userRepository.findById(refund.getApprovedByUuid()).ifPresent(approver -> {
+                item.setApprovedByEmail(approver.getEmail());
+                item.setApprovedByName(approver.getFullName());
+            });
+        }
+        item.setApprovedByRole(refund.getApprovedByRole());
+        if (refund.getCompletedAt() != null) {
+            item.setApprovedAt(refund.getCompletedAt().toString());
+        } else if (RefundStatus.COMPLETED.name().equals(refund.getStatus())
+                || RefundStatus.FAILED.name().equals(refund.getStatus())) {
+            item.setApprovedAt(refund.getUpdatedAt() != null ? refund.getUpdatedAt().toString() : null);
+        }
+        return item;
     }
 
     private Refund initiateRefund(Booking booking, CancellationRequest request, BigDecimal amount, UUID actorUuid,
@@ -325,36 +393,50 @@ public class CancellationRefundService {
         booking.setUpdatedAt(now);
         bookingRepository.save(booking);
 
-        PaymentGatewayService.GatewayRefundResult gatewayResult = paymentGatewayService.refund(
-                refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+        Payment payment = paymentRepository.findById(refund.getPaymentUuid()).orElse(null);
+        boolean walletPayment = payment != null && "WALLET".equalsIgnoreCase(payment.getMethod());
 
-        if (!gatewayResult.success()) {
-            refund.setStatus(RefundStatus.FAILED.name());
-            refund.setFailureReason(gatewayResult.failureReason());
-            refund.setUpdatedAt(now);
-            refundRepository.save(refund);
-            auditLogService.log("REFUND", refund.getUuid(), "REFUND_FAILED", actorUuid, actorRole, gatewayResult);
-            throw new AppException(ErrorCode.INTERNAL_ERROR, "Hoàn tiền thất bại. Vui lòng thử lại sau.");
+        if (walletPayment) {
+            walletService.creditRefund(
+                    booking.getUserUuid(),
+                    refund.getAmount(),
+                    refund.getUuid(),
+                    "Hoàn tiền hủy vé");
+            refund.setGatewayRefundId("WALLET-CREDIT");
+        } else {
+            PaymentGatewayService.GatewayRefundResult gatewayResult = paymentGatewayService.refund(
+                    refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+
+            if (!gatewayResult.success()) {
+                refund.setStatus(RefundStatus.FAILED.name());
+                refund.setFailureReason(gatewayResult.failureReason());
+                refund.setUpdatedAt(now);
+                refundRepository.save(refund);
+                auditLogService.log("REFUND", refund.getUuid(), "REFUND_FAILED", actorUuid, actorRole, gatewayResult);
+                throw new AppException(ErrorCode.INTERNAL_ERROR, "Hoàn tiền thất bại. Vui lòng thử lại sau.");
+            }
+            refund.setGatewayRefundId(gatewayResult.gatewayRefundId());
         }
 
-        refund.setGatewayRefundId(gatewayResult.gatewayRefundId());
         refund.setStatus(RefundStatus.COMPLETED.name());
         refund.setApprovedByUuid(actorUuid);
+        refund.setApprovedByRole(actorRole);
         refund.setCompletedAt(now);
         refund.setUpdatedAt(now);
         refundRepository.save(refund);
 
-        paymentRepository.findById(refund.getPaymentUuid()).ifPresent(payment -> {
-            payment.setStatus(PaymentStatus.REFUNDED.name());
-            payment.setUpdatedAt(now);
-            paymentRepository.save(payment);
+        paymentRepository.findById(refund.getPaymentUuid()).ifPresent(pay -> {
+            pay.setStatus(PaymentStatus.REFUNDED.name());
+            pay.setUpdatedAt(now);
+            paymentRepository.save(pay);
         });
 
         booking.setStatus(BookingStatus.REFUNDED.name());
         booking.setUpdatedAt(now);
         bookingRepository.save(booking);
 
-        auditLogService.log("REFUND", refund.getUuid(), "REFUND_COMPLETED", actorUuid, actorRole, gatewayResult);
+        auditLogService.log("REFUND", refund.getUuid(), "REFUND_COMPLETED", actorUuid, actorRole,
+                walletPayment ? "WALLET" : refund.getGatewayRefundId());
         return refund;
     }
 
@@ -424,6 +506,10 @@ public class CancellationRefundService {
         List<RefundStatusResponse.RefundTimelineItem> timeline = new ArrayList<>();
         timeline.add(new RefundStatusResponse.RefundTimelineItem("REQUESTED", "Yêu cầu hủy vé",
                 refund.getCreatedAt()));
+        if (RefundStatus.PENDING.name().equals(refund.getStatus())) {
+            timeline.add(new RefundStatusResponse.RefundTimelineItem("PENDING", "Chờ admin duyệt hoàn tiền",
+                    refund.getUpdatedAt()));
+        }
         if (RefundStatus.PROCESSING.name().equals(refund.getStatus())
                 || RefundStatus.COMPLETED.name().equals(refund.getStatus())) {
             timeline.add(new RefundStatusResponse.RefundTimelineItem("PROCESSING", "Đang xử lý hoàn tiền",

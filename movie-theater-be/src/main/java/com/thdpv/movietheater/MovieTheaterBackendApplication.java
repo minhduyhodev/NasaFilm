@@ -2,6 +2,9 @@ package com.thdpv.movietheater;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.DependsOn;
+
+import com.thdpv.movietheater.config.WalletSchemaPreBootstrap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,10 +16,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
+@DependsOn("walletSchemaMigrator")
 public class MovieTheaterBackendApplication {
 
 	public static void main(String[] args) {
 		loadEnv();
+		WalletSchemaPreBootstrap.apply();
 		SpringApplication.run(MovieTheaterBackendApplication.class, args);
 	}
 

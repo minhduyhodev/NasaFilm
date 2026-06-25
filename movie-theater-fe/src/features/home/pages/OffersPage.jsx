@@ -14,6 +14,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TabTransition from '../../../shared/components/TabTransition';
 import { comboService } from '../../../shared/services/comboService';
+import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import { cinemaService } from '../../../shared/services/cinemaService';
 
 import heroBg from '../../../shared/assets/offers_hero_bg.png';
@@ -102,8 +103,17 @@ const ROOM_TYPE_LABELS = {
 
 const CINEMA_IMAGES = [landmark81Img, cityCenterImg, sunsetMallImg];
 
-function resolveComboMeta(name, index) {
-  const key = (name || '').toLowerCase();
+function resolveComboMeta(combo, index) {
+  if (combo?.imageUrl?.trim()) {
+    return {
+      image: resolveMediaUrl(combo.imageUrl.trim(), 400),
+      description:
+        combo.description?.trim() ||
+        'Combo bắp nước đặc biệt — mua kèm vé xem phim để tiết kiệm hơn.',
+    };
+  }
+  const name = combo?.name || '';
+  const key = name.toLowerCase();
   for (const [pattern, meta] of Object.entries(COMBO_META)) {
     if (key.includes(pattern)) return meta;
   }
@@ -277,7 +287,7 @@ const OffersPage = () => {
               ) : (
                 <div className="offers-grid">
                   {combos.map((combo, index) => {
-                    const meta = resolveComboMeta(combo.name, index);
+                    const meta = resolveComboMeta(combo, index);
                     return (
                       <article key={combo.uuid} className="offer-card">
                         <div className="offer-card-img-wrapper">
@@ -287,7 +297,7 @@ const OffersPage = () => {
                         <div className="offer-card-content">
                           <div>
                             <h3 className="offer-card-title">{combo.name}</h3>
-                            <p className="offer-card-desc">{meta.description}</p>
+                            <p className="offer-card-desc">{meta.description || combo.description}</p>
                           </div>
                           <div className="offer-card-footer">
                             <span className="text-xl font-black text-white font-heading">

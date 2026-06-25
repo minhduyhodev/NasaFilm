@@ -31,6 +31,9 @@ import {
   Megaphone,
 } from "lucide-react";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
+import { bookingService } from "../../../shared/services/bookingService";
+import { useRealtimeTopic } from "../../../shared/hooks/useRealtimeTopic";
+import { REALTIME_TOPICS } from "../../../shared/constants/realtimeTopics";
 import huyAdmin from "../../../shared/assets/huyadmin.jpg";
 import nasaLogo from "../../../shared/assets/NASAFILM.jpg";
 import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
@@ -61,6 +64,16 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
     hrm: true,
     security: true,
   });
+  const [pendingRefundCount, setPendingRefundCount] = useState(0);
+
+  const loadPendingRefundCount = useCallback(async () => {
+    try {
+      const data = await bookingService.getAdminPendingRefunds();
+      setPendingRefundCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setPendingRefundCount(0);
+    }
+  }, []);
 
   const toggleGroup = (group) => {
     setOpenGroups((prev) => ({
@@ -73,12 +86,18 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
     setAvatarLoadFailed(false);
   }, [user?.avatar]);
 
+  useEffect(() => {
+    loadPendingRefundCount();
+  }, [loadPendingRefundCount]);
+
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, loadPendingRefundCount);
+
   const handleLogout = useCallback(() => {
     logout();
     navigate("/login");
   }, [logout, navigate]);
 
-  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride } = {}) => (
+  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge } = {}) => (
     <NavLink
       to={to}
       end={endOverride ?? to === "/admin"}
@@ -98,7 +117,16 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
           <Icon
             className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-red-400" : colorClass}`}
           />
-          {isOpen && <span className="truncate">{label}</span>}
+          {isOpen && (
+            <>
+              <span className="truncate flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
+            </>
+          )}
         </>
       )}
     </NavLink>
@@ -257,6 +285,7 @@ const Sidebar = ({ isOpen, onToggle, onClose }) => {
                 DollarSign,
                 "Duyệt hoàn tiền",
                 "text-emerald-400",
+                { badge: pendingRefundCount },
               )}
               {renderLink(
                 "/admin/combos/revenue",

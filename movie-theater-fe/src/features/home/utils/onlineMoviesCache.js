@@ -1,5 +1,5 @@
 import { movieService } from '../../../shared/services/movieService';
-import { mapApiMovies, filterOnlineMovies, preloadHeroBackground } from './movieUtils';
+import { mapApiMovies, preloadHeroBackground } from './movieUtils';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -17,8 +17,13 @@ export function getCachedOnlineMovies() {
 }
 
 async function fetchAndCacheOnlineMovies() {
-  const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 50 });
-  const onlineMovies = filterOnlineMovies(mapApiMovies(data?.content || []));
+  const data = await movieService.getMovies({
+    status: 'NOW_SHOWING',
+    page: 0,
+    size: 50,
+    onlineOnly: true,
+  });
+  const onlineMovies = mapApiMovies(data?.content || []);
 
   const firstUuid = onlineMovies[0]?.uuid;
   if (firstUuid && heroPreloadedFor !== firstUuid) {
