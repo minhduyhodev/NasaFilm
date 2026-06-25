@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
@@ -38,7 +38,8 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
   const { isAuthenticated } = useAuthContext();
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(movies.map((m) => m.uuid));
+  const routeMovieIds = useMemo(() => movies.map((m) => m.uuid), [movies]);
+  const { getOnlinePath: getOnlinePathLocal } = useOnlineVodRoutes(routeMovieIds);
   const resolveOnlinePath = getOnlinePathProp || getOnlinePathLocal;
 
   useEffect(() => {

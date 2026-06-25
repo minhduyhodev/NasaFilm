@@ -5,6 +5,11 @@ import { getOnlineMoviePath, getOnlineActionLabel } from '../utils/movieUtils';
 
 const statusCache = new Map();
 
+function toUuidKey(movieUuids) {
+  if (!Array.isArray(movieUuids) || movieUuids.length === 0) return '';
+  return [...new Set(movieUuids.filter(Boolean))].sort().join(',');
+}
+
 async function loadVodStatusBatch(uuids) {
   const filtered = uuids.filter(Boolean);
   const missing = filtered.filter((uuid) => !statusCache.has(uuid));
@@ -35,27 +40,28 @@ export function useOnlineVodRoutes(movieUuids = []) {
   const { isAuthenticated } = useAuthContext();
   const [statusMap, setStatusMap] = useState({});
 
-  const uniqueUuids = useMemo(
-    () => [...new Set((movieUuids || []).filter(Boolean))],
-    [movieUuids]
+  const uuidKey = useMemo(
+    () => toUuidKey(movieUuids),
+    [movieUuids?.length ?? 0, movieUuids?.length ? toUuidKey(movieUuids) : '']
   );
-  const uuidKey = uniqueUuids.join(',');
 
   useEffect(() => {
-    if (!isAuthenticated || uniqueUuids.length === 0) {
-      setStatusMap({});
-      return;
+    if (!isAuthenticated || !uuidKey) {
+      setStatusMap((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+      return undefined;
     }
 
     let active = true;
-    loadVodStatusBatch(uniqueUuids).then((map) => {
+    const uuids = uuidKey.split(',');
+
+    loadVodStatusBatch(uuids).then((map) => {
       if (active) setStatusMap(map);
     });
 
     return () => {
       active = false;
     };
-  }, [isAuthenticated, uuidKey, uniqueUuids]);
+  }, [isAuthenticated, uuidKey]);
 
   const getOnlinePath = useCallback(
     (uuid) => getOnlineMoviePath(uuid, isAuthenticated ? statusMap[uuid] : null),

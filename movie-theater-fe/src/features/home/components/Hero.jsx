@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
+const HERO_VIDEO_URL = '/Interstellar-Trailer.mp4';
+
 const Hero = () => {
   const reduceMotion = useReducedMotion();
   const [videoSrc, setVideoSrc] = useState('');
@@ -10,11 +12,7 @@ const Hero = () => {
 
     let cancelled = false;
     const loadVideo = () => {
-      import('../../../shared/assets/Interstellar-Trailer.mp4')
-        .then((mod) => {
-          if (!cancelled) setVideoSrc(mod.default);
-        })
-        .catch(() => {});
+      if (!cancelled) setVideoSrc(HERO_VIDEO_URL);
     };
 
     if (typeof window.requestIdleCallback === 'function') {
@@ -81,16 +79,15 @@ const Hero = () => {
             </span>
           </motion.h1>
 
-          {/* Description */}
+          {/* Subheading */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base md:text-lg text-white/70 font-medium tracking-wide max-w-xl"
+            className="text-sm md:text-base text-gray-300 max-w-lg leading-relaxed font-medium"
           >
-            Trải nghiệm những thước phim bom tấn đỉnh cao với hệ thống âm thanh vòm sống động và màn hình sắc nét tại NASA FILM.
+            Trải nghiệm điện ảnh đỉnh cao với hệ thống rạp hiện đại, đặt vé nhanh chóng và thưởng thức phim bom tấn mới nhất.
           </motion.p>
-          
         </div>
       </div>
     </section>
