@@ -1,6 +1,30 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Film, Search, ChevronDown } from 'lucide-react';
+import { X, Plus, Search, ChevronDown } from 'lucide-react';
+import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
+
+const getPosterSrc = (rawUrl, width = 120) =>
+  rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
+
+const getMoviePoster = (movie) => movie?.primaryMediaUrl || movie?.posterUrl || movie?.moviePosterUrl || '';
+
+const MoviePosterThumb = ({ movie, size = 'sm', className = '' }) => {
+  const rawPoster = getMoviePoster(movie);
+  const dim = size === 'lg' ? 'w-14 h-20' : 'w-9 h-12';
+  return (
+    <div className={`${dim} rounded-md overflow-hidden border border-[#1a2238] bg-[#0F1322] shrink-0 ${className}`}>
+      <img
+        src={getPosterSrc(rawPoster, size === 'lg' ? 160 : 80)}
+        data-original-url={rawPoster || ''}
+        alt={movie?.title || 'Poster phim'}
+        loading="lazy"
+        decoding="async"
+        className="w-full h-full object-cover"
+        onError={handlePosterError}
+      />
+    </div>
+  );
+};
 
 const ShowtimesCreateModal = ({
   onClose,
@@ -55,11 +79,14 @@ const ShowtimesCreateModal = ({
                 <div className="relative">
                   <button
                     type="button"
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors"
+                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 flex items-center justify-between gap-2 text-left cursor-pointer transition-colors"
                     onClick={() => setIsMovieDropdownOpen(!isMovieDropdownOpen)}
                   >
-                    <span className="truncate">{selectedMovie ? selectedMovie.title : 'Chọn phim từ cơ sở dữ liệu...'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isMovieDropdownOpen ? 'rotate-180' : ''}`} />
+                    <span className="flex items-center gap-2 min-w-0 flex-1">
+                      {selectedMovie && <MoviePosterThumb movie={selectedMovie} size="sm" />}
+                      <span className="truncate">{selectedMovie ? selectedMovie.title : 'Chọn phim từ cơ sở dữ liệu...'}</span>
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform shrink-0 ${isMovieDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {isMovieDropdownOpen && (
@@ -89,8 +116,8 @@ const ShowtimesCreateModal = ({
                               setSearchMovieKeyword('');
                             }}
                           >
-                            <Film className="w-4 h-4 shrink-0 text-gray-500" />
-                            <div className="overflow-hidden leading-tight">
+                            <MoviePosterThumb movie={movie} size="sm" />
+                            <div className="overflow-hidden leading-tight min-w-0 flex-1">
                               <div className="font-bold text-xs text-white truncate">{movie.title}</div>
                               <div className="text-[10px] text-gray-400 mt-0.5">{movie.durationMinutes} phút · {movie.status === 'NOW_SHOWING' ? 'Đang chiếu' : 'Sắp chiếu'}</div>
                             </div>
@@ -104,12 +131,15 @@ const ShowtimesCreateModal = ({
                 </div>
 
                 {selectedMovie && (
-                  <div className="flex items-center gap-3 p-3 bg-[#0F1322]/50 rounded-lg border border-[#1a2238] mt-2 text-left">
-                    <Film className="w-4 h-4 text-rose-400 shrink-0" />
-                    <div className="overflow-hidden leading-normal text-left">
+                  <div className="flex items-start gap-3 p-3 bg-[#0F1322]/50 rounded-lg border border-[#1a2238] mt-2 text-left">
+                    <MoviePosterThumb movie={selectedMovie} size="lg" />
+                    <div className="overflow-hidden leading-normal text-left min-w-0 flex-1">
                       <div className="font-bold text-white truncate text-xs">{selectedMovie.title}</div>
                       <div className="text-[10px] text-gray-400 mt-0.5">
                         Thời lượng: {selectedMovie.durationMinutes} phút (+10m trailer)
+                      </div>
+                      <div className="text-[10px] text-gray-500 mt-1">
+                        {selectedMovie.status === 'NOW_SHOWING' ? 'Đang chiếu' : 'Sắp chiếu'}
                       </div>
                     </div>
                   </div>
