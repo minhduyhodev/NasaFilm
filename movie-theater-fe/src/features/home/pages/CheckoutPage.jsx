@@ -11,6 +11,7 @@ import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
 import { promotionService } from '../../../shared/services/promotionService';
+import { walletService } from '../../../shared/services/walletService';
 import PosterImage from '../../../shared/components/PosterImage';
 
 import './CheckoutPage.css';
@@ -72,6 +73,7 @@ const CheckoutPage = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
@@ -134,9 +136,15 @@ const CheckoutPage = () => {
     window.scrollTo(0, 0);
     const fetchProfile = async () => {
       try {
-        const data = await authService.getProfile();
-        if (data) {
-          setUserScore(data.score || 0);
+        const [profile, wallet] = await Promise.all([
+          authService.getProfile(),
+          walletService.getWallet().catch(() => null),
+        ]);
+        if (profile) {
+          setUserScore(profile.score || 0);
+        }
+        if (wallet?.balance != null) {
+          setWalletBalance(Number(wallet.balance));
         }
       } catch (err) {
         console.error('Failed to load user profile in CheckoutPage:', err);
@@ -257,6 +265,11 @@ const CheckoutPage = () => {
   const handlePay = async () => {
     if (!isVod && isExpired) {
       notificationService.error("Thời gian giữ ghế đã hết hạn!");
+      return;
+    }
+    if (paymentMethod === 'wallet' && walletBalance < finalTotal) {
+      notificationService.warning('Số dư ví không đủ. Vui lòng nạp thêm tại trang Ví NASA.');
+      navigate('/wallet');
       return;
     }
     setIsPaying(true);
@@ -474,7 +487,7 @@ const CheckoutPage = () => {
 
               <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
               <p className="text-[11px] text-amber-400/90 font-semibold mb-6 px-1">
-                Chế độ demo — thanh toán qua Mock Gateway, không trừ tiền thật. Cổng VNPay/MoMo sẽ được tích hợp sau.
+                Chế độ demo — Ví NASA trừ số dư thật (mock), thẻ/Apple Pay qua Mock Gateway. Cổng VNPay/MoMo sẽ tích hợp sau.
               </p>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
@@ -494,11 +507,11 @@ const CheckoutPage = () => {
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
-                    <div className="text-xs font-bold text-white">Thanh toán trực tuyến</div>
+                    <div className="text-xs font-bold text-white">Ví NASA</div>
                     <div className="text-[10px] font-semibold text-gray-400">
                       {loadingProfile
-                        ? 'Đang tải thông tin thành viên...'
-                        : `Điểm tích lũy: ${userScore.toLocaleString('vi-VN')} · ${memberTier}`}
+                        ? 'Đang tải số dư...'
+                        : `Số dư: ${walletBalance.toLocaleString('vi-VN')} đ · ${memberTier}`}
                     </div>
                   </div>
                   <Wallet className="w-5 h-5 text-red-500 shrink-0 fill-red-500/10" />
