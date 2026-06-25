@@ -171,6 +171,21 @@ public class ShowtimeService {
         return toShowtimeResponse(updatedShowtime, movie, room);
     }
 
+    @Transactional
+    public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
+        List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
+        int cancelled = 0;
+        for (Showtime showtime : showtimes) {
+            if (showtime.getStatus() == ShowtimeStatus.CANCELLED
+                    || showtime.getStatus() == ShowtimeStatus.FINISHED) {
+                continue;
+            }
+            updateShowtimeStatus(showtime.getUuid(), ShowtimeStatus.CANCELLED);
+            cancelled++;
+        }
+        return cancelled;
+    }
+
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getAdminShowtimes() {
         List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();

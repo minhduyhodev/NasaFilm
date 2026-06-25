@@ -40,6 +40,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByShowtimeUuid(UUID showtimeUuid);
     java.util.Optional<Booking> findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(UUID userUuid, UUID movieUuid, String bookingType, String status);
+    List<Booking> findByUserUuidAndMovieUuidAndBookingTypeAndStatus(UUID userUuid, UUID movieUuid, String bookingType, String status);
     List<Booking> findByUserUuidAndBookingTypeAndStatus(UUID userUuid, String bookingType, String status);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
