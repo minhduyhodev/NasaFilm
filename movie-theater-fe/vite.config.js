@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import compression from 'vite-plugin-compression';
 import path from 'path';
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    compression({ algorithm: 'gzip' }),
+    compression({ algorithm: 'brotliCompress', ext: '.br' }),
+  ],
   define: {
     global: 'globalThis',
   },
@@ -28,7 +32,6 @@ export default defineConfig({
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/ws': {
         target: 'http://127.0.0.1:8080',
@@ -41,5 +44,26 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('framer-motion')) return 'vendor-motion';
+            if (id.includes('hls.js')) return 'vendor-player';
+            if (id.includes('@stomp') || id.includes('sockjs-client')) return 'vendor-stomp';
+            if (id.includes('react-dom') || id.includes('react-router')) return 'vendor-react';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('@tanstack/react-query')) return 'vendor-query';
+          }
+          if (id.includes('/features/admin/pages/showtimes/Showtimes')) {
+            return 'admin-showtimes-modals';
+          }
+          if (id.includes('/features/admin/layouts/AdminSidebar')) {
+            return 'admin-sidebar';
+          }
+        },
+      },
+    },
   },
 });

@@ -124,10 +124,19 @@ class BookingService {
     }
   }
 
+  async getAdminRefundHistory() {
+    try {
+      const response = await authService.api.get('/api/admin/refunds/history');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async approveRefund(refundUuid) {
     try {
       const response = await authService.api.post(`/api/admin/refunds/${refundUuid}/approve`);
-      return response.data;
+      return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -167,9 +176,23 @@ class BookingService {
     }
   }
 
-  async activateVodPlay(movieUuid) {
+  async getVodStatusBatch(movieUuids = []) {
+    const unique = [...new Set((movieUuids || []).filter(Boolean))];
+    if (unique.length === 0) return {};
     try {
-      const response = await authService.api.post(`/api/vod/play/${movieUuid}`);
+      const response = await authService.api.post('/api/vod/status/batch', {
+        movieUuids: unique.slice(0, 50),
+      });
+      return response.data.data ?? response.data ?? {};
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async activateVodPlay(movieUuid, bookingUuid = null) {
+    try {
+      const params = bookingUuid ? `?bookingUuid=${encodeURIComponent(bookingUuid)}` : '';
+      const response = await authService.api.post(`/api/vod/play/${movieUuid}${params}`);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
@@ -188,7 +211,7 @@ class BookingService {
   async resendVodTicketEmail(movieUuid) {
     try {
       const response = await authService.api.post(`/api/vod/resend-ticket/${movieUuid}`);
-      return response.data;
+      return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
     }

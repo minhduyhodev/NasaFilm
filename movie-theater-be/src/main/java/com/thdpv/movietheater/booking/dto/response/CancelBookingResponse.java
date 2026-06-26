@@ -11,6 +11,7 @@ public class CancelBookingResponse {
     private UUID refundUuid;
     private BigDecimal refundAmount;
     private BigDecimal cancellationFee;
+    private String refundStatus;
     private String message;
 
     public CancelBookingResponse() {
@@ -62,6 +63,14 @@ public class CancelBookingResponse {
 
     public void setCancellationFee(BigDecimal cancellationFee) {
         this.cancellationFee = cancellationFee;
+    }
+
+    public String getRefundStatus() {
+        return refundStatus;
+    }
+
+    public void setRefundStatus(String refundStatus) {
+        this.refundStatus = refundStatus;
     }
 
     public String getMessage() {

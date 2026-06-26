@@ -40,7 +40,7 @@ export const DEFAULT_SYSTEM_CONFIG = {
   cancellationFeePercent: 10,
   customerRefundEnabled: true,
   fullRefundOnShowtimeCancel: true,
-  refundManualApprovalRequired: false,
+  refundManualApprovalRequired: true,
   roomTypes: DEFAULT_ROOM_TYPES,
   screeningFormats: DEFAULT_SCREENING_FORMATS,
 };

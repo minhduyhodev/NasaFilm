@@ -1,9 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
-import { movieService } from '../../../shared/services/movieService';
+import { useUpcomingMovies } from '../hooks/useHomeQueries';
 
 const mapApiMovies = (content) =>
   content.map(m => ({
@@ -20,28 +20,12 @@ const mapApiMovies = (content) =>
 const ComingSoon = () => {
   const scrollerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [moviesList, setMoviesList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, isLoading } = useUpcomingMovies();
 
-  useEffect(() => {
-    const fetchComingSoon = async () => {
-      setIsLoading(true);
-      try {
-        const data = await movieService.getUpcomingMovies({ page: 0, size: 20 });
-        if (data?.content?.length > 0) {
-          setMoviesList(mapApiMovies(data.content));
-        } else {
-          setMoviesList([]);
-        }
-      } catch (err) {
-        console.error('Failed to load coming soon movies:', err);
-        setMoviesList([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchComingSoon();
-  }, []);
+  const moviesList = useMemo(() => {
+    if (!data?.content?.length) return [];
+    return mapApiMovies(data.content);
+  }, [data]);
 
   const getScrollAmount = () => {
     const el = scrollerRef.current;

@@ -21,6 +21,9 @@ public class MovieFilterRequest {
     /** Chỉ lấy phim có suất chiếu rạp còn đặt được (OPEN_FOR_BOOKING / SOLD_OUT, startTime > now). */
     private Boolean requireBookableShowtime;
 
+    /** Chỉ lấy phim có thể xem trực tuyến (screeningMode ONLINE_ONLY hoặc BOTH). */
+    private Boolean onlineOnly;
+
     public MovieFilterRequest() {
     }
 
@@ -106,5 +109,13 @@ public class MovieFilterRequest {
 
     public void setRequireBookableShowtime(Boolean requireBookableShowtime) {
         this.requireBookableShowtime = requireBookableShowtime;
+    }
+
+    public Boolean getOnlineOnly() {
+        return onlineOnly;
+    }
+
+    public void setOnlineOnly(Boolean onlineOnly) {
+        this.onlineOnly = onlineOnly;
     }
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, Film,
-  MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
-  X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, SlidersHorizontal
+  MapPin, Clock, Loader2, AlertCircle, Sparkles,
+  X, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal
 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
@@ -15,6 +16,10 @@ import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import PosterImage from '../../../shared/components/PosterImage';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { AdminPage, PageHeader, GhostButton } from '../components';
+import {
+  getAdminBookingArchiveLabel,
+  partitionAdminBookings,
+} from '../utils/adminBookingUtils';
 import './BookingsPage.css';
 
 const BookingsPage = () => {
@@ -23,7 +28,7 @@ const BookingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [hideCancelled, setHideCancelled] = useState(true);
+  const [listTab, setListTab] = useState('active');
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [moviesMap, setMoviesMap] = useState({});
@@ -209,6 +214,7 @@ const BookingsPage = () => {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [archivedPage, setArchivedPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchAuxiliaryData = async () => {
@@ -260,7 +266,14 @@ const BookingsPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, hideCancelled, startDate, endDate, selectedCinema, selectedShowtime]);
+    setArchivedPage(1);
+  }, [searchTerm, statusFilter, startDate, endDate, selectedCinema, selectedShowtime]);
+
+  useEffect(() => {
+    if (statusFilter === 'CANCELLED') {
+      setListTab('archived');
+    }
+  }, [statusFilter]);
 
   const handleClearFilters = () => {
     setStartDate('');
@@ -268,47 +281,23 @@ const BookingsPage = () => {
     setSelectedCinema('');
     setSelectedShowtime('');
     setStatusFilter('ALL');
-    setHideCancelled(true);
     setSearchTerm('');
+    setListTab('active');
   };
 
   const handleKpiClick = (label) => {
     if (label === 'THÀNH CÔNG' || label === 'DOANH THU') {
       setStatusFilter('CONFIRMED');
+      setListTab('active');
     } else if (label === 'ĐÃ HỦY') {
       setStatusFilter('CANCELLED');
-      setHideCancelled(false);
+      setListTab('archived');
     } else if (label === 'TỔNG ĐƠN HÀNG') {
       setStatusFilter('ALL');
+      setListTab('active');
     }
     setCurrentPage(1);
-  };
-
-  const handleCancelBookingDirect = async (row) => {
-    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt vé "${row.bookingUuid.substring(0, 8).toUpperCase()}" của khách hàng "${row.customerName}" không?`)) {
-      try {
-        await bookingService.cancelBooking(row.bookingUuid);
-        notificationService.success(`Đã hủy thành công đơn hàng ${row.bookingUuid.substring(0, 8).toUpperCase()}`);
-        fetchBookings(searchTerm);
-      } catch (err) {
-        console.error('Failed to cancel booking:', err);
-        notificationService.error(err.message || 'Hủy đơn hàng thất bại');
-      }
-    }
-  };
-
-  const handleCheckInDirect = async (row) => {
-    const code = window.prompt(`Nhập mã vé cần check-in cho đơn hàng ${row.bookingUuid.substring(0, 8).toUpperCase()}:`);
-    if (code && code.trim()) {
-      try {
-        await bookingService.checkInTicket(code.trim());
-        notificationService.success(`Check-in thành công vé: ${code.trim()}`);
-        fetchBookings(searchTerm);
-      } catch (err) {
-        console.error('Failed to check-in ticket:', err);
-        notificationService.error(err.message || 'Check-in vé thất bại');
-      }
-    }
+    setArchivedPage(1);
   };
 
   const formatDateTime = (dateStr) => {
@@ -356,9 +345,6 @@ const BookingsPage = () => {
 
   const filteredBookings = React.useMemo(() => {
     const list = bookings.filter((b) => {
-      if (hideCancelled && statusFilter !== 'CANCELLED' && b.status?.toUpperCase() === 'CANCELLED') {
-        return false;
-      }
       if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
       if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
       if (startDate) {
@@ -385,7 +371,12 @@ const BookingsPage = () => {
       if (ra !== rb) return ra - rb;
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
-  }, [bookings, hideCancelled, statusFilter, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
+  }, [bookings, statusFilter, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
+
+  const { active: activeBookings, archived: archivedBookings } = React.useMemo(
+    () => partitionAdminBookings(filteredBookings, getBookingShowtime),
+    [filteredBookings, showtimes],
+  );
 
   const stats = React.useMemo(() => {
     const baseListForStats = bookings.filter((b) => {
@@ -415,15 +406,25 @@ const BookingsPage = () => {
     return { totalRevenue: revenue, confirmedCount: confirmed, cancelledCount: cancelled, totalCount: baseListForStats.length, avgOrderValue };
   }, [bookings, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
 
-  const paginatedBookings = React.useMemo(() => {
+  const paginatedActiveBookings = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredBookings, currentPage, itemsPerPage]);
+    return activeBookings.slice(startIndex, startIndex + itemsPerPage);
+  }, [activeBookings, currentPage, itemsPerPage]);
 
-  const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm || !hideCancelled;
+  const paginatedArchivedBookings = React.useMemo(() => {
+    const startIndex = (archivedPage - 1) * itemsPerPage;
+    return archivedBookings.slice(startIndex, startIndex + itemsPerPage);
+  }, [archivedBookings, archivedPage, itemsPerPage]);
+
+  const displayedBookings = listTab === 'archived' ? archivedBookings : activeBookings;
+  const paginatedBookings = listTab === 'archived' ? paginatedArchivedBookings : paginatedActiveBookings;
+  const tabCurrentPage = listTab === 'archived' ? archivedPage : currentPage;
+  const tabPageCount = Math.max(1, Math.ceil(displayedBookings.length / itemsPerPage) || 1);
+
+  const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm;
 
   const kpiActive = (label) => {
-    if (label === 'TỔNG ĐƠN HÀNG') return statusFilter === 'ALL' && hideCancelled;
+    if (label === 'TỔNG ĐƠN HÀNG') return statusFilter === 'ALL';
     if (label === 'THÀNH CÔNG' || label === 'DOANH THU') return statusFilter === 'CONFIRMED';
     if (label === 'ĐÃ HỦY') return statusFilter === 'CANCELLED';
     return false;
@@ -445,6 +446,27 @@ const BookingsPage = () => {
       badgeCls: 'bg-rose-500/15 border border-rose-500/30 text-rose-400',
       dot: 'bg-rose-400',
     };
+    if (s === 'REFUND_PENDING') return {
+      label: 'Chờ duyệt hoàn tiền',
+      accentBg: 'bg-amber-500',
+      accentBorder: 'bk-order-row--pending',
+      badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
+      dot: 'bg-amber-400 animate-pulse',
+    };
+    if (s === 'REFUND_PROCESSING') return {
+      label: 'Đang hoàn tiền',
+      accentBg: 'bg-sky-500',
+      accentBorder: 'bk-order-row--pending',
+      badgeCls: 'bg-sky-500/15 border border-sky-500/30 text-sky-400',
+      dot: 'bg-sky-400 animate-pulse',
+    };
+    if (s === 'REFUNDED') return {
+      label: 'Đã hoàn tiền',
+      accentBg: 'bg-emerald-500',
+      accentBorder: 'bk-order-row--confirmed',
+      badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
+      dot: 'bg-emerald-400',
+    };
     return {
       label: 'Chờ xử lý',
       accentBg: 'bg-amber-500',
@@ -452,6 +474,113 @@ const BookingsPage = () => {
       badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
       dot: 'bg-amber-400',
     };
+  };
+
+  const renderOrderRow = (row, archived = false) => {
+    const statusCfg = getStatusConfig(row.status);
+    const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
+    const seatList = row.seats ? row.seats.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const st = getBookingShowtime(row);
+    const showtimeStr = st && st.startTime
+      ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
+      : null;
+    const isRefundPending = row.status?.toUpperCase() === 'REFUND_PENDING';
+    const archiveLabel = archived ? getAdminBookingArchiveLabel(row, getBookingShowtime) : null;
+
+    return (
+      <div
+        key={row.bookingUuid}
+        className={`bk-order-row ${statusCfg.accentBorder}`}
+      >
+        {archived && archiveLabel && (
+          <span className="bk-order-archive-badge">{archiveLabel}</span>
+        )}
+        <div className="bk-order-cell bk-order-cell--customer">
+          <div className="bk-order-customer">
+            <UserAvatar
+              src={row.customerAvatarUrl}
+              name={row.customerName}
+              fallbackClassName="bg-slate-800"
+              borderClassName="border border-white/10"
+            />
+            <div className="min-w-0">
+              <div className="bk-order-customer__name">{row.customerName || 'N/A'}</div>
+              <div className="bk-order-customer__email">{row.customerEmail || 'N/A'}</div>
+              <div className="bk-order-customer__id">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bk-order-cell">
+          <div className="bk-order-movie">
+            <div className="bk-order-movie__poster">
+              {rawPoster ? (
+                <PosterImage src={rawPoster} alt="Poster" width={80} className="w-full h-full object-cover" />
+              ) : (<Film className="w-4 h-4 text-gray-600" />)}
+            </div>
+            <div className="min-w-0">
+              <div className="bk-order-movie__title">{row.movieTitle || 'N/A'}</div>
+              <div className="bk-order-movie__meta">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{row.cinemaRoomName || 'N/A'}</span>
+              </div>
+              {showtimeStr ? (
+                <div className="bk-order-movie__showtime">{showtimeStr}</div>
+              ) : (
+                <div className="bk-order-movie__meta mt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Chưa ghép suất chiếu</span>
+                </div>
+              )}
+              <div className="bk-order-movie__meta mt-1">
+                <Calendar className="w-3 h-3 shrink-0" />
+                <span className="font-mono text-[10px]">{formatDateTime(row.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bk-order-cell">
+          <p className="bk-order-label">Ghế</p>
+          {seatList.length > 0 ? (
+            <div>
+              {seatList.map((seat) => (
+                <span key={seat} className="bk-seat-tag">{seat}</span>
+              ))}
+              {row.combos && (
+                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                  <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="truncate" title={row.combos}>{row.combos}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-600">—</span>
+          )}
+        </div>
+
+        <div className="bk-order-cell">
+          <p className="bk-order-label">Thanh toán</p>
+          <p className="bk-order-price">{formatPrice(row.totalPrice)}</p>
+          {row.paymentMethod && (
+            <span className="mt-1 inline-block px-1.5 py-0.5 rounded bg-[#1A2238] text-[9px] font-bold text-gray-500 uppercase">{row.paymentMethod}</span>
+          )}
+        </div>
+
+        <div className="bk-order-cell bk-order-cell--actions gap-2">
+          <span className={`bk-status-badge ${statusCfg.badgeCls}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+            {statusCfg.label}
+          </span>
+          {isRefundPending && (
+            <Link to="/admin/refunds" className="bk-action-btn bk-action-btn--checkin no-underline">
+              <DollarSign className="w-3 h-3" />
+              Duyệt hoàn tiền
+            </Link>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -516,7 +645,8 @@ const BookingsPage = () => {
                 type="button"
                 onClick={() => {
                   setStatusFilter(key);
-                  if (key === 'CANCELLED') setHideCancelled(false);
+                  if (key === 'CANCELLED') setListTab('archived');
+                  else setListTab('active');
                 }}
                 className={`bk-chip ${statusFilter === key ? `bk-chip--active ${chip === 'success' ? 'bk-chip--success' : chip === 'muted' ? 'bk-chip--muted' : ''}` : ''}`}
               >
@@ -524,16 +654,6 @@ const BookingsPage = () => {
               </button>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setHideCancelled((v) => !v)}
-            className={`bk-chip ${hideCancelled ? 'bk-chip--active' : ''}`}
-            title={hideCancelled ? 'Đang ẩn đơn đã hủy' : 'Hiện cả đơn đã hủy'}
-          >
-            {hideCancelled ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            {hideCancelled ? 'Ẩn đã hủy' : 'Hiện đã hủy'}
-          </button>
 
           <button
             type="button"
@@ -688,10 +808,13 @@ const BookingsPage = () => {
         )}
 
         <div className="bk-toolbar__summary">
-          <span>Hiển thị <strong>{filteredBookings.length}</strong> / {bookings.length} đơn</span>
-          {hideCancelled && statusFilter !== 'CANCELLED' && (
-            <span className="bk-toolbar__meta">Ẩn đã hủy</span>
-          )}
+          <span>
+            Hiển thị <strong>{activeBookings.length}</strong> đơn đang hoạt động
+            {archivedBookings.length > 0 && (
+              <> · <strong>{archivedBookings.length}</strong> đơn đã qua / đóng</>
+            )}
+            {' '}/ {bookings.length} tổng
+          </span>
           {hasActiveFilters && (
             <button type="button" onClick={handleClearFilters} className="text-[10px] font-bold text-red-400 hover:text-red-300 border-0 bg-transparent cursor-pointer p-0">
               Xóa bộ lọc
@@ -703,10 +826,27 @@ const BookingsPage = () => {
       {/* BOOKING CARDS LIST */}
       <div className="bk-list-panel">
         <div className="bk-list-header">
-          <span className="text-sm font-bold text-white">Danh sách đơn hàng</span>
-          {!isLoading && filteredBookings.length > 0 && (
+          <div className="bk-list-tabs">
+            <button
+              type="button"
+              className={`bk-list-tab${listTab === 'active' ? ' bk-list-tab--active' : ''}`}
+              onClick={() => setListTab('active')}
+            >
+              Đơn đang hoạt động
+              <span className="bk-list-tab__count">{activeBookings.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`bk-list-tab${listTab === 'archived' ? ' bk-list-tab--active' : ''}`}
+              onClick={() => setListTab('archived')}
+            >
+              Đơn đã qua / đóng
+              <span className="bk-list-tab__count">{archivedBookings.length}</span>
+            </button>
+          </div>
+          {!isLoading && displayedBookings.length > 0 && (
             <span className="text-[10px] text-gray-600 font-mono">
-              Trang {currentPage} / {Math.ceil(filteredBookings.length / itemsPerPage)}
+              Trang {tabCurrentPage} / {tabPageCount}
             </span>
           )}
         </div>
@@ -728,125 +868,31 @@ const BookingsPage = () => {
             </div>
             {hasActiveFilters && (<button onClick={handleClearFilters} className="px-4 py-2 rounded-lg bg-red-600/10 border border-red-600/20 text-red-400 text-xs font-bold cursor-pointer hover:bg-red-600/20 transition-all">Xóa bộ lọc</button>)}
           </div>
+        ) : displayedBookings.length === 0 ? (
+          <p className="bk-section-empty">
+            {listTab === 'archived'
+              ? 'Không có đơn đã qua / đóng phù hợp bộ lọc.'
+              : 'Không có đơn đang hoạt động phù hợp bộ lọc.'}
+          </p>
         ) : (
           <div>
-            {paginatedBookings.map((row) => {
-              const statusCfg = getStatusConfig(row.status);
-              const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
-              const seatList = row.seats ? row.seats.split(',').map(s => s.trim()).filter(Boolean) : [];
-              const st = getBookingShowtime(row);
-              const showtimeStr = st && st.startTime
-                ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
-                : null;
-              const isConfirmed = row.status?.toUpperCase() === 'CONFIRMED';
-
-              return (
-                <div key={row.bookingUuid} className={`bk-order-row ${statusCfg.accentBorder}`}>
-                  <div className="bk-order-cell bk-order-cell--customer">
-                    <div className="bk-order-customer">
-                      <UserAvatar
-                        src={row.customerAvatarUrl}
-                        name={row.customerName}
-                        fallbackClassName="bg-slate-800"
-                        borderClassName="border border-white/10"
-                      />
-                      <div className="min-w-0">
-                        <div className="bk-order-customer__name">{row.customerName || 'N/A'}</div>
-                        <div className="bk-order-customer__email">{row.customerEmail || 'N/A'}</div>
-                        <div className="bk-order-customer__id">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bk-order-cell">
-                    <div className="bk-order-movie">
-                      <div className="bk-order-movie__poster">
-                        {rawPoster ? (
-                          <PosterImage src={rawPoster} alt="Poster" width={80} className="w-full h-full object-cover" />
-                        ) : (<Film className="w-4 h-4 text-gray-600" />)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="bk-order-movie__title">{row.movieTitle || 'N/A'}</div>
-                        <div className="bk-order-movie__meta">
-                          <MapPin className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{row.cinemaRoomName || 'N/A'}</span>
-                        </div>
-                        {showtimeStr ? (
-                          <div className="bk-order-movie__showtime">{showtimeStr}</div>
-                        ) : (
-                          <div className="bk-order-movie__meta mt-1">
-                            <AlertCircle className="w-3 h-3" />
-                            <span>Chưa ghép suất chiếu</span>
-                          </div>
-                        )}
-                        <div className="bk-order-movie__meta mt-1">
-                          <Calendar className="w-3 h-3 shrink-0" />
-                          <span className="font-mono text-[10px]">{formatDateTime(row.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bk-order-cell">
-                    <p className="bk-order-label">Ghế</p>
-                    {seatList.length > 0 ? (
-                      <div>
-                        {seatList.map((seat) => (
-                          <span key={seat} className="bk-seat-tag">{seat}</span>
-                        ))}
-                        {row.combos && (
-                          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
-                            <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                            <span className="truncate" title={row.combos}>{row.combos}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-600">—</span>
-                    )}
-                  </div>
-
-                  <div className="bk-order-cell">
-                    <p className="bk-order-label">Thanh toán</p>
-                    <p className="bk-order-price">{formatPrice(row.totalPrice)}</p>
-                    {row.paymentMethod && (
-                      <span className="mt-1 inline-block px-1.5 py-0.5 rounded bg-[#1A2238] text-[9px] font-bold text-gray-500 uppercase">{row.paymentMethod}</span>
-                    )}
-                  </div>
-
-                  <div className="bk-order-cell bk-order-cell--actions gap-2">
-                    <span className={`bk-status-badge ${statusCfg.badgeCls}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                      {statusCfg.label}
-                    </span>
-                    <div className="flex flex-col gap-1 w-full">
-                      <button type="button" onClick={() => handleCheckInDirect(row)} className="bk-action-btn bk-action-btn--checkin">
-                        <QrCode className="w-3 h-3" />
-                        Check-in
-                      </button>
-                      {isConfirmed && (
-                        <button type="button" onClick={() => handleCancelBookingDirect(row)} className="bk-action-btn bk-action-btn--cancel">
-                          <XCircle className="w-3 h-3" />
-                          Hủy đơn
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {paginatedBookings.map((row) => renderOrderRow(row, listTab === 'archived'))}
           </div>
         )}
       </div>
 
       {/* Pagination Section */}
-      {filteredBookings.length > 0 && (
+      {displayedBookings.length > 0 && (
         <Pagination
-          currentPage={currentPage}
-          totalItems={filteredBookings.length}
+          currentPage={tabCurrentPage}
+          totalItems={displayedBookings.length}
           itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
+          onPageChange={listTab === 'archived' ? setArchivedPage : setCurrentPage}
+          onItemsPerPageChange={(size) => {
+            setItemsPerPage(size);
+            setCurrentPage(1);
+            setArchivedPage(1);
+          }}
         />
       )}
     </AdminPage>

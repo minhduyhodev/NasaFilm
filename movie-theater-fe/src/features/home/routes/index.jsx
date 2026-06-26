@@ -1,10 +1,9 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import HomeAnimatedLayout from '../layouts/HomeAnimatedLayout';
-import OnlineMoviesPage from '../pages/OnlineMoviesPage';
-import { prefetchOnlinePage } from '../utils/onlineMoviesCache';
+const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
 
 const HomePage = lazy(() => import('../pages/HomePage'));
 const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));
@@ -24,6 +23,8 @@ const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
 const WatchPage = lazy(() => import('../pages/WatchPage'));
+const RemindersPage = lazy(() => import('../pages/RemindersPage'));
+const WalletPage = lazy(() => import('../pages/WalletPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -33,10 +34,6 @@ const PageLoader = () => (
 
 export const HomeRoutes = () => {
   const { isAuthenticated, loading, user } = useAuthContext();
-
-  useEffect(() => {
-    if (!loading) prefetchOnlinePage();
-  }, [loading]);
 
   if (loading) {
     return <PageLoader />;
@@ -109,6 +106,22 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reminders"
+            element={
+              <ProtectedRoute>
+                <RemindersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="wallet"
+            element={
+              <ProtectedRoute>
+                <WalletPage />
               </ProtectedRoute>
             }
           />

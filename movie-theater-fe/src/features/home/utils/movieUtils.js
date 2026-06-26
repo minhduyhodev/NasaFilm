@@ -261,19 +261,47 @@ export const matchBookingCode = (booking, input, movieUuid = null) => {
   if (movieUuid && booking?.movieUuid && booking.movieUuid !== movieUuid) {
     return false;
   }
+  const status = (booking?.status || '').toLowerCase();
+  if (status === 'cancelled' || status === 'expired' || status === 'used') {
+    return false;
+  }
   const code = normalizeBookingCode(input);
   if (!code) return false;
 
   const ticketCode = normalizeBookingCode(booking?.id || '');
   const bookingUuid = normalizeBookingCode(booking?.bookingUuid || '');
 
-  return (
-    ticketCode === code ||
-    bookingUuid === code ||
-    (code.length >= 8 && bookingUuid.startsWith(code)) ||
-    (code.length >= 8 && ticketCode.includes(code))
-  );
+  return ticketCode === code || bookingUuid === code;
 };
+
+/** Chuẩn hóa hiển thị suất chiếu từ chuỗi BE `HH:mm | dd/MM/yyyy` hoặc ISO. */
+export const formatShowtimeDisplay = (value, mode = 'full') => {
+  if (!value) return '—';
+  const raw = String(value).trim();
+  if (raw.includes(' | ')) {
+    const [timePart, datePart] = raw.split(' | ').map((s) => s.trim());
+    if (mode === 'time') return timePart || raw;
+    if (mode === 'date') return datePart || raw;
+    return `${timePart} · ${datePart}`;
+  }
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  if (mode === 'time') {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+  if (mode === 'date') {
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const VOD_VERIFIED_KEY = (movieUuid) => `vodVerified:${movieUuid}`;
 
 export const isOnlineBooking = (booking) =>
   booking?.bookingType === 'ONLINE' ||
@@ -289,6 +317,34 @@ export const isLiveTicket = (booking) => {
   return false;
 };
 
+/** Nhãn trạng thái cho vé không còn hiệu lực. */
+export const getTicketArchiveMeta = (booking) => {
+  const status = (booking?.status || '').toLowerCase();
+  const bookingStatus = (booking?.bookingStatus || '').toUpperCase();
+  if (status === 'cancelled') {
+    if (bookingStatus === 'REFUND_PENDING') {
+      return { label: 'Đã hủy · Chờ hoàn tiền', tone: 'cancelled' };
+    }
+    if (bookingStatus === 'REFUNDED' || bookingStatus === 'REFUND_PROCESSING') {
+      return { label: 'Đã hủy · Đã hoàn tiền', tone: 'cancelled' };
+    }
+    return { label: 'Đã hủy', tone: 'cancelled' };
+  }
+  if (status === 'used') return { label: 'Đã sử dụng', tone: 'used' };
+  if (status === 'expired') return { label: 'Hết hạn', tone: 'expired' };
+  return { label: 'Không còn hiệu lực', tone: 'expired' };
+};
+
+export const partitionBookingsByLive = (bookings = []) => {
+  const live = [];
+  const archived = [];
+  bookings.forEach((b) => {
+    if (isLiveTicket(b)) live.push(b);
+    else archived.push(b);
+  });
+  return { live, archived };
+};
+
 /** Vé hết hạn / đã hủy / đã dùng — đẩy xuống cuối danh sách. */
 export const sortBookingsForDisplay = (bookings = []) =>
   [...bookings].sort((a, b) => {
@@ -298,29 +354,33 @@ export const sortBookingsForDisplay = (bookings = []) =>
   });
 
 export const enrichBookingsWithMovieMeta = async (bookings = []) => {
-  const movieIds = [...new Set(bookings.map((b) => b.movieUuid).filter(Boolean))];
+  const needsFetch = bookings.filter(
+    (b) => b.movieUuid && (!b.moviePosterUrl || !b.movieAgeRestriction)
+  );
+  const movieIds = [...new Set(needsFetch.map((b) => b.movieUuid))];
   const metaByMovie = new Map();
 
-  await Promise.all(
-    movieIds.map(async (uuid) => {
-      try {
-        const detail = await movieService.getMovieDetail(uuid);
-        metaByMovie.set(uuid, {
-          poster: getMoviePosterUrl(detail),
-          ageRestriction: detail.ageRestriction || '',
+  if (movieIds.length > 0) {
+    try {
+      const summaries = await movieService.getMovieSummaries(movieIds);
+      summaries.forEach((summary) => {
+        metaByMovie.set(summary.uuid, {
+          poster: summary.primaryMediaUrl || '',
+          ageRestriction: summary.ageRestriction || '',
         });
-      } catch {
-        /* skip */
-      }
-    })
-  );
+      });
+    } catch {
+      /* skip */
+    }
+  }
 
   return bookings.map((booking) => {
+    const posterFromApi = booking.moviePosterUrl || booking.moviePoster;
     const meta = booking.movieUuid ? metaByMovie.get(booking.movieUuid) : null;
     return {
       ...booking,
-      moviePoster: meta?.poster || '',
-      movieAgeRestriction: meta?.ageRestriction || '',
+      moviePoster: posterFromApi || meta?.poster || '',
+      movieAgeRestriction: booking.movieAgeRestriction || meta?.ageRestriction || '',
     };
   });
 };

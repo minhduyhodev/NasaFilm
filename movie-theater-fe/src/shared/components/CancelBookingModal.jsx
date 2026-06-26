@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Loader2, Wallet } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
 
@@ -15,6 +16,25 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
   const [error, setError] = useState('');
 
   const isOnline = (preview?.bookingType || '').toUpperCase() === 'ONLINE';
+
+  useEffect(() => {
+    if (!open) {
+      setPreview(null);
+      setReason('');
+      setError('');
+      return undefined;
+    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!open || !bookingUuid) return;
@@ -54,9 +74,14 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-[#121826] border border-white/10 shadow-2xl overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-[#121826] border border-white/10 shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
           <h3 className="text-lg font-bold text-white">
             {isOnline ? 'Hủy vé xem online' : 'Xác nhận hủy vé'}
@@ -90,7 +115,17 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-gray-300">{preview.message}</p>
+                  <p className="text-xs text-gray-300">{preview.message}</p>
+                  {preview.manualApprovalRequired && preview.refundable && (
+                    <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                      Yêu cầu hoàn tiền sẽ được gửi tới admin để duyệt trước khi cộng lại vào ví hoặc hoàn qua Mock Gateway.
+                    </p>
+                  )}
+                  {!preview.manualApprovalRequired && (
+                    <p className="text-xs text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                      Tiền hoàn sẽ được cộng lại vào Ví NASA nếu bạn thanh toán bằng ví; các phương thức khác qua Mock Gateway.
+                    </p>
+                  )}
                   {isOnline && (
                     <p className="text-xs text-violet-300/90 bg-violet-500/10 border border-violet-500/20 rounded-lg px-3 py-2">
                       Chỉ hủy được khi vé online chưa kích hoạt xem phim. Sau khi hủy, quyền truy cập VOD sẽ bị thu hồi.
@@ -149,7 +184,8 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

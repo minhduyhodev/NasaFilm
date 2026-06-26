@@ -10,9 +10,12 @@ class ShowtimeService {
     }
   }
 
-  async getPublicShowtimes() {
+  async getPublicShowtimes({ cinemaUuid, date } = {}) {
     try {
-      const response = await authService.api.get('/api/showtimes');
+      const params = {};
+      if (cinemaUuid) params.cinemaUuid = cinemaUuid;
+      if (date) params.date = date;
+      const response = await authService.api.get('/api/showtimes', { params });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X, AlertTriangle, Clock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { bookingService } from '../../../shared/services/bookingService';
-import { seatMapSocketService } from '../../../shared/services/seatMapSocketService';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
@@ -13,17 +12,50 @@ import { getMoviePosterUrl } from '../utils/movieUtils';
 
 import './BookingPage.css';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PLACEHOLDER_SHOWTIME_UUID = '11111111-1111-1111-1111-111111111111';
+
+function isValidShowtimeUuid(value) {
+  return Boolean(value && value !== PLACEHOLDER_SHOWTIME_UUID && UUID_PATTERN.test(value));
+}
+
+function partitionSeatsForAisle(seatsList) {
+  const n = seatsList.length;
+  if (n === 0) {
+    return { left: [], center: [], right: [] };
+  }
+  if (n <= 4) {
+    return { left: [], center: seatsList, right: [] };
+  }
+  if (n === 12) {
+    return {
+      left: seatsList.slice(0, 2),
+      center: seatsList.slice(2, 10),
+      right: seatsList.slice(10, 12),
+    };
+  }
+  const leftCount = Math.max(1, Math.floor(n * 0.15));
+  const rightCount = Math.max(1, Math.floor(n * 0.15));
+  if (leftCount + rightCount >= n) {
+    return { left: [], center: seatsList, right: [] };
+  }
+  return {
+    left: seatsList.slice(0, leftCount),
+    center: seatsList.slice(leftCount, n - rightCount),
+    right: seatsList.slice(n - rightCount),
+  };
+}
+
 const BookingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Try to restore from sessionStorage if location.state is not available
-  const getInitialState = () => {
+  const [bookingState] = useState(() => {
     if (location.state) {
       try {
         sessionStorage.setItem('booking_state', JSON.stringify(location.state));
       } catch (e) {
-        console.error("Failed to save booking state to sessionStorage:", e);
+        console.error('Failed to save booking state to sessionStorage:', e);
       }
       return location.state;
     }
@@ -33,26 +65,25 @@ const BookingPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error("Failed to parse booking state from sessionStorage:", e);
+      console.error('Failed to parse booking state from sessionStorage:', e);
     }
     return {};
-  };
+  });
 
-  const bookingState = getInitialState();
-
-  // Extract booking details from routing state
   const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
+    showtimeUuid = '',
+    theater = '',
+    movie = '',
     movieUuid = '',
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30'
+    date = '',
+    showtime = '',
   } = bookingState;
+
+  const hasValidShowtime = isValidShowtimeUuid(showtimeUuid);
 
   const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
 
@@ -88,6 +119,13 @@ const BookingPage = () => {
 
   const selectedSeatsRef = React.useRef([]);
   useEffect(() => {
+    if (!hasValidShowtime) {
+      notificationService.error('Suất chiếu không hợp lệ. Vui lòng chọn lại từ trang phim hoặc rạp.');
+      navigate('/movies', { replace: true });
+    }
+  }, [hasValidShowtime, navigate]);
+
+  useEffect(() => {
     systemConfigService.getConfig()
       .then((cfg) => setMaxSeatsPerBooking(getMaxSeatsPerBooking(cfg)))
       .catch(() => { });
@@ -95,6 +133,8 @@ const BookingPage = () => {
   useEffect(() => {
     selectedSeatsRef.current = selectedSeats;
   }, [selectedSeats]);
+
+  const fetchSeatMapRef = React.useRef(() => {});
 
   const fetchSeatMap = async (overrideSelectedUuids) => {
     try {
@@ -157,6 +197,14 @@ const BookingPage = () => {
     }
   };
 
+  fetchSeatMapRef.current = fetchSeatMap;
+
+  useRealtimeTopic(
+    hasValidShowtime ? REALTIME_TOPICS.showtimeSeats(showtimeUuid) : null,
+    () => fetchSeatMapRef.current(),
+    400
+  );
+
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft === 0) {
@@ -181,29 +229,21 @@ const BookingPage = () => {
   }, [timeLeft, showtimeUuid]);
 
   useEffect(() => {
+    if (!hasValidShowtime) return;
     window.scrollTo(0, 0);
     fetchSeatMap();
+  }, [showtimeUuid, hasValidShowtime]);
 
-    const unsubscribe = seatMapSocketService.subscribe(showtimeUuid, () => {
-      fetchSeatMap();
-    });
-
-    return () => unsubscribe();
-  }, [showtimeUuid]);
-
-  const handleSeatClick = async (seat, rowName) => {
+  const handleSeatClick = async (seat) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
     if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
       notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
       return;
     }
 
-    let nextSelectedUuids = [];
-    if (isAlreadySelected) {
-      nextSelectedUuids = selectedSeats.filter(s => s.seatUuid !== seat.seatUuid).map(s => s.seatUuid);
-    } else {
-      nextSelectedUuids = [...selectedSeats.map(s => s.seatUuid), seat.seatUuid];
-    }
+    const nextSelectedUuids = isAlreadySelected
+      ? selectedSeats.filter((s) => s.seatUuid !== seat.seatUuid).map((s) => s.seatUuid)
+      : [...selectedSeats.map((s) => s.seatUuid), seat.seatUuid];
 
     try {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
@@ -241,7 +281,7 @@ const BookingPage = () => {
 
   const totalAmount = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
 
-  const renderSeatElement = (seat, rowName) => {
+  const renderSeatElement = (seat) => {
     const isOccupied = seat.availabilityStatus === 'BOOKED' || seat.availabilityStatus === 'LOCKED_BY_OTHER' || seat.availabilityStatus === 'UNAVAILABLE';
     const isSelected = seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME';
     let type = (seat.seatTypeName || '').toLowerCase();
@@ -266,7 +306,7 @@ const BookingPage = () => {
     return (
       <div
         key={seat.seatUuid}
-        onClick={() => !isOccupied && handleSeatClick(seat, rowName)}
+        onClick={() => !isOccupied && handleSeatClick(seat)}
         className={seatClass}
       >
         {isOccupied ? <X className="h-3 w-3" /> : seat.seatNumber}
@@ -274,19 +314,20 @@ const BookingPage = () => {
     );
   };
 
+  if (!hasValidShowtime) {
+    return null;
+  }
+
   if (isLoading) {
     return (
       <div className="booking-wrapper min-h-screen bg-[#0f121d] flex items-center justify-center text-white">
-        <Navbar />
         <p className="text-xl font-bold animate-pulse">Đang tải sơ đồ ghế...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="booking-wrapper">
-      <Navbar />
 
       <main className="py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
 
@@ -304,12 +345,10 @@ const BookingPage = () => {
             {seatRows.map((rowItem) => {
               const row = rowItem.rowName;
               const seatsList = rowItem.seats || [];
-              const type = seatsList[0]?.seatTypeName?.toLowerCase() || 'standard';
+              const { left: leftSeats, center: centerSeats, right: rightSeats } =
+                partitionSeatsForAisle(seatsList);
 
-
-
-              const isCenterRow = ['C', 'D', 'E', 'F'].includes(row);
-              let centerClasses = "flex gap-2 px-1";
+              let centerClasses = 'flex gap-2 px-1';
               if (row === 'C') {
                 centerClasses += " border-t-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-t-xl py-0.5";
               } else if (row === 'D' || row === 'E') {
@@ -318,11 +357,6 @@ const BookingPage = () => {
                 centerClasses += " border-b-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-b-xl py-0.5";
               }
 
-              // Partition 12 seats: 2 left, 8 center, 2 right
-              const leftSeats = seatsList.slice(0, 2);
-              const centerSeats = seatsList.slice(2, 10);
-              const rightSeats = seatsList.slice(10, 12);
-
               return (
                 <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
                   {/* Row Label Left */}
@@ -330,17 +364,17 @@ const BookingPage = () => {
 
                   {/* Left Block */}
                   <div className="flex gap-2">
-                    {leftSeats.map(seat => renderSeatElement(seat, row))}
+                    {leftSeats.map((seat) => renderSeatElement(seat))}
                   </div>
 
                   {/* Center Block with optional border */}
                   <div className={centerClasses}>
-                    {centerSeats.map(seat => renderSeatElement(seat, row))}
+                    {centerSeats.map((seat) => renderSeatElement(seat))}
                   </div>
 
                   {/* Right Block */}
                   <div className="flex gap-2">
-                    {rightSeats.map(seat => renderSeatElement(seat, row))}
+                    {rightSeats.map((seat) => renderSeatElement(seat))}
                   </div>
 
                   {/* Row Label Right */}
@@ -488,8 +522,6 @@ const BookingPage = () => {
           </div>
         </aside>
       </main>
-
-      <Footer />
     </div>
   );
 };

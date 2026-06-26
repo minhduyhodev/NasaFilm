@@ -142,6 +142,7 @@ public class DataSeeder implements CommandLineRunner {
             logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
             return;
         }
+        healWalletVersionColumn();
         seedRoles();
         seedAdminUser();
         seedStaffUser();
@@ -582,6 +583,26 @@ public class DataSeeder implements CommandLineRunner {
             logger.info("Successfully seeded cinema rooms, seats, showtimes, combos, and promotions.");
         } catch (Exception e) {
             logger.error("Failed to seed booking database data", e);
+        }
+    }
+
+    private void healWalletVersionColumn() {
+        try {
+            Integer exists = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'users'
+                      AND column_name = 'wallet_version'
+                    """, Integer.class);
+            if (exists == null || exists == 0) {
+                jdbcTemplate.execute(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_version BIGINT NOT NULL DEFAULT 0");
+                logger.info("Added users.wallet_version column with default 0.");
+            } else {
+                jdbcTemplate.update("UPDATE users SET wallet_version = 0 WHERE wallet_version IS NULL");
+            }
+        } catch (Exception e) {
+            logger.warn("wallet_version self-heal skipped: {}", e.getMessage());
         }
     }
 

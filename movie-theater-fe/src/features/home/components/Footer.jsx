@@ -53,8 +53,8 @@ const Footer = () => {
                 { label: 'Phim Đang Chiếu', to: '/movies' },
                 { label: 'Phim Sắp Chiếu', to: '/movies?tab=coming-soon' },
                 { label: 'Lịch Chiếu Toàn Rạp', to: '/cinemas' },
-                { label: 'Ưu Đãi Đặc Biệt', to: '/offers' },
-                { label: 'Phòng Chiếu VIP', to: '/' },
+                { label: 'Combo Bắp Nước', to: '/offers' },
+                { label: 'Phòng Chiếu VIP', to: '/offers' },
                 { label: 'Giới Thiệu CINE LUXE', to: '/about' }
               ].map((link) => (
                 <li key={link.label}>

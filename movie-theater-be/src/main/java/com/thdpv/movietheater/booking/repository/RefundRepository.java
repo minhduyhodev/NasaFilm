@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.booking.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,4 +15,6 @@ public interface RefundRepository extends JpaRepository<Refund, UUID> {
     Optional<Refund> findByIdempotencyKey(String idempotencyKey);
 
     List<Refund> findByStatusOrderByCreatedAtDesc(String status);
+
+    List<Refund> findByStatusInOrderByCompletedAtDesc(Collection<String> statuses);
 }

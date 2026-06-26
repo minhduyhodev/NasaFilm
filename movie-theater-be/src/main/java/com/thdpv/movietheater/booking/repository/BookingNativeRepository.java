@@ -56,6 +56,8 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
               and sl.user_uuid = :userUuid
               and sl.seat_uuid in (:seatUuids)
               and sl.expired_at > :now
+              and s.is_active = true
+              and upper(s.status) = 'ACTIVE'
             for update
             """, nativeQuery = true)
     List<Object[]> queryActiveSeatsForConfirm(

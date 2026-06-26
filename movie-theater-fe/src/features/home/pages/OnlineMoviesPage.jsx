@@ -1,121 +1,235 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, X } from 'lucide-react';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
 import NewReleases from '../components/NewReleases';
 import ExclusiveCollection from '../components/ExclusiveCollection';
 import OnlineVIPSection from '../components/online/OnlineVIPSection';
-import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
+import Pagination from '../../../shared/components/Pagination';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { getCachedOnlineMovies, prefetchOnlineMovies } from '../utils/onlineMoviesCache';
+import { useOnlineSpotlightMovies, useOnlineCatalog } from '../../../shared/hooks/queries/useOnlineQueries';
+import { mapApiMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import heroBg from '../../../shared/assets/cinema_hero_bg.png';
 import '../styles/home-premium.css';
 import './OnlineMoviesPage.css';
 
-const OnlineMoviesPage = () => {
-  const [movies, setMovies] = useState(() => getCachedOnlineMovies() ?? []);
-  const [isLoading, setIsLoading] = useState(() => (getCachedOnlineMovies() ?? []).length === 0);
-  const [fetchError, setFetchError] = useState('');
-  const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(movies.map((m) => m.uuid));
+const CATALOG_PAGE_SIZE_OPTIONS = [10, 20, 30];
 
-  const fetchOnline = async ({ silent = false } = {}) => {
-    const hasCachedData = movies.length > 0 || Boolean(getCachedOnlineMovies()?.length);
-    if (!silent && !hasCachedData) {
-      setIsLoading(true);
+const OnlineMoviesPage = () => {
+  const catalogRef = useRef(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [titleSearch, setTitleSearch] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  const spotlightQuery = useOnlineSpotlightMovies();
+  const spotlightMovies = spotlightQuery.data || [];
+  const isSpotlightLoading = spotlightQuery.isLoading;
+  const spotlightError = spotlightQuery.isError
+    ? (spotlightQuery.error?.message ||
+        'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.')
+    : '';
+
+  const catalogParams = useMemo(
+    () => ({
+      keyword: searchKeyword,
+      page: currentPage - 1,
+      size: itemsPerPage,
+    }),
+    [searchKeyword, currentPage, itemsPerPage]
+  );
+
+  const catalogQuery = useOnlineCatalog(catalogParams);
+  const catalogMovies = useMemo(
+    () => mapApiMovies(catalogQuery.data?.content || []),
+    [catalogQuery.data]
+  );
+  const totalItems = catalogQuery.data?.totalElements ?? catalogMovies.length;
+  const isCatalogLoading = catalogQuery.isLoading;
+  const catalogError = catalogQuery.isError
+    ? (catalogQuery.error?.message || 'Không thể tải danh sách phim. Vui lòng thử lại sau.')
+    : '';
+
+  const routeMovieIds = useMemo(() => {
+    const ids = new Set();
+    for (const movie of [...spotlightMovies, ...catalogMovies]) {
+      if (movie?.uuid) ids.add(movie.uuid);
     }
-    setFetchError('');
-    try {
-      const onlineMovies = await prefetchOnlineMovies();
-      setMovies(onlineMovies);
-    } catch (err) {
-      if (!hasCachedData) {
-        setMovies([]);
-        setFetchError(
-          err?.message ||
-            'Không thể tải danh sách phim trực tuyến. Vui lòng kiểm tra backend đang chạy (port 8080) rồi thử lại.'
-        );
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return [...ids];
+  }, [spotlightMovies, catalogMovies]);
+
+  const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(routeMovieIds);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchKeyword(titleSearch.trim());
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [titleSearch]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword, itemsPerPage]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     systemConfigService.getConfig().catch(() => {});
-    const cached = getCachedOnlineMovies();
-    fetchOnline({ silent: Boolean(cached?.length) });
   }, []);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleClearSearch = () => {
+    setTitleSearch('');
+    setSearchKeyword('');
+    setCurrentPage(1);
+  };
+
+  const showCatalogEmpty = !isCatalogLoading && !catalogError && catalogMovies.length === 0;
+  const showCatalogGrid = !isCatalogLoading && !catalogError && catalogMovies.length > 0;
 
   return (
     <div className="online-page-wrapper">
-      <Navbar />
 
       <OnlineHero
-        movies={movies}
-        isLoading={isLoading}
+        movies={spotlightMovies}
+        isLoading={isSpotlightLoading}
         getOnlinePath={getOnlinePath}
         getActionLabel={getActionLabel}
         staticHeroBackground={heroBg}
       />
 
       <main className="online-page-container">
-        {!isLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
-        {!isLoading && (
+        {!isSpotlightLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isSpotlightLoading && (
           <NewReleases
             onlineOnly
-            movies={movies}
+            movies={spotlightMovies}
             getOnlinePath={getOnlinePath}
             getActionLabel={getActionLabel}
           />
         )}
 
-        <section>
-          <div className="section-heading-row">
-            <h2 className="section-heading">Tất cả phim trực tuyến</h2>
+        <section id="online-catalog" ref={catalogRef} className="online-catalog-section">
+          <div className="online-catalog-header">
+            <div className="online-catalog-heading">
+              <p className="online-catalog-eyebrow">Thư viện VOD</p>
+              <h2 className="section-heading">Tất cả phim trực tuyến</h2>
+              {!isCatalogLoading && !catalogError && (
+                <p className="online-catalog-meta">
+                  {totalItems > 0
+                    ? `${totalItems.toLocaleString('vi-VN')} phim${searchKeyword ? ` khớp “${searchKeyword}”` : ''}`
+                    : 'Chưa có phim trong thư viện'}
+                </p>
+              )}
+            </div>
+
+            <div className="online-catalog-search">
+              <Search className="online-catalog-search-icon" aria-hidden="true" />
+              <input
+                type="search"
+                value={titleSearch}
+                onChange={(e) => setTitleSearch(e.target.value)}
+                placeholder="Tìm theo tên phim..."
+                className="online-catalog-search-input"
+                aria-label="Tìm kiếm phim trực tuyến"
+              />
+              {titleSearch && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="online-catalog-search-clear"
+                  aria-label="Xóa từ khóa tìm kiếm"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-          {isLoading && movies.length === 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {Array.from({ length: 10 }).map((_, i) => (
+
+          {isCatalogLoading ? (
+            <div className="online-catalog-grid">
+              {Array.from({ length: itemsPerPage }).map((_, i) => (
                 <MovieCardSkeleton key={i} />
               ))}
             </div>
-          ) : fetchError ? (
-            <div className="text-center py-12 space-y-4">
-              <p className="text-red-400 font-medium">{fetchError}</p>
-              <button
-                type="button"
-                onClick={fetchOnline}
-                className="inline-flex items-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-red-700 transition"
-              >
+          ) : catalogError ? (
+            <div className="online-catalog-state online-catalog-state--error">
+              <p>{catalogError}</p>
+              <button type="button" className="btn-gold" onClick={() => catalogQuery.refetch()}>
                 Thử tải lại
               </button>
             </div>
-          ) : movies.length === 0 ? (
-            <p className="text-center py-12 text-white/45">Chưa có phim trực tuyến.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-              {movies.map((movie) => (
-                <MovieCard
-                  key={movie.uuid}
-                  {...movie}
-                  actionLabel={getActionLabel(movie.uuid, 'Xem ngay')}
-                  fromOnline
-                  getOnlinePath={getOnlinePath}
-                />
-              ))}
+          ) : showCatalogEmpty ? (
+            <div className="online-catalog-state">
+              <p className="online-catalog-state-title">
+                {searchKeyword ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim trực tuyến'}
+              </p>
+              <p className="online-catalog-state-desc">
+                {searchKeyword
+                  ? 'Thử đổi từ khóa hoặc xóa bộ lọc để xem toàn bộ thư viện.'
+                  : 'Hệ thống sẽ cập nhật khi có phim mới.'}
+              </p>
+              {searchKeyword && (
+                <button type="button" className="btn-gold-outline" onClick={handleClearSearch}>
+                  Xóa tìm kiếm
+                </button>
+              )}
             </div>
+          ) : (
+            <>
+              <div className="online-catalog-grid">
+                {catalogMovies.map((movie) => (
+                  <MovieCard
+                    key={movie.uuid}
+                    {...movie}
+                    actionLabel={getActionLabel(movie.uuid, 'Xem ngay')}
+                    fromOnline
+                    getOnlinePath={getOnlinePath}
+                  />
+                ))}
+              </div>
+
+              {totalItems > 0 && (
+                <div className="online-catalog-pagination">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={setItemsPerPage}
+                    itemsPerPageOptions={CATALOG_PAGE_SIZE_OPTIONS}
+                  />
+                </div>
+              )}
+            </>
           )}
         </section>
 
-        {!isLoading && <ExclusiveCollection onlineOnly movies={movies} getOnlinePath={getOnlinePath} />}
-        {!isLoading && <OnlineVIPSection />}
+        {!isSpotlightLoading && (
+          <ExclusiveCollection
+            onlineOnly
+            movies={spotlightMovies}
+            getOnlinePath={getOnlinePath}
+          />
+        )}
+        {!isSpotlightLoading && <OnlineVIPSection />}
       </main>
 
-      <Footer />
+      {spotlightError && spotlightMovies.length === 0 && (
+        <div className="online-spotlight-error" role="alert">
+          <p>{spotlightError}</p>
+          <button type="button" className="btn-gold" onClick={() => spotlightQuery.refetch()}>
+            Thử tải lại
+          </button>
+        </div>
+      )}
     </div>
   );
 };

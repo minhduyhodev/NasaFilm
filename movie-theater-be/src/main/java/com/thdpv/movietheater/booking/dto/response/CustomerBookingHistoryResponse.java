@@ -13,14 +13,17 @@ public class CustomerBookingHistoryResponse {
     private String price;
     private String status;
     private UUID movieUuid;
+    private String moviePosterUrl;
+    private String movieAgeRestriction;
     private String bookingType;
     private boolean cancellable;
     private boolean vodActivated;
+    private String bookingStatus;
 
     public CustomerBookingHistoryResponse() {
     }
 
-    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType, boolean cancellable, boolean vodActivated) {
+    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType, boolean cancellable, boolean vodActivated, String bookingStatus) {
         this.bookingUuid = bookingUuid;
         this.id = id;
         this.movieTitle = movieTitle;
@@ -34,6 +37,7 @@ public class CustomerBookingHistoryResponse {
         this.bookingType = bookingType;
         this.cancellable = cancellable;
         this.vodActivated = vodActivated;
+        this.bookingStatus = bookingStatus;
     }
 
     public String getId() {
@@ -116,6 +120,22 @@ public class CustomerBookingHistoryResponse {
         this.movieUuid = movieUuid;
     }
 
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
+
+    public void setMoviePosterUrl(String moviePosterUrl) {
+        this.moviePosterUrl = moviePosterUrl;
+    }
+
+    public String getMovieAgeRestriction() {
+        return movieAgeRestriction;
+    }
+
+    public void setMovieAgeRestriction(String movieAgeRestriction) {
+        this.movieAgeRestriction = movieAgeRestriction;
+    }
+
     public String getBookingType() {
         return bookingType;
     }
@@ -138,5 +158,13 @@ public class CustomerBookingHistoryResponse {
 
     public void setVodActivated(boolean vodActivated) {
         this.vodActivated = vodActivated;
+    }
+
+    public String getBookingStatus() {
+        return bookingStatus;
+    }
+
+    public void setBookingStatus(String bookingStatus) {
+        this.bookingStatus = bookingStatus;
     }
 }

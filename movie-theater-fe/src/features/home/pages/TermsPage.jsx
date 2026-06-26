@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, FileText, Scale, HelpCircle, AlertTriangle, RefreshCw } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import './LegalPages.css';
 
 export const TermsPage = () => {
@@ -25,7 +23,6 @@ export const TermsPage = () => {
 
   return (
     <div className="legal-page-wrapper">
-      <Navbar />
 
       {/* Header Banner */}
       <section className="legal-header">
@@ -141,8 +138,6 @@ export const TermsPage = () => {
           </p>
         </motion.section>
       </motion.div>
-
-      <Footer />
     </div>
   );
 };

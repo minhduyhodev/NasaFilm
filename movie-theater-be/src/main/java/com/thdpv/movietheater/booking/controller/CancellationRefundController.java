@@ -74,6 +74,12 @@ public class CancellationRefundController {
         return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listPendingRefunds()));
     }
 
+    @GetMapping("/admin/refunds/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<AdminRefundListItemResponse>>> listRefundHistory() {
+        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listRefundHistory()));
+    }
+
     @PostMapping("/admin/refunds/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> approveRefund(

@@ -1,5 +1,15 @@
 .ph-panel {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: min(78vh, 920px);
+}
+
+.ph-panel__body,
+.ph-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .ph-panel__intro {
@@ -653,4 +663,30 @@
     justify-content: space-between;
     width: 100%;
   }
+}
+
+.ph-status--refunded {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.ph-refund-btn {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.08);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ph-refund-btn:hover {
+  background: rgba(52, 211, 153, 0.15);
 }

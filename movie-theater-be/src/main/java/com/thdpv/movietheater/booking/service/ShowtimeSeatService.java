@@ -27,6 +27,9 @@ import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -48,10 +51,12 @@ public class ShowtimeSeatService {
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
+    private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatMapEventPublisher seatMapEventPublisher;
+    private final ShowtimeCapacityService showtimeCapacityService;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -66,19 +71,7 @@ public class ShowtimeSeatService {
         List<SeatViewDto> rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
 
         if (rows.isEmpty()) {
-            Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-            if (showtime != null) {
-                try {
-                    cinemaService.generateSeats(showtime.getCinemaRoomUuid(), null);
-                    rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND, "Chua co so do ghe cho suat chieu nay");
         }
 
         UUID responseShowtimeUuid = rows.get(0).getShowtimeUuid();
@@ -126,6 +119,9 @@ public class ShowtimeSeatService {
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         cleanupExpiredLocks(request.getShowtimeUuid(), now);
         validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
+        validateSeatsAreBookable(request.getShowtimeUuid(), requestedSeatUuids);
+        showtimeCapacityService.validateCapacity(
+                request.getShowtimeUuid(), requestedSeatUuids.size(), currentUserUuid, now);
         validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsNotLockedByOther(request.getShowtimeUuid(), requestedSeatUuids, currentUserUuid, now);
 
@@ -253,6 +249,20 @@ public class ShowtimeSeatService {
         }
         if (showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
+        }
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+        if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
+    }
+
+    private void validateSeatsAreBookable(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        long bookableCount = showtimeRepository.countBookableSeats(showtimeUuid, requestedSeatUuids);
+        if (bookableCount != requestedSeatUuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Co ghe khong kha dung hoac dang bao tri");
         }
     }
 

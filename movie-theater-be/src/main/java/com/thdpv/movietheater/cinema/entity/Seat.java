@@ -21,7 +21,8 @@ import com.thdpv.movietheater.cinema.enums.SeatStatus;
 @Table(
         name = "seat",
         indexes = {
-                @Index(name = "idx_seat_seattype", columnList = "seat_type_uuid")
+                @Index(name = "idx_seat_seattype", columnList = "seat_type_uuid"),
+                @Index(name = "idx_seat_cinema_room", columnList = "cinema_room_uuid")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_seat_room_row_number", columnNames = {"cinema_room_uuid", "row_name", "seat_number"})

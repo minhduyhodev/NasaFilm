@@ -2,6 +2,7 @@ package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ public class ShowtimeService {
     private final BookingComboRepository bookingComboRepository;
     private final TicketRepository ticketRepository;
     private final BookingNativeRepository bookingNativeRepository;
+    private final CancellationRefundService cancellationRefundService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -137,26 +139,22 @@ public class ShowtimeService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            // Handle confirmed bookings cancellation and score deduction
+            // Refund confirmed bookings through cancellation service
             List<Booking> bookings = bookingRepository.findByShowtimeUuid(showtimeUuid);
             for (Booking booking : bookings) {
-                if ("CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-                    booking.setStatus("CANCELLED");
-                    booking.setCancelledAt(OffsetDateTime.now());
-                    bookingRepository.save(booking);
-
-                    // Delete related seats, combos, and tickets
-                    bookingSeatRepository.deleteByBookingUuid(booking.getUuid());
-                    bookingComboRepository.deleteByBookingUuid(booking.getUuid());
-                    ticketRepository.deleteByBookingUuid(booking.getUuid());
-
-                    // Deduct user score points
-                    BigDecimal price = booking.getTotalPrice();
-                    int scoreDeducted = price.divide(BigDecimal.valueOf(10000), 0, java.math.RoundingMode.DOWN).intValue();
-                    if (scoreDeducted > 0) {
-                        bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
-                        bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, booking.getUuid(), OffsetDateTime.now());
-                    }
+                if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
+                    continue;
+                }
+                try {
+                    cancellationRefundService.cancelBooking(
+                            booking.getUuid(),
+                            null,
+                            "SYSTEM",
+                            true,
+                            "Suat chieu bi huy boi quan tri",
+                            true);
+                } catch (AppException ex) {
+                    // Skip bookings that cannot be cancelled (e.g. already processing)
                 }
             }
         }
@@ -170,28 +168,72 @@ public class ShowtimeService {
         return toShowtimeResponse(updatedShowtime, movie, room);
     }
 
-    @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getAdminShowtimes() {
-        return showtimeRepository.findAll().stream()
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
-                .collect(Collectors.toList());
+    @Transactional
+    public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
+        List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
+        int cancelled = 0;
+        for (Showtime showtime : showtimes) {
+            if (showtime.getStatus() == ShowtimeStatus.CANCELLED
+                    || showtime.getStatus() == ShowtimeStatus.FINISHED) {
+                continue;
+            }
+            updateShowtimeStatus(showtime.getUuid(), ShowtimeStatus.CANCELLED);
+            cancelled++;
+        }
+        return cancelled;
     }
 
     @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getPublicShowtimes() {
+    public List<ShowtimeResponse> getAdminShowtimes() {
+        List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();
+        return mapShowtimesToResponses(showtimes);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShowtimeResponse> getPublicShowtimes(UUID cinemaUuid, LocalDate date) {
         OffsetDateTime now = OffsetDateTime.now();
-        return showtimeRepository.findAll().stream()
-                .filter(st -> (st.getStatus() == ShowtimeStatus.OPEN_FOR_BOOKING || st.getStatus() == ShowtimeStatus.SOLD_OUT)
-                        && st.getStartTime().isAfter(now))
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
+        List<ShowtimeStatus> statuses = List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT);
+        List<Showtime> showtimes;
+
+        if (cinemaUuid != null && date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByCinemaAndDateRange(
+                    statuses, now, cinemaUuid, rangeStart, rangeEnd);
+        } else if (cinemaUuid != null) {
+            showtimes = showtimeRepository.findUpcomingByCinema(statuses, now, cinemaUuid);
+        } else if (date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByDateRange(statuses, now, rangeStart, rangeEnd);
+        } else {
+            showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
+        }
+        return mapShowtimesToResponses(showtimes);
+    }
+
+    private OffsetDateTime toDayStart(LocalDate date) {
+        return date.atStartOfDay().atOffset(ZoneOffset.ofHours(7));
+    }
+
+    private List<ShowtimeResponse> mapShowtimesToResponses(List<Showtime> showtimes) {
+        if (showtimes.isEmpty()) {
+            return List.of();
+        }
+
+        Set<UUID> movieUuids = showtimes.stream().map(Showtime::getMovieUuid).collect(Collectors.toSet());
+        Set<UUID> roomUuids = showtimes.stream().map(Showtime::getCinemaRoomUuid).collect(Collectors.toSet());
+
+        Map<UUID, Movie> movieMap = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, m -> m));
+        Map<UUID, CinemaRoom> roomMap = cinemaRoomRepository.findAllByIdWithCinema(roomUuids).stream()
+                .collect(Collectors.toMap(CinemaRoom::getUuid, r -> r));
+
+        return showtimes.stream()
+                .map(st -> toShowtimeResponse(
+                        st,
+                        movieMap.get(st.getMovieUuid()),
+                        roomMap.get(st.getCinemaRoomUuid())))
                 .collect(Collectors.toList());
     }
 
@@ -215,8 +257,9 @@ public class ShowtimeService {
         String moviePosterUrl = resolvePrimaryMediaUrl(movie);
         String roomName = room != null ? room.getName() : "Unknown Room";
         String cinemaName = (room != null && room.getCinema() != null) ? room.getCinema().getName() : "Unknown Cinema";
+        UUID cinemaUuid = (room != null && room.getCinema() != null) ? room.getCinema().getUuid() : null;
 
-        return new ShowtimeResponse(
+        ShowtimeResponse response = new ShowtimeResponse(
                 showtime.getUuid(),
                 showtime.getMovieUuid(),
                 movieTitle,
@@ -231,6 +274,8 @@ public class ShowtimeService {
                 showtime.getCouplePrice(),
                 showtime.getStatus()
         );
+        response.setCinemaUuid(cinemaUuid);
+        return response;
     }
 
     @Transactional(readOnly = true)

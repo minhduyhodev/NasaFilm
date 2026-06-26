@@ -4,8 +4,6 @@ import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
@@ -32,16 +30,17 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
-import { bookingService } from "../../../shared/services/bookingService";
+import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/queries/useBookingQueries";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
+import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import Pagination from "../../../shared/components/Pagination";
+import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
 import {
-  enrichBookingsWithMovieMeta,
   isOnlineBooking,
   isLiveTicket,
-  sortBookingsForDisplay,
-  formatDisplayTicketCode,
+  partitionBookingsByLive,
   getOnlineMoviePath,
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
@@ -118,9 +117,14 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
-  const [bookings, setBookings] = useState([]);
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const { data: bookings = [], isLoading: isLoadingBookings, refetch: refetchBookings } = useMyBookings(Boolean(user));
+  const invalidateBookings = useInvalidateMyBookings();
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
+  const [refundTargetUuid, setRefundTargetUuid] = useState(null);
+  const [showArchivedTickets, setShowArchivedTickets] = useState(false);
+  const [liveTicketPage, setLiveTicketPage] = useState(1);
+  const [archivedTicketPage, setArchivedTicketPage] = useState(1);
+  const [ticketsPerPage, setTicketsPerPage] = useState(4);
   const [vouchers, setVouchers] = useState([]);
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
@@ -144,36 +148,13 @@ export const ProfilePage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoadingBookings(true);
-      try {
-        const data = await bookingService.getMyBookings();
-        const enriched = await enrichBookingsWithMovieMeta(data || []);
-        setBookings(enriched);
-      } catch (err) {
-        console.error("Failed to load user bookings:", err);
-      } finally {
-        setIsLoadingBookings(false);
-      }
-    };
-    if (user) {
-      fetchBookings();
-    }
-  }, [user]);
-
   const reloadBookings = async () => {
-    try {
-      const data = await bookingService.getMyBookings();
-      const enriched = await enrichBookingsWithMovieMeta(data || []);
-      setBookings(enriched);
-    } catch (err) {
-      console.error("Failed to reload bookings:", err);
-    }
+    await invalidateBookings();
+    await refetchBookings();
   };
 
-  const sortedBookings = useMemo(
-    () => sortBookingsForDisplay(bookings),
+  const { live: liveBookings, archived: archivedBookings } = useMemo(
+    () => partitionBookingsByLive(bookings),
     [bookings],
   );
 
@@ -181,6 +162,21 @@ export const ProfilePage = () => {
     () => bookings.filter(isLiveTicket).length,
     [bookings],
   );
+
+  const paginatedLiveBookings = useMemo(() => {
+    const start = (liveTicketPage - 1) * ticketsPerPage;
+    return liveBookings.slice(start, start + ticketsPerPage);
+  }, [liveBookings, liveTicketPage, ticketsPerPage]);
+
+  const paginatedArchivedBookings = useMemo(() => {
+    const start = (archivedTicketPage - 1) * ticketsPerPage;
+    return archivedBookings.slice(start, start + ticketsPerPage);
+  }, [archivedBookings, archivedTicketPage, ticketsPerPage]);
+
+  useEffect(() => {
+    setLiveTicketPage(1);
+    setArchivedTicketPage(1);
+  }, [bookings.length]);
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -543,7 +539,6 @@ export const ProfilePage = () => {
   if (isLoading) {
     return (
       <>
-        <Navbar />
         <div className="profile-wrapper flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
@@ -552,14 +547,12 @@ export const ProfilePage = () => {
             </p>
           </div>
         </div>
-        <Footer />
       </>
     );
   }
 
   return (
     <>
-      <Navbar />
       <div className="profile-wrapper">
         <div className="profile-container">
           {/* Space Hub Header (Hero Section) */}
@@ -1475,7 +1468,11 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="tickets-list">
-                      {bookings.length === 0 ? (
+                      {isLoadingBookings ? (
+                        <div className="text-center py-12 text-zinc-500 font-medium w-full">
+                          <p>Đang tải vé của bạn...</p>
+                        </div>
+                      ) : bookings.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500 font-medium w-full">
                           <Ticket
                             size={48}
@@ -1484,141 +1481,100 @@ export const ProfilePage = () => {
                           <p>Bạn chưa có lịch sử đặt vé nào.</p>
                         </div>
                       ) : (
-                        sortedBookings.map((tkt) => {
-                          const isVod = isOnlineBooking(tkt);
-                          const isLive = isLiveTicket(tkt);
-                          const getMovieGlowClass = (title) => {
-                            if (
-                              title.toUpperCase().includes("STELLAR") ||
-                              title.toUpperCase().includes("MORTAL")
-                            )
-                              return "glow-gold";
-                            if (
-                              title.toUpperCase().includes("AETHERIA") ||
-                              title.toUpperCase().includes("RED") ||
-                              title.toUpperCase().includes("MƯA")
-                            )
-                              return "glow-purple";
-                            return "glow-cyan";
-                          };
-                          const glowClass = getMovieGlowClass(tkt.movieTitle);
-                          return (
-                            <div
-                              key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${isLive ? "ticket-boarding-pass--live" : "ticket-boarding-pass--inactive"}${isVod ? " ticket-boarding-pass--vod" : ""}`}
-                              onClick={() => isLive && handleTicketClick(tkt)}
-                              style={{ cursor: isLive ? "pointer" : "default" }}
-                              title={
-                                !isLive
-                                  ? "Vé đã hết hạn hoặc không còn hiệu lực"
-                                  : isVod
-                                    ? "Nhấn để kích hoạt hoặc tiếp tục xem phim online"
-                                    : "Nhấp để xem chi tiết / In lại vé"
-                              }
-                            >
-                              <div className="ticket-notch-top" />
-                              <div className="ticket-notch-bottom" />
-
-                              <div className="ticket-body-left">
-                                <span className="ticket-format-badge">
-                                  {isVod ? "VOD ONLINE" : "RẠP CHIẾU"}
-                                </span>
-
-                                <h3 className="ticket-movie-title-text">
-                                  {tkt.movieTitle}
-                                </h3>
-
-                                <div className="ticket-grid-details">
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">
-                                      {isVod ? "Nền tảng" : "Rạp Chiếu"}
-                                    </span>
-                                    <span className="value-text">
-                                      {tkt.cinema}
-                                    </span>
-                                  </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">
-                                      {isVod ? "Hình thức" : "Suất Chiếu"}
-                                    </span>
-                                    <span className="value-text text-amber-500">
-                                      {isVod
-                                        ? "Xem trực tuyến"
-                                        : tkt.showtime || "—"}
-                                    </span>
-                                  </div>
-                                  {!isVod && (
-                                    <div className="ticket-info-unit">
-                                      <span className="label-text">
-                                        Đồ ăn & Nước
-                                      </span>
-                                      <span className="value-text">
-                                        {tkt.combo}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="ticket-code-row">
-                                  <span className="label-text">Mã vé</span>
-                                  <span className="ticket-code-value">
-                                    {formatDisplayTicketCode(tkt)}
-                                  </span>
-                                  {isVod && (
-                                    <span className="ticket-email-hint">
-                                      Xem mã đầy đủ trong email
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="ticket-divider-line-container">
-                                <div className="dashed-perforation" />
-                              </div>
-
-                              <div className="ticket-body-right">
-                                <div
-                                  className="stub-seats-info"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <span className="seats-title">
-                                    {isVod ? "Loại vé" : "Ghế"}
-                                  </span>
-                                  <div
-                                    className={`seats-numbers${isVod ? " seats-numbers--static" : ""}`}
-                                  >
-                                    {isVod ? "Online" : tkt.seats || "—"}
-                                  </div>
-                                </div>
-
-                                <div className="barcode-wrapper-box">
-                                  <div className="barcode-lines" />
-                                </div>
-
-                                <span className="stub-price-tag">
-                                  {tkt.price}
-                                </span>
-                                {tkt.cancellable && tkt.bookingUuid && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCancelTargetUuid(tkt.bookingUuid);
-                                    }}
-                                    className="mt-2 text-[10px] font-bold uppercase tracking-wide text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md cursor-pointer"
-                                  >
-                                    {isVod ? "Hủy vé" : "Hủy vé"}
-                                  </button>
-                                )}
-                                {isVod && isLive && tkt.vodActivated && (
-                                  <span className="mt-2 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
-                                    Đã kích hoạt — không hủy
-                                  </span>
-                                )}
-                              </div>
+                        <>
+                          <section className="tickets-section">
+                            <div className="tickets-section__header">
+                              <h3 className="tickets-section__title">
+                                Vé đang hiệu lực
+                              </h3>
+                              <span className="tickets-section__count">
+                                {liveBookings.length} vé
+                              </span>
                             </div>
-                          );
-                        })
+                            {liveBookings.length === 0 ? (
+                              <p className="tickets-section__empty">
+                                Không có vé nào đang hiệu lực.
+                              </p>
+                            ) : (
+                              <>
+                              <div className="tickets-section__grid">
+                                {paginatedLiveBookings.map((tkt) => (
+                                  <ProfileTicketCard
+                                    key={tkt.id}
+                                    tkt={tkt}
+                                    onTicketClick={handleTicketClick}
+                                    onCancel={setCancelTargetUuid}
+                                    onRefund={setRefundTargetUuid}
+                                  />
+                                ))}
+                              </div>
+                              {liveBookings.length > ticketsPerPage && (
+                                <Pagination
+                                  currentPage={liveTicketPage}
+                                  totalItems={liveBookings.length}
+                                  itemsPerPage={ticketsPerPage}
+                                  onPageChange={setLiveTicketPage}
+                                  onItemsPerPageChange={(size) => {
+                                    setTicketsPerPage(size);
+                                    setLiveTicketPage(1);
+                                  }}
+                                />
+                              )}
+                              </>
+                            )}
+                          </section>
+
+                          {archivedBookings.length > 0 && (
+                            <section className="tickets-section tickets-section--archived">
+                              <button
+                                type="button"
+                                className="tickets-section__toggle"
+                                onClick={() => setShowArchivedTickets((v) => !v)}
+                                aria-expanded={showArchivedTickets}
+                              >
+                                <div className="tickets-section__header tickets-section__header--toggle">
+                                  <h3 className="tickets-section__title">
+                                    Vé đã sử dụng / hết hạn
+                                  </h3>
+                                  <span className="tickets-section__count">
+                                    {archivedBookings.length} vé
+                                  </span>
+                                </div>
+                                <ChevronDown
+                                  size={18}
+                                  className={`tickets-section__chevron${showArchivedTickets ? ' tickets-section__chevron--open' : ''}`}
+                                />
+                              </button>
+                              {showArchivedTickets && (
+                                <>
+                                <div className="tickets-section__grid tickets-section__grid--archived">
+                                  {paginatedArchivedBookings.map((tkt) => (
+                                    <ProfileTicketCard
+                                      key={tkt.id}
+                                      tkt={tkt}
+                                      onTicketClick={handleTicketClick}
+                                      onCancel={setCancelTargetUuid}
+                                      onRefund={setRefundTargetUuid}
+                                    />
+                                  ))}
+                                </div>
+                                {archivedBookings.length > ticketsPerPage && (
+                                  <Pagination
+                                    currentPage={archivedTicketPage}
+                                    totalItems={archivedBookings.length}
+                                    itemsPerPage={ticketsPerPage}
+                                    onPageChange={setArchivedTicketPage}
+                                    onItemsPerPageChange={(size) => {
+                                      setTicketsPerPage(size);
+                                      setArchivedTicketPage(1);
+                                    }}
+                                  />
+                                )}
+                                </>
+                              )}
+                            </section>
+                          )}
+                        </>
                       )}
                     </div>
                   </motion.div>
@@ -1924,7 +1880,6 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
-      <Footer />
       <CancelBookingModal
         bookingUuid={cancelTargetUuid}
         open={Boolean(cancelTargetUuid)}
@@ -1933,6 +1888,11 @@ export const ProfilePage = () => {
           notificationService.success(result?.message || "Hủy vé thành công");
           reloadBookings();
         }}
+      />
+      <RefundDetailModal
+        bookingUuid={refundTargetUuid}
+        open={Boolean(refundTargetUuid)}
+        onClose={() => setRefundTargetUuid(null)}
       />
     </>
   );

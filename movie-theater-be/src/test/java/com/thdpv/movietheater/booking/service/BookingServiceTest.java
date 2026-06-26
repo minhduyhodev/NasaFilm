@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -85,6 +86,9 @@ class BookingServiceTest {
     @Mock
     private SystemConfigService systemConfigService;
 
+    @Mock
+    private ShowtimeCapacityService showtimeCapacityService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -102,6 +106,8 @@ class BookingServiceTest {
         ReflectionTestUtils.setField(bookingService, "autoSlideEnabled", true);
         lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
         lenient().when(systemConfigService.getOnlineWatchLockMultiplier()).thenReturn(2.0);
+        lenient().doNothing().when(showtimeCapacityService)
+                .validateCapacity(any(), any(Integer.class), any(), any());
     }
 
     @Test

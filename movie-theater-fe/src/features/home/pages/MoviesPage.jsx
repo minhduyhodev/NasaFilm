@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
-import { movieService } from '../../../shared/services/movieService';
 import MovieFilterPanel from '../components/MovieFilterPanel';
 import TabTransition from '../../../shared/components/TabTransition';
+import { useMovieFilterOptions, useMoviesList, useUpcomingMoviesList } from '../../../shared/hooks/queries/useMovieQueries';
 import './MoviesPage.css';
 
 const MoviesPage = () => {
@@ -15,12 +13,6 @@ const MoviesPage = () => {
   const initialTab = searchParams.get('tab') || 'now-showing';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-
-  // Filter Options State
-  const [dbGenres, setDbGenres] = useState([]);
-  const [dbCountries, setDbCountries] = useState([]);
-  const [dbActors, setDbActors] = useState([]);
-  const [dbCinemas, setDbCinemas] = useState([]);
 
   // Selected Filters State (Active filters that trigger database query)
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -45,11 +37,65 @@ const MoviesPage = () => {
   const actorSearchRef = useRef(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [movies, setMovies] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [titleSearch, setTitleSearch] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  const { data: filterOptions } = useMovieFilterOptions();
+  const dbGenres = filterOptions?.genres || [];
+  const dbCountries = filterOptions?.countries || [];
+  const dbActors = filterOptions?.actors || [];
+  const dbCinemas = filterOptions?.cinemas || [];
+
+  const trimmedKeyword = searchKeyword.trim();
+  const hasFilters =
+    selectedGenre ||
+    selectedCountry ||
+    selectedActor ||
+    selectedCinema ||
+    selectedShowtimeDate ||
+    selectedAgeRestriction;
+
+  const isUpcomingSimple = activeTab === 'coming-soon' && !trimmedKeyword && !hasFilters;
+
+  const listQueryParams = useMemo(() => {
+    const queryParams = {
+      status: activeTab === 'coming-soon' ? 'COMING_SOON' : 'NOW_SHOWING',
+      page: currentPage - 1,
+      size: 6,
+    };
+    if (activeTab === 'now-showing') {
+      queryParams.requireBookableShowtime = true;
+    }
+    if (trimmedKeyword) queryParams.keyword = trimmedKeyword;
+    if (selectedGenre) queryParams.genreUuids = [selectedGenre];
+    if (selectedCountry) queryParams.countryUuid = selectedCountry;
+    if (selectedActor) queryParams.actorUuid = selectedActor;
+    if (selectedCinema) queryParams.cinemaUuid = selectedCinema;
+    if (selectedShowtimeDate) queryParams.showtimeDate = selectedShowtimeDate;
+    if (selectedAgeRestriction) queryParams.ageRestriction = selectedAgeRestriction;
+    return queryParams;
+  }, [
+    activeTab,
+    currentPage,
+    trimmedKeyword,
+    selectedGenre,
+    selectedCountry,
+    selectedActor,
+    selectedCinema,
+    selectedShowtimeDate,
+    selectedAgeRestriction,
+  ]);
+
+  const upcomingQuery = useUpcomingMoviesList(currentPage - 1, 6, isUpcomingSimple);
+  const listQuery = useMoviesList(listQueryParams, !isUpcomingSimple);
+
+  const movies = isUpcomingSimple
+    ? (upcomingQuery.data?.content || [])
+    : (listQuery.data?.content || []);
+  const totalPages = isUpcomingSimple
+    ? (upcomingQuery.data?.totalPages || 1)
+    : (listQuery.data?.totalPages || 1);
+  const isLoading = isUpcomingSimple ? upcomingQuery.isLoading : listQuery.isLoading;
 
   // Sync tab from URL query params
   useEffect(() => {
@@ -78,104 +124,7 @@ const MoviesPage = () => {
     window.scrollTo(0, 0);
   }, [activeTab, currentPage]);
 
-  // Load all filter options on mount
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
-      try {
-        const [genresData, countriesData, actorsData, cinemasData] = await Promise.all([
-          movieService.getGenres(),
-          movieService.getCountries(),
-          movieService.getActors(),
-          movieService.getCinemas()
-        ]);
-        setDbGenres(genresData || []);
-        setDbCountries(countriesData || []);
-        setDbActors(actorsData || []);
-        setDbCinemas(cinemasData || []);
-      } catch (err) {
-        console.error("Failed to fetch filter options:", err);
-      }
-    };
-    fetchFilterOptions();
-  }, []);
-
-  const getBackendStatus = (tab) => {
-    if (tab === 'coming-soon') return 'COMING_SOON';
-    return 'NOW_SHOWING';
-  };
-
-  // Fetch movies when any filter or page changes
-  useEffect(() => {
-    const fetchMovies = async () => {
-      setIsLoading(true);
-      try {
-        const pageIndex = currentPage - 1;
-
-        let data;
-        const trimmedKeyword = searchKeyword.trim();
-        const hasFilters =
-          selectedGenre ||
-          selectedCountry ||
-          selectedActor ||
-          selectedCinema ||
-          selectedShowtimeDate ||
-          selectedAgeRestriction;
-
-        if (activeTab === 'coming-soon' && !trimmedKeyword && !hasFilters) {
-          data = await movieService.getUpcomingMovies({ page: pageIndex, size: 6 });
-        } else {
-          const queryParams = {
-            status: getBackendStatus(activeTab),
-            page: pageIndex,
-            size: 6,
-          };
-
-          if (activeTab === 'now-showing') {
-            queryParams.requireBookableShowtime = true;
-          }
-
-          if (trimmedKeyword) {
-            queryParams.keyword = trimmedKeyword;
-          }
-          if (selectedGenre) {
-            queryParams.genreUuids = [selectedGenre];
-          }
-          if (selectedCountry) {
-            queryParams.countryUuid = selectedCountry;
-          }
-          if (selectedActor) {
-            queryParams.actorUuid = selectedActor;
-          }
-          if (selectedCinema) {
-            queryParams.cinemaUuid = selectedCinema;
-          }
-          if (selectedShowtimeDate) {
-            queryParams.showtimeDate = selectedShowtimeDate;
-          }
-          if (selectedAgeRestriction) {
-            queryParams.ageRestriction = selectedAgeRestriction;
-          }
-
-          data = await movieService.getMovies(queryParams);
-        }
-
-        if (data && data.content) {
-          setMovies(data.content);
-          setTotalPages(data.totalPages || 1);
-        } else {
-          setMovies([]);
-          setTotalPages(1);
-        }
-      } catch (err) {
-        console.error("Failed to fetch movies:", err);
-        setMovies([]);
-        setTotalPages(1);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchMovies();
-  }, [activeTab, currentPage, searchKeyword, selectedGenre, selectedCountry, selectedActor, selectedCinema, selectedShowtimeDate, selectedAgeRestriction]);
+  // Filter Options loaded via React Query (useMovieFilterOptions)
 
   // Generate showtime dates for the next 7 days
   const filterDates = useMemo(() => {
@@ -482,7 +431,6 @@ const MoviesPage = () => {
 
   return (
     <div className="movies-page-wrapper">
-      <Navbar />
 
       <main className="movie-list-container">
         {/* Header section with Title & Tab buttons */}
@@ -634,8 +582,6 @@ const MoviesPage = () => {
           </TabTransition>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };
