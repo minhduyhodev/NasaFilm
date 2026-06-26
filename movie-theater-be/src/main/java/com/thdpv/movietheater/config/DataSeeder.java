@@ -73,6 +73,9 @@ public class DataSeeder implements CommandLineRunner {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
+    @Value("${app.seed.enabled:true}")
+    private boolean seedEnabled;
+
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
 
@@ -135,6 +138,10 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         createDummyTables();
+        if (!seedEnabled) {
+            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
+            return;
+        }
         healWalletVersionColumn();
         seedRoles();
         seedAdminUser();
@@ -840,7 +847,47 @@ public class DataSeeder implements CommandLineRunner {
             for (MovieJsonData movieData : moviesToSeed) {
                 boolean exists = movieRepository.existsByTitleIgnoreCase(movieData.title);
 
+                // if (exists) {
+                // continue;
+                // }
+
                 if (exists) {
+                    Movie movie = movieRepository.findByTitleIgnoreCase(movieData.title).orElse(null);
+                    if (movie != null) {
+                        // Cập nhật streamingUrl
+                        movie.setStreamingUrl(movieData.streamingUrl);
+
+                        // Cập nhật trailer trong medias
+                        if (movieData.medias != null) {
+                            for (MediaJsonData mediaData : movieData.medias) {
+                                if ("TRAILER".equals(mediaData.mediaType)) {
+                                    boolean hasTrailer = false;
+                                    if (movie.getMovieMedias() != null) {
+                                        for (MovieMedia mm : movie.getMovieMedias()) {
+                                            if ("TRAILER".equals(mm.getMediaType())) {
+                                                mm.setMediaUrl(mediaData.mediaUrl);
+                                                hasTrailer = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!hasTrailer) {
+                                        MovieMedia media = new MovieMedia();
+                                        media.setMovie(movie);
+                                        media.setMediaUrl(mediaData.mediaUrl);
+                                        media.setMediaType(mediaData.mediaType);
+                                        media.setTitle(mediaData.title);
+                                        media.setIsPrimary(mediaData.isPrimary != null ? mediaData.isPrimary : false);
+                                        media.setSortOrder(mediaData.sortOrder != null ? mediaData.sortOrder : 0);
+                                        movie.addMovieMedia(media);
+                                    }
+                                }
+                            }
+                        }
+                        movieRepository.save(movie);
+                        logger.info("Updated existing movie '{}' with streamingUrl and trailer from JSON.",
+                                movie.getTitle());
+                    }
                     continue;
                 }
 

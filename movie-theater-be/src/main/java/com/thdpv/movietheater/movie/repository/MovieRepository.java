@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.repository;
 
+import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -12,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 import com.thdpv.movietheater.movie.entity.Movie;
 
 public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecificationExecutor<Movie> {
-
 
     @Query(value = """
             select exists(
@@ -46,6 +46,9 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
     boolean hasConfirmedBookingForMovie(@Param("userUuid") UUID userUuid, @Param("movieUuid") UUID movieUuid);
 
     boolean existsByTitleIgnoreCase(String title);
+
+    @Query("SELECT m FROM Movie m LEFT JOIN FETCH m.movieMedias WHERE LOWER(m.title) = LOWER(:title)")
+    Optional<Movie> findByTitleIgnoreCase(@Param("title") String title);
 
     @Query("SELECT DISTINCT m FROM Movie m LEFT JOIN FETCH m.movieMedias WHERE m.uuid IN :uuids")
     List<Movie> findAllByIdWithMedias(@Param("uuids") Collection<UUID> uuids);
