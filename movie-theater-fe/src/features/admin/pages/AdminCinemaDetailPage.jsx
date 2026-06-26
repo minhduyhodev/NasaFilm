@@ -11,16 +11,24 @@ import {
   PrimaryButton,
   GhostButton,
 } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminCinemaDetailPage = () => {
   const { cinemaUuid } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [cinema, setCinema] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleDeleteRoom = async (room) => {
-    if (!window.confirm(`Xóa phòng "${room.name}"? Hành động không thể hoàn tác.`)) return;
+    const ok = await confirm({
+      title: 'Xóa phòng chiếu',
+      message: `Xóa phòng "${room.name}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa phòng',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await cinemaService.deleteRoom(room.uuid);
       notificationService.success('Đã xóa phòng chiếu.');

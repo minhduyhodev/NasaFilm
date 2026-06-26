@@ -11,10 +11,12 @@ import {
   PrimaryButton,
   GhostButton,
 } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminComboDetailPage = () => {
   const { comboUuid } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [combo, setCombo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,7 +48,13 @@ const AdminComboDetailPage = () => {
 
   const handleDelete = async () => {
     if (!combo) return;
-    if (!window.confirm(`Xoa combo "${combo.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa combo',
+      message: `Bạn có chắc muốn xóa combo "${combo.name}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa combo',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await comboService.deleteCombo(combo.uuid);

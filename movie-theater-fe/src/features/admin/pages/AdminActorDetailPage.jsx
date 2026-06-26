@@ -11,10 +11,12 @@ import {
   PrimaryButton,
   GhostButton,
 } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminActorDetailPage = () => {
   const { actorUuid } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [actor, setActor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,7 +48,15 @@ const AdminActorDetailPage = () => {
 
   const handleDelete = async () => {
     if (!actor) return;
-    if (!window.confirm(`Ban co chac chan muon xoa dien vien "${actor.fullName}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa diễn viên',
+      message: 'Bạn có chắc chắn muốn xóa diễn viên này không?',
+      highlight: actor.fullName,
+      detail: 'Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await movieService.deleteActor(actor.uuid);

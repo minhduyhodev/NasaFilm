@@ -13,6 +13,7 @@ import {
   isSystemTemplate,
 } from '../utils/emailTemplateUtils';
 import './EmailTemplatesPage.css';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const emptyForm = {
   code: '',
@@ -32,6 +33,7 @@ const CODE_OPTIONS = [
 ];
 
 const EmailTemplatesPage = () => {
+  const confirm = useConfirm();
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -183,7 +185,13 @@ const EmailTemplatesPage = () => {
       notificationService.error('Không thể xóa mẫu email hệ thống. Bạn có thể tắt kích hoạt thay vì xóa.');
       return;
     }
-    if (!window.confirm(`Xóa mẫu email "${code}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa mẫu email',
+      message: `Xóa mẫu email "${code}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa mẫu',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await adminEmailTemplateService.deleteTemplate(id);
       notificationService.success('Đã xóa mẫu email');

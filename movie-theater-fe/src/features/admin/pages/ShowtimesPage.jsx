@@ -14,6 +14,7 @@ import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader } from '../components';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
 import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import {
   STATUS_ORDER,
   STATUS_CONFIG,
@@ -50,6 +51,7 @@ const getPosterSrc = (rawUrl, width = 120) =>
 
 const ShowtimesPage = () => {
   useMediaUrlRouting();
+  const confirm = useConfirm();
 
   // ---------- STATE ----------
   const [showtimes, setShowtimes] = useState([]);
@@ -375,8 +377,14 @@ const ShowtimesPage = () => {
   };
 
   const handleStatusTransition = async (showtimeUuid, newStatus) => {
-    if (newStatus === 'CANCELLED' && !window.confirm('Bạn có chắc chắn muốn hủy suất chiếu này? Hành động này sẽ tự động hủy và hoàn tiền toàn bộ vé đã đặt.')) {
-      return;
+    if (newStatus === 'CANCELLED') {
+      const ok = await confirm({
+        title: 'Hủy suất chiếu',
+        message: 'Bạn có chắc chắn muốn hủy suất chiếu này? Hành động này sẽ tự động hủy và hoàn tiền toàn bộ vé đã đặt.',
+        confirmLabel: 'Hủy suất chiếu',
+        variant: 'warning',
+      });
+      if (!ok) return;
     }
     try {
       await showtimeService.updateShowtimeStatus(showtimeUuid, newStatus);
@@ -390,7 +398,15 @@ const ShowtimesPage = () => {
   const handleBulkAction = async (action) => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    if (action === 'CANCELLED' && !window.confirm(`Bạn có chắc chắn muốn hủy ${ids.length} suất chiếu?`)) return;
+    if (action === 'CANCELLED') {
+      const ok = await confirm({
+        title: 'Hủy nhiều suất chiếu',
+        message: `Bạn có chắc chắn muốn hủy ${ids.length} suất chiếu đã chọn?`,
+        confirmLabel: 'Hủy suất chiếu',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
     try {
       for (const id of ids) {
         await showtimeService.updateShowtimeStatus(id, action);
