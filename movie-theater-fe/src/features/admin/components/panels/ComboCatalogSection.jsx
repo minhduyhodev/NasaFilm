@@ -8,8 +8,10 @@ import AdminModal from '../AdminModal';
 import ComboFormPanel from './ComboFormPanel';
 import { PrimaryButton, GhostButton } from '../index';
 import '../../pages/AdminCombosPage.css';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 
 const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
+  const confirm = useConfirm();
   const [combosList, setCombosList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +64,13 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
   };
 
   const handleDeleteCombo = async (combo) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa combo "${combo.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa combo',
+      message: `Bạn có chắc muốn xóa combo "${combo.name}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa combo',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await comboService.deleteCombo(combo.uuid);

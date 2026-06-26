@@ -17,10 +17,12 @@ import {
   PrimaryButton,
   GhostButton,
 } from "../components";
+import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 
 const AdminVoucherDetailPage = () => {
   const { voucherId } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [voucher, setVoucher] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,12 +58,13 @@ const AdminVoucherDetailPage = () => {
 
   const handleDelete = async () => {
     if (!voucher) return;
-    if (
-      !window.confirm(
-        `Bạn có chắc muốn xóa mã "${voucher.code}"? Voucher sẽ không còn hiển thị với khách hàng.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: 'Xóa voucher',
+      message: `Bạn có chắc muốn xóa mã "${voucher.code}"? Voucher sẽ không còn hiển thị với khách hàng.`,
+      confirmLabel: 'Xóa voucher',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await adminPromotionService.deletePromotion(voucher.id);

@@ -15,10 +15,12 @@ import {
   PrimaryButton,
 } from '../components';
 import PosterImage from '../../../shared/components/PosterImage';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminMovieDetailPage = () => {
   const { movieUuid } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [movie, setMovie] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -44,16 +46,25 @@ const AdminMovieDetailPage = () => {
 
   const handleDelete = async () => {
     if (!movie) return;
-    if (!window.confirm(`Ban co chac chan muon xoa bo phim "${movie.title}" khong?`)) return;
+    const ok = await confirm({
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc chắn muốn xóa phim này không?',
+      highlight: movie.title,
+      detail: 'Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến phim sẽ bị xóa vĩnh viễn.',
+      confirmLabel: 'Xóa phim',
+      cancelLabel: 'Hủy',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setIsDeleting(true);
     try {
       await movieService.deleteMovie(movie.uuid);
-      notificationService.success(`Xoa thanh cong phim "${movie.title}"`);
+      notificationService.success(`Đã xóa phim "${movie.title}"`);
       navigate('/admin/movies');
     } catch (err) {
       console.error('Failed to delete movie:', err);
-      notificationService.error(err.message || 'Xoa phim that bai');
+      notificationService.error(err.message || 'Xóa phim thất bại');
     } finally {
       setIsDeleting(false);
     }
@@ -105,7 +116,7 @@ const AdminMovieDetailPage = () => {
               onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
             >
               <Edit2 className="w-3.5 h-3.5" />
-              Chinh sua
+              Chỉnh sửa
             </PrimaryButton>
 
             <GhostButton
@@ -115,7 +126,7 @@ const AdminMovieDetailPage = () => {
               disabled={isDeleting}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              {isDeleting ? 'Dang xoa...' : 'Xoa phim'}
+              {isDeleting ? 'Đang xóa...' : 'Xóa phim'}
             </GhostButton>
           </div>
         </div>

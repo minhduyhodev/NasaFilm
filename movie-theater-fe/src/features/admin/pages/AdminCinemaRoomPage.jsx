@@ -11,6 +11,7 @@ import {
   SEAT_TYPE_CONFIGS,
   TEMPLATE_PRESETS,
 } from './cinemaSeatConstants';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const computeDefaultAisles = (cols) => {
   if (!cols || cols <= 8) return [];
@@ -21,6 +22,7 @@ const AdminCinemaRoomPage = () => {
   const { cinemaUuid, roomUuid } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const confirm = useConfirm();
 
   const [cinema, setCinema] = useState(null);
   const [room, setRoom] = useState(null);
@@ -356,9 +358,12 @@ const AdminCinemaRoomPage = () => {
       return;
     }
 
-    const confirmRegen = window.confirm(
-      `Cảnh báo: Việc khởi tạo lại sơ đồ ghế sẽ XÓA sạch toàn bộ bố cục sơ đồ hiện tại của phòng "${room.name}". Bạn có chắc chắn muốn tiếp tục không?`
-    );
+    const confirmRegen = await confirm({
+      title: 'Khởi tạo lại sơ đồ ghế',
+      message: `Cảnh báo: Việc khởi tạo lại sơ đồ ghế sẽ xóa sạch toàn bộ bố cục hiện tại của phòng "${room.name}". Bạn có chắc chắn muốn tiếp tục?`,
+      confirmLabel: 'Khởi tạo lại',
+      variant: 'warning',
+    });
     if (!confirmRegen) return;
 
     setIsLoadingSeats(true);

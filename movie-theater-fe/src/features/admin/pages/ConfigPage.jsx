@@ -15,6 +15,7 @@ import {
   GhostButton,
   PrimaryButton,
 } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const TABS = [
   { id: 'showtime', label: 'Suất chiếu tự động' },
@@ -98,6 +99,7 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
 };
 
 const ConfigPage = () => {
+  const confirm = useConfirm();
   const [config, setConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [activeTab, setActiveTab] = useState('showtime');
   const [isSaving, setIsSaving] = useState(false);
@@ -126,7 +128,13 @@ const ConfigPage = () => {
   };
 
   const handleReset = async () => {
-    if (!window.confirm('Khôi phục tất cả cấu hình về mặc định?')) return;
+    const ok = await confirm({
+      title: 'Khôi phục cấu hình',
+      message: 'Khôi phục tất cả cấu hình về mặc định? Các thay đổi hiện tại sẽ bị ghi đè.',
+      confirmLabel: 'Khôi phục',
+      variant: 'warning',
+    });
+    if (!ok) return;
     setIsSaving(true);
     try {
       const restored = await systemConfigService.saveConfig(DEFAULT_SYSTEM_CONFIG);
