@@ -373,6 +373,8 @@ public class AuthService {
         String otpCode = String.format("%06d", new java.security.SecureRandom().nextInt(1000000));
         user.setVerificationCode(otpCode);
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(0);
+        user.setVerificationLockTime(null);
 
         userRepository.save(user);
         otpRequestCooldown.put(email, java.time.LocalDateTime.now());
@@ -410,17 +412,18 @@ public class AuthService {
                 || user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
 
             int attempts = (user.getVerificationAttempts() != null ? user.getVerificationAttempts() : 0) + 1;
-            if (attempts >= 5) {
+            final int maxAttempts = 10;
+            if (attempts >= maxAttempts) {
                 user.setVerificationLockTime(LocalDateTime.now().plusMinutes(15));
                 user.setVerificationAttempts(0);
                 userRepository.save(user);
                 throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
-                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá 5 lần, tài khoản bị tạm khóa 15 phút.");
+                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá " + maxAttempts + " lần, tài khoản bị tạm khóa 15 phút.");
             } else {
                 user.setVerificationAttempts(attempts);
                 userRepository.save(user);
                 throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
-                        "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (5 - attempts) + " lần thử.");
+                        "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (maxAttempts - attempts) + " lần thử.");
             }
         }
 

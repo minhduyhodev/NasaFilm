@@ -23,10 +23,12 @@ import {
   getVoucherLifecycleStatus,
   getVoucherStatusClassName,
 } from "../utils/voucherFormUtils";
+import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import { resolveTierLabelByMinScore } from "../../../shared/utils/memberTiers";
 import "./VouchersPage.css";
 
 const VouchersPage = () => {
+  const confirm = useConfirm();
   const [vouchersList, setVouchersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,12 +142,13 @@ const VouchersPage = () => {
   };
 
   const handleDeleteVoucher = async (voucher) => {
-    if (
-      !window.confirm(
-        `Bạn có chắc muốn xóa mã "${voucher.code}"? Voucher sẽ không còn hiển thị với khách hàng.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: 'Xóa voucher',
+      message: `Bạn có chắc muốn xóa mã "${voucher.code}"? Voucher sẽ không còn hiển thị với khách hàng.`,
+      confirmLabel: 'Xóa voucher',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await adminPromotionService.deletePromotion(voucher.id);

@@ -20,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(
@@ -71,6 +72,13 @@ public class User {
 
     @Column(name = "lifetime_score", nullable = false)
     private Integer lifetimeScore = 0;
+
+    @Column(name = "wallet_balance", nullable = false, precision = 15, scale = 2)
+    private java.math.BigDecimal walletBalance = java.math.BigDecimal.ZERO;
+
+    @Version
+    @Column(name = "wallet_version", nullable = false, columnDefinition = "bigint not null default 0")
+    private Long walletVersion = 0L;
 
     @Column(name = "verification_code")
     private String verificationCode;
@@ -131,6 +139,12 @@ public class User {
         }
         if (score == null) {
             score = 0;
+        }
+        if (walletBalance == null) {
+            walletBalance = java.math.BigDecimal.ZERO;
+        }
+        if (walletVersion == null) {
+            walletVersion = 0L;
         }
     }
 
@@ -236,6 +250,14 @@ public class User {
 
     public void setLifetimeScore(Integer lifetimeScore) {
         this.lifetimeScore = lifetimeScore;
+    }
+
+    public java.math.BigDecimal getWalletBalance() {
+        return walletBalance;
+    }
+
+    public void setWalletBalance(java.math.BigDecimal walletBalance) {
+        this.walletBalance = walletBalance;
     }
 
     public LocalDateTime getCreatedAt() {

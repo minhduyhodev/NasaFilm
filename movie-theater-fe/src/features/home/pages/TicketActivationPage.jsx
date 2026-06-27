@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, VOD_VERIFIED_KEY, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
@@ -164,6 +162,10 @@ const TicketActivationPage = () => {
         setError('Không tìm thấy vé online khớp mã này cho phim đang chọn.');
         return;
       }
+      if (!isLiveTicket(matched)) {
+        setError(EXPIRED_TICKET_MESSAGE);
+        return;
+      }
 
       const status = await vodService.getStatus(movieId);
       if (!status?.hasPurchased) {
@@ -175,10 +177,16 @@ const TicketActivationPage = () => {
         return;
       }
 
-      await vodService.activatePlay(movieId);
+      if (canWatchOnlineDirectly(status)) {
+        invalidateVodStatus(movieId);
+        navigate(getOnlineWatchPath(movieId));
+        return;
+      }
+
+      sessionStorage.setItem(VOD_VERIFIED_KEY(movieId), matched.bookingUuid);
       invalidateVodStatus(movieId);
-      notificationService.success('Kích hoạt thành công! Bạn có thể xem phim ngay.');
-      navigate(`/watch/${movieId}`);
+      notificationService.success('Xác thực mã vé thành công! Nhấn Play để bắt đầu xem.');
+      navigate(getOnlineWatchPath(movieId));
     } catch (err) {
       setError(
         isExpiredTicketError(err?.message)
@@ -201,14 +209,12 @@ const TicketActivationPage = () => {
   if (!movie) {
     return (
       <div className="ticket-activation-page min-h-screen text-white">
-        <Navbar />
         <main className="pt-28 px-4 text-center">
           <p className="text-lg font-semibold">Không tìm thấy phim.</p>
           <Link to="/online" className="inline-block mt-4 text-red-500 hover:text-red-400">
             Quay lại trang trực tuyến
           </Link>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -220,7 +226,6 @@ const TicketActivationPage = () => {
 
   return (
     <div className="ticket-activation-page text-white min-h-screen">
-      <Navbar />
 
       <main className="pt-24 pb-16 px-4 md:px-8 lg:px-20">
         <div className="max-w-7xl mx-auto">
@@ -400,8 +405,6 @@ const TicketActivationPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

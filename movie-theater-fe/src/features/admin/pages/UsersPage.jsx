@@ -134,8 +134,11 @@ const UsersPage = () => {
     }
   };
 
-  // Only display CUSTOMER accounts on this page
-  const customersOnly = usersList.filter((u) => u.roles?.includes("CUSTOMER"));
+  // Customer accounts: exclude admin/staff; include pending verification (no CUSTOMER role yet)
+  const customersOnly = usersList.filter((u) => {
+    const roles = u.roles || [];
+    return !roles.includes("ADMIN") && !roles.includes("STAFF");
+  });
 
   const filteredUsers = customersOnly.filter((user) => {
     const normalizedSearch = searchQuery.toLowerCase().trim();
@@ -155,6 +158,8 @@ const UsersPage = () => {
       total: customersOnly.length,
       active: customersOnly.filter((u) => u.status === "ACTIVE").length,
       suspended: customersOnly.filter((u) => u.status === "SUSPENDED").length,
+      pending: customersOnly.filter((u) => u.status === "PENDING_VERIFICATION").length,
+      inactive: customersOnly.filter((u) => u.status === "INACTIVE").length,
       vip: customersOnly.filter((u) => (u.score || 0) >= 10000).length,
     }),
     [customersOnly],
@@ -171,6 +176,7 @@ const UsersPage = () => {
     if (status === "ACTIVE") return "Hoạt động";
     if (status === "SUSPENDED") return "Bị khóa";
     if (status === "INACTIVE") return "Chưa kích hoạt";
+    if (status === "PENDING_VERIFICATION") return "Chờ xác thực";
     return status;
   };
 
@@ -179,12 +185,18 @@ const UsersPage = () => {
       return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
     if (status === "SUSPENDED")
       return "bg-rose-500/10 border-rose-500/25 text-rose-400";
+    if (status === "PENDING_VERIFICATION")
+      return "bg-amber-500/10 border-amber-500/25 text-amber-400";
+    if (status === "INACTIVE")
+      return "bg-zinc-500/10 border-zinc-500/25 text-zinc-400";
     return "bg-zinc-500/10 border-zinc-500/25 text-zinc-400";
   };
 
   const getStatusDot = (status) => {
     if (status === "ACTIVE") return "bg-emerald-400";
     if (status === "SUSPENDED") return "bg-rose-400";
+    if (status === "PENDING_VERIFICATION") return "bg-amber-400";
+    if (status === "INACTIVE") return "bg-zinc-400";
     return "bg-zinc-400";
   };
 
@@ -308,6 +320,8 @@ const UsersPage = () => {
           >
             <option value="all">Tất cả Trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
+            <option value="PENDING_VERIFICATION">Chờ xác thực</option>
+            <option value="INACTIVE">Chưa kích hoạt</option>
             <option value="SUSPENDED">Bị khóa</option>
           </select>
         </div>
@@ -467,6 +481,12 @@ const UsersPage = () => {
                                     cls: "text-rose-400 hover:bg-rose-500/10",
                                   },
                                   {
+                                    value: "PENDING_VERIFICATION",
+                                    label: "Chờ xác thực",
+                                    dot: "bg-amber-400",
+                                    cls: "text-amber-400 hover:bg-amber-500/10",
+                                  },
+                                  {
                                     value: "INACTIVE",
                                     label: "Chưa kích hoạt",
                                     dot: "bg-zinc-400",
@@ -617,6 +637,7 @@ const UsersPage = () => {
                   onChange={(e) => setStatusForm(e.target.value)}
                 >
                   <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+                  <option value="PENDING_VERIFICATION">Chờ xác thực (PENDING)</option>
                   <option value="SUSPENDED">Khóa tài khoản (SUSPENDED)</option>
                   <option value="INACTIVE">Chưa kích hoạt (INACTIVE)</option>
                 </select>

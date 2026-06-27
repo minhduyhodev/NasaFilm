@@ -17,6 +17,7 @@ import ActorFormPanel from "../components/panels/ActorFormPanel";
 import CountryFormPanel from "../components/panels/CountryFormPanel";
 import GenreFormPanel from "../components/panels/GenreFormPanel";
 import "./MediaCatalogPage.css";
+import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 
 const TABS = [
   { id: "actors", label: "Diễn viên", icon: User },
@@ -31,6 +32,7 @@ const EMPTY_STATE = {
 };
 
 const MediaCatalogPage = () => {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("actors");
   const [actors, setActors] = useState([]);
   const [countriesList, setCountriesList] = useState([]);
@@ -155,7 +157,15 @@ const MediaCatalogPage = () => {
         : "Tìm thể loại...";
 
   const handleDeleteActor = async (actor) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa diễn viên "${actor.fullName}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa diễn viên',
+      message: 'Bạn có chắc muốn xóa diễn viên này không?',
+      highlight: actor.fullName,
+      detail: 'Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await movieService.deleteActor(actor.uuid);
@@ -170,7 +180,15 @@ const MediaCatalogPage = () => {
   };
 
   const handleDeleteCountry = async (country) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa quốc gia "${country.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa quốc gia',
+      message: 'Bạn có chắc muốn xóa quốc gia này không?',
+      highlight: country.name,
+      detail: 'Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await movieService.deleteCountry(country.uuid);
@@ -185,7 +203,15 @@ const MediaCatalogPage = () => {
   };
 
   const handleDeleteGenre = async (genre) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa thể loại "${genre.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa thể loại',
+      message: 'Bạn có chắc muốn xóa thể loại này không?',
+      highlight: genre.name,
+      detail: 'Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await movieService.deleteGenre(genre.uuid);

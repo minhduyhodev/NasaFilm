@@ -1,7 +1,10 @@
 package com.thdpv.movietheater.booking.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,8 +59,10 @@ public class ShowtimeController {
     }
 
     @GetMapping("/api/showtimes")
-    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getPublicShowtimes() {
-        List<ShowtimeResponse> response = showtimeService.getPublicShowtimes();
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getPublicShowtimes(
+            @RequestParam(required = false) UUID cinemaUuid,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<ShowtimeResponse> response = showtimeService.getPublicShowtimes(cinemaUuid, date);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

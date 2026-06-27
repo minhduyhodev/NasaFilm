@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Edit2, Loader2, MapPin, Plus, Tv, LayoutGrid } from 'lucide-react';
+import { Edit2, Loader2, MapPin, Plus, Tv, LayoutGrid, Trash2 } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
 import {
@@ -11,13 +11,32 @@ import {
   PrimaryButton,
   GhostButton,
 } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminCinemaDetailPage = () => {
   const { cinemaUuid } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [cinema, setCinema] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleDeleteRoom = async (room) => {
+    const ok = await confirm({
+      title: 'Xóa phòng chiếu',
+      message: `Xóa phòng "${room.name}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa phòng',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await cinemaService.deleteRoom(room.uuid);
+      notificationService.success('Đã xóa phòng chiếu.');
+      setRooms((prev) => prev.filter((r) => r.uuid !== room.uuid));
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể xóa phòng chiếu.');
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -118,6 +137,9 @@ const AdminCinemaDetailPage = () => {
                       </Link>
                       <GhostButton type="button" className="px-2 py-1 text-xs" onClick={() => navigate(`/admin/cinemas/${cinemaUuid}/rooms/${room.uuid}/edit`)}>
                         Sua
+                      </GhostButton>
+                      <GhostButton type="button" className="px-2 py-1 text-xs text-rose-400 hover:text-rose-300" onClick={() => handleDeleteRoom(room)}>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </GhostButton>
                     </div>
                   </li>

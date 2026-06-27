@@ -23,6 +23,7 @@ public class ComboResponse {
         this.status = status;
     }
 
+
     public UUID getUuid() {
         return uuid;
     }

@@ -73,6 +73,9 @@ public class DataSeeder implements CommandLineRunner {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
+    @Value("${app.seed.enabled:true}")
+    private boolean seedEnabled;
+
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
 
@@ -135,6 +138,11 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         createDummyTables();
+        if (!seedEnabled) {
+            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
+            return;
+        }
+        healWalletVersionColumn();
         seedRoles();
         seedAdminUser();
         seedStaffUser();
@@ -578,6 +586,26 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    private void healWalletVersionColumn() {
+        try {
+            Integer exists = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'users'
+                      AND column_name = 'wallet_version'
+                    """, Integer.class);
+            if (exists == null || exists == 0) {
+                jdbcTemplate.execute(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_version BIGINT NOT NULL DEFAULT 0");
+                logger.info("Added users.wallet_version column with default 0.");
+            } else {
+                jdbcTemplate.update("UPDATE users SET wallet_version = 0 WHERE wallet_version IS NULL");
+            }
+        } catch (Exception e) {
+            logger.warn("wallet_version self-heal skipped: {}", e.getMessage());
+        }
+    }
+
     private void seedRoles() {
         List<Map<String, String>> rolesToSeed = null;
         try {
@@ -819,7 +847,47 @@ public class DataSeeder implements CommandLineRunner {
             for (MovieJsonData movieData : moviesToSeed) {
                 boolean exists = movieRepository.existsByTitleIgnoreCase(movieData.title);
 
+                // if (exists) {
+                // continue;
+                // }
+
                 if (exists) {
+                    Movie movie = movieRepository.findByTitleIgnoreCase(movieData.title).orElse(null);
+                    if (movie != null) {
+                        // Cập nhật streamingUrl
+                        movie.setStreamingUrl(movieData.streamingUrl);
+
+                        // Cập nhật trailer trong medias
+                        if (movieData.medias != null) {
+                            for (MediaJsonData mediaData : movieData.medias) {
+                                if ("TRAILER".equals(mediaData.mediaType)) {
+                                    boolean hasTrailer = false;
+                                    if (movie.getMovieMedias() != null) {
+                                        for (MovieMedia mm : movie.getMovieMedias()) {
+                                            if ("TRAILER".equals(mm.getMediaType())) {
+                                                mm.setMediaUrl(mediaData.mediaUrl);
+                                                hasTrailer = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!hasTrailer) {
+                                        MovieMedia media = new MovieMedia();
+                                        media.setMovie(movie);
+                                        media.setMediaUrl(mediaData.mediaUrl);
+                                        media.setMediaType(mediaData.mediaType);
+                                        media.setTitle(mediaData.title);
+                                        media.setIsPrimary(mediaData.isPrimary != null ? mediaData.isPrimary : false);
+                                        media.setSortOrder(mediaData.sortOrder != null ? mediaData.sortOrder : 0);
+                                        movie.addMovieMedia(media);
+                                    }
+                                }
+                            }
+                        }
+                        movieRepository.save(movie);
+                        logger.info("Updated existing movie '{}' with streamingUrl and trailer from JSON.",
+                                movie.getTitle());
+                    }
                     continue;
                 }
 

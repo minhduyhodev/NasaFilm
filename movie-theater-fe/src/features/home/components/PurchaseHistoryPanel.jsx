@@ -17,8 +17,9 @@ import {
   Building2,
 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
+import RefundDetailModal from '../../../shared/components/RefundDetailModal';
 import Pagination from '../../../shared/components/Pagination';
-import { maskTicketCode } from '../utils/movieUtils';
+import { maskTicketCode, formatShowtimeDisplay } from '../utils/movieUtils';
 import './PurchaseHistoryPanel.css';
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -56,6 +57,15 @@ const statusMeta = (status) => {
   if (normalized === 'CANCELLED') {
     return { label: 'Đã hủy', className: 'ph-status--cancelled' };
   }
+  if (normalized === 'REFUND_PENDING') {
+    return { label: 'Chờ duyệt hoàn tiền', className: 'ph-status--pending' };
+  }
+  if (normalized === 'REFUND_PROCESSING') {
+    return { label: 'Đang hoàn tiền', className: 'ph-status--pending' };
+  }
+  if (normalized === 'REFUNDED') {
+    return { label: 'Đã hoàn tiền', className: 'ph-status--refunded' };
+  }
   if (normalized === 'PENDING') {
     return { label: 'Chờ xử lý', className: 'ph-status--pending' };
   }
@@ -70,13 +80,16 @@ const paymentStatusMeta = (status) => {
   if (normalized === 'FAILED') {
     return { label: 'Thất bại', className: 'ph-pay--failed' };
   }
+  if (normalized === 'REFUNDED') {
+    return { label: 'Đã hoàn tiền', className: 'ph-pay--success' };
+  }
   if (normalized === 'PENDING') {
     return { label: 'Đang xử lý', className: 'ph-pay--pending' };
   }
   return null;
 };
 
-const InvoiceDetail = ({ order, onBack }) => {
+const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
   const online = isOnlineOrder(order);
   const status = statusMeta(order.bookingStatus);
   const payStatus = paymentStatusMeta(order.paymentStatus);
@@ -198,6 +211,17 @@ const InvoiceDetail = ({ order, onBack }) => {
         <p className="ph-invoice__note">
           Cảm ơn bạn đã sử dụng dịch vụ NASA Cinema. Hóa đơn này có giá trị tra cứu giao dịch.
         </p>
+        {['CANCELLED', 'REFUNDED', 'REFUND_PENDING', 'REFUND_PROCESSING'].includes(
+          (order.bookingStatus || '').toUpperCase()
+        ) && order.bookingUuid && (
+          <button
+            type="button"
+            className="ph-refund-btn"
+            onClick={() => onViewRefund?.(order.bookingUuid)}
+          >
+            Xem trạng thái hoàn tiền
+          </button>
+        )}
       </article>
     </div>
   );
@@ -210,6 +234,7 @@ const PurchaseHistoryPanel = () => {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [refundBookingUuid, setRefundBookingUuid] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
 
@@ -352,7 +377,11 @@ const PurchaseHistoryPanel = () => {
             <p>{error}</p>
           </div>
         ) : selected ? (
-          <InvoiceDetail order={selected} onBack={() => setSelected(null)} />
+          <InvoiceDetail
+            order={selected}
+            onBack={() => setSelected(null)}
+            onViewRefund={setRefundBookingUuid}
+          />
         ) : filteredOrders.length === 0 ? (
           <div className="ph-state">
             <History size={40} />
@@ -386,7 +415,7 @@ const PurchaseHistoryPanel = () => {
                       {item.roomName ? ` · ${item.roomName}` : ''}
                     </p>
                     <p className="ph-card__meta ph-card__meta--muted">
-                      {item.purchasedAt || item.showtime}
+                      {formatShowtimeDisplay(item.showtime || item.purchasedAt)}
                       {' · '}
                       <span className="ph-mono">{maskTicketCode(item.ticketCode)}</span>
                     </p>
@@ -424,6 +453,11 @@ const PurchaseHistoryPanel = () => {
           </>
         )}
       </div>
+      <RefundDetailModal
+        bookingUuid={refundBookingUuid}
+        open={Boolean(refundBookingUuid)}
+        onClose={() => setRefundBookingUuid(null)}
+      />
     </div>
   );
 };

@@ -1,28 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { notificationService } from '../../../shared/services/notificationService';
 import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
+import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
+import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
 
-// Định nghĩa thông tin mô tả và hình ảnh bổ sung cho các combo để UI sinh động hơn
-const comboMeta = {
-  "combo bắp nước": {
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
-    description: "1 Bắp lớn + 2 Nước ngọt cỡ vừa. Sự lựa chọn hoàn hảo cho các cặp đôi khi đi xem phim."
-  },
-  "combo solo": {
-    image: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60",
-    description: "1 Bắp lớn + 1 Nước ngọt cỡ vừa. Thích hợp cho trải nghiệm một mình trọn vẹn."
-  },
-  "combo gia đình": {
-    image: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=500&auto=format&fit=crop&q=60",
-    description: "2 Bắp lớn + 4 Nước ngọt lớn. Đủ dùng thoải mái cho cả gia đình hoặc nhóm bạn thân."
-  }
-};
+function getComboImageUrl(combo) {
+  const raw = combo?.imageUrl?.trim();
+  if (!raw) return comboFallbackImg;
+  return resolveMediaUrl(raw, 400);
+}
+
+function getComboDescription(combo) {
+  return combo?.description?.trim() || 'Combo bắp nước chất lượng cao đi kèm suất chiếu.';
+}
 
 const ConcessionsPage = () => {
   const location = useLocation();
@@ -200,29 +194,17 @@ const ConcessionsPage = () => {
     });
   };
 
-  // Lấy ảnh minh họa và mô tả cho từng combo dựa trên tên
-  const getMeta = (name) => {
-    const key = Object.keys(comboMeta).find(k => name.toLowerCase().includes(k));
-    return key ? comboMeta[key] : {
-      image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
-      description: "Sản phẩm bắp và nước ngọt chất lượng cao đi kèm suất chiếu."
-    };
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0f121d] flex flex-col items-center justify-center text-white">
-        <Navbar />
         <Loader2 className="h-10 w-10 animate-spin text-red-500 mb-4" />
         <p className="text-xl font-bold animate-pulse">Đang tải menu bắp nước...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#0f121d] text-white flex flex-col">
-      <Navbar />
 
       <main className="flex-grow py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
         
@@ -275,10 +257,6 @@ const ConcessionsPage = () => {
           >
             {combos.map((combo) => {
               const qty = quantities[combo.uuid] || 0;
-              const meta = getMeta(combo.name);
-              const displayImage = combo.imageUrl || meta.image;
-              const displayDescription = combo.description || meta.description;
-              
               return (
                 <div 
                   key={combo.uuid} 
@@ -287,8 +265,9 @@ const ConcessionsPage = () => {
                   {/* Ảnh Combo */}
                   <div className="w-full h-44 overflow-hidden relative bg-[#0f121d]">
                     <img 
-                      src={displayImage} 
-                      alt={combo.name} 
+                      src={getComboImageUrl(combo)} 
+                      alt={combo.name}
+                      onError={handlePosterError}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                     {qty > 0 && (
@@ -305,7 +284,7 @@ const ConcessionsPage = () => {
                         {combo.name}
                       </h3>
                       <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 min-h-[34px]">
-                        {displayDescription}
+                        {getComboDescription(combo)}
                       </p>
                     </div>
 
@@ -455,8 +434,6 @@ const ConcessionsPage = () => {
         </div>
 
       </main>
-
-      <Footer />
     </div>
   );
 };

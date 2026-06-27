@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, ShieldCheck, Receipt, AlertCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import './LegalPages.css';
 
 export const PaymentPolicyPage = () => {
@@ -25,7 +23,6 @@ export const PaymentPolicyPage = () => {
 
   return (
     <div className="legal-page-wrapper">
-      <Navbar />
 
       <section className="legal-header">
         <div className="legal-header-overlay absolute inset-0 bg-gradient-to-b from-black/20 via-[#0b0f19]/80 to-[#0b0f19] z-10" />
@@ -111,8 +108,6 @@ export const PaymentPolicyPage = () => {
           </p>
         </motion.section>
       </motion.div>
-
-      <Footer />
     </div>
   );
 };

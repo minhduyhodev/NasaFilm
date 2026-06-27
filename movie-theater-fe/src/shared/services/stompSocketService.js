@@ -88,7 +88,23 @@ class StompSocketService {
       entry.disposed = true;
       entry.stompSub?.unsubscribe();
       this.activeSubscriptions.delete(id);
+      this.disconnectIfIdle();
     };
+  }
+
+  disconnectIfIdle() {
+    if (this.activeSubscriptions.size > 0) {
+      return;
+    }
+    if (this.client) {
+      try {
+        this.client.deactivate();
+      } catch (error) {
+        console.error('Failed to disconnect WebSocket:', error);
+      }
+      this.client = null;
+      this.connectPromise = null;
+    }
   }
 }
 

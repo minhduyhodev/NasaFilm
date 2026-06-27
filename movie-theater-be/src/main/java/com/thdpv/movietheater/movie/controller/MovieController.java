@@ -30,11 +30,13 @@ import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
 import com.thdpv.movietheater.movie.dto.request.GenreRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
 import com.thdpv.movietheater.movie.service.MovieService;
 
@@ -94,6 +96,13 @@ public class MovieController {
     @GetMapping("/movies/{movieUuid}")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable UUID movieUuid) {
         MovieDetailResponse response = movieService.getMovieDetail(movieUuid);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/movies/summaries")
+    public ResponseEntity<ApiResponse<List<MovieSummaryResponse>>> getMovieSummaries(
+            @Valid @RequestBody MovieUuidListRequest request) {
+        List<MovieSummaryResponse> response = movieService.getMovieSummaries(request.getUuids());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

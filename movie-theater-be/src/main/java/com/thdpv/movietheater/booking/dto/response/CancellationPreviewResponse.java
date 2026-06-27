@@ -19,6 +19,7 @@ public class CancellationPreviewResponse {
     private List<String> blockedReasons;
     private String bookingType;
     private boolean vodActivated;
+    private boolean manualApprovalRequired;
 
     public CancellationPreviewResponse() {
     }
@@ -117,5 +118,13 @@ public class CancellationPreviewResponse {
 
     public void setVodActivated(boolean vodActivated) {
         this.vodActivated = vodActivated;
+    }
+
+    public boolean isManualApprovalRequired() {
+        return manualApprovalRequired;
+    }
+
+    public void setManualApprovalRequired(boolean manualApprovalRequired) {
+        this.manualApprovalRequired = manualApprovalRequired;
     }
 }

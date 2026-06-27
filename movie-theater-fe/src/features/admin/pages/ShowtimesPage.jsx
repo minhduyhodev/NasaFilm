@@ -1,12 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import {
-  Film, Search, Plus, Calendar, Tv, X, Play,
-  Ban, CheckCircle, MapPin, CreditCard, LayoutGrid,
-  AlignJustify, Clock, ChevronDown, ChevronsDown, ChevronsUp,
-  Layers,
-  CalendarDays, Building2,
-  Eye, EyeOff, XCircle, Ticket, Hash,
-  DoorOpen, CalendarClock
+  Film, Search, Plus, Calendar, Tv, Play,
+  Ban, CheckCircle, MapPin, CreditCard,
+  Clock, ChevronDown, ChevronsDown, ChevronsUp,
+  Layers, Building2, Eye, EyeOff, XCircle, Ticket,
+  DoorOpen, CalendarDays, CalendarClock, AlignJustify,
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -16,238 +14,53 @@ import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader } from '../components';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
 import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import {
+  STATUS_ORDER,
+  STATUS_CONFIG,
+  SORT_OPTIONS,
+  VIEW_MODES,
+  DEFAULT_COLLAPSED_SECTIONS,
+  KPI_STATUS_MAP,
+  formatTimeOnly,
+  formatDateShort,
+  formatWeekday,
+  isSameDay,
+  getValidTransitions,
+  getTransitionBtnClass,
+  sortShowtimes,
+  normalizeActiveRooms,
+} from './showtimes/showtimesConstants';
+import {
+  StatusBadge,
+  SkeletonGrid,
+  EmptyState,
+  SectionHeader,
+} from './showtimes/showtimesUi';
+import ShowtimeCard from './showtimes/ShowtimeCard';
+import ShowtimesKpiGrid from './showtimes/ShowtimesKpiGrid';
 import './ShowtimesPage.css';
 
-// ========== CONSTANTS ==========
-
-
-
-const STATUS_ORDER = ['OPEN_FOR_BOOKING', 'SCHEDULED', 'SOLD_OUT', 'DRAFT', 'FINISHED', 'CANCELLED'];
-
-const STATUS_CONFIG = {
-  DRAFT: {
-    label: 'Nháp', icon: Hash, section: 'Nháp',
-    dotClass: 'bg-zinc-400', pillBg: 'bg-zinc-500/10', pillBorder: 'border-zinc-500/20', pillText: 'text-zinc-400',
-    accent: '#71717a', accentBg: 'rgba(113,113,122,0.1)',
-  },
-  SCHEDULED: {
-    label: 'Sắp Chiếu', icon: CalendarClock, section: 'Sắp Chiếu',
-    dotClass: 'bg-blue-400', pillBg: 'bg-blue-500/10', pillBorder: 'border-blue-500/20', pillText: 'text-blue-400',
-    accent: '#3b82f6', accentBg: 'rgba(59,130,246,0.1)',
-  },
-  OPEN_FOR_BOOKING: {
-    label: 'Đang Mở Bán', icon: Ticket, section: 'Đang Mở Bán',
-    dotClass: 'bg-emerald-400 animate-pulse', pillBg: 'bg-emerald-500/10', pillBorder: 'border-emerald-500/20', pillText: 'text-emerald-400',
-    accent: '#10b981', accentBg: 'rgba(16,185,129,0.1)',
-  },
-  SOLD_OUT: {
-    label: 'Hết Ghế', icon: CheckCircle, section: 'Hết Ghế',
-    dotClass: 'bg-amber-400', pillBg: 'bg-amber-500/10', pillBorder: 'border-amber-500/20', pillText: 'text-amber-400',
-    accent: '#f59e0b', accentBg: 'rgba(245,158,11,0.1)',
-  },
-  CANCELLED: {
-    label: 'Đã Hủy', icon: XCircle, section: 'Đã Hủy',
-    dotClass: 'bg-rose-400', pillBg: 'bg-rose-500/10', pillBorder: 'border-rose-500/20', pillText: 'text-rose-400',
-    accent: '#f43f5e', accentBg: 'rgba(244,63,94,0.1)',
-  },
-  FINISHED: {
-    label: 'Đã Kết Thúc', icon: Ban, section: 'Đã Kết Thúc',
-    dotClass: 'bg-gray-500', pillBg: 'bg-zinc-700/20', pillBorder: 'border-zinc-700/30', pillText: 'text-gray-500',
-    accent: '#52525b', accentBg: 'rgba(82,82,91,0.1)',
-  },
-};
+const ShowtimesAutoModal = lazy(() => import('./showtimes/ShowtimesAutoModal'));
+const ShowtimesCreateModal = lazy(() => import('./showtimes/ShowtimesCreateModal'));
 
 const getPosterSrc = (rawUrl, width = 120) =>
   rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
-
-const SORT_OPTIONS = [
-  { value: 'startTime_asc', label: 'Giờ chiếu (sớm → muộn)' },
-  { value: 'startTime_desc', label: 'Giờ chiếu (muộn → sớm)' },
-  { value: 'movie_asc', label: 'Tên phim (A → Z)' },
-  { value: 'revenue_desc', label: 'Giá vé (cao → thấp)' },
-];
-
-const VIEW_MODES = [
-  { key: 'grid', icon: LayoutGrid, label: 'Lưới' },
-  { key: 'list', icon: AlignJustify, label: 'Danh sách' },
-];
-
-const DEFAULT_COLLAPSED_SECTIONS = {
-  FINISHED: true,
-  CANCELLED: true,
-};
-
-const KPI_STATUS_MAP = {
-  'Tổng': '',
-  'Đang Mở Bán': 'OPEN_FOR_BOOKING',
-  'Sắp Chiếu': 'SCHEDULED',
-  'Đang Chiếu': 'OPEN_FOR_BOOKING',
-  'Đã Kết Thúc': 'FINISHED',
-  'Đã Hủy': 'CANCELLED',
-};
-
-// ========== HELPERS ==========
-
-const formatTimeOnly = (s) => {
-  if (!s) return '--:--';
-  return new Date(s).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatDateShort = (d) => {
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-};
-
-const formatWeekday = (d) => {
-  const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  return days[d.getDay()];
-};
-
-const isSameDay = (d1, d2) => {
-  return d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
-};
-
-
-
-const getValidTransitions = (status) => {
-  switch (status) {
-    case 'DRAFT': return [{ target: 'SCHEDULED', label: 'Sắp Chiếu' }];
-    case 'SCHEDULED': return [
-      { target: 'OPEN_FOR_BOOKING', label: 'Mở Bán Vé' },
-      { target: 'CANCELLED', label: 'Hủy Suất' }
-    ];
-    case 'OPEN_FOR_BOOKING': return [
-      { target: 'SOLD_OUT', label: 'Hết Vé' },
-      { target: 'FINISHED', label: 'Kết Thúc' },
-      { target: 'CANCELLED', label: 'Hủy Suất' }
-    ];
-    case 'SOLD_OUT': return [
-      { target: 'OPEN_FOR_BOOKING', label: 'Mở Lại' },
-      { target: 'FINISHED', label: 'Kết Thúc' },
-      { target: 'CANCELLED', label: 'Hủy Suất' }
-    ];
-    default: return [];
-  }
-};
-
-const getTransitionBtnClass = (t) => {
-  if (t === 'CANCELLED') return 'bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20';
-  if (t === 'OPEN_FOR_BOOKING') return 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20';
-  if (t === 'FINISHED') return 'bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 hover:bg-zinc-500/20';
-  return 'bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20';
-};
-
-const sortShowtimes = (arr, sortKey) => {
-  const sorted = [...arr];
-  switch (sortKey) {
-    case 'startTime_asc': return sorted.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-    case 'startTime_desc': return sorted.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    case 'movie_asc': return sorted.sort((a, b) => (a.movieTitle || '').localeCompare(b.movieTitle || ''));
-    case 'revenue_desc': return sorted.sort((a, b) => (b.basePrice || 0) - (a.basePrice || 0));
-    default: return sorted;
-  }
-};
-
-// ========== SUB-COMPONENTS ==========
-
-/** Status Badge Pill */
-const StatusBadge = ({ status }) => {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${cfg.pillBg} border ${cfg.pillBorder} ${cfg.pillText}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
-      {cfg.label}
-    </span>
-  );
-};
-
-/** Loading Skeleton */
-const SkeletonGrid = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-    {Array.from({ length: 9 }).map((_, i) => (
-      <div key={i} className="skeleton-card">
-        <div className="flex items-center justify-between">
-          <div className="sk-line skeleton-pulse" style={{ width: '80px' }} />
-          <div className="sk-line skeleton-pulse" style={{ width: '100px' }} />
-        </div>
-        <div className="sk-line skeleton-pulse" style={{ width: '70%', height: '16px' }} />
-        <div className="sk-line-sm skeleton-pulse" style={{ width: '50%' }} />
-        <div className="flex gap-3 mt-1">
-          <div className="sk-line-sm skeleton-pulse" style={{ width: '60px' }} />
-          <div className="sk-line-sm skeleton-pulse" style={{ width: '80px' }} />
-        </div>
-        <div className="sk-bar skeleton-pulse" style={{ width: '100%' }} />
-        <div className="flex gap-2 mt-1">
-          <div className="sk-line skeleton-pulse" style={{ width: '70px', height: '28px' }} />
-          <div className="sk-line skeleton-pulse" style={{ width: '70px', height: '28px' }} />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-/** Empty State */
-const EmptyState = ({ icon: Icon, title, subtitle }) => (
-  <div className="empty-state">
-    {Icon && <Icon className="empty-state-icon" />}
-    <p className="font-bold text-white/70 uppercase tracking-wider text-xs">{title}</p>
-    {subtitle && <p className="text-xs text-gray-500 max-w-sm">{subtitle}</p>}
-  </div>
-);
-
-/** Section Header for status groups */
-const SectionHeader = ({ status, count, isCollapsed, onToggle, onSelectAll, allSelected }) => {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
-  const Icon = cfg.icon;
-  return (
-    <div className="st-section-header">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="st-section-header__toggle group"
-      >
-        <ChevronDown
-          className={`w-4 h-4 text-gray-500 section-header-chevron shrink-0 ${isCollapsed ? 'rotated' : ''}`}
-        />
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border shrink-0"
-          style={{ background: cfg.accentBg, borderColor: cfg.accent + '30' }}
-        >
-          <Icon className="w-3.5 h-3.5" style={{ color: cfg.accent }} />
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: cfg.accent }}>
-            {cfg.section}
-          </span>
-        </div>
-        <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0">{count} suất chiếu</span>
-        <div className="flex-1 h-px bg-[#1a2238] group-hover:bg-[#2a3450] transition-colors min-w-[12px]" />
-      </button>
-      {onSelectAll && count > 0 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectAll();
-          }}
-          className="st-section-header__select"
-        >
-          {allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
-        </button>
-      )}
-    </div>
-  );
-};
 
 // ========== MAIN COMPONENT ==========
 
 const ShowtimesPage = () => {
   useMediaUrlRouting();
+  const confirm = useConfirm();
 
   // ---------- STATE ----------
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [createRooms, setCreateRooms] = useState([]);
+  const [autoRooms, setAutoRooms] = useState([]);
+  const [isLoadingCreateRooms, setIsLoadingCreateRooms] = useState(false);
+  const [isLoadingAutoRooms, setIsLoadingAutoRooms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMovies, setIsLoadingMovies] = useState(false);
 
@@ -371,6 +184,57 @@ const ShowtimesPage = () => {
     setSelectedIds(new Set());
   }, [searchTerm, statusFilter, hideCancelled, cinemaFilter, selectedDate, sortKey]);
 
+  const loadCreateRooms = useCallback(async (cinemaUuid) => {
+    if (!cinemaUuid) {
+      setCreateRooms([]);
+      return;
+    }
+    setIsLoadingCreateRooms(true);
+    try {
+      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
+      setCreateRooms(normalizeActiveRooms(data));
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+      setCreateRooms([]);
+      notificationService.error('Không tải được danh sách phòng chiếu');
+    } finally {
+      setIsLoadingCreateRooms(false);
+    }
+  }, []);
+
+  const loadAutoRooms = useCallback(async (cinemaUuid) => {
+    if (!cinemaUuid) {
+      setAutoRooms([]);
+      return;
+    }
+    setIsLoadingAutoRooms(true);
+    try {
+      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
+      setAutoRooms(normalizeActiveRooms(data));
+    } catch (error) {
+      console.error('Failed to fetch rooms:', error);
+      setAutoRooms([]);
+      notificationService.error('Không tải được danh sách phòng chiếu');
+    } finally {
+      setIsLoadingAutoRooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    loadCreateRooms(formData.cinemaUuid);
+  }, [isModalOpen, formData.cinemaUuid, loadCreateRooms]);
+
+  useEffect(() => {
+    if (!isAutoModalOpen) return;
+    loadAutoRooms(autoFormData.cinemaUuid);
+  }, [isAutoModalOpen, autoFormData.cinemaUuid, loadAutoRooms]);
+
+  const scrollAdminMainToTop = useCallback(() => {
+    const main = document.querySelector('[data-scroll-container="admin-main"]');
+    if (main) main.scrollTop = 0;
+  }, []);
+
   const handleAutoClick = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrow = new Date();
@@ -395,17 +259,12 @@ const ShowtimesPage = () => {
       ratingWeight: 1.0,
       genreWeight: 1.0,
     });
-    setRooms([]);
+    setAutoRooms([]);
     setPreviewGenerated([]);
     setSelectedPreviewUuids(new Set());
     setIsAutoPreviewOpen(false);
     setIsAutoModalOpen(true);
-
-    if (cinemas[0]?.uuid) {
-      cinemaService.getRoomsByCinema(cinemas[0].uuid)
-        .then(data => setRooms(data.filter(r => r.status === 'ACTIVE')))
-        .catch(console.error);
-    }
+    scrollAdminMainToTop();
   };
 
   const handleAutoSubmit = async (e) => {
@@ -474,15 +333,12 @@ const ShowtimesPage = () => {
   };
 
   // ---------- HANDLERS ----------
-  const handleCinemaChange = async (cinemaUuid) => {
+  const handleCinemaChange = (cinemaUuid) => {
     setFormData(prev => ({ ...prev, cinemaUuid, cinemaRoomUuid: '' }));
-    if (!cinemaUuid) { setRooms([]); return; }
-    try {
-      const data = await cinemaService.getRoomsByCinema(cinemaUuid);
-      setRooms(data.filter(r => r.status === 'ACTIVE'));
-    } catch (error) {
-      console.error('Failed to fetch rooms:', error);
-    }
+  };
+
+  const handleAutoCinemaChange = (cinemaUuid) => {
+    setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
   };
 
   const handleAddClick = () => {
@@ -490,10 +346,10 @@ const ShowtimesPage = () => {
       movieUuid: movies[0]?.uuid || '', cinemaUuid: cinemas[0]?.uuid || '',
       cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
     });
-    if (cinemas[0]?.uuid) handleCinemaChange(cinemas[0].uuid);
     setIsMovieDropdownOpen(false);
     setSearchMovieKeyword('');
     setIsModalOpen(true);
+    scrollAdminMainToTop();
   };
 
   const handleSubmit = async (e) => {
@@ -521,8 +377,14 @@ const ShowtimesPage = () => {
   };
 
   const handleStatusTransition = async (showtimeUuid, newStatus) => {
-    if (newStatus === 'CANCELLED' && !window.confirm('Bạn có chắc chắn muốn hủy suất chiếu này? Hành động này sẽ tự động hủy và hoàn tiền toàn bộ vé đã đặt.')) {
-      return;
+    if (newStatus === 'CANCELLED') {
+      const ok = await confirm({
+        title: 'Hủy suất chiếu',
+        message: 'Bạn có chắc chắn muốn hủy suất chiếu này? Hành động này sẽ tự động hủy và hoàn tiền toàn bộ vé đã đặt.',
+        confirmLabel: 'Hủy suất chiếu',
+        variant: 'warning',
+      });
+      if (!ok) return;
     }
     try {
       await showtimeService.updateShowtimeStatus(showtimeUuid, newStatus);
@@ -536,7 +398,15 @@ const ShowtimesPage = () => {
   const handleBulkAction = async (action) => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    if (action === 'CANCELLED' && !window.confirm(`Bạn có chắc chắn muốn hủy ${ids.length} suất chiếu?`)) return;
+    if (action === 'CANCELLED') {
+      const ok = await confirm({
+        title: 'Hủy nhiều suất chiếu',
+        message: `Bạn có chắc chắn muốn hủy ${ids.length} suất chiếu đã chọn?`,
+        confirmLabel: 'Hủy suất chiếu',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
     try {
       for (const id of ids) {
         await showtimeService.updateShowtimeStatus(id, action);
@@ -678,17 +548,29 @@ const ShowtimesPage = () => {
     return { total: data.length, selling, scheduled, soldOut, playing, finished, cancelled, revenue };
   }, [dateFilteredShowtimes]);
 
-  // Paginated for grid/list views
+  // Paginated slice for grid/list rendering
   const paginatedShowtimes = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredShowtimes.slice(start, start + itemsPerPage);
   }, [filteredShowtimes, currentPage, itemsPerPage]);
 
-  // Group by status (full filtered set — not paginated slice)
-  const statusGroups = useMemo(() => {
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredShowtimes.length / itemsPerPage) || 1);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredShowtimes.length, itemsPerPage, currentPage]);
+
+  const handleShowtimesPageChange = useCallback((page) => {
+    setCurrentPage(page);
+    scrollAdminMainToTop();
+  }, [scrollAdminMainToTop]);
+
+  // Group current page for grid views
+  const pageStatusGroups = useMemo(() => {
     const groups = {};
     STATUS_ORDER.forEach(s => { groups[s] = []; });
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       if (groups[st.status]) groups[st.status].push(st);
       else groups[st.status] = [st];
     });
@@ -699,12 +581,11 @@ const ShowtimesPage = () => {
       .filter((s) => !STATUS_ORDER.includes(s) && groups[s]?.length > 0)
       .map((s) => ({ status: s, items: groups[s] }));
     return [...ordered, ...extras];
-  }, [filteredShowtimes]);
+  }, [paginatedShowtimes]);
 
-  // Group by cinema → room → movie (full filtered set)
-  const cinemaGroups = useMemo(() => {
+  const pageCinemaGroups = useMemo(() => {
     const map = {};
-    filteredShowtimes.forEach(st => {
+    paginatedShowtimes.forEach(st => {
       const cinema = st.cinemaName || 'Không rõ rạp';
       const room = st.cinemaRoomName || 'Không rõ phòng';
       if (!map[cinema]) map[cinema] = {};
@@ -714,6 +595,15 @@ const ShowtimesPage = () => {
       map[cinema][room][movie].push(st);
     });
     return map;
+  }, [paginatedShowtimes]);
+
+  // Totals per status on full filtered set (for section header hints)
+  const statusTotals = useMemo(() => {
+    const totals = {};
+    filteredShowtimes.forEach(st => {
+      totals[st.status] = (totals[st.status] || 0) + 1;
+    });
+    return totals;
   }, [filteredShowtimes]);
 
   // Movie selection for modal
@@ -722,126 +612,21 @@ const ShowtimesPage = () => {
 
   // ========== RENDER HELPERS ==========
 
-  /** Single showtime card for Grid View */
-  const renderCard = (row) => {
-    const trans = getValidTransitions(row.status);
-    const isSelected = selectedIds.has(row.uuid);
-    
-    // Resolve poster URL
-    const movieObj = movies.find(m => m.uuid === row.movieUuid);
-    const rawPoster = movieObj?.primaryMediaUrl || row.moviePosterUrl;
-
-    return (
-      <div
-        key={row.uuid}
-        className={`st-card status-${row.status} ${isSelected ? 'selected' : ''} flex gap-4`}
-      >
-        {/* Left: Movie Poster & Checkbox */}
-        <div className="flex flex-col items-center gap-2 shrink-0">
-          <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg overflow-hidden border border-[#1a2238] bg-[#0F1322] relative shadow-md">
-            <img
-              src={getPosterSrc(rawPoster, 160)}
-              data-original-url={rawPoster || ''}
-              alt={row.movieTitle}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-              onError={handlePosterError}
-            />
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <input
-              type="checkbox"
-              className="st-checkbox cursor-pointer"
-              checked={isSelected}
-              onChange={() => toggleSelection(row.uuid)}
-            />
-            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">Chọn</span>
-          </div>
-        </div>
-
-        {/* Right: Showtime details */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
-          <div>
-            {/* Top row: StatusBadge + Time */}
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <StatusBadge status={row.status} />
-              <div className="flex items-center gap-1 text-white font-mono text-xs font-bold bg-[#0F1322]/80 px-2 py-0.5 rounded border border-[#1a2238]">
-                <Clock className="w-3 h-3 text-gray-400" />
-                <span>{formatTimeOnly(row.startTime)}</span>
-                <span className="text-gray-500">→</span>
-                <span className="text-gray-400">{formatTimeOnly(row.endTime)}</span>
-              </div>
-            </div>
-
-            {/* Movie Title */}
-            <h3 className="text-xs sm:text-[13px] font-black text-white leading-snug line-clamp-2 mb-1.5" title={row.movieTitle}>
-              {row.movieTitle}
-            </h3>
-
-            {/* Cinema & Room */}
-            <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mb-2">
-              <MapPin className="w-3 h-3 shrink-0 text-gray-500" />
-              <span className="truncate max-w-[100px]">{row.cinemaName}</span>
-              <span className="text-gray-600">•</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-bold">
-                <Tv className="w-2.5 h-2.5" />{row.cinemaRoomName}
-              </span>
-            </div>
-
-            {/* Price & Date */}
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Giá vé</p>
-                <p className="text-amber-400 font-mono text-xs font-black" title={`Thường: ${row.basePrice?.toLocaleString('vi-VN')}đ\nVIP: ${row.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${row.couplePrice?.toLocaleString('vi-VN')}đ`}>
-                  {row.basePrice?.toLocaleString('vi-VN')}đ
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Ngày chiếu</p>
-                <p className="text-gray-400 font-mono text-[10px] font-bold">
-                  {row.startTime ? formatDateShort(new Date(row.startTime)) : ''} ({row.startTime ? formatWeekday(new Date(row.startTime)) : ''})
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-1 pt-1.5 border-t border-[#1a2238]/60 flex justify-end">
-            {trans.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {trans.map(t => (
-                  <button
-                    key={t.target}
-                    onClick={() => handleStatusTransition(row.uuid, t.target)}
-                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition duration-150 cursor-pointer ${getTransitionBtnClass(t.target)}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[9px] text-gray-600 italic">Trạng thái cuối</p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   /** Grid View — Status Grouped */
   const renderGridView = () => {
     if (groupBy === 'cinema') return renderCinemaGroupedGrid();
 
     return (
       <div className="space-y-2 view-fade-enter">
-        {statusGroups.map(({ status, items }) => {
+        {pageStatusGroups.map(({ status, items }) => {
           const isCollapsed = collapsedSections[status];
+          const totalInStatus = statusTotals[status] || items.length;
           return (
             <div key={status} className="st-status-group">
               <SectionHeader
                 status={status}
-                count={items.length}
+                count={totalInStatus}
+                pageCount={items.length}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleSection(status)}
                 onSelectAll={() => toggleSelectAllInGroup(items)}
@@ -851,13 +636,23 @@ const ShowtimesPage = () => {
                 className={`section-collapsible ${isCollapsed ? 'collapsed' : 'expanded'}`}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
-                  {items.map(row => renderCard(row))}
+                  {items.map((row) => (
+                    <ShowtimeCard
+                      key={row.uuid}
+                      row={row}
+                      movies={movies}
+                      isSelected={selectedIds.has(row.uuid)}
+                      onToggleSelect={toggleSelection}
+                      onStatusTransition={handleStatusTransition}
+                      getPosterSrc={getPosterSrc}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
           );
         })}
-        {statusGroups.length === 0 && (
+        {pageStatusGroups.length === 0 && (
           <EmptyState
             icon={Calendar}
             title="Không có suất chiếu nào"
@@ -871,7 +666,7 @@ const ShowtimesPage = () => {
   /** Grid View — Cinema Grouped */
   const renderCinemaGroupedGrid = () => (
     <div className="space-y-6 view-fade-enter">
-      {Object.entries(cinemaGroups).map(([cinemaName, rooms]) => (
+      {Object.entries(pageCinemaGroups).map(([cinemaName, rooms]) => (
         <div key={cinemaName}>
           <button
             onClick={() => toggleSection(`cinema_${cinemaName}`)}
@@ -952,7 +747,7 @@ const ShowtimesPage = () => {
           </div>
         </div>
       ))}
-      {Object.keys(cinemaGroups).length === 0 && (
+      {Object.keys(pageCinemaGroups).length === 0 && (
         <EmptyState icon={Building2} title="Không có dữ liệu" subtitle="Thử thay đổi bộ lọc hoặc chọn ngày khác." />
       )}
     </div>
@@ -1063,35 +858,7 @@ const ShowtimesPage = () => {
         }}
       />
 
-      <div className="adm-kpi-grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
-        {[
-          { label: 'Tổng', value: stats.total, icon: Film, color: 'text-indigo-400', kpiClass: 'kpi-total' },
-          { label: 'Đang Mở Bán', value: stats.selling, icon: Ticket, color: 'text-emerald-400', kpiClass: 'kpi-selling' },
-          { label: 'Sắp Chiếu', value: stats.scheduled, icon: CalendarClock, color: 'text-blue-400', kpiClass: 'kpi-upcoming' },
-          { label: 'Đang Chiếu', value: stats.playing, icon: Play, color: 'text-purple-400', kpiClass: 'kpi-playing' },
-          { label: 'Đã Kết Thúc', value: stats.finished, icon: Eye, color: 'text-gray-400', kpiClass: 'kpi-ended' },
-          { label: 'Đã Hủy', value: stats.cancelled, icon: Ban, color: 'text-rose-400', kpiClass: 'kpi-cancelled' },
-          { label: 'Doanh Thu', value: stats.revenue >= 1000000 ? `${(stats.revenue / 1000000).toFixed(1)}M` : stats.revenue.toLocaleString('vi-VN') + 'đ', icon: CreditCard, color: 'text-pink-400', kpiClass: 'kpi-revenue' },
-        ].map(kpi => (
-          <button
-            key={kpi.label}
-            type="button"
-            onClick={() => handleKpiClick(kpi.label)}
-            className={`adm-kpi-card kpi-card kpi-card--clickable ${kpi.kpiClass}${
-              (kpi.label === 'Tổng' ? !statusFilter : statusFilter === KPI_STATUS_MAP[kpi.label])
-                ? ' kpi-card--active'
-                : ''
-            }`}
-            title={`Lọc theo: ${kpi.label}`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
-              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
-            </div>
-            <p className={`text-xl font-black ${kpi.color} tabular-nums leading-none`}>{kpi.value}</p>
-          </button>
-        ))}
-      </div>
+      <ShowtimesKpiGrid stats={stats} statusFilter={statusFilter} onKpiClick={handleKpiClick} />
 
       {/* ==================== DATE NAVIGATOR ==================== */}
       <div className="mb-5">
@@ -1195,8 +962,8 @@ const ShowtimesPage = () => {
               )}{' '}
               suất
             </span>
-            {statusGroups.length > 0 && viewMode === 'grid' && groupBy === 'status' && (
-              <span className="st-toolbar__meta">{statusGroups.length} nhóm trạng thái</span>
+            {Object.keys(statusTotals).length > 0 && viewMode === 'grid' && groupBy === 'status' && (
+              <span className="st-toolbar__meta">{Object.keys(statusTotals).length} nhóm trạng thái</span>
             )}
             {hasActiveFilters && (
               <button type="button" className="st-toolbar__clear" onClick={clearFilters}>
@@ -1205,7 +972,7 @@ const ShowtimesPage = () => {
             )}
           </div>
 
-          {viewMode === 'grid' && groupBy === 'status' && statusGroups.length > 0 && (
+          {viewMode === 'grid' && groupBy === 'status' && Object.keys(statusTotals).length > 0 && (
             <div className="st-toolbar__group-actions">
               <button type="button" className="st-btn-ghost" onClick={expandAllStatusSections}>
                 <ChevronsDown className="w-3.5 h-3.5" /> Mở tất cả
@@ -1317,647 +1084,66 @@ const ShowtimesPage = () => {
           {viewMode === 'grid' && renderGridView()}
           {viewMode === 'list' && renderListView()}
 
-          {/* Pagination — list view only; grid groups show full filtered set */}
-          {viewMode === 'list' && filteredShowtimes.length > itemsPerPage && (
-            <div className="mt-6 flex justify-end">
+          {filteredShowtimes.length > 0 && (
+            <div className="mt-6">
               <Pagination
                 currentPage={currentPage}
                 totalItems={filteredShowtimes.length}
                 itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
+                onPageChange={handleShowtimesPageChange}
+                onItemsPerPageChange={setItemsPerPage}
+                itemsPerPageOptions={[12, 24, 48, 96]}
               />
             </div>
           )}
         </>
       )}
 
-      {/* ==================== CREATE SHOWTIME MODAL ==================== */}
       {isAutoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[95vh] overflow-y-auto custom-scrollbar flex flex-col">
-            <button
-              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-              onClick={() => {
-                setIsAutoModalOpen(false);
-                setIsAutoPreviewOpen(false);
-              }}
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-4 shrink-0">
-              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <CalendarDays className="w-4 h-4 text-amber-400" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Tự Động Tạo Suất Chiếu Tối Ưu</h2>
-                <p className="text-[10px] text-gray-500">Cấu hình thuật toán tối ưu hóa lịch chiếu theo 5 yếu tố</p>
-              </div>
-            </div>
-
-            {!isAutoPreviewOpen ? (
-              <form onSubmit={handleAutoSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Bắt Đầu *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.startDate}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Kết Thúc *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.endDate}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Rạp Chiếu *</label>
-                      <select
-                        className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                        value={autoFormData.cinemaUuid}
-                        onChange={async (e) => {
-                          const cinemaUuid = e.target.value;
-                          setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
-                          if (cinemaUuid) {
-                            try {
-                              const data = await cinemaService.getRoomsByCinema(cinemaUuid);
-                              setRooms(data.filter(r => r.status === 'ACTIVE'));
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          } else {
-                            setRooms([]);
-                          }
-                        }}
-                        required
-                      >
-                        <option value="">-- Chọn Rạp --</option>
-                        {cinemas.map(c => (
-                          <option key={c.uuid} value={c.uuid}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phòng Chiếu *</label>
-                      <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
-                        {rooms.map(room => (
-                          <label key={room.uuid} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white">
-                            <input
-                              type="checkbox"
-                              checked={autoFormData.roomUuids.includes(room.uuid)}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setAutoFormData(prev => {
-                                  const nextRooms = checked 
-                                    ? [...prev.roomUuids, room.uuid]
-                                    : prev.roomUuids.filter(id => id !== room.uuid);
-                                  return { ...prev, roomUuids: nextRooms };
-                                });
-                              }}
-                              className="st-checkbox"
-                            />
-                            <span>{room.name}</span>
-                          </label>
-                        ))}
-                        {rooms.length === 0 && <span className="text-[10px] text-gray-500 col-span-2">Vui lòng chọn rạp chiếu trước</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phim Chiếu *</label>
-                      <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
-                        {movies.map(movie => (
-                          <label key={movie.uuid} className="flex items-center justify-between cursor-pointer text-xs text-gray-300 hover:text-white p-1 hover:bg-white/5 rounded transition-colors">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={autoFormData.movieUuids.includes(movie.uuid)}
-                                onChange={(e) => {
-                                  const checked = e.target.checked;
-                                  setAutoFormData(prev => {
-                                    const nextMovies = checked 
-                                      ? [...prev.movieUuids, movie.uuid]
-                                      : prev.movieUuids.filter(id => id !== movie.uuid);
-                                    return { ...prev, movieUuids: nextMovies };
-                                  });
-                                }}
-                                className="st-checkbox"
-                              />
-                              <span className="font-bold truncate max-w-[150px]">{movie.title}</span>
-                            </div>
-                            <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black shrink-0 font-mono">
-                              ★ {movie.rating != null ? movie.rating.toFixed(1) : '—'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ mở cửa *</label>
-                    <input
-                      type="time"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.startTime}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ đóng cửa *</label>
-                    <input
-                      type="time"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.endTime}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Dọn dẹp (phút) *</label>
-                    <input
-                      type="number"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.intervalMinutes}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) || 15 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.basePrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.vipPrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.couplePrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Weights Sliders */}
-                <div className="bg-[#0F1322]/50 border border-[#1a2238] rounded-xl p-4 space-y-3 text-left">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-bold uppercase text-amber-400 font-black">Trọng số thuật toán (Weights)</span>
-                    <span className="text-[10px] text-gray-500">Tùy biến mức độ ưu tiên giữa các yếu tố</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Weekend Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Cuối tuần (Weekend)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.weekendWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.weekendWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, weekendWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Golden Hour Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Giờ vàng (Golden Hour)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.goldenHourWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.goldenHourWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, goldenHourWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Rating Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Đánh giá phim (Rating)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.ratingWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.ratingWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, ratingWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Genre Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Thể loại phim (Genre)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.genreWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.genreWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, genreWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238] shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsAutoModalOpen(false)}
-                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isAutoLoading}
-                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
-                  >
-                    {isAutoLoading ? (
-                      <>
-                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-                        Đang phân tích...
-                      </>
-                    ) : (
-                      <>Phân tích & Gợi ý</>
-                    )}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="mb-3 shrink-0 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400">
-                    Tìm thấy <span className="text-amber-400">{previewGenerated.length}</span> suất chiếu tối ưu.
-                  </span>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="st-checkbox"
-                      checked={previewGenerated.length > 0 && selectedPreviewUuids.size === previewGenerated.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPreviewUuids(new Set(previewGenerated.map((_, idx) => idx)));
-                        } else {
-                          setSelectedPreviewUuids(new Set());
-                        }
-                      }}
-                    />
-                    <span>Chọn tất cả</span>
-                  </label>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[50vh] custom-scrollbar">
-                  {previewGenerated.map((p, idx) => {
-                    const isSelected = selectedPreviewUuids.has(idx);
-                    const pillColor = p.priorityScore >= 25 
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                      : p.priorityScore >= 15 
-                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                      : 'bg-zinc-500/10 border-zinc-500/30 text-zinc-400';
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex gap-3 p-3 rounded-lg border bg-[#0B0F19]/90 transition-all ${isSelected ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-[#1a2238] hover:border-gray-700'}`}
-                      >
-                        <div className="flex items-center shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => togglePreviewSelection(idx)}
-                            className="st-checkbox cursor-pointer"
-                          />
-                        </div>
-
-                        <div className="w-10 h-14 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
-                          <img
-                            src={getPosterSrc(p.moviePosterUrl, 80)}
-                            data-original-url={p.moviePosterUrl || ''}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            onError={handlePosterError}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h4 className="font-black text-white text-xs truncate" title={p.movieTitle}>{p.movieTitle}</h4>
-                              <span className={`px-2 py-0.5 rounded border text-[10px] font-black font-mono shrink-0 ${pillColor}`}>
-                                Điểm: {p.priorityScore.toFixed(1)}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
-                              <span className="text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 rounded text-[9px] uppercase">{p.cinemaRoomName}</span>
-                              <span>•</span>
-                              <span>{p.durationMinutes} phút</span>
-                              <span>•</span>
-                              <span className="font-mono font-bold text-amber-400" title={`Thường: ${p.basePrice.toLocaleString('vi-VN')}đ\nVIP: ${p.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${p.couplePrice?.toLocaleString('vi-VN')}đ`}>
-                                {p.basePrice.toLocaleString('vi-VN')}đ
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-[#1a2238]/50">
-                            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
-                              <Clock className="w-3 h-3 text-gray-500" />
-                              <span className="text-white font-bold">{formatTimeOnly(p.startTime)}</span>
-                              <span>→</span>
-                              <span className="text-gray-400">{formatTimeOnly(p.endTime)}</span>
-                              <span className="ml-1 text-gray-600">({formatDateShort(new Date(p.startTime))} {formatWeekday(new Date(p.startTime))})</span>
-                            </div>
-                            <div className="flex gap-1.5 text-[8px] font-black uppercase text-gray-500">
-                              {p.scoreBreakdown.weekendScore > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
-                              {p.scoreBreakdown.goldenHourScore > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
-                              {p.scoreBreakdown.genreScore > 4.0 && <span className="text-blue-500/80">HOT Genre</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-between items-center pt-3 border-t border-[#1a2238] mt-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsAutoPreviewOpen(false)}
-                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                  >
-                    Quay lại
-                  </button>
-                  <button
-                    onClick={handleSaveAuto}
-                    disabled={isSavingAuto || selectedPreviewUuids.size === 0}
-                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
-                  >
-                    {isSavingAuto ? (
-                      <>
-                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      <>Lưu {selectedPreviewUuids.size} Suất Chiếu</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <ShowtimesAutoModal
+            onClose={() => { setIsAutoModalOpen(false); setIsAutoPreviewOpen(false); }}
+            isAutoPreviewOpen={isAutoPreviewOpen}
+            autoFormData={autoFormData}
+            setAutoFormData={setAutoFormData}
+            cinemas={cinemas}
+            rooms={autoRooms}
+            isLoadingRooms={isLoadingAutoRooms}
+            onCinemaChange={handleAutoCinemaChange}
+            movies={movies}
+            handleAutoSubmit={handleAutoSubmit}
+            previewGenerated={previewGenerated}
+            selectedPreviewUuids={selectedPreviewUuids}
+            setSelectedPreviewUuids={setSelectedPreviewUuids}
+            togglePreviewSelection={togglePreviewSelection}
+            handleSaveAuto={handleSaveAuto}
+            isAutoLoading={isAutoLoading}
+            isSavingAuto={isSavingAuto}
+            setIsAutoPreviewOpen={setIsAutoPreviewOpen}
+          />
+        </Suspense>
       )}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button
-              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-              onClick={() => setIsModalOpen(false)}
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                <Plus className="w-4 h-4 text-red-400" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Thêm Suất Chiếu Mới</h2>
-                <p className="text-[10px] text-gray-500">Tạo khung giờ chiếu phim mới cho hệ thống rạp</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Movie Selection */}
-              <div className="space-y-1">
-                <label className="block text-[11px] font-bold uppercase text-gray-400">Chọn Phim *</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 flex items-center justify-between text-left cursor-pointer transition-colors"
-                    onClick={() => setIsMovieDropdownOpen(!isMovieDropdownOpen)}
-                  >
-                    <span className="truncate">{selectedMovie ? selectedMovie.title : 'Chọn phim từ cơ sở dữ liệu...'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isMovieDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isMovieDropdownOpen && (
-                    <div className="absolute z-50 w-full mt-1 bg-[#090D1A] border border-[#1a2238] rounded-lg shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                      <div className="p-2 border-b border-[#1a2238] flex items-center gap-2 mb-1">
-                        <Search className="w-4 h-4 text-gray-400 shrink-0" />
-                        <input
-                          type="text"
-                          placeholder="Tìm nhanh tên phim..."
-                          className="w-full text-xs outline-none border-none bg-transparent text-white"
-                          value={searchMovieKeyword}
-                          onChange={(e) => setSearchMovieKeyword(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                      {isLoadingMovies ? (
-                        <div className="text-center py-4 text-xs text-gray-400">Đang tải danh sách phim...</div>
-                      ) : filteredMovies.length > 0 ? (
-                        filteredMovies.map(movie => (
-                          <button
-                            key={movie.uuid}
-                            type="button"
-                            className={`w-full flex items-center gap-3 p-2 rounded-md hover:bg-white/5 transition text-left cursor-pointer ${formData.movieUuid === movie.uuid ? 'bg-red-500/10 text-red-500 border border-red-500/30' : 'border border-transparent'}`}
-                            onClick={() => {
-                              setFormData(prev => ({ ...prev, movieUuid: movie.uuid }));
-                              setIsMovieDropdownOpen(false);
-                              setSearchMovieKeyword('');
-                            }}
-                          >
-                            <Film className="w-4 h-4 shrink-0 text-gray-500" />
-                            <div className="overflow-hidden leading-tight">
-                              <div className="font-bold text-xs text-white truncate">{movie.title}</div>
-                              <div className="text-[10px] text-gray-400 mt-0.5">{movie.durationMinutes} phút · {movie.status === 'NOW_SHOWING' ? 'Đang chiếu' : 'Sắp chiếu'}</div>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="text-center py-4 text-xs text-gray-400">Không tìm thấy bộ phim nào</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {selectedMovie && (
-                  <div className="flex items-center gap-3 p-3 bg-[#0F1322]/50 rounded-lg border border-[#1a2238] mt-2 text-left">
-                    <Film className="w-4 h-4 text-rose-400 shrink-0" />
-                    <div className="overflow-hidden leading-normal text-left">
-                      <div className="font-bold text-white truncate text-xs">{selectedMovie.title}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">
-                        Thời lượng: {selectedMovie.durationMinutes} phút (+10m trailer)
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Cinema Selection */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Chọn Rạp Chiếu *</label>
-                <select
-                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50"
-                  value={formData.cinemaUuid}
-                  onChange={(e) => handleCinemaChange(e.target.value)}
-                  required
-                >
-                  <option value="">-- Chọn Rạp --</option>
-                  {cinemas.map(c => (
-                    <option key={c.uuid} value={c.uuid}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Room Selection */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Chọn Phòng Chiếu *</label>
-                <select
-                  className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50"
-                  value={formData.cinemaRoomUuid}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cinemaRoomUuid: e.target.value }))}
-                  required
-                  disabled={!formData.cinemaUuid}
-                >
-                  <option value="">-- Chọn Phòng Chiếu --</option>
-                  {rooms.map(r => (
-                    <option key={r.uuid} value={r.uuid}>{r.name} ({r.roomCode} · {r.roomType})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Datetime Picker */}
-                <div className="col-span-2">
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Thời Gian Bắt Đầu *</label>
-                  <input
-                    type="datetime-local"
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                {/* Base Ticket Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
-                  <input
-                    type="number"
-                    min="10000"
-                    step="5000"
-                    required
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                    value={formData.basePrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
-                  />
-                </div>
-                {/* VIP Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
-                  <input
-                    type="number"
-                    min="10000"
-                    step="5000"
-                    required
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                    value={formData.vipPrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
-                  />
-                </div>
-                {/* Couple Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
-                  <input
-                    type="number"
-                    min="10000"
-                    step="5000"
-                    required
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                    value={formData.couplePrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238]">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-red-600/10"
-                >
-                  Tạo Suất Chiếu
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <ShowtimesCreateModal
+            onClose={() => setIsModalOpen(false)}
+            formData={formData}
+            setFormData={setFormData}
+            cinemas={cinemas}
+            rooms={createRooms}
+            isLoadingRooms={isLoadingCreateRooms}
+            movies={movies}
+            filteredMovies={filteredMovies}
+            selectedMovie={selectedMovie}
+            isLoadingMovies={isLoadingMovies}
+            isMovieDropdownOpen={isMovieDropdownOpen}
+            setIsMovieDropdownOpen={setIsMovieDropdownOpen}
+            searchMovieKeyword={searchMovieKeyword}
+            setSearchMovieKeyword={setSearchMovieKeyword}
+            handleCinemaChange={handleCinemaChange}
+            handleSubmit={handleSubmit}
+          />
+        </Suspense>
       )}
     </AdminPage>
   );

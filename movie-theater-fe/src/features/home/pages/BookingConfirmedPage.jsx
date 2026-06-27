@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl, maskTicketCode } from '../utils/movieUtils';
 import './BookingConfirmedPage.css';
@@ -76,7 +74,6 @@ export const BookingConfirmedPage = () => {
 
   return (
     <div className="bg-mesh min-h-screen flex flex-col justify-between">
-      <Navbar />
       
       <main className="relative z-10 flex-grow flex items-center justify-center px-4 md:px-16 lg:px-20 py-12 mt-12 w-full max-w-7xl mx-auto">
         <div 
@@ -220,8 +217,6 @@ export const BookingConfirmedPage = () => {
           </div>
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 };
