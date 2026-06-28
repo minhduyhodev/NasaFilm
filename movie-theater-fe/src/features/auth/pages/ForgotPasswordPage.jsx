@@ -32,11 +32,11 @@ export const ForgotPasswordPage = () => {
       await authService.forgotPassword({ email: data.email });
       setSubmittedEmail(data.email);
       setSuccessMessage(
-        `Mã khôi phục đã được gửi tới ${data.email}. Vui lòng kiểm tra email của bạn.`
+        `Yêu cầu đã được xử lý. Chúng tôi đã gửi mã xác thực đến địa chỉ email ${data.email} bạn cung cấp, với điều kiện tài khoản này đã được đăng ký hợp lệ trên hệ thống.`
       );
       setTimeout(() => {
         navigate('/login');
-      }, 3000);
+      }, 5000);
     } catch (error) {
       if (error instanceof Error && error.message === 'GOOGLE_SSO_ACCOUNT') {
         notificationService.info('Tài khoản của bạn đã được liên kết với Google. Vui lòng đăng nhập qua Google.');
