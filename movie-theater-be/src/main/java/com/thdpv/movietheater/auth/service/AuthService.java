@@ -262,6 +262,14 @@ public class AuthService {
             throw new AppException(ErrorCode.USER_NOT_VERIFIED);
         }
 
+        if (user.getStatus() == UserStatus.BANNED) {
+            throw new AppException(ErrorCode.ACCOUNT_BANNED);
+        }
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
+
         throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVE);
     }
 
@@ -385,7 +393,7 @@ public class AuthService {
         emailService.sendOtpEmail(user.getEmail(), otpCode);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = AppException.class)
     public void verifyRegister(VerifyRequest request) {
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -430,16 +438,16 @@ public class AuthService {
             }
         }
 
+        // Add Customer Role
+        Role role = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
+
         user.setVerificationAttempts(0);
         user.setVerificationLockTime(null);
         user.setStatus(UserStatus.ACTIVE);
         user.setVerificationCode(null);
         user.setVerificationCodeExpiry(null);
         userRepository.save(user);
-
-        // Add Customer Role
-        Role role = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
 
         // Check if UserRole mapping already exists
         if (userRoleRepository.findByUserId(user.getId()).stream()
