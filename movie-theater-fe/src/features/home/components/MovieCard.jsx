@@ -1,8 +1,10 @@
 import React from 'react';
-import { Star, Tag, Clock, Globe } from 'lucide-react';
+import { Tag, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
+import PosterImage from '../../../shared/components/PosterImage';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction }) => {
+const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -11,11 +13,17 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
   };
 
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-  const linkTarget = uuid ? `/movie/${uuid}` : `/movie/${slug}`;
-  const displayPoster = primaryMediaUrl || poster;
+  const resolveOnlinePath = (movieUuid) => {
+    if (getOnlinePath) return getOnlinePath(movieUuid);
+    return getOnlineMoviePath(movieUuid, vodStatus);
+  };
+  const linkTarget =
+    fromOnline && uuid
+      ? resolveOnlinePath(uuid)
+      : getMovieDetailPath(uuid || slug, { online: false });
+  const watchTarget = linkTarget;
   const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
   const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
-  const displayRating = rating ? rating : '0.0';
 
   // Format badge color mappings matching mockup styles
   const getFormatBadgeStyle = (fmt) => {
@@ -31,9 +39,10 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
       {/* Clickable Poster Frame */}
       <div className="relative w-full aspect-[2/3] overflow-hidden rounded-[20px] transition-transform duration-500 group-hover:scale-[1.02] shadow-[0_15px_35px_rgba(0,0,0,0.4)]">
         <Link to={linkTarget} className="block w-full h-full">
-          <img
-            src={displayPoster}
+          <PosterImage
+            src={pickPosterMediaUrl({ uuid, primaryMediaUrl, poster })}
             alt={title}
+            width={400}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         </Link>
@@ -55,12 +64,6 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
             </span>
           )}
         </div>
-        {rating && (
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-black/60 backdrop-blur-md text-yellow-400 border border-white/10">
-            <Star className="h-3 w-3 fill-current text-yellow-400" />
-            <span>{parseFloat(displayRating).toFixed(1)}</span>
-          </div>
-        )}
 
         {/* Hover Details Overlay on Poster */}
         {hoverDetails && (
@@ -107,8 +110,8 @@ const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl
 
         {/* Clean Editorial Link */}
         <div className="pt-2">
-          <Link to={linkTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
-            [Mua vé]
+          <Link to={watchTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
+            [{actionLabel}]
           </Link>
         </div>
       </div>

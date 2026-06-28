@@ -11,7 +11,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
+import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.BookingCombo;
@@ -44,7 +47,20 @@ import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
+import com.thdpv.movietheater.config.service.SystemConfigService;
+import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
+import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
+import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
+import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.notification.service.TheaterNotificationService;
+import com.thdpv.movietheater.payment.service.PaymentService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +84,157 @@ public class BookingService {
     private final PromotionRepository promotionRepository;
     private final ShowtimeRepository showtimeRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
+    private final MovieRepository movieRepository;
+    private final SystemConfigService systemConfigService;
+    private final VodNotificationService vodNotificationService;
+    private final TheaterNotificationService theaterNotificationService;
+    private final VoucherRedemptionService voucherRedemptionService;
+    private final SeatMapEventPublisher seatMapEventPublisher;
+    private final RealtimeEventPublisher realtimeEventPublisher;
+    private final CancellationRefundService cancellationRefundService;
+    private final PaymentService paymentService;
+    private final ShowtimeCapacityService showtimeCapacityService;
+
+    @Transactional
+    public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
+        if (request.getMovieUuid() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "ID phim không được để trống");
+        }
+        Movie movie = movieRepository.findById(request.getMovieUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+
+        if (movie.getScreeningMode() == ScreeningMode.THEATER_ONLY || movie.getScreeningMode() == ScreeningMode.NONE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
+        }
+
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Optional<Booking> existingOpt = bookingJpaRepository
+                .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                        userUuid, request.getMovieUuid(), "ONLINE", BOOKING_STATUS_CONFIRMED);
+        if (existingOpt.isPresent()) {
+            Booking existing = existingOpt.get();
+            boolean stillValid = existing.getFirstPlayedAt() == null
+                    || (existing.getExpiresAt() != null && !now.isAfter(existing.getExpiresAt()));
+            if (stillValid) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Bạn vẫn còn vé xem online còn hiệu lực cho phim này. Vui lòng kích hoạt hoặc xem trước khi mua thêm.");
+            }
+            supersedeOnlineBookings(userUuid, request.getMovieUuid(), now);
+        }
+
+        BigDecimal basePrice = movie.getOnlinePrice() != null
+                ? movie.getOnlinePrice()
+                : systemConfigService.getDefaultOnlinePrice();
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        UUID promotionUuid = null;
+        Promotion resolvedPromotion = null;
+
+        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
+            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
+                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
+
+            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
+            }
+
+            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
+            }
+
+            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
+            }
+
+            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
+                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
+            }
+
+            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
+                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
+                if (alreadyUsed) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
+                }
+            }
+
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
+            promotionUuid = resolvedPromotion.getId();
+            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+                discountAmount = basePrice.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+                discountAmount = resolvedPromotion.getDiscountValue();
+            }
+        }
+
+        BigDecimal totalPrice = basePrice.subtract(discountAmount);
+        if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            totalPrice = BigDecimal.ZERO;
+        }
+
+        UUID bookingUuid = UUID.randomUUID();
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
+
+        Booking booking = new Booking();
+        booking.setUuid(bookingUuid);
+        booking.setUserUuid(userUuid);
+        booking.setShowtimeUuid(null);
+        booking.setMovieUuid(movie.getUuid());
+        booking.setBookingType("ONLINE");
+        booking.setTotalPrice(totalPrice);
+        booking.setStatus(BOOKING_STATUS_CONFIRMED);
+        booking.setCreatedAt(now);
+        booking.setUpdatedAt(now);
+        booking.setConfirmedAt(now);
+        booking.setCreatedBy(userUuid);
+        booking.setUpdatedBy(userUuid);
+        booking.setPromotionUuid(promotionUuid);
+
+        bookingJpaRepository.save(booking);
+
+        if (resolvedPromotion != null) {
+            int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
+            resolvedPromotion.setUsedCount(currentUsed + 1);
+            promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
+        }
+
+        int scoreAdded = calculateScore(totalPrice);
+        if (scoreAdded > 0) {
+            bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
+            bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+        }
+
+        try {
+            vodNotificationService.sendVodTicketEmail(userUuid, bookingUuid, movie.getTitle(), movie.getUuid());
+        } catch (Exception ex) {
+            // Không chặn đặt vé nếu gửi email thất bại
+        }
+
+        realtimeEventPublisher.notifyOnlineBookingConfirmed(bookingUuid);
+
+        return new BookingResponse(
+                bookingUuid,
+                null,
+                BOOKING_STATUS_CONFIRMED,
+                totalPrice,
+                scoreAdded,
+                now,
+                List.of(),
+                List.of(),
+                List.of()
+        );
+    }
 
     @Transactional
     public BookingResponse confirmBooking(String currentUserEmail, ConfirmBookingRequest request) {
@@ -81,6 +248,7 @@ public class BookingService {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
+        showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
         List<LockedSeat> lockedSeats = bookingRepository.lockActiveSeatsForConfirm(
@@ -150,6 +318,15 @@ public class BookingService {
                 }
             }
 
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        userUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
             promotionUuid = resolvedPromotion.getId();
             if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
                 // Percentage discount applies to ticket sum (seatTotal)
@@ -167,6 +344,8 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
+
         Booking booking = new Booking(
                 bookingUuid,
                 userUuid,
@@ -185,6 +364,7 @@ public class BookingService {
             int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
             resolvedPromotion.setUsedCount(currentUsed + 1);
             promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
@@ -219,6 +399,7 @@ public class BookingService {
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
             bookingRepository.addUserScore(userUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
             bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
         }
 
@@ -241,6 +422,22 @@ public class BookingService {
             // Log warning but do not break booking flow
         }
 
+        try {
+            sendTheaterTicketEmailNotification(
+                    userUuid,
+                    bookingUuid,
+                    request.getShowtimeUuid(),
+                    seatLines,
+                    comboLines,
+                    ticketLines,
+                    totalPrice);
+        } catch (Exception ex) {
+            // Không chặn đặt vé nếu gửi email thất bại
+        }
+
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
+        realtimeEventPublisher.notifyBookingConfirmed(bookingUuid, request.getShowtimeUuid());
+
         return new BookingResponse(
                 bookingUuid,
                 request.getShowtimeUuid(),
@@ -261,6 +458,22 @@ public class BookingService {
         }
         if (showtime.getStartTime() != null && showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
+        }
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+        if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
+    }
+
+    private void supersedeOnlineBookings(UUID userUuid, UUID movieUuid, OffsetDateTime now) {
+        List<Booking> priorBookings = bookingJpaRepository.findByUserUuidAndMovieUuidAndBookingTypeAndStatus(
+                userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED);
+        for (Booking prior : priorBookings) {
+            prior.setStatus("CANCELLED");
+            prior.setUpdatedAt(now);
+        }
+        if (!priorBookings.isEmpty()) {
+            bookingJpaRepository.saveAll(priorBookings);
         }
     }
 
@@ -369,8 +582,10 @@ public class BookingService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }
@@ -398,6 +613,61 @@ public class BookingService {
                 + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
+    private void sendTheaterTicketEmailNotification(
+            UUID userUuid,
+            UUID bookingUuid,
+            UUID showtimeUuid,
+            List<BookingResponse.SeatLine> seatLines,
+            List<BookingResponse.ComboLine> comboLines,
+            List<BookingResponse.TicketLine> ticketLines,
+            BigDecimal totalPrice) {
+        Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
+        if (showtime == null) {
+            return;
+        }
+
+        Movie movie = movieRepository.findById(showtime.getMovieUuid()).orElse(null);
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+
+        String movieTitle = movie != null ? movie.getTitle() : "Phim";
+        String cinemaName = room != null ? room.getName() : "";
+        if (room != null && room.getCinema() != null && room.getCinema().getName() != null) {
+            cinemaName = room.getCinema().getName() + " - " + room.getName();
+        }
+
+        String showtimeLabel = "";
+        if (showtime.getStartTime() != null) {
+            showtimeLabel = showtime.getStartTime()
+                    .withOffsetSameInstant(ZoneOffset.ofHours(7))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"));
+        }
+
+        String seatsLabel = seatLines.stream()
+                .map(seat -> seat.getRowName() + seat.getSeatNumber())
+                .collect(Collectors.joining(", "));
+
+        String combosLabel = comboLines.isEmpty()
+                ? "Không kèm bắp nước"
+                : comboLines.stream()
+                        .map(combo -> combo.getQuantity() + "x " + combo.getName())
+                        .collect(Collectors.joining(", "));
+
+        String ticketCodes = ticketLines.stream()
+                .map(BookingResponse.TicketLine::getTicketCode)
+                .collect(Collectors.joining(", "));
+
+        theaterNotificationService.sendTheaterTicketEmail(
+                userUuid,
+                bookingUuid,
+                movieTitle,
+                cinemaName,
+                showtimeLabel,
+                seatsLabel,
+                combosLabel,
+                formatPrice(totalPrice),
+                ticketCodes);
+    }
+
     @Transactional(readOnly = true)
     public List<CustomerBookingHistoryResponse> getMyBookings(String email) {
         UUID userUuid = resolveRequiredUserUuid(email);
@@ -418,30 +688,200 @@ public class BookingService {
             String rawCombosStr = stringValue(row[8]);
             String ticketCode = stringValue(row[9]);
             String ticketStatus = stringValue(row[10]);
+            UUID movieUuid = toUuid(row[11]);
+            String bookingType = stringValue(row[12]);
+            OffsetDateTime firstPlayedAt = bookingRepository.toOffsetDateTime(row[13]);
+            OffsetDateTime expiresAt = bookingRepository.toOffsetDateTime(row[14]);
+            if (firstPlayedAt != null) {
+                firstPlayedAt = firstPlayedAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            if (expiresAt != null) {
+                expiresAt = expiresAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
 
             String combosStr = (rawCombosStr == null || rawCombosStr.isBlank()) ? "Không kèm bắp nước" : rawCombosStr;
             String priceStr = formatPrice(totalPrice);
+            String cinemaLabel = roomName;
+            boolean isOnline = isOnlineBookingType(bookingType, cinemaLabel);
+            boolean vodActivated = isOnline && firstPlayedAt != null;
+            OffsetDateTime now = OffsetDateTime.now();
 
-            // Status: active if movie hasn't started yet, completed if movie has started/finished
-            String status = startTime.isAfter(OffsetDateTime.now()) ? "active" : "completed";
-            if ("CANCELLED".equalsIgnoreCase(bookingStatus) || "USED".equalsIgnoreCase(ticketStatus)) {
-                status = "completed";
+            // active = còn dùng được; cancelled / used / expired = vé không còn hiệu lực
+            String status;
+            if (isCancelledBookingStatus(bookingStatus)) {
+                status = "cancelled";
+            } else if ("USED".equalsIgnoreCase(ticketStatus)) {
+                status = "used";
+            } else if (isOnline) {
+                if (vodActivated && expiresAt != null && now.isAfter(expiresAt)) {
+                    status = "expired";
+                } else {
+                    status = "active";
+                }
+            } else if (startTime != null && startTime.isAfter(now)) {
+                status = "active";
+            } else {
+                status = "expired";
             }
+
+            boolean cancellable = "CONFIRMED".equalsIgnoreCase(bookingStatus)
+                    && "active".equals(status)
+                    && (!isOnline || !vodActivated);
 
             responses.add(new CustomerBookingHistoryResponse(
                     bookingUuid,
                     ticketCode,
                     movieTitle,
                     roomName,
-                    startTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy")),
+                    startTime != null
+                            ? startTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                            : "",
                     seatsStr,
                     combosStr,
                     priceStr,
-                    status
+                    status,
+                    movieUuid,
+                    bookingType,
+                    cancellable,
+                    vodActivated,
+                    bookingStatus
             ));
         }
 
+        Set<UUID> movieUuids = responses.stream()
+                .map(CustomerBookingHistoryResponse::getMovieUuid)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!movieUuids.isEmpty()) {
+            Map<UUID, Movie> moviesByUuid = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                    .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
+            for (CustomerBookingHistoryResponse response : responses) {
+                if (response.getMovieUuid() != null) {
+                    Movie movie = moviesByUuid.get(response.getMovieUuid());
+                    if (movie != null) {
+                        response.setMoviePosterUrl(resolvePrimaryPosterUrl(movie));
+                        response.setMovieAgeRestriction(movie.getAgeRestriction());
+                    }
+                }
+            }
+        }
+
         return responses;
+    }
+
+    private String resolvePrimaryPosterUrl(Movie movie) {
+        if (movie == null || movie.getMovieMedias() == null) {
+            return null;
+        }
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PurchaseHistoryResponse> getPurchaseHistory(String email) {
+        UUID userUuid = resolveRequiredUserUuid(email);
+        List<Object[]> rows = bookingRepository.loadPurchaseHistory(userUuid);
+        List<PurchaseHistoryResponse> responses = new ArrayList<>();
+        List<UUID> bookingUuids = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            if (bookingUuid != null) {
+                bookingUuids.add(bookingUuid);
+            }
+        }
+
+        Map<UUID, com.thdpv.movietheater.booking.entity.Payment> paymentsByBooking = bookingUuids.isEmpty()
+                ? Map.of()
+                : paymentService.findLatestPayments(bookingUuids);
+
+        for (Object[] row : rows) {
+            UUID bookingUuid = toUuid(row[0]);
+            String ticketCode = stringValue(row[1]);
+            String movieTitle = stringValue(row[2]);
+            String cinemaName = stringValue(row[3]);
+            String roomName = stringValue(row[4]);
+            OffsetDateTime showtimeRaw = bookingRepository.toOffsetDateTime(row[5]);
+            if (showtimeRaw != null) {
+                showtimeRaw = showtimeRaw.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            String seatsStr = stringValue(row[6]);
+            String combosStr = stringValue(row[7]);
+            BigDecimal totalPrice = toBigDecimal(row[8]);
+            String bookingStatus = stringValue(row[9]);
+            String bookingType = stringValue(row[10]);
+            String promotionCode = stringValue(row[11]);
+            String promotionDiscountType = stringValue(row[12]);
+            BigDecimal promotionDiscountValue = promotionCode == null ? null : toBigDecimal(row[13]);
+            OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[14]);
+            if (createdAt != null) {
+                createdAt = createdAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
+            }
+            UUID movieUuid = toUuid(row[15]);
+
+            PurchaseHistoryResponse item = new PurchaseHistoryResponse();
+            item.setBookingUuid(bookingUuid);
+            item.setTicketCode(ticketCode);
+            item.setMovieTitle(movieTitle);
+            item.setMovieUuid(movieUuid);
+            item.setCinemaName(cinemaName);
+            item.setRoomName(roomName);
+            item.setShowtime(showtimeRaw != null
+                    ? showtimeRaw.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                    : "");
+            item.setSeats(seatsStr);
+            item.setCombo(combosStr);
+            item.setTotalPrice(formatPrice(totalPrice));
+            item.setBookingStatus(bookingStatus);
+            item.setBookingType(bookingType);
+            item.setPromotionCode(promotionCode);
+            item.setPromotionDescription(formatPromotionDescription(promotionDiscountType, promotionDiscountValue));
+            var payment = paymentsByBooking.get(bookingUuid);
+            if (payment != null) {
+                item.setPaymentMethod(formatPaymentMethodLabel(payment.getMethod()));
+                item.setPaymentStatus(payment.getStatus());
+            } else {
+                item.setPaymentMethod("Ví NASA");
+            }
+            item.setPurchasedAt(createdAt != null
+                    ? createdAt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
+                    : "");
+            responses.add(item);
+        }
+
+        return responses;
+    }
+
+    private String formatPaymentMethodLabel(String method) {
+        if (method == null || method.isBlank()) {
+            return "Ví NASA";
+        }
+        return switch (method.toUpperCase()) {
+            case "MOCK" -> "Thanh toán mô phỏng";
+            case "WALLET" -> "Ví NASA";
+            case "CARD" -> "Thẻ ngân hàng";
+            case "MOMO" -> "Ví MoMo";
+            case "VNPAY" -> "VNPay";
+            case "CASH" -> "Tiền mặt";
+            default -> method;
+        };
+    }
+
+    private String formatPromotionDescription(String discountType, BigDecimal discountValue) {
+        if (discountType == null || discountValue == null) {
+            return null;
+        }
+        if ("PERCENTAGE".equalsIgnoreCase(discountType)) {
+            return "Giảm " + discountValue.stripTrailingZeros().toPlainString() + "%";
+        }
+        return "Giảm " + formatPrice(discountValue);
     }
 
 
@@ -520,6 +960,29 @@ public class BookingService {
         return new BigDecimal(value.toString());
     }
 
+    private boolean isCancelledBookingStatus(String bookingStatus) {
+        if (bookingStatus == null) {
+            return false;
+        }
+        String normalized = bookingStatus.toUpperCase();
+        return "CANCELLED".equals(normalized)
+                || "REFUNDED".equals(normalized)
+                || "REFUND_PENDING".equals(normalized)
+                || "REFUND_PROCESSING".equals(normalized)
+                || "CANCELLING".equals(normalized);
+    }
+
+    private boolean isOnlineBookingType(String bookingType, String cinemaLabel) {
+        if ("ONLINE".equalsIgnoreCase(bookingType)) {
+            return true;
+        }
+        if (cinemaLabel == null || cinemaLabel.isBlank()) {
+            return false;
+        }
+        String label = cinemaLabel.toUpperCase();
+        return label.contains("VOD") || label.contains("XEM ONLINE") || label.contains("TRỰC TUYẾN");
+    }
+
     private String formatPrice(BigDecimal price) {
         if (price == null) {
             return "0đ";
@@ -545,54 +1008,214 @@ public class BookingService {
         ticket.setStatus("USED");
         ticket.setCheckedInAt(OffsetDateTime.now());
         ticketRepository.save(ticket);
+
+        Booking booking = bookingJpaRepository.findById(ticket.getBookingUuid()).orElse(null);
+        UUID showtimeUuid = booking != null ? booking.getShowtimeUuid() : null;
+        realtimeEventPublisher.notifyTicketCheckedIn(ticket.getBookingUuid(), showtimeUuid, ticketCode.trim());
     }
 
     @Transactional
     public void cancelBooking(UUID bookingUuid, String email) {
-        Booking booking = bookingJpaRepository.findById(bookingUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
-
-        if (email != null && !email.isBlank()) {
-            UUID userUuid = resolveRequiredUserUuid(email);
-            if (!booking.getUserUuid().equals(userUuid)) {
-                throw new AppException(ErrorCode.FORBIDDEN, "Không có quyền hủy đặt vé này");
-            }
-        }
-
-        if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Hóa đơn không ở trạng thái CONFIRMED, không thể hủy");
-        }
-
-        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(booking.getShowtimeUuid());
-        if (startTime == null) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
-        }
-
-        if (OffsetDateTime.now().plusHours(2).isAfter(startTime)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Không thể hủy vé trước giờ chiếu ít hơn 2 tiếng");
-        }
-
-        booking.setStatus("CANCELLED");
-        booking.setCancelledAt(OffsetDateTime.now());
-        bookingJpaRepository.save(booking);
-
-        // Xóa các dòng ghế đã đặt (BookingSeat)
-        bookingSeatRepository.deleteByBookingUuid(bookingUuid);
-
-        // Xóa các liên kết combo bắp nước (BookingCombo)
-        bookingComboRepository.deleteByBookingUuid(bookingUuid);
-
-        // Khấu trừ điểm thành viên đã tích lũy
-        int scoreDeducted = calculateScore(booking.getTotalPrice());
-        if (scoreDeducted > 0) {
-            bookingRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
-            bookingRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, OffsetDateTime.now());
-        }
+        UUID actorUuid = email != null && !email.isBlank() ? resolveRequiredUserUuid(email) : null;
+        cancellationRefundService.cancelBooking(bookingUuid, actorUuid, "CUSTOMER", false, null, false);
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
     }
 
     private record GapSeat(String rowName, Integer seatNumber, boolean unavailable, boolean selectedByUser) {
+    }
+
+    @Transactional(readOnly = true)
+    public VodStatusResponse getVodStatus(String currentUserEmail, UUID movieUuid) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        Optional<Booking> optBooking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED);
+
+        if (optBooking.isEmpty()) {
+            return new VodStatusResponse(false, "NONE", null, null, null);
+        }
+
+        Booking booking = optBooking.get();
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+
+        return buildVodStatusResponse(booking, movie, OffsetDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, VodStatusResponse> getVodStatusBatch(String currentUserEmail, List<UUID> movieUuids) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        List<UUID> uniqueUuids = movieUuids == null
+                ? List.of()
+                : movieUuids.stream().filter(java.util.Objects::nonNull).distinct().limit(50).toList();
+
+        Map<UUID, VodStatusResponse> result = new java.util.LinkedHashMap<>();
+        for (UUID movieUuid : uniqueUuids) {
+            result.put(movieUuid, new VodStatusResponse(false, "NONE", null, null, null));
+        }
+        if (uniqueUuids.isEmpty()) {
+            return result;
+        }
+
+        List<Booking> bookings = bookingJpaRepository.findOnlineConfirmedBookingsForUserAndMovies(userUuid, uniqueUuids);
+        Map<UUID, Booking> latestByMovie = new java.util.LinkedHashMap<>();
+        for (Booking booking : bookings) {
+            latestByMovie.putIfAbsent(booking.getMovieUuid(), booking);
+        }
+
+        Map<UUID, Movie> moviesByUuid = movieRepository.findAllById(latestByMovie.keySet()).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
+
+        OffsetDateTime now = OffsetDateTime.now();
+        for (Map.Entry<UUID, Booking> entry : latestByMovie.entrySet()) {
+            Movie movie = moviesByUuid.get(entry.getKey());
+            if (movie != null) {
+                result.put(entry.getKey(), buildVodStatusResponse(entry.getValue(), movie, now));
+            }
+        }
+        return result;
+    }
+
+    private VodStatusResponse buildVodStatusResponse(Booking booking, Movie movie, OffsetDateTime now) {
+        String playbackState = "WAITING_FOR_PLAY";
+        String streamingUrl = null;
+
+        if (booking.getFirstPlayedAt() != null) {
+            if (now.isAfter(booking.getExpiresAt())) {
+                playbackState = "EXPIRED";
+            } else {
+                playbackState = "STREAMING";
+                streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+            }
+        }
+
+        return new VodStatusResponse(
+                true,
+                playbackState,
+                booking.getFirstPlayedAt(),
+                booking.getExpiresAt(),
+                streamingUrl);
+    }
+
+    @Transactional
+    public void resendVodTicketEmail(String currentUserEmail, UUID movieUuid) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        Booking booking = bookingJpaRepository
+                .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                        userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé online cho phim này"));
+
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+
+        OffsetDateTime now = OffsetDateTime.now();
+        if (booking.getFirstPlayedAt() != null
+                && booking.getExpiresAt() != null
+                && now.isAfter(booking.getExpiresAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+        }
+
+        vodNotificationService.sendVodTicketEmail(userUuid, booking.getUuid(), movie.getTitle(), movie.getUuid());
+    }
+
+    @Transactional
+    public VodPlayResponse activateVodPlay(String currentUserEmail, UUID movieUuid) {
+        return activateVodPlay(currentUserEmail, movieUuid, null);
+    }
+
+    @Transactional
+    public VodPlayResponse activateVodPlay(String currentUserEmail, UUID movieUuid, UUID bookingUuid) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        Booking booking = resolveVodBookingForPlay(userUuid, movieUuid, bookingUuid);
+
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+
+        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+        if (streamingUrl == null || streamingUrl.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Phim chưa được cấu hình link phát trực tuyến. Vui lòng liên hệ quản trị viên.");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        String streamToken = UUID.randomUUID().toString();
+
+        if (booking.getFirstPlayedAt() != null) {
+            if (now.isAfter(booking.getExpiresAt())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+            }
+            booking.setStreamToken(streamToken);
+            bookingJpaRepository.save(booking);
+            return new VodPlayResponse(streamToken, streamingUrl, booking.getExpiresAt());
+        }
+
+        int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
+        double lockMultiplier = systemConfigService.getOnlineWatchLockMultiplier();
+        OffsetDateTime firstPlayedAt = now;
+        OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(Math.round(durationMinutes * lockMultiplier));
+
+        booking.setFirstPlayedAt(firstPlayedAt);
+        booking.setExpiresAt(expiresAt);
+        booking.setStreamToken(streamToken);
+        bookingJpaRepository.save(booking);
+
+        return new VodPlayResponse(streamToken, streamingUrl, expiresAt);
+    }
+
+    private Booking resolveVodBookingForPlay(UUID userUuid, UUID movieUuid, UUID bookingUuid) {
+        Booking latest = bookingJpaRepository
+                .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                        userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Bạn chưa mua vé xem trực tuyến phim này"));
+
+        Booking booking;
+        if (bookingUuid != null) {
+            booking = bookingJpaRepository.findById(bookingUuid)
+                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã vé không hợp lệ"));
+            if (!userUuid.equals(booking.getUserUuid())
+                    || !movieUuid.equals(booking.getMovieUuid())
+                    || !"ONLINE".equalsIgnoreCase(booking.getBookingType())
+                    || !BOOKING_STATUS_CONFIRMED.equalsIgnoreCase(booking.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã vé không hợp lệ cho phim này");
+            }
+            if (!latest.getUuid().equals(booking.getUuid())) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Mã vé không còn hiệu lực. Vui lòng dùng vé mua mới nhất.");
+            }
+        } else {
+            booking = latest;
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        if (booking.getFirstPlayedAt() != null && booking.getExpiresAt() != null && now.isAfter(booking.getExpiresAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+        }
+        return booking;
+    }
+
+    @Transactional(readOnly = true)
+    public void vodHeartbeat(String currentUserEmail, UUID movieUuid, String streamToken) {
+        if (streamToken == null || streamToken.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Token phát trực tuyến không hợp lệ");
+        }
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        Booking booking = bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                userUuid, movieUuid, "ONLINE", BOOKING_STATUS_CONFIRMED)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé xem trực tuyến hoạt động"));
+
+        if (booking.getFirstPlayedAt() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phim chưa được kích hoạt phát");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        if (now.isAfter(booking.getExpiresAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+        }
+
+        if (!streamToken.equals(booking.getStreamToken())) {
+            // Kick-out: conflict (409)
+            throw new AppException(ErrorCode.CONFLICT, "Tài khoản đang được xem trên thiết bị khác");
+        }
     }
 }

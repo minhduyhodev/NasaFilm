@@ -1,13 +1,25 @@
 package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
+import com.thdpv.movietheater.booking.dto.response.AutoShowtimePreviewResponse;
 
 import com.thdpv.movietheater.booking.dto.request.ShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeResponse;
@@ -24,6 +36,8 @@ import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -44,6 +58,7 @@ public class ShowtimeService {
     private final BookingComboRepository bookingComboRepository;
     private final TicketRepository ticketRepository;
     private final BookingNativeRepository bookingNativeRepository;
+    private final CancellationRefundService cancellationRefundService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -86,6 +101,8 @@ public class ShowtimeService {
         showtime.setEndTime(endTime);
         showtime.setStatus(ShowtimeStatus.DRAFT);
         showtime.setBasePrice(request.getBasePrice());
+        showtime.setVipPrice(request.getVipPrice());
+        showtime.setCouplePrice(request.getCouplePrice());
 
         Showtime savedShowtime = showtimeRepository.save(showtime);
         return toShowtimeResponse(savedShowtime, movie, room);
@@ -122,26 +139,22 @@ public class ShowtimeService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            // Handle confirmed bookings cancellation and score deduction
+            // Refund confirmed bookings through cancellation service
             List<Booking> bookings = bookingRepository.findByShowtimeUuid(showtimeUuid);
             for (Booking booking : bookings) {
-                if ("CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-                    booking.setStatus("CANCELLED");
-                    booking.setCancelledAt(OffsetDateTime.now());
-                    bookingRepository.save(booking);
-
-                    // Delete related seats, combos, and tickets
-                    bookingSeatRepository.deleteByBookingUuid(booking.getUuid());
-                    bookingComboRepository.deleteByBookingUuid(booking.getUuid());
-                    ticketRepository.deleteByBookingUuid(booking.getUuid());
-
-                    // Deduct user score points
-                    BigDecimal price = booking.getTotalPrice();
-                    int scoreDeducted = price.divide(BigDecimal.valueOf(10000), 0, java.math.RoundingMode.DOWN).intValue();
-                    if (scoreDeducted > 0) {
-                        bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
-                        bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, booking.getUuid(), OffsetDateTime.now());
-                    }
+                if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
+                    continue;
+                }
+                try {
+                    cancellationRefundService.cancelBooking(
+                            booking.getUuid(),
+                            null,
+                            "SYSTEM",
+                            true,
+                            "Suat chieu bi huy boi quan tri",
+                            true);
+                } catch (AppException ex) {
+                    // Skip bookings that cannot be cancelled (e.g. already processing)
                 }
             }
         }
@@ -155,47 +168,455 @@ public class ShowtimeService {
         return toShowtimeResponse(updatedShowtime, movie, room);
     }
 
-    @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getAdminShowtimes() {
-        return showtimeRepository.findAll().stream()
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
-                .collect(Collectors.toList());
+    @Transactional
+    public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
+        List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
+        int cancelled = 0;
+        for (Showtime showtime : showtimes) {
+            if (showtime.getStatus() == ShowtimeStatus.CANCELLED
+                    || showtime.getStatus() == ShowtimeStatus.FINISHED) {
+                continue;
+            }
+            updateShowtimeStatus(showtime.getUuid(), ShowtimeStatus.CANCELLED);
+            cancelled++;
+        }
+        return cancelled;
     }
 
     @Transactional(readOnly = true)
-    public List<ShowtimeResponse> getPublicShowtimes() {
+    public List<ShowtimeResponse> getAdminShowtimes() {
+        List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();
+        return mapShowtimesToResponses(showtimes);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShowtimeResponse> getPublicShowtimes(UUID cinemaUuid, LocalDate date) {
         OffsetDateTime now = OffsetDateTime.now();
-        return showtimeRepository.findAll().stream()
-                .filter(st -> (st.getStatus() == ShowtimeStatus.OPEN_FOR_BOOKING || st.getStatus() == ShowtimeStatus.SOLD_OUT)
-                        && st.getStartTime().isAfter(now))
-                .map(st -> {
-                    Movie movie = movieRepository.findById(st.getMovieUuid()).orElse(null);
-                    CinemaRoom room = cinemaRoomRepository.findById(st.getCinemaRoomUuid()).orElse(null);
-                    return toShowtimeResponse(st, movie, room);
-                })
+        List<ShowtimeStatus> statuses = List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT);
+        List<Showtime> showtimes;
+
+        if (cinemaUuid != null && date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByCinemaAndDateRange(
+                    statuses, now, cinemaUuid, rangeStart, rangeEnd);
+        } else if (cinemaUuid != null) {
+            showtimes = showtimeRepository.findUpcomingByCinema(statuses, now, cinemaUuid);
+        } else if (date != null) {
+            OffsetDateTime rangeStart = toDayStart(date);
+            OffsetDateTime rangeEnd = toDayStart(date.plusDays(1));
+            showtimes = showtimeRepository.findUpcomingByDateRange(statuses, now, rangeStart, rangeEnd);
+        } else {
+            showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
+        }
+        return mapShowtimesToResponses(showtimes);
+    }
+
+    private OffsetDateTime toDayStart(LocalDate date) {
+        return date.atStartOfDay().atOffset(ZoneOffset.ofHours(7));
+    }
+
+    private List<ShowtimeResponse> mapShowtimesToResponses(List<Showtime> showtimes) {
+        if (showtimes.isEmpty()) {
+            return List.of();
+        }
+
+        Set<UUID> movieUuids = showtimes.stream().map(Showtime::getMovieUuid).collect(Collectors.toSet());
+        Set<UUID> roomUuids = showtimes.stream().map(Showtime::getCinemaRoomUuid).collect(Collectors.toSet());
+
+        Map<UUID, Movie> movieMap = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, m -> m));
+        Map<UUID, CinemaRoom> roomMap = cinemaRoomRepository.findAllByIdWithCinema(roomUuids).stream()
+                .collect(Collectors.toMap(CinemaRoom::getUuid, r -> r));
+
+        return showtimes.stream()
+                .map(st -> toShowtimeResponse(
+                        st,
+                        movieMap.get(st.getMovieUuid()),
+                        roomMap.get(st.getCinemaRoomUuid())))
                 .collect(Collectors.toList());
+    }
+
+    private String resolvePrimaryMediaUrl(Movie movie) {
+        if (movie == null || movie.getMovieMedias() == null) {
+            return null;
+        }
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
     }
 
     private ShowtimeResponse toShowtimeResponse(Showtime showtime, Movie movie, CinemaRoom room) {
         String movieTitle = movie != null ? movie.getTitle() : "Unkown Movie";
+        String moviePosterUrl = resolvePrimaryMediaUrl(movie);
         String roomName = room != null ? room.getName() : "Unknown Room";
         String cinemaName = (room != null && room.getCinema() != null) ? room.getCinema().getName() : "Unknown Cinema";
+        UUID cinemaUuid = (room != null && room.getCinema() != null) ? room.getCinema().getUuid() : null;
 
-        return new ShowtimeResponse(
+        ShowtimeResponse response = new ShowtimeResponse(
                 showtime.getUuid(),
                 showtime.getMovieUuid(),
                 movieTitle,
+                moviePosterUrl,
                 showtime.getCinemaRoomUuid(),
                 roomName,
                 cinemaName,
                 showtime.getStartTime(),
                 showtime.getEndTime(),
                 showtime.getBasePrice(),
+                showtime.getVipPrice(),
+                showtime.getCouplePrice(),
                 showtime.getStatus()
         );
+        response.setCinemaUuid(cinemaUuid);
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AutoShowtimePreviewResponse> getAutoShowtimesPreview(AutoShowtimeRequest request) {
+        List<Movie> selectedMovies = movieRepository.findAllById(request.getMovieUuids());
+        if (selectedMovies.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach phim trong hoac khong ton tai");
+        }
+
+        List<CinemaRoom> selectedRooms = cinemaRoomRepository.findAllById(request.getRoomUuids());
+        if (selectedRooms.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach phong chieu trong hoac khong ton tai");
+        }
+
+        java.time.ZoneOffset offset = OffsetDateTime.now().getOffset();
+        OffsetDateTime startRange = request.getStartDate().atStartOfDay().atOffset(offset);
+        OffsetDateTime endRange = request.getEndDate().plusDays(1).atStartOfDay().atOffset(offset);
+
+        List<Showtime> existingShowtimes = showtimeRepository.findActiveShowtimesInRooms(request.getRoomUuids(), startRange, endRange);
+
+        List<AutoShowtimePreviewResponse> previewList = new ArrayList<>();
+        int cleaningMinutes = request.getIntervalMinutes() != null ? request.getIntervalMinutes() : 15;
+        int trailerBuffer = request.getTrailerBuffer() != null ? request.getTrailerBuffer() : 10;
+
+        LocalDate current = request.getStartDate();
+        while (!current.isAfter(request.getEndDate())) {
+            for (CinemaRoom room : selectedRooms) {
+                OffsetDateTime dayStart = current.atTime(request.getStartTime()).atOffset(offset);
+                OffsetDateTime dayEnd = current.atTime(request.getEndTime()).atOffset(offset);
+
+                List<TimeInterval> freeIntervals = new ArrayList<>();
+                freeIntervals.add(new TimeInterval(dayStart, dayEnd));
+
+                LocalDate filterDate = current;
+                List<Showtime> roomDayShowtimes = existingShowtimes.stream()
+                        .filter(st -> st.getCinemaRoomUuid().equals(room.getUuid()) && st.getStartTime().toLocalDate().equals(filterDate))
+                        .toList();
+
+                for (Showtime st : roomDayShowtimes) {
+                    OffsetDateTime occStart = st.getStartTime().minusMinutes(cleaningMinutes);
+                    OffsetDateTime occEnd = st.getEndTime().plusMinutes(cleaningMinutes);
+                    freeIntervals = subtractIntervals(freeIntervals, occStart, occEnd);
+                }
+
+                List<CandidateSlot> candidates = new ArrayList<>();
+                for (TimeInterval interval : freeIntervals) {
+                    for (Movie movie : selectedMovies) {
+                        int duration = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
+                        int totalMinutes = duration + trailerBuffer;
+
+                        OffsetDateTime currTime = alignToNext15Minutes(interval.getStart());
+                        while (!currTime.plusMinutes(totalMinutes).isAfter(interval.getEnd())) {
+                            if (currTime.plusMinutes(totalMinutes).isAfter(dayEnd)) {
+                                break;
+                            }
+
+                            double weekendScore = calculateWeekendScore(filterDate);
+                            double goldenHourScore = calculateGoldenHourScore(currTime.toLocalTime());
+                            double ratingScore = movie.getRating() != null ? movie.getRating() : 8.0;
+                            double genreScore = calculateGenreScore(movie);
+
+                            double totalScore = (request.getWeekendWeight() * weekendScore)
+                                    + (request.getGoldenHourWeight() * goldenHourScore)
+                                    + (request.getRatingWeight() * ratingScore)
+                                    + (request.getGenreWeight() * genreScore);
+
+                            Map<String, Object> breakdown = new java.util.HashMap<>();
+                            breakdown.put("weekendScore", request.getWeekendWeight() * weekendScore);
+                            breakdown.put("goldenHourScore", request.getGoldenHourWeight() * goldenHourScore);
+                            breakdown.put("ratingScore", request.getRatingWeight() * ratingScore);
+                            breakdown.put("genreScore", request.getGenreWeight() * genreScore);
+
+                            AutoShowtimePreviewResponse preview = new AutoShowtimePreviewResponse();
+                            preview.setMovieUuid(movie.getUuid());
+                            preview.setMovieTitle(movie.getTitle());
+                            preview.setMoviePosterUrl(resolvePrimaryMediaUrl(movie));
+                            preview.setDurationMinutes(duration);
+                            preview.setCinemaRoomUuid(room.getUuid());
+                            preview.setCinemaRoomName(room.getName());
+                            preview.setCinemaName(room.getCinema() != null ? room.getCinema().getName() : "Unknown Cinema");
+                            preview.setStartTime(currTime);
+                            preview.setEndTime(currTime.plusMinutes(totalMinutes));
+                            preview.setBasePrice(request.getBasePrice());
+                            preview.setVipPrice(request.getVipPrice());
+                            preview.setCouplePrice(request.getCouplePrice());
+                            preview.setPriorityScore(totalScore);
+                            preview.setScoreBreakdown(breakdown);
+
+                            candidates.add(new CandidateSlot(preview, totalScore));
+
+                            currTime = currTime.plusMinutes(30);
+                        }
+                    }
+                }
+
+                List<AutoShowtimePreviewResponse> scheduledForRoom = new ArrayList<>();
+
+                // Pass 1: guarantee at least one showtime per movie when slots are available
+                ensureMinimumMovieCoverage(selectedMovies, candidates, scheduledForRoom,
+                        cleaningMinutes, trailerBuffer);
+                previewList.addAll(scheduledForRoom);
+
+                // Pass 2: fill remaining slots; penalize movies that already have many showtimes
+                Set<String> scheduledKeys = scheduledForRoom.stream()
+                        .map(this::slotKey)
+                        .collect(Collectors.toSet());
+                Map<UUID, Long> movieShowtimeCounts = scheduledForRoom.stream()
+                        .collect(Collectors.groupingBy(
+                                AutoShowtimePreviewResponse::getMovieUuid, Collectors.counting()));
+
+                final double fairnessPenalty = 25.0;
+                boolean added;
+                do {
+                    added = false;
+                    CandidateSlot bestCandidate = null;
+                    double bestAdjustedScore = Double.NEGATIVE_INFINITY;
+
+                    for (CandidateSlot cand : candidates) {
+                        AutoShowtimePreviewResponse target = cand.getResponse();
+                        if (scheduledKeys.contains(slotKey(target))) {
+                            continue;
+                        }
+                        if (hasSchedulingConflict(target, scheduledForRoom, cleaningMinutes, trailerBuffer)) {
+                            continue;
+                        }
+
+                        long count = movieShowtimeCounts.getOrDefault(target.getMovieUuid(), 0L);
+                        double adjustedScore = cand.getScore() - (count * fairnessPenalty);
+                        if (adjustedScore > bestAdjustedScore) {
+                            bestAdjustedScore = adjustedScore;
+                            bestCandidate = cand;
+                        }
+                    }
+
+                    if (bestCandidate != null) {
+                        AutoShowtimePreviewResponse target = bestCandidate.getResponse();
+                        scheduledForRoom.add(target);
+                        scheduledKeys.add(slotKey(target));
+                        movieShowtimeCounts.merge(target.getMovieUuid(), 1L, Long::sum);
+                        previewList.add(target);
+                        added = true;
+                    }
+                } while (added);
+            }
+            current = current.plusDays(1);
+        }
+
+        previewList.sort((a, b) -> {
+            int dateComp = a.getStartTime().toLocalDate().compareTo(b.getStartTime().toLocalDate());
+            if (dateComp != 0) return dateComp;
+            int roomComp = a.getCinemaRoomName().compareTo(b.getCinemaRoomName());
+            if (roomComp != 0) return roomComp;
+            return a.getStartTime().compareTo(b.getStartTime());
+        });
+
+        return previewList;
+    }
+
+    @Transactional
+    public List<ShowtimeResponse> saveAutoShowtimes(List<ShowtimeRequest> requests) {
+        List<ShowtimeResponse> savedList = new ArrayList<>();
+        for (ShowtimeRequest req : requests) {
+            savedList.add(createShowtime(req));
+        }
+        return savedList;
+    }
+
+    private void ensureMinimumMovieCoverage(
+            List<Movie> movies,
+            List<CandidateSlot> candidates,
+            List<AutoShowtimePreviewResponse> scheduledForRoom,
+            int cleaningMinutes,
+            int trailerBuffer) {
+
+        Set<UUID> uncovered = movies.stream().map(Movie::getUuid).collect(Collectors.toSet());
+        boolean progress = true;
+
+        while (progress && !uncovered.isEmpty()) {
+            progress = false;
+
+            List<UUID> ordered = uncovered.stream()
+                    .sorted(Comparator.comparingDouble(uuid -> movies.stream()
+                            .filter(m -> m.getUuid().equals(uuid))
+                            .findFirst()
+                            .map(m -> m.getRating() != null ? m.getRating() : 8.0)
+                            .orElse(8.0)))
+                    .toList();
+
+            for (UUID movieUuid : ordered) {
+                CandidateSlot best = candidates.stream()
+                        .filter(c -> c.getResponse().getMovieUuid().equals(movieUuid))
+                        .filter(c -> !hasSchedulingConflict(
+                                c.getResponse(), scheduledForRoom, cleaningMinutes, trailerBuffer))
+                        .max(Comparator.comparingDouble(CandidateSlot::getScore))
+                        .orElse(null);
+
+                if (best != null) {
+                    scheduledForRoom.add(best.getResponse());
+                    uncovered.remove(movieUuid);
+                    progress = true;
+                }
+            }
+        }
+    }
+
+    private boolean hasSchedulingConflict(
+            AutoShowtimePreviewResponse target,
+            List<AutoShowtimePreviewResponse> scheduled,
+            int cleaningMinutes,
+            int trailerBuffer) {
+
+        OffsetDateTime targetStart = target.getStartTime();
+        OffsetDateTime targetEnd = target.getEndTime();
+        int targetDuration = target.getDurationMinutes();
+
+        for (AutoShowtimePreviewResponse sch : scheduled) {
+            OffsetDateTime schStartWithBuffer = sch.getStartTime().minusMinutes(cleaningMinutes);
+            OffsetDateTime schEndWithBuffer = sch.getEndTime().plusMinutes(cleaningMinutes);
+
+            if (targetStart.isBefore(schEndWithBuffer) && targetEnd.isAfter(schStartWithBuffer)) {
+                return true;
+            }
+
+            if (sch.getMovieUuid().equals(target.getMovieUuid())) {
+                long startDiff = Math.abs(java.time.Duration.between(targetStart, sch.getStartTime()).toMinutes());
+                if (startDiff < (targetDuration + trailerBuffer + cleaningMinutes + 30)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String slotKey(AutoShowtimePreviewResponse slot) {
+        return slot.getMovieUuid() + "|" + slot.getCinemaRoomUuid() + "|" + slot.getStartTime();
+    }
+
+    private List<TimeInterval> subtractIntervals(List<TimeInterval> freeIntervals, OffsetDateTime occupiedStart, OffsetDateTime occupiedEnd) {
+        List<TimeInterval> result = new ArrayList<>();
+        for (TimeInterval interval : freeIntervals) {
+            OffsetDateTime s = interval.getStart();
+            OffsetDateTime e = interval.getEnd();
+
+            if (occupiedEnd.isBefore(s) || occupiedStart.isAfter(e)) {
+                result.add(interval);
+            } else {
+                if (occupiedStart.isAfter(s)) {
+                    result.add(new TimeInterval(s, occupiedStart));
+                }
+                if (occupiedEnd.isBefore(e)) {
+                    result.add(new TimeInterval(occupiedEnd, e));
+                }
+            }
+        }
+        return result;
+    }
+
+    private OffsetDateTime alignToNext15Minutes(OffsetDateTime dt) {
+        int minutes = dt.getMinute();
+        int remainder = minutes % 15;
+        if (remainder == 0) {
+            return dt.withSecond(0).withNano(0);
+        }
+        return dt.plusMinutes(15 - remainder).withSecond(0).withNano(0);
+    }
+
+    private double calculateWeekendScore(LocalDate date) {
+        java.time.DayOfWeek day = date.getDayOfWeek();
+        if (day == java.time.DayOfWeek.FRIDAY || day == java.time.DayOfWeek.SATURDAY || day == java.time.DayOfWeek.SUNDAY) {
+            return 10.0;
+        }
+        return 0.0;
+    }
+
+    private double calculateGoldenHourScore(LocalTime time) {
+        LocalTime peakStart = LocalTime.of(18, 0);
+        LocalTime peakEnd = LocalTime.of(22, 30);
+        LocalTime nearStart1 = LocalTime.of(12, 0);
+        LocalTime nearEnd1 = LocalTime.of(18, 0);
+        LocalTime nearStart2 = LocalTime.of(22, 30);
+        LocalTime nearEnd2 = LocalTime.of(23, 59);
+
+        if ((time.equals(peakStart) || time.isAfter(peakStart)) && time.isBefore(peakEnd)) {
+            return 15.0;
+        } else if (((time.equals(nearStart1) || time.isAfter(nearStart1)) && time.isBefore(nearEnd1))
+                || ((time.equals(nearStart2) || time.isAfter(nearStart2)) && time.isBefore(nearEnd2))) {
+            return 8.0;
+        }
+        return 0.0;
+    }
+
+    private double calculateGenreScore(Movie movie) {
+        double maxScore = 4.0;
+        if (movie.getMovieGenres() != null) {
+            for (MovieGenre mg : movie.getMovieGenres()) {
+                if (mg.getGenre() != null && mg.getGenre().getName() != null) {
+                    String name = mg.getGenre().getName().toLowerCase();
+                    if (name.contains("hành động") || name.contains("viễn tưởng") || name.contains("hoạt hình")) {
+                        maxScore = Math.max(maxScore, 10.0);
+                    } else if (name.contains("phiêu lưu") || name.contains("kịch tính") || name.contains("tình cảm")) {
+                        maxScore = Math.max(maxScore, 7.0);
+                    }
+                }
+            }
+        }
+        return maxScore;
+    }
+
+    public static class TimeInterval {
+        private final OffsetDateTime start;
+        private final OffsetDateTime end;
+
+        public TimeInterval(OffsetDateTime start, OffsetDateTime end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        public OffsetDateTime getStart() {
+            return start;
+        }
+
+        public OffsetDateTime getEnd() {
+            return end;
+        }
+    }
+
+    private static class CandidateSlot {
+        private final AutoShowtimePreviewResponse response;
+        private final double score;
+
+        public CandidateSlot(AutoShowtimePreviewResponse response, double score) {
+            this.response = response;
+            this.score = score;
+        }
+
+        public AutoShowtimePreviewResponse getResponse() {
+            return response;
+        }
+
+        public double getScore() {
+            return score;
+        }
     }
 }

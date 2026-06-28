@@ -1,7 +1,10 @@
 package com.thdpv.movietheater.booking.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.booking.dto.request.ShowtimeRequest;
+import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeResponse;
+import com.thdpv.movietheater.booking.dto.response.AutoShowtimePreviewResponse;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 import com.thdpv.movietheater.booking.service.ShowtimeService;
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -54,8 +59,26 @@ public class ShowtimeController {
     }
 
     @GetMapping("/api/showtimes")
-    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getPublicShowtimes() {
-        List<ShowtimeResponse> response = showtimeService.getPublicShowtimes();
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getPublicShowtimes(
+            @RequestParam(required = false) UUID cinemaUuid,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<ShowtimeResponse> response = showtimeService.getPublicShowtimes(cinemaUuid, date);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/api/admin/showtimes/auto-generate/preview")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<List<AutoShowtimePreviewResponse>>> getAutoShowtimesPreview(
+            @Valid @RequestBody AutoShowtimeRequest request) {
+        List<AutoShowtimePreviewResponse> response = showtimeService.getAutoShowtimesPreview(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/api/admin/showtimes/auto-generate/save")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> saveAutoShowtimes(
+            @Valid @RequestBody List<ShowtimeRequest> requests) {
+        List<ShowtimeResponse> response = showtimeService.saveAutoShowtimes(requests);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

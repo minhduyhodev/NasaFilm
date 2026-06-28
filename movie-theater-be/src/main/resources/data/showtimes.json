@@ -1,0 +1,46 @@
+[
+  {
+    "uuid": "11111111-1111-1111-1111-111111111111",
+    "movieTitle": "Kẻ Ẩn Danh",
+    "roomCode": "ROOM-IMAX",
+    "startHour": 19,
+    "startMinute": 30,
+    "endHour": 21,
+    "endMinute": 30,
+    "basePrice": 80000,
+    "status": "OPEN_FOR_BOOKING"
+  },
+  {
+    "uuid": "22222222-2222-2222-2222-222222222222",
+    "movieTitle": "Mortal Kombat 2",
+    "roomCode": "ROOM-IMAX",
+    "startHour": 21,
+    "startMinute": 0,
+    "endHour": 23,
+    "endMinute": 0,
+    "basePrice": 80000,
+    "status": "OPEN_FOR_BOOKING"
+  },
+  {
+    "uuid": "33333333-3333-3333-3333-333333333333",
+    "movieTitle": "Mưa Đỏ",
+    "roomCode": "ROOM-VIP",
+    "startHour": 18,
+    "startMinute": 0,
+    "endHour": 20,
+    "endMinute": 0,
+    "basePrice": 80000,
+    "status": "OPEN_FOR_BOOKING"
+  },
+  {
+    "uuid": "44444444-4444-4444-4444-444444444444",
+    "movieTitle": "Thanh Gươm Diệt Quỷ",
+    "roomCode": "ROOM-VIP",
+    "startHour": 20,
+    "startMinute": 45,
+    "endHour": 22,
+    "endMinute": 45,
+    "basePrice": 80000,
+    "status": "OPEN_FOR_BOOKING"
+  }
+]

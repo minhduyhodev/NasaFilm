@@ -92,3 +92,18 @@
 .modal-close-btn {
   @apply text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-gray-100;
 }
+
+/* ---- KPI Card ---- */
+.kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+  border-color: #334155;
+  transform: translateY(-1px);
+}
+

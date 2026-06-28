@@ -1,16 +1,21 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,18 +24,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
+import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.GenreRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
 import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.Country;
@@ -45,9 +57,13 @@ import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.movie.repository.MovieActorRepository;
+import com.thdpv.movietheater.movie.repository.MovieCountryRepository;
+import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -67,17 +83,27 @@ public class MovieService {
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
     private final MovieActorRepository movieActorRepository;
+    private final MovieGenreRepository movieGenreRepository;
+    private final MovieCountryRepository movieCountryRepository;
+    private final ShowtimeRepository showtimeRepository;
+    private final SystemConfigService systemConfigService;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
+        movie.setRating(request.getRating());
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
         replaceMedias(movie, request.getMedias(), operatorEmail);
+        syncStreamingUrlFromMediasIfMissing(movie);
         return toMovieDetailResponse(movieRepository.save(movie));
     }
 
@@ -86,7 +112,14 @@ public class MovieService {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
+        if (request.getRating() != null) {
+            movie.setRating(request.getRating());
+        }
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -101,6 +134,7 @@ public class MovieService {
             replaceMedias(movie, request.getMedias(), operatorEmail);
         }
 
+        syncStreamingUrlFromMediasIfMissing(movie);
         return toMovieDetailResponse(movieRepository.save(movie));
     }
 
@@ -114,24 +148,23 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MovieListResponse> getMovieList(
-            String keyword,
-            String status,
-            List<UUID> genreUuids,
-            UUID countryUuid,
-            String ageRestriction,
-            UUID actorUuid,
-            UUID cinemaUuid,
-            java.time.LocalDate showtimeDate,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-        Pageable pageable = PageRequest.of(
-                Math.max(page, 0),
-                size > 0 ? size : 10,
-                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                        resolveSortBy(sortBy)));
+    public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
+        Sort resolvedSort = Sort.unsorted();
+        if (pageable.getSort().isSorted()) {
+            List<Sort.Order> safeOrders = new ArrayList<>();
+            for (Sort.Order order : pageable.getSort()) {
+                String resolvedProperty = resolveSortBy(order.getProperty());
+                safeOrders.add(new Sort.Order(order.getDirection(), resolvedProperty));
+            }
+            resolvedSort = Sort.by(safeOrders);
+        } else {
+            resolvedSort = Sort.by(Sort.Direction.DESC, "releaseDate");
+        }
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10,
+                resolvedSort);
 
         Specification<Movie> specification = (root, query, cb) -> {
             query.distinct(true);
@@ -139,6 +172,7 @@ public class MovieService {
 
             predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE")));
 
+            String keyword = filter.getKeyword();
             if (keyword != null && !keyword.isBlank()) {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -146,29 +180,41 @@ public class MovieService {
                         cb.like(cb.lower(root.get("description")), pattern)));
             }
 
+            String status = filter.getStatus();
+            boolean bookableShowtimeFilter = Boolean.TRUE.equals(filter.getRequireBookableShowtime());
             if (status != null && !status.isBlank()) {
-                predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
+                String normalizedStatus = status.trim().toUpperCase();
+                // Có suất chiếu còn đặt được = đang chiếu thực tế, không phụ thuộc movie.status
+                if (!(bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus))) {
+                    predicates.add(cb.equal(root.get("status"), normalizedStatus));
+                }
             }
 
+            List<UUID> genreUuids = filter.getGenreUuids();
             if (genreUuids != null && !genreUuids.isEmpty()) {
                 Join<Movie, MovieGenre> movieGenreJoin = root.join("movieGenres", JoinType.LEFT);
                 predicates.add(movieGenreJoin.get("genre").get("uuid").in(genreUuids));
             }
 
+            UUID countryUuid = filter.getCountryUuid();
             if (countryUuid != null) {
                 Join<Movie, MovieCountry> movieCountryJoin = root.join("movieCountries", JoinType.LEFT);
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
+            String ageRestriction = filter.getAgeRestriction();
             if (ageRestriction != null && !ageRestriction.isBlank()) {
                 predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));
             }
 
+            UUID actorUuid = filter.getActorUuid();
             if (actorUuid != null) {
                 Join<Movie, MovieActor> movieActorJoin = root.join("movieActors", JoinType.LEFT);
                 predicates.add(cb.equal(movieActorJoin.get("actor").get("uuid"), actorUuid));
             }
 
+            UUID cinemaUuid = filter.getCinemaUuid();
+            java.time.LocalDate showtimeDate = filter.getShowtimeDate();
             if (cinemaUuid != null || showtimeDate != null) {
                 Subquery<UUID> subquery = query.subquery(UUID.class);
                 Root<Showtime> stRoot = subquery
@@ -196,20 +242,106 @@ public class MovieService {
                 predicates.add(root.get("uuid").in(subquery));
             }
 
+            if (bookableShowtimeFilter) {
+                OffsetDateTime now = OffsetDateTime.now();
+                Subquery<UUID> bookableSubquery = query.subquery(UUID.class);
+                Root<Showtime> bookableRoot = bookableSubquery.from(Showtime.class);
+                bookableSubquery.select(bookableRoot.get("movieUuid"));
+                bookableSubquery.where(
+                        cb.greaterThan(bookableRoot.get("startTime"), now),
+                        cb.or(
+                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.OPEN_FOR_BOOKING),
+                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.SOLD_OUT)));
+                predicates.add(root.get("uuid").in(bookableSubquery));
+                predicates.add(cb.or(
+                        cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                        cb.isNull(root.get("screeningMode"))));
+            }
+
+            if (Boolean.TRUE.equals(filter.getOnlineOnly())) {
+                predicates.add(cb.or(
+                        cb.equal(root.get("screeningMode"), ScreeningMode.ONLINE_ONLY),
+                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH)));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return movieRepository.findAll(specification, pageable)
-                .map(this::toMovieListResponse);
+        org.springframework.data.domain.Page<Movie> moviePage = movieRepository.findAll(specification, safePageable);
+        List<MovieListResponse> content = toMovieListResponses(moviePage.getContent());
+        return new org.springframework.data.domain.PageImpl<>(content, safePageable, moviePage.getTotalElements());
+    }
+
+    private List<MovieListResponse> toMovieListResponses(List<Movie> movies) {
+        if (movies == null || movies.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
+        Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
+        return movies.stream()
+                .map(movie -> toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie)))
+                .collect(Collectors.toList());
+    }
+
+    private Map<UUID, Movie> loadMoviesWithListRelations(Collection<UUID> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Movie> loaded = movieRepository.findAllByIdWithMedias(uuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie, (left, right) -> left));
+        movieRepository.findAllByIdWithGenres(uuids);
+        movieRepository.findAllByIdWithCountries(uuids);
+        return loaded;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10);
+
+        long total = movieRepository.countUpcomingMovies(now);
+        if (total == 0) {
+            return new PageImpl<>(List.of(), safePageable, 0);
+        }
+
+        List<UUID> pageUuids = movieRepository.findUpcomingMovieUuids(
+                now,
+                safePageable.getPageSize(),
+                safePageable.getOffset());
+
+        if (pageUuids.isEmpty()) {
+            return new PageImpl<>(List.of(), safePageable, total);
+        }
+
+        Map<UUID, Movie> movieByUuid = loadMoviesWithListRelations(pageUuids);
+
+        Map<UUID, OffsetDateTime> nextStarts = showtimeRepository
+                .findEarliestScheduledStarts(pageUuids, now).stream()
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> (OffsetDateTime) row[1],
+                        (a, b) -> a));
+
+        List<MovieListResponse> pageContent = pageUuids.stream()
+                .map(movieByUuid::get)
+                .filter(Objects::nonNull)
+                .map(movie -> {
+                    MovieListResponse response = toMovieListResponse(movie);
+                    response.setNextShowtimeStart(nextStarts.get(movie.getUuid()));
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(pageContent, safePageable, total);
     }
 
     @Transactional(readOnly = true)
     public MovieDetailResponse getMovieDetail(UUID movieUuid) {
         Movie movie = getMovieOrThrow(movieUuid);
-        System.out.println("DEBUG - Movie Detail: UUID=" + movieUuid + ", Title=" + movie.getTitle());
-        for (MovieMedia mm : movie.getMovieMedias()) {
-            System.out.println("DEBUG - Media: Type=" + mm.getMediaType() + ", URL=" + mm.getMediaUrl());
-        }
         if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
@@ -217,13 +349,36 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    public List<MovieSummaryResponse> getMovieSummaries(List<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uniqueUuids = movieUuids.stream().filter(java.util.Objects::nonNull).distinct().limit(50).toList();
+        if (uniqueUuids.isEmpty()) {
+            return List.of();
+        }
+        return movieRepository.findAllByIdWithMedias(uniqueUuids).stream()
+                .filter(movie -> !"DELETED".equalsIgnoreCase(movie.getStatus()))
+                .map(movie -> new MovieSummaryResponse(
+                        movie.getUuid(),
+                        movie.getTitle(),
+                        movie.getAgeRestriction(),
+                        resolvePrimaryMediaUrl(movie)))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<Genre> getAllGenres() {
-        return genreRepository.findAll();
+        return genreRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
-        return countryRepository.findAll();
+        return countryRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Country::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -275,6 +430,85 @@ public class MovieService {
         }
 
         actorRepository.delete(actor);
+    }
+
+    @Transactional
+    public Genre createGenre(GenreRequest request) {
+        String name = trim(request.getName());
+        if (genreRepository.existsByNameIgnoreCase(name)) {
+            throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+        }
+        Genre genre = new Genre();
+        genre.setName(name);
+        return genreRepository.save(genre);
+    }
+
+    @Transactional
+    public Genre updateGenre(UUID genreUuid, GenreRequest request) {
+        Genre genre = genreRepository.findById(genreUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai"));
+        String name = trim(request.getName());
+        genreRepository.findByNameIgnoreCase(name)
+                .filter(existing -> !existing.getUuid().equals(genreUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+                });
+        genre.setName(name);
+        return genreRepository.save(genre);
+    }
+
+    @Transactional
+    public void deleteGenre(UUID genreUuid) {
+        if (!genreRepository.existsById(genreUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai");
+        }
+        if (movieGenreRepository.existsByGenre_Uuid(genreUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "The loai dang duoc su dung trong phim, khong the xoa");
+        }
+        genreRepository.deleteById(genreUuid);
+    }
+
+    @Transactional
+    public Country createCountry(CountryRequest request) {
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        if (countryRepository.existsByCodeIgnoreCase(code)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+        }
+        Country country = new Country();
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public Country updateCountry(UUID countryUuid, CountryRequest request) {
+        Country country = countryRepository.findById(countryUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai"));
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        countryRepository.findByCodeIgnoreCase(code)
+                .filter(existing -> !existing.getUuid().equals(countryUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+                });
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public void deleteCountry(UUID countryUuid) {
+        if (!countryRepository.existsById(countryUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai");
+        }
+        if (movieCountryRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung trong phim, khong the xoa");
+        }
+        if (actorRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung boi dien vien, khong the xoa");
+        }
+        countryRepository.deleteById(countryUuid);
     }
 
     @Transactional
@@ -492,7 +726,7 @@ public class MovieService {
     }
 
     private MovieListResponse toMovieListResponse(Movie movie) {
-        return new MovieListResponse(
+        MovieListResponse response = new MovieListResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -507,13 +741,17 @@ public class MovieService {
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
-                movie.getStreamingUrl(),
+                MovieStreamingUtils.resolveStreamingUrl(movie),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(resolveOnlinePrice(movie));
+        response.setRating(movie.getRating());
+        return response;
     }
 
     private MovieDetailResponse toMovieDetailResponse(Movie movie) {
-        return new MovieDetailResponse(
+        MovieDetailResponse response = new MovieDetailResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -536,9 +774,13 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
-                movie.getStreamingUrl(),
+                MovieStreamingUtils.resolveStreamingUrl(movie),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(resolveOnlinePrice(movie));
+        response.setRating(movie.getRating());
+        return response;
     }
 
     private ActorResponse toActorResponse(MovieActor movieActor) {
@@ -658,7 +900,8 @@ public class MovieService {
         Movie movie = movieRepository.findById(movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
 
-        if (movie.getStreamingUrl() == null || movie.getStreamingUrl().isBlank()) {
+        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+        if (streamingUrl == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
         }
 
@@ -669,6 +912,32 @@ public class MovieService {
             throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
         }
 
-        return movie.getStreamingUrl();
+        return streamingUrl;
+    }
+
+    private void applyStreamingUrl(Movie movie, String streamingUrl, List<MovieMediaRequest> medias) {
+        String resolved = trimToNull(streamingUrl);
+        if (resolved == null) {
+            resolved = MovieStreamingUtils.resolveFromMediaRequests(medias);
+        }
+        movie.setStreamingUrl(resolved);
+    }
+
+    private void syncStreamingUrlFromMediasIfMissing(Movie movie) {
+        if (trimToNull(movie.getStreamingUrl()) != null) {
+            return;
+        }
+        movie.setStreamingUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
+    }
+
+    private BigDecimal resolveOnlinePrice(Movie movie) {
+        if (movie.getOnlinePrice() != null) {
+            return movie.getOnlinePrice();
+        }
+        ScreeningMode mode = movie.getScreeningMode();
+        if (mode == ScreeningMode.ONLINE_ONLY || mode == ScreeningMode.BOTH) {
+            return systemConfigService.getDefaultOnlinePrice();
+        }
+        return null;
     }
 }

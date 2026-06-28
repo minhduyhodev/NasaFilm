@@ -20,7 +20,10 @@ import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 @Entity
 @Table(name = "showtime", indexes = {
         @Index(name = "idx_showtime_movie", columnList = "movie_uuid"),
-        @Index(name = "idx_showtime_room", columnList = "cinema_room_uuid")
+        @Index(name = "idx_showtime_room", columnList = "cinema_room_uuid"),
+        @Index(name = "idx_showtime_status_start", columnList = "status, start_time"),
+        @Index(name = "idx_showtime_room_start_status", columnList = "cinema_room_uuid, start_time, status"),
+        @Index(name = "idx_showtime_movie_status_start", columnList = "movie_uuid, status, start_time")
 })
 public class Showtime {
 
@@ -43,6 +46,12 @@ public class Showtime {
 
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
+
+    @Column(name = "vip_price")
+    private BigDecimal vipPrice;
+
+    @Column(name = "couple_price")
+    private BigDecimal couplePrice;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -105,6 +114,22 @@ public class Showtime {
 
     public void setBasePrice(BigDecimal basePrice) {
         this.basePrice = basePrice;
+    }
+
+    public BigDecimal getVipPrice() {
+        return vipPrice;
+    }
+
+    public void setVipPrice(BigDecimal vipPrice) {
+        this.vipPrice = vipPrice;
+    }
+
+    public BigDecimal getCouplePrice() {
+        return couplePrice;
+    }
+
+    public void setCouplePrice(BigDecimal couplePrice) {
+        this.couplePrice = couplePrice;
     }
 
     public ShowtimeStatus getStatus() {

@@ -1,0 +1,37 @@
+.combo-revenue-page .combo-revenue-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--adm-accent, #ef4444);
+  margin-bottom: 6px;
+}
+
+.combo-revenue-table-panel {
+  @apply mt-0;
+}
+
+.combo-revenue-table {
+  @apply w-full text-left text-sm border-collapse;
+}
+
+.combo-revenue-table th {
+  @apply pb-3 pt-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 border-b border-white/[0.06];
+}
+
+.combo-revenue-table td {
+  @apply py-3.5 border-b border-white/[0.04] text-gray-300;
+}
+
+.combo-revenue-bar-wrap {
+  @apply flex items-center gap-2 min-w-[120px];
+}
+
+.combo-revenue-bar-wrap span {
+  @apply text-xs text-gray-400 tabular-nums shrink-0;
+}
+
+.combo-revenue-bar {
+  @apply h-1.5 rounded-full flex-1 max-w-[100px];
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}

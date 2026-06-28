@@ -50,6 +50,9 @@ class MovieTheaterBackendApplicationTests {
 	@org.springframework.beans.factory.annotation.Autowired
 	private com.thdpv.movietheater.booking.service.ShowtimeSeatService showtimeSeatService;
 
+	@org.springframework.beans.factory.annotation.Autowired
+	private com.thdpv.movietheater.cinema.service.CinemaService cinemaService;
+
 	@Test
 	void printSeatLocks() {
 		java.util.List<java.util.Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT * FROM seat_locked");
@@ -173,6 +176,7 @@ class MovieTheaterBackendApplicationTests {
 		room.setRoomType(com.thdpv.movietheater.cinema.enums.RoomType.STANDARD);
 		room.setStatus(com.thdpv.movietheater.cinema.enums.CinemaRoomStatus.ACTIVE);
 		room = cinemaRoomRepository.save(room);
+		cinemaService.generateSeats(room.getUuid(), null);
 
 		// 3. Create a movie (or use an existing one)
 		java.util.List<com.thdpv.movietheater.movie.entity.Movie> movies = movieRepository.findAll();

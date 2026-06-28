@@ -1,76 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import { notificationService } from '../../../shared/services/notificationService';
+import { vodService } from '../../../shared/services/vodService';
+import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
 import { authService } from '../../auth/api/authService';
-import { comboService } from '../../../shared/services/comboService';
-
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
+import { notificationService } from '../../../shared/services/notificationService';
+import { promotionService } from '../../../shared/services/promotionService';
+import { walletService } from '../../../shared/services/walletService';
+import PosterImage from '../../../shared/components/PosterImage';
 
 import './CheckoutPage.css';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
 
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Try to restore from sessionStorage if location.state is not available
-  const getInitialState = () => {
+  const [checkoutState] = useState(() => {
     if (location.state) {
       try {
         sessionStorage.setItem('checkout_state', JSON.stringify(location.state));
       } catch (e) {
-        console.error("Failed to save checkout state to sessionStorage:", e);
+        console.error('Failed to save checkout state to sessionStorage:', e);
       }
       return location.state;
     }
@@ -80,35 +33,37 @@ const CheckoutPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error("Failed to parse checkout state from sessionStorage:", e);
+      console.error('Failed to parse checkout state from sessionStorage:', e);
     }
-    return {};
-  };
+    return null;
+  });
 
-  const checkoutState = getInitialState();
+  const isStateValid = Boolean(
+    checkoutState &&
+      ((checkoutState.isVod && checkoutState.movieUuid) ||
+        (!checkoutState.isVod && checkoutState.showtimeUuid))
+  );
 
-  // Extract payment details from state, or fallback to mock data
-  const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
-    moviePoster = '',
-    movieRating = null,
-    movieFormat = '',
-    movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30',
-    selectedSeats = [
-      { id: 'E5', price: 120000, type: 'Ghế VIP' },
-      { id: 'E6', price: 120000, type: 'Ghế VIP' }
-    ],
-    totalAmount = 240000
-  } = checkoutState;
+  const isVod = checkoutState?.isVod ?? false;
+  const showtimeUuid = checkoutState?.showtimeUuid ?? '';
+  const theater = checkoutState?.theater ?? '';
+  const movie = checkoutState?.movie ?? '';
+  const moviePoster = checkoutState?.moviePoster ?? '';
+  const movieRating = checkoutState?.movieRating ?? null;
+  const movieFormat = checkoutState?.movieFormat ?? '';
+  const movieAgeRestriction = checkoutState?.movieAgeRestriction ?? '';
+  const date = checkoutState?.date ?? '';
+  const showtime = checkoutState?.showtime ?? '';
+  const selectedSeats = checkoutState?.selectedSeats ?? [];
+  const totalAmount = checkoutState?.totalAmount ?? 0;
+  const movieUuid = checkoutState?.movieUuid ?? '';
+  const durationMinutes = checkoutState?.durationMinutes ?? 0;
+  const lockExpiresAt = checkoutState?.lockExpiresAt ?? null;
 
-  const movieInfo = getMovieInfo(movie);
-
+  const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
+  const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
+  const [checkoutCombos, setCheckoutCombos] = useState(() => checkoutState?.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -116,55 +71,106 @@ const CheckoutPage = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [combosList, setCombosList] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   useEffect(() => {
+    if (!isStateValid) {
+      notificationService.error('Phiên giao dịch không hợp lệ hoặc đã hết hạn.');
+      navigate('/', { replace: true });
+    }
+  }, [isStateValid, navigate]);
+
+  useEffect(() => {
+    if (!isStateValid || !isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setVodMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isStateValid, isVod, movieUuid]);
+
+  useEffect(() => {
+    if (!isStateValid || isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setTheaterMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isStateValid, isVod, movieUuid]);
+
+  const resolvedPoster = isVod
+    ? moviePoster || vodMovieMeta.poster
+    : moviePoster || theaterMovieMeta.poster;
+  const resolvedAge = isVod
+    ? movieAgeRestriction || vodMovieMeta.ageRestriction
+    : movieAgeRestriction || theaterMovieMeta.ageRestriction;
+  const resolvedFormat = isVod ? 'VOD Online' : movieFormat;
+
+  useEffect(() => {
+    if (!isStateValid) return;
     window.scrollTo(0, 0);
     const fetchProfile = async () => {
       try {
-        const data = await authService.getProfile();
-        if (data) {
-          setUserScore(data.score || 0);
+        const [profile, wallet] = await Promise.all([
+          authService.getProfile(),
+          walletService.getWallet().catch(() => null),
+        ]);
+        if (profile) {
+          setUserScore(profile.score || 0);
+        }
+        if (wallet?.balance != null) {
+          setWalletBalance(Number(wallet.balance));
         }
       } catch (err) {
-        console.error("Failed to load user profile in CheckoutPage:", err);
+        console.error('Failed to load user profile in CheckoutPage:', err);
       } finally {
         setLoadingProfile(false);
       }
     };
-    const fetchCombos = async () => {
-      try {
-        const data = await comboService.getActiveCombos();
-        setCombosList(data || []);
-      } catch (err) {
-        console.error("Failed to load combos in CheckoutPage:", err);
-      }
-    };
     const fetchVouchers = async () => {
       try {
-        const response = await authService.api.get('/api/promotions/my-vouchers');
-        const data = response.data.data ?? response.data;
+        const data = await promotionService.getMyVouchers();
         if (Array.isArray(data)) {
-          setMyVouchers(data.filter(v => v.remainingUsage > 0));
+          setMyVouchers(data.filter((v) => v.remainingUsage > 0));
         }
       } catch (err) {
-        console.error("Failed to load user vouchers in CheckoutPage:", err);
+        console.error('Failed to load user vouchers in CheckoutPage:', err);
       } finally {
         setLoadingVouchers(false);
       }
     };
     fetchProfile();
-    fetchCombos();
     fetchVouchers();
-  }, []);
+  }, [isStateValid]);
 
   useEffect(() => {
-    if (location.state?.lockExpiresAt) {
+    if (!isStateValid || isVod) return;
+    if (lockExpiresAt) {
       const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((location.state.lockExpiresAt - Date.now()) / 1000));
+        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
         if (diff <= 0) {
           setIsExpired(true);
           setTimeLeft(0);
@@ -176,16 +182,16 @@ const CheckoutPage = () => {
       const interval = setInterval(calculateTimeLeft, 1000);
       return () => clearInterval(interval);
     }
-  }, [location.state?.lockExpiresAt]);
+  }, [isStateValid, isVod, lockExpiresAt]);
 
-  const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
-  const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const memberDiscountRate = getMemberDiscountRate(userScore);
+  const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
   const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
   const hasCombo = checkoutCombos.length > 0;
   
-  const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
+  const ticketSum = isVod ? totalAmount : selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
   const subtotal = ticketSum + comboPrice;
   const finalTotal = Math.max(0, subtotal - discount);
 
@@ -255,20 +261,33 @@ const CheckoutPage = () => {
   };
 
   const handlePay = async () => {
-    if (isExpired) {
+    if (!isVod && isExpired) {
       notificationService.error("Thời gian giữ ghế đã hết hạn!");
+      return;
+    }
+    if (paymentMethod === 'wallet' && walletBalance < finalTotal) {
+      notificationService.warning('Số dư ví không đủ. Vui lòng nạp thêm tại trang Ví NASA.');
+      navigate('/wallet');
       return;
     }
     setIsPaying(true);
     try {
-      const seatUuids = selectedSeats.map(s => s.seatUuid);
-      const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+      let response;
+      if (isVod) {
+        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null, paymentMethod);
+      } else {
+        const seatUuids = selectedSeats.map(s => s.seatUuid);
+        const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null, paymentMethod);
+      }
       
-      const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
+      const successMessage = isVod
+        ? `Mua vé xem phim Online thành công! Hãy kích hoạt mã vé để bắt đầu xem.`
+        : `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`;
       
       notificationService.addNotification(
         "Đặt vé thành công",
-        `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`,
+        successMessage,
         "success"
       );
       
@@ -280,16 +299,18 @@ const CheckoutPage = () => {
         state: {
           bookingUuid: response.bookingUuid,
           movie: movie,
-          moviePoster: moviePoster || movieInfo.poster,
-          movieFormat: movieFormat || movieInfo.format,
-          movieRating: movieAgeRestriction || movieInfo.age,
-          theater: theater,
-          date: date,
-          showtime: showtime,
+          moviePoster: resolvedPoster,
+          movieFormat: isVod ? 'VOD Online' : resolvedFormat,
+          movieRating: resolvedAge,
+          theater: isVod ? 'Trình phát video NASA VOD' : theater,
+          date: isVod ? 'Mọi lúc, mọi nơi' : date,
+          showtime: isVod ? 'Xem trực tuyến' : showtime,
           selectedSeats: selectedSeats,
           tickets: response.tickets || [],
           totalPrice: finalTotal,
-          combos: response.combos || []
+          combos: response.combos || [],
+          isVod: isVod,
+          movieUuid: movieUuid
         },
         replace: true
       });
@@ -301,9 +322,12 @@ const CheckoutPage = () => {
     }
   };
 
+  if (!isStateValid) {
+    return null;
+  }
+
   return (
     <div className="checkout-wrapper">
-      <Navbar />
       
       <main className="mt-8 flex-grow pt-4 pb-20 px-4 md:px-16 lg:px-20 max-w-7xl mx-auto w-full">
         {/* Navigation Breadcrumb / Back Action */}
@@ -312,7 +336,9 @@ const CheckoutPage = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
-          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">Quay lại chọn ghế</span>
+          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
+            {isVod ? 'Quay lại chi tiết phim' : 'Quay lại chọn ghế'}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -322,7 +348,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={moviePoster || movieInfo.poster} />
+                  <PosterImage className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} width={400} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -334,25 +360,27 @@ const CheckoutPage = () => {
                       </div>
                       <div className="flex items-center gap-2.5 text-[#c8c5ca]">
                         <Clock className="w-4.5 h-4.5 text-cyan-400 shrink-0" />
-                        <span className="text-xs font-semibold">{showtime} • {theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP'}</span>
+                        <span className="text-xs font-semibold">{showtime} • {isVod ? theater : (theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP')}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-yellow-400 font-bold">
                         <Armchair className="w-4.5 h-4.5 text-yellow-500 fill-yellow-500/10 shrink-0" />
-                        <span className="text-xs font-bold uppercase tracking-wide">Ghế: {selectedSeats.map(s => s.id).join(', ')}</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          {isVod ? 'Vé xem trực tuyến (VOD)' : `Ghế: ${selectedSeats.map(s => s.id).join(', ')}`}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
-                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                    {(movieAgeRestriction || movieInfo.age) && (
+                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{resolvedFormat}</span>
+                    {resolvedAge && (
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${
-                        (movieAgeRestriction || movieInfo.age).toUpperCase() === 'P' 
+                        resolvedAge.toUpperCase() === 'P' 
                           ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20' 
-                          : (movieAgeRestriction || movieInfo.age).toUpperCase().includes('T18') 
+                          : resolvedAge.toUpperCase().includes('T18') 
                             ? 'bg-red-600/10 text-red-500 border-red-500/20' 
                             : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
                       }`}>
-                        {movieAgeRestriction || movieInfo.age}
+                        {resolvedAge}
                       </span>
                     )}
                   </div>
@@ -364,36 +392,43 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Chi tiết thanh toán</h2>
               <div className="space-y-4">
                 {/* Seat tickets breakdown */}
-                {Object.entries(seatGroupBreakdown).map(([type, data]) => (
+                {!isVod && Object.entries(seatGroupBreakdown).map(([type, data]) => (
                   <div key={type} className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">{type} ({data.count}x)</span>
                     <span className="text-xs font-bold text-white">{(data.sum).toLocaleString('vi-VN')} đ</span>
                   </div>
                 ))}
 
-
+                {isVod && (
+                  <div className="flex justify-between items-center text-[#c8c5ca]">
+                    <span className="text-xs font-semibold">Vé xem phim trực tuyến (VOD)</span>
+                    <span className="text-xs font-bold text-white">{(totalAmount).toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
 
                 {/* Selected Combo packs breakdown */}
-                <div className="pt-4 border-t border-white/5 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
-                  {checkoutCombos.length === 0 ? (
-                    <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
-                      Không mua kèm bắp nước.
-                    </div>
-                  ) : (
-                    checkoutCombos.map(combo => (
-                      <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
-                        <div>
-                          <span className="text-xs font-bold text-white block">{combo.name}</span>
-                          <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
-                        </div>
-                        <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                {!isVod && (
+                  <div className="pt-4 border-t border-white/5 space-y-3">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                    {checkoutCombos.length === 0 ? (
+                      <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
+                        Không mua kèm bắp nước.
                       </div>
-                    ))
-                  )}
-                </div>
+                    ) : (
+                      checkoutCombos.map(combo => (
+                        <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                          <div>
+                            <span className="text-xs font-bold text-white block">{combo.name}</span>
+                            <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
+                          </div>
+                          <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
 
-                {hasCombo && (
+                {hasCombo && !isVod && (
                   <div className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">Ưu đãi thành viên ({memberTier})</span>
                     <span className="text-xs font-bold text-green-500">-{comboDiscountAmount.toLocaleString('vi-VN')} đ</span>
@@ -415,12 +450,23 @@ const CheckoutPage = () => {
                 </div>
               </div>
             </section>
+
+            {isVod && (
+              <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-6 space-y-3 text-xs leading-relaxed text-purple-300 text-left">
+                <p className="font-bold text-purple-400 text-sm uppercase tracking-wider">Điều khoản dịch vụ VOD:</p>
+                <ul className="list-disc pl-5 space-y-2 font-medium">
+                  <li>Vé xem có thời hạn sử dụng trong vòng <span className="font-extrabold text-white">{(durationMinutes * 2) || 240} phút</span> kể từ lần đầu tiên nhấn nút xem phim.</li>
+                  <li>Mỗi vé chỉ hỗ trợ phát trên <span className="font-extrabold text-white">01 thiết bị duy nhất</span> tại cùng một thời điểm.</li>
+                  <li>Mọi hành vi sao chép, chia sẻ stream trái phép sẽ bị hệ thống tự động khóa tài khoản vĩnh viễn.</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Payment Options & CTA */}
           <div className="lg:col-span-5 space-y-6">
             <section className="glass-panel p-6 rounded-2xl flex flex-col h-full text-left">
-              {timeLeft !== null && (
+              {timeLeft !== null && !isVod && (
                 <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${
                   timeLeft < 60 
                     ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse' 
@@ -436,7 +482,10 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <p className="text-[11px] text-amber-400/90 font-semibold mb-6 px-1">
+                Chế độ demo — Ví NASA trừ số dư thật (mock), thẻ/Apple Pay qua Mock Gateway. Cổng VNPay/MoMo sẽ tích hợp sau.
+              </p>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
                 <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${
@@ -455,8 +504,12 @@ const CheckoutPage = () => {
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
-                    <div className="text-xs font-bold text-white">Số dư tài khoản</div>
-                    <div className="text-[10px] font-semibold text-gray-400">Ví credits (Đang có: 500.000 đ)</div>
+                    <div className="text-xs font-bold text-white">Ví NASA</div>
+                    <div className="text-[10px] font-semibold text-gray-400">
+                      {loadingProfile
+                        ? 'Đang tải số dư...'
+                        : `Số dư: ${walletBalance.toLocaleString('vi-VN')} đ · ${memberTier}`}
+                    </div>
                   </div>
                   <Wallet className="w-5 h-5 text-red-500 shrink-0 fill-red-500/10" />
                 </label>
@@ -612,8 +665,6 @@ const CheckoutPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
 
       {isExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">

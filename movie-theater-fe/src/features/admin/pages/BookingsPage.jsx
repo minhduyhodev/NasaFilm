@@ -1,21 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, User, Film,
-  Download, MapPin, Clock, Loader2, AlertCircle, QrCode, Sparkles,
-  Filter, X
+  Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, Film,
+  MapPin, Clock, Loader2, AlertCircle, Sparkles,
+  X, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal
 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
+import PosterImage from '../../../shared/components/PosterImage';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { AdminPage, PageHeader, GhostButton } from '../components';
+import {
+  getAdminBookingArchiveLabel,
+  partitionAdminBookings,
+} from '../utils/adminBookingUtils';
+import './BookingsPage.css';
 
 const BookingsPage = () => {
+  useMediaUrlRouting();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [listTab, setListTab] = useState('active');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [moviesMap, setMoviesMap] = useState({});
   const [cinemasList, setCinemasList] = useState([]);
@@ -27,7 +41,180 @@ const BookingsPage = () => {
   const [selectedCinema, setSelectedCinema] = useState('');
   const [selectedShowtime, setSelectedShowtime] = useState('');
 
+  const [activeDatePickerField, setActiveDatePickerField] = useState(null); // 'startDate', 'endDate', or null
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
+  const openDatePicker = (field) => {
+    const currentValue = field === 'startDate' ? startDate : endDate;
+    if (currentValue) {
+      const parts = currentValue.split('-');
+      if (parts.length === 3) {
+        setCalendarYear(parseInt(parts[0], 10));
+        setCalendarMonth(parseInt(parts[1], 10) - 1);
+      }
+    } else {
+      const today = new Date();
+      setCalendarMonth(today.getMonth());
+      setCalendarYear(today.getFullYear());
+    }
+    setActiveDatePickerField(field);
+    setActiveDropdown(null);
+  };
+
+  const handlePrevMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 0) {
+        setCalendarYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCalendarMonth(prev => {
+      if (prev === 11) {
+        setCalendarYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const handleSelectDay = (dayObj) => {
+    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+    if (activeDatePickerField === 'startDate') {
+      setStartDate(dateStr);
+    } else {
+      setEndDate(dateStr);
+    }
+    setActiveDatePickerField(null);
+  };
+
+  const getDaysInMonth = (year, month) => {
+    const date = new Date(year, month, 1);
+    const days = [];
+    const firstDayIndex = date.getDay();
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // start from Monday
+
+    const prevMonthDate = new Date(year, month, 0);
+    const prevMonthDaysCount = prevMonthDate.getDate();
+    for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthDaysCount - i,
+        month: month === 0 ? 11 : month - 1,
+        year: month === 0 ? year - 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    const currentMonthDaysCount = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= currentMonthDaysCount; i++) {
+      days.push({
+        day: i,
+        month,
+        year,
+        isCurrentMonth: true,
+      });
+    }
+
+    const remainingSlots = 42 - days.length; // 6 rows * 7 columns = 42
+    for (let i = 1; i <= remainingSlots; i++) {
+      days.push({
+        day: i,
+        month: month === 11 ? 0 : month + 1,
+        year: month === 11 ? year + 1 : year,
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const renderCalendarContent = (field) => {
+    const currentValue = field === 'startDate' ? startDate : endDate;
+    return (
+      <div className="space-y-3 font-sans text-left">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+            {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
+          </span>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+            <div key={d} className="py-1">{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {getDaysInMonth(calendarYear, calendarMonth).map((dayObj, idx) => {
+            const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+            const isSelected = currentValue === dateStr;
+            const today = new Date();
+            const isToday = today.getDate() === dayObj.day && today.getMonth() === dayObj.month && today.getFullYear() === dayObj.year;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectDay(dayObj)}
+                className={`py-1 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer border-0 ${
+                  isSelected
+                    ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-600/20'
+                    : isToday
+                    ? 'border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                    : dayObj.isCurrentMonth
+                    ? 'text-gray-800 hover:bg-gray-100'
+                    : 'text-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {dayObj.day}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => {
+              if (field === 'startDate') setStartDate('');
+              else setEndDate('');
+              setActiveDatePickerField(null);
+            }}
+            className="text-[10px] text-gray-400 hover:text-gray-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
+          >
+            Xóa
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveDatePickerField(null)}
+            className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
+  const [archivedPage, setArchivedPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchAuxiliaryData = async () => {
@@ -36,19 +223,26 @@ const BookingsPage = () => {
       const moviesList = moviesData?.content || [];
       const moviesMapping = {};
       moviesList.forEach(m => {
-        if (m.title) moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        if (m.title && m.primaryMediaUrl) {
+          moviesMapping[m.title.toLowerCase().trim()] = m.primaryMediaUrl;
+        }
+      });
+      const showtimesData = await showtimeService.getAdminShowtimes();
+      (showtimesData || []).forEach((st) => {
+        if (st.movieTitle && st.moviePosterUrl) {
+          moviesMapping[st.movieTitle.toLowerCase().trim()] = st.moviePosterUrl;
+        }
       });
       setMoviesMap(moviesMapping);
       const cinemasData = await movieService.getCinemas();
       setCinemasList(cinemasData || []);
-      const showtimesData = await showtimeService.getAdminShowtimes();
       setShowtimes(showtimesData || []);
     } catch (err) {
       console.error('Failed to fetch auxiliary data:', err);
     }
   };
 
-  const fetchBookings = async (keyword = '') => {
+  const fetchBookings = useCallback(async (keyword = '') => {
     setIsLoading(true);
     try {
       const data = await bookingService.getAdminBookings(keyword);
@@ -59,20 +253,27 @@ const BookingsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => { fetchAuxiliaryData(); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBookings(searchTerm); }, 450);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchBookings]);
+
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, () => fetchBookings(searchTerm));
 
   useEffect(() => {
     setCurrentPage(1);
+    setArchivedPage(1);
   }, [searchTerm, statusFilter, startDate, endDate, selectedCinema, selectedShowtime]);
 
-  const handleExport = () => notificationService.info('Tính năng xuất báo cáo đang được chuẩn bị.');
+  useEffect(() => {
+    if (statusFilter === 'CANCELLED') {
+      setListTab('archived');
+    }
+  }, [statusFilter]);
 
   const handleClearFilters = () => {
     setStartDate('');
@@ -81,33 +282,22 @@ const BookingsPage = () => {
     setSelectedShowtime('');
     setStatusFilter('ALL');
     setSearchTerm('');
+    setListTab('active');
   };
 
-  const handleCancelBookingDirect = async (row) => {
-    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn đặt vé "${row.bookingUuid.substring(0, 8).toUpperCase()}" của khách hàng "${row.customerName}" không?`)) {
-      try {
-        await bookingService.cancelBooking(row.bookingUuid);
-        notificationService.success(`Đã hủy thành công đơn hàng ${row.bookingUuid.substring(0, 8).toUpperCase()}`);
-        fetchBookings(searchTerm);
-      } catch (err) {
-        console.error('Failed to cancel booking:', err);
-        notificationService.error(err.message || 'Hủy đơn hàng thất bại');
-      }
+  const handleKpiClick = (label) => {
+    if (label === 'THÀNH CÔNG' || label === 'DOANH THU') {
+      setStatusFilter('CONFIRMED');
+      setListTab('active');
+    } else if (label === 'ĐÃ HỦY') {
+      setStatusFilter('CANCELLED');
+      setListTab('archived');
+    } else if (label === 'TỔNG ĐƠN HÀNG') {
+      setStatusFilter('ALL');
+      setListTab('active');
     }
-  };
-
-  const handleCheckInDirect = async (row) => {
-    const code = window.prompt(`Nhập mã vé cần check-in cho đơn hàng ${row.bookingUuid.substring(0, 8).toUpperCase()}:`);
-    if (code && code.trim()) {
-      try {
-        await bookingService.checkInTicket(code.trim());
-        notificationService.success(`Check-in thành công vé: ${code.trim()}`);
-        fetchBookings(searchTerm);
-      } catch (err) {
-        console.error('Failed to check-in ticket:', err);
-        notificationService.error(err.message || 'Check-in vé thất bại');
-      }
-    }
+    setCurrentPage(1);
+    setArchivedPage(1);
   };
 
   const formatDateTime = (dateStr) => {
@@ -122,8 +312,8 @@ const BookingsPage = () => {
   };
 
   const formatPrice = (price) => {
-    if (price === undefined || price === null) return '0 d';
-    return `${price.toLocaleString('vi-VN')} d`;
+    if (price === undefined || price === null) return '0đ';
+    return `${price.toLocaleString('vi-VN')}đ`;
   };
 
   const getBookingShowtime = (booking) => {
@@ -153,25 +343,40 @@ const BookingsPage = () => {
     return options.sort();
   }, [showtimes]);
 
-  const filteredBookings = bookings.filter((b) => {
-    if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
-    if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
-    if (startDate) {
-      const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-      const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
-      if (bDate < sDate) return false;
-    }
-    if (endDate) {
-      const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-      const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
-      if (bDate > eDate) return false;
-    }
-    if (selectedShowtime) {
-      const stTime = getBookingShowtimeTime(b);
-      if (stTime !== selectedShowtime) return false;
-    }
-    return true;
-  });
+  const filteredBookings = React.useMemo(() => {
+    const list = bookings.filter((b) => {
+      if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
+      if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
+      if (startDate) {
+        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
+        const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
+        if (bDate < sDate) return false;
+      }
+      if (endDate) {
+        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
+        const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
+        if (bDate > eDate) return false;
+      }
+      if (selectedShowtime) {
+        const stTime = getBookingShowtimeTime(b);
+        if (stTime !== selectedShowtime) return false;
+      }
+      return true;
+    });
+
+    const statusRank = { PENDING: 0, CONFIRMED: 1, CANCELLED: 2 };
+    return list.sort((a, b) => {
+      const ra = statusRank[a.status?.toUpperCase()] ?? 1;
+      const rb = statusRank[b.status?.toUpperCase()] ?? 1;
+      if (ra !== rb) return ra - rb;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [bookings, statusFilter, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
+
+  const { active: activeBookings, archived: archivedBookings } = React.useMemo(
+    () => partitionAdminBookings(filteredBookings, getBookingShowtime),
+    [filteredBookings, showtimes],
+  );
 
   const stats = React.useMemo(() => {
     const baseListForStats = bookings.filter((b) => {
@@ -201,168 +406,449 @@ const BookingsPage = () => {
     return { totalRevenue: revenue, confirmedCount: confirmed, cancelledCount: cancelled, totalCount: baseListForStats.length, avgOrderValue };
   }, [bookings, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
 
-  const paginatedBookings = React.useMemo(() => {
+  const paginatedActiveBookings = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredBookings, currentPage, itemsPerPage]);
+    return activeBookings.slice(startIndex, startIndex + itemsPerPage);
+  }, [activeBookings, currentPage, itemsPerPage]);
+
+  const paginatedArchivedBookings = React.useMemo(() => {
+    const startIndex = (archivedPage - 1) * itemsPerPage;
+    return archivedBookings.slice(startIndex, startIndex + itemsPerPage);
+  }, [archivedBookings, archivedPage, itemsPerPage]);
+
+  const displayedBookings = listTab === 'archived' ? archivedBookings : activeBookings;
+  const paginatedBookings = listTab === 'archived' ? paginatedArchivedBookings : paginatedActiveBookings;
+  const tabCurrentPage = listTab === 'archived' ? archivedPage : currentPage;
+  const tabPageCount = Math.max(1, Math.ceil(displayedBookings.length / itemsPerPage) || 1);
 
   const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm;
+
+  const kpiActive = (label) => {
+    if (label === 'TỔNG ĐƠN HÀNG') return statusFilter === 'ALL';
+    if (label === 'THÀNH CÔNG' || label === 'DOANH THU') return statusFilter === 'CONFIRMED';
+    if (label === 'ĐÃ HỦY') return statusFilter === 'CANCELLED';
+    return false;
+  };
 
   const getStatusConfig = (status) => {
     const s = status?.toUpperCase();
     if (s === 'CONFIRMED') return {
       label: 'Thành công',
       accentBg: 'bg-emerald-500',
+      accentBorder: 'bk-order-row--confirmed',
       badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
       dot: 'bg-emerald-400 animate-pulse',
     };
     if (s === 'CANCELLED') return {
       label: 'Đã hủy',
       accentBg: 'bg-rose-500',
+      accentBorder: 'bk-order-row--cancelled',
       badgeCls: 'bg-rose-500/15 border border-rose-500/30 text-rose-400',
       dot: 'bg-rose-400',
+    };
+    if (s === 'REFUND_PENDING') return {
+      label: 'Chờ duyệt hoàn tiền',
+      accentBg: 'bg-amber-500',
+      accentBorder: 'bk-order-row--pending',
+      badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
+      dot: 'bg-amber-400 animate-pulse',
+    };
+    if (s === 'REFUND_PROCESSING') return {
+      label: 'Đang hoàn tiền',
+      accentBg: 'bg-sky-500',
+      accentBorder: 'bk-order-row--pending',
+      badgeCls: 'bg-sky-500/15 border border-sky-500/30 text-sky-400',
+      dot: 'bg-sky-400 animate-pulse',
+    };
+    if (s === 'REFUNDED') return {
+      label: 'Đã hoàn tiền',
+      accentBg: 'bg-emerald-500',
+      accentBorder: 'bk-order-row--confirmed',
+      badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
+      dot: 'bg-emerald-400',
     };
     return {
       label: 'Chờ xử lý',
       accentBg: 'bg-amber-500',
+      accentBorder: 'bk-order-row--pending',
       badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
       dot: 'bg-amber-400',
     };
   };
 
-  return (
-    <div className="space-y-6 text-left">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Vận Hành Đơn Hàng</p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Đơn Hàng &amp; Doanh Thu</h1>
-          <p className="text-sm text-gray-400 mt-2">Theo dõi, tra cứu và đối soát trạng thái giao dịch đặt vé của khách hàng trên toàn bộ chi nhánh.</p>
+  const renderOrderRow = (row, archived = false) => {
+    const statusCfg = getStatusConfig(row.status);
+    const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
+    const seatList = row.seats ? row.seats.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const st = getBookingShowtime(row);
+    const showtimeStr = st && st.startTime
+      ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
+      : null;
+    const isRefundPending = row.status?.toUpperCase() === 'REFUND_PENDING';
+    const archiveLabel = archived ? getAdminBookingArchiveLabel(row, getBookingShowtime) : null;
+
+    return (
+      <div
+        key={row.bookingUuid}
+        className={`bk-order-row ${statusCfg.accentBorder}`}
+      >
+        {archived && archiveLabel && (
+          <span className="bk-order-archive-badge">{archiveLabel}</span>
+        )}
+        <div className="bk-order-cell bk-order-cell--customer">
+          <div className="bk-order-customer">
+            <UserAvatar
+              src={row.customerAvatarUrl}
+              name={row.customerName}
+              fallbackClassName="bg-slate-800"
+              borderClassName="border border-white/10"
+            />
+            <div className="min-w-0">
+              <div className="bk-order-customer__name">{row.customerName || 'N/A'}</div>
+              <div className="bk-order-customer__email">{row.customerEmail || 'N/A'}</div>
+              <div className="bk-order-customer__id">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0">
-          {hasActiveFilters && (
-            <button onClick={handleClearFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-400 hover:text-white border border-[#1A2238] rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer">
-              <X className="w-3.5 h-3.5" />
-              Đặt lại bộ lọc
-            </button>
+
+        <div className="bk-order-cell">
+          <div className="bk-order-movie">
+            <div className="bk-order-movie__poster">
+              {rawPoster ? (
+                <PosterImage src={rawPoster} alt="Poster" width={80} className="w-full h-full object-cover" />
+              ) : (<Film className="w-4 h-4 text-gray-600" />)}
+            </div>
+            <div className="min-w-0">
+              <div className="bk-order-movie__title">{row.movieTitle || 'N/A'}</div>
+              <div className="bk-order-movie__meta">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{row.cinemaRoomName || 'N/A'}</span>
+              </div>
+              {showtimeStr ? (
+                <div className="bk-order-movie__showtime">{showtimeStr}</div>
+              ) : (
+                <div className="bk-order-movie__meta mt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Chưa ghép suất chiếu</span>
+                </div>
+              )}
+              <div className="bk-order-movie__meta mt-1">
+                <Calendar className="w-3 h-3 shrink-0" />
+                <span className="font-mono text-[10px]">{formatDateTime(row.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bk-order-cell">
+          <p className="bk-order-label">Ghế</p>
+          {seatList.length > 0 ? (
+            <div>
+              {seatList.map((seat) => (
+                <span key={seat} className="bk-seat-tag">{seat}</span>
+              ))}
+              {row.combos && (
+                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                  <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="truncate" title={row.combos}>{row.combos}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-600">—</span>
           )}
-          <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 px-4 py-2 text-xs font-black text-black transition-all duration-200 shadow-lg shadow-yellow-500/20 cursor-pointer shrink-0">
-            <Download className="w-4 h-4" />
-            Xuất Excel
-          </button>
+        </div>
+
+        <div className="bk-order-cell">
+          <p className="bk-order-label">Thanh toán</p>
+          <p className="bk-order-price">{formatPrice(row.totalPrice)}</p>
+          {row.paymentMethod && (
+            <span className="mt-1 inline-block px-1.5 py-0.5 rounded bg-[#1A2238] text-[9px] font-bold text-gray-500 uppercase">{row.paymentMethod}</span>
+          )}
+        </div>
+
+        <div className="bk-order-cell bk-order-cell--actions gap-2">
+          <span className={`bk-status-badge ${statusCfg.badgeCls}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+            {statusCfg.label}
+          </span>
+          {isRefundPending && (
+            <Link to="/admin/refunds" className="bk-action-btn bk-action-btn--checkin no-underline">
+              <DollarSign className="w-3 h-3" />
+              Duyệt hoàn tiền
+            </Link>
+          )}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <AdminPage>
+      <PageHeader
+        eyebrow="Trung tâm vận hành đơn hàng"
+        title="Quản lý đơn hàng & doanh thu"
+        description="Theo dõi, tra cứu và đối soát trạng thái giao dịch đặt vé của khách hàng trên toàn bộ chi nhánh."
+        variant="display"
+        secondaryActions={
+          hasActiveFilters
+            ? [{ label: 'Đặt lại bộ lọc', onClick: handleClearFilters, icon: <X className="w-3.5 h-3.5" /> }]
+            : []
+        }
+      />
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-amber-500/15 to-yellow-600/10 border border-amber-500/25 rounded-2xl p-5 flex items-center justify-between hover:border-amber-500/50 transition-all duration-200 group shadow-lg shadow-amber-500/5">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400/80 block">Doanh Thu</span>
-            <h3 className="text-3xl font-black text-amber-400 font-mono leading-none tracking-tight">{formatPrice(stats.totalRevenue)}</h3>
-            <span className="text-[10px] text-amber-400/50">Đơn thành công</span>
-          </div>
-          <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform duration-200">
-            <DollarSign className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-emerald-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Thành Công</span>
-            <h3 className="text-3xl font-black text-emerald-400 leading-none">{stats.confirmedCount}</h3>
-            <span className="text-[10px] text-gray-600">đơn đặt vé</span>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-200">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-rose-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Đã Hủy</span>
-            <h3 className="text-3xl font-black text-rose-400 leading-none">{stats.cancelledCount}</h3>
-            <span className="text-[10px] text-gray-600">đơn đã hủy</span>
-          </div>
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 group-hover:scale-110 transition-transform duration-200">
-            <XCircle className="w-5 h-5 text-rose-400" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-gray-600 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Tổng Đơn Hàng</span>
-            <h3 className="text-3xl font-black text-white leading-none">{stats.totalCount}</h3>
-            <span className="text-[10px] text-gray-600">tổng giao dịch</span>
-          </div>
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-200">
-            <Ticket className="w-5 h-5 text-white" />
-          </div>
-        </div>
-        <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-2xl p-5 flex items-center justify-between hover:border-blue-500/30 transition-all duration-200 group">
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Giá Trị AOV</span>
-            <h3 className="text-3xl font-black text-blue-400 font-mono leading-none">{formatPrice(stats.avgOrderValue)}</h3>
-            <span className="text-[10px] text-gray-600">trung bình/đơn</span>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:scale-110 transition-transform duration-200">
-            <Sparkles className="w-5 h-5 text-blue-400" />
-          </div>
-        </div>
+      <div className="adm-kpi-grid adm-kpi-grid--5">
+        {[
+          { label: 'DOANH THU', value: formatPrice(stats.totalRevenue), badge: 'Đơn thành công', icon: DollarSign, color: 'text-amber-400', kpiClass: 'kpi-revenue', clickable: true },
+          { label: 'THÀNH CÔNG', value: stats.confirmedCount, badge: 'đơn đặt vé', icon: CheckCircle2, color: 'text-emerald-400', kpiClass: 'kpi-success', clickable: true },
+          { label: 'ĐÃ HỦY', value: stats.cancelledCount, badge: 'đơn đã hủy', icon: XCircle, color: 'text-rose-400', kpiClass: 'kpi-cancelled', clickable: true },
+          { label: 'TỔNG ĐƠN HÀNG', value: stats.totalCount, badge: 'tổng giao dịch', icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total', clickable: true },
+          { label: 'GIÁ TRỊ AOV', value: formatPrice(stats.avgOrderValue), badge: 'trung bình/đơn', icon: Sparkles, color: 'text-blue-400', kpiClass: 'kpi-aov', clickable: false }
+        ].map(kpi => {
+          const Tag = kpi.clickable ? 'button' : 'div';
+          return (
+            <Tag
+              key={kpi.label}
+              type={kpi.clickable ? 'button' : undefined}
+              onClick={kpi.clickable ? () => handleKpiClick(kpi.label) : undefined}
+              className={`adm-kpi-card kpi-card ${kpi.kpiClass} ${kpi.clickable ? 'adm-kpi-card--clickable kpi-card--clickable' : ''} ${kpiActive(kpi.label) ? 'adm-kpi-card--active kpi-card--active' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
+                <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
+              </div>
+              <p className={`text-xl font-black ${kpi.color} leading-none truncate`} title={kpi.value.toString()}>{kpi.value}</p>
+              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
+            </Tag>
+          );
+        })}
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="bg-[#0B0F19]/70 border border-[#1A2238] rounded-xl p-4 space-y-3 backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5 pointer-events-none" />
-            <input className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên khách, email, phim..." />
+      <div className="bk-toolbar">
+        <div className="bk-toolbar__row">
+          <div className="bk-toolbar__search">
+            <Search className="bk-toolbar__search-icon" />
+            <input
+              className="bk-control bk-control--search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm theo tên khách, email, phim..."
+            />
           </div>
-          <div className="flex items-center gap-1.5">
-            {[{ key: 'ALL', label: 'Tất cả' }, { key: 'CONFIRMED', label: 'Thành công' }, { key: 'CANCELLED', label: 'Đã hủy' }].map(({ key, label }) => (
-              <button key={key} onClick={() => setStatusFilter(key)} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200 cursor-pointer border ${statusFilter === key ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-[#0F1322] border-[#1A2238] text-gray-400 hover:text-white hover:border-gray-600'}`}>{label}</button>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[{ key: 'ALL', label: 'Tất cả', chip: 'muted' }, { key: 'CONFIRMED', label: 'Thành công', chip: 'success' }, { key: 'CANCELLED', label: 'Đã hủy', chip: 'danger' }].map(({ key, label, chip }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(key);
+                  if (key === 'CANCELLED') setListTab('archived');
+                  else setListTab('active');
+                }}
+                className={`bk-chip ${statusFilter === key ? `bk-chip--active ${chip === 'success' ? 'bk-chip--success' : chip === 'muted' ? 'bk-chip--muted' : ''}` : ''}`}
+              >
+                {label}
+              </button>
             ))}
           </div>
-          <div className="sm:ml-auto">
-            <button onClick={handleExport} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0F1322] border border-[#1A2238] text-xs font-bold text-gray-400 hover:text-yellow-400 hover:border-yellow-500/30 transition-all duration-200 cursor-pointer">
-              <Download className="w-3.5 h-3.5" />
-              Xuất dữ liệu
-            </button>
-          </div>
+
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className={`bk-chip ${advancedOpen ? 'bk-chip--active bk-chip--muted' : ''}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Bộ lọc nâng cao
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+          </button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Từ ngày mua</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Đến ngày mua</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Rạp chiếu / Chi nhánh</label>
-            <select value={selectedCinema} onChange={(e) => setSelectedCinema(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer">
-              <option value="">Tất cả rạp</option>
-              {cinemasList.map(c => (<option key={c.uuid} value={c.name}>{c.name}</option>))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Khung giờ suất chiếu</label>
-            <select value={selectedShowtime} onChange={(e) => setSelectedShowtime(e.target.value)} className="w-full rounded-lg bg-[#0F1322] border border-[#1A2238] px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50 transition-colors cursor-pointer">
-              <option value="">Tất cả khung giờ</option>
-              {uniqueShowtimeOptions.map(t => (<option key={t} value={t}>{t}</option>))}
-            </select>
-          </div>
-        </div>
-        {hasActiveFilters && (
-          <div className="flex items-center gap-2 pt-0.5">
-            <Filter className="w-3 h-3 text-red-400" />
-            <span className="text-[11px] text-gray-500">Bộ lọc đang hoạt động — <button onClick={handleClearFilters} className="text-red-400 hover:text-red-300 font-bold cursor-pointer transition-colors">Xóa bộ lọc</button></span>
+
+        {advancedOpen && (
+          <div className="bk-toolbar__row bk-toolbar__row--advanced">
+
+            <div className="bk-filter-field">
+              <label>Từ ngày mua</label>
+              <div className="relative">
+                <button type="button" onClick={() => openDatePicker('startDate')} className="bk-filter-trigger">
+                  <Calendar className="bk-filter-trigger__icon" />
+                  <span className={startDate ? 'text-white' : 'text-gray-600'}>{startDate || 'yyyy-mm-dd'}</span>
+                </button>
+                {activeDatePickerField === 'startDate' && (
+                  <>
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                      {renderCalendarContent('startDate')}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="bk-filter-field">
+              <label>Đến ngày mua</label>
+              <div className="relative">
+                <button type="button" onClick={() => openDatePicker('endDate')} className="bk-filter-trigger">
+                  <Calendar className="bk-filter-trigger__icon" />
+                  <span className={endDate ? 'text-white' : 'text-gray-600'}>{endDate || 'yyyy-mm-dd'}</span>
+                </button>
+                {activeDatePickerField === 'endDate' && (
+                  <>
+                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
+                      {renderCalendarContent('endDate')}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="bk-filter-field">
+              <label>Rạp chiếu</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema'); setActiveDatePickerField(null); }}
+                  className="bk-filter-trigger"
+                >
+                  <MapPin className="bk-filter-trigger__icon" />
+                  <span className="truncate block pr-2">{selectedCinema || 'Tất cả rạp'}</span>
+                  <ChevronDown className="bk-filter-trigger__chevron" />
+                </button>
+
+              {activeDropdown === 'cinema' && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdown(null)}></div>
+                  <div className="absolute left-0 top-full mt-1.5 w-full min-w-[200px] bg-[#1c2333] border border-[#242d42] rounded-xl shadow-2xl p-1.5 space-y-0.5 z-50 text-left animate-dropdown-fade-in max-h-60 overflow-y-auto custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCinema('');
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                        !selectedCinema ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                      }`}
+                    >
+                      Tất cả rạp
+                    </button>
+                    {cinemasList.map((c) => (
+                      <button
+                        key={c.uuid}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCinema(c.name);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                          selectedCinema === c.name ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            </div>
+
+            <div className="bk-filter-field">
+              <label>Khung giờ suất chiếu</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime'); setActiveDatePickerField(null); }}
+                  className="bk-filter-trigger"
+                >
+                  <Clock className="bk-filter-trigger__icon" />
+                  <span className="truncate block pr-2">{selectedShowtime || 'Tất cả khung giờ'}</span>
+                  <ChevronDown className="bk-filter-trigger__chevron" />
+                </button>
+
+              {activeDropdown === 'showtime' && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdown(null)}></div>
+                  <div className="absolute left-0 top-full mt-1.5 w-full min-w-[200px] bg-[#1c2333] border border-[#242d42] rounded-xl shadow-2xl p-1.5 space-y-0.5 z-50 text-left animate-dropdown-fade-in max-h-60 overflow-y-auto custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedShowtime('');
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                        !selectedShowtime ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                      }`}
+                    >
+                      Tất cả khung giờ
+                    </button>
+                    {uniqueShowtimeOptions.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          setSelectedShowtime(t);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer border-0 bg-transparent ${
+                          selectedShowtime === t ? 'text-red-400 bg-red-500/10 font-bold' : 'text-gray-300'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            </div>
           </div>
         )}
+
+        <div className="bk-toolbar__summary">
+          <span>
+            Hiển thị <strong>{activeBookings.length}</strong> đơn đang hoạt động
+            {archivedBookings.length > 0 && (
+              <> · <strong>{archivedBookings.length}</strong> đơn đã qua / đóng</>
+            )}
+            {' '}/ {bookings.length} tổng
+          </span>
+          {hasActiveFilters && (
+            <button type="button" onClick={handleClearFilters} className="text-[10px] font-bold text-red-400 hover:text-red-300 border-0 bg-transparent cursor-pointer p-0">
+              Xóa bộ lọc
+            </button>
+          )}
+        </div>
       </div>
 
       {/* BOOKING CARDS LIST */}
-      <div className="bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1A2238] bg-white/[0.015]">
-          <span className="text-sm font-bold text-white">Danh sách đơn hàng <span className="ml-2 text-xs font-normal text-gray-500">({filteredBookings.length} đơn)</span></span>
-          {!isLoading && filteredBookings.length > 0 && (<span className="text-[10px] text-gray-600 font-mono">Trang {currentPage} / {Math.ceil(filteredBookings.length / itemsPerPage)}</span>)}
+      <div className="bk-list-panel">
+        <div className="bk-list-header">
+          <div className="bk-list-tabs">
+            <button
+              type="button"
+              className={`bk-list-tab${listTab === 'active' ? ' bk-list-tab--active' : ''}`}
+              onClick={() => setListTab('active')}
+            >
+              Đơn đang hoạt động
+              <span className="bk-list-tab__count">{activeBookings.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`bk-list-tab${listTab === 'archived' ? ' bk-list-tab--active' : ''}`}
+              onClick={() => setListTab('archived')}
+            >
+              Đơn đã qua / đóng
+              <span className="bk-list-tab__count">{archivedBookings.length}</span>
+            </button>
+          </div>
+          {!isLoading && displayedBookings.length > 0 && (
+            <span className="text-[10px] text-gray-600 font-mono">
+              Trang {tabCurrentPage} / {tabPageCount}
+            </span>
+          )}
         </div>
 
         {isLoading ? (
@@ -382,150 +868,34 @@ const BookingsPage = () => {
             </div>
             {hasActiveFilters && (<button onClick={handleClearFilters} className="px-4 py-2 rounded-lg bg-red-600/10 border border-red-600/20 text-red-400 text-xs font-bold cursor-pointer hover:bg-red-600/20 transition-all">Xóa bộ lọc</button>)}
           </div>
+        ) : displayedBookings.length === 0 ? (
+          <p className="bk-section-empty">
+            {listTab === 'archived'
+              ? 'Không có đơn đã qua / đóng phù hợp bộ lọc.'
+              : 'Không có đơn đang hoạt động phù hợp bộ lọc.'}
+          </p>
         ) : (
-          <div className="divide-y divide-[#1A2238]/50">
-            {paginatedBookings.map((row) => {
-              const statusCfg = getStatusConfig(row.status);
-              const posterUrl = moviesMap[row.movieTitle?.toLowerCase().trim()];
-              const seatList = row.seats ? row.seats.split(',').map(s => s.trim()).filter(Boolean) : [];
-              const st = getBookingShowtime(row);
-              const showtimeStr = st && st.startTime
-                ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} | ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
-                : null;
-              const isConfirmed = row.status?.toUpperCase() === 'CONFIRMED';
-
-              return (
-                <div key={row.bookingUuid} className="flex items-stretch min-h-[120px] hover:bg-white/[0.012] transition-colors duration-150">
-                  {/* LEFT ACCENT BAR */}
-                  <div className={`w-1 self-stretch shrink-0 ${statusCfg.accentBg} opacity-80`} />
-
-                  {/* SECTION 1: CUSTOMER */}
-                  <div className="w-52 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center gap-2">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-slate-800 shrink-0 flex items-center justify-center">
-                        {row.customerAvatarUrl ? (
-                          <img src={normalizeAvatarUrl(row.customerAvatarUrl)} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                        ) : (
-                          <User className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white leading-snug break-words">{row.customerName || 'N/A'}</div>
-                        <div className="text-xs text-gray-400 break-words mt-0.5">{row.customerEmail || 'N/A'}</div>
-                        <div className="text-[10px] text-gray-600 font-mono uppercase mt-1 tracking-wider">#{row.bookingUuid ? row.bookingUuid.substring(0, 8).toUpperCase() : 'N/A'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION 2: MOVIE + SHOWTIME */}
-                  <div className="flex-1 px-5 py-4 border-r border-[#1A2238]/50 flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-16 rounded-lg overflow-hidden border border-[#1A2238] shadow-md shrink-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                      {posterUrl ? (<img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />) : (<Film className="w-5 h-5 text-gray-600" />)}
-                    </div>
-                    <div className="min-w-0 space-y-1.5">
-                      <div className="text-sm font-black text-white leading-snug break-words uppercase tracking-wide">{row.movieTitle || 'N/A'}</div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <MapPin className="w-3 h-3 shrink-0 text-gray-500" />
-                        <span className="break-words">{row.cinemaRoomName || 'N/A'}</span>
-                      </div>
-                      {showtimeStr ? (
-                        <div className="flex items-center gap-1 text-xs">
-                          <Clock className="w-3 h-3 shrink-0 text-blue-400" />
-                          <span className="font-mono text-blue-400/80">{showtimeStr}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>Chưa ghép suất chiếu</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Calendar className="w-3 h-3 shrink-0" />
-                        <span className="font-mono text-[11px]">{formatDateTime(row.createdAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION 3: SEATS */}
-                  <div className="w-44 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-2">Ghế đã đặt</p>
-                    {seatList.length > 0 ? (
-                      <>
-                        <div className="flex flex-wrap gap-1 mb-1.5">
-                          {seatList.map((seat) => (
-                            <span key={seat} className="px-1.5 py-0.5 rounded bg-[#1A2238] border border-[#252E44] text-[10px] font-mono text-gray-300">{seat}</span>
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">{seatList.length} ghế</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-600">-</span>
-                    )}
-                    {row.combos && (
-                      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                        <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span className="truncate" title={row.combos}>Combo: {row.combos}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* SECTION 4: PAYMENT */}
-                  <div className="w-36 shrink-0 px-5 py-4 border-r border-[#1A2238]/50 flex flex-col justify-center gap-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Tổng thanh toán</p>
-                    <p className="text-xl font-black text-amber-400 font-mono leading-tight">{formatPrice(row.totalPrice)}</p>
-                    {row.paymentMethod && (
-                      <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-[#1A2238] border border-[#252E44] text-[10px] font-bold text-gray-400 uppercase tracking-wider">{row.paymentMethod}</span>
-                    )}
-                  </div>
-
-                  {/* SECTION 5: STATUS + ACTIONS */}
-                  <div className="w-40 shrink-0 px-5 py-4 flex flex-col justify-center items-start gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusCfg.badgeCls}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                      {statusCfg.label}
-                    </span>
-                    <span className="text-[10px] text-gray-600 font-mono">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString('vi-VN') : ''}
-                    </span>
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <button
-                        onClick={() => handleCheckInDirect(row)}
-                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 transition-all duration-150 cursor-pointer"
-                      >
-                        <QrCode className="w-3 h-3" />
-                        Check-in
-                      </button>
-                      {isConfirmed && (
-                        <button
-                          onClick={() => handleCancelBookingDirect(row)}
-                          className="w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] font-bold hover:bg-rose-500/20 transition-all duration-150 cursor-pointer"
-                        >
-                          <XCircle className="w-3 h-3" />
-                          Hủy đơn
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div>
+            {paginatedBookings.map((row) => renderOrderRow(row, listTab === 'archived'))}
           </div>
         )}
       </div>
 
       {/* Pagination Section */}
-      {filteredBookings.length > 0 && (
-        <div className="rounded-xl bg-[#0B0F19]/70 border border-[#1A2238] overflow-hidden">
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredBookings.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        </div>
+      {displayedBookings.length > 0 && (
+        <Pagination
+          currentPage={tabCurrentPage}
+          totalItems={displayedBookings.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={listTab === 'archived' ? setArchivedPage : setCurrentPage}
+          onItemsPerPageChange={(size) => {
+            setItemsPerPage(size);
+            setCurrentPage(1);
+            setArchivedPage(1);
+          }}
+        />
       )}
-    </div>
+    </AdminPage>
   );
 };
 

@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useNotification } from '../../../shared/context/NotificationContext';
 import { notificationService } from '../../../shared/services/notificationService';
-import { movieService } from '../../../shared/services/movieService';
-import { showtimeService } from '../../../shared/services/showtimeService';
+import { useHomeCinemas, useNowShowingMovies, usePublicShowtimes } from '../hooks/useHomeQueries';
 
 // Styles for custom dropdown scrollbar and animations
 const dropdownStyles = `
@@ -143,36 +142,19 @@ const TicketFilters = () => {
   const [date, setDate] = useState('');
   const [showtime, setShowtime] = useState('');
 
-  const [moviesList, setMoviesList] = useState([]);
-  const [cinemasList, setCinemasList] = useState([]);
-  const [showtimesList, setShowtimesList] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: moviesData, isLoading: moviesLoading } = useNowShowingMovies();
+  const { data: cinemasData, isLoading: cinemasLoading } = useHomeCinemas();
+  const { data: showtimesData, isLoading: showtimesLoading } = usePublicShowtimes();
+
+  const moviesList = moviesData?.content || moviesData || [];
+  const cinemasList = cinemasData?.content || cinemasData || [];
+  const showtimesList = showtimesData || [];
+  const isLoading = moviesLoading || cinemasLoading || showtimesLoading;
   const [openDropdown, setOpenDropdown] = useState(null); // 'theater' | 'movie' | 'date' | 'showtime' | null
 
   const { user } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [moviesData, cinemasData, showtimesData] = await Promise.all([
-          movieService.getMovies({ status: 'NOW_SHOWING', size: 100 }),
-          movieService.getCinemas(),
-          showtimeService.getPublicShowtimes()
-        ]);
-        setMoviesList(moviesData?.content || moviesData || []);
-        setCinemasList(cinemasData?.content || cinemasData || []);
-        setShowtimesList(showtimesData || []);
-      } catch (err) {
-        console.error("Failed to fetch ticket filters data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   const formatShowtimeDate = (dateObj) => {
     const today = new Date();
@@ -324,7 +306,8 @@ const TicketFilters = () => {
         showtimeUuid: selectedShowtimeObj.uuid,
         theater: `${selectedShowtimeObj.cinemaName} - ${selectedShowtimeObj.cinemaRoomName}`,
         movie: selectedShowtimeObj.movieTitle,
-        moviePoster: selectedMovieObj?.primaryMediaUrl || '',
+        movieUuid: selectedMovieObj?.uuid || selectedShowtimeObj.movieUuid || '',
+        moviePoster: selectedMovieObj?.primaryMediaUrl || selectedShowtimeObj.moviePosterUrl || '',
         movieFormat: selectedShowtimeObj.cinemaRoomName.includes('IMAX') ? 'IMAX' : '2D',
         movieAgeRestriction: selectedMovieObj?.ageRestriction || '',
         date: dateLabel,

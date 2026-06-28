@@ -177,8 +177,9 @@ VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 - [02_DATABASE_DESIGN.md](/F:/NasaFilm/docs/02_DATABASE_DESIGN.md)
 - [03_API_DESIGN.md](/F:/NasaFilm/docs/03_API_DESIGN.md)
 - [04_PROGRESS.md](/F:/NasaFilm/docs/04_PROGRESS.md)
+## 📝 Trung1 da sua Ghi chu nay
+## 📝 Trungjavateam3 da sua Ghi chu
 
-## 📝 Ghi chú
 
 - Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
 - README này chỉ đóng vai trò hướng dẫn vào dự án; phần chi tiết nên đặt trong thư mục `docs/`.

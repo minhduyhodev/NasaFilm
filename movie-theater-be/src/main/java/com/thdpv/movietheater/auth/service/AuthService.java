@@ -97,7 +97,7 @@ public class AuthService {
     public JwtResponse login(LoginRequest loginRequest, HttpServletRequest httpServletRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
+                        loginRequest.getEmail().trim(),
                         loginRequest.getPassword()));
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -376,6 +376,8 @@ public class AuthService {
         String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
         user.setVerificationCode(otpCode);
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(0);
+        user.setVerificationLockTime(null);
 
         userRepository.save(user);
         otpRequestCooldown.put(email, LocalDateTime.now());
@@ -450,7 +452,7 @@ public class AuthService {
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 2 * * ?") // Chạy vào 2h sáng mỗi ngày
+    @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupExpiredSessions() {
         userSessionRepository.deleteByExpiredAtBeforeOrStatus(LocalDateTime.now(), "REVOKED");
     }

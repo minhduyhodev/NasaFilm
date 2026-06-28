@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
 import {
   User,
   Mail,
@@ -25,66 +24,28 @@ import {
   Camera,
   Star,
   X,
-  Search,
   History,
   Phone,
   ChevronDown,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
-import { bookingService } from "../../../shared/services/bookingService";
+import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/queries/useBookingQueries";
+import CancelBookingModal from "../../../shared/components/CancelBookingModal";
+import RefundDetailModal from "../../../shared/components/RefundDetailModal";
+import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import Pagination from "../../../shared/components/Pagination";
+import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
+import {
+  isOnlineBooking,
+  isLiveTicket,
+  partitionBookingsByLive,
+  getOnlineMoviePath,
+} from "../utils/movieUtils";
+import { vodService } from "../../../shared/services/vodService";
+import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
 import "./ProfilePage.css";
-
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
@@ -93,7 +54,12 @@ export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleTicketClick = (tkt) => {
+  const handleTicketClick = async (tkt) => {
+    if (isOnlineBooking(tkt)) {
+      await handleVodTicketClick(tkt);
+      return;
+    }
+
     let showtime = "";
     let date = "";
     if (tkt.showtime) {
@@ -113,14 +79,12 @@ export const ProfilePage = () => {
       }));
     }
 
-    const movieInfo = getMovieInfo(tkt.movieTitle);
-
     const bookingData = {
       bookingUuid: tkt.bookingUuid || "",
       movie: tkt.movieTitle,
-      moviePoster: movieInfo.poster,
-      movieFormat: movieInfo.format || "IMAX 3D",
-      movieRating: movieInfo.age || "T16",
+      moviePoster: tkt.moviePoster || "",
+      movieFormat: "Rạp chiếu",
+      movieRating: tkt.movieAgeRestriction || "",
       theater: tkt.cinema,
       date: date,
       showtime: showtime,
@@ -131,6 +95,19 @@ export const ProfilePage = () => {
 
     navigate("/booking-confirmed", { state: bookingData });
   };
+
+  const handleVodTicketClick = async (tkt) => {
+    if (!tkt?.movieUuid) {
+      notificationService.info("Không tìm thấy phim cho vé online này.");
+      return;
+    }
+    try {
+      const status = await vodService.getStatus(tkt.movieUuid);
+      navigate(getOnlineMoviePath(tkt.movieUuid, status));
+    } catch {
+      navigate(`/online/activate/${tkt.movieUuid}`);
+    }
+  };
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dayOfBirth, setDayOfBirth] = useState("");
@@ -140,17 +117,28 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
-  const [bookings, setBookings] = useState([]);
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const { data: bookings = [], isLoading: isLoadingBookings, refetch: refetchBookings } = useMyBookings(Boolean(user));
+  const invalidateBookings = useInvalidateMyBookings();
+  const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
+  const [refundTargetUuid, setRefundTargetUuid] = useState(null);
+  const [showArchivedTickets, setShowArchivedTickets] = useState(false);
+  const [liveTicketPage, setLiveTicketPage] = useState(1);
+  const [archivedTicketPage, setArchivedTicketPage] = useState(1);
+  const [ticketsPerPage, setTicketsPerPage] = useState(4);
   const [vouchers, setVouchers] = useState([]);
+  const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [redeemingVoucherId, setRedeemingVoucherId] = useState(null);
   const fileInputRef = useRef(null);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const genderDropdownRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (genderDropdownRef.current && !genderDropdownRef.current.contains(event.target)) {
+      if (
+        genderDropdownRef.current &&
+        !genderDropdownRef.current.contains(event.target)
+      ) {
         setShowGenderDropdown(false);
       }
     };
@@ -160,22 +148,35 @@ export const ProfilePage = () => {
     };
   }, []);
 
+  const reloadBookings = async () => {
+    await invalidateBookings();
+    await refetchBookings();
+  };
+
+  const { live: liveBookings, archived: archivedBookings } = useMemo(
+    () => partitionBookingsByLive(bookings),
+    [bookings],
+  );
+
+  const liveTicketCount = useMemo(
+    () => bookings.filter(isLiveTicket).length,
+    [bookings],
+  );
+
+  const paginatedLiveBookings = useMemo(() => {
+    const start = (liveTicketPage - 1) * ticketsPerPage;
+    return liveBookings.slice(start, start + ticketsPerPage);
+  }, [liveBookings, liveTicketPage, ticketsPerPage]);
+
+  const paginatedArchivedBookings = useMemo(() => {
+    const start = (archivedTicketPage - 1) * ticketsPerPage;
+    return archivedBookings.slice(start, start + ticketsPerPage);
+  }, [archivedBookings, archivedTicketPage, ticketsPerPage]);
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoadingBookings(true);
-      try {
-        const data = await bookingService.getMyBookings();
-        setBookings(data || []);
-      } catch (err) {
-        console.error("Failed to load user bookings:", err);
-      } finally {
-        setIsLoadingBookings(false);
-      }
-    };
-    if (user) {
-      fetchBookings();
-    }
-  }, [user]);
+    setLiveTicketPage(1);
+    setArchivedTicketPage(1);
+  }, [bookings.length]);
 
   // Get date string for exactly 12 years ago
   const getMaxBirthDate = () => {
@@ -213,8 +214,12 @@ export const ProfilePage = () => {
     const fetchVouchers = async () => {
       setIsLoadingVouchers(true);
       try {
-        const data = await promotionService.getMyVouchers();
-        setVouchers(data || []);
+        const [wallet, catalog] = await Promise.all([
+          promotionService.getMyVouchers(),
+          promotionService.getVoucherCatalog(),
+        ]);
+        setVouchers(wallet || []);
+        setVoucherCatalog(catalog || []);
       } catch (err) {
         console.error("Failed to load user vouchers:", err);
       } finally {
@@ -225,6 +230,28 @@ export const ProfilePage = () => {
       fetchVouchers();
     }
   }, [user]);
+
+  const handleRedeemVoucher = async (promotionId) => {
+    setRedeemingVoucherId(promotionId);
+    try {
+      await promotionService.redeemVoucher(promotionId);
+      notificationService.success(
+        "Đổi voucher thành công. Voucher đã được thêm vào ví của bạn.",
+      );
+      const refreshedProfile = await authService.getProfile();
+      setProfileData(refreshedProfile);
+      const [wallet, catalog] = await Promise.all([
+        promotionService.getMyVouchers(),
+        promotionService.getVoucherCatalog(),
+      ]);
+      setVouchers(wallet || []);
+      setVoucherCatalog(catalog || []);
+    } catch (err) {
+      notificationService.error(err.message || "Không thể đổi voucher");
+    } finally {
+      setRedeemingVoucherId(null);
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -278,12 +305,6 @@ export const ProfilePage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
 
-  // Purchase History Modal States
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState("all");
-  const [historySearch, setHistorySearch] = useState("");
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-
   // Derived user details
   const displayRole = user?.roles?.includes("admin")
     ? "Quản trị viên"
@@ -296,14 +317,82 @@ export const ProfilePage = () => {
       ? "role-staff"
       : "role-user";
 
-  // Loyalty levels based on ERD/UI standard (NASA'FRIEND and NASA'VIP)
-  const loyaltyPoints = profileData && typeof profileData.score === 'number'
-    ? profileData.score
-    : (user && typeof user.score === 'number' ? user.score : 0);
+  const currentPoints =
+    profileData && typeof profileData.score === "number"
+      ? profileData.score
+      : user && typeof user.score === "number"
+        ? user.score
+        : 0;
+  const lifetimePoints =
+    profileData && typeof profileData.lifetimeScore === "number"
+      ? profileData.lifetimeScore
+      : currentPoints;
   const nextTierPoints = 10000;
-  const rawProgress = (loyaltyPoints / nextTierPoints) * 100;
+  const rawProgress = (lifetimePoints / nextTierPoints) * 100;
   const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
-  const loyaltyTier = loyaltyPoints >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+
+  const usableVouchers = useMemo(
+    () => vouchers.filter((v) => !v.used),
+    [vouchers],
+  );
+  const pointVoucherCatalog = useMemo(
+    () => voucherCatalog.filter((item) => item.requiresRedemption !== false),
+    [voucherCatalog],
+  );
+  const availableVoucherCount = useMemo(
+    () =>
+      usableVouchers.length +
+      pointVoucherCatalog.filter((v) => v.eligible).length,
+    [usableVouchers, pointVoucherCatalog],
+  );
+
+  const renderCatalogVoucherCard = (item) => (
+    <div key={item.id} className="voucher-card">
+      <div className="voucher-glow-dot" />
+      <div className="voucher-icon-box">
+        <Gift size={24} className="text-amber-500" />
+      </div>
+      <div className="voucher-body text-left">
+        <div className="flex justify-between items-center mb-1 gap-2">
+          <span className="voucher-code">{item.code}</span>
+          <span className="text-[10px] font-bold text-amber-400">
+            {item.pointsCost} điểm
+          </span>
+        </div>
+        <h4 className="voucher-title">{item.description}</h4>
+        <p className="voucher-desc">
+          Hạng: {item.requiredTierLabel}
+          {item.maxUsagePerUser != null
+            ? ` · Tối đa ${item.maxUsagePerUser} lần/tài khoản`
+            : ""}
+          {item.maxUsage != null
+            ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống`
+            : ""}
+        </p>
+        <div className="flex justify-between items-center mt-3 gap-2">
+          <span className="text-[10px] text-gray-400">
+            {item.endDate
+              ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}`
+              : "Không giới hạn thời gian"}
+          </span>
+          <button
+            type="button"
+            disabled={!item.eligible || redeemingVoucherId === item.id}
+            onClick={() => handleRedeemVoucher(item.id)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {redeemingVoucherId === item.id ? "Đang đổi..." : "Đổi điểm"}
+          </button>
+        </div>
+        {!item.eligible && item.ineligibleReason && (
+          <p className="text-[10px] text-rose-400 mt-2">
+            {item.ineligibleReason}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -447,60 +536,9 @@ export const ProfilePage = () => {
     }
   };
 
-  // Predefined Mock Booking History
-  const mockBookings = [
-    {
-      id: "TKT-8849182",
-      movieTitle: "STELLAR HORIZON",
-      poster: "movie_stelar_horizon",
-      cinema: "NASA Landmark 81 - Phòng chiếu IMAX",
-      showtime: "20:15 | Hôm nay, 06 Tháng 06",
-      seats: "G08, G09",
-      combo: "1x Popcorn Max, 2x Pepsi Medium",
-      price: "320.000đ",
-      status: "active",
-    },
-    {
-      id: "TKT-4412093",
-      movieTitle: "AETHERIA",
-      poster: "movie_aetheria",
-      cinema: "NASA Sunset Mall - Hall 3",
-      showtime: "14:30 | 01 Tháng 06, 2026",
-      seats: "F12",
-      combo: "Không kèm bắp nước",
-      price: "115.000đ",
-      status: "completed",
-    },
-  ];
-
-  // Cleaned up mockVouchers array
-
-  // Dynamic Transactions based on real bookings
-  const transactions = bookings.map((tkt) => {
-    const hasCombo = tkt.combo && !tkt.combo.toLowerCase().includes("không kèm") && tkt.combo !== "";
-    return {
-      id: tkt.id,
-      type: hasCombo ? "combo" : "ticket",
-      itemName: tkt.movieTitle,
-      date: tkt.showtime,
-      amount: tkt.price,
-      method: "Ví NASA",
-      hasCombo: hasCombo,
-      details: {
-        cinema: tkt.cinema,
-        seats: tkt.seats || "N/A",
-        combo: tkt.combo || "Không kèm bắp nước",
-        price: tkt.price,
-        comboPrice: "Đã bao gồm",
-        total: tkt.price
-      }
-    };
-  });
-
   if (isLoading) {
     return (
       <>
-        <Navbar />
         <div className="profile-wrapper flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-t-red-600 border-slate-800 rounded-full animate-spin" />
@@ -509,33 +547,30 @@ export const ProfilePage = () => {
             </p>
           </div>
         </div>
-        <Footer />
       </>
     );
   }
 
   return (
     <>
-      <Navbar />
       <div className="profile-wrapper">
         <div className="profile-container">
           {/* Space Hub Header (Hero Section) */}
           <div className="space-hub-header">
             <div className="cosmic-nebula-bg" />
             <div className="twinkling-stars-bg" />
-            
+
             <div className="space-hub-content grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
               {/* Left Column: User details with Orbit System around avatar */}
               <div className="lg:col-span-5 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
                 <div className="avatar-orbit-container">
                   <div className="orbit-ring orbit-ring-outer" />
                   <div className="orbit-ring orbit-ring-middle" />
                   <div className="orbit-ring orbit-ring-inner" />
-                  
+
                   <div className="orbit-node node-gold-1" />
                   <div className="orbit-node node-purple-1" />
-                  
+
                   <div
                     onClick={() => !isSaving && fileInputRef.current.click()}
                     className={`profile-avatar-frame cursor-pointer ${isSaving ? "opacity-50" : ""}`}
@@ -543,9 +578,11 @@ export const ProfilePage = () => {
                   >
                     {avatarUrl ? (
                       <img
-                        src={avatarUrl}
+                        src={normalizeAvatarUrl(avatarUrl)}
                         alt="Avatar"
                         className="profile-avatar-image"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarUrl("")}
                       />
                     ) : (
                       <div className="profile-avatar-placeholder">
@@ -573,8 +610,10 @@ export const ProfilePage = () => {
                       {displayRole}
                     </span>
                   </div>
-                  <p className="text-zinc-400 text-sm font-semibold">{user?.email}</p>
-                  
+                  <p className="text-zinc-400 text-sm font-semibold">
+                    {user?.email}
+                  </p>
+
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-1">
                     <div className="profile-badge-item">
                       <MapPin size={12} className="text-amber-500" />
@@ -591,65 +630,132 @@ export const ProfilePage = () => {
               {/* Right Column: Grand Gold Navigator Membership Panel */}
               <div className="lg:col-span-7 flex flex-col md:flex-row items-center gap-8 bg-black/35 backdrop-blur-xl border border-white/5 p-8 rounded-3xl relative overflow-hidden group">
                 <div className="absolute -right-20 -top-20 w-60 h-60 bg-yellow-500/10 rounded-full blur-[80px] group-hover:bg-yellow-500/15 transition-all duration-700" />
-                
-                <div className="relative flex-shrink-0 w-28 h-28 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-white/5 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="56"
-                      cy="56"
-                      r="48"
-                      className="text-amber-500 stroke-current"
-                      strokeWidth="5"
-                      fill="transparent"
-                      strokeDasharray={2 * Math.PI * 48}
-                      strokeDashoffset={2 * Math.PI * 48 * (1 - progressPercent / 100)}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  
-                  <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Điểm</span>
-                    <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">{loyaltyPoints}</span>
+
+                <div className="flex flex-shrink-0 items-center gap-6">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-amber-500 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={
+                          2 * Math.PI * 48 * (1 - progressPercent / 100)
+                        }
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">
+                        Hiện tại
+                      </span>
+                      <span className="text-lg font-black text-amber-400 font-mono leading-none mt-0.5">
+                        {currentPoints.toLocaleString("vi-VN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/5 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        className="text-white/70 stroke-current"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeDashoffset={
+                          2 * Math.PI * 48 * (1 - progressPercent / 100)
+                        }
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="absolute flex flex-col items-center justify-center px-1 text-center">
+                      <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold leading-tight">
+                        Tích lũy
+                      </span>
+                      <span className="text-lg font-black text-white font-mono leading-none mt-0.5">
+                        {lifetimePoints.toLocaleString("vi-VN")}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 space-y-2 text-center md:text-left">
                   <span className="text-[9px] tracking-widest text-amber-400 font-black uppercase bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
                     ★ Hạng thành viên
                   </span>
-                  
+
                   <h2 className="text-xl font-black text-white uppercase tracking-wider mt-2">
                     {loyaltyTier}
                   </h2>
-                  
+
                   <div className="flex justify-center md:justify-start gap-0.5 text-amber-400">
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
                     <Star size={14} className="fill-current" />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
-                    <Star size={14} className={loyaltyPoints >= 10000 ? "fill-current" : "text-zinc-800"} />
+                    <Star
+                      size={14}
+                      className={
+                        lifetimePoints >= 10000
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
+                    <Star
+                      size={14}
+                      className={
+                        lifetimePoints >= 10000
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
                   </div>
-                  
+
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {loyaltyPoints >= 10000 ? (
-                      <span>Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.</span>
+                    {lifetimePoints >= 10000 ? (
+                      <span>
+                        Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.
+                      </span>
                     ) : (
-                      <span>Còn <span className="text-amber-400 font-bold">{(nextTierPoints - loyaltyPoints).toLocaleString('vi-VN')} điểm</span> nữa để nâng cấp lên hạng thành viên NASA'VIP.</span>
+                      <span>
+                        Còn{" "}
+                        <span className="text-amber-400 font-bold">
+                          {(nextTierPoints - lifetimePoints).toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          điểm
+                        </span>{" "}
+                        nữa để nâng cấp lên hạng thành viên NASA'VIP.
+                      </span>
                     )}
                   </p>
                 </div>
               </div>
-
             </div>
-            
+
             <input
               type="file"
               ref={fileInputRef}
@@ -693,7 +799,9 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Ticket size={20} />
-                    <span className="rail-badge">{bookings.length}</span>
+                    {liveTicketCount > 0 && (
+                      <span className="rail-badge">{liveTicketCount}</span>
+                    )}
                   </div>
                   <span className="rail-label">Vé của tôi</span>
                 </button>
@@ -705,7 +813,7 @@ export const ProfilePage = () => {
                 >
                   <div className="rail-icon-wrapper relative">
                     <Gift size={20} />
-                    <span className="rail-badge">{vouchers.filter(v => !v.used).length}</span>
+                    <span className="rail-badge">{availableVoucherCount}</span>
                   </div>
                   <span className="rail-label">Ưu đãi của tôi</span>
                 </button>
@@ -724,8 +832,8 @@ export const ProfilePage = () => {
                 )}
 
                 <button
-                  onClick={() => setShowHistoryModal(true)}
-                  className="rail-item text-slate-400 hover:text-white"
+                  onClick={() => setActiveTab("history")}
+                  className={`rail-item ${activeTab === "history" ? "active" : ""}`}
                   title="Lịch sử mua hàng"
                 >
                   <div className="rail-icon-wrapper">
@@ -863,49 +971,74 @@ export const ProfilePage = () => {
                         </div>
                         <div className="info-row-right">
                           {isEditing ? (
-                            <div className="relative w-full" ref={genderDropdownRef} style={{ position: "relative", width: "100%" }}>
+                            <div
+                              className="relative w-full"
+                              ref={genderDropdownRef}
+                              style={{ position: "relative", width: "100%" }}
+                            >
                               <button
                                 type="button"
-                                onClick={() => !isSaving && setShowGenderDropdown(!showGenderDropdown)}
+                                onClick={() =>
+                                  !isSaving &&
+                                  setShowGenderDropdown(!showGenderDropdown)
+                                }
                                 disabled={isSaving}
-                                className={`custom-gender-select-btn ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`custom-gender-select-btn ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
                               >
                                 <span>
-                                  {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chọn giới tính"}
+                                  {gender === "MALE"
+                                    ? "Nam"
+                                    : gender === "FEMALE"
+                                      ? "Nữ"
+                                      : gender === "OTHER"
+                                        ? "Khác"
+                                        : "Chọn giới tính"}
                                 </span>
-                                <ChevronDown 
-                                  size={16} 
-                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? 'rotate-180 text-yellow-500' : ''}`} 
+                                <ChevronDown
+                                  size={16}
+                                  className={`transition-transform duration-300 text-gray-400 ${showGenderDropdown ? "rotate-180 text-yellow-500" : ""}`}
                                   style={{ transition: "transform 0.3s ease" }}
                                 />
                               </button>
-                              
+
                               <AnimatePresence>
                                 {showGenderDropdown && (
                                   <motion.div
                                     initial={{ opacity: 0, y: -8, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                                    transition={{ duration: 0.15, ease: "easeOut" }}
+                                    transition={{
+                                      duration: 0.15,
+                                      ease: "easeOut",
+                                    }}
                                     className="custom-gender-dropdown-list"
                                   >
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("MALE"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("MALE");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "MALE" ? "active" : ""}`}
                                     >
                                       Nam
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("FEMALE"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("FEMALE");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "FEMALE" ? "active" : ""}`}
                                     >
                                       Nữ
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => { setGender("OTHER"); setShowGenderDropdown(false); }}
+                                      onClick={() => {
+                                        setGender("OTHER");
+                                        setShowGenderDropdown(false);
+                                      }}
                                       className={`custom-gender-option ${gender === "OTHER" ? "active" : ""}`}
                                     >
                                       Khác
@@ -981,14 +1114,14 @@ export const ProfilePage = () => {
                           Tích điểm N'VIP MEMBER
                         </span>
                         <span className="text-yellow-400 font-mono text-base">
-                          {loyaltyPoints}/10K
+                          {lifetimePoints}/10K
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.min((loyaltyPoints / 10000) * 100, 100)}%`,
+                            width: `${Math.min((lifetimePoints / 10000) * 100, 100)}%`,
                           }}
                         />
                       </div>
@@ -1072,7 +1205,7 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
                               HẠNG HIỆN TẠI: NASA'VIP
                             </div>
@@ -1160,7 +1293,7 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          {loyaltyPoints >= 10000 ? (
+                          {lifetimePoints >= 10000 ? (
                             <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
                               BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
                             </button>
@@ -1326,7 +1459,7 @@ export const ProfilePage = () => {
                     <div className="panel-header">
                       <h2>Vé của tôi</h2>
                       <button
-                        onClick={() => setShowHistoryModal(true)}
+                        onClick={() => setActiveTab("history")}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
                       >
                         <History size={14} />
@@ -1335,75 +1468,113 @@ export const ProfilePage = () => {
                     </div>
 
                     <div className="tickets-list">
-                      {bookings.length === 0 ? (
+                      {isLoadingBookings ? (
                         <div className="text-center py-12 text-zinc-500 font-medium w-full">
-                          <Ticket size={48} className="mx-auto mb-4 opacity-30 text-red-500" />
+                          <p>Đang tải vé của bạn...</p>
+                        </div>
+                      ) : bookings.length === 0 ? (
+                        <div className="text-center py-12 text-zinc-500 font-medium w-full">
+                          <Ticket
+                            size={48}
+                            className="mx-auto mb-4 opacity-30 text-red-500"
+                          />
                           <p>Bạn chưa có lịch sử đặt vé nào.</p>
                         </div>
                       ) : (
-                        bookings.map((tkt) => {
-                          const getMovieGlowClass = (title) => {
-                            if (title.toUpperCase().includes("STELLAR") || title.toUpperCase().includes("MORTAL")) return "glow-gold";
-                            if (title.toUpperCase().includes("AETHERIA") || title.toUpperCase().includes("RED") || title.toUpperCase().includes("MƯA")) return "glow-purple";
-                            return "glow-cyan";
-                          };
-                          const glowClass = getMovieGlowClass(tkt.movieTitle);
-                          return (
-                            <div
-                              key={tkt.id}
-                              className={`ticket-boarding-pass ${glowClass} ${tkt.status}`}
-                              onClick={() => handleTicketClick(tkt)}
-                              style={{ cursor: "pointer" }}
-                              title="Nhấp để xem chi tiết / In lại vé"
-                            >
-                              <div className="ticket-notch-top" />
-                              <div className="ticket-notch-bottom" />
-
-                              <div className="ticket-body-left">
-                                <span className="ticket-format-badge">
-                                  {tkt.movieTitle.toUpperCase().includes("STELLAR") ? "IMAX 4K" : "IMAX 3D"}
-                                </span>
-
-                                <h3 className="ticket-movie-title-text">
-                                  {tkt.movieTitle}
-                                </h3>
-
-                                <div className="ticket-grid-details">
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">Rạp Chiếu</span>
-                                    <span className="value-text">{tkt.cinema}</span>
-                                  </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">Suất Chiếu</span>
-                                    <span className="value-text text-amber-500">{tkt.showtime}</span>
-                                  </div>
-                                  <div className="ticket-info-unit">
-                                    <span className="label-text">Đồ ăn & Nước</span>
-                                    <span className="value-text">{tkt.combo}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="ticket-divider-line-container">
-                                <div className="dashed-perforation" />
-                              </div>
-
-                              <div className="ticket-body-right">
-                                <div className="stub-seats-info">
-                                  <span className="seats-title">Ghế</span>
-                                  <div className="seats-numbers">{tkt.seats}</div>
-                                </div>
-
-                                <div className="barcode-wrapper-box">
-                                  <div className="barcode-lines" />
-                                  <span className="ticket-id">{tkt.id}</span>
-                                </div>
-
-                                <span className="stub-price-tag">{tkt.price}</span>
-                              </div>
+                        <>
+                          <section className="tickets-section">
+                            <div className="tickets-section__header">
+                              <h3 className="tickets-section__title">
+                                Vé đang hiệu lực
+                              </h3>
+                              <span className="tickets-section__count">
+                                {liveBookings.length} vé
+                              </span>
                             </div>
-                          );
-                        })
+                            {liveBookings.length === 0 ? (
+                              <p className="tickets-section__empty">
+                                Không có vé nào đang hiệu lực.
+                              </p>
+                            ) : (
+                              <>
+                              <div className="tickets-section__grid">
+                                {paginatedLiveBookings.map((tkt) => (
+                                  <ProfileTicketCard
+                                    key={tkt.id}
+                                    tkt={tkt}
+                                    onTicketClick={handleTicketClick}
+                                    onCancel={setCancelTargetUuid}
+                                    onRefund={setRefundTargetUuid}
+                                  />
+                                ))}
+                              </div>
+                              {liveBookings.length > ticketsPerPage && (
+                                <Pagination
+                                  currentPage={liveTicketPage}
+                                  totalItems={liveBookings.length}
+                                  itemsPerPage={ticketsPerPage}
+                                  onPageChange={setLiveTicketPage}
+                                  onItemsPerPageChange={(size) => {
+                                    setTicketsPerPage(size);
+                                    setLiveTicketPage(1);
+                                  }}
+                                />
+                              )}
+                              </>
+                            )}
+                          </section>
+
+                          {archivedBookings.length > 0 && (
+                            <section className="tickets-section tickets-section--archived">
+                              <button
+                                type="button"
+                                className="tickets-section__toggle"
+                                onClick={() => setShowArchivedTickets((v) => !v)}
+                                aria-expanded={showArchivedTickets}
+                              >
+                                <div className="tickets-section__header tickets-section__header--toggle">
+                                  <h3 className="tickets-section__title">
+                                    Vé đã sử dụng / hết hạn
+                                  </h3>
+                                  <span className="tickets-section__count">
+                                    {archivedBookings.length} vé
+                                  </span>
+                                </div>
+                                <ChevronDown
+                                  size={18}
+                                  className={`tickets-section__chevron${showArchivedTickets ? ' tickets-section__chevron--open' : ''}`}
+                                />
+                              </button>
+                              {showArchivedTickets && (
+                                <>
+                                <div className="tickets-section__grid tickets-section__grid--archived">
+                                  {paginatedArchivedBookings.map((tkt) => (
+                                    <ProfileTicketCard
+                                      key={tkt.id}
+                                      tkt={tkt}
+                                      onTicketClick={handleTicketClick}
+                                      onCancel={setCancelTargetUuid}
+                                      onRefund={setRefundTargetUuid}
+                                    />
+                                  ))}
+                                </div>
+                                {archivedBookings.length > ticketsPerPage && (
+                                  <Pagination
+                                    currentPage={archivedTicketPage}
+                                    totalItems={archivedBookings.length}
+                                    itemsPerPage={ticketsPerPage}
+                                    onPageChange={setArchivedTicketPage}
+                                    onItemsPerPageChange={(size) => {
+                                      setTicketsPerPage(size);
+                                      setArchivedTicketPage(1);
+                                    }}
+                                  />
+                                )}
+                                </>
+                              )}
+                            </section>
+                          )}
+                        </>
                       )}
                     </div>
                   </motion.div>
@@ -1420,53 +1591,195 @@ export const ProfilePage = () => {
                     className="tab-panel-body"
                   >
                     <div className="panel-header">
-                      <h2>Ưu đãi của bạn</h2>
+                      <h2>Ưu đãi & đổi điểm</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Điểm hiện tại:{" "}
+                        <span className="text-amber-400 font-bold">
+                          {currentPoints.toLocaleString("vi-VN")}
+                        </span>
+                        {" · "}
+                        Điểm tích lũy:{" "}
+                        <span className="text-white font-bold">
+                          {lifetimePoints.toLocaleString("vi-VN")}
+                        </span>
+                      </p>
                     </div>
 
-                    <div className="vouchers-grid">
-                      {vouchers.map((voucher) => {
-                        const formattedExpiry = voucher.endDate 
-                          ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString('vi-VN')}` 
-                          : 'Hạn dùng: Không thời hạn';
-                        
-                        return (
-                          <div key={voucher.code} className={`voucher-card ${voucher.used ? 'opacity-50 grayscale border-dashed border-gray-600' : ''}`}>
-                            <div className="voucher-glow-dot" />
-                            <div className="voucher-icon-box">
-                              <Gift size={24} className={voucher.used ? "text-gray-500" : "text-amber-500"} />
+                    {isLoadingVouchers ? (
+                      <p className="text-gray-500 text-sm">
+                        Đang tải voucher...
+                      </p>
+                    ) : (
+                      <div className="space-y-8">
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                            Voucher có thể sử dụng
+                          </h3>
+                          {usableVouchers.length === 0 ? (
+                            <p className="text-gray-500 text-sm">
+                              Chưa có voucher khả dụng. Hãy đổi điểm ở mục bên
+                              dưới hoặc xem ưu đãi công khai.
+                            </p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {usableVouchers.map((voucher) => {
+                                const formattedExpiry = voucher.endDate
+                                  ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString("vi-VN")}`
+                                  : "Hạn dùng: Không thời hạn";
+                                const isDirectUse =
+                                  voucher.directUse ||
+                                  (voucher.pointsCost ?? 0) === 0;
+
+                                return (
+                                  <div
+                                    key={
+                                      voucher.walletId ||
+                                      voucher.id ||
+                                      voucher.code
+                                    }
+                                    className="voucher-card"
+                                  >
+                                    <div className="voucher-glow-dot" />
+                                    <div className="voucher-icon-box">
+                                      <Gift
+                                        size={24}
+                                        className={
+                                          isDirectUse
+                                            ? "text-green-500"
+                                            : "text-amber-500"
+                                        }
+                                      />
+                                    </div>
+                                    <div className="voucher-body text-left">
+                                      <div className="flex justify-between items-center mb-1 gap-2">
+                                        <span className="voucher-code">
+                                          {voucher.code}
+                                        </span>
+                                        <span
+                                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                            isDirectUse
+                                              ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                          }`}
+                                        >
+                                          {isDirectUse
+                                            ? "Miễn phí"
+                                            : "Đã kích hoạt"}
+                                        </span>
+                                      </div>
+                                      <h4 className="voucher-title">
+                                        {voucher.description}
+                                      </h4>
+                                      <p className="voucher-desc">
+                                        {voucher.requiredTierLabel
+                                          ? `Hạng: ${voucher.requiredTierLabel}`
+                                          : "Voucher khả dụng"}
+                                        {isDirectUse
+                                          ? " · Dùng trực tiếp khi thanh toán"
+                                          : " · Đã đổi điểm"}
+                                      </p>
+                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <span className="voucher-expiry">
+                                          {formattedExpiry}
+                                        </span>
+                                        <span className="font-semibold text-green-400">
+                                          Sẵn sàng dùng
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <div className="voucher-body text-left">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="voucher-code">{voucher.code}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  voucher.used 
-                                    ? 'bg-gray-800 text-gray-400' 
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                }`}>
-                                  {voucher.used ? 'Đã sử dụng' : 'Khả dụng'}
-                                </span>
-                              </div>
-                              <h4 className={`voucher-title ${voucher.used ? 'text-gray-500' : ''}`}>{voucher.description}</h4>
-                              <p className="voucher-desc">
-                                {voucher.oncePerUser ? 'Áp dụng cho tài khoản đăng ký mới (1 lần duy nhất).' : 'Áp dụng cho tất cả các tài khoản.'}
-                              </p>
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
-                                <span className="voucher-expiry">
-                                  {formattedExpiry}
-                                </span>
-                                <span className="font-semibold text-amber-500">
-                                  Còn lại: {voucher.oncePerUser ? (voucher.used ? 0 : 1) : (voucher.remainingUsage === 999 ? 'Nhiều' : voucher.remainingUsage)} lượt
-                                </span>
-                              </div>
+                          )}
+                        </section>
+
+                        <section>
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                            Đổi điểm lấy voucher
+                          </h3>
+                          {pointVoucherCatalog.length === 0 ? (
+                            <p className="text-gray-500 text-sm">
+                              Chưa có voucher nào khả dụng để đổi.
+                            </p>
+                          ) : (
+                            <div className="vouchers-grid">
+                              {pointVoucherCatalog.map((item) =>
+                                renderCatalogVoucherCard(item),
+                              )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
+                        </section>
+
+                        {vouchers.some((v) => v.used) && (
+                          <section>
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                              Voucher đã sử dụng
+                            </h3>
+                            <div className="vouchers-grid">
+                              {vouchers
+                                .filter((v) => v.used)
+                                .map((voucher) => {
+                                  const formattedExpiry = voucher.endDate
+                                    ? `Hạn dùng: ${new Date(voucher.endDate).toLocaleDateString("vi-VN")}`
+                                    : "Hạn dùng: Không thời hạn";
+
+                                  return (
+                                    <div
+                                      key={`used-${voucher.walletId || voucher.id || voucher.code}`}
+                                      className="voucher-card opacity-50 grayscale border-dashed border-gray-600"
+                                    >
+                                      <div className="voucher-glow-dot" />
+                                      <div className="voucher-icon-box">
+                                        <Gift
+                                          size={24}
+                                          className="text-gray-500"
+                                        />
+                                      </div>
+                                      <div className="voucher-body text-left">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="voucher-code">
+                                            {voucher.code}
+                                          </span>
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                                            Đã sử dụng
+                                          </span>
+                                        </div>
+                                        <h4 className="voucher-title text-gray-500">
+                                          {voucher.description}
+                                        </h4>
+                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                          <span className="voucher-expiry">
+                                            {formattedExpiry}
+                                          </span>
+                                          <span>Đã dùng</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </section>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
                 {/* TAB 4: Security Settings */}
+                {activeTab === "history" && (
+                  <motion.div
+                    key="history"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <PurchaseHistoryPanel />
+                  </motion.div>
+                )}
+
                 {activeTab === "security" && authProvider !== "GOOGLE" && (
                   <motion.div
                     key="security"
@@ -1499,7 +1812,9 @@ export const ProfilePage = () => {
                       <form
                         onSubmit={handlePasswordChange}
                         className="password-change-form"
-                      >                        <div className="info-field-group">
+                      >
+                        {" "}
+                        <div className="info-field-group">
                           <label>Mật khẩu hiện tại</label>
                           <AuthInput
                             placeholder="••••••••"
@@ -1514,7 +1829,8 @@ export const ProfilePage = () => {
                               setShowCurrentPassword((prev) => !prev)
                             }
                           />
-                        </div>                        <div className="info-field-group">
+                        </div>{" "}
+                        <div className="info-field-group">
                           <label>Mật khẩu mới</label>
                           <AuthInput
                             placeholder="Mật khẩu tối thiểu 6 ký tự"
@@ -1529,7 +1845,8 @@ export const ProfilePage = () => {
                               setShowNewPassword((prev) => !prev)
                             }
                           />
-                        </div>                        <div className="info-field-group">
+                        </div>{" "}
+                        <div className="info-field-group">
                           <label>Xác nhận mật khẩu mới</label>
                           <AuthInput
                             placeholder="Nhập lại mật khẩu mới"
@@ -1545,7 +1862,6 @@ export const ProfilePage = () => {
                             }
                           />
                         </div>
-
                         <button
                           type="submit"
                           disabled={isChangingPass}
@@ -1563,302 +1879,21 @@ export const ProfilePage = () => {
             </div>
           </div>
         </div>
-
-        {/* Purchase History Modal */}
-        {showHistoryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0b0f19] border border-white/10 rounded-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
-            >
-              {/* Modal Header */}
-              <div className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-white/5">
-                <div className="flex items-center gap-2">
-                  <History className="text-yellow-400" size={20} />
-                  <h3 className="text-lg font-bold text-white">
-                    Lịch sử mua hàng
-                  </h3>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowHistoryModal(false);
-                    setSelectedTransaction(null);
-                  }}
-                  className="text-slate-400 hover:text-white transition duration-200"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Spend Summary */}
-              <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-white/[0.02] border-b border-white/5 text-center">
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Tổng chi tiêu
-                  </p>
-                  <p className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500 mt-1">
-                    {transactions.length === 0
-                      ? "0đ"
-                      : transactions
-                          .reduce(
-                            (sum, txn) =>
-                              sum + parseInt(txn.amount.replace(/\D/g, "") || "0"),
-                            0,
-                          )
-                          .toLocaleString("vi-VN") + "đ"}
-                  </p>
-                </div>
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Số lượng vé
-                  </p>
-                  <p className="text-lg font-black text-red-500 mt-1">
-                    {transactions.length === 0
-                      ? "0"
-                      : transactions.reduce((sum, txn) => sum + (txn.details.seats && txn.details.seats !== "N/A" ? txn.details.seats.split(",").filter(Boolean).length : 0), 0)}{" "}
-                    vé
-                  </p>
-                </div>
-                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Số lượng combo
-                  </p>
-                  <p className="text-lg font-black text-amber-500 mt-1">
-                    {transactions.length === 0
-                      ? "0"
-                      : transactions.filter((txn) => txn.hasCombo)
-                          .length}{" "}
-                    combo
-                  </p>
-                </div>
-              </div>
-
-              {/* Filter and Search controls */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01]">
-                {/* Filter Tabs */}
-                <div className="flex gap-2 bg-slate-900 p-1 rounded-lg border border-white/5 w-full sm:w-auto">
-                  <button
-                    onClick={() => setHistoryFilter("all")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "all" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Tất cả
-                  </button>
-                  <button
-                    onClick={() => setHistoryFilter("ticket")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "ticket" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Vé xem phim
-                  </button>
-                  <button
-                    onClick={() => setHistoryFilter("combo")}
-                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition duration-200 ${historyFilter === "combo" ? "bg-red-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Bắp nước
-                  </button>
-                </div>
-
-                {/* Search Box */}
-                <div className="relative w-full sm:w-64">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={14}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tìm theo mã giao dịch, tên..."
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-6 no-scrollbar min-h-[300px]">
-                {selectedTransaction ? (
-                  /* Detailed Transaction Receipt */
-                  <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-6 max-w-lg mx-auto shadow-inner relative">
-                    <button
-                      onClick={() => setSelectedTransaction(null)}
-                      className="absolute top-4 left-4 text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-1"
-                    >
-                      ← Quay lại
-                    </button>
-
-                    <div className="text-center border-b border-dashed border-white/10 pb-4 mb-4 mt-4">
-                      <h4 className="text-base font-bold text-white uppercase tracking-wider">
-                        Hóa đơn điện tử
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Mã GD: {selectedTransaction.id}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {selectedTransaction.date}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3 text-sm text-slate-300 mb-6">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Địa điểm rạp:</span>
-                        <span className="font-semibold text-white text-right max-w-[200px]">
-                          {selectedTransaction.details.cinema}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Vị trí ghế:</span>
-                        <span className="font-semibold text-white">
-                          {selectedTransaction.details.seats}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Đồ ăn thức uống:</span>
-                        <span className="font-semibold text-white text-right max-w-[200px]">
-                          {selectedTransaction.details.combo}
-                        </span>
-                      </div>
-                      <div className="border-t border-slate-800 my-2 pt-2" />
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Tiền vé:</span>
-                        <span>{selectedTransaction.details.price}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Tiền combo:</span>
-                        <span>{selectedTransaction.details.comboPrice}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Phương thức:</span>
-                        <span className="text-red-500 font-bold">
-                          {selectedTransaction.method}
-                        </span>
-                      </div>
-                      <div className="border-t-2 border-dashed border-white/10 my-2 pt-3" />
-                      <div className="flex justify-between text-base font-extrabold">
-                        <span className="text-white">Tổng cộng:</span>
-                        <span className="text-yellow-400">
-                          {selectedTransaction.details.total}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Mock Barcode inside Invoice */}
-                    <div className="flex flex-col items-center justify-center pt-2 border-t border-slate-800">
-                      <div className="h-10 w-48 bg-repeating-linear-gradient(90deg,#fff,#fff 2px,#0f172a 2px,#0f172a 6px,#fff 6px,#fff 8px) opacity-50 mb-2" />
-                      <span className="text-[10px] font-mono text-slate-500">
-                        NSF-{selectedTransaction.id}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Transaction List */
-                  <div className="space-y-3">
-                    {transactions
-                      .filter(
-                        (txn) =>
-                          historyFilter === "all" ||
-                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
-                          (historyFilter === "combo" && txn.hasCombo),
-                      )
-                      .filter(
-                        (txn) =>
-                          txn.id
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()) ||
-                          txn.itemName
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()),
-                      )
-                      .map((txn) => (
-                        <div
-                          key={txn.id}
-                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-xl transition duration-200 gap-4"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${txn.type === "ticket" ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-500"}`}
-                            >
-                              {txn.type === "ticket" ? (
-                                <Ticket size={18} />
-                              ) : (
-                                <Gift size={18} />
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-white leading-snug">
-                                {txn.itemName}
-                              </h4>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                {txn.date} | Mã GD:{" "}
-                                <span className="font-mono text-slate-300">
-                                  {txn.id}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex sm:flex-col items-end justify-between w-full sm:w-auto border-t sm:border-0 border-white/5 pt-2 sm:pt-0 gap-2">
-                            <span className="text-sm font-black text-yellow-400">
-                              {txn.amount}
-                            </span>
-                            <button
-                              onClick={() => setSelectedTransaction(txn)}
-                              className="text-xs font-bold text-red-500 hover:text-red-400 hover:underline transition duration-200"
-                            >
-                              Chi tiết hóa đơn →
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-
-                    {/* Empty State */}
-                    {transactions
-                      .filter(
-                        (txn) =>
-                          historyFilter === "all" ||
-                          (historyFilter === "ticket" && txn.details.seats && txn.details.seats !== "N/A") ||
-                          (historyFilter === "combo" && txn.hasCombo),
-                      )
-                      .filter(
-                        (txn) =>
-                          txn.id
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()) ||
-                          txn.itemName
-                            .toLowerCase()
-                            .includes(historySearch.toLowerCase()),
-                      ).length === 0 && (
-                      <div className="text-center py-12">
-                        <History
-                          className="mx-auto text-slate-600 mb-3"
-                          size={40}
-                        />
-                        <p className="text-sm text-slate-400">
-                          Không tìm thấy giao dịch nào phù hợp
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex justify-end px-6 py-4 border-t border-white/10 bg-[#white/5]">
-                <button
-                  onClick={() => {
-                    setShowHistoryModal(false);
-                    setSelectedTransaction(null);
-                  }}
-                  className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-lg transition duration-200"
-                >
-                  Đóng
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </div>
-      <Footer />
+      <CancelBookingModal
+        bookingUuid={cancelTargetUuid}
+        open={Boolean(cancelTargetUuid)}
+        onClose={() => setCancelTargetUuid(null)}
+        onSuccess={(result) => {
+          notificationService.success(result?.message || "Hủy vé thành công");
+          reloadBookings();
+        }}
+      />
+      <RefundDetailModal
+        bookingUuid={refundTargetUuid}
+        open={Boolean(refundTargetUuid)}
+        onClose={() => setRefundTargetUuid(null)}
+      />
     </>
   );
 };

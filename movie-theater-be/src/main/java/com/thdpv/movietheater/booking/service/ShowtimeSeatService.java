@@ -27,10 +27,14 @@ import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 import lombok.RequiredArgsConstructor;
 import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
@@ -40,17 +44,19 @@ import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 @RequiredArgsConstructor
 public class ShowtimeSeatService {
 
-    private static final int LOCK_TTL_SECONDS = 300;
-
     @Value("${app.showtime.auto-slide-enabled:false}")
     private boolean autoSlideEnabled;
 
+    private final SystemConfigService systemConfigService;
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
+    private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final SeatMapEventPublisher seatMapEventPublisher;
+    private final ShowtimeCapacityService showtimeCapacityService;
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -65,19 +71,7 @@ public class ShowtimeSeatService {
         List<SeatViewDto> rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
 
         if (rows.isEmpty()) {
-            Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-            if (showtime != null) {
-                try {
-                    cinemaService.generateSeats(showtime.getCinemaRoomUuid(), null);
-                    rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND, "Chua co so do ghe cho suat chieu nay");
         }
 
         UUID responseShowtimeUuid = rows.get(0).getShowtimeUuid();
@@ -99,12 +93,13 @@ public class ShowtimeSeatService {
             responseRows.add(new ShowtimeSeatMapResponse.RowItem(entry.getKey(), entry.getValue()));
         }
 
+        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,
                 startTime,
                 endTime,
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 now,
                 responseRows);
     }
@@ -117,12 +112,16 @@ public class ShowtimeSeatService {
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
-        OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
+        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        OffsetDateTime expiresAt = now.plusSeconds(lockTtlSeconds);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         cleanupExpiredLocks(request.getShowtimeUuid(), now);
         validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
+        validateSeatsAreBookable(request.getShowtimeUuid(), requestedSeatUuids);
+        showtimeCapacityService.validateCapacity(
+                request.getShowtimeUuid(), requestedSeatUuids.size(), currentUserUuid, now);
         validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsNotLockedByOther(request.getShowtimeUuid(), requestedSeatUuids, currentUserUuid, now);
 
@@ -143,9 +142,11 @@ public class ShowtimeSeatService {
         refreshSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToKeep, now, expiresAt);
         insertSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToInsert, now, expiresAt);
 
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
+
         return new SeatLockSyncResponse(
                 request.getShowtimeUuid(),
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 requestedSeatUuids.isEmpty() ? null : expiresAt,
                 now,
                 requestedSeatUuids);
@@ -249,6 +250,20 @@ public class ShowtimeSeatService {
         if (showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
         }
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+        if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
+    }
+
+    private void validateSeatsAreBookable(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        long bookableCount = showtimeRepository.countBookableSeats(showtimeUuid, requestedSeatUuids);
+        if (bookableCount != requestedSeatUuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Co ghe khong kha dung hoac dang bao tri");
+        }
     }
 
     private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
@@ -281,7 +296,12 @@ public class ShowtimeSeatService {
     @Scheduled(fixedDelay = 30000)
     public void cleanupExpiredLocksScheduled() {
         OffsetDateTime now = OffsetDateTime.now();
+        List<UUID> affectedShowtimes = seatLockedRepository.findShowtimeUuidsWithExpiredLocks(now);
+        if (affectedShowtimes.isEmpty()) {
+            return;
+        }
         seatLockedRepository.deleteExpiredLocksScheduled(now);
+        affectedShowtimes.forEach(seatMapEventPublisher::notifySeatMapUpdated);
     }
 
     private void validateRequestedSeatsBelongToShowtime(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
@@ -367,8 +387,10 @@ public class ShowtimeSeatService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }

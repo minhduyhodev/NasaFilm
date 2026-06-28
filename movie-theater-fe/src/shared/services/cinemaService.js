@@ -12,6 +12,17 @@ class CinemaService {
     }
   }
 
+  async getCinemasWithRooms(keyword = '', page = 0, size = 100) {
+    try {
+      const response = await authService.api.get('/api/cinemas/with-rooms', {
+        params: { keyword, page, size },
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getCinemaDetail(cinemaUuid) {
     try {
       const response = await authService.api.get(`/api/cinemas/${cinemaUuid}`);
@@ -66,6 +77,15 @@ class CinemaService {
     }
   }
 
+  async deleteRoom(roomUuid) {
+    try {
+      const response = await authService.api.delete(`/api/admin/rooms/${roomUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async generateSeats(roomUuid, rowCount = 8, seatsPerRow = 12) {
     try {
       const response = await authService.api.post(`/api/admin/rooms/${roomUuid}/seats/generate`, {
@@ -81,6 +101,15 @@ class CinemaService {
   async getSeatsByRoom(roomUuid) {
     try {
       const response = await authService.api.get(`/api/rooms/${roomUuid}/seats`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateSeat(seatUuid, data) {
+    try {
+      const response = await authService.api.put(`/api/admin/seats/${seatUuid}`, data);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

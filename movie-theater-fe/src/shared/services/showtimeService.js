@@ -10,9 +10,12 @@ class ShowtimeService {
     }
   }
 
-  async getPublicShowtimes() {
+  async getPublicShowtimes({ cinemaUuid, date } = {}) {
     try {
-      const response = await authService.api.get('/api/showtimes');
+      const params = {};
+      if (cinemaUuid) params.cinemaUuid = cinemaUuid;
+      if (date) params.date = date;
+      const response = await authService.api.get('/api/showtimes', { params });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
@@ -33,6 +36,24 @@ class ShowtimeService {
       const response = await authService.api.put(`/api/admin/showtimes/${showtimeUuid}/status`, null, {
         params: { status }
       });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getAutoShowtimesPreview(data) {
+    try {
+      const response = await authService.api.post('/api/admin/showtimes/auto-generate/preview', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async saveAutoShowtimes(requests) {
+    try {
+      const response = await authService.api.post('/api/admin/showtimes/auto-generate/save', requests);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

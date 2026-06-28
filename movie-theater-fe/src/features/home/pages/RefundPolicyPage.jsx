@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Ban, CheckCircle, Clock, MessageCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import './LegalPages.css';
 
 export const RefundPolicyPage = () => {
@@ -25,7 +23,6 @@ export const RefundPolicyPage = () => {
 
   return (
     <div className="legal-page-wrapper">
-      <Navbar />
 
       <section className="legal-header">
         <div className="legal-header-overlay absolute inset-0 bg-gradient-to-b from-black/20 via-[#0b0f19]/80 to-[#0b0f19] z-10" />
@@ -115,8 +112,6 @@ export const RefundPolicyPage = () => {
           </ul>
         </motion.section>
       </motion.div>
-
-      <Footer />
     </div>
   );
 };

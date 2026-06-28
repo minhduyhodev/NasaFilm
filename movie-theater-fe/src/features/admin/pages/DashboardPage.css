@@ -1,198 +1,265 @@
-.dashboard-header-container {
-  @apply flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between;
+.dashboard-page {
+  @apply space-y-6 text-left w-full;
 }
 
-.dashboard-header-info {
-  @apply space-y-1.5;
+.dashboard-loading {
+  @apply flex flex-col items-center justify-center min-h-[420px] gap-3;
 }
 
-.dashboard-title {
-  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
+.dashboard-page-header {
+  @apply mb-2;
 }
 
-.dashboard-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
+.dashboard-page-title {
+  @apply text-3xl lg:text-4xl font-bold text-white tracking-tight font-heading;
 }
 
-.dashboard-action-btn {
-  @apply inline-flex items-center gap-2.5 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
+.dashboard-page-desc {
+  @apply text-sm text-gray-500 mt-1;
 }
 
-/* Unified stats panel styles */
-.dashboard-unified-stats-panel {
-  @apply bg-[#121826]/70 border border-[#1A2238] shadow-2xl backdrop-blur-md;
+/* KPI cards — template style */
+.dashboard-kpi-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4;
 }
 
-/* High-tech telemetry additions */
-.bg-scanlines {
-  background: linear-gradient(
-    rgba(18, 24, 38, 0) 50%, 
-    rgba(0, 0, 0, 0.25) 50%
-  ), linear-gradient(
-    90deg, 
-    rgba(255, 0, 0, 0.03), 
-    rgba(0, 255, 0, 0.01), 
-    rgba(0, 0, 255, 0.03)
-  );
-  background-size: 100% 4px, 6px 100%;
+.dashboard-kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid var(--adm-border, #1a2238);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.bg-radial-glow {
-  background: radial-gradient(
-    circle at center, 
-    rgba(239, 68, 68, 0.05) 0%, 
-    rgba(11, 16, 32, 0) 70%
-  );
+.dashboard-kpi-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.dashboard-kpi-top {
+  @apply flex items-center justify-between mb-3;
 }
 
-.animate-spin-slow {
-  animation: spin-slow 25s linear infinite;
+.dashboard-kpi-label {
+  @apply text-xs font-semibold text-gray-400 uppercase tracking-wide;
 }
 
-/* Base custom resets for tables and forms in admin */
-.admin-header-container {
-  @apply flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between;
+.dashboard-kpi-icon {
+  @apply w-4 h-4 text-gray-600;
 }
 
-.admin-header-info {
-  @apply space-y-1.5;
+.dashboard-kpi-body {
+  @apply flex items-end justify-between gap-3;
 }
 
-.admin-title {
-  @apply text-3xl lg:text-4xl font-black text-white tracking-tight;
+.dashboard-kpi-values {
+  @apply flex flex-col gap-0.5 min-w-0;
 }
 
-.admin-subtitle {
-  @apply text-xs font-bold uppercase tracking-[0.25em] text-red-500;
+.dashboard-kpi-value {
+  @apply text-2xl font-bold text-white leading-none tabular-nums;
 }
 
-.admin-description {
-  @apply text-sm text-gray-400 max-w-2xl mt-1;
+.dashboard-kpi-suffix {
+  @apply text-base font-semibold text-gray-400 ml-0.5;
 }
 
-.admin-add-btn {
-  @apply inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
+.dashboard-kpi-change {
+  @apply text-xs font-bold;
 }
 
-.admin-add-btn-plus {
-  @apply text-lg font-bold mr-1;
+.dashboard-kpi-change.is-positive {
+  color: #34d399;
 }
 
-.admin-add-btn-label-group {
-  @apply flex flex-col items-start leading-none;
+.dashboard-kpi-change.is-negative {
+  color: #f87171;
 }
 
-.admin-add-btn-sub {
-  @apply text-[9px] font-bold tracking-wider uppercase text-red-200;
+.dashboard-sparkline {
+  @apply w-[120px] h-9 shrink-0 opacity-90;
 }
 
-.admin-add-btn-main {
-  @apply text-sm font-bold;
+/* Tabs */
+.dashboard-tabs {
+  @apply flex flex-wrap items-center gap-1 pt-2 border-b border-white/[0.06];
 }
 
-/* Custom Table/Card modifications */
-.admin-table-card {
-  @apply rounded-2xl bg-[#121826]/70 border border-[#1A2238] p-6 shadow-2xl backdrop-blur-md;
+.dashboard-tab {
+  @apply px-4 py-2.5 text-sm font-semibold text-gray-500 bg-transparent border-none cursor-pointer transition-all duration-200 relative;
+  border-radius: 8px 8px 0 0;
 }
 
-.admin-table-controls {
-  @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6;
+.dashboard-tab:hover {
+  @apply text-gray-300;
 }
 
-.admin-search-wrapper {
-  @apply relative w-full lg:max-w-xl;
+.dashboard-tab.is-active {
+  @apply text-white;
 }
 
-.admin-search-icon {
-  @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5;
+.dashboard-tab.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+  border-radius: 2px 2px 0 0;
 }
 
-.admin-search-input {
-  @apply w-full rounded-xl bg-[#0B1020] py-3 pl-12 pr-4 text-white placeholder-gray-500 border border-[#1A2238] focus:outline-none focus:border-red-500/50 text-sm transition-all duration-200;
+/* Charts grid */
+.dashboard-charts-grid {
+  @apply grid grid-cols-1 xl:grid-cols-12 gap-4;
 }
 
-.admin-action-btn {
-  @apply rounded-xl border border-[#1A2238] bg-[#121826] px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-200 cursor-pointer flex items-center gap-2;
+.dashboard-chart-panel {
+  background: rgba(18, 22, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 20px 24px;
 }
 
-.admin-table {
-  @apply w-full text-left text-sm border-collapse;
+.dashboard-chart-panel:first-child {
+  @apply xl:col-span-8;
 }
 
-.admin-table-thead-tr {
-  @apply text-gray-400 text-[10px] font-bold uppercase tracking-[0.25em] border-b border-[#1A2238];
+.dashboard-donut-panel {
+  @apply xl:col-span-4 flex flex-col;
 }
 
-.admin-table th {
-  @apply pb-4 pt-2 font-bold text-gray-400;
+.dashboard-panel-header {
+  @apply mb-4;
 }
 
-.admin-table td {
-  @apply py-4 border-b border-[#1A2238]/50 text-gray-300 align-middle;
+.dashboard-panel-title {
+  @apply text-base font-bold text-white;
 }
 
-.admin-table-tr {
-  @apply transition-colors duration-200;
+.dashboard-panel-subtitle {
+  @apply text-xs text-gray-500 mt-0.5;
 }
 
-.admin-table-tr:hover {
-  background-color: rgba(255, 255, 255, 0.015) !important;
+.dashboard-chart-area {
+  @apply w-full overflow-x-auto;
 }
 
-/* Modals */
-.modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto transition-all duration-300;
+.dashboard-area-chart {
+  @apply w-full min-w-[320px] h-auto;
+  max-height: 240px;
 }
 
-.modal-content {
-  @apply bg-white border border-gray-200 rounded-2xl w-full max-w-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl space-y-6 text-left transition-all duration-300 transform scale-100;
+.dashboard-chart-axis-label {
+  fill: #64748b;
+  font-size: 9px;
+  font-weight: 600;
 }
 
-.modal-header {
-  @apply flex items-center justify-between border-b border-gray-200 pb-4;
+.dashboard-chart-x-label {
+  fill: #94a3b8;
+  font-size: 9px;
+  font-weight: 600;
 }
 
-.modal-title {
-  @apply text-xl font-bold text-gray-900 uppercase tracking-wider;
+.dashboard-chart-legend {
+  @apply flex items-center gap-2 mt-3 text-xs text-gray-500 font-medium;
 }
 
-.modal-close-btn {
-  @apply text-gray-400 hover:text-gray-600 transition-colors bg-transparent border-0 cursor-pointer flex items-center p-1.5 rounded-xl hover:bg-gray-100;
+.dashboard-legend-dot {
+  @apply w-2 h-2 rounded-full shrink-0;
 }
 
-.form-group {
-  @apply flex flex-col gap-2;
+.dashboard-empty-chart {
+  @apply flex items-center justify-center h-48 text-sm text-gray-500;
 }
 
-.form-label {
-  @apply text-xs font-bold uppercase tracking-[0.15em] text-gray-500 mb-1;
+/* Donut */
+.dashboard-donut-wrap {
+  @apply relative flex items-center justify-center my-2;
 }
 
-.form-input, .form-textarea, .form-select {
-  @apply w-full rounded-xl bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 border border-gray-300 focus:border-red-500/50 focus:bg-white focus:outline-none text-sm transition-all duration-200;
+.dashboard-donut-chart {
+  @apply w-48 h-48;
 }
 
-.form-textarea {
-  @apply h-28 resize-none;
+.dashboard-donut-center {
+  @apply absolute inset-0 flex flex-col items-center justify-center pointer-events-none;
 }
 
-.form-actions {
-  @apply flex justify-end gap-3 pt-4 border-t border-gray-200;
+.dashboard-donut-center-label {
+  @apply text-[10px] uppercase tracking-wider text-gray-500 font-bold;
 }
 
-.btn-cancel {
-  @apply rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition cursor-pointer;
+.dashboard-donut-center-value {
+  @apply text-lg font-black text-white tabular-nums;
 }
 
-.btn-submit {
-  @apply rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-[#d12c2c] transition shadow-lg shadow-red-600/10 cursor-pointer;
+.dashboard-donut-legend {
+  @apply space-y-2.5 mt-4 flex-1;
+}
+
+.dashboard-donut-legend-item {
+  @apply flex items-center gap-2 text-xs;
+}
+
+.dashboard-donut-legend-label {
+  @apply flex-1 text-gray-400 truncate;
+}
+
+.dashboard-donut-legend-value {
+  @apply text-white font-semibold tabular-nums shrink-0;
+}
+
+/* Bottom rank lists */
+.dashboard-bottom-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-4;
+}
+
+.dashboard-mini-panel {
+  background: rgba(18, 22, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.dashboard-mini-title {
+  @apply text-sm font-bold text-white mb-4;
+}
+
+.dashboard-rank-list {
+  @apply space-y-3;
+}
+
+.dashboard-rank-item {
+  @apply flex items-center gap-3;
+}
+
+.dashboard-rank-index {
+  @apply w-6 h-6 rounded-lg bg-white/[0.05] flex items-center justify-center text-[10px] font-bold text-gray-400 shrink-0;
+}
+
+.dashboard-rank-info {
+  @apply flex-1 min-w-0;
+}
+
+.dashboard-rank-name {
+  @apply block text-sm font-semibold text-white truncate;
+}
+
+.dashboard-rank-meta {
+  @apply block text-[10px] text-gray-500 mt-0.5;
+}
+
+.dashboard-rank-bar-wrap {
+  @apply h-1.5 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden;
+}
+
+.dashboard-rank-bar {
+  @apply h-full rounded-full;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+}
+
+.dashboard-rank-value {
+  @apply text-xs font-bold text-emerald-400 tabular-nums shrink-0;
 }

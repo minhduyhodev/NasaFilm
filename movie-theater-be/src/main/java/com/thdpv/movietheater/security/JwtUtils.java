@@ -89,6 +89,17 @@ public class JwtUtils {
                 .compact();
     }
 
+    public String generateActivationToken(String email, String passwordHash) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("pass", passwordHash)
+                .claim("purpose", "ACTIVATE_ACCOUNT")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 259200000L)) // 72 hours
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+    }
+
     public Claims parseResetToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)

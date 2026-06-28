@@ -41,7 +41,12 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 sl.seat_uuid,
                 s.row_name,
                 s.seat_number,
-                stt.base_price,
+                case 
+                    when upper(stt.name) = 'STANDARD' then st.base_price
+                    when upper(stt.name) = 'VIP' then coalesce(st.vip_price, stt.base_price)
+                    when upper(stt.name) = 'COUPLE' then coalesce(st.couple_price, stt.base_price)
+                    else stt.base_price
+                end,
                 coalesce(stt.price_modifier, 1)
             from seat_locked sl
             join showtime st on st.uuid = sl.showtime_uuid
@@ -51,6 +56,8 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
               and sl.user_uuid = :userUuid
               and sl.seat_uuid in (:seatUuids)
               and sl.expired_at > :now
+              and s.is_active = true
+              and upper(s.status) = 'ACTIVE'
             for update
             """, nativeQuery = true)
     List<Object[]> queryActiveSeatsForConfirm(
@@ -161,6 +168,14 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
 
     @Modifying
     @Query(value = """
+            update users
+            set lifetime_score = greatest(coalesce(lifetime_score, 0) + :scoreAdded, 0)
+            where id = :userUuid
+            """, nativeQuery = true)
+    void addLifetimeScore(@Param("userUuid") UUID userUuid, @Param("scoreAdded") int scoreAdded);
+
+    @Modifying
+    @Query(value = """
             insert into score_history (uuid, user_uuid, score_amount, type, description, created_at)
             values (:uuid, :userUuid, :scoreAmount, :type, :description, :createdAt)
             """, nativeQuery = true)
@@ -195,9 +210,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 b.total_price,
                 b.status,
                 b.created_at,
-                st.start_time,
+                coalesce(st.start_time, b.created_at),
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'NASA VOD (Xem online)'),
                 coalesce((
                     select string_agg(s.row_name || s.seat_number, ', ' order by s.row_name asc, s.seat_number asc)
                     from booking_seat bs
@@ -216,18 +231,22 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     where t.booking_uuid = b.uuid
                     order by t.issued_at asc
                     limit 1
-                ), ''),
+                ), 'VOD-' || substring(cast(b.uuid as text), 1, 8)),
                 coalesce((
                     select t.status
                     from ticket t
                     where t.booking_uuid = b.uuid
                     order by t.issued_at asc
                     limit 1
-                ), '')
+                ), 'CONFIRMED'),
+                coalesce(b.movie_uuid, st.movie_uuid),
+                coalesce(b.booking_type, 'THEATER'),
+                b.first_played_at,
+                b.expires_at
             from booking b
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where b.user_uuid = :userUuid
             order by b.created_at desc
             """, nativeQuery = true)
@@ -236,10 +255,59 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     @Query(value = """
             select
                 b.uuid,
+                coalesce((
+                    select t.ticket_code
+                    from ticket t
+                    where t.booking_uuid = b.uuid
+                    order by t.issued_at asc
+                    limit 1
+                ), 'VOD-' || substring(cast(b.uuid as text), 1, 8)),
+                m.title,
+                coalesce(
+                    c.name,
+                    case when coalesce(b.booking_type, 'THEATER') = 'ONLINE'
+                         then 'NASA VOD (Xem online)' else 'NASA Cinema' end
+                ),
+                coalesce(cr.name, ''),
+                coalesce(st.start_time, b.created_at),
+                coalesce((
+                    select string_agg(s.row_name || s.seat_number, ', ' order by s.row_name asc, s.seat_number asc)
+                    from booking_seat bs
+                    join seat s on s.uuid = bs.seat_uuid
+                    where bs.booking_uuid = b.uuid
+                ), ''),
+                coalesce((
+                    select string_agg(bc.quantity || 'x ' || cmb.name, ', ' order by cmb.name asc)
+                    from booking_combo bc
+                    join combo cmb on cmb.uuid = bc.combo_uuid
+                    where bc.booking_uuid = b.uuid
+                ), 'Không kèm bắp nước'),
+                b.total_price,
+                b.status,
+                coalesce(b.booking_type, 'THEATER'),
+                p.code,
+                p.discount_type,
+                p.discount_value,
+                b.created_at,
+                coalesce(b.movie_uuid, st.movie_uuid)
+            from booking b
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join cinema c on c.uuid = cr.cinema_uuid
+            left join promotions p on p.uuid = b.promotion_uuid
+            where b.user_uuid = :userUuid
+            order by b.created_at desc
+            """, nativeQuery = true)
+    List<Object[]> loadPurchaseHistory(@Param("userUuid") UUID userUuid);
+
+    @Query(value = """
+            select
+                b.uuid,
                 u.full_name,
                 u.email,
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -258,9 +326,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
             order by b.created_at desc
             limit :limit offset :offset
@@ -276,7 +344,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 u.full_name,
                 u.email,
                 m.title,
-                cr.name,
+                coalesce(cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -295,9 +363,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
-            join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = st.movie_uuid
-            join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
             order by b.created_at desc
             """, nativeQuery = true)

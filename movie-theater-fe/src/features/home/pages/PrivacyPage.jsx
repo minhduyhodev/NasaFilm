@@ -1,8 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, CheckSquare, Users, Mail } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import './LegalPages.css';
 
 export const PrivacyPage = () => {
@@ -25,7 +23,6 @@ export const PrivacyPage = () => {
 
   return (
     <div className="legal-page-wrapper">
-      <Navbar />
 
       {/* Header Banner */}
       <section className="legal-header">
@@ -153,8 +150,6 @@ export const PrivacyPage = () => {
           </p>
         </motion.section>
       </motion.div>
-
-      <Footer />
     </div>
   );
 };

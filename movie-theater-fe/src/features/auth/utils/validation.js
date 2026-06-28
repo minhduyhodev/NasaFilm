@@ -94,7 +94,23 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
-
-
-
+export const activateAccountSchema = z
+  .object({
+    temporaryPassword: z
+      .string()
+      .min(1, 'Vui lòng nhập mật khẩu tạm thời từ email'),
+    password: z
+      .string()
+      .min(1, 'Mật khẩu không được để trống')
+      .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+      .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất một chữ cái viết hoa')
+      .regex(/[a-z]/, 'Mật khẩu phải chứa ít nhất một chữ cái viết thường')
+      .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất một chữ số')
+      .regex(/[!@#$%^&*]/, 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*)'),
+    confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu không trùng khớp',
+    path: ['confirmPassword'],
+  });
 

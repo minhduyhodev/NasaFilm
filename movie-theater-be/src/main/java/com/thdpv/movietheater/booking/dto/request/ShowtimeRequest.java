@@ -21,6 +21,10 @@ public class ShowtimeRequest {
     @Positive(message = "Base price must be positive")
     private BigDecimal basePrice;
 
+    private BigDecimal vipPrice;
+
+    private BigDecimal couplePrice;
+
     public ShowtimeRequest() {
     }
 
@@ -29,6 +33,15 @@ public class ShowtimeRequest {
         this.cinemaRoomUuid = cinemaRoomUuid;
         this.startTime = startTime;
         this.basePrice = basePrice;
+    }
+
+    public ShowtimeRequest(UUID movieUuid, UUID cinemaRoomUuid, OffsetDateTime startTime, BigDecimal basePrice, BigDecimal vipPrice, BigDecimal couplePrice) {
+        this.movieUuid = movieUuid;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.startTime = startTime;
+        this.basePrice = basePrice;
+        this.vipPrice = vipPrice;
+        this.couplePrice = couplePrice;
     }
 
     public UUID getMovieUuid() {
@@ -61,5 +74,21 @@ public class ShowtimeRequest {
 
     public void setBasePrice(BigDecimal basePrice) {
         this.basePrice = basePrice;
+    }
+
+    public BigDecimal getVipPrice() {
+        return vipPrice;
+    }
+
+    public void setVipPrice(BigDecimal vipPrice) {
+        this.vipPrice = vipPrice;
+    }
+
+    public BigDecimal getCouplePrice() {
+        return couplePrice;
+    }
+
+    public void setCouplePrice(BigDecimal couplePrice) {
+        this.couplePrice = couplePrice;
     }
 }

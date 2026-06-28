@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -33,6 +34,7 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.cinema.enums.SeatStatus;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 
@@ -57,6 +59,12 @@ class ShowtimeSeatServiceTest {
     @Mock
     private BookingSeatRepository bookingSeatRepository;
 
+    @Mock
+    private SystemConfigService systemConfigService;
+
+    @Mock
+    private SeatMapEventPublisher seatMapEventPublisher;
+
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;
 
@@ -72,6 +80,8 @@ class ShowtimeSeatServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(showtimeSeatService, "autoSlideEnabled", true);
+        lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
+        lenient().when(systemConfigService.getSeatLockTtlSeconds()).thenReturn(300);
     }
 
     @Test

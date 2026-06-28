@@ -12,11 +12,18 @@ public class CustomerBookingHistoryResponse {
     private String combo;
     private String price;
     private String status;
+    private UUID movieUuid;
+    private String moviePosterUrl;
+    private String movieAgeRestriction;
+    private String bookingType;
+    private boolean cancellable;
+    private boolean vodActivated;
+    private String bookingStatus;
 
     public CustomerBookingHistoryResponse() {
     }
 
-    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status) {
+    public CustomerBookingHistoryResponse(UUID bookingUuid, String id, String movieTitle, String cinema, String showtime, String seats, String combo, String price, String status, UUID movieUuid, String bookingType, boolean cancellable, boolean vodActivated, String bookingStatus) {
         this.bookingUuid = bookingUuid;
         this.id = id;
         this.movieTitle = movieTitle;
@@ -26,6 +33,11 @@ public class CustomerBookingHistoryResponse {
         this.combo = combo;
         this.price = price;
         this.status = status;
+        this.movieUuid = movieUuid;
+        this.bookingType = bookingType;
+        this.cancellable = cancellable;
+        this.vodActivated = vodActivated;
+        this.bookingStatus = bookingStatus;
     }
 
     public String getId() {
@@ -98,5 +110,61 @@ public class CustomerBookingHistoryResponse {
 
     public void setBookingUuid(UUID bookingUuid) {
         this.bookingUuid = bookingUuid;
+    }
+
+    public UUID getMovieUuid() {
+        return movieUuid;
+    }
+
+    public void setMovieUuid(UUID movieUuid) {
+        this.movieUuid = movieUuid;
+    }
+
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
+
+    public void setMoviePosterUrl(String moviePosterUrl) {
+        this.moviePosterUrl = moviePosterUrl;
+    }
+
+    public String getMovieAgeRestriction() {
+        return movieAgeRestriction;
+    }
+
+    public void setMovieAgeRestriction(String movieAgeRestriction) {
+        this.movieAgeRestriction = movieAgeRestriction;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public boolean isCancellable() {
+        return cancellable;
+    }
+
+    public void setCancellable(boolean cancellable) {
+        this.cancellable = cancellable;
+    }
+
+    public boolean isVodActivated() {
+        return vodActivated;
+    }
+
+    public void setVodActivated(boolean vodActivated) {
+        this.vodActivated = vodActivated;
+    }
+
+    public String getBookingStatus() {
+        return bookingStatus;
+    }
+
+    public void setBookingStatus(String bookingStatus) {
+        this.bookingStatus = bookingStatus;
     }
 }

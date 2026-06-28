@@ -13,10 +13,15 @@ public class ShowtimeResponse {
     private UUID cinemaRoomUuid;
     private String cinemaRoomName;
     private String cinemaName;
+    private UUID cinemaUuid;
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private BigDecimal basePrice;
+    private BigDecimal vipPrice;
+    private BigDecimal couplePrice;
     private ShowtimeStatus status;
+
+    private String moviePosterUrl;
 
     public ShowtimeResponse() {
     }
@@ -31,6 +36,36 @@ public class ShowtimeResponse {
         this.startTime = startTime;
         this.endTime = endTime;
         this.basePrice = basePrice;
+        this.status = status;
+    }
+
+    public ShowtimeResponse(UUID uuid, UUID movieUuid, String movieTitle, String moviePosterUrl, UUID cinemaRoomUuid, String cinemaRoomName, String cinemaName, OffsetDateTime startTime, OffsetDateTime endTime, BigDecimal basePrice, ShowtimeStatus status) {
+        this.uuid = uuid;
+        this.movieUuid = movieUuid;
+        this.movieTitle = movieTitle;
+        this.moviePosterUrl = moviePosterUrl;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.cinemaRoomName = cinemaRoomName;
+        this.cinemaName = cinemaName;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.basePrice = basePrice;
+        this.status = status;
+    }
+
+    public ShowtimeResponse(UUID uuid, UUID movieUuid, String movieTitle, String moviePosterUrl, UUID cinemaRoomUuid, String cinemaRoomName, String cinemaName, OffsetDateTime startTime, OffsetDateTime endTime, BigDecimal basePrice, BigDecimal vipPrice, BigDecimal couplePrice, ShowtimeStatus status) {
+        this.uuid = uuid;
+        this.movieUuid = movieUuid;
+        this.movieTitle = movieTitle;
+        this.moviePosterUrl = moviePosterUrl;
+        this.cinemaRoomUuid = cinemaRoomUuid;
+        this.cinemaRoomName = cinemaRoomName;
+        this.cinemaName = cinemaName;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.basePrice = basePrice;
+        this.vipPrice = vipPrice;
+        this.couplePrice = couplePrice;
         this.status = status;
     }
 
@@ -82,6 +117,14 @@ public class ShowtimeResponse {
         this.cinemaName = cinemaName;
     }
 
+    public UUID getCinemaUuid() {
+        return cinemaUuid;
+    }
+
+    public void setCinemaUuid(UUID cinemaUuid) {
+        this.cinemaUuid = cinemaUuid;
+    }
+
     public OffsetDateTime getStartTime() {
         return startTime;
     }
@@ -106,11 +149,35 @@ public class ShowtimeResponse {
         this.basePrice = basePrice;
     }
 
+    public BigDecimal getVipPrice() {
+        return vipPrice;
+    }
+
+    public void setVipPrice(BigDecimal vipPrice) {
+        this.vipPrice = vipPrice;
+    }
+
+    public BigDecimal getCouplePrice() {
+        return couplePrice;
+    }
+
+    public void setCouplePrice(BigDecimal couplePrice) {
+        this.couplePrice = couplePrice;
+    }
+
     public ShowtimeStatus getStatus() {
         return status;
     }
 
     public void setStatus(ShowtimeStatus status) {
         this.status = status;
+    }
+
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
+
+    public void setMoviePosterUrl(String moviePosterUrl) {
+        this.moviePosterUrl = moviePosterUrl;
     }
 }

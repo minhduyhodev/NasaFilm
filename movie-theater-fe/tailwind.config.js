@@ -7,8 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Bắt buộc phải có dấu nháy đơn "'" cuộn quanh tên font có khoảng trắng
-        sans: ["'Be Vietnam Pro'", "sans-serif"], 
+        sans: ["'Be Vietnam Pro'", "sans-serif"],
+        heading: ["Montserrat", "sans-serif"],
+        ui: ["Inter", "sans-serif"],
       },
     },
   },
