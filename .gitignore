@@ -43,3 +43,9 @@ bin/
 thdpv-movie-theater-fe/
 docs/movie_theater.sql
 
+
+### Cursor ###
+.cursor
+.cursorconfig
+
+/skills-lock.json
