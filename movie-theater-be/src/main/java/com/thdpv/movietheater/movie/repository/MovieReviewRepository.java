@@ -19,7 +19,9 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
     Page<MovieReview> findByMovieUuidAndStatusOrderByCreatedAtDesc(
             UUID movieUuid, MovieReviewStatus status, Pageable pageable);
 
-    Optional<MovieReview> findByMovieUuidAndUserUuid(UUID movieUuid, UUID userUuid);
+    Optional<MovieReview> findByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
+
+    void deleteByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
 
     long countByMovieUuidAndStatus(UUID movieUuid, MovieReviewStatus status);
 
@@ -32,8 +34,6 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
     java.util.List<Object[]> countByRatingGroupAndStatus(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status);
-
-    void deleteByMovieUuidAndUserUuid(UUID movieUuid, UUID userUuid);
 
     @Query("""
             select r from MovieReview r

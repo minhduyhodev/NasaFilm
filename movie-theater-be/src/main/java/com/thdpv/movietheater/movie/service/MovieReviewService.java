@@ -2,7 +2,6 @@ package com.thdpv.movietheater.movie.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -81,16 +80,10 @@ public class MovieReviewService {
         summary.setAverageRating(Math.round(average * 10.0) / 10.0);
         summary.setRatingDistribution(buildDistribution(movieUuid));
 
-        Optional<MovieReviewResponse> myReview = Optional.empty();
         if (currentUserUuid != null) {
-            myReview = movieReviewRepository.findByMovieUuidAndUserUuid(movieUuid, currentUserUuid)
-                    .map(review -> toResponse(review, currentUserUuid));
-            myReview.ifPresent(summary::setMyReview);
-
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
-            boolean canReview = hasPurchased || myReview.isPresent();
-            summary.setCanReview(canReview);
-            if (!canReview) {
+            summary.setCanReview(hasPurchased);
+            if (!hasPurchased) {
                 summary.setReviewEligibilityMessage(REVIEW_ELIGIBILITY_MESSAGE);
             }
         } else {
@@ -101,39 +94,35 @@ public class MovieReviewService {
     }
 
     @Transactional
-    public MovieReviewResponse upsertReview(UUID movieUuid, CreateMovieReviewRequest request, String userEmail) {
+    public MovieReviewResponse createReview(UUID movieUuid, CreateMovieReviewRequest request, String userEmail) {
         ensureMovieVisible(movieUuid);
         User user = getActiveUser(userEmail);
 
-        Optional<MovieReview> existing = movieReviewRepository.findByMovieUuidAndUserUuid(movieUuid, user.getId());
-        if (existing.isEmpty() && !hasConfirmedPurchase(user.getId(), movieUuid)) {
+        if (!hasConfirmedPurchase(user.getId(), movieUuid)) {
             throw new AppException(ErrorCode.REVIEW_PURCHASE_REQUIRED, REVIEW_ELIGIBILITY_MESSAGE);
         }
 
         String normalizedComment = normalizeComment(request.getComment());
 
-        MovieReview review = existing.orElseGet(() -> {
-            MovieReview created = new MovieReview();
-            created.setMovieUuid(movieUuid);
-            created.setUserUuid(user.getId());
-            return created;
-        });
-
+        MovieReview review = new MovieReview();
+        review.setMovieUuid(movieUuid);
+        review.setUserUuid(user.getId());
         review.setRating(request.getRating());
         review.setComment(normalizedComment);
-        if (review.getStatus() == null) {
-            review.setStatus(MovieReviewStatus.VISIBLE);
-        }
+        review.setStatus(MovieReviewStatus.VISIBLE);
 
         MovieReview saved = movieReviewRepository.save(review);
         return toResponse(saved, user.getId());
     }
 
     @Transactional
-    public void deleteMyReview(UUID movieUuid, String userEmail) {
+    public void deleteMyReview(UUID movieUuid, UUID reviewUuid, String userEmail) {
         ensureMovieVisible(movieUuid);
         User user = getActiveUser(userEmail);
-        movieReviewRepository.deleteByMovieUuidAndUserUuid(movieUuid, user.getId());
+        MovieReview review = movieReviewRepository
+                .findByUuidAndMovieUuidAndUserUuid(reviewUuid, movieUuid, user.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+        movieReviewRepository.delete(review);
     }
 
     private boolean hasConfirmedPurchase(UUID userUuid, UUID movieUuid) {

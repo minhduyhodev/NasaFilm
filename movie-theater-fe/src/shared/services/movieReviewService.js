@@ -13,7 +13,7 @@ class MovieReviewService {
     return response.data.data ?? response.data;
   }
 
-  async upsertReview(movieUuid, { rating, comment }) {
+  async createReview(movieUuid, { rating, comment }) {
     const response = await authService.api.post(`/api/movies/${movieUuid}/reviews`, {
       rating,
       comment: comment?.trim() || null,
@@ -21,8 +21,10 @@ class MovieReviewService {
     return response.data.data ?? response.data;
   }
 
-  async deleteReview(movieUuid) {
-    const response = await authService.api.delete(`/api/movies/${movieUuid}/reviews`);
+  async deleteReview(movieUuid, reviewUuid) {
+    const response = await authService.api.delete(
+      `/api/movies/${movieUuid}/reviews/${reviewUuid}`,
+    );
     return response.data;
   }
 

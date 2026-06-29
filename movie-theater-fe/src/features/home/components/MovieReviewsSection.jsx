@@ -17,12 +17,12 @@ import { movieReviewService } from '../../../shared/services/movieReviewService'
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import UserAvatar from '../../../shared/components/UserAvatar';
-import Pagination from '../../../shared/components/Pagination';
+import MovieReviewPagination from './MovieReviewPagination';
 import StarRating from './StarRating';
 import Swal from 'sweetalert2';
 import './MovieReviewsSection.css';
 
-const REVIEWS_PER_PAGE = 5;
+const DEFAULT_REVIEWS_PER_PAGE = 10;
 
 const RATING_LABELS = {
   0: 'Chọn số sao',
@@ -67,8 +67,10 @@ const MovieReviewsSection = ({
   const [reviews, setReviews] = useState([]);
   const [page, setPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_REVIEWS_PER_PAGE);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportingId, setReportingId] = useState(null);
@@ -79,38 +81,40 @@ const MovieReviewsSection = ({
   const loadSummary = useCallback(async () => {
     const data = await movieReviewService.getSummary(movieUuid);
     setSummary(data);
-    if (data?.myReview) {
-      setRating(data.myReview.rating);
-      setComment(data.myReview.comment || '');
-    } else if (!data?.myReview) {
-      setRating(0);
-      setComment('');
-    }
     return data;
   }, [movieUuid]);
 
-  const loadReviews = useCallback(async (pageNumber = 0) => {
-    const data = await movieReviewService.getReviews(movieUuid, pageNumber, REVIEWS_PER_PAGE);
+  const loadReviews = useCallback(async (pageNumber = 0, pageSize = itemsPerPage) => {
+    const data = await movieReviewService.getReviews(movieUuid, pageNumber, pageSize);
     const content = data?.content || [];
     setReviews(content);
     setPage(data?.number ?? pageNumber);
     setTotalItems(data?.totalElements ?? 0);
     return data;
-  }, [movieUuid]);
+  }, [movieUuid, itemsPerPage]);
 
   const fetchReviewsPage = useCallback(
-    async (pageNumber = 0) => {
-      setIsReviewsLoading(true);
+    async (pageNumber = 0, { initial = false, pageSize } = {}) => {
+      const effectivePageSize = pageSize ?? itemsPerPage;
+      if (initial) {
+        setIsReviewsLoading(true);
+      } else {
+        setIsPageLoading(true);
+      }
       try {
-        await loadReviews(pageNumber);
+        const data = await loadReviews(pageNumber, effectivePageSize);
+        if ((data?.content || []).length === 0 && pageNumber > 0) {
+          await loadReviews(pageNumber - 1, effectivePageSize);
+        }
         setReviewsLoaded(true);
       } catch (error) {
         notificationService.error(error.message || 'Không thể tải đánh giá phim.');
       } finally {
         setIsReviewsLoading(false);
+        setIsPageLoading(false);
       }
     },
-    [loadReviews],
+    [loadReviews, itemsPerPage],
   );
 
   const refreshAll = useCallback(async () => {
@@ -158,7 +162,7 @@ const MovieReviewsSection = ({
 
   useEffect(() => {
     if (!isExpanded || !movieUuid || reviewsLoaded) return;
-    fetchReviewsPage(0);
+    fetchReviewsPage(0, { initial: true });
   }, [isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
 
   const handlePageChange = (nextPage) => {
@@ -167,6 +171,12 @@ const MovieReviewsSection = ({
       behavior: 'smooth',
       block: 'start',
     });
+  };
+
+  const handleItemsPerPageChange = (size) => {
+    setItemsPerPage(size);
+    setPage(0);
+    fetchReviewsPage(0, { pageSize: size });
   };
 
   const handleSubmit = async (event) => {
@@ -185,9 +195,11 @@ const MovieReviewsSection = ({
 
     setIsSubmitting(true);
     try {
-      await movieReviewService.upsertReview(movieUuid, { rating, comment });
-      notificationService.success(summary?.myReview ? 'Đã cập nhật đánh giá.' : 'Cảm ơn bạn đã đánh giá phim!');
+      await movieReviewService.createReview(movieUuid, { rating, comment });
+      notificationService.success('Đã gửi đánh giá mới.');
       await refreshAll();
+      setRating(0);
+      setComment('');
     } catch (error) {
       notificationService.error(error.message || 'Không thể gửi đánh giá.');
     } finally {
@@ -195,14 +207,11 @@ const MovieReviewsSection = ({
     }
   };
 
-  const handleDelete = async () => {
-    if (!summary?.myReview) return;
+  const handleDeleteReview = async (reviewUuid) => {
     setIsSubmitting(true);
     try {
-      await movieReviewService.deleteReview(movieUuid);
-      setRating(0);
-      setComment('');
-      notificationService.success('Đã xóa đánh giá của bạn.');
+      await movieReviewService.deleteReview(movieUuid, reviewUuid);
+      notificationService.success('Đã xóa đánh giá.');
       await refreshAll();
     } catch (error) {
       notificationService.error(error.message || 'Không thể xóa đánh giá.');
@@ -353,7 +362,7 @@ const MovieReviewsSection = ({
             </header>
 
             <div id="movie-reviews-panel">
-        {isReviewsLoading ? (
+        {isReviewsLoading && !reviewsLoaded ? (
           <div className="movie-reviews-loading glass-panel">
             <Loader2 className="animate-spin" size={22} />
             <span>Đang tải đánh giá...</span>
@@ -463,12 +472,10 @@ const MovieReviewsSection = ({
                       </span>
                       <div>
                         <h3 className="movie-reviews-block-title movie-reviews-block-title--flush">
-                          {summary?.myReview ? 'Đánh giá của bạn' : 'Viết đánh giá'}
+                          Viết đánh giá
                         </h3>
                         <p className="movie-reviews-form-hint">
-                          {summary?.myReview
-                            ? 'Bạn có thể cập nhật hoặc xóa đánh giá đã mua vé.'
-                            : 'Đánh giá chỉ dành cho khách đã mua vé rạp hoặc vé online.'}
+                          Mỗi lần gửi sẽ tạo một đánh giá mới. Chỉ dành cho khách đã mua vé rạp hoặc vé online.
                         </p>
                       </div>
                     </div>
@@ -499,27 +506,12 @@ const MovieReviewsSection = ({
                   <div className="movie-reviews-form-footer">
                     <span className="movie-reviews-char-count">{comment.length}/2000</span>
                     <div className="movie-reviews-form-actions">
-                      {summary?.myReview && (
-                        <button
-                          type="button"
-                          onClick={handleDelete}
-                          disabled={isSubmitting}
-                          className="movie-reviews-delete-btn"
-                        >
-                          <Trash2 size={14} />
-                          Xóa
-                        </button>
-                      )}
                       <button
                         type="submit"
                         disabled={isSubmitting || rating < 1}
                         className="movie-reviews-submit-btn"
                       >
-                        {isSubmitting
-                          ? 'Đang gửi...'
-                          : summary?.myReview
-                            ? 'Cập nhật đánh giá'
-                            : 'Gửi đánh giá'}
+                        {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
                       </button>
                     </div>
                   </div>
@@ -528,12 +520,22 @@ const MovieReviewsSection = ({
 
               <div id="movie-reviews-list" className="movie-reviews-list">
                 <div className="movie-reviews-list-head">
-                  <h3 className="movie-reviews-block-title movie-reviews-block-title--flush">
-                    Bình luận gần đây
-                  </h3>
-                  {hasReviews && (
-                    <span className="movie-reviews-list-badge">{summary.totalReviews}</span>
-                  )}
+                  <div className="movie-reviews-list-head-main">
+                    <h3 className="movie-reviews-block-title movie-reviews-block-title--flush">
+                      Bình luận gần đây
+                    </h3>
+                    {hasReviews && (
+                      <span className="movie-reviews-list-badge">{summary.totalReviews}</span>
+                    )}
+                  </div>
+                  <MovieReviewPagination
+                    compact
+                    currentPage={page + 1}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    isLoading={isPageLoading}
+                  />
                 </div>
 
                 {reviews.length === 0 ? (
@@ -551,6 +553,7 @@ const MovieReviewsSection = ({
                     </p>
                   </div>
                 ) : (
+                  <div className={`movie-reviews-items-wrap${isPageLoading ? ' is-loading' : ''}`}>
                   <ul className="movie-reviews-items">
                     {reviews.map((review) => (
                       <li key={review.uuid} className="movie-reviews-item glass-panel">
@@ -590,6 +593,18 @@ const MovieReviewsSection = ({
                                 <Flag size={14} />
                               </button>
                             )}
+                            {review.mine && (
+                              <button
+                                type="button"
+                                className="movie-reviews-item-delete-btn"
+                                onClick={() => handleDeleteReview(review.uuid)}
+                                disabled={isSubmitting}
+                                title="Xóa đánh giá của bạn"
+                                aria-label="Xóa đánh giá của bạn"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         {review.comment ? (
@@ -602,17 +617,18 @@ const MovieReviewsSection = ({
                       </li>
                     ))}
                   </ul>
+                  </div>
                 )}
 
                 {totalItems > 0 && (
-                  <div className="movie-reviews-pagination">
-                    <Pagination
-                      currentPage={page + 1}
-                      totalItems={totalItems}
-                      itemsPerPage={REVIEWS_PER_PAGE}
-                      onPageChange={handlePageChange}
-                    />
-                  </div>
+                  <MovieReviewPagination
+                    currentPage={page + 1}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                    isLoading={isPageLoading}
+                  />
                 )}
               </div>
             </div>

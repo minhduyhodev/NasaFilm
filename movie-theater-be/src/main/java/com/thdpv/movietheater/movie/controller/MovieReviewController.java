@@ -69,22 +69,23 @@ public class MovieReviewController {
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<MovieReviewResponse>> upsertReview(
+    public ResponseEntity<ApiResponse<MovieReviewResponse>> createReview(
             @PathVariable UUID movieUuid,
             @Valid @RequestBody CreateMovieReviewRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails != null ? userDetails.getUsername() : null;
-        MovieReviewResponse response = movieReviewService.upsertReview(movieUuid, request, email);
+        MovieReviewResponse response = movieReviewService.createReview(movieUuid, request, email);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{reviewUuid}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteMyReview(
             @PathVariable UUID movieUuid,
+            @PathVariable UUID reviewUuid,
             @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails != null ? userDetails.getUsername() : null;
-        movieReviewService.deleteMyReview(movieUuid, email);
+        movieReviewService.deleteMyReview(movieUuid, reviewUuid, email);
         return ResponseEntity.ok(ApiResponse.success(null, "Da xoa danh gia cua ban"));
     }
 

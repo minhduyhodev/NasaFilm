@@ -17,17 +17,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(
         name = "movie_review",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_movie_review_movie_user", columnNames = { "movie_uuid", "user_uuid" })
-        },
         indexes = {
                 @Index(name = "idx_movie_review_movie", columnList = "movie_uuid"),
                 @Index(name = "idx_movie_review_user", columnList = "user_uuid"),
+                @Index(name = "idx_movie_review_movie_user", columnList = "movie_uuid, user_uuid"),
                 @Index(name = "idx_movie_review_movie_created", columnList = "movie_uuid, created_at")
         })
 public class MovieReview {
