@@ -30,6 +30,8 @@ public interface MovieReviewReportRepository extends JpaRepository<MovieReviewRe
 
     long countByReviewUuid(UUID reviewUuid);
 
+    long countByReviewUuidAndStatus(UUID reviewUuid, MovieReviewReportStatus status);
+
     List<MovieReviewReport> findByReviewUuidAndStatus(UUID reviewUuid, MovieReviewReportStatus status);
 
     @Query("""

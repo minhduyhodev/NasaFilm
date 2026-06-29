@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.ReviewModerationRealtimeBroadcaster;
 import com.thdpv.movietheater.config.cache.MovieReviewCacheEvictor;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieReviewReportRequest;
@@ -31,6 +33,7 @@ import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewReportRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.movie.support.ReviewActionRateLimiter;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -43,6 +46,9 @@ public class MovieReviewModerationService {
     private final UserRepository userRepository;
     private final SystemConfigService systemConfigService;
     private final MovieReviewCacheEvictor movieReviewCacheEvictor;
+    private final ReviewActionRateLimiter reviewActionRateLimiter;
+    private final ReviewModerationRealtimeBroadcaster reviewModerationRealtimeBroadcaster;
+    private final int autoHideReportThreshold;
 
     public MovieReviewModerationService(
             MovieReviewRepository movieReviewRepository,
@@ -50,13 +56,19 @@ public class MovieReviewModerationService {
             MovieRepository movieRepository,
             UserRepository userRepository,
             SystemConfigService systemConfigService,
-            MovieReviewCacheEvictor movieReviewCacheEvictor) {
+            MovieReviewCacheEvictor movieReviewCacheEvictor,
+            ReviewActionRateLimiter reviewActionRateLimiter,
+            ReviewModerationRealtimeBroadcaster reviewModerationRealtimeBroadcaster,
+            @Value("${app.review.auto-hide-report-threshold:3}") int autoHideReportThreshold) {
         this.movieReviewRepository = movieReviewRepository;
         this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
         this.userRepository = userRepository;
         this.systemConfigService = systemConfigService;
         this.movieReviewCacheEvictor = movieReviewCacheEvictor;
+        this.reviewActionRateLimiter = reviewActionRateLimiter;
+        this.reviewModerationRealtimeBroadcaster = reviewModerationRealtimeBroadcaster;
+        this.autoHideReportThreshold = Math.max(autoHideReportThreshold, 1);
     }
 
     @Transactional
@@ -66,6 +78,7 @@ public class MovieReviewModerationService {
             CreateMovieReviewReportRequest request,
             String reporterEmail) {
         User reporter = getActiveUser(reporterEmail);
+        reviewActionRateLimiter.assertReportAllowed(reporter.getId().toString());
         MovieReview review = getReviewForMovie(movieUuid, reviewUuid);
 
         if (review.getUserUuid().equals(reporter.getId())) {
@@ -89,6 +102,10 @@ public class MovieReviewModerationService {
         Map<UUID, Movie> moviesById = movieRepository.findById(review.getMovieUuid())
                 .map(movie -> Map.of(movie.getUuid(), movie))
                 .orElse(Map.of());
+
+        maybeAutoHideReview(review);
+        reviewModerationRealtimeBroadcaster.publish("REPORT_CREATED");
+
         return toReportResponse(saved, review, usersById, moviesById);
     }
 
@@ -186,6 +203,7 @@ public class MovieReviewModerationService {
                     .filter(item -> item.getUuid().equals(reportUuid))
                     .findFirst()
                     .orElse(report);
+            reviewModerationRealtimeBroadcaster.publish("REVIEW_HIDDEN");
             return toReportResponse(resolved, review, Map.of(), Map.of());
         } else if ("DISMISS".equals(action)) {
             report.setStatus(MovieReviewReportStatus.REJECTED);
@@ -198,6 +216,7 @@ public class MovieReviewModerationService {
         report.setResolutionNote(request.getNote());
 
         MovieReviewReport saved = movieReviewReportRepository.save(report);
+        reviewModerationRealtimeBroadcaster.publish("REPORT_RESOLVED");
         return toReportResponse(saved, review, Map.of(), Map.of());
     }
 
@@ -221,6 +240,32 @@ public class MovieReviewModerationService {
             throw new AppException(ErrorCode.REVIEW_NOT_FOUND);
         }
         return review;
+    }
+
+    private void maybeAutoHideReview(MovieReview review) {
+        long pendingCount = movieReviewReportRepository.countByReviewUuidAndStatus(
+                review.getUuid(), MovieReviewReportStatus.PENDING);
+        if (pendingCount < autoHideReportThreshold) {
+            return;
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        String autoNote = "Tu dong an sau " + pendingCount + " bao cao";
+        review.setStatus(MovieReviewStatus.HIDDEN);
+        review.setModeratedAt(now);
+        review.setModerationNote(autoNote);
+        movieReviewRepository.save(review);
+        movieReviewCacheEvictor.evictSummary(review.getMovieUuid());
+
+        List<MovieReviewReport> pendingReports = movieReviewReportRepository.findByReviewUuidAndStatus(
+                review.getUuid(), MovieReviewReportStatus.PENDING);
+        for (MovieReviewReport pending : pendingReports) {
+            pending.setStatus(MovieReviewReportStatus.RESOLVED);
+            pending.setResolvedAt(now);
+            pending.setResolutionNote(autoNote);
+        }
+        movieReviewReportRepository.saveAll(pendingReports);
+        reviewModerationRealtimeBroadcaster.publish("REVIEW_AUTO_HIDDEN");
     }
 
     private User getActiveUser(String email) {

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -51,10 +52,12 @@ public class MovieReviewController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<MovieReviewResponse>>> getReviews(
             @PathVariable UUID movieUuid,
-            @PageableDefault(page = 0, size = 10) Pageable pageable,
+            @RequestParam(value = "onlyWithComment", defaultValue = "false") boolean onlyWithComment,
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID currentUserUuid = resolveUserUuid(userDetails);
-        Page<MovieReviewResponse> page = movieReviewService.getReviews(movieUuid, pageable, currentUserUuid);
+        Page<MovieReviewResponse> page = movieReviewService.getReviews(
+                movieUuid, pageable, currentUserUuid, onlyWithComment);
         return ResponseEntity.ok(ApiResponse.success(page));
     }
 

@@ -102,9 +102,16 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     location.pathname.startsWith('/admin/refunds') ||
     location.pathname.startsWith('/admin/bookings');
 
+  const enableReviewReportRealtime = location.pathname.startsWith('/admin/feedback-reviews');
+
   useRealtimeTopic(
     enableRefundRealtime ? REALTIME_TOPICS.ADMIN_BOOKINGS : null,
     loadPendingRefundCount,
+  );
+
+  useRealtimeTopic(
+    enableReviewReportRealtime ? REALTIME_TOPICS.ADMIN_REVIEW_REPORTS : null,
+    loadPendingFeedbackReportCount,
   );
 
   const handleLogout = useCallback(() => {

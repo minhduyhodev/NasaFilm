@@ -6,9 +6,14 @@ class MovieReviewService {
     return response.data.data ?? response.data;
   }
 
-  async getReviews(movieUuid, page = 0, size = 10) {
+  async getReviews(movieUuid, page = 0, size = 10, { sort, onlyWithComment } = {}) {
     const response = await authService.api.get(`/api/movies/${movieUuid}/reviews`, {
-      params: { page, size },
+      params: {
+        page,
+        size,
+        sort: sort || undefined,
+        onlyWithComment: onlyWithComment || undefined,
+      },
     });
     return response.data.data ?? response.data;
   }

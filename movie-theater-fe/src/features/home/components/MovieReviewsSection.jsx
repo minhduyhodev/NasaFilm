@@ -77,6 +77,8 @@ const MovieReviewsSection = ({
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [reviewSort, setReviewSort] = useState('createdAt,desc');
+  const [onlyWithComment, setOnlyWithComment] = useState(false);
 
   const loadSummary = useCallback(async () => {
     const data = await movieReviewService.getSummary(movieUuid);
@@ -85,13 +87,16 @@ const MovieReviewsSection = ({
   }, [movieUuid]);
 
   const loadReviews = useCallback(async (pageNumber = 0, pageSize = itemsPerPage) => {
-    const data = await movieReviewService.getReviews(movieUuid, pageNumber, pageSize);
+    const data = await movieReviewService.getReviews(movieUuid, pageNumber, pageSize, {
+      sort: reviewSort,
+      onlyWithComment,
+    });
     const content = data?.content || [];
     setReviews(content);
     setPage(data?.number ?? pageNumber);
     setTotalItems(data?.totalElements ?? 0);
     return data;
-  }, [movieUuid, itemsPerPage]);
+  }, [movieUuid, itemsPerPage, reviewSort, onlyWithComment]);
 
   const fetchReviewsPage = useCallback(
     async (pageNumber = 0, { initial = false, pageSize } = {}) => {
@@ -164,6 +169,12 @@ const MovieReviewsSection = ({
     if (!isExpanded || !movieUuid || reviewsLoaded) return;
     fetchReviewsPage(0, { initial: true });
   }, [isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
+
+  useEffect(() => {
+    if (!isExpanded || !movieUuid || !reviewsLoaded) return;
+    setPage(0);
+    fetchReviewsPage(0);
+  }, [reviewSort, onlyWithComment, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
 
   const handlePageChange = (nextPage) => {
     fetchReviewsPage(nextPage - 1);
@@ -267,6 +278,7 @@ const MovieReviewsSection = ({
           item.uuid === review.uuid ? { ...item, reportedByMe: true } : item,
         ),
       );
+      await fetchReviewsPage(page);
     } catch (error) {
       notificationService.error(error.message || 'Không thể gửi báo cáo.');
     } finally {
@@ -446,9 +458,12 @@ const MovieReviewsSection = ({
               ) : !canSubmitReview ? (
                 <div className="movie-reviews-purchase-banner glass-panel">
                   <div>
-                    <p className="movie-reviews-login-title">Mua vé để được đánh giá</p>
+                    <p className="movie-reviews-login-title">
+                      {summary?.reviewCooldownActive ? 'Chờ gửi đánh giá tiếp' : 'Mua vé để được đánh giá'}
+                    </p>
                     <p className="movie-reviews-login-desc">{eligibilityMessage}</p>
                   </div>
+                  {!summary?.reviewCooldownActive && (
                   <div className="movie-reviews-purchase-actions">
                     {showTheaterCta && (
                       <a href="#select-showtimes" className="movie-reviews-purchase-btn movie-reviews-purchase-btn--theater">
@@ -467,6 +482,7 @@ const MovieReviewsSection = ({
                       </button>
                     )}
                   </div>
+                  )}
                 </div>
               ) : (
                 <form className="movie-reviews-form glass-panel" onSubmit={handleSubmit}>
@@ -541,6 +557,27 @@ const MovieReviewsSection = ({
                     onPageChange={handlePageChange}
                     isLoading={isPageLoading}
                   />
+                </div>
+
+                <div className="movie-reviews-list-filters">
+                  <select
+                    className="movie-reviews-filter-select"
+                    value={reviewSort}
+                    onChange={(e) => setReviewSort(e.target.value)}
+                    aria-label="Sắp xếp bình luận"
+                  >
+                    <option value="createdAt,desc">Mới nhất</option>
+                    <option value="rating,desc">Sao cao nhất</option>
+                    <option value="rating,asc">Sao thấp nhất</option>
+                  </select>
+                  <label className="movie-reviews-filter-check">
+                    <input
+                      type="checkbox"
+                      checked={onlyWithComment}
+                      onChange={(e) => setOnlyWithComment(e.target.checked)}
+                    />
+                    <span>Chỉ có bình luận</span>
+                  </label>
                 </div>
 
                 {reviews.length === 0 ? (

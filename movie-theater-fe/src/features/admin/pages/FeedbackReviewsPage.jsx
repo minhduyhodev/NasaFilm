@@ -12,6 +12,8 @@ import { notificationService } from '../../../shared/services/notificationServic
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import Swal from 'sweetalert2';
 import './FeedbackReviewsPage.css';
 
@@ -111,6 +113,11 @@ const FeedbackReviewsPage = () => {
       loadBannedWords();
     }
   }, [activeTab, loadBannedWords]);
+
+  useRealtimeTopic(
+    activeTab === 'reports' ? REALTIME_TOPICS.ADMIN_REVIEW_REPORTS : null,
+    loadReports,
+  );
 
   const handleReportListTabChange = (tab) => {
     setReportListTab(tab);

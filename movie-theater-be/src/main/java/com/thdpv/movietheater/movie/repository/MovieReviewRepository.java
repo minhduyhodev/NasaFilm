@@ -19,8 +19,17 @@ import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 @Repository
 public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> {
 
-    Page<MovieReview> findByMovieUuidAndStatusOrderByCreatedAtDesc(
-            UUID movieUuid, MovieReviewStatus status, Pageable pageable);
+    @Query("""
+            select r from MovieReview r
+            where r.movieUuid = :movieUuid
+              and r.status = :status
+              and (:onlyWithComment = false or (r.comment is not null and trim(r.comment) <> ''))
+            """)
+    Page<MovieReview> findVisibleReviews(
+            @Param("movieUuid") UUID movieUuid,
+            @Param("status") MovieReviewStatus status,
+            @Param("onlyWithComment") boolean onlyWithComment,
+            Pageable pageable);
 
     Optional<MovieReview> findByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
 

@@ -10,6 +10,7 @@ public class MovieReviewSummaryResponse {
     private Map<Integer, Long> ratingDistribution = new LinkedHashMap<>();
     private MovieReviewResponse myReview;
     private boolean canReview;
+    private boolean reviewCooldownActive;
     private String reviewEligibilityMessage;
 
     public MovieReviewSummaryResponse() {
@@ -53,6 +54,14 @@ public class MovieReviewSummaryResponse {
 
     public void setCanReview(boolean canReview) {
         this.canReview = canReview;
+    }
+
+    public boolean isReviewCooldownActive() {
+        return reviewCooldownActive;
+    }
+
+    public void setReviewCooldownActive(boolean reviewCooldownActive) {
+        this.reviewCooldownActive = reviewCooldownActive;
     }
 
     public String getReviewEligibilityMessage() {

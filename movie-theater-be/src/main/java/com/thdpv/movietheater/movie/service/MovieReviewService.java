@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,8 @@ import com.thdpv.movietheater.movie.entity.MovieReview;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewReportRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.movie.support.ReviewActionRateLimiter;
+import com.thdpv.movietheater.movie.util.ReviewTextModerationUtil;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -39,6 +42,8 @@ public class MovieReviewService {
 
     private static final String REVIEW_ELIGIBILITY_MESSAGE =
             "Chi khach hang da mua ve rap hoac ve online moi co the danh gia phim nay.";
+    private static final String REVIEW_COOLDOWN_MESSAGE =
+            "Ban vua gui danh gia cho phim nay. Vui long doi 24 gio truoc khi gui danh gia moi.";
     private static final Duration REVIEW_COOLDOWN = Duration.ofHours(24);
 
     private final MovieReviewRepository movieReviewRepository;
@@ -49,6 +54,7 @@ public class MovieReviewService {
     private final SystemConfigService systemConfigService;
     private final MovieReviewStatsService movieReviewStatsService;
     private final MovieReviewCacheEvictor movieReviewCacheEvictor;
+    private final ReviewActionRateLimiter reviewActionRateLimiter;
 
     public MovieReviewService(
             MovieReviewRepository movieReviewRepository,
@@ -58,7 +64,8 @@ public class MovieReviewService {
             BookingRepository bookingRepository,
             SystemConfigService systemConfigService,
             MovieReviewStatsService movieReviewStatsService,
-            MovieReviewCacheEvictor movieReviewCacheEvictor) {
+            MovieReviewCacheEvictor movieReviewCacheEvictor,
+            ReviewActionRateLimiter reviewActionRateLimiter) {
         this.movieReviewRepository = movieReviewRepository;
         this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
@@ -67,17 +74,20 @@ public class MovieReviewService {
         this.systemConfigService = systemConfigService;
         this.movieReviewStatsService = movieReviewStatsService;
         this.movieReviewCacheEvictor = movieReviewCacheEvictor;
+        this.reviewActionRateLimiter = reviewActionRateLimiter;
     }
 
     @Transactional(readOnly = true)
-    public Page<MovieReviewResponse> getReviews(UUID movieUuid, Pageable pageable, UUID currentUserUuid) {
+    public Page<MovieReviewResponse> getReviews(
+            UUID movieUuid,
+            Pageable pageable,
+            UUID currentUserUuid,
+            boolean onlyWithComment) {
         ensureMovieVisible(movieUuid);
-        Pageable safePageable = PageRequest.of(
-                Math.max(pageable.getPageNumber(), 0),
-                pageable.getPageSize() > 0 ? Math.min(pageable.getPageSize(), 50) : 10);
+        Pageable safePageable = sanitizeReviewPageable(pageable);
 
-        Page<MovieReview> reviewPage = movieReviewRepository.findByMovieUuidAndStatusOrderByCreatedAtDesc(
-                movieUuid, MovieReviewStatus.VISIBLE, safePageable);
+        Page<MovieReview> reviewPage = movieReviewRepository.findVisibleReviews(
+                movieUuid, MovieReviewStatus.VISIBLE, onlyWithComment, safePageable);
         List<MovieReview> reviews = reviewPage.getContent();
 
         Map<UUID, User> usersById = loadUsersById(reviews.stream().map(MovieReview::getUserUuid).collect(Collectors.toSet()));
@@ -102,9 +112,15 @@ public class MovieReviewService {
 
         if (currentUserUuid != null) {
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
-            summary.setCanReview(hasPurchased);
             if (!hasPurchased) {
+                summary.setCanReview(false);
                 summary.setReviewEligibilityMessage(REVIEW_ELIGIBILITY_MESSAGE);
+            } else if (isInCooldown(movieUuid, currentUserUuid)) {
+                summary.setCanReview(false);
+                summary.setReviewCooldownActive(true);
+                summary.setReviewEligibilityMessage(REVIEW_COOLDOWN_MESSAGE);
+            } else {
+                summary.setCanReview(true);
             }
         } else {
             summary.setCanReview(false);
@@ -117,6 +133,7 @@ public class MovieReviewService {
     public MovieReviewResponse createReview(UUID movieUuid, CreateMovieReviewRequest request, String userEmail) {
         ensureMovieVisible(movieUuid);
         User user = getActiveUser(userEmail);
+        reviewActionRateLimiter.assertCreateReviewAllowed(user.getId().toString());
 
         if (!hasConfirmedPurchase(user.getId(), movieUuid)) {
             throw new AppException(ErrorCode.REVIEW_PURCHASE_REQUIRED, REVIEW_ELIGIBILITY_MESSAGE);
@@ -149,12 +166,38 @@ public class MovieReviewService {
         movieReviewCacheEvictor.evictSummary(movieUuid);
     }
 
-    private void assertReviewCooldown(UUID movieUuid, UUID userUuid) {
-        OffsetDateTime cooldownSince = OffsetDateTime.now().minus(REVIEW_COOLDOWN);
-        if (movieReviewRepository.existsByMovieUuidAndUserUuidAndCreatedAtAfter(
-                movieUuid, userUuid, cooldownSince)) {
-            throw new AppException(ErrorCode.REVIEW_COOLDOWN_ACTIVE);
+    private Pageable sanitizeReviewPageable(Pageable pageable) {
+        int page = Math.max(pageable.getPageNumber(), 0);
+        int size = pageable.getPageSize() > 0 ? Math.min(pageable.getPageSize(), 50) : 10;
+        Sort sort = pageable.getSort().isSorted() ? sanitizeReviewSort(pageable.getSort()) : defaultReviewSort();
+        return PageRequest.of(page, size, sort);
+    }
+
+    private Sort defaultReviewSort() {
+        return Sort.by(Sort.Direction.DESC, "createdAt");
+    }
+
+    private Sort sanitizeReviewSort(Sort sort) {
+        Sort sanitized = Sort.unsorted();
+        for (Sort.Order order : sort) {
+            String property = order.getProperty();
+            if ("createdAt".equals(property) || "rating".equals(property)) {
+                sanitized = sanitized.and(Sort.by(order.getDirection(), property));
+            }
         }
+        return sanitized.isSorted() ? sanitized : defaultReviewSort();
+    }
+
+    private void assertReviewCooldown(UUID movieUuid, UUID userUuid) {
+        if (isInCooldown(movieUuid, userUuid)) {
+            throw new AppException(ErrorCode.REVIEW_COOLDOWN_ACTIVE, REVIEW_COOLDOWN_MESSAGE);
+        }
+    }
+
+    private boolean isInCooldown(UUID movieUuid, UUID userUuid) {
+        OffsetDateTime cooldownSince = OffsetDateTime.now().minus(REVIEW_COOLDOWN);
+        return movieReviewRepository.existsByMovieUuidAndUserUuidAndCreatedAtAfter(
+                movieUuid, userUuid, cooldownSince);
     }
 
     private Map<UUID, User> loadUsersById(Set<UUID> userIds) {
@@ -220,23 +263,11 @@ public class MovieReviewService {
     }
 
     private String normalizeComment(String comment) {
-        if (comment == null) {
+        String normalized = ReviewTextModerationUtil.normalizeComment(comment);
+        if (normalized == null) {
             return null;
         }
-        String trimmed = comment.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-        assertNoBannedWords(trimmed);
-        return trimmed;
-    }
-
-    private void assertNoBannedWords(String comment) {
-        String lowered = comment.toLowerCase();
-        for (String bannedWord : systemConfigService.getReviewBannedWords()) {
-            if (bannedWord != null && !bannedWord.isBlank() && lowered.contains(bannedWord.trim().toLowerCase())) {
-                throw new AppException(ErrorCode.REVIEW_BANNED_WORD);
-            }
-        }
+        ReviewTextModerationUtil.assertNoBannedWords(normalized, systemConfigService.getReviewBannedWords());
+        return normalized;
     }
 }
