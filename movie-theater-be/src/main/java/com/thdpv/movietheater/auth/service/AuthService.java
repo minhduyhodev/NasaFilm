@@ -1,8 +1,12 @@
 package com.thdpv.movietheater.auth.service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +64,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    private final java.util.concurrent.ConcurrentHashMap<String, java.time.LocalDateTime> otpRequestCooldown = new java.util.concurrent.ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, LocalDateTime> otpRequestCooldown = new ConcurrentHashMap<>();
 
     @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
@@ -209,7 +213,7 @@ public class AuthService {
         String userAgent = resolveUserAgent(httpServletRequest);
         String ipAddress = resolveIpAddress(httpServletRequest);
 
-        java.util.Optional<UserSession> existingSessionOpt = java.util.Optional.empty();
+        Optional<UserSession> existingSessionOpt = Optional.empty();
         if (userAgent != null && !userAgent.isBlank()) {
             existingSessionOpt = userSessionRepository.findFirstByUserIdAndUserAgent(
                     user.getId(), userAgent);
@@ -256,6 +260,14 @@ public class AuthService {
 
         if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
             throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+        }
+
+        if (user.getStatus() == UserStatus.BANNED) {
+            throw new AppException(ErrorCode.ACCOUNT_BANNED);
+        }
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.ACCOUNT_SUSPENDED);
         }
 
         throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVE);
@@ -333,15 +345,34 @@ public class AuthService {
     @Transactional
     public void register(RegisterRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-        java.time.LocalDateTime lastRequest = otpRequestCooldown.get(email);
-        if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(java.time.LocalDateTime.now())) {
-            long secondsLeft = java.time.Duration.between(java.time.LocalDateTime.now(), lastRequest.plusSeconds(60))
+
+        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            LocalDateTime lockTime = existingUser.getVerificationLockTime();
+            if (lockTime != null && lockTime.isAfter(LocalDateTime.now())) {
+                long secondsLeft = Duration.between(LocalDateTime.now(), lockTime).toSeconds();
+                if (secondsLeft > 60) {
+                    long minutesLeft = (secondsLeft + 59) / 60;
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft
+                                    + " phút.");
+                } else {
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft
+                                    + " giây.");
+                }
+            }
+        }
+
+        LocalDateTime lastRequest = otpRequestCooldown.get(email);
+        if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(LocalDateTime.now())) {
+            long secondsLeft = Duration.between(LocalDateTime.now(), lastRequest.plusSeconds(60))
                     .toSeconds();
             throw new AppException(ErrorCode.BAD_REQUEST,
                     "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
         }
 
-        java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
         User user;
         if (existingUserOpt.isPresent()) {
             user = existingUserOpt.get();
@@ -369,21 +400,19 @@ public class AuthService {
             user.setGender(request.getGender());
         }
 
-        // Generate 6-digit random code using SecureRandom
-        String otpCode = String.format("%06d", new java.security.SecureRandom().nextInt(1000000));
+        String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
         user.setVerificationCode(otpCode);
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
         user.setVerificationAttempts(0);
         user.setVerificationLockTime(null);
 
         userRepository.save(user);
-        otpRequestCooldown.put(email, java.time.LocalDateTime.now());
+        otpRequestCooldown.put(email, LocalDateTime.now());
 
-        // Send OTP email
         emailService.sendOtpEmail(user.getEmail(), otpCode);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = AppException.class)
     public void verifyRegister(VerifyRequest request) {
         User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -394,7 +423,7 @@ public class AuthService {
 
         LocalDateTime lockTime = user.getVerificationLockTime();
         if (lockTime != null && lockTime.isAfter(LocalDateTime.now())) {
-            long secondsLeft = java.time.Duration.between(LocalDateTime.now(), lockTime).toSeconds();
+            long secondsLeft = Duration.between(LocalDateTime.now(), lockTime).toSeconds();
             if (secondsLeft > 60) {
                 long minutesLeft = (secondsLeft + 59) / 60;
                 throw new AppException(ErrorCode.BAD_REQUEST,
@@ -418,7 +447,8 @@ public class AuthService {
                 user.setVerificationAttempts(0);
                 userRepository.save(user);
                 throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
-                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá " + maxAttempts + " lần, tài khoản bị tạm khóa 15 phút.");
+                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá " + maxAttempts
+                                + " lần, tài khoản bị tạm khóa 15 phút.");
             } else {
                 user.setVerificationAttempts(attempts);
                 userRepository.save(user);
@@ -427,16 +457,16 @@ public class AuthService {
             }
         }
 
+        // Add Customer Role
+        Role role = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
+
         user.setVerificationAttempts(0);
         user.setVerificationLockTime(null);
         user.setStatus(UserStatus.ACTIVE);
         user.setVerificationCode(null);
         user.setVerificationCodeExpiry(null);
         userRepository.save(user);
-
-        // Add Customer Role
-        Role role = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
 
         // Check if UserRole mapping already exists
         if (userRoleRepository.findByUserId(user.getId()).stream()

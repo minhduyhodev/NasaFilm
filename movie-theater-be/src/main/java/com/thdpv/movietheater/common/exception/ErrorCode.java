@@ -34,6 +34,8 @@ public enum ErrorCode {
     USER_ALREADY_ACTIVE(400, "Tai khoan da duoc kich hoat truoc do", HttpStatus.BAD_REQUEST),
     USER_NOT_VERIFIED(401, "Tai khoan chua duoc xac minh qua email", HttpStatus.UNAUTHORIZED),
     ACCOUNT_NOT_ACTIVE(403, "Tai khoan khong o trang thai hoat dong", HttpStatus.FORBIDDEN),
+    ACCOUNT_BANNED(403, "Tài khoản của bạn đã bị khóa vĩnh viễn", HttpStatus.FORBIDDEN),
+    ACCOUNT_SUSPENDED(403, "Tài khoản của bạn đang tạm thời bị khóa", HttpStatus.FORBIDDEN),
 
     INTERNAL_ERROR(500, "Loi he thong", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_ERROR(500, "Loi co so du lieu", HttpStatus.INTERNAL_SERVER_ERROR);

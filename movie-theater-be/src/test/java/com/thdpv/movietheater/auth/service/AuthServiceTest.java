@@ -28,6 +28,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
+import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
@@ -42,6 +43,11 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.auth.dto.VerifyRequest;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
+import java.time.LocalDateTime;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -165,5 +171,112 @@ class AuthServiceTest {
         payload.put("picture", avatarUrl);
 
         return new GoogleIdToken(new JsonWebSignature.Header(), payload, new byte[0], new byte[0]);
+    }
+
+    @Test
+    void verifyRegisterShouldIncrementAttemptsOnInvalidCode() {
+        String email = "test@example.com";
+        VerifyRequest request = new VerifyRequest();
+        request.setEmail(email);
+        request.setCode("wrong-code");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        user.setVerificationCode("123456");
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(0);
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.verifyRegister(request);
+        });
+
+        assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
+        assertEquals(1, user.getVerificationAttempts());
+    }
+
+    @Test
+    void verifyRegisterShouldLockAccountOnTooManyAttempts() {
+        String email = "test@example.com";
+        VerifyRequest request = new VerifyRequest();
+        request.setEmail(email);
+        request.setCode("wrong-code");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        user.setVerificationCode("123456");
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(9);
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.verifyRegister(request);
+        });
+
+        assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
+        assertEquals(0, user.getVerificationAttempts());
+        assertNotNull(user.getVerificationLockTime());
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenUserIsBanned() {
+        String email = "banned@example.com";
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.BANNED);
+
+        org.springframework.security.core.userdetails.User principal = 
+            new org.springframework.security.core.userdetails.User(email, "password", List.of());
+        org.springframework.security.core.Authentication authentication = 
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null);
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.login(request, httpServletRequest);
+        });
+
+        assertEquals(ErrorCode.ACCOUNT_BANNED, exception.getErrorCode());
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenUserIsSuspended() {
+        String email = "suspended@example.com";
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.SUSPENDED);
+
+        org.springframework.security.core.userdetails.User principal = 
+            new org.springframework.security.core.userdetails.User(email, "password", List.of());
+        org.springframework.security.core.Authentication authentication = 
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null);
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.login(request, httpServletRequest);
+        });
+
+        assertEquals(ErrorCode.ACCOUNT_SUSPENDED, exception.getErrorCode());
     }
 }

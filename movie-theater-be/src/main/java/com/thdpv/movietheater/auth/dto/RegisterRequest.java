@@ -6,33 +6,36 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
 
-    @NotBlank(message = "Email khong duoc de trong")
-    @Email(message = "Email khong dung dinh dang")
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không đúng định dạng")
     private String email;
 
-    @NotBlank(message = "Mat khau khong duoc de trong")
-    @Size(min = 6, message = "Mat khau phai co it nhat 6 ky tu")
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*]).+$", message = "Mật khẩu phải chứa ít nhất một chữ viết hoa, một chữ viết thường, một chữ số và một ký tự đặc biệt")
     private String password;
 
-    @NotBlank(message = "Ho va ten khong duoc de trong")
+    @NotBlank(message = "Họ và tên không được để trống")
     private String fullName;
 
-    @Pattern(regexp = "^$|^0[35789][0-9]{8}$", message = "So dien thoai khong dung dinh dang")
+    @Pattern(regexp = "^$|^0[35789][0-9]{8}$", message = "Số điện thoại không đúng định dạng")
     private String phoneNumber;
 
-    @NotNull(message = "Ngay sinh khong duoc de trong")
-    @Past(message = "Ngay sinh phai o qua khu")
+    @NotNull(message = "Ngày sinh không được để trống")
+    @Past(message = "Ngày sinh không hợp lệ. Bạn không thể chọn ngày sinh ở tương lai.")
     private LocalDate dayOfBirth;
 
-    @NotBlank(message = "Gioi tinh khong duoc de trong")
-    @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "Gioi tinh khong hop le")
+    @NotBlank(message = "Giới tính không được để trống")
+    @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "Giới tính không hợp lệ")
     private String gender;
 
-    public RegisterRequest(String email, String password, String fullName, String phoneNumber, LocalDate dayOfBirth, String gender) {
+    public RegisterRequest(String email, String password, String fullName, String phoneNumber, LocalDate dayOfBirth,
+            String gender) {
         this.email = email;
         this.password = password;
         this.fullName = fullName;
@@ -91,5 +94,12 @@ public class RegisterRequest {
     public void setGender(String gender) {
         this.gender = gender;
     }
-}
 
+    @AssertTrue(message = "Bạn phải từ 12 tuổi trở lên để đăng ký tài khoản")
+    public boolean isAgeValid() {
+        if (dayOfBirth == null) {
+            return true;
+        }
+        return java.time.Period.between(dayOfBirth, LocalDate.now()).getYears() >= 12;
+    }
+}
