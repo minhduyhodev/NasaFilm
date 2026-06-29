@@ -435,7 +435,7 @@ const WatchPage = () => {
     );
   }
 
-  if (error || !movie || !streamData) {
+  if (error || !movie || (!streamData && !previewReady)) {
     return (
       <div className="watch-page min-h-screen flex flex-col items-center justify-center text-white p-4">
         <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/25 flex items-center justify-center mb-4 text-red-500">
