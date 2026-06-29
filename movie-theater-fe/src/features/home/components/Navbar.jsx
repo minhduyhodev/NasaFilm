@@ -1,18 +1,108 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { useNotification } from '../../../shared/context/NotificationContext';
+import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
+
+const CATALOG_MENUS = {
+  genre: {
+    label: 'Thể loại',
+    buildLink: (uuid) => `/movies?genre=${uuid}`,
+    pickItems: (data) => data?.genres || [],
+  },
+  country: {
+    label: 'Quốc gia',
+    buildLink: (uuid) => `/movies?country=${uuid}`,
+    pickItems: (data) => data?.countries || [],
+  },
+};
+
+const getCatalogColumnCount = (itemCount) => {
+  if (itemCount <= 4) return 2;
+  if (itemCount <= 9) return 3;
+  if (itemCount <= 16) return 4;
+  if (itemCount <= 25) return 5;
+  return 6;
+};
+
+const splitIntoColumns = (items, columnCount) => {
+  if (!items.length) return [];
+  const cols = Math.min(columnCount, items.length);
+  const perCol = Math.ceil(items.length / cols);
+  return Array.from({ length: cols }, (_, index) =>
+    items.slice(index * perCol, (index + 1) * perCol),
+  ).filter((column) => column.length > 0);
+};
+
+const NavCatalogPanel = ({ variant, onClose }) => {
+  const meta = CATALOG_MENUS[variant];
+  const { data, isLoading, isError } = useMovieFilterOptions();
+
+  const { columns, columnCount } = useMemo(() => {
+    const items = meta.pickItems(data);
+    const count = getCatalogColumnCount(items.length);
+    return {
+      columns: splitIntoColumns(items, count),
+      columnCount: count,
+    };
+  }, [data, meta]);
+
+  return (
+    <div className="nav-catalog-panel" role="menu" aria-label={meta.label}>
+      <div className="nav-catalog-panel-inner">
+        {isLoading ? (
+          <div className="nav-catalog-state">
+            <Loader2 className="h-5 w-5 animate-spin text-red-500" aria-hidden />
+            <span>Đang tải danh mục...</span>
+          </div>
+        ) : isError ? (
+          <div className="nav-catalog-state">Không thể tải danh mục. Vui lòng thử lại sau.</div>
+        ) : columns.length === 0 ? (
+          <div className="nav-catalog-state">Chưa có dữ liệu.</div>
+        ) : (
+          <div
+            className="nav-catalog-columns"
+            style={{ '--nav-catalog-cols': columnCount }}
+          >
+            {columns.map((column, columnIndex) => (
+              <ul key={columnIndex} className="nav-catalog-list">
+                {column.map((item) => (
+                  <li key={item.uuid}>
+                    <Link
+                      to={meta.buildLink(item.uuid)}
+                      className="nav-catalog-link"
+                      role="menuitem"
+                      onClick={onClose}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Navbar = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [openCatalog, setOpenCatalog] = useState(null);
+
+  useEffect(() => {
+    setOpenCatalog(null);
+  }, [location.pathname, location.search]);
 
   const handleBookingClick = () => {
     if (!user) {
@@ -49,6 +139,22 @@ const Navbar = () => {
 
         <nav className="navbar-nav">
           <Link to="/movies" className="navbar-nav-link">Phim</Link>
+          {Object.entries(CATALOG_MENUS).map(([key, menu]) => {
+            const isOpen = openCatalog === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}`}
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
+                onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
+              >
+                {menu.label}
+                <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}`} aria-hidden />
+              </button>
+            );
+          })}
           <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
           <Link
             to="/online"
@@ -83,6 +189,18 @@ const Navbar = () => {
           <AuthControls />
         </div>
       </div>
+
+      {openCatalog && (
+        <>
+          <button
+            type="button"
+            className="nav-catalog-backdrop"
+            aria-label="Đóng menu danh mục"
+            onClick={() => setOpenCatalog(null)}
+          />
+          <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
+        </>
+      )}
     </header>
   );
 };

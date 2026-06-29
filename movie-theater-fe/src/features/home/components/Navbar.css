@@ -19,11 +19,70 @@
 }
 
 .navbar-nav {
-  @apply absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-6 xl:gap-9 lg:flex;
+  @apply absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-4 xl:gap-6 lg:flex;
 }
 
 .navbar-nav-link {
   @apply whitespace-nowrap text-sm font-semibold tracking-wide text-white/80 transition-colors hover:text-white;
+}
+
+.nav-catalog-trigger {
+  @apply inline-flex items-center gap-1 border-0 bg-transparent p-0 cursor-pointer;
+}
+
+.nav-catalog-trigger--open {
+  @apply text-amber-400;
+}
+
+.nav-catalog-chevron {
+  @apply h-3.5 w-3.5 text-white/50 transition-transform duration-200;
+}
+
+.nav-catalog-trigger--open .nav-catalog-chevron,
+.nav-catalog-chevron--open {
+  @apply rotate-180 text-amber-400/80;
+}
+
+.nav-catalog-backdrop {
+  @apply fixed inset-0 top-20 z-40 cursor-default bg-transparent;
+}
+
+.nav-catalog-panel {
+  @apply absolute inset-x-0 top-full z-50 border-t border-white/10 bg-[#121212] shadow-[0_24px_48px_rgba(0,0,0,0.45)];
+}
+
+.nav-catalog-panel-inner {
+  @apply mx-auto w-full max-w-6xl px-6 py-5 md:px-10 md:py-6 xl:max-w-7xl;
+}
+
+.nav-catalog-columns {
+  display: grid;
+  gap: 0.25rem clamp(1.5rem, 3vw, 2.5rem);
+  grid-template-columns: repeat(var(--nav-catalog-cols, 2), minmax(0, 1fr));
+}
+
+@media (max-width: 1279px) {
+  .nav-catalog-columns {
+    grid-template-columns: repeat(min(var(--nav-catalog-cols, 2), 4), minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .nav-catalog-columns {
+    grid-template-columns: repeat(min(var(--nav-catalog-cols, 2), 3), minmax(0, 1fr));
+  }
+}
+
+.nav-catalog-list {
+  @apply m-0 list-none p-0;
+}
+
+.nav-catalog-link {
+  @apply block rounded-md px-2 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/5 hover:text-amber-400;
+}
+
+.nav-catalog-state {
+  @apply flex items-center justify-center gap-2 py-6 text-sm text-white/60;
 }
 
 .navbar-actions {

@@ -196,6 +196,9 @@ public class CinemaService {
         if (request.getRoomType() != null) {
             room.setRoomType(request.getRoomType());
         }
+        if (request.getLayoutConfig() != null) {
+            room.setLayoutConfig(request.getLayoutConfig());
+        }
 
         CinemaRoom updatedRoom = cinemaRoomRepository.save(room);
         return toCinemaRoomResponse(updatedRoom);
@@ -408,6 +411,7 @@ public class CinemaService {
                 room.getRoomType(),
                 room.getStatus(),
                 room.getCinema().getUuid(),
-                room.getCinema().getName());
+                room.getCinema().getName(),
+                room.getLayoutConfig());
     }
 }
