@@ -51,7 +51,7 @@ const ShowtimesAutoModal = ({
               </div>
               <div>
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider">Tự Động Tạo Suất Chiếu Tối Ưu</h2>
-                <p className="text-[10px] text-gray-500">Cấu hình thuật toán tối ưu hóa lịch chiếu theo 5 yếu tố</p>
+                <p className="text-[10px] text-gray-500">Trọng số thuật toán lấy từ Cấu hình hệ thống</p>
               </div>
             </div>
 
@@ -227,80 +227,6 @@ const ShowtimesAutoModal = ({
                       onChange={(e) => setAutoFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
                       required
                     />
-                  </div>
-                </div>
-
-                {/* Weights Sliders */}
-                <div className="bg-[#0F1322]/50 border border-[#1a2238] rounded-xl p-4 space-y-3 text-left">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-bold uppercase text-amber-400 font-black">Trọng số thuật toán (Weights)</span>
-                    <span className="text-[10px] text-gray-500">Tùy biến mức độ ưu tiên giữa các yếu tố</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Weekend Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Cuối tuần (Weekend)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.weekendWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.weekendWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, weekendWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Golden Hour Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Giờ vàng (Golden Hour)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.goldenHourWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.goldenHourWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, goldenHourWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Rating Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Đánh giá phim (Rating)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.ratingWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.ratingWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, ratingWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {/* Genre Weight */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400">Thể loại phim (Genre)</span>
-                        <span className="font-mono text-amber-400 font-bold">{autoFormData.genreWeight.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="3"
-                        step="0.1"
-                        value={autoFormData.genreWeight}
-                        onChange={(e) => setAutoFormData(prev => ({ ...prev, genreWeight: parseFloat(e.target.value) }))}
-                        className="w-full accent-amber-500 bg-[#1a2238] rounded-lg cursor-pointer"
-                      />
-                    </div>
                   </div>
                 </div>
 
