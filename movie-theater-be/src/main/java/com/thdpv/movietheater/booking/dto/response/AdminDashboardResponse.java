@@ -28,6 +28,7 @@ public record AdminDashboardResponse(
         UUID uuid,
         String title,
         BigDecimal revenue,
-        Long bookingCount
+        Long bookingCount,
+        String primaryMediaUrl
     ) {}
 }

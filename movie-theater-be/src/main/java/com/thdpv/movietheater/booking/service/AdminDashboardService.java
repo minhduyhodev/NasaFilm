@@ -175,7 +175,15 @@ public class AdminDashboardService {
                     m.uuid as movie_uuid,
                     m.title as movie_title,
                     coalesce(sum(b.total_price), 0) as total_revenue,
-                    count(b.uuid) as booking_count
+                    count(b.uuid) as booking_count,
+                    (
+                        select mm.media_url
+                        from movie_media mm
+                        where mm.movie_uuid = m.uuid
+                          and mm.media_type = 'POSTER'
+                        order by case when mm.is_primary then 0 else 1 end, coalesce(mm.sort_order, 0)
+                        limit 1
+                    ) as primary_media_url
                 from booking b
                 left join showtime st on st.uuid = b.showtime_uuid
                 inner join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
@@ -194,10 +202,17 @@ public class AdminDashboardService {
             String movieTitle = stringValue(row[1]);
             BigDecimal revenue = toBigDecimal(row[2]);
             long bookingCount = toLong(row[3]);
+            String primaryMediaUrl = stringValue(row[4]);
             if (movieUuid == null || movieTitle.isBlank()) {
                 continue;
             }
-            topMovies.add(new AdminDashboardResponse.MovieStat(movieUuid, movieTitle, revenue, bookingCount));
+            topMovies.add(new AdminDashboardResponse.MovieStat(
+                    movieUuid,
+                    movieTitle,
+                    revenue,
+                    bookingCount,
+                    primaryMediaUrl.isBlank() ? null : primaryMediaUrl
+            ));
         }
 
         return new AdminDashboardResponse(
