@@ -12,10 +12,62 @@ import {
   TEMPLATE_PRESETS,
 } from './cinemaSeatConstants';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import {
+  EMPTY_AISLE_LAYOUT,
+  parseLayoutConfig,
+  serializeLayoutConfig,
+  buildDefaultLayout,
+  slotKey,
+  hasAisleSlot,
+  addAisleSlots,
+  removeAisleSlots,
+  applyAisleSlotsToSeats,
+  getAisleLabelAnchors,
+  getCompleteVerticalCols,
+  getCompleteHorizontalRows,
+  getCompleteDiagonalCellKeys,
+} from '../../../shared/utils/aisleLayoutUtils';
+import {
+  AISLE_LABEL,
+  isCompleteAisleCell,
+  isInCompleteVerticalCol,
+  renderVerticalAisleCellProps,
+} from '../../../shared/components/aisle/aisleMapRender';
+import {
+  buildRowPlacedItems,
+  getCoupleLabel,
+  isAnySeatSelected,
+  getSeatMapGridStyle,
+  getGridColumnStyle,
+  seatNumberToGridColumn,
+  computeHorizontalBandOverlays,
+  getHorizontalBandOverlayStyle,
+  getMaxSeatNumber,
+  findInvalidCoupleSeats,
+  resolveCouplePaintPair,
+  collectCouplePaintTargets,
+} from '../../../shared/utils/seatMapDisplay';
+import '../../../shared/components/seatmap/SeatMapGrid.css';
+import '../../../shared/components/aisle/AisleMapStyles.css';
 
-const computeDefaultAisles = (cols) => {
-  if (!cols || cols <= 8) return [];
-  return [Math.ceil(cols / 2)];
+const deriveLayoutDimensions = (seats) => {
+  if (!seats?.length) {
+    return { rows: 8, cols: 12, activeCount: 0 };
+  }
+
+  const activeSeats = seats.filter((s) => s.status !== 'DISABLED');
+  const rowNames = [...new Set(activeSeats.map((s) => s.rowName))].sort();
+  const rowCount = rowNames.length || 8;
+  const maxPerRow = Math.max(
+    ...rowNames.map((row) => activeSeats.filter((s) => s.rowName === row).length),
+    1,
+  );
+
+  return {
+    rows: rowCount,
+    cols: maxPerRow,
+    activeCount: activeSeats.length,
+  };
 };
 
 const AdminCinemaRoomPage = () => {
@@ -38,7 +90,8 @@ const AdminCinemaRoomPage = () => {
   const [activePaintBrushType, setActivePaintBrushType] = useState('SELECT'); // Pointer tool is default
   const [builderRows, setBuilderRows] = useState(8);
   const [builderCols, setBuilderCols] = useState(12);
-  const [aisleColumns, setAisleColumns] = useState(() => computeDefaultAisles(12));
+  const [aisleLayout, setAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
+  const [originalAisleLayout, setOriginalAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
   const [isDragSelecting, setIsDragSelecting] = useState(false);
   const [showBookingPreview, setShowBookingPreview] = useState(false); // Customer View Simulator
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
@@ -104,14 +157,14 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
-  const fetchSeats = async (roomUuid) => {
+  const fetchSeats = useCallback(async (targetRoomUuid, layoutConfigFromRoom) => {
+    if (!targetRoomUuid) return;
+
     setIsLoadingSeats(true);
     setSelectedSeatIds(new Set());
     try {
-      const data = await cinemaService.getSeatsByRoom(roomUuid);
-      // Map database format to internal state
-      const processedSeats = (data || []).map(seat => {
-        // Resolve type based on name or fallbacks
+      const data = await cinemaService.getSeatsByRoom(targetRoomUuid);
+      const processedSeats = (data || []).map((seat) => {
         let currentType = 'STANDARD';
         if (seat.seatTypeName) {
           const mappedName = seat.seatTypeName.toUpperCase();
@@ -123,19 +176,23 @@ const AdminCinemaRoomPage = () => {
 
         return {
           ...seat,
-          customTypeName: currentType
+          customTypeName: currentType,
         };
       });
-      setSelectedRoomSeats(processedSeats);
-      setOriginalSeats(JSON.parse(JSON.stringify(processedSeats))); // Deep clone
 
-      // Autoguess dimensions of builder based on actual seats loaded
-      if (processedSeats.length > 0) {
-        const rows = new Set(processedSeats.map(s => s.rowName));
-        const maxNum = Math.max(...processedSeats.map(s => s.seatNumber));
-        setBuilderRows(rows.size);
-        setBuilderCols(maxNum);
-      }
+      const { rows, cols } = deriveLayoutDimensions(processedSeats);
+      setBuilderRows(rows);
+      setBuilderCols(cols);
+
+      const rowNames = [...new Set(processedSeats.map((s) => s.rowName))].filter(Boolean).sort();
+      const layout = layoutConfigFromRoom
+        ? parseLayoutConfig(layoutConfigFromRoom)
+        : buildDefaultLayout(cols, rowNames);
+      const seatsWithAisles = applyAisleSlotsToSeats(processedSeats, layout);
+      setSelectedRoomSeats(seatsWithAisles);
+      setOriginalSeats(JSON.parse(JSON.stringify(seatsWithAisles)));
+      setAisleLayout(layout);
+      setOriginalAisleLayout(JSON.parse(JSON.stringify(layout)));
     } catch (error) {
       console.error('Failed to load seats for preview:', error);
       setSelectedRoomSeats([]);
@@ -143,24 +200,107 @@ const AdminCinemaRoomPage = () => {
     } finally {
       setIsLoadingSeats(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadPageData();
   }, [cinemaUuid, roomUuid, location.key]);
 
   useEffect(() => {
-    if (room) {
-      fetchSeats(room.uuid);
-    } else {
+    if (!room?.uuid) {
       setSelectedRoomSeats([]);
       setOriginalSeats([]);
+      return undefined;
     }
-  }, [room]);
+    fetchSeats(room.uuid, room.layoutConfig);
+  }, [room?.uuid, room?.layoutConfig, fetchSeats]);
 
-  useEffect(() => {
-    setAisleColumns(computeDefaultAisles(builderCols));
-  }, [builderCols]);
+  const refreshRoomMeta = useCallback(async () => {
+    const roomList = await cinemaService.getRoomsByCinema(cinemaUuid);
+    const matchedRoom = (roomList || []).find((r) => r.uuid === roomUuid);
+    if (matchedRoom) {
+      setRoom((prev) => {
+        if (
+          prev?.uuid === matchedRoom.uuid
+          && prev?.capacity === matchedRoom.capacity
+          && prev?.name === matchedRoom.name
+          && prev?.roomCode === matchedRoom.roomCode
+          && prev?.roomType === matchedRoom.roomType
+          && prev?.status === matchedRoom.status
+          && prev?.layoutConfig === matchedRoom.layoutConfig
+        ) {
+          return prev;
+        }
+        return matchedRoom;
+      });
+    }
+    return matchedRoom;
+  }, [cinemaUuid, roomUuid]);
+
+  const activeSeatCount = useMemo(
+    () => selectedRoomSeats.filter((s) => s.status === 'ACTIVE').length,
+    [selectedRoomSeats],
+  );
+
+  const displayedCapacity = activeSeatCount > 0 ? activeSeatCount : (room?.capacity ?? 0);
+
+  const expectedSeatCount = useMemo(() => {
+    const rows = Number(builderRows) || 0;
+    const cols = Number(builderCols) || 0;
+    return rows > 0 && cols > 0 ? rows * cols : 0;
+  }, [builderRows, builderCols]);
+
+  const seatsByRow = useMemo(() => {
+    const rows = {};
+    selectedRoomSeats.forEach(seat => {
+      const r = seat.rowName || 'A';
+      if (!rows[r]) rows[r] = [];
+      rows[r].push(seat);
+    });
+    Object.keys(rows).forEach(r => {
+      rows[r].sort((a, b) => (b.seatNumber || 0) - (a.seatNumber || 0));
+    });
+    return Object.keys(rows).sort().reduce((acc, key) => {
+      acc[key] = rows[key];
+      return acc;
+    }, {});
+  }, [selectedRoomSeats]);
+
+  const rowNames = useMemo(() => Object.keys(seatsByRow).sort(), [seatsByRow]);
+
+  const aisleLabelAnchors = useMemo(
+    () => getAisleLabelAnchors(aisleLayout, seatsByRow, rowNames),
+    [aisleLayout, seatsByRow, rowNames],
+  );
+
+  const maxSeatNumber = useMemo(
+    () => getMaxSeatNumber(seatsByRow, rowNames),
+    [seatsByRow, rowNames],
+  );
+
+  const completeVerticalCols = useMemo(
+    () => getCompleteVerticalCols(aisleLayout, rowNames),
+    [aisleLayout, rowNames],
+  );
+
+  const completeHorizontalRows = useMemo(
+    () => getCompleteHorizontalRows(aisleLayout, seatsByRow, rowNames),
+    [aisleLayout, seatsByRow, rowNames],
+  );
+
+  const completeDiagonalCells = useMemo(
+    () => getCompleteDiagonalCellKeys(aisleLayout, seatsByRow, rowNames),
+    [aisleLayout, seatsByRow, rowNames],
+  );
+
+  const syncAisleLayoutForSeats = useCallback((seats, paintType) => {
+    const keys = seats.map((s) => slotKey(s.rowName, s.seatNumber));
+    if (paintType === 'AISLE') {
+      setAisleLayout((prev) => addAisleSlots(prev, keys));
+    } else {
+      setAisleLayout((prev) => removeAisleSlots(prev, keys));
+    }
+  }, []);
 
   // ---------- HANDLERS & ACTIONS ----------
 
@@ -171,23 +311,6 @@ const AdminCinemaRoomPage = () => {
   const handleBackToCinemas = () => {
     navigate(`/admin/cinemas?cinema=${cinemaUuid}`);
   };
-  const seatsByRow = useMemo(() => {
-    const rows = {};
-    selectedRoomSeats.forEach(seat => {
-      const r = seat.rowName || 'A';
-      if (!rows[r]) rows[r] = [];
-      rows[r].push(seat);
-    });
-    // Sort seats in each row by seatNumber descending (matching screen layout reference)
-    Object.keys(rows).forEach(r => {
-      rows[r].sort((a, b) => (b.seatNumber || 0) - (a.seatNumber || 0));
-    });
-    // Sort rows alphabetically
-    return Object.keys(rows).sort().reduce((acc, key) => {
-      acc[key] = rows[key];
-      return acc;
-    }, {});
-  }, [selectedRoomSeats]);
 
   // Combined master configuration save handler (used by Save Configuration button)
   const handleSaveAllConfiguration = async () => {
@@ -218,12 +341,15 @@ const AdminCinemaRoomPage = () => {
         roomCode: room.roomCode,
         name: room.name,
         roomType: room.roomType,
-        capacity: room.capacity,
-        status: room.status
+        capacity: activeSeatCount || room.capacity,
+        status: room.status,
+        layoutConfig: serializeLayoutConfig(aisleLayout),
       });
 
+      setOriginalAisleLayout(JSON.parse(JSON.stringify(aisleLayout)));
       notificationService.success('Đã cập nhật cấu hình phòng chiếu và sơ đồ ghế thành công!');
-      fetchSeats(room.uuid);
+      await refreshRoomMeta();
+      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
       console.error('Failed to save configuration:', error);
       notificationService.error(error.message || 'Lỗi khi lưu cấu hình');
@@ -251,6 +377,8 @@ const AdminCinemaRoomPage = () => {
         return { seatTypeUuid: seatTypesMap['STANDARD'], status: 'DISABLED' };
       case 'BROKEN':
         return { seatTypeUuid: seatTypesMap['STANDARD'], status: 'MAINTENANCE' };
+      case 'AISLE':
+        return { seatTypeUuid: seatTypesMap['STANDARD'], status: 'DISABLED' };
       case 'STANDARD':
       default:
         return { seatTypeUuid: seatTypesMap['STANDARD'], status: 'ACTIVE' };
@@ -265,22 +393,58 @@ const AdminCinemaRoomPage = () => {
     }
 
     const { seatTypeUuid, status } = getBackendDataForPaintType(paintType);
+    const paintedSeats = selectedRoomSeats.filter((s) => selectedSeatIds.has(s.uuid));
+    const aisleCheck = (s) => s.customTypeName === 'AISLE'
+      || hasAisleSlot(aisleLayout, s.rowName, s.seatNumber);
 
-    setSelectedRoomSeats(prev => prev.map(s => {
-      if (selectedSeatIds.has(s.uuid)) {
+    let targetUuids = [...selectedSeatIds];
+
+    if (paintType === 'COUPLE') {
+      const { uuids, errors } = collectCouplePaintTargets(
+        paintedSeats,
+        selectedRoomSeats,
+        aisleCheck,
+      );
+      if (!uuids.length) {
+        notificationService.error(errors[0] || 'Không thể tô sofa đôi cho các ghế đã chọn.');
+        return;
+      }
+      targetUuids = uuids;
+      if (errors.length) {
+        notificationService.warning(`Một số ghế bỏ qua: ${errors.length} vị trí không đủ cặp 2 slot.`);
+      }
+    }
+
+    const targetSet = new Set(targetUuids);
+    const metaSeats = selectedRoomSeats.filter((s) => targetSet.has(s.uuid));
+
+    if (paintType === 'AISLE') {
+      syncAisleLayoutForSeats(
+        metaSeats.map((s) => ({ rowName: s.rowName, seatNumber: s.seatNumber })),
+        paintType,
+      );
+    } else if (paintType !== 'COUPLE') {
+      syncAisleLayoutForSeats(
+        metaSeats.map((s) => ({ rowName: s.rowName, seatNumber: s.seatNumber })),
+        'STANDARD',
+      );
+    }
+
+    setSelectedRoomSeats((prev) => prev.map((s) => {
+      if (targetSet.has(s.uuid)) {
         return {
           ...s,
           seatTypeUuid,
           status,
-          customTypeName: paintType
+          customTypeName: paintType,
         };
       }
       return s;
     }));
 
-    setSelectedSeatIds(new Set()); // Reset selection after painting
-    notificationService.success(`Đã tô màu ${selectedSeatIds.size} ghế thành loại: ${SEAT_TYPE_CONFIGS[paintType].label}`);
-  }, [selectedSeatIds, getBackendDataForPaintType]);
+    setSelectedSeatIds(new Set());
+    notificationService.success(`Đã tô màu ${targetSet.size} ghế thành loại: ${SEAT_TYPE_CONFIGS[paintType]?.label || paintType}`);
+  }, [selectedSeatIds, selectedRoomSeats, getBackendDataForPaintType, syncAisleLayoutForSeats, aisleLayout]);
 
   // Bulk update status directly in selection
   const handleBulkStatusChange = useCallback((status) => {
@@ -311,6 +475,16 @@ const AdminCinemaRoomPage = () => {
   // Perform backend updates to save the painted grid layout in batch
   const handleSaveSeatLayout = async () => {
     if (!room) return;
+
+    const invalidCouples = findInvalidCoupleSeats(selectedRoomSeats);
+    if (invalidCouples.length > 0) {
+      const sample = invalidCouples.slice(0, 3).map((s) => `${s.rowName}${s.seatNumber}`).join(', ');
+      notificationService.error(
+        `Không thể lưu: ${invalidCouples.length} ghế sofa thiếu cặp (cần 2 slot liền kề). VD: ${sample}`,
+      );
+      return;
+    }
+
     setIsSavingSeats(true);
     try {
       const modifiedSeats = [];
@@ -337,7 +511,7 @@ const AdminCinemaRoomPage = () => {
       await Promise.all(promises);
 
       notificationService.success(`Đã cập nhật sơ đồ thực tế: ${modifiedSeats.length} vị trí ghế đã lưu.`);
-      fetchSeats(room.uuid);
+      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
       console.error('Failed to save layout:', error);
       notificationService.error(error.message || 'Lỗi khi lưu sơ đồ ghế');
@@ -369,8 +543,9 @@ const AdminCinemaRoomPage = () => {
     setIsLoadingSeats(true);
     try {
       await cinemaService.generateSeats(room.uuid, finalRows, finalCols);
-      notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng x ${finalCols} ghế thành công.`);
-      fetchSeats(room.uuid);
+      await refreshRoomMeta();
+      notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng x ${finalCols} ghế (${finalRows * finalCols} ghế).`);
+      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
       notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
     } finally {
@@ -378,21 +553,69 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
-  // Preset Layout Selector
-  const handleApplyPresetTemplate = (preset) => {
-    setBuilderRows(preset.rows);
-    setBuilderCols(preset.cols);
-    
-    // Automatically configure custom spacing
-    if (preset.id === 'imax') {
-      setAisleColumns([4, 15]);
-    } else if (preset.id === 'vip') {
-      setAisleColumns([2, 7]);
-    } else {
-      setAisleColumns([3, 9]);
+  const applyLayoutDimensions = useCallback(async (rows, cols, presetLayout) => {
+    if (!room) return false;
+
+    const finalRows = parseInt(rows, 10) || 0;
+    const finalCols = parseInt(cols, 10) || 0;
+
+    if (finalRows < 1 || finalRows > 26 || finalCols < 1 || finalCols > 30) {
+      notificationService.error('Số hàng ghế phải từ 1 đến 26, số cột ghế phải từ 1 đến 30!');
+      return false;
     }
 
-    notificationService.info(`Đã cấu hình thông số preset "${preset.name}". Nhấp "Khởi Tạo Sơ Đồ" để sinh ghế.`);
+    setBuilderRows(finalRows);
+    setBuilderCols(finalCols);
+    if (presetLayout) {
+      setAisleLayout(presetLayout);
+    }
+
+    setIsLoadingSeats(true);
+    try {
+      await cinemaService.generateSeats(room.uuid, finalRows, finalCols);
+      const layoutJson = serializeLayoutConfig(presetLayout ?? aisleLayout);
+      await cinemaService.updateRoom(room.uuid, {
+        roomCode: room.roomCode,
+        name: room.name,
+        roomType: room.roomType,
+        capacity: finalRows * finalCols,
+        status: room.status,
+        layoutConfig: layoutJson,
+      });
+      await refreshRoomMeta();
+      notificationService.success(`Đã khởi tạo sơ đồ ${finalRows} hàng × ${finalCols} cột (${finalRows * finalCols} ghế).`);
+      await fetchSeats(room.uuid, layoutJson);
+      return true;
+    } catch (error) {
+      notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
+      return false;
+    } finally {
+      setIsLoadingSeats(false);
+    }
+  }, [room, refreshRoomMeta, fetchSeats, aisleLayout]);
+
+  // Preset layout: sync rows/cols/aisles and regenerate seats
+  const handleApplyPresetTemplate = async (preset) => {
+    const tempRowNames = Array.from({ length: preset.rows }, (_, i) =>
+      String.fromCharCode(65 + i),
+    );
+    const presetLayout = buildDefaultLayout(preset.cols, tempRowNames, preset.id);
+
+    const confirmApply = await confirm({
+      title: `Áp dụng ${preset.name}`,
+      message: `Thiết lập ${preset.rows} hàng × ${preset.cols} cột (${preset.rows * preset.cols} ghế) và khởi tạo lại sơ đồ? Sơ đồ hiện tại sẽ bị thay thế.`,
+      confirmLabel: 'Áp dụng',
+      variant: 'warning',
+    });
+    if (!confirmApply) {
+      setBuilderRows(preset.rows);
+      setBuilderCols(preset.cols);
+      setAisleLayout(presetLayout);
+      notificationService.info(`Đã cập nhật thông số ${preset.rows}×${preset.cols}. Nhấn "Khởi tạo lại sơ đồ" để sinh ghế.`);
+      return;
+    }
+
+    await applyLayoutDimensions(preset.rows, preset.cols, presetLayout);
   };
 
   // Clone layout from another room
@@ -408,9 +631,12 @@ const AdminCinemaRoomPage = () => {
       }
 
       // First generate identical base dimensions
-      const rows = new Set(sourceSeats.map(s => s.rowName));
-      const maxCol = Math.max(...sourceSeats.map(s => s.seatNumber));
-      await cinemaService.generateSeats(room.uuid, rows.size, maxCol);
+      const { rows, cols } = deriveLayoutDimensions(sourceSeats);
+      await cinemaService.generateSeats(room.uuid, rows, cols);
+      setBuilderRows(rows);
+      setBuilderCols(cols);
+      const sourceRowNames = [...new Set(sourceSeats.map((s) => s.rowName))].filter(Boolean).sort();
+      setAisleLayout(buildDefaultLayout(cols, sourceRowNames));
       
       // Load the freshly generated seats to copy details into
       const freshSeats = await cinemaService.getSeatsByRoom(room.uuid);
@@ -433,7 +659,7 @@ const AdminCinemaRoomPage = () => {
       
       await Promise.all(clonePromises);
       notificationService.success('Sao chép sơ đồ bố cục thành công!');
-      fetchSeats(room.uuid);
+      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
       console.error('Failed to clone layout:', error);
       notificationService.error('Có lỗi xảy ra khi sao chép sơ đồ phòng.');
@@ -444,7 +670,11 @@ const AdminCinemaRoomPage = () => {
 
   // Export Room Layout JSON
   const handleExportJson = () => {
-    const dataStr = JSON.stringify(selectedRoomSeats, null, 2);
+    const dataStr = JSON.stringify({
+      version: 2,
+      seats: selectedRoomSeats,
+      aisleLayout,
+    }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -459,21 +689,26 @@ const AdminCinemaRoomPage = () => {
   const handleImportJson = () => {
     try {
       const parsed = JSON.parse(importJsonText);
-      if (!Array.isArray(parsed)) throw new Error('File JSON không hợp lệ. Phải là một mảng.');
-      
-      // Verify keys
-      const testItem = parsed[0];
+      let seatArray = parsed;
+      let importedLayout = null;
+
+      if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.seats)) {
+        seatArray = parsed.seats;
+        importedLayout = parsed.aisleLayout ?? null;
+      }
+
+      if (!Array.isArray(seatArray)) throw new Error('File JSON không hợp lệ. Phải là một mảng ghế hoặc object có seats.');
+
+      const testItem = seatArray[0];
       if (!testItem || !testItem.rowName || !testItem.seatNumber) {
         throw new Error('Cấu trúc phần tử ghế không chứa rowName hoặc seatNumber');
       }
 
-      // Map imported configurations onto current local state matching rowName and seatNumber
       setSelectedRoomSeats(prev => prev.map(currentSeat => {
-        const match = parsed.find(
+        const match = seatArray.find(
           imported => imported.rowName === currentSeat.rowName && imported.seatNumber === currentSeat.seatNumber
         );
         if (match) {
-          // Resolve standard mapping
           let customTypeName = match.customTypeName || 'STANDARD';
           return {
             ...currentSeat,
@@ -485,34 +720,106 @@ const AdminCinemaRoomPage = () => {
         return currentSeat;
       }));
 
+      if (importedLayout) {
+        const parsed = parseLayoutConfig(importedLayout);
+        setAisleLayout(parsed);
+        setSelectedRoomSeats((prev) => applyAisleSlotsToSeats(prev, parsed));
+      }
+
       setIsImportExportOpen(false);
       setImportJsonText('');
-      notificationService.success('Đã nạp file sơ đồ tạm thời. Hãy nhấp "LƯU SƠ ĐỒ THỰC TẾ" để ghi nhớ.');
+      notificationService.success('Đã nạp file sơ đồ tạm thời. Hãy nhấp "LƯU CẤU HÌNH" để ghi nhớ.');
     } catch (e) {
       notificationService.error(`Lỗi nạp sơ đồ: ${e.message}`);
     }
   };
 
-  const paintSingleSeat = useCallback((uuid, paintType) => {
+  const paintSingleSeat = useCallback((uuid, paintType, seatMeta) => {
     const { seatTypeUuid, status } = getBackendDataForPaintType(paintType);
-    setSelectedRoomSeats(prev => prev.map(s => {
-      if (s.uuid === uuid) {
+    const aisleCheck = (s) => s.customTypeName === 'AISLE'
+      || hasAisleSlot(aisleLayout, s.rowName, s.seatNumber);
+
+    let targetUuids = [uuid];
+
+    if (paintType === 'COUPLE') {
+      const seat = selectedRoomSeats.find((s) => s.uuid === uuid);
+      const result = resolveCouplePaintPair(seat, selectedRoomSeats, aisleCheck);
+      if (!result.ok) {
+        notificationService.error(result.message);
+        return;
+      }
+      targetUuids = result.targets.map((s) => s.uuid);
+    }
+
+    const targetSet = new Set(targetUuids);
+    const metaSeats = targetUuids
+      .map((id) => selectedRoomSeats.find((s) => s.uuid === id))
+      .filter(Boolean);
+
+    if (paintType === 'AISLE') {
+      syncAisleLayoutForSeats(
+        metaSeats.map((s) => ({ rowName: s.rowName, seatNumber: s.seatNumber })),
+        paintType,
+      );
+    } else if (paintType !== 'COUPLE') {
+      syncAisleLayoutForSeats(
+        metaSeats.map((s) => ({ rowName: s.rowName, seatNumber: s.seatNumber })),
+        'STANDARD',
+      );
+    }
+
+    setSelectedRoomSeats((prev) => prev.map((s) => {
+      if (targetSet.has(s.uuid)) {
         return {
           ...s,
           seatTypeUuid,
           status,
-          customTypeName: paintType
+          customTypeName: paintType,
         };
       }
       return s;
     }));
-  }, [getBackendDataForPaintType]);
+  }, [getBackendDataForPaintType, syncAisleLayoutForSeats, selectedRoomSeats, aisleLayout]);
 
-  // Mouse Selection drag-select triggers
-  const handleSeatMouseDown = (uuid) => {
+  const handleCoupleMouseDown = (seats) => {
     setIsDragSelecting(true);
     if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
-      paintSingleSeat(uuid, activePaintBrushType);
+      seats.forEach((s) => {
+        paintSingleSeat(s.uuid, activePaintBrushType, { rowName: s.rowName, seatNumber: s.seatNumber });
+      });
+    } else {
+      setSelectedSeatIds((prev) => {
+        const next = new Set(prev);
+        const allSelected = seats.every((s) => next.has(s.uuid));
+        seats.forEach((s) => {
+          if (allSelected) next.delete(s.uuid);
+          else next.add(s.uuid);
+        });
+        return next;
+      });
+    }
+  };
+
+  const handleCoupleMouseEnter = (seats) => {
+    if (!isDragSelecting) return;
+    if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
+      seats.forEach((s) => {
+        paintSingleSeat(s.uuid, activePaintBrushType, { rowName: s.rowName, seatNumber: s.seatNumber });
+      });
+    } else {
+      setSelectedSeatIds((prev) => {
+        const next = new Set(prev);
+        seats.forEach((s) => next.add(s.uuid));
+        return next;
+      });
+    }
+  };
+
+  // Mouse Selection drag-select triggers
+  const handleSeatMouseDown = (uuid, seatMeta) => {
+    setIsDragSelecting(true);
+    if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
+      paintSingleSeat(uuid, activePaintBrushType, seatMeta);
     } else {
       setSelectedSeatIds(prev => {
         const next = new Set(prev);
@@ -522,10 +829,16 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
+  const seatMetaByUuid = useMemo(() => {
+    const map = new Map();
+    selectedRoomSeats.forEach((s) => map.set(s.uuid, { rowName: s.rowName, seatNumber: s.seatNumber }));
+    return map;
+  }, [selectedRoomSeats]);
+
   const handleSeatMouseEnter = (uuid) => {
     if (isDragSelecting) {
       if (activePaintBrushType && activePaintBrushType !== 'SELECT') {
-        paintSingleSeat(uuid, activePaintBrushType);
+        paintSingleSeat(uuid, activePaintBrushType, seatMetaByUuid.get(uuid));
       } else {
         setSelectedSeatIds(prev => {
           const next = new Set(prev);
@@ -547,7 +860,7 @@ const AdminCinemaRoomPage = () => {
 
   // Compute stats of seats inside current room mapping
   const seatCounts = useMemo(() => {
-    const counts = { STANDARD: 0, VIP: 0, COUPLE: 0, BROKEN: 0 };
+    const counts = { STANDARD: 0, VIP: 0, COUPLE: 0, BROKEN: 0, AISLE: 0 };
     selectedRoomSeats.forEach(s => {
       if (s.customTypeName) {
         counts[s.customTypeName] = (counts[s.customTypeName] || 0) + 1;
@@ -555,6 +868,11 @@ const AdminCinemaRoomPage = () => {
     });
     return counts;
   }, [selectedRoomSeats]);
+
+  const invalidCoupleSeats = useMemo(
+    () => findInvalidCoupleSeats(selectedRoomSeats),
+    [selectedRoomSeats],
+  );
 
   return (
     <>
@@ -619,7 +937,12 @@ const AdminCinemaRoomPage = () => {
             </div>
             <div>
               <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Sức chứa</span>
-              <p className="text-xs text-white">{room.capacity} ghế</p>
+              <p className="text-xs text-white">
+                {displayedCapacity} ghế
+                {activeSeatCount > 0 && room?.capacity != null && room.capacity !== activeSeatCount && (
+                  <span className="text-amber-400/80 text-[10px] ml-1">(DB: {room.capacity})</span>
+                )}
+              </p>
             </div>
             <div>
               <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Trạng thái</span>
@@ -667,10 +990,26 @@ const AdminCinemaRoomPage = () => {
                           value={builderCols}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setBuilderCols(val === '' ? '' : parseInt(val) || 0);
+                            const parsed = val === '' ? '' : parseInt(val, 10) || 0;
+                            setBuilderCols(parsed);
+                            if (parsed !== '' && parsed > 0) {
+                              const tempNames = Array.from({ length: builderRows || 8 }, (_, i) =>
+                                String.fromCharCode(65 + i),
+                              );
+                              setAisleLayout(buildDefaultLayout(parsed, tempNames));
+                            }
                           }}
                         />
                       </div>
+
+                      {expectedSeatCount > 0 && (
+                        <p className="text-[10px] text-gray-500 font-mono w-full">
+                          Dự kiến: {builderRows}×{builderCols} = <strong className="text-white">{expectedSeatCount}</strong> ghế
+                          {activeSeatCount > 0 && activeSeatCount !== expectedSeatCount && (
+                            <span className="text-amber-400 ml-1">· Hiện tại: {activeSeatCount} ghế</span>
+                          )}
+                        </p>
+                      )}
                       
                       <button
                         type="button"
@@ -696,9 +1035,10 @@ const AdminCinemaRoomPage = () => {
                           type="button"
                           onClick={() => handleApplyPresetTemplate(preset)}
                           className="px-2 py-1 border border-[#1A2238] bg-[#0B0F19] hover:border-red-500/40 text-[9px] font-bold rounded-lg text-gray-400 hover:text-white transition cursor-pointer text-left truncate"
-                          title={preset.desc}
+                          title={`${preset.desc} · ${preset.rows}×${preset.cols} ghế`}
                         >
                           {preset.name}
+                          <span className="block text-[8px] font-normal text-gray-600 mt-0.5">{preset.rows}×{preset.cols}</span>
                         </button>
                       ))}
                     </div>
@@ -772,46 +1112,271 @@ const AdminCinemaRoomPage = () => {
                         {/* Seating Grid */}
                         <div 
                           ref={seatGridRef}
-                          className="flex flex-col gap-2 select-none w-full overflow-x-auto premium-scroll p-6 items-center bg-[#0F1322]/40 border border-[#1A2238]/60 rounded-xl"
+                          className="flex flex-col gap-2 select-none w-full overflow-x-auto overflow-y-visible premium-scroll p-6 py-8 items-center bg-[#0F1322]/40 border border-[#1A2238]/60 rounded-xl"
                         >
-                          {Object.entries(seatsByRow).map(([rowName, rowSeats]) => (
-                            <div key={rowName} className="flex items-center gap-3 min-w-max">
-                              <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
-                              
-                              <div className="flex items-center gap-1.5">
-                                {rowSeats.map((seat) => {
-                                  const stConfig = SEAT_TYPE_CONFIGS[seat.customTypeName] || SEAT_TYPE_CONFIGS.STANDARD;
-                                  const isSelected = selectedSeatIds.has(seat.uuid);
-                                  const isAisle = aisleColumns.includes(seat.seatNumber + 1);
-
-                                  return (
-                                    <React.Fragment key={seat.uuid}>
-                                      {isAisle && (
-                                        <div className="w-6 h-7 shrink-0 flex items-center justify-center text-[10px] text-gray-600 border border-dashed border-[#1A2238] rounded-md bg-black/10 select-none">
-                                          ⇅
-                                        </div>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onMouseDown={() => handleSeatMouseDown(seat.uuid)}
-                                        onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
-                                        className={`w-12 h-7 rounded-md text-[9px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item cursor-pointer ${
-                                          isSelected
-                                            ? 'border-red-500 ring-1 ring-red-500/40 bg-red-500/20 text-white'
-                                            : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
-                                        }`}
-                                        title={`${rowName}${seat.seatNumber} (${stConfig.label}) - ${seat.status}`}
-                                      >
-                                        {rowName}{seat.seatNumber}
-                                      </button>
-                                    </React.Fragment>
-                                  );
-                                })}
-                              </div>
-
-                              <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
+                          {invalidCoupleSeats.length > 0 && (
+                            <div className="w-full max-w-3xl mb-4 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-medium flex items-start gap-2">
+                              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                              <span>
+                                {invalidCoupleSeats.length} ghế sofa thiếu cặp
+                                {' '}
+                                (<strong className="text-yellow-300 font-mono">
+                                  {invalidCoupleSeats.map((s) => `${s.rowName}${s.seatNumber}`).join(', ')}
+                                </strong>
+                                ) — viền vàng đứt nét trên bản đồ.
+                                Sofa đôi bắt buộc 2 slot liền kề — tô cọ sofa sẽ tự chọn slot kế bên, hoặc đổi loại ghế lẻ trước khi lưu.
+                              </span>
                             </div>
-                          ))}
+                          )}
+                          {rowNames.map((rowName) => {
+                            const rowSeats = seatsByRow[rowName] || [];
+                            const isFullHorizontalAisle = completeHorizontalRows.includes(rowName);
+
+                            const renderAisleHitTarget = (seat, extraClass = '') => {
+                              const isSelected = selectedSeatIds.has(seat.uuid);
+                              return (
+                                <button
+                                  key={seat.uuid}
+                                  type="button"
+                                  onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                  onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                  className={`relative z-10 w-full h-full aisle-slot-hit ${isSelected ? 'is-selected' : ''} ${extraClass}`}
+                                  title={`Lối đi ${rowName}${seat.seatNumber}`}
+                                  aria-label={`Lối đi ${rowName}${seat.seatNumber}`}
+                                />
+                              );
+                            };
+
+                            return (
+                              <div key={rowName} className="flex items-center gap-3 min-w-max">
+                                <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
+
+                                {isFullHorizontalAisle ? (
+                                  <div
+                                    className="seat-map-grid seat-map-grid--admin"
+                                    style={getSeatMapGridStyle(maxSeatNumber)}
+                                  >
+                                    {(() => {
+                                      const bandOverlays = computeHorizontalBandOverlays(
+                                        rowSeats,
+                                        completeVerticalCols,
+                                        maxSeatNumber,
+                                      );
+                                      const labelOverlayIdx = bandOverlays.length
+                                        ? bandOverlays.reduce(
+                                          (bestIdx, overlay, idx, arr) => (
+                                            overlay.span > arr[bestIdx].span ? idx : bestIdx
+                                          ),
+                                          0,
+                                        )
+                                        : -1;
+
+                                      return (
+                                        <>
+                                          {bandOverlays.map((overlay, idx) => (
+                                            <div
+                                              key={`h-band-${overlay.gridStart}`}
+                                              className="seat-map-h-band aisle-band-complete aisle-band-horizontal-segment"
+                                              style={getHorizontalBandOverlayStyle(overlay)}
+                                            >
+                                              {idx === labelOverlayIdx && (
+                                                <span className="aisle-label-horizontal">{AISLE_LABEL}</span>
+                                              )}
+                                            </div>
+                                          ))}
+                                          {rowSeats.map((seat) => {
+                                            const isCrossing = completeVerticalCols.includes(seat.seatNumber);
+                                            return (
+                                              <div
+                                                key={seat.uuid}
+                                                className="seat-map-grid-cell relative z-[1]"
+                                                style={getGridColumnStyle(
+                                                  seatNumberToGridColumn(seat.seatNumber, maxSeatNumber),
+                                                )}
+                                              >
+                                                {renderAisleHitTarget(
+                                                  seat,
+                                                  isCrossing ? 'aisle-band-crossing z-0' : 'aisle-slot-ghost',
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                ) : (
+                                  <div
+                                    className="seat-map-grid seat-map-grid--admin seat-map-row-seats"
+                                    style={getSeatMapGridStyle(maxSeatNumber)}
+                                  >
+                                    {buildRowPlacedItems(
+                                      rowSeats,
+                                      maxSeatNumber,
+                                      (seat) => seat.customTypeName === 'AISLE'
+                                        || hasAisleSlot(aisleLayout, rowName, seat.seatNumber),
+                                    ).map((item) => (
+                                      <div
+                                        key={item.key}
+                                        className="seat-map-grid-cell relative z-[1]"
+                                        style={getGridColumnStyle(item.gridStart, item.span)}
+                                      >
+                                        {item.kind === 'couple-invalid-ghost' ? (
+                                          <div
+                                            className="seat-couple-invalid-ghost flex items-center justify-center text-[8px] font-bold font-mono text-yellow-400/90"
+                                            title={`Thiếu slot sofa đôi tại ${rowName}${item.seatNumber}`}
+                                            aria-hidden
+                                          >
+                                            ?
+                                          </div>
+                                        ) : item.kind === 'couple-invalid' ? (() => {
+                                          const seat = item.seats[0];
+                                          const isSelected = selectedSeatIds.has(seat.uuid);
+                                          return (
+                                            <button
+                                              type="button"
+                                              onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                              onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                              className={`rounded-md text-[9px] font-bold flex items-center justify-center font-mono transition-all duration-150 seat-item cursor-pointer seat-couple-invalid ${
+                                                isSelected ? 'ring-2 ring-yellow-300/70' : ''
+                                              }`}
+                                              title={`Sofa thiếu cặp — cần thêm 1 slot COUPLE liền kề (${rowName}${seat.seatNumber})`}
+                                            >
+                                              {`${rowName}${seat.seatNumber}`} !
+                                            </button>
+                                          );
+                                        })() : item.kind === 'couple' ? (() => {
+                                          const stConfig = SEAT_TYPE_CONFIGS.COUPLE;
+                                          const isSelected = isAnySeatSelected(item.seats, selectedSeatIds);
+                                          return (
+                                            <button
+                                              type="button"
+                                              onMouseDown={() => handleCoupleMouseDown(item.seats)}
+                                              onMouseEnter={() => handleCoupleMouseEnter(item.seats)}
+                                              className={`rounded-md text-[9px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item cursor-pointer ${
+                                                isSelected
+                                                  ? 'border-red-500 ring-1 ring-red-500/40 bg-red-500/20 text-white'
+                                                  : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
+                                              }`}
+                                              title={`${getCoupleLabel(rowName, item.seats)} (${stConfig.label})`}
+                                            >
+                                              {getCoupleLabel(rowName, item.seats)}
+                                            </button>
+                                          );
+                                        })() : (() => {
+                                          const seat = item.seats[0];
+                                          const isAisle = seat.customTypeName === 'AISLE'
+                                            || hasAisleSlot(aisleLayout, rowName, seat.seatNumber);
+                                          const isSelected = selectedSeatIds.has(seat.uuid);
+                                          const inCompleteVert = isInCompleteVerticalCol(
+                                            seat.seatNumber,
+                                            completeVerticalCols,
+                                          );
+                                          const isComplete = isAisle && isCompleteAisleCell(
+                                            rowName,
+                                            seat.seatNumber,
+                                            aisleLayout,
+                                            completeVerticalCols,
+                                            completeHorizontalRows,
+                                          );
+                                          const inCompleteDiag = completeDiagonalCells.has(
+                                            slotKey(rowName, seat.seatNumber),
+                                          );
+                                          const showDiagonalBand = isAisle
+                                            && aisleLabelAnchors.has(slotKey(rowName, seat.seatNumber))
+                                            && inCompleteDiag
+                                            && !inCompleteVert;
+
+                                          const verticalCell = inCompleteVert
+                                            ? renderVerticalAisleCellProps(
+                                              rowName,
+                                              seat.seatNumber,
+                                              rowNames,
+                                              aisleLayout,
+                                              completeHorizontalRows,
+                                              'admin',
+                                            )
+                                            : null;
+
+                                          if (verticalCell) {
+                                            return (
+                                              <button
+                                                type="button"
+                                                onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                                onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                                className={`aisle-slot-hit flex items-center justify-center ${verticalCell.cellClass} ${verticalCell.showLabel ? 'overflow-visible' : ''} ${isSelected ? 'is-selected' : ''}`}
+                                                title={`Lối đi ${rowName}${seat.seatNumber}`}
+                                              >
+                                                {verticalCell.showLabel && (
+                                                  <div
+                                                    className="aisle-label-vertical-wrap"
+                                                    style={verticalCell.labelStyle}
+                                                  >
+                                                    <span className="aisle-label-vertical">{AISLE_LABEL}</span>
+                                                  </div>
+                                                )}
+                                              </button>
+                                            );
+                                          }
+
+                                          if (isComplete && inCompleteDiag && !showDiagonalBand) {
+                                            return renderAisleHitTarget(seat, 'aisle-slot-ghost w-full h-full');
+                                          }
+
+                                          if (isComplete && showDiagonalBand) {
+                                            return (
+                                              <button
+                                                type="button"
+                                                onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                                onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                                className={`relative z-10 aisle-slot-hit ${isSelected ? 'is-selected' : ''}`}
+                                                title={`Lối đi ${rowName}${seat.seatNumber}`}
+                                              >
+                                                <div className="absolute inset-0 aisle-band-complete flex items-center justify-center pointer-events-none">
+                                                  <span className="aisle-label-horizontal text-[10px] tracking-[0.3em]">{AISLE_LABEL}</span>
+                                                </div>
+                                              </button>
+                                            );
+                                          }
+
+                                          if (isAisle) {
+                                            return (
+                                              <button
+                                                type="button"
+                                                onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                                onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                                className={`rounded-md flex items-center justify-center transition-all duration-150 seat-item cursor-pointer aisle-slot-incomplete ${isSelected ? 'ring-2 ring-red-500/40' : ''}`}
+                                                title={`Lối đi (chưa hoàn chỉnh) ${rowName}${seat.seatNumber}`}
+                                              />
+                                            );
+                                          }
+
+                                          const stConfig = SEAT_TYPE_CONFIGS[seat.customTypeName] || SEAT_TYPE_CONFIGS.STANDARD;
+                                          return (
+                                            <button
+                                              type="button"
+                                              onMouseDown={() => handleSeatMouseDown(seat.uuid, { rowName, seatNumber: seat.seatNumber })}
+                                              onMouseEnter={() => handleSeatMouseEnter(seat.uuid)}
+                                              className={`rounded-md text-[9px] font-bold flex items-center justify-center border font-mono transition-all duration-150 seat-item cursor-pointer ${
+                                                isSelected
+                                                  ? 'border-red-500 ring-1 ring-red-500/40 bg-red-500/20 text-white'
+                                                  : `${stConfig.color} ${stConfig.border} ${stConfig.text} ${stConfig.glow}`
+                                              }`}
+                                              title={`${rowName}${seat.seatNumber} (${stConfig.label}) - ${seat.status}`}
+                                            >
+                                              {`${rowName}${seat.seatNumber}`}
+                                            </button>
+                                          );
+                                        })()}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {/* Interactive Brush Toolbox / Legend */}
@@ -840,6 +1405,8 @@ const AdminCinemaRoomPage = () => {
                               >
                                 {isSelectTool ? (
                                   <MousePointer className="w-3.5 h-3.5 text-white shrink-0" />
+                                ) : key === 'AISLE' ? (
+                                  <div className={`h-3 w-3 rounded shrink-0 ${config.color}`} />
                                 ) : (
                                   <div className={`h-3 w-3 rounded shrink-0 border ${config.color} ${config.border}`} />
                                 )}
@@ -862,9 +1429,11 @@ const AdminCinemaRoomPage = () => {
                           <span>•</span>
                           <span>VIP: <strong className="text-red-400">{seatCounts.VIP || 0}</strong></span>
                           <span>•</span>
-                          <span>Đôi: <strong className="text-fuchsia-400">{seatCounts.COUPLE || 0}</strong></span>
+                          <span>Đôi: <strong className="text-fuchsia-400">{Math.floor(((seatCounts.COUPLE || 0) - invalidCoupleSeats.length) / 2)} sofa</strong> ({seatCounts.COUPLE || 0} slot{invalidCoupleSeats.length > 0 ? `, ${invalidCoupleSeats.length} lẻ` : ''})</span>
                           <span>•</span>
                           <span>Bảo Trì: <strong className="text-zinc-500">{seatCounts.BROKEN || 0}</strong></span>
+                          <span>•</span>
+                          <span>Lối đi: <strong className="text-slate-300">{seatCounts.AISLE || 0}</strong></span>
                         </div>
                       </>
                     )}
@@ -879,7 +1448,7 @@ const AdminCinemaRoomPage = () => {
                   </p>
                   <button 
                     type="button"
-                    onClick={() => fetchSeats(room.uuid)}
+                    onClick={() => fetchSeats(room.uuid, room?.layoutConfig)}
                     className="px-5 py-2 bg-[#0F1322] text-gray-305 border border-[#1A2238] rounded-lg font-bold text-xs uppercase hover:bg-[#1a2238]/40 hover:text-white transition cursor-pointer"
                   >
                     Hủy Bỏ Thay Đổi

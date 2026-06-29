@@ -15,6 +15,7 @@ public class ShowtimeSeatMapResponse {
     private Integer lockTtlSeconds;
     private OffsetDateTime serverTime;
     private List<RowItem> rows = new ArrayList<>();
+    private String layoutConfig;
 
     public ShowtimeSeatMapResponse() {
     }
@@ -30,7 +31,8 @@ public class ShowtimeSeatMapResponse {
     }
 
     public ShowtimeSeatMapResponse(UUID showtimeUuid, UUID cinemaRoomUuid, OffsetDateTime startTime,
-            OffsetDateTime endTime, Integer lockTtlSeconds, OffsetDateTime serverTime, List<RowItem> rows) {
+            OffsetDateTime endTime, Integer lockTtlSeconds, OffsetDateTime serverTime, List<RowItem> rows,
+            String layoutConfig) {
         this.showtimeUuid = showtimeUuid;
         this.cinemaRoomUuid = cinemaRoomUuid;
         this.startTime = startTime;
@@ -38,6 +40,12 @@ public class ShowtimeSeatMapResponse {
         this.lockTtlSeconds = lockTtlSeconds;
         this.serverTime = serverTime;
         this.rows = rows != null ? rows : new ArrayList<>();
+        this.layoutConfig = layoutConfig;
+    }
+
+    public ShowtimeSeatMapResponse(UUID showtimeUuid, UUID cinemaRoomUuid, OffsetDateTime startTime,
+            OffsetDateTime endTime, Integer lockTtlSeconds, OffsetDateTime serverTime, List<RowItem> rows) {
+        this(showtimeUuid, cinemaRoomUuid, startTime, endTime, lockTtlSeconds, serverTime, rows, null);
     }
 
     public UUID getShowtimeUuid() {
@@ -94,6 +102,14 @@ public class ShowtimeSeatMapResponse {
 
     public void setRows(List<RowItem> rows) {
         this.rows = rows;
+    }
+
+    public String getLayoutConfig() {
+        return layoutConfig;
+    }
+
+    public void setLayoutConfig(String layoutConfig) {
+        this.layoutConfig = layoutConfig;
     }
 
     public static class RowItem {

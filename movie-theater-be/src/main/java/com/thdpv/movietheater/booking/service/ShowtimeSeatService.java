@@ -104,6 +104,9 @@ public class ShowtimeSeatService {
         }
 
         int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        String layoutConfig = cinemaRoomRepository.findById(cinemaRoomUuid)
+                .map(CinemaRoom::getLayoutConfig)
+                .orElse(null);
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,
@@ -111,7 +114,8 @@ public class ShowtimeSeatService {
                 endTime,
                 lockTtlSeconds,
                 now,
-                responseRows);
+                responseRows,
+                layoutConfig);
     }
 
     @Transactional

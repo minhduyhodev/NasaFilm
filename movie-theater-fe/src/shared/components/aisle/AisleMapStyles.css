@@ -1,0 +1,134 @@
+.aisle-band-complete {
+  background: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.82) 100%
+  );
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.aisle-band-crossing {
+  background: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.82) 100%
+  );
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.aisle-band-horizontal-segment {
+  border-radius: 0.5rem;
+}
+
+.aisle-band-vertical-cell {
+  background: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.82) 100%
+  );
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.aisle-vcell-single {
+  border-radius: 0.5rem;
+}
+
+.aisle-vcell-top {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.aisle-vcell-bottom {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.aisle-vcell-join-up--admin {
+  margin-top: -8px;
+  position: relative;
+  z-index: 0;
+}
+
+.aisle-vcell-join-up--booking {
+  margin-top: -10px;
+  position: relative;
+  z-index: 0;
+}
+
+.seat-map-row-seats {
+  position: relative;
+  z-index: 1;
+}
+
+.aisle-label-horizontal {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: rgba(241, 245, 249, 0.94);
+  width: 100%;
+  text-align: center;
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.aisle-label-vertical-wrap {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aisle-label-vertical {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em;
+  color: rgba(241, 245, 249, 0.94);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+
+.aisle-slot-incomplete {
+  background: rgba(15, 23, 42, 0.35);
+  border: none;
+  border-radius: 0.375rem;
+}
+
+.aisle-slot-ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.aisle-slot-hit {
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+}
+
+.aisle-slot-hit:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.aisle-slot-hit.is-selected {
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35);
+}

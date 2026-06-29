@@ -50,6 +50,15 @@ export const SEAT_TYPE_CONFIGS = {
     accentBg: 'bg-zinc-900/20',
     accentBorder: 'border-zinc-700/40',
   },
+  AISLE: {
+    label: 'Lối đi',
+    color: 'bg-slate-900/50 hover:bg-slate-800/60',
+    border: 'border-transparent',
+    text: 'text-slate-300',
+    glow: '',
+    accentBg: 'bg-slate-900/25',
+    accentBorder: 'border-slate-500/40',
+  },
 };
 
 export const TEMPLATE_PRESETS = [
