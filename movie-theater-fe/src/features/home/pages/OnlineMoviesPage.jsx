@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
@@ -27,6 +27,8 @@ const OnlineMoviesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const resetCatalogPage = useCallback(() => setCurrentPage(1), []);
+
   const {
     titleSearch,
     setTitleSearch,
@@ -35,7 +37,7 @@ const OnlineMoviesPage = () => {
     filterPanelProps,
     handleClearSearch,
   } = useMovieListFilters({
-    onPageReset: () => setCurrentPage(1),
+    onPageReset: resetCatalogPage,
     includeShowtimeFilters: false,
   });
 

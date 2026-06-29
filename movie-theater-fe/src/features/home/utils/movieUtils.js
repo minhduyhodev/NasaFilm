@@ -1,6 +1,12 @@
 import { getVideoSource, getHeroBackgroundSource } from './videoSourceUtils';
 import { movieService } from '../../../shared/services/movieService';
+import { vodService } from '../../../shared/services/vodService';
 import { resolveMediaUrl, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import {
+  VOD_DEFAULT_DURATION_MINUTES,
+  VOD_PLAYBACK_STATE,
+  VOD_TICKET_WINDOW_MULTIPLIER,
+} from '../../../shared/constants/vod';
 
 export const isOnlineMovie = (movie) =>
   movie?.screeningMode === 'ONLINE_ONLY' || movie?.screeningMode === 'BOTH';
@@ -193,7 +199,15 @@ export const getOnlineActivatePath = (uuid) =>
 export const getOnlineWatchPath = (uuid) =>
   uuid ? `/watch/${uuid}` : '/online';
 
-import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
+/** Ước tính thời điểm hết hạn xem VOD (khớp BE: duration × lockMultiplier). */
+export const estimateVodExpiresAt = (
+  movie,
+  lockMultiplier = VOD_TICKET_WINDOW_MULTIPLIER
+) => {
+  const durationMinutes = movie?.durationMinutes || VOD_DEFAULT_DURATION_MINUTES;
+  const totalMinutes = Math.round(durationMinutes * lockMultiplier);
+  return new Date(Date.now() + totalMinutes * 60 * 1000).toISOString();
+};
 
 /** BE playbackState: NONE | WAITING_FOR_PLAY | STREAMING | EXPIRED */
 export const isVodTicketExpired = (vodStatus) =>
@@ -230,6 +244,50 @@ export const getOnlineActionLabel = (vodStatus, fallback = 'Xem ngay') => {
   }
   return fallback;
 };
+
+/** Phim online đã mua vé nhưng chưa bấm phát lần đầu (WAITING_FOR_PLAY). */
+export async function fetchPendingActivationMovies({ excludeMovieUuid, limit = 6 } = {}) {
+  try {
+    const bookings = await vodService.getMyBookings();
+    const movieUuids = [...new Set(
+      (bookings || [])
+        .filter((booking) => isOnlineBooking(booking) && booking.movieUuid)
+        .map((booking) => booking.movieUuid)
+    )].filter((uuid) => uuid && uuid !== excludeMovieUuid);
+
+    if (movieUuids.length === 0) return [];
+
+    const [statusBatch, summaries] = await Promise.all([
+      vodService.getStatusBatch(movieUuids),
+      movieService.getMovieSummaries(movieUuids),
+    ]);
+    const summaryByUuid = new Map((summaries || []).map((s) => [s.uuid, s]));
+
+    const pending = movieUuids
+      .map((movieUuid) => {
+        const status = statusBatch?.[movieUuid];
+        const summary = summaryByUuid.get(movieUuid);
+        if (
+          !status?.hasPurchased ||
+          status?.playbackState !== VOD_PLAYBACK_STATE.WAITING_FOR_PLAY ||
+          !summary
+        ) {
+          return null;
+        }
+        return mapApiMovies([{
+          uuid: summary.uuid,
+          title: summary.title,
+          ageRestriction: summary.ageRestriction,
+          primaryMediaUrl: summary.primaryMediaUrl,
+        }])[0];
+      })
+      .filter(Boolean);
+
+    return pending.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
 
 export const formatVodTicketCode = (bookingUuid) => {
   if (!bookingUuid) return '';

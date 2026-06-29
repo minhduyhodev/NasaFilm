@@ -39,9 +39,12 @@ function buildFilterDates() {
  * @param {{ onPageReset?: () => void, includeShowtimeFilters?: boolean }} options
  */
 export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true } = {}) {
+  const onPageResetRef = useRef(onPageReset);
+  onPageResetRef.current = onPageReset;
+
   const resetPage = useCallback(() => {
-    onPageReset?.();
-  }, [onPageReset]);
+    onPageResetRef.current?.();
+  }, []);
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [titleSearch, setTitleSearch] = useState('');
@@ -83,8 +86,8 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
   }, [titleSearch]);
 
   useEffect(() => {
-    resetPage();
-  }, [searchKeyword, resetPage]);
+    onPageResetRef.current?.();
+  }, [searchKeyword]);
 
   const trimmedKeyword = searchKeyword.trim();
   const hasAppliedFilters = Boolean(

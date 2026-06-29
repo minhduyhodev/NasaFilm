@@ -2,6 +2,16 @@
   background: #0a0a0a;
 }
 
+.watch-page-main {
+  padding-top: 6rem; /* h-20 navbar + khoảng thở */
+}
+
+@media (min-width: 768px) {
+  .watch-page-main {
+    padding-top: 6.5rem;
+  }
+}
+
 .watch-page-content {
   transition:
     opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
@@ -171,6 +181,20 @@
 
 .watch-timer-badge {
   @apply flex items-center gap-2 rounded-lg border border-red-500/25 bg-red-950/30 px-3 py-2 text-xs;
+}
+
+.watch-timer-badge--warning {
+  @apply border-amber-400/50 bg-amber-950/40;
+  animation: watch-timer-pulse 1.2s ease-in-out infinite;
+}
+
+.watch-page-topbar {
+  @apply relative z-10;
+}
+
+@keyframes watch-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
 }
 
 .watch-title {

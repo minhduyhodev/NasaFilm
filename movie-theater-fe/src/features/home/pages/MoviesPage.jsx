@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import MovieCard from '../components/MovieCard';
@@ -14,6 +14,7 @@ const MoviesPage = () => {
   const initialTab = searchParams.get('tab') || 'now-showing';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [currentPage, setCurrentPage] = useState(1);
+  const resetListPage = useCallback(() => setCurrentPage(1), []);
 
   const {
     titleSearch,
@@ -25,7 +26,7 @@ const MoviesPage = () => {
     resetAllFilters,
     handleClearSearch,
   } = useMovieListFilters({
-    onPageReset: () => setCurrentPage(1),
+    onPageReset: resetListPage,
     includeShowtimeFilters: activeTab !== 'coming-soon',
   });
 

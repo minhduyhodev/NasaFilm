@@ -6,7 +6,7 @@ import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, getMoviePosterUrl, getMovieGalleryImages, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, VOD_VERIFIED_KEY, isLiveTicket } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, VOD_VERIFIED_KEY, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
@@ -220,7 +220,6 @@ const TicketActivationPage = () => {
   }
 
   const poster = getMoviePosterUrl(movie);
-  const galleryImages = getMovieGalleryImages(movie, 4);
   const ticketActive = isVodTicketActive(vodStatus);
   const showBuyButton = canPurchaseVodTicket(vodStatus);
 
@@ -349,22 +348,6 @@ const TicketActivationPage = () => {
               </div>
               )}
 
-              {galleryImages.length > 0 && (
-              <div className={`grid gap-3 pt-2 ${galleryImages.length === 1 ? 'grid-cols-1 max-w-[180px]' : 'grid-cols-2 md:grid-cols-4'}`}>
-                {galleryImages.map((src) => (
-                  <div key={src} className="activation-gallery-item">
-                    <img
-                      src={src}
-                      alt={movie.title}
-                      className="h-full w-full object-cover opacity-80"
-                      onError={(e) => {
-                        e.currentTarget.closest('.activation-gallery-item')?.remove();
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              )}
             </div>
 
             {/* Right - How it works */}

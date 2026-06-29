@@ -31,6 +31,13 @@ const formatDuration = (mins) => {
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 };
 
+const getTitleSizeClass = (text) => {
+  const len = (text || "").trim().length;
+  if (len > 48) return "online-hero__title--long";
+  if (len > 28) return "online-hero__title--medium";
+  return "";
+};
+
 const buildSubtitle = (movie) => {
   if (!movie) {
     return "Thưởng thức phim 4K mọi lúc mọi nơi trên NASAFilm.";
@@ -68,6 +75,7 @@ const OnlineHero = ({
   const showLoadingSkeleton = isLoading && !displayMovie;
   const contentKey = displayMovie?.uuid || "fallback";
   const title = displayMovie?.title || "Phim Trực Tuyến";
+  const titleSizeClass = getTitleSizeClass(title);
   const subtitle = buildSubtitle(displayMovie);
 
   useEffect(() => {
@@ -317,7 +325,7 @@ const OnlineHero = ({
               transition={{ duration: 0.55, ease: "easeOut" }}
             >
               <motion.h1
-                className="online-hero__title"
+                className={`online-hero__title${titleSizeClass ? ` ${titleSizeClass}` : ""}`}
                 title={title}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}

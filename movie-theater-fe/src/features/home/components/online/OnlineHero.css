@@ -94,11 +94,12 @@
   flex: 1 1 auto;
   width: 100%;
   max-width: 64rem;
-  max-height: 100%;
   margin: 0 auto;
   padding: 2.5rem 3.5rem 5rem;
   text-align: center;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @media (min-width: 768px) {
@@ -119,30 +120,53 @@
 }
 
 .online-hero__title {
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-size: clamp(1.75rem, 5vw, 3.5rem);
   font-weight: 900;
   color: #fff;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  line-height: 1.08;
+  line-height: 1.12;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
   word-break: break-word;
+  text-wrap: balance;
+}
+
+.online-hero__title--medium {
+  font-size: clamp(1.5rem, 4vw, 2.75rem);
+  line-height: 1.14;
+}
+
+.online-hero__title--long {
+  font-size: clamp(1.25rem, 3.2vw, 2.25rem);
+  line-height: 1.16;
+  letter-spacing: -0.01em;
 }
 
 @media (min-width: 768px) {
   .online-hero__title {
-    font-size: clamp(3.5rem, 7vw, 5.5rem);
-    -webkit-line-clamp: 3;
+    font-size: clamp(2rem, 5.5vw, 4rem);
+  }
+
+  .online-hero__title--medium {
+    font-size: clamp(1.65rem, 4.2vw, 3rem);
+  }
+
+  .online-hero__title--long {
+    font-size: clamp(1.4rem, 3.4vw, 2.5rem);
   }
 }
 
 @media (min-width: 1280px) {
   .online-hero__title {
-    font-size: clamp(4rem, 5.5vw, 6rem);
+    font-size: clamp(2.25rem, 4.5vw, 4.25rem);
+  }
+
+  .online-hero__title--medium {
+    font-size: clamp(1.85rem, 3.8vw, 3.25rem);
+  }
+
+  .online-hero__title--long {
+    font-size: clamp(1.5rem, 3vw, 2.75rem);
   }
 }
 

@@ -96,6 +96,14 @@ public class SystemConfigService {
         return readDouble(self.getConfig().get("onlineWatchLockMultiplier"), 2.0, 0.5, 10.0);
     }
 
+    public boolean isOnlineCountdownEnabled() {
+        return readBoolean(self.getConfig().get("onlineCountdownEnabled"), true);
+    }
+
+    public int getOnlineCountdownWarningMinutes() {
+        return readInt(self.getConfig().get("onlineCountdownWarningMinutes"), 10, 1, 120);
+    }
+
     public int getPointsToCashValue() {
         return readInt(self.getConfig().get("pointsToCashValue"), 1000, 1, 1_000_000);
     }
@@ -185,6 +193,8 @@ public class SystemConfigService {
         defaults.put("seatLockMinutes", 5);
         defaults.put("maxSeatsPerBooking", 8);
         defaults.put("onlineWatchLockMultiplier", 2.0);
+        defaults.put("onlineCountdownEnabled", true);
+        defaults.put("onlineCountdownWarningMinutes", 10);
         defaults.put("pointsEarningRatio", 5);
         defaults.put("pointsToCashValue", 1000);
         defaults.put("sessionTimeoutHours", 24);
