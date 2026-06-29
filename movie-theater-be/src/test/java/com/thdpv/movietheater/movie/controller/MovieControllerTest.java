@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.movie.controller;
 
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -41,7 +40,6 @@ import org.springframework.data.domain.Pageable;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.nullable;
 
 @SpringBootTest
 @AutoConfigureMockMvc
