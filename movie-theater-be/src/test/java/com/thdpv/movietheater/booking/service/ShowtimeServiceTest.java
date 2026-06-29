@@ -45,6 +45,8 @@ import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class ShowtimeServiceTest {
@@ -66,6 +68,8 @@ public class ShowtimeServiceTest {
     @Mock
     private BookingNativeRepository bookingNativeRepository;
     @Mock
+    private CancellationRefundService cancellationRefundService;
+    @Mock
     private EntityManager entityManager;
 
     @InjectMocks
@@ -79,6 +83,8 @@ public class ShowtimeServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(showtimeService, "entityManager", entityManager);
+
         movieUuid = UUID.randomUUID();
         roomUuid = UUID.randomUUID();
 
@@ -203,6 +209,22 @@ public class ShowtimeServiceTest {
 
         assertTrue(moviesWithShowtimes.contains(hotMovieUuid), "Hot movie should have showtimes");
         assertTrue(moviesWithShowtimes.contains(lowMovieUuid), "Low-rated movie should also have showtimes");
+    }
+
+    @Test
+    void finishExpiredShowtimes_CleansLocksAndMarksFinished() {
+        Query mockQuery = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
+        when(mockQuery.setParameter(eq("now"), any(OffsetDateTime.class))).thenReturn(mockQuery);
+        when(showtimeRepository.markFinishedIfExpired(
+                any(OffsetDateTime.class), anyList(), eq(ShowtimeStatus.FINISHED))).thenReturn(2);
+
+        int count = showtimeService.finishExpiredShowtimes();
+
+        assertEquals(2, count);
+        verify(mockQuery).executeUpdate();
+        verify(showtimeRepository).markFinishedIfExpired(
+                any(OffsetDateTime.class), anyList(), eq(ShowtimeStatus.FINISHED));
     }
 
     private Movie buildMovie(UUID uuid, String title, double rating, String genreName) {

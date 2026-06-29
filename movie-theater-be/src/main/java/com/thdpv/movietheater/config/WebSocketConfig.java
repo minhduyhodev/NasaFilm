@@ -22,12 +22,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        var endpoint = registry.addEndpoint("/ws");
+        // Raw WebSocket (preferred by FE — avoids SockJS /info polling every reconnectDelay)
         if ("*".equals(frontendUrl)) {
-            endpoint.setAllowedOriginPatterns("*");
+            registry.addEndpoint("/ws").setAllowedOriginPatterns("*");
+            registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
         } else {
-            endpoint.setAllowedOrigins(frontendUrl);
+            registry.addEndpoint("/ws").setAllowedOrigins(frontendUrl);
+            registry.addEndpoint("/ws").setAllowedOrigins(frontendUrl).withSockJS();
         }
-        endpoint.withSockJS();
     }
 }

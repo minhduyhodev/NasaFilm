@@ -1218,4 +1218,9 @@ public class BookingService {
             throw new AppException(ErrorCode.CONFLICT, "Tài khoản đang được xem trên thiết bị khác");
         }
     }
+
+    @Transactional
+    public int revokeExpiredVodStreamTokens() {
+        return bookingJpaRepository.revokeExpiredVodStreamTokens(OffsetDateTime.now());
+    }
 }

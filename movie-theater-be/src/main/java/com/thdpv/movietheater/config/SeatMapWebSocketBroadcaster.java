@@ -21,7 +21,7 @@ public class SeatMapWebSocketBroadcaster {
         this.messagingTemplate = messagingTemplate;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onSeatMapUpdated(SeatMapUpdatedEvent event) {
         messagingTemplate.convertAndSend(
                 TOPIC_PREFIX + event.showtimeUuid() + "/seats",

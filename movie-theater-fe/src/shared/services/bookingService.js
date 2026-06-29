@@ -19,6 +19,22 @@ class BookingService {
     }
   }
 
+  async watchSeatMap(showtimeUuid) {
+    try {
+      await authService.api.post(`/api/showtimes/${showtimeUuid}/seat-map/watch`);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async unwatchSeatMap(showtimeUuid) {
+    try {
+      await authService.api.delete(`/api/showtimes/${showtimeUuid}/seat-map/watch`);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async syncSeatLocks(showtimeUuid, seatUuids) {
     try {
       const response = await authService.api.put('/api/showtimes/locks', {

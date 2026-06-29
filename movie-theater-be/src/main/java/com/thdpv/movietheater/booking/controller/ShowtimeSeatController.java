@@ -6,8 +6,10 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +42,18 @@ public class ShowtimeSeatController {
                 selectedSeatUuids,
                 userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{showtimeUuid}/seat-map/watch")
+    public ResponseEntity<ApiResponse<Void>> watchSeatMap(@PathVariable UUID showtimeUuid) {
+        showtimeSeatService.registerSeatMapWatch(showtimeUuid);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @DeleteMapping("/{showtimeUuid}/seat-map/watch")
+    public ResponseEntity<ApiResponse<Void>> unwatchSeatMap(@PathVariable UUID showtimeUuid) {
+        showtimeSeatService.unregisterSeatMapWatch(showtimeUuid);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PutMapping("/locks")

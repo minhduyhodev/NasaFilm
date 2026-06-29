@@ -59,6 +59,8 @@ public class SecurityConfig {
             "/api/cinemas",
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
+            "/api/showtimes/*/seat-map/watch",
+            "/api/showtimes/*/seat-map/watch",
             "/api/system-config",
             "/api/media/proxy",
             "/api/media/tmdb-status",

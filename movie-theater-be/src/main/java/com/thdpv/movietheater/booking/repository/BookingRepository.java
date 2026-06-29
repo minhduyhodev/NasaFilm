@@ -78,4 +78,16 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("expectedStatus") String expectedStatus,
             @Param("newStatus") String newStatus,
             @Param("now") OffsetDateTime now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Booking b
+            SET b.streamToken = null, b.updatedAt = :now
+            WHERE UPPER(b.bookingType) = 'ONLINE'
+              AND UPPER(b.status) = 'CONFIRMED'
+              AND b.firstPlayedAt IS NOT NULL
+              AND b.expiresAt <= :now
+              AND b.streamToken IS NOT NULL
+            """)
+    int revokeExpiredVodStreamTokens(@Param("now") OffsetDateTime now);
 }
