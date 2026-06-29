@@ -15,6 +15,7 @@ public class MovieReviewResponse {
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private boolean mine;
+    private boolean reportedByMe;
 
     public MovieReviewResponse() {
     }
@@ -97,5 +98,13 @@ public class MovieReviewResponse {
 
     public void setMine(boolean mine) {
         this.mine = mine;
+    }
+
+    public boolean isReportedByMe() {
+        return reportedByMe;
+    }
+
+    public void setReportedByMe(boolean reportedByMe) {
+        this.reportedByMe = reportedByMe;
     }
 }

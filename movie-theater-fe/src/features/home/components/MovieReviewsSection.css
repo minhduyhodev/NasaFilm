@@ -911,6 +911,19 @@
   cursor: not-allowed;
 }
 
+.movie-reviews-reported-badge {
+  margin-top: 0.15rem;
+  font-size: 0.58rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .movie-reviews-item-rating-value {
   font-size: 0.82rem;
   font-weight: 900;

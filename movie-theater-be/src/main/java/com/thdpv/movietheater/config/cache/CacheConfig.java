@@ -57,6 +57,7 @@ public class CacheConfig {
         perCache.put(CacheNames.UPCOMING_MOVIES, defaults.entryTtl(Duration.ofMinutes(moviesTtlMinutes)));
         perCache.put(CacheNames.GENRES, defaults.entryTtl(Duration.ofMinutes(genresTtlMinutes)));
         perCache.put(CacheNames.SYSTEM_CONFIG, defaults.entryTtl(Duration.ofMinutes(systemConfigTtlMinutes)));
+        perCache.put(CacheNames.MOVIE_REVIEW_SUMMARY, defaults.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaults)
@@ -76,7 +77,8 @@ public class CacheConfig {
                 CacheNames.MOVIES,
                 CacheNames.UPCOMING_MOVIES,
                 CacheNames.GENRES,
-                CacheNames.SYSTEM_CONFIG);
+                CacheNames.SYSTEM_CONFIG,
+                CacheNames.MOVIE_REVIEW_SUMMARY);
 
         manager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(moviesTtlMinutes, TimeUnit.MINUTES)
@@ -90,6 +92,11 @@ public class CacheConfig {
         manager.registerCustomCache(CacheNames.SYSTEM_CONFIG, Caffeine.newBuilder()
                 .expireAfterWrite(systemConfigTtlMinutes, TimeUnit.MINUTES)
                 .maximumSize(10)
+                .build());
+
+        manager.registerCustomCache(CacheNames.MOVIE_REVIEW_SUMMARY, Caffeine.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .maximumSize(200)
                 .build());
 
         return manager;

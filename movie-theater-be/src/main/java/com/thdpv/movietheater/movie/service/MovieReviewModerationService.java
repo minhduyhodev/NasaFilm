@@ -1,8 +1,13 @@
 package com.thdpv.movietheater.movie.service;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -13,11 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.cache.MovieReviewCacheEvictor;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieReviewReportRequest;
 import com.thdpv.movietheater.movie.dto.request.ResolveMovieReviewReportRequest;
-import com.thdpv.movietheater.movie.dto.request.UpdateMovieReviewStatusRequest;
-import com.thdpv.movietheater.movie.dto.response.AdminMovieReviewResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewReportResponse;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieReview;
@@ -38,18 +42,21 @@ public class MovieReviewModerationService {
     private final MovieRepository movieRepository;
     private final UserRepository userRepository;
     private final SystemConfigService systemConfigService;
+    private final MovieReviewCacheEvictor movieReviewCacheEvictor;
 
     public MovieReviewModerationService(
             MovieReviewRepository movieReviewRepository,
             MovieReviewReportRepository movieReviewReportRepository,
             MovieRepository movieRepository,
             UserRepository userRepository,
-            SystemConfigService systemConfigService) {
+            SystemConfigService systemConfigService,
+            MovieReviewCacheEvictor movieReviewCacheEvictor) {
         this.movieReviewRepository = movieReviewRepository;
         this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
         this.userRepository = userRepository;
         this.systemConfigService = systemConfigService;
+        this.movieReviewCacheEvictor = movieReviewCacheEvictor;
     }
 
     @Transactional
@@ -76,7 +83,13 @@ public class MovieReviewModerationService {
         report.setStatus(MovieReviewReportStatus.PENDING);
 
         MovieReviewReport saved = movieReviewReportRepository.save(report);
-        return toReportResponse(saved, review);
+        Map<UUID, User> usersById = new java.util.HashMap<>();
+        usersById.put(reporter.getId(), reporter);
+        userRepository.findById(review.getUserUuid()).ifPresent(user -> usersById.put(user.getId(), user));
+        Map<UUID, Movie> moviesById = movieRepository.findById(review.getMovieUuid())
+                .map(movie -> Map.of(movie.getUuid(), movie))
+                .orElse(Map.of());
+        return toReportResponse(saved, review, usersById, moviesById);
     }
 
     @Transactional(readOnly = true)
@@ -86,11 +99,44 @@ public class MovieReviewModerationService {
         Pageable safePageable = sanitizePageable(pageable);
         Page<MovieReviewReport> page = movieReviewReportRepository.searchReports(
                 filterStatus, filterExcludeStatus, safePageable);
-        var content = page.getContent().stream()
-                .map(report -> {
-                    MovieReview review = movieReviewRepository.findById(report.getReviewUuid()).orElse(null);
-                    return toReportResponse(report, review);
-                })
+
+        List<MovieReviewReport> reports = page.getContent();
+        if (reports.isEmpty()) {
+            return new PageImpl<>(List.of(), safePageable, page.getTotalElements());
+        }
+
+        Set<UUID> reviewUuids = reports.stream()
+                .map(MovieReviewReport::getReviewUuid)
+                .collect(Collectors.toSet());
+        Map<UUID, MovieReview> reviewsById = movieReviewRepository.findAllById(reviewUuids).stream()
+                .collect(Collectors.toMap(MovieReview::getUuid, Function.identity()));
+
+        Set<UUID> movieUuids = reviewsById.values().stream()
+                .map(MovieReview::getMovieUuid)
+                .collect(Collectors.toSet());
+        Map<UUID, Movie> moviesById = movieRepository.findAllById(movieUuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, Function.identity()));
+
+        Set<UUID> userUuids = new HashSet<>();
+        for (MovieReviewReport report : reports) {
+            userUuids.add(report.getReporterUuid());
+            if (report.getResolvedByUuid() != null) {
+                userUuids.add(report.getResolvedByUuid());
+            }
+            MovieReview review = reviewsById.get(report.getReviewUuid());
+            if (review != null) {
+                userUuids.add(review.getUserUuid());
+            }
+        }
+        Map<UUID, User> usersById = userRepository.findAllById(userUuids).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        var content = reports.stream()
+                .map(report -> toReportResponse(
+                        report,
+                        reviewsById.get(report.getReviewUuid()),
+                        usersById,
+                        moviesById))
                 .toList();
         return new PageImpl<>(content, safePageable, page.getTotalElements());
     }
@@ -116,13 +162,31 @@ public class MovieReviewModerationService {
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
 
         String action = request.getAction().trim().toUpperCase();
+        OffsetDateTime now = OffsetDateTime.now();
         if ("HIDE_REVIEW".equals(action)) {
             review.setStatus(MovieReviewStatus.HIDDEN);
             review.setModeratedByUuid(moderatorUuid);
-            review.setModeratedAt(OffsetDateTime.now());
+            review.setModeratedAt(now);
             review.setModerationNote(request.getNote());
             movieReviewRepository.save(review);
-            report.setStatus(MovieReviewReportStatus.RESOLVED);
+            movieReviewCacheEvictor.evictSummary(review.getMovieUuid());
+
+            List<MovieReviewReport> pendingReports = movieReviewReportRepository.findByReviewUuidAndStatus(
+                    review.getUuid(), MovieReviewReportStatus.PENDING);
+            for (MovieReviewReport pending : pendingReports) {
+                pending.setStatus(MovieReviewReportStatus.RESOLVED);
+                pending.setResolvedByUuid(moderatorUuid);
+                pending.setResolvedAt(now);
+                if (pending.getUuid().equals(reportUuid)) {
+                    pending.setResolutionNote(request.getNote());
+                }
+            }
+            movieReviewReportRepository.saveAll(pendingReports);
+            MovieReviewReport resolved = pendingReports.stream()
+                    .filter(item -> item.getUuid().equals(reportUuid))
+                    .findFirst()
+                    .orElse(report);
+            return toReportResponse(resolved, review, Map.of(), Map.of());
         } else if ("DISMISS".equals(action)) {
             report.setStatus(MovieReviewReportStatus.REJECTED);
         } else {
@@ -130,55 +194,11 @@ public class MovieReviewModerationService {
         }
 
         report.setResolvedByUuid(moderatorUuid);
-        report.setResolvedAt(OffsetDateTime.now());
+        report.setResolvedAt(now);
         report.setResolutionNote(request.getNote());
 
         MovieReviewReport saved = movieReviewReportRepository.save(report);
-        return toReportResponse(saved, review);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<AdminMovieReviewResponse> listReviews(
-            UUID movieUuid,
-            String status,
-            String query,
-            Pageable pageable) {
-        MovieReviewStatus filterStatus = parseReviewStatus(status);
-        String normalizedQuery = query != null && !query.isBlank() ? query.trim() : null;
-        Pageable safePageable = sanitizePageable(pageable);
-
-        Page<MovieReview> page = movieReviewRepository.searchAdminReviews(
-                movieUuid, filterStatus, normalizedQuery, safePageable);
-        var content = page.getContent().stream()
-                .map(this::toAdminReviewResponse)
-                .toList();
-        return new PageImpl<>(content, safePageable, page.getTotalElements());
-    }
-
-    @Transactional
-    public AdminMovieReviewResponse updateReviewStatus(
-            UUID reviewUuid,
-            UpdateMovieReviewStatusRequest request,
-            UUID moderatorUuid) {
-        MovieReview review = movieReviewRepository.findById(reviewUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
-
-        MovieReviewStatus nextStatus = MovieReviewStatus.valueOf(request.getStatus().trim().toUpperCase());
-        review.setStatus(nextStatus);
-        review.setModeratedByUuid(moderatorUuid);
-        review.setModeratedAt(OffsetDateTime.now());
-        review.setModerationNote(request.getNote());
-
-        MovieReview saved = movieReviewRepository.save(review);
-        return toAdminReviewResponse(saved);
-    }
-
-    @Transactional
-    public void deleteReview(UUID reviewUuid) {
-        if (!movieReviewRepository.existsById(reviewUuid)) {
-            throw new AppException(ErrorCode.REVIEW_NOT_FOUND);
-        }
-        movieReviewRepository.deleteById(reviewUuid);
+        return toReportResponse(saved, review, Map.of(), Map.of());
     }
 
     @Transactional(readOnly = true)
@@ -228,40 +248,11 @@ public class MovieReviewModerationService {
         }
     }
 
-    private MovieReviewStatus parseReviewStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return MovieReviewStatus.valueOf(status.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai danh gia khong hop le");
-        }
-    }
-
-    private AdminMovieReviewResponse toAdminReviewResponse(MovieReview review) {
-        AdminMovieReviewResponse response = new AdminMovieReviewResponse();
-        response.setUuid(review.getUuid());
-        response.setMovieUuid(review.getMovieUuid());
-        response.setUserUuid(review.getUserUuid());
-        response.setRating(review.getRating());
-        response.setComment(review.getComment());
-        response.setStatus(review.getStatus());
-        response.setModerationNote(review.getModerationNote());
-        response.setCreatedAt(review.getCreatedAt());
-        response.setUpdatedAt(review.getUpdatedAt());
-        response.setReportCount(movieReviewReportRepository.countByReviewUuid(review.getUuid()));
-
-        movieRepository.findById(review.getMovieUuid()).ifPresent(movie -> response.setMovieTitle(movie.getTitle()));
-        userRepository.findById(review.getUserUuid()).ifPresent(user -> {
-            response.setUserFullName(user.getFullName());
-            response.setUserAvatarUrl(user.getAvatarUrl());
-        });
-
-        return response;
-    }
-
-    private MovieReviewReportResponse toReportResponse(MovieReviewReport report, MovieReview review) {
+    private MovieReviewReportResponse toReportResponse(
+            MovieReviewReport report,
+            MovieReview review,
+            Map<UUID, User> usersById,
+            Map<UUID, Movie> moviesById) {
         MovieReviewReportResponse response = new MovieReviewReportResponse();
         response.setUuid(report.getUuid());
         response.setReviewUuid(report.getReviewUuid());
@@ -273,12 +264,22 @@ public class MovieReviewModerationService {
         response.setResolvedAt(report.getResolvedAt());
         response.setCreatedAt(report.getCreatedAt());
 
-        userRepository.findById(report.getReporterUuid()).ifPresent(user ->
-                response.setReporterFullName(user.getFullName()));
+        User reporter = usersById.get(report.getReporterUuid());
+        if (reporter == null && report.getReporterUuid() != null) {
+            reporter = userRepository.findById(report.getReporterUuid()).orElse(null);
+        }
+        if (reporter != null) {
+            response.setReporterFullName(reporter.getFullName());
+        }
 
         if (report.getResolvedByUuid() != null) {
-            userRepository.findById(report.getResolvedByUuid()).ifPresent(user ->
-                    response.setResolvedByFullName(user.getFullName()));
+            User resolver = usersById.get(report.getResolvedByUuid());
+            if (resolver == null) {
+                resolver = userRepository.findById(report.getResolvedByUuid()).orElse(null);
+            }
+            if (resolver != null) {
+                response.setResolvedByFullName(resolver.getFullName());
+            }
         }
 
         if (review != null) {
@@ -287,10 +288,21 @@ public class MovieReviewModerationService {
             response.setReviewRating(review.getRating());
             response.setReviewComment(review.getComment());
 
-            movieRepository.findById(review.getMovieUuid()).ifPresent(movie ->
-                    response.setMovieTitle(movie.getTitle()));
-            userRepository.findById(review.getUserUuid()).ifPresent(user ->
-                    response.setReviewUserFullName(user.getFullName()));
+            Movie movie = moviesById.get(review.getMovieUuid());
+            if (movie == null) {
+                movie = movieRepository.findById(review.getMovieUuid()).orElse(null);
+            }
+            if (movie != null) {
+                response.setMovieTitle(movie.getTitle());
+            }
+
+            User reviewUser = usersById.get(review.getUserUuid());
+            if (reviewUser == null) {
+                reviewUser = userRepository.findById(review.getUserUuid()).orElse(null);
+            }
+            if (reviewUser != null) {
+                response.setReviewUserFullName(reviewUser.getFullName());
+            }
         }
 
         return response;

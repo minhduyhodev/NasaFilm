@@ -262,6 +262,11 @@ const MovieReviewsSection = ({
     try {
       await movieReviewService.reportReview(movieUuid, review.uuid, result.value.trim());
       notificationService.success('Đã gửi báo cáo. Admin sẽ xem xét sớm nhất.');
+      setReviews((prev) =>
+        prev.map((item) =>
+          item.uuid === review.uuid ? { ...item, reportedByMe: true } : item,
+        ),
+      );
     } catch (error) {
       notificationService.error(error.message || 'Không thể gửi báo cáo.');
     } finally {
@@ -581,7 +586,7 @@ const MovieReviewsSection = ({
                               {review.rating}.0
                             </span>
                             <StarRating value={review.rating} readOnly size={13} />
-                            {!review.mine && isAuthenticated && (
+                            {!review.mine && isAuthenticated && !review.reportedByMe && (
                               <button
                                 type="button"
                                 className="movie-reviews-report-btn"
@@ -592,6 +597,11 @@ const MovieReviewsSection = ({
                               >
                                 <Flag size={14} />
                               </button>
+                            )}
+                            {!review.mine && isAuthenticated && review.reportedByMe && (
+                              <span className="movie-reviews-reported-badge" title="Bạn đã báo cáo đánh giá này">
+                                Đã báo cáo
+                              </span>
                             )}
                             {review.mine && (
                               <button

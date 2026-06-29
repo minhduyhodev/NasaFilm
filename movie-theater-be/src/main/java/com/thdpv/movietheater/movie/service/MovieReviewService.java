@@ -1,8 +1,13 @@
 package com.thdpv.movietheater.movie.service;
 
-import java.util.LinkedHashMap;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -14,14 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.cache.MovieReviewCacheEvictor;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieReviewRequest;
 import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewSummaryResponse;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieReview;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.repository.MovieReviewReportRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -30,25 +38,35 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 public class MovieReviewService {
 
     private static final String REVIEW_ELIGIBILITY_MESSAGE =
-            "Chi khach hang da mua ve rap hoac ve xem online moi co the danh gia phim nay.";
+            "Chi khach hang da mua ve rap hoac ve online moi co the danh gia phim nay.";
+    private static final Duration REVIEW_COOLDOWN = Duration.ofHours(24);
 
     private final MovieReviewRepository movieReviewRepository;
+    private final MovieReviewReportRepository movieReviewReportRepository;
     private final MovieRepository movieRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final SystemConfigService systemConfigService;
+    private final MovieReviewStatsService movieReviewStatsService;
+    private final MovieReviewCacheEvictor movieReviewCacheEvictor;
 
     public MovieReviewService(
             MovieReviewRepository movieReviewRepository,
+            MovieReviewReportRepository movieReviewReportRepository,
             MovieRepository movieRepository,
             UserRepository userRepository,
             BookingRepository bookingRepository,
-            SystemConfigService systemConfigService) {
+            SystemConfigService systemConfigService,
+            MovieReviewStatsService movieReviewStatsService,
+            MovieReviewCacheEvictor movieReviewCacheEvictor) {
         this.movieReviewRepository = movieReviewRepository;
+        this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.systemConfigService = systemConfigService;
+        this.movieReviewStatsService = movieReviewStatsService;
+        this.movieReviewCacheEvictor = movieReviewCacheEvictor;
     }
 
     @Transactional(readOnly = true)
@@ -60,8 +78,13 @@ public class MovieReviewService {
 
         Page<MovieReview> reviewPage = movieReviewRepository.findByMovieUuidAndStatusOrderByCreatedAtDesc(
                 movieUuid, MovieReviewStatus.VISIBLE, safePageable);
-        var content = reviewPage.getContent().stream()
-                .map(review -> toResponse(review, currentUserUuid))
+        List<MovieReview> reviews = reviewPage.getContent();
+
+        Map<UUID, User> usersById = loadUsersById(reviews.stream().map(MovieReview::getUserUuid).collect(Collectors.toSet()));
+        Set<UUID> reportedReviewIds = loadReportedReviewIds(currentUserUuid, reviews);
+
+        var content = reviews.stream()
+                .map(review -> toResponse(review, currentUserUuid, usersById, reportedReviewIds))
                 .toList();
         return new PageImpl<>(content, safePageable, reviewPage.getTotalElements());
     }
@@ -70,15 +93,12 @@ public class MovieReviewService {
     public MovieReviewSummaryResponse getSummary(UUID movieUuid, UUID currentUserUuid) {
         ensureMovieVisible(movieUuid);
 
-        MovieReviewSummaryResponse summary = new MovieReviewSummaryResponse();
-        long total = movieReviewRepository.countByMovieUuidAndStatus(movieUuid, MovieReviewStatus.VISIBLE);
-        summary.setTotalReviews(total);
+        MovieReviewStatsResponse stats = movieReviewStatsService.getStats(movieUuid);
 
-        double average = total == 0
-                ? 0
-                : movieReviewRepository.averageRatingByMovieUuidAndStatus(movieUuid, MovieReviewStatus.VISIBLE);
-        summary.setAverageRating(Math.round(average * 10.0) / 10.0);
-        summary.setRatingDistribution(buildDistribution(movieUuid));
+        MovieReviewSummaryResponse summary = new MovieReviewSummaryResponse();
+        summary.setTotalReviews(stats.getTotalReviews());
+        summary.setAverageRating(stats.getAverageRating());
+        summary.setRatingDistribution(stats.getRatingDistribution());
 
         if (currentUserUuid != null) {
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
@@ -102,6 +122,8 @@ public class MovieReviewService {
             throw new AppException(ErrorCode.REVIEW_PURCHASE_REQUIRED, REVIEW_ELIGIBILITY_MESSAGE);
         }
 
+        assertReviewCooldown(movieUuid, user.getId());
+
         String normalizedComment = normalizeComment(request.getComment());
 
         MovieReview review = new MovieReview();
@@ -112,7 +134,8 @@ public class MovieReviewService {
         review.setStatus(MovieReviewStatus.VISIBLE);
 
         MovieReview saved = movieReviewRepository.save(review);
-        return toResponse(saved, user.getId());
+        movieReviewCacheEvictor.evictSummary(movieUuid);
+        return toResponse(saved, user.getId(), Map.of(user.getId(), user), Set.of());
     }
 
     @Transactional
@@ -123,6 +146,32 @@ public class MovieReviewService {
                 .findByUuidAndMovieUuidAndUserUuid(reviewUuid, movieUuid, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
         movieReviewRepository.delete(review);
+        movieReviewCacheEvictor.evictSummary(movieUuid);
+    }
+
+    private void assertReviewCooldown(UUID movieUuid, UUID userUuid) {
+        OffsetDateTime cooldownSince = OffsetDateTime.now().minus(REVIEW_COOLDOWN);
+        if (movieReviewRepository.existsByMovieUuidAndUserUuidAndCreatedAtAfter(
+                movieUuid, userUuid, cooldownSince)) {
+            throw new AppException(ErrorCode.REVIEW_COOLDOWN_ACTIVE);
+        }
+    }
+
+    private Map<UUID, User> loadUsersById(Set<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+    }
+
+    private Set<UUID> loadReportedReviewIds(UUID currentUserUuid, List<MovieReview> reviews) {
+        if (currentUserUuid == null || reviews.isEmpty()) {
+            return Set.of();
+        }
+        Set<UUID> reviewIds = reviews.stream().map(MovieReview::getUuid).collect(Collectors.toSet());
+        Set<UUID> reported = movieReviewReportRepository.findReportedReviewUuids(currentUserUuid, reviewIds);
+        return reported != null ? reported : Set.of();
     }
 
     private boolean hasConfirmedPurchase(UUID userUuid, UUID movieUuid) {
@@ -145,22 +194,11 @@ public class MovieReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private Map<Integer, Long> buildDistribution(UUID movieUuid) {
-        Map<Integer, Long> distribution = new LinkedHashMap<>();
-        for (int star = 5; star >= 1; star--) {
-            distribution.put(star, 0L);
-        }
-        for (Object[] row : movieReviewRepository.countByRatingGroupAndStatus(movieUuid, MovieReviewStatus.VISIBLE)) {
-            int rating = ((Number) row[0]).intValue();
-            long count = ((Number) row[1]).longValue();
-            if (rating >= 1 && rating <= 5) {
-                distribution.put(rating, count);
-            }
-        }
-        return distribution;
-    }
-
-    private MovieReviewResponse toResponse(MovieReview review, UUID currentUserUuid) {
+    private MovieReviewResponse toResponse(
+            MovieReview review,
+            UUID currentUserUuid,
+            Map<UUID, User> usersById,
+            Set<UUID> reportedReviewIds) {
         MovieReviewResponse response = new MovieReviewResponse();
         response.setUuid(review.getUuid());
         response.setMovieUuid(review.getMovieUuid());
@@ -170,11 +208,13 @@ public class MovieReviewService {
         response.setCreatedAt(review.getCreatedAt());
         response.setUpdatedAt(review.getUpdatedAt());
         response.setMine(currentUserUuid != null && currentUserUuid.equals(review.getUserUuid()));
+        response.setReportedByMe(reportedReviewIds.contains(review.getUuid()));
 
-        userRepository.findById(review.getUserUuid()).ifPresent(user -> {
+        User user = usersById.get(review.getUserUuid());
+        if (user != null) {
             response.setUserFullName(user.getFullName());
             response.setUserAvatarUrl(user.getAvatarUrl());
-        });
+        }
 
         return response;
     }

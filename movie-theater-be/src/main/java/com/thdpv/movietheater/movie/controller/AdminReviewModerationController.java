@@ -6,12 +6,10 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,11 +20,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
-import com.thdpv.movietheater.movie.dto.request.CreateMovieReviewReportRequest;
 import com.thdpv.movietheater.movie.dto.request.ResolveMovieReviewReportRequest;
-import com.thdpv.movietheater.movie.dto.request.UpdateMovieReviewStatusRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateReviewBannedWordsRequest;
-import com.thdpv.movietheater.movie.dto.response.AdminMovieReviewResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewReportResponse;
 import com.thdpv.movietheater.movie.service.MovieReviewModerationService;
 import com.thdpv.movietheater.user.entity.User;
@@ -72,33 +67,6 @@ public class AdminReviewModerationController {
         MovieReviewReportResponse response = movieReviewModerationService.resolveReport(
                 reportUuid, request, moderatorUuid);
         return ResponseEntity.ok(ApiResponse.success(response, "Da xu ly don bao cao"));
-    }
-
-    @GetMapping("/reviews")
-    public ResponseEntity<ApiResponse<Page<AdminMovieReviewResponse>>> listReviews(
-            @RequestParam(value = "movieUuid", required = false) UUID movieUuid,
-            @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "query", required = false) String query,
-            @PageableDefault(page = 0, size = 10) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                movieReviewModerationService.listReviews(movieUuid, status, query, pageable)));
-    }
-
-    @PutMapping("/reviews/{reviewUuid}/status")
-    public ResponseEntity<ApiResponse<AdminMovieReviewResponse>> updateReviewStatus(
-            @PathVariable UUID reviewUuid,
-            @Valid @RequestBody UpdateMovieReviewStatusRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        UUID moderatorUuid = resolveUserUuid(userDetails);
-        AdminMovieReviewResponse response = movieReviewModerationService.updateReviewStatus(
-                reviewUuid, request, moderatorUuid);
-        return ResponseEntity.ok(ApiResponse.success(response, "Da cap nhat trang thai danh gia"));
-    }
-
-    @DeleteMapping("/reviews/{reviewUuid}")
-    public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable UUID reviewUuid) {
-        movieReviewModerationService.deleteReview(reviewUuid);
-        return ResponseEntity.ok(ApiResponse.success(null, "Da xoa danh gia"));
     }
 
     @GetMapping("/banned-words")

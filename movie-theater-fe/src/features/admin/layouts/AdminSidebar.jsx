@@ -92,6 +92,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     loadPendingFeedbackReportCount();
   }, [loadPendingRefundCount, loadPendingFeedbackReportCount, location.pathname]);
 
+  useEffect(() => {
+    const refreshReportBadge = () => loadPendingFeedbackReportCount();
+    window.addEventListener('admin-review-reports-changed', refreshReportBadge);
+    return () => window.removeEventListener('admin-review-reports-changed', refreshReportBadge);
+  }, [loadPendingFeedbackReportCount]);
+
   const enableRefundRealtime =
     location.pathname.startsWith('/admin/refunds') ||
     location.pathname.startsWith('/admin/bookings');

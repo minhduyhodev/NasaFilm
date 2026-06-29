@@ -1,6 +1,9 @@
 package com.thdpv.movietheater.movie.repository;
 
+import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -25,6 +28,9 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
 
     long countByMovieUuidAndStatus(UUID movieUuid, MovieReviewStatus status);
 
+    boolean existsByMovieUuidAndUserUuidAndCreatedAtAfter(
+            UUID movieUuid, UUID userUuid, OffsetDateTime createdAt);
+
     @Query("select coalesce(avg(r.rating), 0) from MovieReview r where r.movieUuid = :movieUuid and r.status = :status")
     double averageRatingByMovieUuidAndStatus(
             @Param("movieUuid") UUID movieUuid,
@@ -34,20 +40,4 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
     java.util.List<Object[]> countByRatingGroupAndStatus(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status);
-
-    @Query("""
-            select r from MovieReview r
-            where (:movieUuid is null or r.movieUuid = :movieUuid)
-              and (:status is null or r.status = :status)
-              and (
-                    :query is null
-                    or lower(coalesce(r.comment, '')) like lower(concat('%', :query, '%'))
-                  )
-            order by r.createdAt desc
-            """)
-    Page<MovieReview> searchAdminReviews(
-            @Param("movieUuid") UUID movieUuid,
-            @Param("status") MovieReviewStatus status,
-            @Param("query") String query,
-            Pageable pageable);
 }
