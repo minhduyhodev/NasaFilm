@@ -57,6 +57,16 @@ public class ShowtimeSeatService {
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatMapEventPublisher seatMapEventPublisher;
     private final ShowtimeCapacityService showtimeCapacityService;
+    private final SeatMapWatchRegistry seatMapWatchRegistry;
+
+    public void registerSeatMapWatch(UUID showtimeUuid) {
+        bookingRepository.ensureShowtimeExists(showtimeUuid);
+        seatMapWatchRegistry.register(showtimeUuid);
+    }
+
+    public void unregisterSeatMapWatch(UUID showtimeUuid) {
+        seatMapWatchRegistry.unregister(showtimeUuid);
+    }
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {

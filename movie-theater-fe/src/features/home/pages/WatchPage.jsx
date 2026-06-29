@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Clock,
@@ -11,22 +11,16 @@ import {
 } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
-import { filterOnlineMovies, getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getOnlineMoviePath, VOD_VERIFIED_KEY } from '../utils/movieUtils';
-import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
+import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, VOD_VERIFIED_KEY, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import { useHomeChrome } from '../context/HomeChromeContext';
 import './WatchPage.css';
-
-const formatDuration = (mins) => {
-  if (!mins) return '';
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-};
 
 const getPosterRaw = (movie) =>
   movie?.medias?.find((m) => m.isPrimary)?.mediaUrl ||
@@ -37,6 +31,9 @@ const getPosterRaw = (movie) =>
 
 const getBackdropRaw = (movie) =>
   movie?.medias?.find((m) => m.mediaType === 'BACKDROP')?.mediaUrl || getPosterRaw(movie);
+
+const resolvePlayExpiresAt = (playSession, movie, lockMultiplier) =>
+  playSession?.expiresAt || estimateVodExpiresAt(movie, lockMultiplier);
 
 const WatchPage = () => {
   const { id } = useParams();
@@ -60,11 +57,11 @@ const WatchPage = () => {
   const [videoError, setVideoError] = useState('');
   const [directUrlIndex, setDirectUrlIndex] = useState(0);
   const [remainingTimeText, setRemainingTimeText] = useState('');
+  const [countdownWarning, setCountdownWarning] = useState(false);
+  const [countdownSettings, setCountdownSettings] = useState(() => getOnlineCountdownSettings());
+  const [vodExpiresAt, setVodExpiresAt] = useState(null);
   const heartbeatIntervalRef = useRef(null);
   const cinemaUiTimerRef = useRef(null);
-
-  const sidebarUuids = useMemo(() => upNext.map((m) => m.uuid), [upNext]);
-  const { getOnlinePath } = useOnlineVodRoutes(sidebarUuids);
 
   const getFullscreenRect = () => ({
     top: 0,
@@ -196,21 +193,29 @@ const WatchPage = () => {
 
   useEffect(() => {
     let active = true;
+    systemConfigService.getConfig()
+      .then((config) => {
+        if (active) setCountdownSettings(getOnlineCountdownSettings(config));
+      })
+      .catch(() => {
+        if (active) setCountdownSettings(getOnlineCountdownSettings());
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     const initializeStream = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const [movieDetail, moviesData] = await Promise.all([
+        const [movieDetail, pendingMovies] = await Promise.all([
           movieService.getMovieDetail(id),
-          movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 12 }),
+          fetchPendingActivationMovies({ excludeMovieUuid: id, limit: 6 }),
         ]);
         if (!active) return;
         setMovie(movieDetail);
-
-        const onlineList = filterOnlineMovies(moviesData?.content || []).filter(
-          (m) => m.uuid !== id
-        );
-        setUpNext(onlineList.slice(0, 3));
+        setUpNext(pendingMovies);
 
         const status = await vodService.getStatus(id);
         if (!active) return;
@@ -219,6 +224,9 @@ const WatchPage = () => {
         }
         if (status.playbackState === 'EXPIRED') {
           throw new Error('Vé xem phim trực tuyến của bạn đã hết hạn.');
+        }
+        if (status.expiresAt) {
+          setVodExpiresAt(status.expiresAt);
         }
 
         const resolvedStreamUrl = getMovieStreamingUrl(movieDetail);
@@ -231,7 +239,17 @@ const WatchPage = () => {
         if (canWatchOnlineDirectly(status)) {
           const playSession = await vodService.activatePlay(id);
           if (!active) return;
-          setStreamData({ ...playSession, streamingUrl: playSession.streamingUrl || resolvedStreamUrl.trim() });
+          const expiresAt = resolvePlayExpiresAt(
+            playSession,
+            movieDetail,
+            countdownSettings.lockMultiplier
+          );
+          setStreamData({
+            ...playSession,
+            streamingUrl: playSession.streamingUrl || resolvedStreamUrl.trim(),
+            expiresAt,
+          });
+          setVodExpiresAt(expiresAt);
           setPreviewReady(false);
           setIsPlaying(true);
           return;
@@ -284,30 +302,54 @@ const WatchPage = () => {
   }, [streamData, id, navigate]);
 
   useEffect(() => {
-    if (!streamData?.expiresAt) return;
+    let expiresAt = streamData?.expiresAt || vodExpiresAt;
+    if (!expiresAt && isPlaying && streamData?.streamToken && movie) {
+      expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
+      setVodExpiresAt(expiresAt);
+      setStreamData((prev) => (prev ? { ...prev, expiresAt } : prev));
+    }
+    if (!expiresAt || !countdownSettings.enabled) {
+      setRemainingTimeText('');
+      setCountdownWarning(false);
+      return;
+    }
 
-    const timer = setInterval(() => {
-      const diff = new Date(streamData.expiresAt).getTime() - Date.now();
+    const warningMs = countdownSettings.warningMinutes * 60 * 1000;
+
+    const tick = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
       if (diff <= 0) {
-        clearInterval(timer);
         notificationService.error('Thời hạn xem vé trực tuyến đã kết thúc.');
         navigate(`/movie/${id}?from=online`);
-      } else {
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        setRemainingTimeText(
-          `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-        );
+        return false;
       }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setRemainingTimeText(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      );
+      setCountdownWarning(diff <= warningMs);
+      return true;
+    };
+
+    if (!tick()) return undefined;
+
+    const timer = setInterval(() => {
+      if (!tick()) clearInterval(timer);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [streamData, id, navigate]);
+  }, [streamData, vodExpiresAt, countdownSettings, isPlaying, movie, id, navigate]);
 
   const handlePlay = async () => {
     setVideoError('');
     if (streamData?.streamToken) {
+      if (!streamData.expiresAt && !vodExpiresAt && movie) {
+        const expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
+        setVodExpiresAt(expiresAt);
+        setStreamData((prev) => ({ ...prev, expiresAt }));
+      }
       setIsPlaying(true);
       return;
     }
@@ -320,8 +362,18 @@ const WatchPage = () => {
       if (!resolvedStreamUrl?.trim()) {
         throw new Error('Phim chưa được cấu hình link phát trực tuyến.');
       }
+      const expiresAt = resolvePlayExpiresAt(
+        playSession,
+        movie,
+        countdownSettings.lockMultiplier
+      );
       sessionStorage.removeItem(VOD_VERIFIED_KEY(id));
-      setStreamData({ ...playSession, streamingUrl: resolvedStreamUrl.trim() });
+      setStreamData({
+        ...playSession,
+        streamingUrl: resolvedStreamUrl.trim(),
+        expiresAt,
+      });
+      setVodExpiresAt(expiresAt);
       setPreviewReady(false);
       setIsPlaying(true);
     } catch (err) {
@@ -424,6 +476,8 @@ const WatchPage = () => {
     };
   }, [isPlaying, videoSource.type, videoSource.url, streamUrl]);
 
+  const watchSessionReady = Boolean(movie && (streamData || previewReady));
+
   if (isLoading) {
     return (
       <div className="watch-page min-h-screen flex flex-col items-center justify-center text-white">
@@ -435,7 +489,7 @@ const WatchPage = () => {
     );
   }
 
-  if (error || !movie || (!streamData && !previewReady)) {
+  if (error || !watchSessionReady) {
     return (
       <div className="watch-page min-h-screen flex flex-col items-center justify-center text-white p-4">
         <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/25 flex items-center justify-center mb-4 text-red-500">
@@ -528,14 +582,31 @@ const WatchPage = () => {
     );
   };
 
+  const showCountdown = countdownSettings.enabled && Boolean(isPlaying && streamData?.streamToken);
+  const timerBadgeClass = `watch-timer-badge${countdownWarning ? ' watch-timer-badge--warning' : ''}`;
+
+  const renderTimerBadge = () => (
+    <div className={timerBadgeClass}>
+      <Clock className="w-4 h-4 text-red-400" />
+      <div>
+        <span className="text-[9px] uppercase tracking-wider text-red-400/80 font-bold block">
+          Thời gian còn lại
+        </span>
+        <span className="font-mono font-bold text-white">
+          {remainingTimeText || '--:--:--'}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="watch-page min-h-screen flex flex-col text-white">
       <div className={`watch-cinema-backdrop ${isCustomCinema ? 'watch-cinema-backdrop--visible' : ''}`} />
 
-      <main className={`flex-1 px-4 md:px-8 lg:px-16 xl:px-20 py-6 md:py-8 ${isCustomCinema ? 'pointer-events-none' : ''}`}>
+      <main className={`watch-page-main flex-1 px-4 md:px-8 lg:px-16 xl:px-20 pb-6 md:pb-8 ${isCustomCinema ? 'pointer-events-none' : ''}`}>
         <div className={`max-w-[1440px] mx-auto watch-page-content ${isCustomCinema ? 'watch-page-content--cinema' : ''}`}>
           {/* Top bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="watch-page-topbar flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <button
               type="button"
               onClick={() => navigate('/online')}
@@ -543,15 +614,7 @@ const WatchPage = () => {
             >
               <ChevronLeft className="w-4 h-4" /> Trực tuyến
             </button>
-            <div className="watch-timer-badge">
-              <Clock className="w-4 h-4 text-red-400" />
-              <div>
-                <span className="text-[9px] uppercase tracking-wider text-red-400/80 font-bold block">
-                  Thời gian còn lại
-                </span>
-                <span className="font-mono font-bold text-white">{remainingTimeText || '--:--:--'}</span>
-              </div>
-            </div>
+            {showCountdown && renderTimerBadge()}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10">
@@ -611,10 +674,12 @@ const WatchPage = () => {
                         <Minimize2 className="h-4 w-4" />
                         Thu nhỏ
                       </button>
-                      <div className="watch-timer-badge border-white/10 bg-black/40">
-                        <Clock className="w-3.5 h-3.5 text-red-400" />
-                        <span className="font-mono text-xs font-bold">{remainingTimeText}</span>
-                      </div>
+                      {showCountdown && (
+                        <div className={`${timerBadgeClass} border-white/10 bg-black/40`}>
+                          <Clock className="w-3.5 h-3.5 text-red-400" />
+                          <span className="font-mono text-xs font-bold">{remainingTimeText || '--:--:--'}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="watch-cinema-ui-bottom">
                       <button
@@ -712,16 +777,16 @@ const WatchPage = () => {
             <aside className="lg:col-span-4 space-y-5">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-black uppercase tracking-wider text-white">Tiếp theo</h2>
-                  <Link to="/online" className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400">
-                    Xem tất cả
+                  <h2 className="text-sm font-black uppercase tracking-wider text-white">Chưa kích hoạt</h2>
+                  <Link to="/profile" className="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-400">
+                    Vé của tôi
                   </Link>
                 </div>
                 <div className="space-y-2">
                   {upNext.map((item) => (
                     <Link
                       key={item.uuid}
-                      to={getOnlinePath(item.uuid)}
+                      to={getOnlineActivatePath(item.uuid)}
                       className="watch-sidebar-card"
                     >
                       <PosterImage
@@ -732,37 +797,38 @@ const WatchPage = () => {
                       />
                       <div className="min-w-0 py-0.5">
                         <p className="text-xs font-bold text-white uppercase line-clamp-1">{item.title}</p>
-                        <p className="text-[10px] text-white/40 mt-0.5">
-                          {item.genres?.[0]} · {formatDuration(item.durationMinutes)}
+                        <p className="text-[10px] text-amber-400/90 mt-0.5 font-semibold">
+                          Chờ kích hoạt vé
                         </p>
                       </div>
                     </Link>
                   ))}
                   {upNext.length === 0 && (
-                    <p className="text-sm text-white/40 py-4">Chưa có phim gợi ý.</p>
+                    <p className="text-sm text-white/40 py-4">
+                      Bạn không có vé online nào chờ kích hoạt.
+                    </p>
                   )}
                 </div>
               </div>
 
               {upNext[0] && (
-              <Link to={getOnlinePath(upNext[0].uuid)} className="watch-feature-box block group">
+              <Link to={getOnlineActivatePath(upNext[0].uuid)} className="watch-feature-box block group">
                 <div
                   className="absolute inset-0 opacity-25 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                   style={{ backgroundImage: `url(${resolveMediaUrl(upNext[0].primaryMediaUrl || upNext[0].poster, 600)})` }}
                 />
                 <div className="relative">
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">
-                    Gợi ý tiếp theo
+                    Vé chờ kích hoạt
                   </p>
                   <h3 className="mt-2 text-lg font-black uppercase text-white leading-tight line-clamp-2">
                     {upNext[0].title}
                   </h3>
-                  <p className="mt-2 text-xs text-white/50 leading-relaxed">
-                    {upNext[0].genres?.slice(0, 2).join(' · ')}
-                    {upNext[0].durationMinutes ? ` · ${upNext[0].durationMinutes} phút` : ''}
+                  <p className="mt-2 text-xs text-amber-400/90 leading-relaxed font-medium">
+                    Đã mua vé — nhập mã hoặc kích hoạt để bắt đầu xem.
                   </p>
                   <span className="inline-block mt-4 rounded border border-red-500/40 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-400 group-hover:bg-red-500/10 transition-colors">
-                    Xem phim này
+                    Kích hoạt ngay
                   </span>
                 </div>
               </Link>

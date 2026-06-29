@@ -5,6 +5,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { bookingService } from '../../../shared/services/bookingService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { stompSocketService, SEAT_MAP_REFRESH_MS } from '../../../shared/services/stompSocketService';
 import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
@@ -136,7 +137,8 @@ const BookingPage = () => {
 
   const fetchSeatMapRef = React.useRef(() => {});
 
-  const fetchSeatMap = async (overrideSelectedUuids) => {
+  const fetchSeatMap = async (overrideSelectedUuids, options = {}) => {
+    const { silent = false } = options;
     try {
       const currentSelectedUuids = overrideSelectedUuids !== undefined
         ? overrideSelectedUuids
@@ -191,7 +193,9 @@ const BookingPage = () => {
       }
     } catch (err) {
       console.error("Failed to fetch seat map:", err);
-      notificationService.error("Không thể tải sơ đồ ghế");
+      if (!silent) {
+        notificationService.error("Không thể tải sơ đồ ghế");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +205,7 @@ const BookingPage = () => {
 
   useRealtimeTopic(
     hasValidShowtime ? REALTIME_TOPICS.showtimeSeats(showtimeUuid) : null,
-    () => fetchSeatMapRef.current(),
+    () => fetchSeatMapRef.current(undefined, { silent: true }),
     400
   );
 
@@ -232,7 +236,27 @@ const BookingPage = () => {
     if (!hasValidShowtime) return;
     window.scrollTo(0, 0);
     fetchSeatMap();
+    stompSocketService.ensureConnected().catch((err) => {
+      console.warn('WebSocket unavailable, using HTTP polling:', err?.message ?? err);
+    });
+    bookingService.watchSeatMap(showtimeUuid).catch((err) => {
+      console.error('Failed to register seat map watch:', err);
+    });
+    return () => {
+      bookingService.unwatchSeatMap(showtimeUuid).catch(() => {});
+    };
   }, [showtimeUuid, hasValidShowtime]);
+
+  // Guaranteed refresh every 5s (visible in Network tab as seat-map XHR)
+  useEffect(() => {
+    if (!hasValidShowtime) return undefined;
+
+    const intervalId = setInterval(() => {
+      fetchSeatMapRef.current(undefined, { silent: true });
+    }, SEAT_MAP_REFRESH_MS);
+
+    return () => clearInterval(intervalId);
+  }, [hasValidShowtime, showtimeUuid]);
 
   const handleSeatClick = async (seat) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);

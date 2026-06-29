@@ -3,6 +3,7 @@ package com.thdpv.movietheater.movie.dto.request;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -117,5 +118,27 @@ public class MovieFilterRequest {
 
     public void setOnlineOnly(Boolean onlineOnly) {
         this.onlineOnly = onlineOnly;
+    }
+
+    /** Stable cache key for {@code @Cacheable} on filtered movie lists. */
+    public String toCacheKey() {
+        String genres = genreUuids == null || genreUuids.isEmpty()
+                ? ""
+                : genreUuids.stream().sorted().map(UUID::toString).collect(Collectors.joining(","));
+        return String.join("|",
+                nullToEmpty(keyword),
+                nullToEmpty(status),
+                genres,
+                countryUuid == null ? "" : countryUuid.toString(),
+                nullToEmpty(ageRestriction),
+                actorUuid == null ? "" : actorUuid.toString(),
+                cinemaUuid == null ? "" : cinemaUuid.toString(),
+                showtimeDate == null ? "" : showtimeDate.toString(),
+                Boolean.TRUE.equals(requireBookableShowtime) ? "1" : "0",
+                Boolean.TRUE.equals(onlineOnly) ? "1" : "0");
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 }

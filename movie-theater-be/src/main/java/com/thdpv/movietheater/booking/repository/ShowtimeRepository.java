@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -183,4 +184,15 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
 
     @Query("SELECT s FROM Showtime s ORDER BY s.startTime DESC")
     List<Showtime> findAllOrderByStartTimeDesc();
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Showtime s SET s.status = :finished
+            WHERE s.endTime <= :now
+              AND s.status IN :statuses
+            """)
+    int markFinishedIfExpired(
+            @Param("now") OffsetDateTime now,
+            @Param("statuses") Collection<ShowtimeStatus> statuses,
+            @Param("finished") ShowtimeStatus finished);
 }

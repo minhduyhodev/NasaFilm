@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
@@ -7,24 +7,39 @@ import ExclusiveCollection from '../components/ExclusiveCollection';
 import OnlineVIPSection from '../components/online/OnlineVIPSection';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
+import MovieFilterPanel from '../components/MovieFilterPanel';
 import Pagination from '../../../shared/components/Pagination';
+import VirtualGrid from '../../../shared/components/VirtualGrid';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { useOnlineSpotlightMovies, useOnlineCatalog } from '../../../shared/hooks/queries/useOnlineQueries';
 import { mapApiMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
+import { useMovieListFilters } from '../hooks/useMovieListFilters';
 import heroBg from '../../../shared/assets/cinema_hero_bg.png';
 import '../styles/home-premium.css';
 import './OnlineMoviesPage.css';
+import './MoviesPage.css';
 
 const CATALOG_PAGE_SIZE_OPTIONS = [10, 20, 30];
 
 const OnlineMoviesPage = () => {
   const catalogRef = useRef(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [titleSearch, setTitleSearch] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState('');
+
+  const resetCatalogPage = useCallback(() => setCurrentPage(1), []);
+
+  const {
+    titleSearch,
+    setTitleSearch,
+    searchKeyword,
+    appliedQueryParams,
+    filterPanelProps,
+    handleClearSearch,
+  } = useMovieListFilters({
+    onPageReset: resetCatalogPage,
+    includeShowtimeFilters: false,
+  });
 
   const spotlightQuery = useOnlineSpotlightMovies();
   const spotlightMovies = spotlightQuery.data || [];
@@ -36,11 +51,11 @@ const OnlineMoviesPage = () => {
 
   const catalogParams = useMemo(
     () => ({
-      keyword: searchKeyword,
+      ...appliedQueryParams,
       page: currentPage - 1,
       size: itemsPerPage,
     }),
-    [searchKeyword, currentPage, itemsPerPage]
+    [appliedQueryParams, currentPage, itemsPerPage]
   );
 
   const catalogQuery = useOnlineCatalog(catalogParams);
@@ -65,15 +80,8 @@ const OnlineMoviesPage = () => {
   const { getOnlinePath, getActionLabel } = useOnlineVodRoutes(routeMovieIds);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchKeyword(titleSearch.trim());
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [titleSearch]);
-
-  useEffect(() => {
     setCurrentPage(1);
-  }, [searchKeyword, itemsPerPage]);
+  }, [itemsPerPage, appliedQueryParams]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -85,18 +93,11 @@ const OnlineMoviesPage = () => {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleClearSearch = () => {
-    setTitleSearch('');
-    setSearchKeyword('');
-    setCurrentPage(1);
-  };
-
   const showCatalogEmpty = !isCatalogLoading && !catalogError && catalogMovies.length === 0;
-  const showCatalogGrid = !isCatalogLoading && !catalogError && catalogMovies.length > 0;
+  const hasActiveFilters = Boolean(searchKeyword || filterPanelProps.activeFilterCount > 0);
 
   return (
     <div className="online-page-wrapper">
-
       <OnlineHero
         movies={spotlightMovies}
         isLoading={isSpotlightLoading}
@@ -153,6 +154,10 @@ const OnlineMoviesPage = () => {
             </div>
           </div>
 
+          <div className="online-catalog-filters">
+            <MovieFilterPanel {...filterPanelProps} />
+          </div>
+
           {isCatalogLoading ? (
             <div className="online-catalog-grid">
               {Array.from({ length: itemsPerPage }).map((_, i) => (
@@ -169,23 +174,33 @@ const OnlineMoviesPage = () => {
           ) : showCatalogEmpty ? (
             <div className="online-catalog-state">
               <p className="online-catalog-state-title">
-                {searchKeyword ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim trực tuyến'}
+                {hasActiveFilters ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim trực tuyến'}
               </p>
               <p className="online-catalog-state-desc">
-                {searchKeyword
+                {hasActiveFilters
                   ? 'Thử đổi từ khóa hoặc xóa bộ lọc để xem toàn bộ thư viện.'
                   : 'Hệ thống sẽ cập nhật khi có phim mới.'}
               </p>
-              {searchKeyword && (
-                <button type="button" className="btn-gold-outline" onClick={handleClearSearch}>
-                  Xóa tìm kiếm
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="btn-gold-outline"
+                  onClick={filterPanelProps.onClearApplied}
+                >
+                  Xóa bộ lọc
                 </button>
               )}
             </div>
           ) : (
             <>
-              <div className="online-catalog-grid">
-                {catalogMovies.map((movie) => (
+              <VirtualGrid
+                items={catalogMovies}
+                threshold={12}
+                gridClassName="online-catalog-grid"
+                maxHeight="none"
+                className=""
+                getItemKey={(movie) => movie.uuid}
+                renderItem={(movie) => (
                   <MovieCard
                     key={movie.uuid}
                     {...movie}
@@ -193,8 +208,8 @@ const OnlineMoviesPage = () => {
                     fromOnline
                     getOnlinePath={getOnlinePath}
                   />
-                ))}
-              </div>
+                )}
+              />
 
               {totalItems > 0 && (
                 <div className="online-catalog-pagination">

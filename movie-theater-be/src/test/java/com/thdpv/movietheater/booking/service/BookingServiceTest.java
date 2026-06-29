@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -298,5 +299,15 @@ class BookingServiceTest {
 
         assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());
         assertEquals("Tài khoản đang được xem trên thiết bị khác", exception.getMessage());
+    }
+
+    @Test
+    void revokeExpiredVodStreamTokens_DelegatesToRepository() {
+        when(bookingJpaRepository.revokeExpiredVodStreamTokens(any(OffsetDateTime.class))).thenReturn(4);
+
+        int count = bookingService.revokeExpiredVodStreamTokens();
+
+        assertEquals(4, count);
+        verify(bookingJpaRepository).revokeExpiredVodStreamTokens(any(OffsetDateTime.class));
     }
 }

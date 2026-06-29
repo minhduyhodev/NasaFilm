@@ -153,7 +153,9 @@ const MovieFilterPanel = ({
   actorSearchRef,
   filteredActors,
   tempActor,
+  hiddenSections = [],
 }) => {
+  const isSectionHidden = (id) => hiddenSections.includes(id);
   const [expandedSections, setExpandedSections] = useState(COLLAPSED_SECTIONS);
   const wasOpenRef = useRef(isOpen);
 
@@ -197,8 +199,8 @@ const MovieFilterPanel = ({
     tempCountry,
     tempGenre,
     tempActor,
-    tempShowtimeDate,
-    tempCinema,
+    !isSectionHidden('schedule') ? tempShowtimeDate : null,
+    !isSectionHidden('cinema') ? tempCinema : null,
     tempAgeRestriction,
   ].filter(Boolean).length;
 
@@ -344,29 +346,33 @@ const MovieFilterPanel = ({
               />
             </FilterSection>
 
-            <FilterSection
-              id="schedule"
-              title="Suất chiếu"
-              icon={Calendar}
-              expanded={expandedSections.schedule}
-              onToggle={toggleSection}
-            >
-              <ChipGroup
-                value={tempShowtimeDate}
-                onChange={onShowtimeDateSelect}
-                options={dateOptions}
-              />
-            </FilterSection>
+            {!isSectionHidden('schedule') && (
+              <FilterSection
+                id="schedule"
+                title="Suất chiếu"
+                icon={Calendar}
+                expanded={expandedSections.schedule}
+                onToggle={toggleSection}
+              >
+                <ChipGroup
+                  value={tempShowtimeDate}
+                  onChange={onShowtimeDateSelect}
+                  options={dateOptions}
+                />
+              </FilterSection>
+            )}
 
-            <FilterSection
-              id="cinema"
-              title="Cụm rạp"
-              icon={MapPin}
-              expanded={expandedSections.cinema}
-              onToggle={toggleSection}
-            >
-              <ChipGroup value={tempCinema} onChange={onCinemaSelect} options={cinemaOptions} />
-            </FilterSection>
+            {!isSectionHidden('cinema') && (
+              <FilterSection
+                id="cinema"
+                title="Cụm rạp"
+                icon={MapPin}
+                expanded={expandedSections.cinema}
+                onToggle={toggleSection}
+              >
+                <ChipGroup value={tempCinema} onChange={onCinemaSelect} options={cinemaOptions} />
+              </FilterSection>
+            )}
 
             <FilterSection
               id="rating"

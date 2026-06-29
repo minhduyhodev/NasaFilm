@@ -20,9 +20,11 @@ import {
   UserCheck,
   DollarSign,
   Megaphone,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
+import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
@@ -38,6 +40,7 @@ const getRoleDisplayLabel = (roles = []) => {
 const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const displayName = user?.fullName || user?.email || "Admin";
   const roleLabel = getRoleDisplayLabel(user?.roles);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
@@ -53,6 +56,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     security: true,
   });
   const [pendingRefundCount, setPendingRefundCount] = useState(0);
+  const [pendingFeedbackReportCount, setPendingFeedbackReportCount] = useState(0);
 
   const loadPendingRefundCount = useCallback(async () => {
     try {
@@ -60,6 +64,15 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
       setPendingRefundCount(Array.isArray(data) ? data.length : 0);
     } catch {
       setPendingRefundCount(0);
+    }
+  }, []);
+
+  const loadPendingFeedbackReportCount = useCallback(async () => {
+    try {
+      const count = await adminReviewService.getPendingReportCount();
+      setPendingFeedbackReportCount(Number(count) || 0);
+    } catch {
+      setPendingFeedbackReportCount(0);
     }
   }, []);
 
@@ -76,15 +89,29 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
 
   useEffect(() => {
     loadPendingRefundCount();
-  }, [loadPendingRefundCount, location.pathname]);
+    loadPendingFeedbackReportCount();
+  }, [loadPendingRefundCount, loadPendingFeedbackReportCount, location.pathname]);
+
+  useEffect(() => {
+    const refreshReportBadge = () => loadPendingFeedbackReportCount();
+    window.addEventListener('admin-review-reports-changed', refreshReportBadge);
+    return () => window.removeEventListener('admin-review-reports-changed', refreshReportBadge);
+  }, [loadPendingFeedbackReportCount]);
 
   const enableRefundRealtime =
     location.pathname.startsWith('/admin/refunds') ||
     location.pathname.startsWith('/admin/bookings');
 
+  const enableReviewReportRealtime = location.pathname.startsWith('/admin/feedback-reviews');
+
   useRealtimeTopic(
     enableRefundRealtime ? REALTIME_TOPICS.ADMIN_BOOKINGS : null,
     loadPendingRefundCount,
+  );
+
+  useRealtimeTopic(
+    enableReviewReportRealtime ? REALTIME_TOPICS.ADMIN_REVIEW_REPORTS : null,
+    loadPendingFeedbackReportCount,
   );
 
   const handleLogout = useCallback(() => {
@@ -234,6 +261,13 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Tag,
                 "Sự kiện & Khuyến mãi",
                 "text-pink-400",
+              )}
+              {renderLink(
+                "/admin/feedback-reviews",
+                MessageSquare,
+                "Kiểm duyệt đánh giá",
+                "text-amber-400",
+                { badge: pendingFeedbackReportCount },
               )}
             </div>
           )}

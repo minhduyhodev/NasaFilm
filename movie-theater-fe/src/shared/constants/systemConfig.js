@@ -33,6 +33,8 @@ export const DEFAULT_SYSTEM_CONFIG = {
   seatLockMinutes: 5,
   maxSeatsPerBooking: 8,
   onlineWatchLockMultiplier: 2,
+  onlineCountdownEnabled: true,
+  onlineCountdownWarningMinutes: 10,
   pointsEarningRatio: 5,
   pointsToCashValue: 1000,
   sessionTimeoutHours: 24,
@@ -43,4 +45,5 @@ export const DEFAULT_SYSTEM_CONFIG = {
   refundManualApprovalRequired: true,
   roomTypes: DEFAULT_ROOM_TYPES,
   screeningFormats: DEFAULT_SCREENING_FORMATS,
+  reviewBannedWords: [],
 };

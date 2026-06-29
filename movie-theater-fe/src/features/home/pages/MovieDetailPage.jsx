@@ -21,6 +21,7 @@ import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
 import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl } from "../utils/movieUtils";
 import PosterImage from "../../../shared/components/PosterImage";
+import MovieReviewsSection from "../components/MovieReviewsSection";
 
 import "./MovieDetailPage.css";
 
@@ -45,6 +46,7 @@ const MovieDetailPage = () => {
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
 
   const [dbMovie, setDbMovie] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
@@ -107,10 +109,41 @@ const MovieDetailPage = () => {
     }
   }, [id]);
 
-  // Scroll to top on load
+  // Scroll to top on load (unless opening reviews via hash)
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const openFromHash = window.location.hash === '#movie-reviews';
+    if (!openFromHash) {
+      window.scrollTo(0, 0);
+      setReviewsExpanded(false);
+    } else {
+      setReviewsExpanded(true);
+    }
   }, [id]);
+
+  useEffect(() => {
+    if (window.location.hash !== '#movie-reviews' || !dbMovie) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById('movie-reviews')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [id, dbMovie]);
+
+  const handleOpenReviews = (event) => {
+    event.preventDefault();
+    setReviewsExpanded(true);
+    window.history.replaceState(null, '', '#movie-reviews');
+    requestAnimationFrame(() => {
+      document.getElementById('movie-reviews')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  };
 
   const getDynamicDates = () => {
     const dates = [];
@@ -460,6 +493,15 @@ const MovieDetailPage = () => {
                 </span>
               </div>
 
+              <a
+                href="#movie-reviews"
+                onClick={handleOpenReviews}
+                className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 text-sm font-bold transition-colors"
+              >
+                <Award className="h-4 w-4" />
+                Xem đánh giá khán giả
+              </a>
+
               <p className="text-gray-300 text-sm md:text-base max-w-2xl leading-relaxed font-medium">
                 {movie.description}
               </p>
@@ -720,6 +762,26 @@ const MovieDetailPage = () => {
           </div>
           )}
         </section>
+
+        <div id="movie-reviews" className="movie-reviews-anchor">
+          <MovieReviewsSection
+            movieUuid={dbMovie.uuid}
+            movieTitle={movie.title}
+            isExpanded={reviewsExpanded}
+            onExpandedChange={setReviewsExpanded}
+            showTheaterCta={
+              !isFromOnline &&
+              (dbMovie.screeningMode === 'THEATER_ONLY' ||
+                dbMovie.screeningMode === 'BOTH' ||
+                !dbMovie.screeningMode)
+            }
+            showOnlineCta={
+              isFromOnline ||
+              dbMovie.screeningMode === 'ONLINE_ONLY' ||
+              dbMovie.screeningMode === 'BOTH'
+            }
+          />
+        </div>
       </main>
 
       {/* Trailer Modal */}
