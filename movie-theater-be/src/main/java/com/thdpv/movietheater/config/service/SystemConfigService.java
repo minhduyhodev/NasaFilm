@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.config.entity.SystemConfigEntry;
 import com.thdpv.movietheater.config.repository.SystemConfigRepository;
+import com.thdpv.movietheater.config.cache.CacheNames;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 
 @Service
 public class SystemConfigService {
@@ -22,16 +26,25 @@ public class SystemConfigService {
 
     private final SystemConfigRepository systemConfigRepository;
     private final ObjectMapper objectMapper;
+    private final CatalogCacheEvictor catalogCacheEvictor;
+    private final SystemConfigService self;
 
     @Value("${app.vod.default-online-price:45000}")
     private BigDecimal fallbackOnlinePrice;
 
-    public SystemConfigService(SystemConfigRepository systemConfigRepository, ObjectMapper objectMapper) {
+    public SystemConfigService(
+            SystemConfigRepository systemConfigRepository,
+            ObjectMapper objectMapper,
+            CatalogCacheEvictor catalogCacheEvictor,
+            @Lazy SystemConfigService self) {
         this.systemConfigRepository = systemConfigRepository;
         this.objectMapper = objectMapper;
+        this.catalogCacheEvictor = catalogCacheEvictor;
+        this.self = self;
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.SYSTEM_CONFIG, key = "'default'")
     public Map<String, Object> getConfig() {
         return systemConfigRepository.findById(CONFIG_KEY)
                 .map(entry -> parseConfigJson(entry.getConfigJson()))
@@ -48,11 +61,12 @@ public class SystemConfigService {
         });
         entry.setConfigJson(writeConfigJson(merged));
         systemConfigRepository.save(entry);
+        catalogCacheEvictor.evictSystemConfig();
         return merged;
     }
 
     public BigDecimal getDefaultOnlinePrice() {
-        Object value = getConfig().get("onlineStreamingPrice");
+        Object value = self.getConfig().get("onlineStreamingPrice");
         if (value instanceof Number number) {
             return BigDecimal.valueOf(number.longValue());
         }
@@ -67,7 +81,7 @@ public class SystemConfigService {
     }
 
     public int getSeatLockMinutes() {
-        return readInt(getConfig().get("seatLockMinutes"), 5, 1, 30);
+        return readInt(self.getConfig().get("seatLockMinutes"), 5, 1, 30);
     }
 
     public int getSeatLockTtlSeconds() {
@@ -75,40 +89,40 @@ public class SystemConfigService {
     }
 
     public int getMaxSeatsPerBooking() {
-        return readInt(getConfig().get("maxSeatsPerBooking"), 8, 1, 20);
+        return readInt(self.getConfig().get("maxSeatsPerBooking"), 8, 1, 20);
     }
 
     public double getOnlineWatchLockMultiplier() {
-        return readDouble(getConfig().get("onlineWatchLockMultiplier"), 2.0, 0.5, 10.0);
+        return readDouble(self.getConfig().get("onlineWatchLockMultiplier"), 2.0, 0.5, 10.0);
     }
 
     public int getPointsToCashValue() {
-        return readInt(getConfig().get("pointsToCashValue"), 1000, 1, 1_000_000);
+        return readInt(self.getConfig().get("pointsToCashValue"), 1000, 1, 1_000_000);
     }
 
     public int getCancellationCutoffMinutes() {
-        return readInt(getConfig().get("cancellationCutoffMinutes"), 60, 0, 24 * 60);
+        return readInt(self.getConfig().get("cancellationCutoffMinutes"), 60, 0, 24 * 60);
     }
 
     public int getCancellationFeePercent() {
-        return readInt(getConfig().get("cancellationFeePercent"), 10, 0, 100);
+        return readInt(self.getConfig().get("cancellationFeePercent"), 10, 0, 100);
     }
 
     public boolean isCustomerRefundEnabled() {
-        return readBoolean(getConfig().get("customerRefundEnabled"), true);
+        return readBoolean(self.getConfig().get("customerRefundEnabled"), true);
     }
 
     public boolean isFullRefundOnShowtimeCancel() {
-        return readBoolean(getConfig().get("fullRefundOnShowtimeCancel"), true);
+        return readBoolean(self.getConfig().get("fullRefundOnShowtimeCancel"), true);
     }
 
     public boolean isRefundManualApprovalRequired() {
-        return readBoolean(getConfig().get("refundManualApprovalRequired"), true);
+        return readBoolean(self.getConfig().get("refundManualApprovalRequired"), true);
     }
 
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getRoomTypes() {
-        Object value = getConfig().get("roomTypes");
+        Object value = self.getConfig().get("roomTypes");
         if (value instanceof List<?> list && !list.isEmpty()) {
             List<Map<String, Object>> result = new ArrayList<>();
             for (Object item : list) {
@@ -125,7 +139,7 @@ public class SystemConfigService {
 
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getScreeningFormats() {
-        Object value = getConfig().get("screeningFormats");
+        Object value = self.getConfig().get("screeningFormats");
         if (value instanceof List<?> list && !list.isEmpty()) {
             List<Map<String, Object>> result = new ArrayList<>();
             for (Object item : list) {
@@ -181,7 +195,58 @@ public class SystemConfigService {
         defaults.put("refundManualApprovalRequired", true);
         defaults.put("roomTypes", defaultRoomTypes());
         defaults.put("screeningFormats", defaultScreeningFormats());
+        defaults.put("reviewBannedWords", defaultReviewBannedWords());
         return defaults;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getReviewBannedWords() {
+        Object value = self.getConfig().get("reviewBannedWords");
+        if (!(value instanceof List<?> rawList)) {
+            return defaultReviewBannedWords();
+        }
+        List<String> words = new ArrayList<>();
+        for (Object item : rawList) {
+            if (item instanceof String text && !text.isBlank()) {
+                words.add(text.trim().toLowerCase());
+            }
+        }
+        return words.isEmpty() ? defaultReviewBannedWords() : words;
+    }
+
+    @Transactional
+    public List<String> updateReviewBannedWords(List<String> incomingWords) {
+        Map<String, Object> config = new LinkedHashMap<>(self.getConfig());
+        List<String> normalized = new ArrayList<>();
+        if (incomingWords != null) {
+            for (String word : incomingWords) {
+                if (word != null) {
+                    String trimmed = word.trim().toLowerCase();
+                    if (!trimmed.isEmpty() && !normalized.contains(trimmed)) {
+                        normalized.add(trimmed);
+                    }
+                }
+            }
+        }
+        config.put("reviewBannedWords", normalized);
+        saveConfig(config);
+        return normalized;
+    }
+
+    private List<String> defaultReviewBannedWords() {
+        return List.of(
+                "lua dao",
+                "scam",
+                "spam",
+                "khong xem",
+                "rac",
+                "vo van",
+                "ngu",
+                "dit",
+                "lon",
+                "cặc",
+                "địt",
+                "lồn");
     }
 
     private List<Map<String, Object>> defaultRoomTypes() {

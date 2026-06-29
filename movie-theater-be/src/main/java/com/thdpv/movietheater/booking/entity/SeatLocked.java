@@ -20,7 +20,8 @@ import jakarta.persistence.UniqueConstraint;
         },
         indexes = {
                 @Index(name = "idx_seatlocked_user", columnList = "user_uuid"),
-                @Index(name = "idx_seatlocked_showtime_expired", columnList = "showtime_uuid, expired_at")
+                @Index(name = "idx_seatlocked_showtime_expired", columnList = "showtime_uuid, expired_at"),
+                @Index(name = "idx_seatlocked_expired_at", columnList = "expired_at")
         })
 public class SeatLocked {
 

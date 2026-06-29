@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +65,8 @@ import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.config.service.SystemConfigService;
+import com.thdpv.movietheater.config.cache.CacheNames;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -87,6 +90,7 @@ public class MovieService {
     private final MovieCountryRepository movieCountryRepository;
     private final ShowtimeRepository showtimeRepository;
     private final SystemConfigService systemConfigService;
+    private final CatalogCacheEvictor catalogCacheEvictor;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
@@ -104,7 +108,9 @@ public class MovieService {
         replaceActors(movie, request.getActors());
         replaceMedias(movie, request.getMedias(), operatorEmail);
         syncStreamingUrlFromMediasIfMissing(movie);
-        return toMovieDetailResponse(movieRepository.save(movie));
+        MovieDetailResponse response = toMovieDetailResponse(movieRepository.save(movie));
+        catalogCacheEvictor.evictMovieLists();
+        return response;
     }
 
     @Transactional
@@ -135,7 +141,9 @@ public class MovieService {
         }
 
         syncStreamingUrlFromMediasIfMissing(movie);
-        return toMovieDetailResponse(movieRepository.save(movie));
+        MovieDetailResponse response = toMovieDetailResponse(movieRepository.save(movie));
+        catalogCacheEvictor.evictMovieLists();
+        return response;
     }
 
     @Transactional
@@ -145,9 +153,13 @@ public class MovieService {
         boolean hasBooking = movieRepository.existsBookingByMovieUuid(movieUuid);
         movie.setStatus(hasShowtime || hasBooking ? "INACTIVE" : "DELETED");
         movieRepository.save(movie);
+        catalogCacheEvictor.evictMovieLists();
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = CacheNames.MOVIES,
+            key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
         Sort resolvedSort = Sort.unsorted();
         if (pageable.getSort().isSorted()) {
@@ -296,6 +308,9 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = CacheNames.UPCOMING_MOVIES,
+            key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -368,6 +383,7 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.GENRES, key = "'all'")
     public List<Genre> getAllGenres() {
         return genreRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
@@ -440,7 +456,10 @@ public class MovieService {
         }
         Genre genre = new Genre();
         genre.setName(name);
-        return genreRepository.save(genre);
+        Genre saved = genreRepository.save(genre);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
+        return saved;
     }
 
     @Transactional
@@ -454,7 +473,10 @@ public class MovieService {
                     throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
                 });
         genre.setName(name);
-        return genreRepository.save(genre);
+        Genre saved = genreRepository.save(genre);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
+        return saved;
     }
 
     @Transactional
@@ -466,6 +488,8 @@ public class MovieService {
             throw new AppException(ErrorCode.BAD_REQUEST, "The loai dang duoc su dung trong phim, khong the xoa");
         }
         genreRepository.deleteById(genreUuid);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
     }
 
     @Transactional

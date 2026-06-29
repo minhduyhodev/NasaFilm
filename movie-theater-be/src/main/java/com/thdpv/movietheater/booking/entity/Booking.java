@@ -16,7 +16,10 @@ import jakarta.persistence.Table;
         indexes = {
                 @Index(name = "idx_booking_user", columnList = "user_uuid"),
                 @Index(name = "idx_booking_showtime", columnList = "showtime_uuid"),
-                @Index(name = "idx_booking_promotion", columnList = "promotion_uuid")
+                @Index(name = "idx_booking_promotion", columnList = "promotion_uuid"),
+                @Index(name = "idx_booking_movie", columnList = "movie_uuid"),
+                @Index(name = "idx_booking_user_status_created", columnList = "user_uuid, status, created_at"),
+                @Index(name = "idx_booking_status_created", columnList = "status, created_at")
         })
 public class Booking {
 

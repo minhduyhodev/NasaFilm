@@ -12,8 +12,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.thdpv.movietheater.booking.entity.Booking;
 
-import java.util.List;
-
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
     boolean existsByUserUuidAndPromotionUuid(UUID userUuid, UUID promotionUuid);
 
@@ -54,6 +52,25 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findOnlineConfirmedBookingsForUserAndMovies(
             @Param("userUuid") UUID userUuid,
             @Param("movieUuids") Collection<UUID> movieUuids);
+
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END
+            FROM Booking b
+            WHERE b.userUuid = :userUuid
+              AND UPPER(b.status) = 'CONFIRMED'
+              AND (
+                (UPPER(b.bookingType) = 'ONLINE' AND b.movieUuid = :movieUuid)
+                OR (
+                  (b.bookingType IS NULL OR UPPER(b.bookingType) = 'THEATER')
+                  AND b.showtimeUuid IN (
+                    SELECT s.uuid FROM Showtime s WHERE s.movieUuid = :movieUuid
+                  )
+                )
+              )
+            """)
+    boolean hasConfirmedPurchaseForMovie(
+            @Param("userUuid") UUID userUuid,
+            @Param("movieUuid") UUID movieUuid);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Booking b set b.status = :newStatus, b.updatedAt = :now where b.uuid = :uuid and b.status = :expectedStatus")
