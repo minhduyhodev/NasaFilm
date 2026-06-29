@@ -9,6 +9,8 @@ const HomePage = lazy(() => import('../pages/HomePage'));
 const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));
 const AboutPage = lazy(() => import('../pages/AboutPage'));
 const MoviesPage = lazy(() => import('../pages/MoviesPage'));
+const GenresBrowsePage = lazy(() => import('../pages/CatalogBrowsePage').then((m) => ({ default: m.GenresBrowsePage })));
+const CountriesBrowsePage = lazy(() => import('../pages/CatalogBrowsePage').then((m) => ({ default: m.CountriesBrowsePage })));
 const CinemasPage = lazy(() => import('../pages/CinemasPage'));
 const OffersPage = lazy(() => import('../pages/OffersPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
@@ -60,6 +62,8 @@ export const HomeRoutes = () => {
           <Route path="online" element={<OnlineMoviesPage />} />
           <Route path="online/activate/:movieId" element={<TicketActivationPage />} />
           <Route path="movies" element={<MoviesPage />} />
+          <Route path="genres" element={<GenresBrowsePage />} />
+          <Route path="countries" element={<CountriesBrowsePage />} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="offers" element={<OffersPage />} />
           <Route path="about" element={<AboutPage />} />

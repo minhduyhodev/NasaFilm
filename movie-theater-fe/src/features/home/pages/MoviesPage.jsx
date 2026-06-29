@@ -25,6 +25,7 @@ const MoviesPage = () => {
     filterPanelProps,
     resetAllFilters,
     handleClearSearch,
+    applyUrlFilters,
   } = useMovieListFilters({
     onPageReset: resetListPage,
     includeShowtimeFilters: activeTab !== 'coming-soon',
@@ -69,6 +70,17 @@ const MoviesPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab, currentPage]);
+
+  useEffect(() => {
+    const genreUuid = searchParams.get('genre');
+    const countryUuid = searchParams.get('country');
+    if (genreUuid || countryUuid) {
+      applyUrlFilters({
+        genre: genreUuid || null,
+        country: countryUuid || null,
+      });
+    }
+  }, [searchParams, applyUrlFilters]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);

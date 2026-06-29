@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, TrendingUp, Ticket, DollarSign, Percent } from 'lucide-react';
+import { Loader2, TrendingUp, Ticket, DollarSign, Percent, Film } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
 import TabTransition from '../../../shared/components/TabTransition';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -188,6 +188,9 @@ const DashboardPage = () => {
       .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
       .slice(0, 6);
 
+    const topMovies = (stats.topMovies || []).slice(0, 6);
+    const movieRevenues = topMovies.map((m) => Number(m.revenue) || 0);
+
     const cinemaRevenues = cinemas.map((c) => Number(c.revenue) || 0);
     const genreOccupancy = genres.map((g) => g.occupancyRate || 0);
 
@@ -200,8 +203,10 @@ const DashboardPage = () => {
     return {
       cinemas,
       genres,
+      topMovies,
       cinemaRevenues,
       genreOccupancy,
+      movieRevenues,
       donutSegments: donutSegments.length ? donutSegments : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155' }],
     };
   }, [stats]);
@@ -270,12 +275,20 @@ const DashboardPage = () => {
 
   const tabs = [
     { id: 'cinemas', label: 'Doanh thu rạp' },
+    { id: 'movies', label: 'Top phim' },
     { id: 'genres', label: 'Thể loại phim' },
     { id: 'overview', label: 'Tổng quan' },
   ];
 
   const activeChart =
-    activeTab === 'genres'
+    activeTab === 'movies'
+      ? {
+          labels: chartData?.topMovies.map((m) => m.title) || [],
+          values: chartData?.movieRevenues || [],
+          title: 'Top phim doanh thu cao',
+          subtitle: 'Tổng doanh thu vé rạp và VOD theo phim',
+        }
+      : activeTab === 'genres'
       ? {
           labels: chartData?.genres.map((g) => g.name) || [],
           values: chartData?.genreOccupancy || [],
@@ -381,6 +394,27 @@ const DashboardPage = () => {
       </TabTransition>
 
       <div className="dashboard-bottom-grid">
+        <div className="dashboard-mini-panel">
+          <h3 className="dashboard-mini-title">
+            <Film className="inline w-4 h-4 mr-1.5 -mt-0.5 text-amber-400" aria-hidden />
+            Top phim doanh thu
+          </h3>
+          <ul className="dashboard-rank-list">
+            {(stats?.topMovies || []).length === 0 && (
+              <li className="text-sm text-gray-500 py-2">Chưa có dữ liệu doanh thu theo phim</li>
+            )}
+            {(stats?.topMovies || []).slice(0, 5).map((movie, i) => (
+              <li key={`movie-${movie.uuid || i}`} className="dashboard-rank-item">
+                <span className="dashboard-rank-index">{i + 1}</span>
+                <div className="dashboard-rank-info">
+                  <span className="dashboard-rank-name">{movie.title}</span>
+                  <span className="dashboard-rank-meta">{movie.bookingCount ?? 0} giao dịch</span>
+                </div>
+                <span className="dashboard-rank-value">{formatRevenueFull(movie.revenue)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         <div className="dashboard-mini-panel">
           <h3 className="dashboard-mini-title">Top cụm rạp</h3>
           <ul className="dashboard-rank-list">

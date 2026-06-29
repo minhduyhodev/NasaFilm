@@ -2,6 +2,7 @@ package com.thdpv.movietheater.booking.dto.response;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 public record AdminDashboardResponse(
     BigDecimal totalRevenue,
@@ -9,7 +10,8 @@ public record AdminDashboardResponse(
     Double growth,
     Double conversionRate,
     List<CinemaStat> cinemas,
-    List<GenreStat> genres
+    List<GenreStat> genres,
+    List<MovieStat> topMovies
 ) {
     public record CinemaStat(
         String name,
@@ -20,5 +22,12 @@ public record AdminDashboardResponse(
     public record GenreStat(
         String name,
         Double occupancyRate
+    ) {}
+
+    public record MovieStat(
+        UUID uuid,
+        String title,
+        BigDecimal revenue,
+        Long bookingCount
     ) {}
 }

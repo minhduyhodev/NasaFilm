@@ -345,6 +345,20 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
     resetPage();
   }, [handleClearTempFilters, resetPage]);
 
+  const applyUrlFilters = useCallback(({ genre, country }) => {
+    if (genre) {
+      setSelectedGenre(genre);
+      setTempGenre(genre);
+    }
+    if (country) {
+      setSelectedCountry(country);
+      setTempCountry(country);
+    }
+    if (genre || country) {
+      resetPage();
+    }
+  }, [resetPage]);
+
   const hiddenSections = includeShowtimeFilters ? [] : ['schedule', 'cinema'];
 
   const filterPanelProps = {
@@ -409,6 +423,7 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
     appliedQueryParams,
     filterPanelProps,
     resetAllFilters,
+    applyUrlFilters,
     handleClearSearch: () => {
       setTitleSearch('');
       setSearchKeyword('');
