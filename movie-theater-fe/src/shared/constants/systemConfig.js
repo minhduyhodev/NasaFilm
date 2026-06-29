@@ -43,4 +43,5 @@ export const DEFAULT_SYSTEM_CONFIG = {
   refundManualApprovalRequired: true,
   roomTypes: DEFAULT_ROOM_TYPES,
   screeningFormats: DEFAULT_SCREENING_FORMATS,
+  reviewBannedWords: [],
 };

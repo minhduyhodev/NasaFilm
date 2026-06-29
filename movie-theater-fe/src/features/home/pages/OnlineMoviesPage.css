@@ -42,6 +42,18 @@
   @apply absolute right-3 p-1.5 text-white/40 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer focus:outline-none;
 }
 
+.online-catalog-filters {
+  @apply mb-6;
+}
+
+.online-catalog-filters .movie-filter-wrapper {
+  @apply mb-0;
+}
+
+.online-catalog-filters .movie-title-search {
+  @apply hidden;
+}
+
 .online-catalog-grid {
   @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5;
 }
