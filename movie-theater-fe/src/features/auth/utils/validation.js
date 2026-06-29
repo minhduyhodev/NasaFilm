@@ -28,7 +28,7 @@ export const registerSchema = z
       .or(z.literal(''))
       .refine(
         (val) => !val || /^(0[35789][0-9]{8})$/.test(val),
-        'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09'
+        'Định dạng số điện thoại không hợp lệ. Hệ thống chỉ hỗ trợ các đầu số di động hiện hành tại Việt Nam.'
       ),
     dayOfBirth: z
       .string()
@@ -37,7 +37,7 @@ export const registerSchema = z
         const birthDate = new Date(val);
         const today = new Date();
         return birthDate < today;
-      }, 'Ngày sinh phải ở quá khứ')
+      }, 'Ngày sinh không hợp lệ. Bạn không thể chọn ngày sinh ở tương lai.')
       .refine((val) => {
         const birthDate = new Date(val);
         const today = new Date();
