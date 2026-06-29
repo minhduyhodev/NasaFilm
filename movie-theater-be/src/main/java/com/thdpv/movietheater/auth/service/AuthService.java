@@ -345,6 +345,26 @@ public class AuthService {
     @Transactional
     public void register(RegisterRequest request) {
         String email = request.getEmail().trim().toLowerCase();
+
+        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            LocalDateTime lockTime = existingUser.getVerificationLockTime();
+            if (lockTime != null && lockTime.isAfter(LocalDateTime.now())) {
+                long secondsLeft = Duration.between(LocalDateTime.now(), lockTime).toSeconds();
+                if (secondsLeft > 60) {
+                    long minutesLeft = (secondsLeft + 59) / 60;
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft
+                                    + " phút.");
+                } else {
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft
+                                    + " giây.");
+                }
+            }
+        }
+
         LocalDateTime lastRequest = otpRequestCooldown.get(email);
         if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(LocalDateTime.now())) {
             long secondsLeft = Duration.between(LocalDateTime.now(), lastRequest.plusSeconds(60))
@@ -353,7 +373,6 @@ public class AuthService {
                     "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
         }
 
-        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
         User user;
         if (existingUserOpt.isPresent()) {
             user = existingUserOpt.get();
