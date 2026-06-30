@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
 import { useNowShowingMovies } from '../hooks/useHomeQueries';
+import './NowShowing.css';
 
 const mapApiMovies = (content) =>
   content.map(m => ({
@@ -77,39 +78,42 @@ const NowShowing = () => {
   }
 
   return (
-    <section className="relative">
-      <div className="mb-6 flex items-center justify-center">
-        <h2 className="text-3xl font-black text-white md:text-4xl text-center">PHIM ĐANG CHIẾU </h2>
+    <section className="now-showing-section">
+      <div className="now-showing-head">
+        <div className="now-showing-head-text">
+          <h2 className="now-showing-title">Phim đang chiếu</h2>
+          <p className="now-showing-subtitle">Khám phá các suất chiếu mới nhất hôm nay</p>
+        </div>
+        <div className="now-showing-nav">
+          <button
+            type="button"
+            onClick={() => scroll('left')}
+            className="now-showing-nav-btn"
+            aria-label="Xem phim trước"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={() => scroll('right')}
+            className="now-showing-nav-btn"
+            aria-label="Xem phim tiếp"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
-
-      <button
-        onClick={() => scroll('left')}
-        style={{ left: '-48px' }}
-        className="hidden md:flex absolute top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors z-20 border-none outline-none focus:outline-none focus:ring-0 bg-transparent hover:bg-transparent shadow-none"
-        aria-label="Previous page"
-      >
-        <ChevronLeft size={44} />
-      </button>
-      <button
-        onClick={() => scroll('right')}
-        style={{ right: '-48px' }}
-        className="hidden md:flex absolute top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors z-20 border-none outline-none focus:outline-none focus:ring-0 bg-transparent hover:bg-transparent shadow-none"
-        aria-label="Next page"
-      >
-        <ChevronRight size={44} />
-      </button>
 
       <div
         ref={scrollerRef}
         onScroll={handleScroll}
-        className="no-scrollbar flex gap-6 overflow-x-auto pb-4 pr-1 snap-x snap-mandatory"
+        className="now-showing-track no-scrollbar"
       >
         {isLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
             <div
               key={`skeleton-${index}`}
-              className="flex flex-col gap-4"
-              style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
+              className="now-showing-item"
             >
               <MovieCardSkeleton />
             </div>
@@ -118,8 +122,7 @@ const NowShowing = () => {
           moviesList.map((movie, index) => (
             <div
               key={movie.uuid || movie.title}
-              className={`${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
-              style={{ flex: '0 0 calc((100% - 72px) / 4)', minWidth: '190px', maxWidth: '300px' }}
+              className={`now-showing-item ${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'}`}
             >
               <MovieCard {...movie} />
             </div>

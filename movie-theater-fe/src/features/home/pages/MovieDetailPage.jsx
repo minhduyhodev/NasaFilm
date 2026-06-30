@@ -581,52 +581,41 @@ const MovieDetailPage = () => {
         </section>
 
         {/* Main Content Grid */}
-        <section
-          id="select-showtimes"
-          className="px-4 md:px-12 lg:px-20 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-7xl mx-auto"
-        >
-          {/* Left Side: Cast & Crew */}
-          <div className="lg:col-span-4 space-y-6 text-left">
-            <h3 className="text-xl md:text-2xl font-black text-white border-l-4 border-red-600 pl-4 uppercase tracking-wider">
-              Diễn Viên Chính
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {movie.cast.map((actor) => (
-                <div
-                  key={actor.name}
-                  className="flex flex-col items-center gap-2 text-center group bg-[#111215]/40 border border-white/5 p-4 rounded-2xl hover:border-red-500/20 transition-all duration-300"
-                >
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-red-600 transition-all duration-300 bg-slate-900">
-                    <img
-                      alt={actor.name}
-                      className="w-full h-full object-cover"
-                      src={actor.avatar}
-                    />
+        <section id="select-showtimes" className="movie-detail-content">
+          {movie.cast.length > 0 && (
+            <div className={`movie-detail-cast-col${isFromOnline ? ' movie-detail-cast-col--full' : ''}`}>
+              <h3 className="movie-detail-section-title movie-detail-section-title--accent">
+                Diễn Viên Chính
+              </h3>
+              <div className="movie-detail-cast-grid">
+                {movie.cast.map((actor) => (
+                  <div key={actor.name} className="movie-detail-cast-card">
+                    <div className="movie-detail-cast-avatar">
+                      <img alt={actor.name} src={actor.avatar} />
+                    </div>
+                    <div className="movie-detail-cast-meta">
+                      <span className="movie-detail-cast-name">{actor.name}</span>
+                      <span className="movie-detail-cast-role">{actor.role}</span>
+                    </div>
                   </div>
-                  <span className="text-xs md:text-sm font-bold text-white leading-snug">
-                    {actor.name}
-                  </span>
-                  <span className="text-[10px] md:text-xs text-gray-400 font-semibold">
-                    {actor.role}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Right Side: Showtimes */}
           {!isFromOnline && (
-          <div className="lg:col-span-8 space-y-6 text-left">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-              <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
+          <div className={`movie-detail-showtimes-col${movie.cast.length === 0 ? ' movie-detail-showtimes-col--full' : ''}`}>
+            <div className="movie-detail-showtimes-head">
+              <h3 className="movie-detail-section-title">
                 Chọn suất chiếu
               </h3>
 
-              {/* Date Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="movie-detail-date-tabs scrollbar-hide">
                 {dynamicDates.map((date) => (
                   <button
                     key={date.id}
+                    type="button"
                     onClick={() => {
                       setActiveDateTab(date.id);
                       if (selectedShowtime) {
@@ -639,11 +628,7 @@ const MovieDetailPage = () => {
                         }
                       }
                     }}
-                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                      activeDateTab === date.id
-                        ? "bg-red-600 text-white shadow-lg shadow-red-600/15"
-                        : "glass-panel text-gray-400 hover:text-white hover:bg-white/5"
-                    }`}
+                    className={`movie-detail-date-tab${activeDateTab === date.id ? ' is-active' : ''}`}
                   >
                     {date.label}
                   </button>
@@ -651,25 +636,23 @@ const MovieDetailPage = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="movie-detail-cinema-groups">
               {Object.keys(groupedShowtimes).length > 0 ? (
                 Object.values(groupedShowtimes).map((cinemaGroup) => (
-                  <div key={cinemaGroup.name} className="py-4 text-left">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center gap-2.5">
+                  <div key={cinemaGroup.name} className="movie-detail-cinema-group">
+                    <div className="movie-detail-cinema-head">
+                      <div className="movie-detail-cinema-name">
                         <Film className="text-red-500 h-4 w-4" />
-                        <h4 className="text-base font-black text-white uppercase font-heading tracking-wide">
-                          {cinemaGroup.name}
-                        </h4>
+                        <h4>{cinemaGroup.name}</h4>
                       </div>
-                      <span className="text-xs text-gray-500 flex items-center gap-1 font-semibold">
+                      <span className="movie-detail-cinema-location">
                         <MapPin className="h-3 w-3 text-red-500" /> Hồ Chí Minh
                       </span>
                     </div>
 
-                    <div className="border-b border-white/5 my-4" />
+                    <div className="movie-detail-cinema-divider" />
 
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="movie-detail-showtime-grid">
                       {cinemaGroup.showtimes.map((st) => {
                         const timeStr = new Date(
                           st.startTime,
@@ -683,20 +666,17 @@ const MovieDetailPage = () => {
                         return (
                           <button
                             key={st.uuid}
+                            type="button"
                             onClick={() =>
                               !isSoldOut && handleShowtimeClick(st)
                             }
                             disabled={isSoldOut}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 text-left ${
-                              isSelected
-                                ? "bg-red-600 text-white font-black scale-105 shadow-lg shadow-red-600/20"
-                                : isSoldOut
-                                  ? "text-gray-700 cursor-not-allowed opacity-20"
-                                  : "text-gray-400 hover:text-white hover:bg-white/5 border border-white/5"
-                            }`}
+                            className={`movie-detail-showtime-btn${
+                              isSelected ? ' is-selected' : ''
+                            }${isSoldOut ? ' is-sold-out' : ''}`}
                           >
                             {timeStr}
-                            <span className="block text-[8px] text-gray-500 font-medium font-sans mt-0.5">
+                            <span className="movie-detail-showtime-room">
                               {st.cinemaRoomName}
                             </span>
                           </button>
@@ -706,15 +686,14 @@ const MovieDetailPage = () => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-500 font-medium bg-[#111215]/20 border border-white/5 rounded-2xl">
-                  <AlertCircle className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+                <div className="movie-detail-showtimes-empty">
+                  <AlertCircle className="h-7 w-7 text-gray-600 mx-auto mb-2" />
                   Không có suất chiếu nào được lên lịch cho ngày này.
                 </div>
               )}
 
-              {/* Selected Showtime Summary & Book Button */}
               {selectedShowtime && seatInfo && (
-                <div className="glass-panel p-6 rounded-2xl border-red-500/20 bg-red-600/5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 animate-fade-in">
+                <div className="movie-detail-selected-showtime glass-panel border-red-500/20 bg-red-600/5 animate-fade-in">
                   <div className="space-y-1 text-left">
                     <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">
                       Suất chiếu đã chọn

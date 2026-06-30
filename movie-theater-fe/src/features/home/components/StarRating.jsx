@@ -7,8 +7,19 @@ const StarRating = ({
   size = 20,
   readOnly = false,
   className = '',
+  tone = 'amber',
 }) => {
   const stars = [1, 2, 3, 4, 5];
+  const filledClass = tone === 'red'
+    ? 'fill-red-600 text-red-600'
+    : 'fill-amber-400 text-amber-400';
+  const emptyClass = tone === 'red' ? 'text-gray-500' : 'text-gray-600';
+  const hoverClass = tone === 'red'
+    ? 'hover:text-red-500 hover:fill-red-500'
+    : 'hover:text-amber-300 hover:fill-amber-300';
+  const focusRing = tone === 'red'
+    ? 'focus-visible:ring-red-600/60'
+    : 'focus-visible:ring-amber-400/60';
 
   return (
     <div className={`inline-flex items-center gap-0.5 ${className}`} role={readOnly ? 'img' : 'group'} aria-label={`${value} trên 5 sao`}>
@@ -17,8 +28,8 @@ const StarRating = ({
         const StarIcon = (
           <Star
             className={`transition-colors ${
-              filled ? 'fill-amber-400 text-amber-400' : 'text-gray-600'
-            } ${!readOnly ? 'hover:text-amber-300 hover:fill-amber-300' : ''}`}
+              filled ? filledClass : emptyClass
+            } ${!readOnly ? hoverClass : ''}`}
             style={{ width: size, height: size }}
           />
         );
@@ -36,7 +47,7 @@ const StarRating = ({
             key={star}
             type="button"
             onClick={() => onChange(star)}
-            className="p-0.5 bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 rounded"
+            className={`p-0.5 bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 ${focusRing} rounded`}
             aria-label={`${star} sao`}
           >
             {StarIcon}
