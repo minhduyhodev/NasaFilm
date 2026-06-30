@@ -67,12 +67,24 @@ public class VodController {
     public ResponseEntity<ApiResponse<Void>> vodHeartbeat(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable("movieUuid") UUID movieUuid,
-            @RequestParam("streamToken") String streamToken) {
+            @RequestParam("streamToken") String streamToken,
+            @RequestParam(value = "positionSeconds", required = false) Integer positionSeconds,
+            @RequestParam(value = "durationSeconds", required = false) Integer durationSeconds) {
         bookingService.vodHeartbeat(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid,
-                streamToken);
+                streamToken,
+                positionSeconds,
+                durationSeconds);
         return ResponseEntity.ok(ApiResponse.success(null, "Heartbeat OK"));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<java.util.List<com.thdpv.movietheater.booking.dto.response.VodHistoryItemResponse>>> getVodHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(
+                bookingService.getVodWatchHistory(
+                        userDetails != null ? userDetails.getUsername() : null)));
     }
 
     @PostMapping("/resend-ticket/{movieUuid}")

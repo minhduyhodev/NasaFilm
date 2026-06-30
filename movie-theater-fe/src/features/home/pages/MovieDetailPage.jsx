@@ -22,6 +22,10 @@ import { systemConfigService } from "../../../shared/services/systemConfigServic
 import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl } from "../utils/movieUtils";
 import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
+import FavoriteButton from "../components/FavoriteButton";
+import ShareButton from "../../../shared/components/ShareButton";
+import PageMeta from "../../../shared/components/PageMeta";
+import { resolveMediaUrl } from "../../../shared/utils/mediaUrlUtils";
 
 import "./MovieDetailPage.css";
 
@@ -378,6 +382,11 @@ const MovieDetailPage = () => {
 
   return (
     <div className="movie-detail-wrapper">
+      <PageMeta
+        title={movie.title}
+        description={movie.description?.slice(0, 160)}
+        image={resolveMediaUrl(movie.posterRaw || movie.backdropRaw)}
+      />
 
       <main className="relative pt-0">
         {/* Hero Section */}
@@ -507,6 +516,12 @@ const MovieDetailPage = () => {
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-4">
+                {dbMovie?.uuid && (
+                  <>
+                    <FavoriteButton movieUuid={dbMovie.uuid} />
+                    <ShareButton title={movie.title} text={movie.description} />
+                  </>
+                )}
                 {/* 1. Mua vé xem tại rạp */}
                 {!isFromOnline &&
                   (dbMovie.screeningMode === "THEATER_ONLY" ||

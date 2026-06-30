@@ -1,5 +1,7 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +36,34 @@ public class MovieReviewStatsService {
                 : movieReviewRepository.averageRatingByMovieUuidAndStatus(movieUuid, MovieReviewStatus.VISIBLE);
         stats.setAverageRating(Math.round(average * 10.0) / 10.0);
         stats.setRatingDistribution(buildDistribution(movieUuid));
+        return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, MovieReviewStatsResponse> getStatsBatch(Collection<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, MovieReviewStatsResponse> result = new HashMap<>();
+        for (Object[] row : movieReviewRepository.aggregateByMovieUuids(movieUuids, MovieReviewStatus.VISIBLE)) {
+            UUID movieUuid = (UUID) row[0];
+            long total = ((Number) row[1]).longValue();
+            double average = ((Number) row[2]).doubleValue();
+            MovieReviewStatsResponse stats = new MovieReviewStatsResponse();
+            stats.setTotalReviews(total);
+            stats.setAverageRating(total == 0 ? 0 : Math.round(average * 10.0) / 10.0);
+            result.put(movieUuid, stats);
+        }
+        for (UUID movieUuid : movieUuids) {
+            result.putIfAbsent(movieUuid, emptyStats());
+        }
+        return result;
+    }
+
+    private MovieReviewStatsResponse emptyStats() {
+        MovieReviewStatsResponse stats = new MovieReviewStatsResponse();
+        stats.setTotalReviews(0);
+        stats.setAverageRating(0);
         return stats;
     }
 

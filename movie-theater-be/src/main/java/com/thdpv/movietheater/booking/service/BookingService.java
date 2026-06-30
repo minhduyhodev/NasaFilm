@@ -1090,12 +1090,67 @@ public class BookingService {
             }
         }
 
-        return new VodStatusResponse(
+        VodStatusResponse response = new VodStatusResponse(
                 true,
                 playbackState,
                 booking.getFirstPlayedAt(),
                 booking.getExpiresAt(),
                 streamingUrl);
+        response.setPositionSeconds(booking.getVodPositionSeconds());
+        response.setDurationSeconds(booking.getVodDurationSeconds());
+        response.setProgressPercent(calcVodProgressPercent(booking));
+        return response;
+    }
+
+    private Integer calcVodProgressPercent(Booking booking) {
+        Integer position = booking.getVodPositionSeconds();
+        Integer duration = booking.getVodDurationSeconds();
+        if (position == null || position <= 0) {
+            return 0;
+        }
+        int total = duration != null && duration > 0
+                ? duration
+                : 1;
+        return Math.min(100, Math.round((position * 100f) / total));
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.thdpv.movietheater.booking.dto.response.VodHistoryItemResponse> getVodWatchHistory(
+            String currentUserEmail) {
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        List<Booking> bookings = bookingJpaRepository.findVodWatchHistory(userUuid, OffsetDateTime.now());
+        if (bookings.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, Movie> movies = movieRepository.findAllByIdWithMedias(
+                bookings.stream().map(Booking::getMovieUuid).filter(java.util.Objects::nonNull).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
+
+        return bookings.stream()
+                .map(booking -> {
+                    Movie movie = movies.get(booking.getMovieUuid());
+                    com.thdpv.movietheater.booking.dto.response.VodHistoryItemResponse item =
+                            new com.thdpv.movietheater.booking.dto.response.VodHistoryItemResponse();
+                    item.setMovieUuid(booking.getMovieUuid());
+                    item.setMovieTitle(movie != null ? movie.getTitle() : null);
+                    if (movie != null && movie.getMovieMedias() != null) {
+                        item.setPrimaryMediaUrl(movie.getMovieMedias().stream()
+                                .filter(media -> Boolean.TRUE.equals(media.getIsPrimary()))
+                                .map(media -> media.getMediaUrl())
+                                .findFirst()
+                                .orElse(movie.getMovieMedias().isEmpty()
+                                        ? null
+                                        : movie.getMovieMedias().get(0).getMediaUrl()));
+                    }
+                    item.setPositionSeconds(booking.getVodPositionSeconds());
+                    item.setDurationSeconds(booking.getVodDurationSeconds());
+                    item.setProgressPercent(calcVodProgressPercent(booking));
+                    item.setLastWatchedAt(booking.getVodLastWatchedAt());
+                    item.setExpiresAt(booking.getExpiresAt());
+                    return item;
+                })
+                .toList();
     }
 
     @Transactional
@@ -1194,8 +1249,9 @@ public class BookingService {
         return booking;
     }
 
-    @Transactional(readOnly = true)
-    public void vodHeartbeat(String currentUserEmail, UUID movieUuid, String streamToken) {
+    @Transactional
+    public void vodHeartbeat(String currentUserEmail, UUID movieUuid, String streamToken,
+            Integer positionSeconds, Integer durationSeconds) {
         if (streamToken == null || streamToken.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Token phát trực tuyến không hợp lệ");
         }
@@ -1217,6 +1273,16 @@ public class BookingService {
             // Kick-out: conflict (409)
             throw new AppException(ErrorCode.CONFLICT, "Tài khoản đang được xem trên thiết bị khác");
         }
+
+        if (positionSeconds != null && positionSeconds >= 0) {
+            booking.setVodPositionSeconds(positionSeconds);
+        }
+        if (durationSeconds != null && durationSeconds > 0) {
+            booking.setVodDurationSeconds(durationSeconds);
+        }
+        booking.setVodLastWatchedAt(OffsetDateTime.now());
+        booking.setUpdatedAt(OffsetDateTime.now());
+        bookingJpaRepository.save(booking);
     }
 
     @Transactional

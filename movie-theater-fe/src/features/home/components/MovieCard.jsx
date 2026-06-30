@@ -1,10 +1,11 @@
 import React from 'react';
-import { Tag, Clock, Globe } from 'lucide-react';
+import { Tag, Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
+import FavoriteIconButton from './FavoriteIconButton';
 
-const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus }) => {
+const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction, actionLabel = 'Mua vé', fromOnline = false, getOnlinePath, vodStatus, reviewAverageRating, reviewCount }) => {
   const formatDuration = (mins) => {
     if (!mins) return '';
     const h = Math.floor(mins / 60);
@@ -24,6 +25,7 @@ const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, durati
   const watchTarget = linkTarget;
   const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
   const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
+  const hasReviewScore = reviewAverageRating > 0 && reviewCount > 0;
 
   // Format badge color mappings matching mockup styles
   const getFormatBadgeStyle = (fmt) => {
@@ -64,6 +66,20 @@ const MovieCard = ({ uuid, title, genre, genres, poster, primaryMediaUrl, durati
             </span>
           )}
         </div>
+
+        {hasReviewScore && (
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-2 py-1 rounded-md bg-black/70 backdrop-blur-md border border-amber-500/30 text-amber-300 pointer-events-none">
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <span className="text-[10px] font-black">{Number(reviewAverageRating).toFixed(1)}</span>
+            <span className="text-[8px] text-amber-200/70">({reviewCount})</span>
+          </div>
+        )}
+
+        {uuid && (
+          <div className={`absolute z-40 ${hasReviewScore ? 'top-14 right-4' : 'top-4 right-4'}`}>
+            <FavoriteIconButton movieUuid={uuid} />
+          </div>
+        )}
 
         {/* Hover Details Overlay on Poster */}
         {hoverDetails && (

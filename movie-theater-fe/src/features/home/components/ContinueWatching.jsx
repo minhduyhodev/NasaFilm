@@ -83,11 +83,19 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
               ageRestriction: summary.ageRestriction,
               primaryMediaUrl: summary.primaryMediaUrl,
             }])[0];
-            const { progress, watched } = calcWatchProgress(
-              status.firstPlayedAt,
-              status.expiresAt,
-              mapped.durationMinutes
-            );
+            const { progress, watched } = status.positionSeconds > 0
+              ? {
+                  progress: status.progressPercent || Math.min(
+                    100,
+                    Math.round((status.positionSeconds / (status.durationSeconds || mapped.durationMinutes * 60 || 1)) * 100),
+                  ),
+                  watched: Math.round(status.positionSeconds / 60),
+                }
+              : calcWatchProgress(
+                  status.firstPlayedAt,
+                  status.expiresAt,
+                  mapped.durationMinutes,
+                );
 
             return { ...mapped, progress, watched, vodStatus: status };
           })

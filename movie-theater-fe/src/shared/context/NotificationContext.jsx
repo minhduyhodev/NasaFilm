@@ -8,11 +8,31 @@ export const NotificationProvider = ({ children }) => {
   const { user } = useAuthContext();
   const [notifications, setNotifications] = useState([]);
 
-  // Load notifications from local storage service
-  const loadNotifications = useCallback(() => {
+  // Load notifications from local storage service and API
+  const loadNotifications = useCallback(async () => {
+    if (user?.email) {
+      try {
+        const { userNotificationApi } = await import('../services/userNotificationApi');
+        const remote = await userNotificationApi.list();
+        if (remote?.length) {
+          const mapped = remote.map((item) => ({
+            id: item.uuid,
+            title: item.title,
+            content: item.content,
+            type: item.type || 'info',
+            timestamp: item.createdAt,
+            read: item.read,
+          }));
+          setNotifications(mapped);
+          return;
+        }
+      } catch {
+        /* fallback local */
+      }
+    }
     const data = notificationService.getNotifications();
     setNotifications(data);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadNotifications();
@@ -44,10 +64,18 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
     notificationService.markAllAsRead();
+    if (user?.email) {
+      try {
+        const { userNotificationApi } = await import('../services/userNotificationApi');
+        await userNotificationApi.markAllRead();
+      } catch {
+        /* ignore */
+      }
+    }
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-  }, []);
+  }, [user]);
 
   const clearAll = useCallback(() => {
     notificationService.clearAll();

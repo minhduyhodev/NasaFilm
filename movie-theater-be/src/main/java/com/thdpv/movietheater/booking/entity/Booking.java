@@ -51,6 +51,15 @@ public class Booking {
     @Column(name = "stream_token")
     private String streamToken;
 
+    @Column(name = "vod_position_seconds")
+    private Integer vodPositionSeconds;
+
+    @Column(name = "vod_duration_seconds")
+    private Integer vodDurationSeconds;
+
+    @Column(name = "vod_last_watched_at")
+    private OffsetDateTime vodLastWatchedAt;
+
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
@@ -238,5 +247,29 @@ public class Booking {
 
     public void setStreamToken(String streamToken) {
         this.streamToken = streamToken;
+    }
+
+    public Integer getVodPositionSeconds() {
+        return vodPositionSeconds;
+    }
+
+    public void setVodPositionSeconds(Integer vodPositionSeconds) {
+        this.vodPositionSeconds = vodPositionSeconds;
+    }
+
+    public Integer getVodDurationSeconds() {
+        return vodDurationSeconds;
+    }
+
+    public void setVodDurationSeconds(Integer vodDurationSeconds) {
+        this.vodDurationSeconds = vodDurationSeconds;
+    }
+
+    public OffsetDateTime getVodLastWatchedAt() {
+        return vodLastWatchedAt;
+    }
+
+    public void setVodLastWatchedAt(OffsetDateTime vodLastWatchedAt) {
+        this.vodLastWatchedAt = vodLastWatchedAt;
     }
 }

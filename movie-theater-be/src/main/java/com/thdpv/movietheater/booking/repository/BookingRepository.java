@@ -90,4 +90,19 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
               AND b.streamToken IS NOT NULL
             """)
     int revokeExpiredVodStreamTokens(@Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.userUuid = :userUuid
+              AND b.bookingType = 'ONLINE'
+              AND b.status = 'CONFIRMED'
+              AND b.firstPlayedAt IS NOT NULL
+              AND b.vodPositionSeconds IS NOT NULL
+              AND b.vodPositionSeconds > 0
+              AND (b.expiresAt IS NULL OR b.expiresAt > :now)
+            ORDER BY b.vodLastWatchedAt DESC NULLS LAST, b.updatedAt DESC
+            """)
+    List<Booking> findVodWatchHistory(
+            @Param("userUuid") UUID userUuid,
+            @Param("now") OffsetDateTime now);
 }

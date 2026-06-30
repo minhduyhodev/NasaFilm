@@ -294,7 +294,7 @@ class BookingServiceTest {
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
 
         AppException exception = assertThrows(AppException.class, () -> {
-            bookingService.vodHeartbeat("customer@example.com", movieUuid, "token-b");
+            bookingService.vodHeartbeat("customer@example.com", movieUuid, "token-b", null, null);
         });
 
         assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());
