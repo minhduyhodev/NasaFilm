@@ -38,12 +38,12 @@ export const GuestAuthPromoBanner = ({ className = '' }) => {
 
   const registerTarget = {
     pathname: '/register',
-    state: { from: location.pathname + location.search },
+    state: { from: location },
   };
 
   const loginTarget = {
     pathname: '/login',
-    state: { from: location.pathname + location.search },
+    state: { from: location },
   };
 
   return (
@@ -96,12 +96,12 @@ export const GuestAuthPromoBar = () => {
 
   const registerTarget = {
     pathname: '/register',
-    state: { from: location.pathname + location.search },
+    state: { from: location },
   };
 
   const loginTarget = {
     pathname: '/login',
-    state: { from: location.pathname + location.search },
+    state: { from: location },
   };
 
   return (
