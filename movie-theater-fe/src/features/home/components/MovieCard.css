@@ -1,0 +1,224 @@
+.movie-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 15, 18, 0.55);
+  overflow: hidden;
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+
+.movie-card:hover {
+  border-color: rgba(229, 9, 20, 0.65);
+  box-shadow: 0 0 0 1px rgba(229, 9, 20, 0.35), 0 12px 32px rgba(229, 9, 20, 0.14);
+  transform: translateY(-2px);
+}
+
+.movie-card__poster-wrap {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #0f121d;
+}
+
+.movie-card__poster-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.movie-card__poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.movie-card:hover .movie-card__poster {
+  transform: scale(1.04);
+}
+
+.movie-card__badges-left {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.movie-card__status {
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.2rem;
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.movie-card__status--hot {
+  background: #e50914;
+  color: #fff;
+}
+
+.movie-card__status--new {
+  background: #16a34a;
+  color: #fff;
+}
+
+.movie-card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fbbf24;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.movie-card__rating-icon {
+  width: 0.7rem;
+  height: 0.7rem;
+  fill: #fbbf24;
+  color: #fbbf24;
+}
+
+.movie-card__favorite {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 40;
+}
+
+.movie-card__age {
+  position: absolute;
+  left: 0.65rem;
+  bottom: 0.65rem;
+  z-index: 12;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 900;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.movie-card__age--p {
+  background: #eab308;
+  color: #111;
+}
+
+.movie-card__age--t18 {
+  background: #dc2626;
+  color: #fff;
+}
+
+.movie-card__age--default {
+  background: #f59e0b;
+  color: #111;
+}
+
+.movie-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 0.75rem 0.75rem;
+  text-align: left;
+  flex: 1;
+}
+
+.movie-card__title {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+.movie-card:hover .movie-card__title {
+  color: #fecaca;
+}
+
+.movie-card__genres {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #9ca3af;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.movie-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.movie-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.movie-card__meta-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: #e50914;
+  flex-shrink: 0;
+}
+
+.movie-card__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: auto;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.45rem;
+  background: #e50914;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.movie-card__cta:hover {
+  background: #c0000c;
+  color: #fff;
+}
+
+.movie-card__cta:active {
+  transform: scale(0.98);
+}

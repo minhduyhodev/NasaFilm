@@ -60,6 +60,7 @@ const WatchPage = () => {
   const [countdownWarning, setCountdownWarning] = useState(false);
   const [countdownSettings, setCountdownSettings] = useState(() => getOnlineCountdownSettings());
   const [vodExpiresAt, setVodExpiresAt] = useState(null);
+  const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const heartbeatIntervalRef = useRef(null);
   const cinemaUiTimerRef = useRef(null);
 
@@ -228,6 +229,9 @@ const WatchPage = () => {
         if (status.expiresAt) {
           setVodExpiresAt(status.expiresAt);
         }
+        if (status.positionSeconds > 0) {
+          setResumePositionSeconds(status.positionSeconds);
+        }
 
         const resolvedStreamUrl = getMovieStreamingUrl(movieDetail);
         if (!resolvedStreamUrl?.trim()) {
@@ -282,7 +286,10 @@ const WatchPage = () => {
 
     const sendHeartbeat = async () => {
       try {
-        await vodService.heartbeat(id, streamData.streamToken);
+        const video = videoRef.current;
+        const positionSeconds = video?.currentTime ?? null;
+        const durationSeconds = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
+        await vodService.heartbeat(id, streamData.streamToken, positionSeconds, durationSeconds);
       } catch (err) {
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
           notificationService.error('Tài khoản đang xem ở thiết bị khác.');
@@ -397,6 +404,14 @@ const WatchPage = () => {
     setDirectUrlIndex(0);
     setVideoError('');
   }, [streamUrl]);
+
+  const handleVideoResume = () => {
+    const video = videoRef.current;
+    if (!video || !resumePositionSeconds || resumePositionSeconds < 5) return;
+    const duration = video.duration;
+    if (Number.isFinite(duration) && duration > 0 && duration - resumePositionSeconds < 30) return;
+    video.currentTime = resumePositionSeconds;
+  };
 
   const handleDirectVideoError = () => {
     const maxAttempts = 1 + (videoSource.fallbackUrls?.length || 0);
@@ -562,6 +577,7 @@ const WatchPage = () => {
             className="watch-player-video"
             controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}
+            onLoadedMetadata={handleVideoResume}
             onError={handleDirectVideoError}
           />
           {videoError && (

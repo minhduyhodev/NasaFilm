@@ -52,6 +52,8 @@ public class SecurityConfig {
             "/api/activate-account",
             "/api/movies",
             "/api/movies/**",
+            "/api/search",
+            "/api/search/**",
             "/api/showtimes",
             "/api/genres",
             "/api/countries",

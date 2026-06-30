@@ -24,6 +24,12 @@ import './MovieReviewsSection.css';
 
 const DEFAULT_REVIEWS_PER_PAGE = 10;
 
+const REVIEW_SORT_OPTIONS = [
+  { value: 'createdAt,desc', label: 'Mới nhất' },
+  { value: 'rating,desc', label: 'Sao cao nhất' },
+  { value: 'rating,asc', label: 'Sao thấp nhất' },
+];
+
 const RATING_LABELS = {
   0: 'Chọn số sao',
   1: 'Không thích',
@@ -79,6 +85,7 @@ const MovieReviewsSection = ({
   const [comment, setComment] = useState('');
   const [reviewSort, setReviewSort] = useState('createdAt,desc');
   const [onlyWithComment, setOnlyWithComment] = useState(false);
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
   const loadSummary = useCallback(async () => {
     const data = await movieReviewService.getSummary(movieUuid);
@@ -175,6 +182,13 @@ const MovieReviewsSection = ({
     setPage(0);
     fetchReviewsPage(0);
   }, [reviewSort, onlyWithComment, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
+
+  useEffect(() => {
+    if (!isSortMenuOpen) return undefined;
+    const handleOutsideClick = () => setIsSortMenuOpen(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [isSortMenuOpen]);
 
   const handlePageChange = (nextPage) => {
     fetchReviewsPage(nextPage - 1);
@@ -287,7 +301,6 @@ const MovieReviewsSection = ({
   };
 
   const distribution = summary?.ratingDistribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-  const maxDistribution = Math.max(...Object.values(distribution), 1);
   const hasReviews = (summary?.totalReviews ?? 0) > 0;
   const averageDisplay = hasReviews ? summary.averageRating.toFixed(1) : null;
   const canSubmitReview = summary?.canReview ?? false;
@@ -298,6 +311,9 @@ const MovieReviewsSection = ({
   const collapsedSummary = hasReviews
     ? `${averageDisplay} điểm · ${summary.totalReviews} đánh giá`
     : 'Chưa có đánh giá — nhấn để xem và viết đánh giá';
+
+  const activeSortLabel =
+    REVIEW_SORT_OPTIONS.find((option) => option.value === reviewSort)?.label || 'Mới nhất';
 
   return (
     <section
@@ -343,6 +359,7 @@ const MovieReviewsSection = ({
                   value={Math.round(summary.averageRating)}
                   readOnly
                   size={13}
+                  tone="red"
                   className="movie-reviews-collapsed-stars"
                 />
               </div>
@@ -380,15 +397,16 @@ const MovieReviewsSection = ({
 
             <div id="movie-reviews-panel">
         {isReviewsLoading && !reviewsLoaded ? (
-          <div className="movie-reviews-loading glass-panel">
+          <div className="movie-reviews-loading movie-reviews-glass-card">
             <Loader2 className="animate-spin" size={22} />
             <span>Đang tải đánh giá...</span>
           </div>
         ) : (
-          <div className="movie-reviews-body">
-            <aside className="movie-reviews-sidebar glass-panel">
+          <>
+          <div className="movie-reviews-top-grid">
+            <aside className="movie-reviews-sidebar movie-reviews-glass-card">
               <div className="movie-reviews-score-hero">
-                <div className="movie-reviews-score-ring">
+                <div className="movie-reviews-score-box">
                   <Star className="movie-reviews-score-icon" aria-hidden="true" />
                   <span className="movie-reviews-score-number">
                     {averageDisplay ?? '—'}
@@ -407,7 +425,8 @@ const MovieReviewsSection = ({
                     <StarRating
                       value={Math.round(summary.averageRating)}
                       readOnly
-                      size={14}
+                      size={16}
+                      tone="red"
                       className="movie-reviews-score-stars"
                     />
                   )}
@@ -419,14 +438,11 @@ const MovieReviewsSection = ({
                 {[5, 4, 3, 2, 1].map((star) => {
                   const count = distribution[star] || 0;
                   const pct = hasReviews ? Math.round((count / summary.totalReviews) * 100) : 0;
-                  const barWidth = hasReviews
-                    ? `${Math.round((count / maxDistribution) * 100)}%`
-                    : '0%';
                   return (
                     <div key={star} className="movie-reviews-bar-row">
                       <span className="movie-reviews-bar-label">{star}</span>
                       <div className="movie-reviews-bar-track" aria-hidden="true">
-                        <div className="movie-reviews-bar-fill" style={{ width: barWidth }} />
+                        <div className="movie-reviews-bar-fill" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="movie-reviews-bar-count">
                         {hasReviews ? `${pct}%` : '—'}
@@ -437,9 +453,9 @@ const MovieReviewsSection = ({
               </div>
             </aside>
 
-            <div className="movie-reviews-content">
+            <div className="movie-reviews-form-col">
               {!isAuthenticated ? (
-                <div className="movie-reviews-login-banner glass-panel">
+                <div className="movie-reviews-login-banner movie-reviews-glass-card">
                   <div>
                     <p className="movie-reviews-login-title">Đăng nhập để đánh giá</p>
                     <p className="movie-reviews-login-desc">
@@ -456,7 +472,7 @@ const MovieReviewsSection = ({
                   </button>
                 </div>
               ) : !canSubmitReview ? (
-                <div className="movie-reviews-purchase-banner glass-panel">
+                <div className="movie-reviews-purchase-banner movie-reviews-glass-card">
                   <div>
                     <p className="movie-reviews-login-title">
                       {summary?.reviewCooldownActive ? 'Chờ gửi đánh giá tiếp' : 'Mua vé để được đánh giá'}
@@ -485,14 +501,14 @@ const MovieReviewsSection = ({
                   )}
                 </div>
               ) : (
-                <form className="movie-reviews-form glass-panel" onSubmit={handleSubmit}>
+                <form className="movie-reviews-form movie-reviews-glass-card" onSubmit={handleSubmit}>
                   <div className="movie-reviews-form-top">
                     <div className="movie-reviews-form-head">
                       <span className="movie-reviews-form-icon" aria-hidden="true">
                         <MessageSquare size={18} />
                       </span>
                       <div>
-                        <h3 className="movie-reviews-block-title movie-reviews-block-title--flush">
+                        <h3 className="movie-reviews-form-title">
                           Viết đánh giá
                         </h3>
                         <p className="movie-reviews-form-hint">
@@ -502,7 +518,7 @@ const MovieReviewsSection = ({
                     </div>
 
                     <div className="movie-reviews-rating-block">
-                      <StarRating value={rating} onChange={setRating} size={32} />
+                      <StarRating value={rating} onChange={setRating} size={22} tone="red" />
                       <span className={`movie-reviews-rating-label ${rating > 0 ? 'is-active' : ''}`}>
                         {RATING_LABELS[rating]}
                       </span>
@@ -518,7 +534,7 @@ const MovieReviewsSection = ({
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       maxLength={2000}
-                      rows={3}
+                      rows={4}
                       placeholder="Nội dung phim thế nào? Diễn xuất, hình ảnh, âm thanh..."
                       className="movie-reviews-textarea"
                     />
@@ -526,160 +542,185 @@ const MovieReviewsSection = ({
 
                   <div className="movie-reviews-form-footer">
                     <span className="movie-reviews-char-count">{comment.length}/2000</span>
-                    <div className="movie-reviews-form-actions">
-                      <button
-                        type="submit"
-                        disabled={isSubmitting || rating < 1}
-                        className="movie-reviews-submit-btn"
-                      >
-                        {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || rating < 1}
+                      className="movie-reviews-submit-btn"
+                    >
+                      {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+                    </button>
                   </div>
                 </form>
               )}
+            </div>
+          </div>
 
-              <div id="movie-reviews-list" className="movie-reviews-list">
-                <div className="movie-reviews-list-head">
-                  <div className="movie-reviews-list-head-main">
-                    <h3 className="movie-reviews-block-title movie-reviews-block-title--flush">
-                      Bình luận gần đây
-                    </h3>
-                    {hasReviews && (
-                      <span className="movie-reviews-list-badge">{summary.totalReviews}</span>
-                    )}
-                  </div>
-                  <MovieReviewPagination
-                    compact
-                    currentPage={page + 1}
-                    totalItems={totalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={handlePageChange}
-                    isLoading={isPageLoading}
-                  />
-                </div>
-
-                <div className="movie-reviews-list-filters">
-                  <select
-                    className="movie-reviews-filter-select"
-                    value={reviewSort}
-                    onChange={(e) => setReviewSort(e.target.value)}
+          <div id="movie-reviews-list" className="movie-reviews-list">
+            <div className="movie-reviews-list-toolbar">
+              <div className="movie-reviews-list-head-main">
+                <h3 className="movie-reviews-list-title">
+                  Bình luận gần đây
+                </h3>
+                {hasReviews && (
+                  <span className="movie-reviews-list-badge">{summary.totalReviews}</span>
+                )}
+              </div>
+              <div className="movie-reviews-list-controls">
+                <div className="movie-reviews-sort-menu">
+                  <button
+                    type="button"
+                    className="movie-reviews-sort-trigger"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsSortMenuOpen((open) => !open);
+                    }}
+                    aria-expanded={isSortMenuOpen}
+                    aria-haspopup="listbox"
                     aria-label="Sắp xếp bình luận"
                   >
-                    <option value="createdAt,desc">Mới nhất</option>
-                    <option value="rating,desc">Sao cao nhất</option>
-                    <option value="rating,asc">Sao thấp nhất</option>
-                  </select>
-                  <label className="movie-reviews-filter-check">
-                    <input
-                      type="checkbox"
-                      checked={onlyWithComment}
-                      onChange={(e) => setOnlyWithComment(e.target.checked)}
-                    />
-                    <span>Chỉ có bình luận</span>
-                  </label>
-                </div>
-
-                {reviews.length === 0 ? (
-                  <div className="movie-reviews-empty glass-panel">
-                    <div className="movie-reviews-empty-icon-wrap" aria-hidden="true">
-                      <Star />
+                    {activeSortLabel}
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </button>
+                  {isSortMenuOpen && (
+                    <div
+                      className="movie-reviews-sort-dropdown"
+                      role="listbox"
+                      aria-label="Sắp xếp bình luận"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {REVIEW_SORT_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="option"
+                          aria-selected={reviewSort === option.value}
+                          className={`movie-reviews-sort-option${reviewSort === option.value ? ' is-active' : ''}`}
+                          onClick={() => {
+                            setReviewSort(option.value);
+                            setIsSortMenuOpen(false);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
                     </div>
-                    <p className="movie-reviews-empty-title">Chưa có bình luận nào</p>
-                    <p className="movie-reviews-empty-desc">
-                      {isAuthenticated
-                        ? canSubmitReview
-                          ? 'Chọn số sao và gửi cảm nhận đầu tiên về bộ phim này.'
-                          : 'Mua vé rạp hoặc vé online để trở thành người đầu tiên đánh giá.'
-                        : 'Đăng nhập và mua vé để trở thành người đầu tiên đánh giá phim.'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className={`movie-reviews-items-wrap${isPageLoading ? ' is-loading' : ''}`}>
-                  <ul className="movie-reviews-items">
-                    {reviews.map((review) => (
-                      <li key={review.uuid} className="movie-reviews-item glass-panel">
-                        <div className="movie-reviews-item-head">
-                          <div className="movie-reviews-item-user">
-                            <UserAvatar
-                              src={review.userAvatarUrl}
-                              name={review.userFullName}
-                              className="w-10 h-10"
-                            />
-                            <div>
-                              <p className="movie-reviews-item-name">
-                                {review.userFullName || 'Khán giả NASA'}
-                                {review.mine && (
-                                  <span className="movie-reviews-mine-badge">Bạn</span>
-                                )}
-                              </p>
-                              <p className="movie-reviews-item-date">
-                                {formatReviewDate(review.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="movie-reviews-item-rating">
-                            <span className="movie-reviews-item-rating-value">
-                              {review.rating}.0
-                            </span>
-                            <StarRating value={review.rating} readOnly size={13} />
-                            {!review.mine && isAuthenticated && !review.reportedByMe && (
-                              <button
-                                type="button"
-                                className="movie-reviews-report-btn"
-                                onClick={() => handleReportReview(review)}
-                                disabled={reportingId === review.uuid}
-                                title="Báo cáo đánh giá"
-                                aria-label="Báo cáo đánh giá"
-                              >
-                                <Flag size={14} />
-                              </button>
-                            )}
-                            {!review.mine && isAuthenticated && review.reportedByMe && (
-                              <span className="movie-reviews-reported-badge" title="Bạn đã báo cáo đánh giá này">
-                                Đã báo cáo
-                              </span>
-                            )}
-                            {review.mine && (
-                              <button
-                                type="button"
-                                className="movie-reviews-item-delete-btn"
-                                onClick={() => handleDeleteReview(review.uuid)}
-                                disabled={isSubmitting}
-                                title="Xóa đánh giá của bạn"
-                                aria-label="Xóa đánh giá của bạn"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {review.comment ? (
-                          <p className="movie-reviews-item-comment">{review.comment}</p>
-                        ) : (
-                          <p className="movie-reviews-item-comment movie-reviews-item-comment--muted">
-                            Không có bình luận văn bản.
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  </div>
-                )}
-
-                {totalItems > 0 && (
-                  <MovieReviewPagination
-                    currentPage={page + 1}
-                    totalItems={totalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={handlePageChange}
-                    onItemsPerPageChange={handleItemsPerPageChange}
-                    isLoading={isPageLoading}
+                  )}
+                </div>
+                <label className="movie-reviews-filter-check">
+                  <input
+                    type="checkbox"
+                    checked={onlyWithComment}
+                    onChange={(e) => setOnlyWithComment(e.target.checked)}
                   />
+                  <span>Chỉ có bình luận</span>
+                </label>
+                {totalItems > 0 && (
+                  <span className="movie-reviews-list-count">{totalItems} bình luận</span>
                 )}
               </div>
             </div>
+
+            {reviews.length === 0 ? (
+              <div className="movie-reviews-empty movie-reviews-glass-card">
+                <div className="movie-reviews-empty-icon-wrap" aria-hidden="true">
+                  <Star />
+                </div>
+                <p className="movie-reviews-empty-title">Chưa có bình luận nào</p>
+                <p className="movie-reviews-empty-desc">
+                  {isAuthenticated
+                    ? canSubmitReview
+                      ? 'Chọn số sao và gửi cảm nhận đầu tiên về bộ phim này.'
+                      : 'Mua vé rạp hoặc vé online để trở thành người đầu tiên đánh giá.'
+                    : 'Đăng nhập và mua vé để trở thành người đầu tiên đánh giá phim.'}
+                </p>
+              </div>
+            ) : (
+              <div className={`movie-reviews-items-wrap${isPageLoading ? ' is-loading' : ''}`}>
+              <ul className="movie-reviews-items">
+                {reviews.map((review) => (
+                  <li key={review.uuid} className="movie-reviews-item movie-reviews-glass-card">
+                    <div className="movie-reviews-item-head">
+                      <div className="movie-reviews-item-user">
+                        <UserAvatar
+                          src={review.userAvatarUrl}
+                          name={review.userFullName}
+                          className="movie-reviews-item-avatar"
+                        />
+                        <div className="movie-reviews-item-profile">
+                          <div className="movie-reviews-item-name">
+                            <span className="movie-reviews-item-name-text">
+                              {review.userFullName || 'Khán giả NASA'}
+                            </span>
+                            {review.mine ? (
+                              <span className="movie-reviews-mine-badge">Bạn</span>
+                            ) : (
+                              <span className="movie-reviews-member-badge">Member</span>
+                            )}
+                          </div>
+                          <p className="movie-reviews-item-date">
+                            {formatReviewDate(review.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="movie-reviews-item-rating">
+                        <span className="movie-reviews-item-rating-value">
+                          {Number(review.rating).toFixed(1)}
+                        </span>
+                        <StarRating value={review.rating} readOnly size={14} tone="red" />
+                        {review.mine ? (
+                          <button
+                            type="button"
+                            className="movie-reviews-item-action-btn"
+                            onClick={() => handleDeleteReview(review.uuid)}
+                            disabled={isSubmitting}
+                            title="Xóa đánh giá của bạn"
+                            aria-label="Xóa đánh giá của bạn"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        ) : isAuthenticated && !review.reportedByMe ? (
+                          <button
+                            type="button"
+                            className="movie-reviews-item-action-btn"
+                            onClick={() => handleReportReview(review)}
+                            disabled={reportingId === review.uuid}
+                            title="Báo cáo đánh giá"
+                            aria-label="Báo cáo đánh giá"
+                          >
+                            <Flag size={16} />
+                          </button>
+                        ) : review.reportedByMe ? (
+                          <span className="movie-reviews-reported-badge" title="Bạn đã báo cáo đánh giá này">
+                            Đã báo cáo
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    {review.comment ? (
+                      <p className="movie-reviews-item-comment">{review.comment}</p>
+                    ) : (
+                      <p className="movie-reviews-item-comment movie-reviews-item-comment--muted">
+                        Không có bình luận văn bản.
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              </div>
+            )}
+
+            {totalItems > 0 && (
+              <MovieReviewPagination
+                currentPage={page + 1}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                isLoading={isPageLoading}
+              />
+            )}
           </div>
+          </>
         )}
             </div>
           </>

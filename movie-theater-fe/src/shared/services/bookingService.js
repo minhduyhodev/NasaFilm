@@ -215,10 +215,22 @@ class BookingService {
     }
   }
 
-  async vodHeartbeat(movieUuid, streamToken) {
+  async vodHeartbeat(movieUuid, streamToken, positionSeconds = null, durationSeconds = null) {
     try {
-      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?streamToken=${encodeURIComponent(streamToken)}`);
+      const params = new URLSearchParams({ streamToken });
+      if (positionSeconds != null) params.set('positionSeconds', String(Math.floor(positionSeconds)));
+      if (durationSeconds != null) params.set('durationSeconds', String(Math.floor(durationSeconds)));
+      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?${params.toString()}`);
       return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getVodHistory() {
+    try {
+      const response = await authService.api.get('/api/vod/history');
+      return response.data.data ?? response.data ?? [];
     } catch (error) {
       throw authService.handleError(error);
     }

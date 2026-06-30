@@ -49,4 +49,14 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
     java.util.List<Object[]> countByRatingGroupAndStatus(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status);
+
+    @Query("""
+            select r.movieUuid, count(r), coalesce(avg(r.rating), 0)
+            from MovieReview r
+            where r.movieUuid in :movieUuids and r.status = :status
+            group by r.movieUuid
+            """)
+    java.util.List<Object[]> aggregateByMovieUuids(
+            @Param("movieUuids") Collection<UUID> movieUuids,
+            @Param("status") MovieReviewStatus status);
 }

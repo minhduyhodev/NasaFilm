@@ -27,6 +27,8 @@ const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'))
 const WatchPage = lazy(() => import('../pages/WatchPage'));
 const RemindersPage = lazy(() => import('../pages/RemindersPage'));
 const WalletPage = lazy(() => import('../pages/WalletPage'));
+const SearchResultsPage = lazy(() => import('../pages/SearchResultsPage'));
+const MyMoviesPage = lazy(() => import('../pages/MyMoviesPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -73,6 +75,8 @@ export const HomeRoutes = () => {
           <Route path="refund-policy" element={<RefundPolicyPage />} />
           <Route path="faq" element={<FaqPage />} />
           <Route path="movie/:id" element={<MovieDetailPage />} />
+          <Route path="search" element={<SearchResultsPage />} />
+          <Route path="my-movies" element={<MyMoviesPage />} />
           <Route
             path="booking"
             element={

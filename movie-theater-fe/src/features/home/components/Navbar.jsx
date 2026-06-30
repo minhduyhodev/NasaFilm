@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2 } from 'lucide-react';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -10,6 +10,7 @@ import { useNotification } from '../../../shared/context/NotificationContext';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
+import GlobalSearchBar from './GlobalSearchBar';
 
 const CATALOG_MENUS = {
   genre: {
@@ -131,53 +132,60 @@ const Navbar = () => {
         <div className="navbar-logo-group">
           <Link to="/" className="navbar-logo-link gap-3">
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
-            <span className="font-heading text-2xl font-black leading-none tracking-wider text-white sm:text-3xl">
+            <span className="font-heading hidden text-2xl font-black leading-none tracking-wider text-white sm:inline sm:text-3xl">
               NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
             </span>
           </Link>
         </div>
 
-        <nav className="navbar-nav">
-          <Link to="/movies" className="navbar-nav-link">Phim</Link>
-          {Object.entries(CATALOG_MENUS).map(([key, menu]) => {
-            const isOpen = openCatalog === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}`}
-                aria-expanded={isOpen}
-                aria-haspopup="menu"
-                onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
-              >
-                {menu.label}
-                <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}`} aria-hidden />
-              </button>
-            );
-          })}
-          <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
-          <Link
-            to="/online"
-            className="navbar-nav-link"
-            onClick={handleOnlineNav}
-            onMouseEnter={prefetchOnlinePage}
-            onFocus={prefetchOnlinePage}
-            onTouchStart={prefetchOnlinePage}
-          >
-            Trực Tuyến
-          </Link>
-          <Link to="/offers" className="navbar-nav-link">Bắp Nước</Link>
-          <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
-        </nav>
+        <div className="navbar-center">
+          <nav className="navbar-nav">
+            <Link to="/movies" className="navbar-nav-link">Phim</Link>
+            {Object.entries(CATALOG_MENUS).map(([key, menu]) => {
+              const isOpen = openCatalog === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}`}
+                  aria-expanded={isOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
+                >
+                  {menu.label}
+                  <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}`} aria-hidden />
+                </button>
+              );
+            })}
+            <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
+            <Link to="/offers" className="navbar-nav-link">Bắp Nước</Link>
+            <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
+          </nav>
+
+          <GlobalSearchBar className="navbar-search hidden lg:block" />
+        </div>
 
         <div className="navbar-actions">
           <button
+            type="button"
             onClick={handleBookingClick}
-            className="relative hidden h-11 shrink-0 items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-4 text-xs font-extrabold uppercase tracking-wider text-white shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 hover:scale-[1.02] hover:from-red-700 hover:to-red-600 active:scale-95 md:inline-flex"
+            className="navbar-cta-btn"
           >
             <Star className="h-4 w-4 fill-white text-white" />
             <span>MUA VÉ</span>
           </button>
+
+          <Link
+            to="/online"
+            onClick={handleOnlineNav}
+            onMouseEnter={prefetchOnlinePage}
+            onFocus={prefetchOnlinePage}
+            onTouchStart={prefetchOnlinePage}
+            className="navbar-cta-btn"
+          >
+            <Play className="h-4 w-4 fill-white text-white" />
+            <span>TRỰC TUYẾN</span>
+          </Link>
 
           <NotificationBell />
 
@@ -452,6 +460,15 @@ const AuthControls = () => {
                   <span>Trang Admin</span>
                 </Link>
               )}
+
+              <Link
+                to="/my-movies"
+                onClick={() => setIsOpen(false)}
+                className="dropdown-menu-link"
+              >
+                <Star className="h-4 w-4" />
+                <span>Phim của tôi</span>
+              </Link>
 
               <Link
                 to="/profile"

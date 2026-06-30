@@ -91,6 +91,7 @@ public class MovieService {
     private final ShowtimeRepository showtimeRepository;
     private final SystemConfigService systemConfigService;
     private final CatalogCacheEvictor catalogCacheEvictor;
+    private final MovieReviewStatsService movieReviewStatsService;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
@@ -291,8 +292,18 @@ public class MovieService {
         }
         List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
         Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
+        Map<UUID, com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse> reviewStats =
+                movieReviewStatsService.getStatsBatch(uuids);
         return movies.stream()
-                .map(movie -> toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie)))
+                .map(movie -> {
+                    MovieListResponse response = toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie));
+                    var stats = reviewStats.get(movie.getUuid());
+                    if (stats != null && stats.getTotalReviews() > 0) {
+                        response.setReviewAverageRating(stats.getAverageRating());
+                        response.setReviewCount(stats.getTotalReviews());
+                    }
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 

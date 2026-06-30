@@ -24,6 +24,8 @@ public class MovieListResponse {
     private String screeningMode;
     private BigDecimal onlinePrice;
     private Double rating;
+    private Double reviewAverageRating;
+    private Long reviewCount;
     private OffsetDateTime nextShowtimeStart;
 
     public MovieListResponse() {
@@ -179,6 +181,22 @@ public class MovieListResponse {
 
     public void setRating(Double rating) {
         this.rating = rating;
+    }
+
+    public Double getReviewAverageRating() {
+        return reviewAverageRating;
+    }
+
+    public void setReviewAverageRating(Double reviewAverageRating) {
+        this.reviewAverageRating = reviewAverageRating;
+    }
+
+    public Long getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Long reviewCount) {
+        this.reviewCount = reviewCount;
     }
 
     public OffsetDateTime getNextShowtimeStart() {

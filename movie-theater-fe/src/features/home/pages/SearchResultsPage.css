@@ -1,0 +1,85 @@
+.search-results-page {
+  min-height: 100vh;
+  padding: 6rem 1.25rem 3rem;
+}
+
+.search-results-main {
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.search-results-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.search-results-query {
+  margin-top: 0.5rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.95rem;
+}
+
+.search-results-empty {
+  margin-top: 2rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.search-results-section {
+  margin-top: 2rem;
+}
+
+.search-results-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f87171;
+  margin-bottom: 0.75rem;
+}
+
+.search-results-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.search-results-card {
+  display: block;
+  padding: 1rem 1.1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.search-results-card:hover {
+  border-color: rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+
+.search-results-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.search-results-card-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+html[data-theme='light'] .search-results-title,
+html[data-theme='light'] .search-results-card-title {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .search-results-card {
+  background: #fff;
+  border-color: rgba(15, 23, 42, 0.08);
+}

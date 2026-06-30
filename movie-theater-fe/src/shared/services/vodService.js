@@ -24,8 +24,12 @@ export const vodService = {
     return bookingService.activateVodPlay(movieUuid, bookingUuid);
   },
 
-  heartbeat(movieUuid, streamToken) {
-    return bookingService.vodHeartbeat(movieUuid, streamToken);
+  heartbeat(movieUuid, streamToken, positionSeconds = null, durationSeconds = null) {
+    return bookingService.vodHeartbeat(movieUuid, streamToken, positionSeconds, durationSeconds);
+  },
+
+  getHistory() {
+    return bookingService.getVodHistory();
   },
 
   resendTicketEmail(movieUuid) {

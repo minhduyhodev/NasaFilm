@@ -2,6 +2,7 @@ import React from 'react';
 import Hero from '../components/Hero';
 import TicketFilters from '../components/TicketFilters';
 import NowShowing from '../components/NowShowing';
+import GuestAuthPromoBanner from '../components/GuestAuthPromo';
 import ComingSoon from '../components/ComingSoon';
 import Upcoming from '../components/Upcoming';
 import VIPSection from '../components/VIPSection';
@@ -22,6 +23,12 @@ const HomePage = () => {
 				<section className="mt-12 px-4 md:px-8 lg:px-20">
 					<div className="max-w-7xl mx-auto">
 						<NowShowing />
+					</div>
+				</section>
+
+				<section className="mt-8 px-4 md:px-8 lg:px-20">
+					<div className="max-w-7xl mx-auto">
+						<GuestAuthPromoBanner />
 					</div>
 				</section>
 
