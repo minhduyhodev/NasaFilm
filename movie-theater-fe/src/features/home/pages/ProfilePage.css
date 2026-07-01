@@ -254,6 +254,67 @@
   color: #a1a1aa;
 }
 
+.profile-preference-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+}
+
+.profile-preference-banner--loading {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #a1a1aa;
+}
+
+.profile-preference-banner__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4d4d8;
+}
+
+.profile-preference-banner__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .profile-preference-banner__chips {
+    justify-content: flex-start;
+  }
+}
+
+.profile-preference-banner__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.profile-preference-banner__chip--favorite {
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.28);
+}
+
 /* 2. Content Layout with Navigation Rail */
 .profile-content-grid {
   display: grid;

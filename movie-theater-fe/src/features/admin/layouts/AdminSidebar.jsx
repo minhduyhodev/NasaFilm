@@ -21,6 +21,7 @@ import {
   DollarSign,
   Megaphone,
   MessageSquare,
+  Radar,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -345,6 +346,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Users,
                 "Danh sách khách hàng",
                 "text-cyan-400",
+              )}
+              {renderLink(
+                "/admin/showtime-radar-preferences",
+                Radar,
+                "Sở thích Radar",
+                "text-sky-400",
               )}
               {renderLink(
                 "/admin/staff",

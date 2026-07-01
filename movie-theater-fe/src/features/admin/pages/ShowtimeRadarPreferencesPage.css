@@ -1,0 +1,124 @@
+.radar-prefs-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.radar-prefs-page__search {
+  flex: 1 1 240px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+}
+
+.radar-prefs-page__search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.radar-prefs-page__table-wrap {
+  overflow-x: auto;
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  background: rgba(11, 15, 25, 0.55);
+}
+
+.radar-prefs-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.radar-prefs-page__table th,
+.radar-prefs-page__table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #1a2238;
+  vertical-align: top;
+}
+
+.radar-prefs-page__table th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  background: rgba(15, 19, 34, 0.9);
+}
+
+.radar-prefs-page__table tr:hover td {
+  background: rgba(30, 41, 59, 0.18);
+}
+
+.radar-prefs-page__user-name {
+  color: #f8fafc;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.radar-prefs-page__user-email {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+.radar-prefs-page__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.radar-prefs-page__badge--on {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.radar-prefs-page__badge--off {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.radar-prefs-page__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.radar-prefs-page__chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.radar-prefs-page__chip--muted {
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+.radar-prefs-page__empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}

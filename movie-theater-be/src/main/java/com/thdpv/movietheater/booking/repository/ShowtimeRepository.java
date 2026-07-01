@@ -195,4 +195,33 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             @Param("now") OffsetDateTime now,
             @Param("statuses") Collection<ShowtimeStatus> statuses,
             @Param("finished") ShowtimeStatus finished);
+
+    @Query("SELECT s.uuid FROM Showtime s WHERE s.endTime <= :now")
+    List<UUID> findExpiredShowtimeUuids(@Param("now") OffsetDateTime now);
+
+    @Query(value = """
+            SELECT st.uuid,
+                   st.movie_uuid,
+                   st.cinema_room_uuid,
+                   st.start_time,
+                   COALESCE(
+                     NULLIF(cr.capacity, 0),
+                     (SELECT COUNT(*) FROM seat s
+                      WHERE s.cinema_room_uuid = cr.uuid AND s.is_active = true)
+                   ) AS capacity,
+                   (SELECT COUNT(*) FROM booking_seat bs WHERE bs.showtime_uuid = st.uuid) AS booked,
+                   (SELECT COUNT(DISTINCT sl.seat_uuid)
+                    FROM seat_locked sl
+                    WHERE sl.showtime_uuid = st.uuid
+                      AND sl.expired_at > :now) AS locked
+            FROM showtime st
+            JOIN cinema_room cr ON cr.uuid = st.cinema_room_uuid
+            WHERE st.status IN ('OPEN_FOR_BOOKING', 'SCHEDULED')
+              AND st.start_time > :now
+              AND st.start_time < :windowEnd
+            ORDER BY st.start_time ASC
+            """, nativeQuery = true)
+    List<Object[]> findUpcomingAvailabilityRows(
+            @Param("now") OffsetDateTime now,
+            @Param("windowEnd") OffsetDateTime windowEnd);
 }
