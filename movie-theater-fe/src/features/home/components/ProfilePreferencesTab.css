@@ -1,0 +1,321 @@
+.profile-preferences-tab__desc {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.55;
+  max-width: 40rem;
+}
+
+.profile-preferences-tab__form {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.profile-preferences-tab__form h3,
+.profile-preferences-tab__radar h3 {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__muted {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.profile-preferences-tab__favorite-count {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.profile-preferences-tab__genre-hint {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.profile-preferences-tab__chip.is-from-favorite.is-active {
+  border-color: rgba(251, 191, 36, 0.75);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+.profile-preferences-tab__chip.is-readonly {
+  cursor: default;
+  pointer-events: none;
+}
+
+.profile-preferences-tab__chips--readonly {
+  margin-top: 0.75rem;
+}
+
+.profile-preferences-tab__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.profile-preferences-tab__chip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.profile-preferences-tab__chip.is-active {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.14);
+  color: #fde68a;
+}
+
+.profile-preferences-tab__time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.profile-preferences-tab__time-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.profile-preferences-tab__time-row select {
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111216;
+  color: #fff;
+}
+
+.profile-preferences-tab__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #d4af37;
+  text-decoration: none;
+}
+
+.profile-preferences-tab__link:hover {
+  text-decoration: underline;
+}
+
+.profile-preferences-tab__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.profile-preferences-tab__save,
+.profile-preferences-tab__toggle,
+.profile-preferences-tab__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-preferences-tab__reset {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.profile-preferences-tab__save {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.16);
+  color: #fde68a;
+}
+
+.profile-preferences-tab__toggle {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__toggle.is-on {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.14);
+  color: #e0f2fe;
+}
+
+.profile-preferences-tab__radar {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-preferences-tab__radar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.profile-preferences-tab__radar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-preferences-tab__refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__refresh:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+
+/* Shared suggestions list */
+.radar-suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.radar-suggestions--widget,
+.radar-suggestions--profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.radar-suggestions--profile {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .radar-suggestions--profile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.radar-suggestions--loading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+.radar-suggestions--empty {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.radar-suggestions__item {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.radar-suggestions__item:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+.radar-suggestions__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.radar-suggestions__title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1.35;
+}
+
+.radar-suggestions__heat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde047;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.radar-suggestions__meta {
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.radar-suggestions__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.radar-suggestions__tags span {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.radar-suggestions__book {
+  display: inline-block;
+  margin-top: 0.55rem;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.radar-suggestions__book:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
@@ -27,6 +27,7 @@ import {
   History,
   Phone,
   ChevronDown,
+  Radar,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
@@ -34,6 +35,9 @@ import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/qu
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import ProfilePreferencesTab from "../components/ProfilePreferencesTab";
+import ProfilePreferenceBanner from "../components/ProfilePreferenceBanner";
+import { ShowtimeRadarProvider } from "../context/ShowtimeRadarProvider";
 import Pagination from "../../../shared/components/Pagination";
 import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
@@ -51,6 +55,7 @@ export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -116,6 +121,13 @@ export const ProfilePage = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    const tabFromNav = location.state?.tab;
+    if (tabFromNav === "preferences") {
+      setActiveTab("preferences");
+    }
+  }, [location.state?.tab]);
 
   const reloadBookings = async () => {
     await invalidateBookings();
@@ -521,6 +533,7 @@ export const ProfilePage = () => {
   }
 
   return (
+    <ShowtimeRadarProvider>
     <>
       <div className="profile-wrapper">
         <div className="profile-container">
@@ -593,6 +606,8 @@ export const ProfilePage = () => {
                       <span className="font-semibold">Thành viên từ 2026</span>
                     </div>
                   </div>
+
+                  <ProfilePreferenceBanner />
                 </div>
               </div>
 
@@ -759,6 +774,17 @@ export const ProfilePage = () => {
                     <Award size={20} />
                   </div>
                   <span className="rail-label">Thành viên</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("preferences")}
+                  className={`rail-item ${activeTab === "preferences" ? "active" : ""}`}
+                  title="Sở thích xem phim"
+                >
+                  <div className="rail-icon-wrapper">
+                    <Radar size={20} />
+                  </div>
+                  <span className="rail-label">Sở thích</span>
                 </button>
 
                 <button
@@ -1749,6 +1775,19 @@ export const ProfilePage = () => {
                   </motion.div>
                 )}
 
+                {activeTab === "preferences" && (
+                  <motion.div
+                    key="preferences"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <ProfilePreferencesTab />
+                  </motion.div>
+                )}
+
                 {activeTab === "security" && authProvider !== "GOOGLE" && (
                   <motion.div
                     key="security"
@@ -1864,6 +1903,7 @@ export const ProfilePage = () => {
         onClose={() => setRefundTargetUuid(null)}
       />
     </>
+    </ShowtimeRadarProvider>
   );
 };
 

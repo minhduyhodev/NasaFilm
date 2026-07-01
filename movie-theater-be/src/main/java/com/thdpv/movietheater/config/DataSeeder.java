@@ -1362,6 +1362,7 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime baseDay = now.plusDays(1);
 
         if (showtimesToSeed != null) {
             for (ShowtimeJsonData data : showtimesToSeed) {
@@ -1404,8 +1405,8 @@ public class DataSeeder implements CommandLineRunner {
                     jdbcTemplate.update(
                             "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtimeUuid, movieUuid, roomUuid,
-                            now.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
-                            now.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
+                            baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
+                            baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
                             basePrice, status);
                     logger.info("Seeded showtime from JSON: {}", showtimeUuid);
                 }
