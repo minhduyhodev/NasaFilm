@@ -181,6 +181,19 @@ const NasaAiAssistantWidget = () => {
 
   const ownerLabel = useMemo(() => getOwnerLabel(user || tokenService.getUser()), [user]);
   const isAdminUser = useMemo(() => hasAdminAccess(user || tokenService.getUser()), [user]);
+  const supportStatus = useMemo(() => {
+    if (typing) return 'Đang xử lý...';
+    if (mode === 'create') {
+      if (createStep === 'category') return 'Đang chọn danh mục';
+      if (createStep === 'description') return 'Đang chờ mô tả';
+      if (createStep === 'confirm') return 'Chốt ticket trước khi gửi';
+      if (createStep === 'sending') return 'Đang gửi ticket';
+    }
+    if (mode === 'ticket') return 'Đang chat với admin';
+    if (mode === 'tickets') return 'Đang xem ticket của bạn';
+    if (ticket?.status) return `Ticket ${ticket.status}`;
+    return 'Sẵn sàng hỗ trợ';
+  }, [createStep, mode, ticket?.status, typing]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -534,8 +547,8 @@ const NasaAiAssistantWidget = () => {
               <div className="nasa-assistant-body" ref={scrollRef}>
                 {mode === 'home' ? (
                   <div className="nasa-assistant-home-grid">
-                    <aside className="nasa-assistant-sidebar">
-                      <div className="nasa-assistant-sidebar__hero">
+                    <aside className="nasa-assistant-sidebar nasa-assistant-slide nasa-assistant-slide--1">
+                      <div className="nasa-assistant-sidebar__hero nasa-assistant-card">
                         <div className="nasa-assistant-sidebar__title">Trợ Lý Thông Minh</div>
                         <div className="nasa-assistant-sidebar__text">
                           Tôi có thể giúp bạn đặt vé, tìm kiếm phim hot nhất hoặc giải đáp các thắc mắc về rạp chiếu NASAFilm.
@@ -545,7 +558,7 @@ const NasaAiAssistantWidget = () => {
                       <div className="nasa-assistant-promo-stack">
                         <button
                           type="button"
-                          className="nasa-assistant-card nasa-assistant-promo-card nasa-assistant-promo-card--combo"
+                          className="nasa-assistant-card nasa-assistant-promo-card nasa-assistant-promo-card--combo nasa-assistant-slide nasa-assistant-slide--2"
                           onClick={() => {
                             closeWidget();
                             if (comboPromo?.href) {
@@ -561,7 +574,7 @@ const NasaAiAssistantWidget = () => {
                           </div>
                         </button>
 
-                        <div className="nasa-assistant-shortcut-grid">
+                        <div className="nasa-assistant-shortcut-grid nasa-assistant-slide nasa-assistant-slide--3">
                           {HOME_SHORTCUTS.map((item) => (
                             <button
                               key={item.label}
@@ -591,13 +604,13 @@ const NasaAiAssistantWidget = () => {
                       </div>
                     </aside>
 
-                    <section className="nasa-assistant-center-hero">
+                    <section className="nasa-assistant-center-hero nasa-assistant-slide nasa-assistant-slide--2">
                       <div className="nasa-assistant-robot-frame nasa-assistant-robot-frame--hero">
                         <img src={nasaAssistantSide} alt="NASA BOT" />
                       </div>
                     </section>
 
-                    <section className="nasa-assistant-chat-shell">
+                    <section className="nasa-assistant-chat-shell nasa-assistant-slide nasa-assistant-slide--3">
                       <div className="nasa-assistant-chat-head">
                         <div className="nasa-assistant-chat-head__brand">
                           <div className="nasa-assistant-chat-head__avatar">
@@ -605,20 +618,20 @@ const NasaAiAssistantWidget = () => {
                           </div>
                           <div>
                             <div className="nasa-assistant-chat-head__title">NASA BOT</div>
-                            <div className="nasa-assistant-chat-head__status">Sẵn sàng hỗ trợ bạn</div>
+                            <div className="nasa-assistant-chat-head__status">{supportStatus}</div>
                           </div>
                         </div>
                       </div>
 
                       <div className="nasa-assistant-chat-preview">
-                        <div className="nasa-assistant-summary nasa-assistant-summary--compact">
+                        <div className="nasa-assistant-summary nasa-assistant-summary--compact nasa-assistant-slide nasa-assistant-slide--4">
                           <Sparkles className="h-4 w-4" />
                           <span>Chọn nhanh để đặt vé hoặc tạo ticket. Nếu cần, mình sẽ hỏi tiếp từng bước.</span>
                         </div>
                         {moviePromo && (
                           <button
                             type="button"
-                            className="nasa-assistant-card nasa-assistant-promo-card"
+                            className="nasa-assistant-card nasa-assistant-promo-card nasa-assistant-slide nasa-assistant-slide--5"
                             onClick={() => {
                               closeWidget();
                               if (moviePromo.href) {
@@ -634,7 +647,7 @@ const NasaAiAssistantWidget = () => {
                             </div>
                           </button>
                         )}
-                        <div className="nasa-assistant-card">
+                        <div className="nasa-assistant-card nasa-assistant-slide nasa-assistant-slide--6">
                           <div className="nasa-assistant-card__actions">
                             <button type="button" className="nasa-assistant-mini-btn nasa-assistant-mini-btn--primary" onClick={() => handleQuickAction('Tạo ticket')}>
                               Tạo ticket
@@ -645,7 +658,7 @@ const NasaAiAssistantWidget = () => {
                           </div>
                         </div>
 
-                        <div className="nasa-assistant-recent-card">
+                        <div className="nasa-assistant-recent-card nasa-assistant-slide nasa-assistant-slide--7">
                           <div className="nasa-assistant-recent-card__title">ĐỀ XUẤT RẠP GẦN ĐÂY</div>
                           <div className="nasa-assistant-recent">
                             {RECENT_CINEMAS.map((item) => (
@@ -885,7 +898,7 @@ const NasaAiAssistantWidget = () => {
               <footer className="nasa-assistant-footer">
                 {mode === 'chat' && (
                   <div className="nasa-assistant-actions">
-                    {QUICK_ACTIONS.map((action) => (
+                    {(supportStatus.includes('Ticket') ? ['Xem ticket của tôi', 'Tạo ticket', 'Không đăng nhập được'] : QUICK_ACTIONS).map((action) => (
                       <button
                         key={action}
                         type="button"
