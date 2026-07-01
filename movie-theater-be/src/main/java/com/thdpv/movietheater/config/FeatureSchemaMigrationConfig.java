@@ -28,7 +28,7 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions)...");
 
             jdbc.execute("""
                     ALTER TABLE movie_review
@@ -131,6 +131,76 @@ public class FeatureSchemaMigrationConfig {
                         auth text NOT NULL,
                         created_at timestamptz NOT NULL DEFAULT now(),
                         CONSTRAINT uk_push_subscription_endpoint UNIQUE (endpoint)
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS mission_template (
+                        uuid uuid PRIMARY KEY,
+                        code varchar(64) NOT NULL,
+                        version integer NOT NULL DEFAULT 1,
+                        title varchar(255) NOT NULL,
+                        description text,
+                        condition_type varchar(64) NOT NULL,
+                        condition_json jsonb,
+                        reward_points integer NOT NULL DEFAULT 0,
+                        reward_badge_code varchar(64),
+                        reward_badge_title varchar(120),
+                        requires_feature varchar(64),
+                        target_value integer NOT NULL DEFAULT 1,
+                        is_active boolean NOT NULL DEFAULT true,
+                        sort_order integer NOT NULL DEFAULT 0,
+                        created_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_mission_template_code UNIQUE (code)
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_mission (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        mission_template_uuid uuid NOT NULL,
+                        template_version integer NOT NULL DEFAULT 1,
+                        status varchar(32) NOT NULL,
+                        progress_current integer NOT NULL DEFAULT 0,
+                        progress_target integer NOT NULL DEFAULT 1,
+                        progress_json jsonb,
+                        completed_at timestamptz,
+                        enrolled_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_user_mission_user_template UNIQUE (user_uuid, mission_template_uuid)
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_mission_user
+                    ON user_mission (user_uuid, updated_at DESC)
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS mission_progress_event (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        mission_template_uuid uuid NOT NULL,
+                        source_type varchar(64) NOT NULL,
+                        source_id varchar(64) NOT NULL,
+                        event_at timestamptz NOT NULL,
+                        CONSTRAINT uk_mission_progress_event UNIQUE (
+                            user_uuid, mission_template_uuid, source_type, source_id
+                        )
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_badge (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        badge_code varchar(64) NOT NULL,
+                        badge_title varchar(120) NOT NULL,
+                        source_user_mission_uuid uuid,
+                        unlocked_at timestamptz NOT NULL,
+                        CONSTRAINT uk_user_badge_user_code UNIQUE (user_uuid, badge_code)
                     )
                     """);
 

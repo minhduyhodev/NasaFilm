@@ -1,11 +1,16 @@
 package com.thdpv.movietheater.booking.dto.response;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 
 public class VodPlayResponse {
     private String streamToken;
     private String streamingUrl;
     private OffsetDateTime expiresAt;
+    private List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
 
     public VodPlayResponse() {
     }
@@ -38,5 +43,13 @@ public class VodPlayResponse {
 
     public void setExpiresAt(OffsetDateTime expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public List<MissionCompletionResponse> getMissionCompletions() {
+        return missionCompletions;
+    }
+
+    public void setMissionCompletions(List<MissionCompletionResponse> missionCompletions) {
+        this.missionCompletions = missionCompletions != null ? missionCompletions : new ArrayList<>();
     }
 }

@@ -1,0 +1,218 @@
+.mission-board {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mission-board--loading,
+.mission-board--error {
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+.mission-board__spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 2px solid rgba(251, 191, 36, 0.2);
+  border-top-color: #f59e0b;
+  animation: mission-spin 0.8s linear infinite;
+  margin-bottom: 0.75rem;
+}
+
+@keyframes mission-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mission-board__hero {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1rem;
+}
+
+.mission-board__hero-copy h3 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.mission-board__hero-copy p {
+  margin: 0;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.mission-board__eyebrow {
+  display: inline-flex;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.mission-board__tier-card {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.72));
+}
+
+.mission-board__tier-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+}
+
+.mission-board__tier-name {
+  margin-top: 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.mission-board__tier-score {
+  margin-top: 0.2rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.mission-board__tier-bar {
+  margin-top: 0.85rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  overflow: hidden;
+}
+
+.mission-board__tier-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.mission-board__tier-next {
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.mission-board__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.mission-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 220px;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.55);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.mission-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.mission-card.is-completed {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: linear-gradient(180deg, rgba(20, 83, 45, 0.18), rgba(2, 6, 23, 0.55));
+}
+
+.mission-card.is-locked {
+  opacity: 0.72;
+}
+
+.mission-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mission-card__icon {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.mission-card__status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.mission-card.is-completed .mission-card__status {
+  color: #4ade80;
+}
+
+.mission-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.mission-card__description {
+  margin: 0;
+  flex: 1;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.mission-card__progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-bottom: 0.35rem;
+}
+
+.mission-card__progress-bar {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.95);
+  overflow: hidden;
+}
+
+.mission-card__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #f59e0b);
+}
+
+.mission-card__reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .mission-board__hero {
+    grid-template-columns: 1fr;
+  }
+}

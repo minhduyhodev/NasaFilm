@@ -35,6 +35,9 @@ import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
 import com.thdpv.movietheater.movie.support.ReviewActionRateLimiter;
 import com.thdpv.movietheater.movie.util.ReviewTextModerationUtil;
+import com.thdpv.movietheater.mission.dto.MissionEventPayload;
+import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
+import com.thdpv.movietheater.mission.service.MissionService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -57,6 +60,7 @@ public class MovieReviewService {
     private final MovieReviewCacheEvictor movieReviewCacheEvictor;
     private final ReviewActionRateLimiter reviewActionRateLimiter;
     private final ReviewVibeTagService reviewVibeTagService;
+    private final MissionService missionService;
 
     public MovieReviewService(
             MovieReviewRepository movieReviewRepository,
@@ -68,7 +72,8 @@ public class MovieReviewService {
             MovieReviewStatsService movieReviewStatsService,
             MovieReviewCacheEvictor movieReviewCacheEvictor,
             ReviewActionRateLimiter reviewActionRateLimiter,
-            ReviewVibeTagService reviewVibeTagService) {
+            ReviewVibeTagService reviewVibeTagService,
+            MissionService missionService) {
         this.movieReviewRepository = movieReviewRepository;
         this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
@@ -79,6 +84,7 @@ public class MovieReviewService {
         this.movieReviewCacheEvictor = movieReviewCacheEvictor;
         this.reviewActionRateLimiter = reviewActionRateLimiter;
         this.reviewVibeTagService = reviewVibeTagService;
+        this.missionService = missionService;
     }
 
     @Transactional(readOnly = true)
@@ -174,7 +180,15 @@ public class MovieReviewService {
 
         MovieReview saved = movieReviewRepository.save(review);
         movieReviewCacheEvictor.evictSummary(movieUuid);
-        return toResponse(saved, user.getId(), Map.of(user.getId(), user), Set.of());
+
+        MovieReviewResponse response = toResponse(saved, user.getId(), Map.of(user.getId(), user), Set.of());
+        if (!vibeTags.isEmpty()) {
+            List<MissionCompletionResponse> missionCompletions = missionService.handleEvent(
+                    MissionEventPayload.reviewWithVibeTag(
+                            user.getId(), saved.getUuid(), movieUuid, OffsetDateTime.now()));
+            response.setMissionCompletions(missionCompletions);
+        }
+        return response;
     }
 
     @Transactional

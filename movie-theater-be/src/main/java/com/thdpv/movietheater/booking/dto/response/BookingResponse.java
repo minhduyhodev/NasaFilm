@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
+
 public class BookingResponse {
 
     private UUID bookingUuid;
@@ -17,6 +19,7 @@ public class BookingResponse {
     private List<SeatLine> seats = new ArrayList<>();
     private List<ComboLine> combos = new ArrayList<>();
     private List<TicketLine> tickets = new ArrayList<>();
+    private List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
 
     public BookingResponse() {
     }
@@ -105,6 +108,14 @@ public class BookingResponse {
 
     public void setTickets(List<TicketLine> tickets) {
         this.tickets = tickets;
+    }
+
+    public List<MissionCompletionResponse> getMissionCompletions() {
+        return missionCompletions;
+    }
+
+    public void setMissionCompletions(List<MissionCompletionResponse> missionCompletions) {
+        this.missionCompletions = missionCompletions != null ? missionCompletions : new ArrayList<>();
     }
 
     public static class SeatLine {

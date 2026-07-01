@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
@@ -23,6 +23,7 @@ import {
   LogOut,
   Camera,
   Star,
+  Rocket,
   X,
   History,
   Phone,
@@ -45,12 +46,15 @@ import {
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
+import { missionService } from "../../../shared/services/missionService";
+import MissionBoard from "../components/MissionBoard";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -98,6 +102,9 @@ export const ProfilePage = () => {
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const [redeemingVoucherId, setRedeemingVoucherId] = useState(null);
+  const [missionBoard, setMissionBoard] = useState(null);
+  const [isLoadingMissions, setIsLoadingMissions] = useState(false);
+  const [missionError, setMissionError] = useState("");
   const fileInputRef = useRef(null);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const genderDropdownRef = useRef(null);
@@ -116,6 +123,44 @@ export const ProfilePage = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (activeTab !== "missions" || !user) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadMissions = async () => {
+      setIsLoadingMissions(true);
+      setMissionError("");
+      try {
+        const data = await missionService.getMissionBoard();
+        if (!cancelled) {
+          setMissionBoard(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMissionError(err.message || "Không thể tải bảng nhiệm vụ.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMissions(false);
+        }
+      }
+    };
+
+    loadMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, user]);
 
   const reloadBookings = async () => {
     await invalidateBookings();
@@ -762,6 +807,17 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("missions")}
+                  className={`rail-item ${activeTab === "missions" ? "active" : ""}`}
+                  title="Mission Control"
+                >
+                  <div className="rail-icon-wrapper">
+                    <Rocket size={20} />
+                  </div>
+                  <span className="rail-label">Mission Control</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab("tickets")}
                   className={`rail-item ${activeTab === "tickets" ? "active" : ""}`}
                   title="Vé của tôi"
@@ -1056,6 +1112,23 @@ export const ProfilePage = () => {
                         </p>
                       </div>
                     </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "missions" && (
+                  <motion.div
+                    key="missions"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <MissionBoard
+                      board={missionBoard}
+                      loading={isLoadingMissions}
+                      error={missionError}
+                    />
                   </motion.div>
                 )}
 
