@@ -81,6 +81,7 @@ const AdminMovieFormPage = () => {
     screeningMode: 'BOTH',
     onlinePrice: ''
   });
+  const [initialFormData, setInitialFormData] = useState(null);
   const [defaultOnlinePrice, setDefaultOnlinePrice] = useState(getDefaultOnlineStreamingPrice());
 
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -153,10 +154,24 @@ const AdminMovieFormPage = () => {
 
   useEffect(() => {
     if (!metadataLoaded || isEditing) return;
-    setFormData(prev => ({
-      ...prev,
-      onlinePrice: prev.onlinePrice || String(defaultOnlinePrice)
-    }));
+    const initialObj = {
+      title: '',
+      description: '',
+      durationMinutes: '',
+      releaseDate: '',
+      status: 'NOW_SHOWING',
+      ageRestriction: 'P',
+      genreUuids: [],
+      countryUuids: [],
+      posterUrl: '',
+      streamingUrl: '',
+      trailerUrl: '',
+      actors: [],
+      screeningMode: 'BOTH',
+      onlinePrice: String(defaultOnlinePrice)
+    };
+    setFormData(initialObj);
+    setInitialFormData(initialObj);
   }, [metadataLoaded, isEditing, defaultOnlinePrice]);
 
   useEffect(() => {
@@ -170,7 +185,9 @@ const AdminMovieFormPage = () => {
         const detail = await movieService.getMovieDetail(movieUuid);
         if (!isMounted) return;
         setEditingMovie(detail);
-        setFormData(mapDetailToFormData(detail, genresList, countriesList));
+        const mapped = mapDetailToFormData(detail, genresList, countriesList);
+        setFormData(mapped);
+        setInitialFormData(mapped);
       } catch (err) {
         console.error('Failed to load movie for edit:', err);
         notificationService.error('Khong the lay thong tin chi tiet phim de chinh sua');
@@ -288,7 +305,14 @@ const AdminMovieFormPage = () => {
     return matchesSearch && matchesCountry;
   });
 
+  const isDirty = initialFormData && JSON.stringify(formData) !== JSON.stringify(initialFormData);
+
   const handleCancel = () => {
+    if (isDirty) {
+      if (!window.confirm('Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.')) {
+        return;
+      }
+    }
     if (isEditing) {
       navigate(`/admin/movies/${movieUuid}`);
     } else {
@@ -361,12 +385,12 @@ const AdminMovieFormPage = () => {
     setIsSaving(true);
     try {
       if (isEditing) {
-        await movieService.updateMovie(movieUuid, requestData);
-        notificationService.success(`Cap nhat thanh cong phim "${requestData.title}"`);
+        const updated = await movieService.updateMovie(movieUuid, requestData);
+        notificationService.success(`Cập nhật thành công phim "${updated?.title || requestData.title}"`);
         navigate(`/admin/movies/${movieUuid}`);
       } else {
         const created = await movieService.createMovie(requestData);
-        notificationService.success(`Them moi thanh cong phim "${requestData.title}"`);
+        notificationService.success(`Thêm mới thành công phim "${created?.title || requestData.title}"`);
         navigate(`/admin/movies/${created.uuid}`);
       }
     } catch (err) {
