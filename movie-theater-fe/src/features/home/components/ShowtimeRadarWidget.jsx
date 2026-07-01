@@ -33,7 +33,7 @@ const ShowtimeRadarWidget = () => {
         <div className="showtime-radar-widget__glow" aria-hidden />
         <div className="showtime-radar-widget__header">
           <div className="showtime-radar-widget__title-row">
-            <Radar className="h-5 w-5 text-sky-400" />
+            <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
             <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
           </div>
           <p className="showtime-radar-widget__subtitle">
@@ -66,7 +66,7 @@ const ShowtimeRadarWidget = () => {
 
       <div className="showtime-radar-widget__header">
         <div className="showtime-radar-widget__title-row">
-          <Radar className="h-5 w-5 text-sky-400" />
+          <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
           <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
         </div>
         <p className="showtime-radar-widget__subtitle">

@@ -10,6 +10,7 @@ import { getMovieTrailerUrl } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import TrailerModal from './TrailerModal';
 import './ShowtimeRadarWidget.css';
+import './Upcoming.css';
 
 const ShowtimeRadarWidget = React.lazy(() => import('./ShowtimeRadarWidget'));
 import {
@@ -203,20 +204,21 @@ const Upcoming = () => {
 
   return (
     <>
-      <section className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] items-start text-left">
+      <div className="home-upcoming-root">
+      <section className="home-upcoming-section grid gap-8 lg:gap-12 lg:grid-cols-[minmax(0,1.38fr)_minmax(0,0.58fr)] items-start text-left">
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.15 }}
           transition={{ duration: 0.7 }}
-          className="relative group flex flex-col md:flex-row gap-8 items-center md:items-stretch"
+          className="home-upcoming-carousel relative group flex flex-col md:flex-row gap-8 items-center md:items-stretch min-w-0"
         >
           {upcomingMovies.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={goPrev}
-                className="hidden md:flex absolute -left-12 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors z-10"
+                className="home-upcoming-nav home-upcoming-nav--prev"
                 aria-label="Phim sắp chiếu trước"
               >
                 <ChevronLeft size={36} />
@@ -224,7 +226,7 @@ const Upcoming = () => {
               <button
                 type="button"
                 onClick={goNext}
-                className="hidden md:flex absolute -right-12 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors z-10"
+                className="home-upcoming-nav home-upcoming-nav--next"
                 aria-label="Phim sắp chiếu tiếp theo"
               >
                 <ChevronRight size={36} />
@@ -298,30 +300,30 @@ const Upcoming = () => {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 pt-1">
+            <div className="home-upcoming-actions">
               <button
                 type="button"
                 onClick={handleReminder}
-                className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${
-                  reminderActive
-                    ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400'
-                    : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_10px_25px_rgba(220,38,38,0.25)]'
-                }`}
+                className={`home-upcoming-btn home-upcoming-btn--remind${reminderActive ? ' is-active' : ''}`}
               >
-                {reminderActive ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                <span className="home-upcoming-btn__icon">
+                  {reminderActive ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                </span>
                 {reminderActive ? 'Đã Nhắc' : 'Nhắc Tôi'}
               </button>
               <button
                 type="button"
                 onClick={handleOpenTrailer}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black uppercase tracking-wider text-white transition-all hover:scale-105"
+                className="home-upcoming-btn home-upcoming-btn--trailer"
               >
-                <Play className="w-4 h-4 fill-current" />
+                <span className="home-upcoming-btn__icon">
+                  <Play className="w-4 h-4 fill-current" />
+                </span>
                 Xem Trailer
               </button>
               <Link
                 to={`/movie/${upcomingMovie.uuid}`}
-                className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 px-6 py-3 text-xs font-black uppercase tracking-wider text-red-400 transition-all"
+                className="home-upcoming-btn home-upcoming-btn--details"
               >
                 Chi Tiết
               </Link>
@@ -329,6 +331,7 @@ const Upcoming = () => {
           </div>
         </motion.div>
 
+        <div className="home-upcoming-radar-slot w-full min-w-0">
         {isAuthenticated ? (
           <Suspense
             fallback={(
@@ -351,7 +354,7 @@ const Upcoming = () => {
             <div className="showtime-radar-widget__glow" aria-hidden />
             <div className="showtime-radar-widget__header">
               <div className="showtime-radar-widget__title-row">
-                <Radar className="h-5 w-5 text-sky-400" />
+                <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
                 <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
               </div>
               <p className="showtime-radar-widget__subtitle">
@@ -368,7 +371,9 @@ const Upcoming = () => {
             </button>
           </motion.aside>
         )}
+        </div>
       </section>
+      </div>
 
       <TrailerModal
         open={isTrailerOpen}

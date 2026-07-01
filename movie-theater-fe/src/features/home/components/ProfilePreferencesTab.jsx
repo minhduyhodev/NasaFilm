@@ -5,6 +5,7 @@ import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQue
 import { useShowtimeRadar } from '../context/ShowtimeRadarProvider';
 import ShowtimeRadarSuggestionsList from './ShowtimeRadarSuggestionsList';
 import './ProfilePreferencesTab.css';
+import './ShowtimeRadarWidget.css';
 
 const ProfilePreferencesTab = () => {
   const { data: filterOptions, isLoading: genresLoading } = useMovieFilterOptions();
@@ -110,7 +111,7 @@ const ProfilePreferencesTab = () => {
       <section className="profile-preferences-tab__radar">
         <div className="profile-preferences-tab__radar-head">
           <div className="profile-preferences-tab__radar-title">
-            <Radar className="h-5 w-5 text-sky-400" />
+            <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
             <h3>Smart Showtime Radar</h3>
           </div>
           <button

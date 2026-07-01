@@ -26,7 +26,7 @@ const ShowtimeRadarSuggestionsList = ({
   if (loading) {
     return (
       <div className={`radar-suggestions radar-suggestions--${variant} radar-suggestions--loading`}>
-        <Loader2 className="h-5 w-5 animate-spin text-sky-400" />
+        <Loader2 className="h-5 w-5 animate-spin showtime-radar-widget__icon-accent" />
         <span>Đang quét suất chiếu...</span>
       </div>
     );
