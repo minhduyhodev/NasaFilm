@@ -1,8 +1,15 @@
-.nasa-assistant-fab {
+.nasa-assistant-fab-shell {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
   z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.nasa-assistant-fab {
   width: 4.85rem;
   height: 4.85rem;
   border: 0;
@@ -35,6 +42,22 @@
   border-radius: inherit;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nasa-assistant-fab-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.32rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(10, 12, 18, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  user-select: none;
 }
 
 .nasa-assistant-overlay {

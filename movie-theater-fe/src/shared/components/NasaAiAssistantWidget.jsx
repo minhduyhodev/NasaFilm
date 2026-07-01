@@ -177,6 +177,7 @@ const NasaAiAssistantWidget = () => {
   const [createStep, setCreateStep] = useState('category');
   const [comboPromo, setComboPromo] = useState(() => getStoredPromo(COMBO_PROMO_STORAGE_KEY, COMBO_PROMO_DEFAULT));
   const [moviePromo, setMoviePromo] = useState(() => getStoredPromo(MOVIE_PROMO_STORAGE_KEY, MOVIE_PROMO_DEFAULT));
+  const closeHoverTimerRef = useRef(null);
 
   const ownerLabel = useMemo(() => getOwnerLabel(user || tokenService.getUser()), [user]);
   const isAdminUser = useMemo(() => hasAdminAccess(user || tokenService.getUser()), [user]);
@@ -245,11 +246,30 @@ const NasaAiAssistantWidget = () => {
   };
 
   const openWidget = () => {
+    if (closeHoverTimerRef.current) {
+      window.clearTimeout(closeHoverTimerRef.current);
+      closeHoverTimerRef.current = null;
+    }
     setOpen(true);
     reset();
   };
 
-  const closeWidget = () => setOpen(false);
+  const closeWidget = () => {
+    if (closeHoverTimerRef.current) {
+      window.clearTimeout(closeHoverTimerRef.current);
+      closeHoverTimerRef.current = null;
+    }
+    setOpen(false);
+  };
+
+  const scheduleCloseWidget = () => {
+    if (closeHoverTimerRef.current) {
+      window.clearTimeout(closeHoverTimerRef.current);
+    }
+    closeHoverTimerRef.current = window.setTimeout(() => {
+      setOpen(false);
+    }, 160);
+  };
 
   const startCategoryFlow = async (key) => {
     const category = CATEGORIES.find((item) => item.key === key) || CATEGORIES.at(-1);
@@ -449,20 +469,48 @@ const NasaAiAssistantWidget = () => {
 
   return createPortal(
       <>
-        <button
-          type="button"
-          className="nasa-assistant-fab"
-          aria-label="Mở NASA BOT"
-          onClick={open ? closeWidget : openWidget}
+        <div
+          className="nasa-assistant-fab-shell"
+          onMouseEnter={openWidget}
+          onMouseLeave={scheduleCloseWidget}
         >
-          <span className="nasa-assistant-fab-glow" />
-          <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
-        </button>
+          <button
+            type="button"
+            className="nasa-assistant-fab"
+            aria-label="Mở NASA BOT"
+            onClick={open ? closeWidget : openWidget}
+          >
+            <span className="nasa-assistant-fab-glow" />
+            <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
+          </button>
+          <span className="nasa-assistant-fab-label">NASA Bot</span>
+        </div>
 
         {open && (
-          <div className="nasa-assistant-overlay">
+          <div
+            className="nasa-assistant-overlay"
+            onMouseEnter={() => {
+              if (closeHoverTimerRef.current) {
+                window.clearTimeout(closeHoverTimerRef.current);
+                closeHoverTimerRef.current = null;
+              }
+            }}
+            onMouseLeave={scheduleCloseWidget}
+          >
             <button type="button" className="nasa-assistant-backdrop" aria-label="Đóng" onClick={closeWidget} />
-            <section className="nasa-assistant-panel" role="dialog" aria-modal="true" aria-label="NASA BOT">
+            <section
+              className="nasa-assistant-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="NASA BOT"
+              onMouseEnter={() => {
+                if (closeHoverTimerRef.current) {
+                  window.clearTimeout(closeHoverTimerRef.current);
+                  closeHoverTimerRef.current = null;
+                }
+              }}
+              onMouseLeave={scheduleCloseWidget}
+            >
               <header className="nasa-assistant-header">
                 <div className="nasa-assistant-brand">
                   <div className="nasa-assistant-brand-icon">
