@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.cache.ReviewVibeTagCacheEvictor;
 import com.thdpv.movietheater.movie.entity.ReviewVibeTagDefinition;
 import com.thdpv.movietheater.movie.repository.ReviewVibeTagDefinitionRepository;
 
@@ -23,6 +24,9 @@ class ReviewVibeTagServiceTest {
 
     @Mock
     private ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository;
+
+    @Mock
+    private ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor;
 
     @InjectMocks
     private ReviewVibeTagService reviewVibeTagService;

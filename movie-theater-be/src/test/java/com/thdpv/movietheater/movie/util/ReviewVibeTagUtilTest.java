@@ -17,6 +17,17 @@ class ReviewVibeTagUtilTest {
     }
 
     @Test
+    void toSortedTagCountMap_preservesQueryOrder() {
+        Map<String, Long> counts = ReviewVibeTagUtil.toSortedTagCountMap(List.of(
+                new Object[] { "cam_dong", 2L },
+                new Object[] { "so", 1L }));
+
+        assertEquals(2L, counts.get("cam_dong"));
+        assertEquals(1L, counts.get("so"));
+        assertEquals("cam_dong", List.copyOf(counts.keySet()).get(0));
+    }
+
+    @Test
     void aggregateTagCounts_sortsByPopularityDescending() {
         Map<String, Long> counts = ReviewVibeTagUtil.aggregateTagCounts(List.of(
                 "[\"cam_dong\",\"so\"]",

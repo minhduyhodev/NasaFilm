@@ -7,11 +7,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.config.cache.CacheNames;
+import com.thdpv.movietheater.config.cache.ReviewVibeTagCacheEvictor;
 import com.thdpv.movietheater.movie.dto.request.CreateReviewVibeTagRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateReviewVibeTagRequest;
 import com.thdpv.movietheater.movie.dto.response.AdminReviewVibeTagResponse;
@@ -28,9 +33,20 @@ public class ReviewVibeTagService {
     private static final int MAX_TAGS_PER_REVIEW = 3;
 
     private final ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository;
+    private final ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor;
+    private ReviewVibeTagService self;
 
-    public ReviewVibeTagService(ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository) {
+    public ReviewVibeTagService(
+            ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository,
+            ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor) {
         this.reviewVibeTagDefinitionRepository = reviewVibeTagDefinitionRepository;
+        this.reviewVibeTagCacheEvictor = reviewVibeTagCacheEvictor;
+    }
+
+    @Autowired
+    @Lazy
+    void setSelf(ReviewVibeTagService self) {
+        this.self = self;
     }
 
     @PostConstruct
@@ -51,6 +67,7 @@ public class ReviewVibeTagService {
         }
     }
 
+    @Cacheable(value = CacheNames.REVIEW_VIBE_TAG_CATALOG, key = "'active-list'")
     @Transactional(readOnly = true)
     public List<ReviewVibeTagResponse> listActivePublic() {
         return reviewVibeTagDefinitionRepository.findByActiveTrueOrderByDisplayOrderAscLabelAsc().stream()
@@ -78,7 +95,9 @@ public class ReviewVibeTagService {
         definition.setHash(request.getHash().trim());
         definition.setActive(true);
         definition.setDisplayOrder(request.getDisplayOrder());
-        return toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
+        AdminReviewVibeTagResponse response = toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
+        reviewVibeTagCacheEvictor.evictCatalog();
+        return response;
     }
 
     @Transactional
@@ -90,7 +109,9 @@ public class ReviewVibeTagService {
         definition.setHash(request.getHash().trim());
         definition.setActive(request.isActive());
         definition.setDisplayOrder(request.getDisplayOrder());
-        return toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
+        AdminReviewVibeTagResponse response = toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
+        reviewVibeTagCacheEvictor.evictCatalog();
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +120,7 @@ public class ReviewVibeTagService {
             return List.of();
         }
 
-        Set<String> activeCodes = loadActiveCodeSet();
+        Set<String> activeCodes = activeCodeSet();
         Set<String> unique = new LinkedHashSet<>();
         for (String raw : rawTags) {
             if (raw == null || raw.isBlank()) {
@@ -127,17 +148,23 @@ public class ReviewVibeTagService {
             return null;
         }
         String code = normalizeCode(vibeTag);
-        if (!loadActiveCodeSet().contains(code)) {
+        if (!activeCodeSet().contains(code)) {
             throw new AppException(ErrorCode.REVIEW_INVALID_VIBE_TAGS, "Vibe tag loc khong hop le");
         }
         return code;
     }
 
+    @Cacheable(value = CacheNames.REVIEW_VIBE_TAG_CATALOG, key = "'active-codes'")
     @Transactional(readOnly = true)
     public Set<String> loadActiveCodeSet() {
         return reviewVibeTagDefinitionRepository.findByActiveTrueOrderByDisplayOrderAscLabelAsc().stream()
                 .map(tag -> tag.getCode().toLowerCase(Locale.ROOT))
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private Set<String> activeCodeSet() {
+        ReviewVibeTagService target = self != null ? self : this;
+        return target.loadActiveCodeSet();
     }
 
     private String normalizeCode(String raw) {

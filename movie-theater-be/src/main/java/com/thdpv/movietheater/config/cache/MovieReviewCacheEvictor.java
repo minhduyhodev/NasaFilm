@@ -8,7 +8,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class MovieReviewCacheEvictor {
 
-    @CacheEvict(value = CacheNames.MOVIE_REVIEW_SUMMARY, key = "#movieUuid")
+    private final CatalogCacheEvictor catalogCacheEvictor;
+
+    public MovieReviewCacheEvictor(CatalogCacheEvictor catalogCacheEvictor) {
+        this.catalogCacheEvictor = catalogCacheEvictor;
+    }
+
+    @CacheEvict(
+            value = { CacheNames.MOVIE_REVIEW_SUMMARY, CacheNames.MOVIE_REVIEW_VIBE_STATS },
+            key = "#movieUuid")
     public void evictSummary(UUID movieUuid) {
+        catalogCacheEvictor.evictMovieLists();
     }
 }

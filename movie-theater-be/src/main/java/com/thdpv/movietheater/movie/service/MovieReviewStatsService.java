@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewVibeStatsResponse;
 import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
@@ -83,6 +84,22 @@ public class MovieReviewStatsService {
             result.put(movieUuid, ReviewVibeTagUtil.isBestOnBigScreen(taggedCount, counts));
         }
         return result;
+    }
+
+    @Cacheable(value = CacheNames.MOVIE_REVIEW_VIBE_STATS, key = "#movieUuid")
+    @Transactional(readOnly = true)
+    public MovieReviewVibeStatsResponse getVibeStats(UUID movieUuid) {
+        Map<String, Long> vibeTagCounts = ReviewVibeTagUtil.toSortedTagCountMap(
+                movieReviewRepository.aggregateVibeTagCountsByMovieUuid(
+                        movieUuid, MovieReviewStatus.VISIBLE.name()));
+        long taggedReviewCount = movieReviewRepository.countTaggedVisibleReviews(
+                movieUuid, MovieReviewStatus.VISIBLE.name());
+
+        MovieReviewVibeStatsResponse stats = new MovieReviewVibeStatsResponse();
+        stats.setVibeTagCounts(vibeTagCounts);
+        stats.setTaggedReviewCount(taggedReviewCount);
+        stats.setBestOnBigScreen(ReviewVibeTagUtil.isBestOnBigScreen(taggedReviewCount, vibeTagCounts));
+        return stats;
     }
 
     private MovieReviewStatsResponse emptyStats() {

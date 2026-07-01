@@ -72,6 +72,20 @@ public final class ReviewVibeTagUtil {
                         LinkedHashMap::new));
     }
 
+    public static Map<String, Long> toSortedTagCountMap(List<Object[]> rows) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        if (rows == null) {
+            return counts;
+        }
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2 || row[0] == null) {
+                continue;
+            }
+            counts.put(row[0].toString(), ((Number) row[1]).longValue());
+        }
+        return counts;
+    }
+
     /**
      * @param taggedReviewCount reviews that have at least one vibe tag
      */

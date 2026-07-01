@@ -126,12 +126,9 @@ public class MovieReviewService {
         summary.setAverageRating(stats.getAverageRating());
         summary.setRatingDistribution(stats.getRatingDistribution());
 
-        Map<String, Long> vibeTagCounts = buildVibeTagCounts(movieUuid);
-        summary.setVibeTagCounts(vibeTagCounts);
-        long taggedReviewCount = movieReviewRepository.countTaggedVisibleReviews(
-                movieUuid, MovieReviewStatus.VISIBLE.name());
-        summary.setBestOnBigScreen(
-                ReviewVibeTagUtil.isBestOnBigScreen(taggedReviewCount, vibeTagCounts));
+        var vibeStats = movieReviewStatsService.getVibeStats(movieUuid);
+        summary.setVibeTagCounts(vibeStats.getVibeTagCounts());
+        summary.setBestOnBigScreen(vibeStats.isBestOnBigScreen());
 
         if (currentUserUuid != null) {
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
@@ -305,11 +302,5 @@ public class MovieReviewService {
         }
         ReviewTextModerationUtil.assertNoBannedWords(normalized, systemConfigService.getReviewBannedWords());
         return normalized;
-    }
-
-    private Map<String, Long> buildVibeTagCounts(UUID movieUuid) {
-        List<String> rows = movieReviewRepository.findVibeTagsJsonByMovieUuidAndStatus(
-                movieUuid, MovieReviewStatus.VISIBLE.name());
-        return ReviewVibeTagUtil.aggregateTagCounts(rows);
     }
 }

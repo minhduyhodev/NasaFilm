@@ -85,15 +85,19 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
 
     @Query(
             value = """
-                    select r.vibe_tags::text from movie_review r
+                    select elem as tag, count(*) as cnt
+                    from movie_review r
+                    cross join lateral jsonb_array_elements_text(r.vibe_tags) as elem
                     where r.movie_uuid = :movieUuid
                       and r.status = :status
                       and r.vibe_tags is not null
                       and r.vibe_tags <> 'null'::jsonb
                       and jsonb_array_length(r.vibe_tags) > 0
+                    group by elem
+                    order by cnt desc
                     """,
             nativeQuery = true)
-    java.util.List<String> findVibeTagsJsonByMovieUuidAndStatus(
+    java.util.List<Object[]> aggregateVibeTagCountsByMovieUuid(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") String status);
 

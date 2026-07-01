@@ -58,6 +58,14 @@ public class FeatureSchemaMigrationConfig {
                     CREATE INDEX IF NOT EXISTS idx_movie_review_vibe_tags
                     ON movie_review USING GIN (vibe_tags)
                     """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_movie_review_visible_tagged
+                    ON movie_review (movie_uuid)
+                    WHERE status = 'VISIBLE'
+                      AND vibe_tags IS NOT NULL
+                      AND vibe_tags <> 'null'::jsonb
+                      AND jsonb_array_length(vibe_tags) > 0
+                    """);
 
             jdbc.execute("""
                     CREATE TABLE IF NOT EXISTS review_vibe_tag (
