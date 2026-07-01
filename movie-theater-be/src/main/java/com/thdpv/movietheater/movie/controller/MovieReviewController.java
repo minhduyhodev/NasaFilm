@@ -53,11 +53,12 @@ public class MovieReviewController {
     public ResponseEntity<ApiResponse<Page<MovieReviewResponse>>> getReviews(
             @PathVariable UUID movieUuid,
             @RequestParam(value = "onlyWithComment", defaultValue = "false") boolean onlyWithComment,
+            @RequestParam(value = "vibeTag", required = false) String vibeTag,
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID currentUserUuid = resolveUserUuid(userDetails);
         Page<MovieReviewResponse> page = movieReviewService.getReviews(
-                movieUuid, pageable, currentUserUuid, onlyWithComment);
+                movieUuid, pageable, currentUserUuid, onlyWithComment, vibeTag);
         return ResponseEntity.ok(ApiResponse.success(page));
     }
 

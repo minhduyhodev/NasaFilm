@@ -6,22 +6,24 @@ class MovieReviewService {
     return response.data.data ?? response.data;
   }
 
-  async getReviews(movieUuid, page = 0, size = 10, { sort, onlyWithComment } = {}) {
+  async getReviews(movieUuid, page = 0, size = 10, { sort, onlyWithComment, vibeTag } = {}) {
     const response = await authService.api.get(`/api/movies/${movieUuid}/reviews`, {
       params: {
         page,
         size,
         sort: sort || undefined,
         onlyWithComment: onlyWithComment || undefined,
+        vibeTag: vibeTag || undefined,
       },
     });
     return response.data.data ?? response.data;
   }
 
-  async createReview(movieUuid, { rating, comment }) {
+  async createReview(movieUuid, { rating, comment, vibeTags }) {
     const response = await authService.api.post(`/api/movies/${movieUuid}/reviews`, {
       rating,
       comment: comment?.trim() || null,
+      vibeTags: vibeTags?.length ? vibeTags : [],
     });
     return response.data.data ?? response.data;
   }

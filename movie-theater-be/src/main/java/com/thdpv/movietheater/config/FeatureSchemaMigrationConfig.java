@@ -28,7 +28,12 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags)...");
+
+            jdbc.execute("""
+                    ALTER TABLE movie_review
+                    ADD COLUMN IF NOT EXISTS vibe_tags text
+                    """);
 
             jdbc.execute("""
                     ALTER TABLE booking

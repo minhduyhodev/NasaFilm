@@ -24,11 +24,13 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
             where r.movieUuid = :movieUuid
               and r.status = :status
               and (:onlyWithComment = false or (r.comment is not null and trim(r.comment) <> ''))
+              and (:vibeTag is null or r.vibeTags like concat('%\"', :vibeTag, '\"%'))
             """)
     Page<MovieReview> findVisibleReviews(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status,
             @Param("onlyWithComment") boolean onlyWithComment,
+            @Param("vibeTag") String vibeTag,
             Pageable pageable);
 
     Optional<MovieReview> findByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
@@ -58,5 +60,16 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
             """)
     java.util.List<Object[]> aggregateByMovieUuids(
             @Param("movieUuids") Collection<UUID> movieUuids,
+            @Param("status") MovieReviewStatus status);
+
+    @Query("""
+            select r.vibeTags from MovieReview r
+            where r.movieUuid = :movieUuid
+              and r.status = :status
+              and r.vibeTags is not null
+              and trim(r.vibeTags) <> ''
+            """)
+    java.util.List<String> findVibeTagsJsonByMovieUuidAndStatus(
+            @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status);
 }

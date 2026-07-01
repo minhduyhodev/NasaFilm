@@ -32,6 +32,7 @@ import com.thdpv.movietheater.movie.entity.MovieReview;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewReportRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
 import com.thdpv.movietheater.movie.support.ReviewActionRateLimiter;
 import com.thdpv.movietheater.movie.util.ReviewTextModerationUtil;
 import com.thdpv.movietheater.user.entity.User;
@@ -82,12 +83,14 @@ public class MovieReviewService {
             UUID movieUuid,
             Pageable pageable,
             UUID currentUserUuid,
-            boolean onlyWithComment) {
+            boolean onlyWithComment,
+            String vibeTag) {
         ensureMovieVisible(movieUuid);
         Pageable safePageable = sanitizeReviewPageable(pageable);
+        String safeVibeTag = ReviewVibeTagUtil.validateFilterTag(vibeTag);
 
         Page<MovieReview> reviewPage = movieReviewRepository.findVisibleReviews(
-                movieUuid, MovieReviewStatus.VISIBLE, onlyWithComment, safePageable);
+                movieUuid, MovieReviewStatus.VISIBLE, onlyWithComment, safeVibeTag, safePageable);
         List<MovieReview> reviews = reviewPage.getContent();
 
         Map<UUID, User> usersById = loadUsersById(reviews.stream().map(MovieReview::getUserUuid).collect(Collectors.toSet()));
@@ -109,6 +112,11 @@ public class MovieReviewService {
         summary.setTotalReviews(stats.getTotalReviews());
         summary.setAverageRating(stats.getAverageRating());
         summary.setRatingDistribution(stats.getRatingDistribution());
+
+        Map<String, Long> vibeTagCounts = buildVibeTagCounts(movieUuid);
+        summary.setVibeTagCounts(vibeTagCounts);
+        summary.setBestOnBigScreen(
+                ReviewVibeTagUtil.isBestOnBigScreen(stats.getTotalReviews(), vibeTagCounts));
 
         if (currentUserUuid != null) {
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
@@ -142,12 +150,14 @@ public class MovieReviewService {
         assertReviewCooldown(movieUuid, user.getId());
 
         String normalizedComment = normalizeComment(request.getComment());
+        List<String> vibeTags = ReviewVibeTagUtil.normalizeAndValidate(request.getVibeTags());
 
         MovieReview review = new MovieReview();
         review.setMovieUuid(movieUuid);
         review.setUserUuid(user.getId());
         review.setRating(request.getRating());
         review.setComment(normalizedComment);
+        review.setVibeTags(ReviewVibeTagUtil.toJson(vibeTags));
         review.setStatus(MovieReviewStatus.VISIBLE);
 
         MovieReview saved = movieReviewRepository.save(review);
@@ -248,6 +258,7 @@ public class MovieReviewService {
         response.setUserUuid(review.getUserUuid());
         response.setRating(review.getRating());
         response.setComment(review.getComment());
+        response.setVibeTags(ReviewVibeTagUtil.fromJson(review.getVibeTags()));
         response.setCreatedAt(review.getCreatedAt());
         response.setUpdatedAt(review.getUpdatedAt());
         response.setMine(currentUserUuid != null && currentUserUuid.equals(review.getUserUuid()));
@@ -269,5 +280,11 @@ public class MovieReviewService {
         }
         ReviewTextModerationUtil.assertNoBannedWords(normalized, systemConfigService.getReviewBannedWords());
         return normalized;
+    }
+
+    private Map<String, Long> buildVibeTagCounts(UUID movieUuid) {
+        List<String> rows = movieReviewRepository.findVibeTagsJsonByMovieUuidAndStatus(
+                movieUuid, MovieReviewStatus.VISIBLE);
+        return ReviewVibeTagUtil.aggregateTagCounts(rows);
     }
 }

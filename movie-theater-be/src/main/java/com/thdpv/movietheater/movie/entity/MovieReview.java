@@ -46,6 +46,9 @@ public class MovieReview {
     @Column(name = "comment", columnDefinition = "text")
     private String comment;
 
+    @Column(name = "vibe_tags", columnDefinition = "text")
+    private String vibeTags;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private MovieReviewStatus status = MovieReviewStatus.VISIBLE;
@@ -108,6 +111,14 @@ public class MovieReview {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public String getVibeTags() {
+        return vibeTags;
+    }
+
+    public void setVibeTags(String vibeTags) {
+        this.vibeTags = vibeTags;
     }
 
     public MovieReviewStatus getStatus() {

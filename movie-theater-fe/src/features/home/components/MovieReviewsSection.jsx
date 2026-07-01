@@ -19,6 +19,11 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import MovieReviewPagination from './MovieReviewPagination';
 import StarRating from './StarRating';
+import {
+  MAX_VIBE_TAGS_PER_REVIEW,
+  REVIEW_VIBE_TAGS,
+  getVibeTagLabel,
+} from '../../../shared/constants/reviewVibeTags';
 import Swal from 'sweetalert2';
 import './MovieReviewsSection.css';
 
@@ -55,6 +60,7 @@ const MovieReviewsSection = ({
   showOnlineCta = true,
   isExpanded: controlledExpanded,
   onExpandedChange,
+  onSummaryChange,
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
@@ -85,25 +91,29 @@ const MovieReviewsSection = ({
   const [comment, setComment] = useState('');
   const [reviewSort, setReviewSort] = useState('createdAt,desc');
   const [onlyWithComment, setOnlyWithComment] = useState(false);
+  const [activeVibeTag, setActiveVibeTag] = useState('');
+  const [selectedVibeTags, setSelectedVibeTags] = useState([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
   const loadSummary = useCallback(async () => {
     const data = await movieReviewService.getSummary(movieUuid);
     setSummary(data);
+    onSummaryChange?.(data);
     return data;
-  }, [movieUuid]);
+  }, [movieUuid, onSummaryChange]);
 
   const loadReviews = useCallback(async (pageNumber = 0, pageSize = itemsPerPage) => {
     const data = await movieReviewService.getReviews(movieUuid, pageNumber, pageSize, {
       sort: reviewSort,
       onlyWithComment,
+      vibeTag: activeVibeTag || undefined,
     });
     const content = data?.content || [];
     setReviews(content);
     setPage(data?.number ?? pageNumber);
     setTotalItems(data?.totalElements ?? 0);
     return data;
-  }, [movieUuid, itemsPerPage, reviewSort, onlyWithComment]);
+  }, [movieUuid, itemsPerPage, reviewSort, onlyWithComment, activeVibeTag]);
 
   const fetchReviewsPage = useCallback(
     async (pageNumber = 0, { initial = false, pageSize } = {}) => {
@@ -152,6 +162,8 @@ const MovieReviewsSection = ({
       setReviewsLoaded(false);
       setReviews([]);
       setTotalItems(0);
+      setActiveVibeTag('');
+      setSelectedVibeTags([]);
       try {
         await loadSummary();
       } catch (error) {
@@ -181,7 +193,7 @@ const MovieReviewsSection = ({
     if (!isExpanded || !movieUuid || !reviewsLoaded) return;
     setPage(0);
     fetchReviewsPage(0);
-  }, [reviewSort, onlyWithComment, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
+  }, [reviewSort, onlyWithComment, activeVibeTag, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
 
   useEffect(() => {
     if (!isSortMenuOpen) return undefined;
@@ -204,6 +216,19 @@ const MovieReviewsSection = ({
     fetchReviewsPage(0, { pageSize: size });
   };
 
+  const handleToggleVibeTag = (code) => {
+    setSelectedVibeTags((prev) => {
+      if (prev.includes(code)) {
+        return prev.filter((item) => item !== code);
+      }
+      if (prev.length >= MAX_VIBE_TAGS_PER_REVIEW) {
+        notificationService.warning(`Chỉ chọn tối đa ${MAX_VIBE_TAGS_PER_REVIEW} vibe tag.`);
+        return prev;
+      }
+      return [...prev, code];
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -220,11 +245,16 @@ const MovieReviewsSection = ({
 
     setIsSubmitting(true);
     try {
-      await movieReviewService.createReview(movieUuid, { rating, comment });
+      await movieReviewService.createReview(movieUuid, {
+        rating,
+        comment,
+        vibeTags: selectedVibeTags,
+      });
       notificationService.success('Đã gửi đánh giá mới.');
       await refreshAll();
       setRating(0);
       setComment('');
+      setSelectedVibeTags([]);
     } catch (error) {
       notificationService.error(error.message || 'Không thể gửi đánh giá.');
     } finally {
@@ -314,6 +344,9 @@ const MovieReviewsSection = ({
 
   const activeSortLabel =
     REVIEW_SORT_OPTIONS.find((option) => option.value === reviewSort)?.label || 'Mới nhất';
+
+  const vibeTagCounts = summary?.vibeTagCounts || {};
+  const hasVibeTags = Object.keys(vibeTagCounts).length > 0;
 
   return (
     <section
@@ -451,6 +484,37 @@ const MovieReviewsSection = ({
                   );
                 })}
               </div>
+
+              {hasVibeTags && (
+                <div className="movie-reviews-vibe-cloud">
+                  <h3 className="movie-reviews-block-title">Vibe tag phổ biến</h3>
+                  <div className="movie-reviews-vibe-tags">
+                    {Object.entries(vibeTagCounts).map(([code, count]) => (
+                      <button
+                        key={code}
+                        type="button"
+                        className={`movie-reviews-vibe-chip${activeVibeTag === code ? ' is-active' : ''}`}
+                        onClick={() =>
+                          setActiveVibeTag((current) => (current === code ? '' : code))
+                        }
+                        aria-pressed={activeVibeTag === code}
+                      >
+                        {getVibeTagLabel(code)}
+                        <span className="movie-reviews-vibe-chip-count">{count}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {activeVibeTag && (
+                    <button
+                      type="button"
+                      className="movie-reviews-vibe-clear"
+                      onClick={() => setActiveVibeTag('')}
+                    >
+                      Bỏ lọc tag
+                    </button>
+                  )}
+                </div>
+              )}
             </aside>
 
             <div className="movie-reviews-form-col">
@@ -522,6 +586,28 @@ const MovieReviewsSection = ({
                       <span className={`movie-reviews-rating-label ${rating > 0 ? 'is-active' : ''}`}>
                         {RATING_LABELS[rating]}
                       </span>
+                    </div>
+                  </div>
+
+                  <div className="movie-reviews-form-field">
+                    <span className="movie-reviews-form-label">
+                      Vibe tag <span className="movie-reviews-optional">(tối đa {MAX_VIBE_TAGS_PER_REVIEW})</span>
+                    </span>
+                    <div className="movie-reviews-vibe-picker" role="group" aria-label="Chọn vibe tag">
+                      {REVIEW_VIBE_TAGS.map((tag) => {
+                        const isSelected = selectedVibeTags.includes(tag.code);
+                        return (
+                          <button
+                            key={tag.code}
+                            type="button"
+                            className={`movie-reviews-vibe-picker-chip${isSelected ? ' is-selected' : ''}`}
+                            onClick={() => handleToggleVibeTag(tag.code)}
+                            aria-pressed={isSelected}
+                          >
+                            {tag.hash}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -696,6 +782,15 @@ const MovieReviewsSection = ({
                         ) : null}
                       </div>
                     </div>
+                    {(review.vibeTags || []).length > 0 && (
+                      <div className="movie-reviews-item-tags">
+                        {review.vibeTags.map((code) => (
+                          <span key={`${review.uuid}-${code}`} className="movie-reviews-item-tag">
+                            {getVibeTagLabel(code)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {review.comment ? (
                       <p className="movie-reviews-item-comment">{review.comment}</p>
                     ) : (
