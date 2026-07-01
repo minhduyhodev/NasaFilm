@@ -9,6 +9,8 @@ public class CreateUserNotificationRequest {
 
     private String content;
 
+    private String actionUrl;
+
     private String type = "info";
 
     public String getTitle() {
@@ -25,6 +27,14 @@ public class CreateUserNotificationRequest {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getActionUrl() {
+        return actionUrl;
+    }
+
+    public void setActionUrl(String actionUrl) {
+        this.actionUrl = actionUrl;
     }
 
     public String getType() {
