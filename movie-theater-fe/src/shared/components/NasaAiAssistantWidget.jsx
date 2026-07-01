@@ -181,6 +181,19 @@ const NasaAiAssistantWidget = () => {
 
   const ownerLabel = useMemo(() => getOwnerLabel(user || tokenService.getUser()), [user]);
   const isAdminUser = useMemo(() => hasAdminAccess(user || tokenService.getUser()), [user]);
+  const supportStatus = useMemo(() => {
+    if (typing) return 'Đang xử lý...';
+    if (mode === 'create') {
+      if (createStep === 'category') return 'Đang chọn danh mục';
+      if (createStep === 'description') return 'Đang chờ mô tả';
+      if (createStep === 'confirm') return 'Chốt ticket trước khi gửi';
+      if (createStep === 'sending') return 'Đang gửi ticket';
+    }
+    if (mode === 'ticket') return 'Đang chat với admin';
+    if (mode === 'tickets') return 'Đang xem ticket của bạn';
+    if (ticket?.status) return `Ticket ${ticket.status}`;
+    return 'Sẵn sàng hỗ trợ';
+  }, [createStep, mode, ticket?.status, typing]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -605,7 +618,7 @@ const NasaAiAssistantWidget = () => {
                           </div>
                           <div>
                             <div className="nasa-assistant-chat-head__title">NASA BOT</div>
-                            <div className="nasa-assistant-chat-head__status">Sẵn sàng hỗ trợ bạn</div>
+                            <div className="nasa-assistant-chat-head__status">{supportStatus}</div>
                           </div>
                         </div>
                       </div>
@@ -885,7 +898,7 @@ const NasaAiAssistantWidget = () => {
               <footer className="nasa-assistant-footer">
                 {mode === 'chat' && (
                   <div className="nasa-assistant-actions">
-                    {QUICK_ACTIONS.map((action) => (
+                    {(supportStatus.includes('Ticket') ? ['Xem ticket của tôi', 'Tạo ticket', 'Không đăng nhập được'] : QUICK_ACTIONS).map((action) => (
                       <button
                         key={action}
                         type="button"
