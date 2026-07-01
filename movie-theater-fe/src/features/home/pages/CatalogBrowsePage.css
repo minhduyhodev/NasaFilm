@@ -39,7 +39,11 @@
 }
 
 .catalog-browse-chip {
-  @apply rounded-xl border border-white/10 bg-[#11141e]/70 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-white;
+  @apply rounded-xl border border-white/10 bg-[#11141e]/70 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-white flex items-center justify-center min-h-[3rem];
+}
+
+.catalog-browse-chip-label {
+  @apply block w-full truncate;
 }
 
 .catalog-browse-loading,

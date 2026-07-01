@@ -134,7 +134,7 @@ public class FeatureSchemaMigrationConfig {
                     )
                     """);
 
-            ensureSearchVector("movie", "title", "description");
+            ensureSearchVector("movie", "title", null);
             ensureSearchVector("cinema", "name", "address");
             ensureSearchVector("actor", "full_name", null);
         }
