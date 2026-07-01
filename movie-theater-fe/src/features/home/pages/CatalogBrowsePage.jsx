@@ -76,8 +76,9 @@ const CatalogBrowsePage = ({ variant = 'genre' }) => {
                 key={item.uuid}
                 to={meta.buildLink(item.uuid)}
                 className="catalog-browse-chip"
+                title={item.name}
               >
-                {item.name}
+                <span className="catalog-browse-chip-label">{item.name}</span>
               </Link>
             ))}
           </div>
