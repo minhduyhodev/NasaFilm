@@ -367,10 +367,14 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
       setSelectedCountry(country);
       setTempCountry(country);
     }
-    if (genre || country) {
+    if (actor) {
+      setSelectedActor(actor);
+      setTempActor(actor);
+    }
+    if (genre || country || actor) {
       resetPage();
     }
-  }, [getActorNameByUuid, resetPage]);
+  }, [resetPage]);
 
   const hiddenSections = includeShowtimeFilters ? [] : ['schedule', 'cinema'];
 
