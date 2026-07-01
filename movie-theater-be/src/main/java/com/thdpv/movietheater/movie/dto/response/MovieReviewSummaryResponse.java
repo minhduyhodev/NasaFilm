@@ -8,6 +8,8 @@ public class MovieReviewSummaryResponse {
     private double averageRating;
     private long totalReviews;
     private Map<Integer, Long> ratingDistribution = new LinkedHashMap<>();
+    private Map<String, Long> vibeTagCounts = new LinkedHashMap<>();
+    private boolean bestOnBigScreen;
     private MovieReviewResponse myReview;
     private boolean canReview;
     private boolean reviewCooldownActive;
@@ -38,6 +40,22 @@ public class MovieReviewSummaryResponse {
 
     public void setRatingDistribution(Map<Integer, Long> ratingDistribution) {
         this.ratingDistribution = ratingDistribution;
+    }
+
+    public Map<String, Long> getVibeTagCounts() {
+        return vibeTagCounts;
+    }
+
+    public void setVibeTagCounts(Map<String, Long> vibeTagCounts) {
+        this.vibeTagCounts = vibeTagCounts;
+    }
+
+    public boolean isBestOnBigScreen() {
+        return bestOnBigScreen;
+    }
+
+    public void setBestOnBigScreen(boolean bestOnBigScreen) {
+        this.bestOnBigScreen = bestOnBigScreen;
     }
 
     public MovieReviewResponse getMyReview() {

@@ -11,6 +11,27 @@ import {
 export const isOnlineMovie = (movie) =>
   movie?.screeningMode === 'ONLINE_ONLY' || movie?.screeningMode === 'BOTH';
 
+/** Nhãn tuổi ngắn gọn cho badge poster (vd: 0+, 13+, 18+). */
+export const formatAgeRestrictionBadge = (ageRestriction) => {
+  const age = (ageRestriction || '').trim().toUpperCase();
+  if (!age) return '';
+  if (age === 'P') return '0+';
+  if (age === 'K') return '<13';
+  const match = age.match(/T?(\d{1,2})/);
+  if (match) return `${match[1]}+`;
+  return age;
+};
+
+export const resolveAgeRestrictionClass = (ageRestriction, prefix = 'movie-card__age') => {
+  const age = (ageRestriction || '').trim().toUpperCase();
+  if (age === 'P') return `${prefix} ${prefix}--p`;
+  if (age === 'K') return `${prefix} ${prefix}--k`;
+  if (age.includes('18')) return `${prefix} ${prefix}--t18`;
+  if (age.includes('16')) return `${prefix} ${prefix}--t16`;
+  if (age.includes('13')) return `${prefix} ${prefix}--t13`;
+  return `${prefix} ${prefix}--default`;
+};
+
 /** URL poster gốc từ API (chưa qua CDN/proxy). */
 const isPosterImageUrl = (url) => {
   if (!url?.trim()) return false;

@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.movie.dto.response;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import com.thdpv.movietheater.movie.enums.MovieReviewReportStatus;
@@ -17,6 +19,7 @@ public class MovieReviewReportResponse {
     private String reviewUserFullName;
     private int reviewRating;
     private String reviewComment;
+    private List<String> reviewVibeTags = new ArrayList<>();
     private String reason;
     private MovieReviewReportStatus status;
     private String resolutionNote;
@@ -106,6 +109,14 @@ public class MovieReviewReportResponse {
 
     public void setReviewComment(String reviewComment) {
         this.reviewComment = reviewComment;
+    }
+
+    public List<String> getReviewVibeTags() {
+        return reviewVibeTags;
+    }
+
+    public void setReviewVibeTags(List<String> reviewVibeTags) {
+        this.reviewVibeTags = reviewVibeTags;
     }
 
     public String getReason() {
