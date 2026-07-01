@@ -136,4 +136,15 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
             @Param("movieUuids") Collection<UUID> movieUuids,
             @Param("status") String status,
             @Param("theaterTagJson") String theaterTagJson);
+
+    @Query(
+            value = """
+                    select elem as tag, count(*) as cnt
+                    from movie_review r
+                    cross join lateral jsonb_array_elements_text(r.vibe_tags) as elem
+                    where r.status = :status
+                    group by elem
+                    """,
+            nativeQuery = true)
+    java.util.List<Object[]> aggregateGlobalVibeTagCounts(@Param("status") String status);
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
+import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl, formatAgeRestrictionBadge, resolveAgeRestrictionClass } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import FavoriteIconButton from './FavoriteIconButton';
 import './MovieCard.css';
@@ -29,13 +29,6 @@ const resolveStatusBadge = ({ releaseDate, reviewAverageRating, reviewCount }) =
     return { label: 'HOT', type: 'hot' };
   }
   return null;
-};
-
-const resolveAgeClass = (ageRestriction) => {
-  const age = ageRestriction?.toUpperCase() || '';
-  if (age === 'P') return 'movie-card__age--p';
-  if (age.includes('T18') || age.includes('18')) return 'movie-card__age--t18';
-  return 'movie-card__age--default';
 };
 
 const MovieCard = ({
@@ -119,8 +112,11 @@ const MovieCard = ({
         )}
 
         {ageRestriction && (
-          <span className={`movie-card__age ${resolveAgeClass(ageRestriction)}`}>
-            {ageRestriction}
+          <span
+            className={resolveAgeRestrictionClass(ageRestriction)}
+            title={ageRestriction}
+          >
+            {formatAgeRestrictionBadge(ageRestriction)}
           </span>
         )}
       </div>

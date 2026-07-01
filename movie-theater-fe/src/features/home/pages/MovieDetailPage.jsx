@@ -19,7 +19,7 @@ import { bookingService } from "../../../shared/services/bookingService";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
-import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl } from "../utils/movieUtils";
+import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl, formatAgeRestrictionBadge } from "../utils/movieUtils";
 import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
 import FavoriteButton from "../components/FavoriteButton";
@@ -479,8 +479,9 @@ const MovieDetailPage = () => {
                           ? "bg-red-600 text-white"
                           : "bg-amber-600 text-white"
                     }`}
+                    title={movie.ageRestriction}
                   >
-                    {movie.ageRestriction}
+                    {formatAgeRestrictionBadge(movie.ageRestriction)}
                   </span>
                 )}
                 {movie.genres.map((g) => (

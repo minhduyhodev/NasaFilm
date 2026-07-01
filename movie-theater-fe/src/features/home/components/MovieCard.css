@@ -112,14 +112,18 @@
   left: 0.65rem;
   bottom: 0.65rem;
   z-index: 12;
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 999px;
+  min-width: 1.85rem;
+  height: 1.35rem;
+  padding: 0 0.32rem;
+  border-radius: 0.32rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.58rem;
   font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
   border: 2px solid rgba(255, 255, 255, 0.85);
   pointer-events: none;
 }
@@ -127,6 +131,21 @@
 .movie-card__age--p {
   background: #eab308;
   color: #111;
+}
+
+.movie-card__age--k {
+  background: #16a34a;
+  color: #fff;
+}
+
+.movie-card__age--t13 {
+  background: #f59e0b;
+  color: #111;
+}
+
+.movie-card__age--t16 {
+  background: #ea580c;
+  color: #fff;
 }
 
 .movie-card__age--t18 {

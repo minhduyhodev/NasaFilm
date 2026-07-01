@@ -90,7 +90,6 @@ const MovieReviewsSection = ({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [reviewSort, setReviewSort] = useState('createdAt,desc');
-  const [onlyWithComment, setOnlyWithComment] = useState(false);
   const [activeVibeTag, setActiveVibeTag] = useState('');
   const [selectedVibeTags, setSelectedVibeTags] = useState([]);
   const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
@@ -124,7 +123,7 @@ const MovieReviewsSection = ({
   const loadReviews = useCallback(async (pageNumber = 0, pageSize = itemsPerPage) => {
     const data = await movieReviewService.getReviews(movieUuid, pageNumber, pageSize, {
       sort: reviewSort,
-      onlyWithComment,
+      onlyWithComment: false,
       vibeTag: activeVibeTag || undefined,
     });
     const content = data?.content || [];
@@ -132,7 +131,7 @@ const MovieReviewsSection = ({
     setPage(data?.number ?? pageNumber);
     setTotalItems(data?.totalElements ?? 0);
     return data;
-  }, [movieUuid, itemsPerPage, reviewSort, onlyWithComment, activeVibeTag]);
+  }, [movieUuid, itemsPerPage, reviewSort, activeVibeTag]);
 
   const fetchReviewsPage = useCallback(
     async (pageNumber = 0, { initial = false, pageSize } = {}) => {
@@ -212,7 +211,7 @@ const MovieReviewsSection = ({
     if (!isExpanded || !movieUuid || !reviewsLoaded) return;
     setPage(0);
     fetchReviewsPage(0);
-  }, [reviewSort, onlyWithComment, activeVibeTag, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
+  }, [reviewSort, activeVibeTag, isExpanded, movieUuid, reviewsLoaded, fetchReviewsPage]);
 
   useEffect(() => {
     if (!isSortMenuOpen) return undefined;
@@ -711,14 +710,6 @@ const MovieReviewsSection = ({
                     </div>
                   )}
                 </div>
-                <label className="movie-reviews-filter-check">
-                  <input
-                    type="checkbox"
-                    checked={onlyWithComment}
-                    onChange={(e) => setOnlyWithComment(e.target.checked)}
-                  />
-                  <span>Chỉ có bình luận</span>
-                </label>
                 {totalItems > 0 && (
                   <span className="movie-reviews-list-count">{totalItems} bình luận</span>
                 )}

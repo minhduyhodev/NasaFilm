@@ -12,6 +12,8 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { getVibeTagLabel, loadReviewVibeTags, clearReviewVibeTagsCache } from '../../../shared/constants/reviewVibeTags';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
+import AdminModal from '../components/AdminModal';
+import { adminInputClass, adminLabelClass } from '../components/adminFormStyles';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
@@ -71,11 +73,11 @@ const FeedbackReviewsPage = () => {
   const [adminVibeTags, setAdminVibeTags] = useState([]);
   const [isVibeTagsLoading, setIsVibeTagsLoading] = useState(false);
   const [isSavingVibeTag, setIsSavingVibeTag] = useState(false);
+  const [isCreateVibeTagModalOpen, setIsCreateVibeTagModalOpen] = useState(false);
   const [newVibeTag, setNewVibeTag] = useState({
     code: '',
     label: '',
     hash: '',
-    displayOrder: 0,
   });
 
   useEffect(() => {
@@ -242,14 +244,10 @@ const FeedbackReviewsPage = () => {
     }
     setIsSavingVibeTag(true);
     try {
-      await adminReviewService.createVibeTag({
-        code,
-        label,
-        hash,
-        displayOrder: Number(newVibeTag.displayOrder) || 0,
-      });
+      await adminReviewService.createVibeTag({ code, label, hash });
       clearReviewVibeTagsCache();
-      setNewVibeTag({ code: '', label: '', hash: '', displayOrder: 0 });
+      setNewVibeTag({ code: '', label: '', hash: '' });
+      setIsCreateVibeTagModalOpen(false);
       notificationService.success('Đã thêm vibe tag.');
       await loadAdminVibeTags();
       const tags = await loadReviewVibeTags();
@@ -261,6 +259,12 @@ const FeedbackReviewsPage = () => {
     }
   };
 
+  const handleCloseCreateVibeTagModal = () => {
+    if (isSavingVibeTag) return;
+    setIsCreateVibeTagModalOpen(false);
+    setNewVibeTag({ code: '', label: '', hash: '' });
+  };
+
   const handleUpdateVibeTag = async (tag) => {
     setIsSavingVibeTag(true);
     try {
@@ -268,7 +272,6 @@ const FeedbackReviewsPage = () => {
         label: tag.label,
         hash: tag.hash,
         active: tag.active,
-        displayOrder: Number(tag.displayOrder) || 0,
       });
       clearReviewVibeTagsCache();
       notificationService.success('Đã cập nhật vibe tag.');
@@ -541,42 +544,13 @@ const FeedbackReviewsPage = () => {
             <div>
               <h3 className="feedback-banned-title">Quản lý vibe tag</h3>
               <p className="feedback-banned-desc">
-                Cấu hình thẻ cảm xúc khách chọn khi đánh giá phim. Tag tắt sẽ không hiển thị khi viết review mới.
+                Cấu hình thẻ cảm xúc khách chọn khi đánh giá phim. Thứ tự hiển thị ưu tiên theo số lượt dùng.
+                Tag tắt sẽ không hiển thị khi viết review mới.
               </p>
             </div>
-          </div>
-
-          <div className="feedback-vibe-create">
-            <input
-              type="text"
-              className="feedback-search"
-              placeholder="Mã (vd: cam_dong)"
-              value={newVibeTag.code}
-              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, code: e.target.value }))}
-            />
-            <input
-              type="text"
-              className="feedback-search"
-              placeholder="Nhãn hiển thị"
-              value={newVibeTag.label}
-              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, label: e.target.value }))}
-            />
-            <input
-              type="text"
-              className="feedback-search"
-              placeholder="Hash (vd: #cảm_động)"
-              value={newVibeTag.hash}
-              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, hash: e.target.value }))}
-            />
-            <input
-              type="number"
-              className="feedback-search feedback-search--narrow"
-              placeholder="Thứ tự"
-              value={newVibeTag.displayOrder}
-              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, displayOrder: e.target.value }))}
-            />
-            <PrimaryButton type="button" onClick={handleCreateVibeTag} disabled={isSavingVibeTag}>
-              {isSavingVibeTag ? 'Đang lưu...' : 'Thêm tag'}
+            <PrimaryButton type="button" onClick={() => setIsCreateVibeTagModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Thêm tag
             </PrimaryButton>
           </div>
 
@@ -597,7 +571,6 @@ const FeedbackReviewsPage = () => {
                     <th>Mã</th>
                     <th>Nhãn</th>
                     <th>Hash</th>
-                    <th>Thứ tự</th>
                     <th>Active</th>
                     <th />
                   </tr>
@@ -620,14 +593,6 @@ const FeedbackReviewsPage = () => {
                           className="feedback-search"
                           value={tag.hash}
                           onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'hash', e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="feedback-search feedback-search--narrow"
-                          value={tag.displayOrder}
-                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'displayOrder', e.target.value)}
                         />
                       </td>
                       <td>
@@ -657,6 +622,72 @@ const FeedbackReviewsPage = () => {
           )}
         </div>
       )}
+
+      <AdminModal
+        open={isCreateVibeTagModalOpen}
+        onClose={handleCloseCreateVibeTagModal}
+        title="Thêm vibe tag"
+        subtitle="Nhập thông tin thẻ cảm xúc mới cho khách chọn khi đánh giá phim."
+        size="md"
+      >
+        <form
+          className="feedback-vibe-modal-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateVibeTag();
+          }}
+        >
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-code">
+              Mã tag *
+            </label>
+            <input
+              id="vibe-tag-code"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: cam_dong"
+              value={newVibeTag.code}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, code: e.target.value }))}
+              autoFocus
+            />
+            <p className="feedback-vibe-field-hint">Chỉ dùng chữ thường, số và dấu gạch dưới.</p>
+          </div>
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-label">
+              Nhãn hiển thị *
+            </label>
+            <input
+              id="vibe-tag-label"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: Cảm động"
+              value={newVibeTag.label}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, label: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-hash">
+              Hash *
+            </label>
+            <input
+              id="vibe-tag-hash"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: #cảm_động"
+              value={newVibeTag.hash}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, hash: e.target.value }))}
+            />
+          </div>
+          <div className="feedback-vibe-modal-actions">
+            <GhostButton type="button" onClick={handleCloseCreateVibeTagModal} disabled={isSavingVibeTag}>
+              Hủy
+            </GhostButton>
+            <PrimaryButton type="submit" disabled={isSavingVibeTag}>
+              {isSavingVibeTag ? 'Đang lưu...' : 'Thêm tag'}
+            </PrimaryButton>
+          </div>
+        </form>
+      </AdminModal>
     </AdminPage>
   );
 };

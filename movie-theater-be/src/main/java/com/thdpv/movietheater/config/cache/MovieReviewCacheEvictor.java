@@ -9,9 +9,13 @@ import org.springframework.stereotype.Component;
 public class MovieReviewCacheEvictor {
 
     private final CatalogCacheEvictor catalogCacheEvictor;
+    private final ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor;
 
-    public MovieReviewCacheEvictor(CatalogCacheEvictor catalogCacheEvictor) {
+    public MovieReviewCacheEvictor(
+            CatalogCacheEvictor catalogCacheEvictor,
+            ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor) {
         this.catalogCacheEvictor = catalogCacheEvictor;
+        this.reviewVibeTagCacheEvictor = reviewVibeTagCacheEvictor;
     }
 
     @CacheEvict(
@@ -19,5 +23,6 @@ public class MovieReviewCacheEvictor {
             key = "#movieUuid")
     public void evictSummary(UUID movieUuid) {
         catalogCacheEvictor.evictMovieLists();
+        reviewVibeTagCacheEvictor.evictCatalog();
     }
 }

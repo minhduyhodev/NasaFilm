@@ -1,8 +1,10 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,8 +24,11 @@ import com.thdpv.movietheater.movie.dto.request.UpdateReviewVibeTagRequest;
 import com.thdpv.movietheater.movie.dto.response.AdminReviewVibeTagResponse;
 import com.thdpv.movietheater.movie.dto.response.ReviewVibeTagResponse;
 import com.thdpv.movietheater.movie.entity.ReviewVibeTagDefinition;
+import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 import com.thdpv.movietheater.movie.enums.ReviewVibeTag;
+import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.movie.repository.ReviewVibeTagDefinitionRepository;
+import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
 
 import jakarta.annotation.PostConstruct;
 
@@ -33,13 +38,16 @@ public class ReviewVibeTagService {
     private static final int MAX_TAGS_PER_REVIEW = 3;
 
     private final ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository;
+    private final MovieReviewRepository movieReviewRepository;
     private final ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor;
     private ReviewVibeTagService self;
 
     public ReviewVibeTagService(
             ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository,
+            MovieReviewRepository movieReviewRepository,
             ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor) {
         this.reviewVibeTagDefinitionRepository = reviewVibeTagDefinitionRepository;
+        this.movieReviewRepository = movieReviewRepository;
         this.reviewVibeTagCacheEvictor = reviewVibeTagCacheEvictor;
     }
 
@@ -70,14 +78,20 @@ public class ReviewVibeTagService {
     @Cacheable(value = CacheNames.REVIEW_VIBE_TAG_CATALOG, key = "'active-list'")
     @Transactional(readOnly = true)
     public List<ReviewVibeTagResponse> listActivePublic() {
+        Map<String, Long> usageCounts = loadGlobalUsageCounts();
         return reviewVibeTagDefinitionRepository.findByActiveTrueOrderByDisplayOrderAscLabelAsc().stream()
                 .map(this::toPublicResponse)
+                .sorted(Comparator
+                        .comparing((ReviewVibeTagResponse tag) -> usageCounts.getOrDefault(tag.getCode(), 0L))
+                        .reversed()
+                        .thenComparing(ReviewVibeTagResponse::getLabel, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<AdminReviewVibeTagResponse> listAllAdmin() {
-        return reviewVibeTagDefinitionRepository.findAllByOrderByDisplayOrderAscLabelAsc().stream()
+        return reviewVibeTagDefinitionRepository.findAll().stream()
+                .sorted(Comparator.comparing(ReviewVibeTagDefinition::getLabel, String.CASE_INSENSITIVE_ORDER))
                 .map(this::toAdminResponse)
                 .toList();
     }
@@ -94,7 +108,7 @@ public class ReviewVibeTagService {
         definition.setLabel(request.getLabel().trim());
         definition.setHash(request.getHash().trim());
         definition.setActive(true);
-        definition.setDisplayOrder(request.getDisplayOrder());
+        definition.setDisplayOrder(0);
         AdminReviewVibeTagResponse response = toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
         reviewVibeTagCacheEvictor.evictCatalog();
         return response;
@@ -108,7 +122,6 @@ public class ReviewVibeTagService {
         definition.setLabel(request.getLabel().trim());
         definition.setHash(request.getHash().trim());
         definition.setActive(request.isActive());
-        definition.setDisplayOrder(request.getDisplayOrder());
         AdminReviewVibeTagResponse response = toAdminResponse(reviewVibeTagDefinitionRepository.save(definition));
         reviewVibeTagCacheEvictor.evictCatalog();
         return response;
@@ -165,6 +178,11 @@ public class ReviewVibeTagService {
     private Set<String> activeCodeSet() {
         ReviewVibeTagService target = self != null ? self : this;
         return target.loadActiveCodeSet();
+    }
+
+    private Map<String, Long> loadGlobalUsageCounts() {
+        return ReviewVibeTagUtil.toSortedTagCountMap(
+                movieReviewRepository.aggregateGlobalVibeTagCounts(MovieReviewStatus.VISIBLE.name()));
     }
 
     private String normalizeCode(String raw) {

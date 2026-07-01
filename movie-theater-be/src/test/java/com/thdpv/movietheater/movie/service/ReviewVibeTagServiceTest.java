@@ -17,6 +17,7 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.cache.ReviewVibeTagCacheEvictor;
 import com.thdpv.movietheater.movie.entity.ReviewVibeTagDefinition;
+import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.movie.repository.ReviewVibeTagDefinitionRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +25,9 @@ class ReviewVibeTagServiceTest {
 
     @Mock
     private ReviewVibeTagDefinitionRepository reviewVibeTagDefinitionRepository;
+
+    @Mock
+    private MovieReviewRepository movieReviewRepository;
 
     @Mock
     private ReviewVibeTagCacheEvictor reviewVibeTagCacheEvictor;
