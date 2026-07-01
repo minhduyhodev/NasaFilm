@@ -4,6 +4,43 @@ import { Loader2, Search, X } from 'lucide-react';
 import { searchService } from '../../../shared/services/searchService';
 import './GlobalSearchBar.css';
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const highlightMatches = (text, query) => {
+  if (!text) return null;
+  const trimmed = query.trim();
+  if (!trimmed) return text;
+
+  const parts = text.split(new RegExp(`(${escapeRegex(trimmed)})`, 'ig'));
+  return parts.map((part, index) =>
+    part.toLowerCase() === trimmed.toLowerCase()
+      ? <mark key={`${part}-${index}`} className="search-highlight">{part}</mark>
+      : part
+  );
+};
+
+const rankItems = (query, items) => {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return items;
+
+  return [...items].sort((a, b) => {
+    const aExact = a.title?.toLowerCase() === normalized ? 0 : 1;
+    const bExact = b.title?.toLowerCase() === normalized ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+
+    const aPrefix = a.title?.toLowerCase().startsWith(normalized) ? 0 : 1;
+    const bPrefix = b.title?.toLowerCase().startsWith(normalized) ? 0 : 1;
+    if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+
+    const groupPriority = { 'Diễn viên': 0, 'Phim': 1, 'Rạp': 2 };
+    const aGroup = groupPriority[a.group] ?? 99;
+    const bGroup = groupPriority[b.group] ?? 99;
+    if (aGroup !== bGroup) return aGroup - bGroup;
+
+    return (a.title || '').localeCompare(b.title || '');
+  });
+};
+
 const GlobalSearchBar = ({ className = '' }) => {
   const navigate = useNavigate();
   const wrapRef = useRef(null);
@@ -47,12 +84,12 @@ const GlobalSearchBar = ({ className = '' }) => {
 
   const flatItems = useMemo(() => {
     if (!results) return [];
-    return [
+    return rankItems(query, [
       ...(results.movies || []).map((item) => ({ ...item, group: 'Phim' })),
       ...(results.cinemas || []).map((item) => ({ ...item, group: 'Rạp' })),
       ...(results.actors || []).map((item) => ({ ...item, group: 'Diễn viên' })),
-    ].slice(0, 10);
-  }, [results]);
+    ]).slice(0, 10);
+  }, [results, query]);
 
   const submitSearch = () => {
     if (!query.trim()) return;
@@ -107,8 +144,8 @@ const GlobalSearchBar = ({ className = '' }) => {
               onClick={() => setIsOpen(false)}
             >
               <span className="global-search-item-type">{item.group}</span>
-              <span className="global-search-item-title">{item.title}</span>
-              {item.subtitle && <span className="global-search-item-sub">{item.subtitle}</span>}
+              <span className="global-search-item-title">{highlightMatches(item.title, query)}</span>
+              {item.subtitle && <span className="global-search-item-sub">{highlightMatches(item.subtitle, query)}</span>}
             </Link>
           ))}
           <button type="button" className="global-search-view-all" onClick={submitSearch}>

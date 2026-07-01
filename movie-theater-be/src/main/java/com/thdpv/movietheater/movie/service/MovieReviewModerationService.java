@@ -34,6 +34,7 @@ import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewReportRepository;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
 import com.thdpv.movietheater.movie.support.ReviewActionRateLimiter;
+import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -332,6 +333,7 @@ public class MovieReviewModerationService {
             response.setReviewUserUuid(review.getUserUuid());
             response.setReviewRating(review.getRating());
             response.setReviewComment(review.getComment());
+            response.setReviewVibeTags(ReviewVibeTagUtil.fromJson(review.getVibeTags()));
 
             Movie movie = moviesById.get(review.getMovieUuid());
             if (movie == null) {

@@ -28,7 +28,56 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags)...");
+
+            jdbc.execute("""
+                    ALTER TABLE movie_review
+                    ADD COLUMN IF NOT EXISTS vibe_tags text
+                    """);
+            jdbc.execute("""
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = current_schema()
+                              AND table_name = 'movie_review'
+                              AND column_name = 'vibe_tags'
+                              AND udt_name = 'text'
+                        ) THEN
+                            ALTER TABLE movie_review
+                            ALTER COLUMN vibe_tags TYPE jsonb
+                            USING CASE
+                                WHEN vibe_tags IS NULL OR btrim(vibe_tags) = '' THEN NULL
+                                ELSE vibe_tags::jsonb
+                            END;
+                        END IF;
+                    END $$
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_movie_review_vibe_tags
+                    ON movie_review USING GIN (vibe_tags)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_movie_review_visible_tagged
+                    ON movie_review (movie_uuid)
+                    WHERE status = 'VISIBLE'
+                      AND vibe_tags IS NOT NULL
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS review_vibe_tag (
+                        uuid uuid PRIMARY KEY,
+                        code varchar(64) NOT NULL,
+                        label varchar(120) NOT NULL,
+                        hash varchar(120) NOT NULL,
+                        active boolean NOT NULL DEFAULT true,
+                        display_order integer NOT NULL DEFAULT 0,
+                        created_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_review_vibe_tag_code UNIQUE (code)
+                    )
+                    """);
 
             jdbc.execute("""
                     ALTER TABLE booking
@@ -85,7 +134,7 @@ public class FeatureSchemaMigrationConfig {
                     )
                     """);
 
-            ensureSearchVector("movie", "title", "description");
+            ensureSearchVector("movie", "title", null);
             ensureSearchVector("cinema", "name", "address");
             ensureSearchVector("actor", "full_name", null);
         }

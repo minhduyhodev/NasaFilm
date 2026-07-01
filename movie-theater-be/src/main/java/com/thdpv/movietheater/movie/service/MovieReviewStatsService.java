@@ -12,8 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewVibeStatsResponse;
 import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
 
 @Service
 public class MovieReviewStatsService {
@@ -58,6 +60,46 @@ public class MovieReviewStatsService {
             result.putIfAbsent(movieUuid, emptyStats());
         }
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, Boolean> getBestOnBigScreenBatch(Collection<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Boolean> result = new HashMap<>();
+        for (UUID movieUuid : movieUuids) {
+            result.put(movieUuid, false);
+        }
+        String theaterTagJson = ReviewVibeTagUtil.toJsonArrayContainsQuery(
+                ReviewVibeTagUtil.BEST_ON_BIG_SCREEN_TAG);
+        for (Object[] row : movieReviewRepository.aggregateVibeBadgeByMovieUuids(
+                movieUuids, MovieReviewStatus.VISIBLE.name(), theaterTagJson)) {
+            UUID movieUuid = (UUID) row[0];
+            long taggedCount = ((Number) row[1]).longValue();
+            long theaterTagCount = ((Number) row[2]).longValue();
+            Map<String, Long> counts = theaterTagCount > 0
+                    ? Map.of(ReviewVibeTagUtil.BEST_ON_BIG_SCREEN_TAG, theaterTagCount)
+                    : Map.of();
+            result.put(movieUuid, ReviewVibeTagUtil.isBestOnBigScreen(taggedCount, counts));
+        }
+        return result;
+    }
+
+    @Cacheable(value = CacheNames.MOVIE_REVIEW_VIBE_STATS, key = "#movieUuid")
+    @Transactional(readOnly = true)
+    public MovieReviewVibeStatsResponse getVibeStats(UUID movieUuid) {
+        Map<String, Long> vibeTagCounts = ReviewVibeTagUtil.toSortedTagCountMap(
+                movieReviewRepository.aggregateVibeTagCountsByMovieUuid(
+                        movieUuid, MovieReviewStatus.VISIBLE.name()));
+        long taggedReviewCount = movieReviewRepository.countTaggedVisibleReviews(
+                movieUuid, MovieReviewStatus.VISIBLE.name());
+
+        MovieReviewVibeStatsResponse stats = new MovieReviewVibeStatsResponse();
+        stats.setVibeTagCounts(vibeTagCounts);
+        stats.setTaggedReviewCount(taggedReviewCount);
+        stats.setBestOnBigScreen(ReviewVibeTagUtil.isBestOnBigScreen(taggedReviewCount, vibeTagCounts));
+        return stats;
     }
 
     private MovieReviewStatsResponse emptyStats() {

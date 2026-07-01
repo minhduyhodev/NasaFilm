@@ -100,6 +100,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [openCatalog, setOpenCatalog] = useState(null);
+  const closeCatalogTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
@@ -122,6 +123,30 @@ const Navbar = () => {
       return location.pathname === '/movies' && !location.search.includes('genre') && !location.search.includes('country');
     }
     return location.pathname === path;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closeCatalogTimerRef.current) {
+        window.clearTimeout(closeCatalogTimerRef.current);
+      }
+    };
+  }, []);
+
+  const openCatalogMenu = (key) => {
+    if (closeCatalogTimerRef.current) {
+      window.clearTimeout(closeCatalogTimerRef.current);
+    }
+    setOpenCatalog(key);
+  };
+
+  const scheduleCloseCatalogMenu = () => {
+    if (closeCatalogTimerRef.current) {
+      window.clearTimeout(closeCatalogTimerRef.current);
+    }
+    closeCatalogTimerRef.current = window.setTimeout(() => {
+      setOpenCatalog(null);
+    }, 120);
   };
 
   const handleBookingClick = () => {
@@ -176,7 +201,10 @@ const Navbar = () => {
                   className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}${isActive ? ' navbar-nav-link--active' : ''}`}
                   aria-expanded={isOpen}
                   aria-haspopup="menu"
-                  onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
+                  onMouseEnter={() => openCatalogMenu(key)}
+                  onMouseLeave={scheduleCloseCatalogMenu}
+                  onFocus={() => openCatalogMenu(key)}
+                  onBlur={scheduleCloseCatalogMenu}
                 >
                   {menu.label}
                   <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}${isActive ? ' nav-catalog-chevron--active' : ''}`} aria-hidden />
@@ -253,7 +281,16 @@ const Navbar = () => {
             aria-label="Đóng menu danh mục"
             onClick={() => setOpenCatalog(null)}
           />
-          <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
+          <div
+            onMouseEnter={() => {
+              if (closeCatalogTimerRef.current) {
+                window.clearTimeout(closeCatalogTimerRef.current);
+              }
+            }}
+            onMouseLeave={scheduleCloseCatalogMenu}
+          >
+            <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
+          </div>
         </>
       )}
     </header>

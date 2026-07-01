@@ -54,12 +54,16 @@ public class GlobalSearchService {
                          LIMIT 1
                        ) AS poster
                 FROM movie m
-                WHERE m.search_vector @@ plainto_tsquery('simple', ?)
+                WHERE lower(m.title) = lower(?)
                    OR m.title ILIKE ?
-                ORDER BY ts_rank(m.search_vector, plainto_tsquery('simple', ?)) DESC, m.title
+                ORDER BY
+                  CASE WHEN lower(m.title) = lower(?) THEN 0 ELSE 1 END,
+                  CASE WHEN lower(m.title) LIKE lower(?) THEN 0 ELSE 1 END,
+                  m.title
                 LIMIT ?
                 """;
         String like = "%" + likeQuery + "%";
+        String prefixLike = likeQuery + "%";
         return jdbc.query(sql, (rs, rowNum) -> {
             SearchResultItem item = new SearchResultItem();
             item.setType("movie");
@@ -69,7 +73,7 @@ public class GlobalSearchService {
             item.setImageUrl(rs.getString(4));
             item.setHref("/movie/" + rs.getString(1));
             return item;
-        }, tsQuery, like, tsQuery, LIMIT);
+        }, likeQuery, like, likeQuery, prefixLike, LIMIT);
     }
 
     private List<SearchResultItem> searchCinemas(String tsQuery, String likeQuery) {
@@ -99,12 +103,18 @@ public class GlobalSearchService {
                 SELECT a.uuid::text, a.full_name, coalesce(ct.name, '')
                 FROM actor a
                 LEFT JOIN country ct ON ct.uuid = a.country_uuid
-                WHERE a.search_vector @@ plainto_tsquery('simple', ?)
+                WHERE lower(a.full_name) = lower(?)
+                   OR a.search_vector @@ plainto_tsquery('simple', ?)
                    OR a.full_name ILIKE ?
-                ORDER BY ts_rank(a.search_vector, plainto_tsquery('simple', ?)) DESC, a.full_name
+                ORDER BY
+                  CASE WHEN lower(a.full_name) = lower(?) THEN 0 ELSE 1 END,
+                  CASE WHEN lower(a.full_name) LIKE lower(?) THEN 0 ELSE 1 END,
+                  ts_rank(a.search_vector, plainto_tsquery('simple', ?)) DESC,
+                  a.full_name
                 LIMIT ?
                 """;
         String like = "%" + likeQuery + "%";
+        String prefixLike = likeQuery + "%";
         return jdbc.query(sql, (rs, rowNum) -> {
             SearchResultItem item = new SearchResultItem();
             item.setType("actor");
@@ -113,6 +123,6 @@ public class GlobalSearchService {
             item.setSubtitle(rs.getString(3));
             item.setHref("/movies?actor=" + rs.getString(1));
             return item;
-        }, tsQuery, like, tsQuery, LIMIT);
+        }, likeQuery, tsQuery, like, likeQuery, prefixLike, tsQuery, LIMIT);
     }
 }
