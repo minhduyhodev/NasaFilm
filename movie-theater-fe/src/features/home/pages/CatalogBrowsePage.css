@@ -1,0 +1,48 @@
+.catalog-browse-page {
+  @apply bg-[#0b0f19] text-gray-400 min-h-screen pt-20;
+}
+
+.catalog-browse-container {
+  @apply max-w-5xl mx-auto py-12 px-4 md:px-8 lg:px-12;
+}
+
+.catalog-browse-header {
+  @apply mb-8 space-y-3;
+}
+
+.catalog-browse-badge {
+  @apply inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-600/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-red-400;
+}
+
+.catalog-browse-title {
+  @apply text-3xl md:text-4xl font-black text-white uppercase tracking-tight;
+}
+
+.catalog-browse-subtitle {
+  @apply text-sm md:text-base text-gray-400 max-w-2xl;
+}
+
+.catalog-browse-search {
+  @apply relative flex items-center w-full mb-8;
+}
+
+.catalog-browse-search-icon {
+  @apply absolute left-4 h-4 w-4 text-gray-500 pointer-events-none;
+}
+
+.catalog-browse-search-input {
+  @apply w-full rounded-2xl border border-white/10 bg-[#11141e]/80 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-gray-500 outline-none transition focus:border-red-500/40 focus:ring-2 focus:ring-red-500/20;
+}
+
+.catalog-browse-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3;
+}
+
+.catalog-browse-chip {
+  @apply rounded-xl border border-white/10 bg-[#11141e]/70 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-white;
+}
+
+.catalog-browse-loading,
+.catalog-browse-empty {
+  @apply flex flex-col items-center justify-center gap-3 py-20 text-sm text-gray-500;
+}

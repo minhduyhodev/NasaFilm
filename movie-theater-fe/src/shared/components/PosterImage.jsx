@@ -29,6 +29,7 @@ const PosterImage = ({
       className={className}
       loading={loading}
       decoding="async"
+      fetchPriority={loading === 'eager' ? 'high' : 'low'}
       onError={(event) => {
         handlePosterError(event);
         onError?.(event);

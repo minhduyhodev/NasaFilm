@@ -8,6 +8,9 @@ public class VodStatusResponse {
     private OffsetDateTime firstPlayedAt;
     private OffsetDateTime expiresAt;
     private String streamingUrl;
+    private Integer positionSeconds;
+    private Integer durationSeconds;
+    private Integer progressPercent;
 
     public VodStatusResponse() {
     }
@@ -59,5 +62,29 @@ public class VodStatusResponse {
 
     public void setStreamingUrl(String streamingUrl) {
         this.streamingUrl = streamingUrl;
+    }
+
+    public Integer getPositionSeconds() {
+        return positionSeconds;
+    }
+
+    public void setPositionSeconds(Integer positionSeconds) {
+        this.positionSeconds = positionSeconds;
+    }
+
+    public Integer getDurationSeconds() {
+        return durationSeconds;
+    }
+
+    public void setDurationSeconds(Integer durationSeconds) {
+        this.durationSeconds = durationSeconds;
+    }
+
+    public Integer getProgressPercent() {
+        return progressPercent;
+    }
+
+    public void setProgressPercent(Integer progressPercent) {
+        this.progressPercent = progressPercent;
     }
 }

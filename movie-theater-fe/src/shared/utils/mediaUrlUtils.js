@@ -1,4 +1,5 @@
 const TMDB_HOST = 'image.tmdb.org';
+const CLOUDINARY_HOST = 'res.cloudinary.com';
 const WSRV_PROXY = 'https://wsrv.nl/';
 
 export const FALLBACK_POSTER =
@@ -8,6 +9,27 @@ let initPromise = null;
 
 export const isTmdbUrl = (url) =>
   typeof url === 'string' && url.includes(TMDB_HOST);
+
+export const isCloudinaryUrl = (url) =>
+  typeof url === 'string' && url.includes(CLOUDINARY_HOST);
+
+/** Cloudinary auto-format (WebP/AVIF) + quality + width transform. */
+export const toCloudinaryOptimizedUrl = (url, width = 400) => {
+  const trimmed = url.trim();
+  const marker = '/upload/';
+  const markerIndex = trimmed.indexOf(marker);
+  if (markerIndex === -1) {
+    return trimmed;
+  }
+
+  const afterUpload = trimmed.slice(markerIndex + marker.length);
+  if (/^(f_auto|w_\d)/.test(afterUpload)) {
+    return trimmed;
+  }
+
+  const transform = `f_auto,q_auto,w_${width}`;
+  return `${trimmed.slice(0, markerIndex + marker.length)}${transform}/${afterUpload}`;
+};
 
 export const toWsrvProxyUrl = (url, width = 400) =>
   `${WSRV_PROXY}?url=${encodeURIComponent(url.trim())}&w=${width}&fit=cover&output=webp`;
@@ -54,6 +76,10 @@ export const resolveMediaUrl = (url, width = 400) => {
   }
 
   const trimmed = unwrapMediaUrl(url);
+
+  if (isCloudinaryUrl(trimmed)) {
+    return toCloudinaryOptimizedUrl(trimmed, width);
+  }
 
   if (isTmdbUrl(trimmed)) {
     return toWsrvProxyUrl(trimmed, width);

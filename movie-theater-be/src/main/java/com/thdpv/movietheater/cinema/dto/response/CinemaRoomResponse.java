@@ -14,11 +14,12 @@ public class CinemaRoomResponse {
     private CinemaRoomStatus status;
     private UUID cinemaUuid;
     private String cinemaName;
+    private String layoutConfig;
 
     public CinemaRoomResponse() {
     }
 
-    public CinemaRoomResponse(UUID uuid, String roomCode, String name, Integer capacity, RoomType roomType, CinemaRoomStatus status, UUID cinemaUuid, String cinemaName) {
+    public CinemaRoomResponse(UUID uuid, String roomCode, String name, Integer capacity, RoomType roomType, CinemaRoomStatus status, UUID cinemaUuid, String cinemaName, String layoutConfig) {
         this.uuid = uuid;
         this.roomCode = roomCode;
         this.name = name;
@@ -27,6 +28,11 @@ public class CinemaRoomResponse {
         this.status = status;
         this.cinemaUuid = cinemaUuid;
         this.cinemaName = cinemaName;
+        this.layoutConfig = layoutConfig;
+    }
+
+    public CinemaRoomResponse(UUID uuid, String roomCode, String name, Integer capacity, RoomType roomType, CinemaRoomStatus status, UUID cinemaUuid, String cinemaName) {
+        this(uuid, roomCode, name, capacity, roomType, status, cinemaUuid, cinemaName, null);
     }
 
     public UUID getUuid() {
@@ -91,5 +97,13 @@ public class CinemaRoomResponse {
 
     public void setCinemaName(String cinemaName) {
         this.cinemaName = cinemaName;
+    }
+
+    public String getLayoutConfig() {
+        return layoutConfig;
+    }
+
+    public void setLayoutConfig(String layoutConfig) {
+        this.layoutConfig = layoutConfig;
     }
 }

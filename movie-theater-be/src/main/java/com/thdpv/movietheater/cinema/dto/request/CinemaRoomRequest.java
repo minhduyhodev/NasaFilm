@@ -23,6 +23,8 @@ public class CinemaRoomRequest {
     
     private CinemaRoomStatus status;
 
+    private String layoutConfig;
+
     public CinemaRoomRequest() {
     }
 
@@ -72,5 +74,13 @@ public class CinemaRoomRequest {
 
     public void setStatus(CinemaRoomStatus status) {
         this.status = status;
+    }
+
+    public String getLayoutConfig() {
+        return layoutConfig;
+    }
+
+    public void setLayoutConfig(String layoutConfig) {
+        this.layoutConfig = layoutConfig;
     }
 }

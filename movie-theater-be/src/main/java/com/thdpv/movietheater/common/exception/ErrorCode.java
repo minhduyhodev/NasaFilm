@@ -37,6 +37,15 @@ public enum ErrorCode {
     ACCOUNT_BANNED(403, "Tài khoản của bạn đã bị khóa vĩnh viễn", HttpStatus.FORBIDDEN),
     ACCOUNT_SUSPENDED(403, "Tài khoản của bạn đang tạm thời bị khóa", HttpStatus.FORBIDDEN),
 
+    REVIEW_PURCHASE_REQUIRED(403, "Ban can mua ve rap hoac ve online de danh gia phim nay", HttpStatus.FORBIDDEN),
+    REVIEW_NOT_FOUND(404, "Danh gia khong ton tai", HttpStatus.NOT_FOUND),
+    REVIEW_BANNED_WORD(400, "Binh luan chua noi dung khong phu hop", HttpStatus.BAD_REQUEST),
+    REVIEW_COOLDOWN_ACTIVE(429, "Vui long doi truoc khi gui danh gia moi cho phim nay", HttpStatus.TOO_MANY_REQUESTS),
+    REVIEW_RATE_LIMITED(429, "Ban thao tac qua nhanh. Vui long thu lai sau.", HttpStatus.TOO_MANY_REQUESTS),
+    REVIEW_ALREADY_REPORTED(409, "Ban da bao cao danh gia nay", HttpStatus.CONFLICT),
+    CANNOT_REPORT_OWN_REVIEW(400, "Khong the bao cao danh gia cua chinh ban", HttpStatus.BAD_REQUEST),
+    REVIEW_REPORT_NOT_FOUND(404, "Don bao cao khong ton tai", HttpStatus.NOT_FOUND),
+
     INTERNAL_ERROR(500, "Loi he thong", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_ERROR(500, "Loi co so du lieu", HttpStatus.INTERNAL_SERVER_ERROR);
 

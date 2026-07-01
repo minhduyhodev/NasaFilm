@@ -5,10 +5,37 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { bookingService } from '../../../shared/services/bookingService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { stompSocketService, SEAT_MAP_REFRESH_MS } from '../../../shared/services/stompSocketService';
 import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { getMoviePosterUrl } from '../utils/movieUtils';
+import {
+  buildRowPlacedItems,
+  getCoupleLabel,
+  getSeatMapGridStyle,
+  getGridColumnStyle,
+  seatNumberToGridColumn,
+  computeHorizontalBandOverlays,
+  getHorizontalBandOverlayStyle,
+  getMaxSeatNumber,
+} from '../../../shared/utils/seatMapDisplay';
+import '../../../shared/components/seatmap/SeatMapGrid.css';
+import {
+  parseLayoutConfig,
+  hasAisleSlot,
+  slotKey,
+  getAisleLabelAnchors,
+  getCompleteVerticalCols,
+  getCompleteHorizontalRows,
+  getCompleteDiagonalCellKeys,
+} from '../../../shared/utils/aisleLayoutUtils';
+import {
+  AISLE_LABEL,
+  isInCompleteVerticalCol,
+  renderVerticalAisleCellProps,
+} from '../../../shared/components/aisle/aisleMapRender';
+import '../../../shared/components/aisle/AisleMapStyles.css';
 
 import './BookingPage.css';
 
@@ -17,33 +44,6 @@ const PLACEHOLDER_SHOWTIME_UUID = '11111111-1111-1111-1111-111111111111';
 
 function isValidShowtimeUuid(value) {
   return Boolean(value && value !== PLACEHOLDER_SHOWTIME_UUID && UUID_PATTERN.test(value));
-}
-
-function partitionSeatsForAisle(seatsList) {
-  const n = seatsList.length;
-  if (n === 0) {
-    return { left: [], center: [], right: [] };
-  }
-  if (n <= 4) {
-    return { left: [], center: seatsList, right: [] };
-  }
-  if (n === 12) {
-    return {
-      left: seatsList.slice(0, 2),
-      center: seatsList.slice(2, 10),
-      right: seatsList.slice(10, 12),
-    };
-  }
-  const leftCount = Math.max(1, Math.floor(n * 0.15));
-  const rightCount = Math.max(1, Math.floor(n * 0.15));
-  if (leftCount + rightCount >= n) {
-    return { left: [], center: seatsList, right: [] };
-  }
-  return {
-    left: seatsList.slice(0, leftCount),
-    center: seatsList.slice(leftCount, n - rightCount),
-    right: seatsList.slice(n - rightCount),
-  };
 }
 
 const BookingPage = () => {
@@ -110,6 +110,7 @@ const BookingPage = () => {
   const resolvedAge = movieAgeRestriction || movieMeta.ageRestriction;
 
   const [seatRows, setSeatRows] = useState([]);
+  const [aisleLayout, setAisleLayout] = useState(() => parseLayoutConfig(null));
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +137,8 @@ const BookingPage = () => {
 
   const fetchSeatMapRef = React.useRef(() => {});
 
-  const fetchSeatMap = async (overrideSelectedUuids) => {
+  const fetchSeatMap = async (overrideSelectedUuids, options = {}) => {
+    const { silent = false } = options;
     try {
       const currentSelectedUuids = overrideSelectedUuids !== undefined
         ? overrideSelectedUuids
@@ -144,6 +146,9 @@ const BookingPage = () => {
       const data = await bookingService.getSeatMap(showtimeUuid, currentSelectedUuids);
       if (data && data.rows) {
         setSeatRows(data.rows);
+        if (data.layoutConfig) {
+          setAisleLayout(parseLayoutConfig(data.layoutConfig));
+        }
 
         const offset = data._serverTimeOffset || 0;
         let gapFound = false;
@@ -191,7 +196,9 @@ const BookingPage = () => {
       }
     } catch (err) {
       console.error("Failed to fetch seat map:", err);
-      notificationService.error("Không thể tải sơ đồ ghế");
+      if (!silent) {
+        notificationService.error("Không thể tải sơ đồ ghế");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +208,7 @@ const BookingPage = () => {
 
   useRealtimeTopic(
     hasValidShowtime ? REALTIME_TOPICS.showtimeSeats(showtimeUuid) : null,
-    () => fetchSeatMapRef.current(),
+    () => fetchSeatMapRef.current(undefined, { silent: true }),
     400
   );
 
@@ -232,7 +239,60 @@ const BookingPage = () => {
     if (!hasValidShowtime) return;
     window.scrollTo(0, 0);
     fetchSeatMap();
+    stompSocketService.ensureConnected().catch((err) => {
+      console.warn('WebSocket unavailable, using HTTP polling:', err?.message ?? err);
+    });
+    bookingService.watchSeatMap(showtimeUuid).catch((err) => {
+      console.error('Failed to register seat map watch:', err);
+    });
+    return () => {
+      bookingService.unwatchSeatMap(showtimeUuid).catch(() => {});
+    };
   }, [showtimeUuid, hasValidShowtime]);
+
+  // Guaranteed refresh every 5s (visible in Network tab as seat-map XHR)
+  useEffect(() => {
+    if (!hasValidShowtime) return undefined;
+
+    const intervalId = setInterval(() => {
+      fetchSeatMapRef.current(undefined, { silent: true });
+    }, SEAT_MAP_REFRESH_MS);
+
+    return () => clearInterval(intervalId);
+  }, [hasValidShowtime, showtimeUuid]);
+
+  const handleCoupleClick = async (seats) => {
+    const pairUuids = seats.map((s) => s.seatUuid);
+    const bothSelected = pairUuids.every((uuid) =>
+      selectedSeats.some((s) => s.seatUuid === uuid),
+    );
+
+    if (!bothSelected) {
+      const seatsAfterAdd = new Set([
+        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...pairUuids,
+      ]);
+      if (seatsAfterAdd.size > maxSeatsPerBooking) {
+        notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
+        return;
+      }
+    }
+
+    const nextSelectedUuids = bothSelected
+      ? selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid)
+      : [
+        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...pairUuids,
+      ];
+
+    try {
+      await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids);
+    } catch (err) {
+      console.error('Failed to sync couple seat locks:', err);
+      notificationService.error(err.message || 'Không thể giữ ghế này. Vui lòng chọn ghế khác.');
+    }
+  };
 
   const handleSeatClick = async (seat) => {
     const isAlreadySelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
@@ -281,6 +341,74 @@ const BookingPage = () => {
 
   const totalAmount = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
 
+  const bookingSeatsByRow = React.useMemo(() => {
+    const map = {};
+    seatRows.forEach((rowItem) => {
+      map[rowItem.rowName] = [...(rowItem.seats || [])].sort(
+        (a, b) => (b.seatNumber || 0) - (a.seatNumber || 0),
+      );
+    });
+    return map;
+  }, [seatRows]);
+
+  const bookingRowNames = React.useMemo(
+    () => seatRows.map((r) => r.rowName).sort(),
+    [seatRows],
+  );
+
+  const maxSeatNumber = React.useMemo(
+    () => getMaxSeatNumber(bookingSeatsByRow, bookingRowNames),
+    [bookingSeatsByRow, bookingRowNames],
+  );
+
+  const aisleLabelAnchors = React.useMemo(
+    () => getAisleLabelAnchors(aisleLayout, bookingSeatsByRow, bookingRowNames),
+    [aisleLayout, bookingSeatsByRow, bookingRowNames],
+  );
+
+  const completeHorizontalRows = React.useMemo(
+    () => getCompleteHorizontalRows(aisleLayout, bookingSeatsByRow, bookingRowNames),
+    [aisleLayout, bookingSeatsByRow, bookingRowNames],
+  );
+
+  const completeVerticalCols = React.useMemo(
+    () => getCompleteVerticalCols(aisleLayout, bookingRowNames),
+    [aisleLayout, bookingRowNames],
+  );
+
+  const completeDiagonalCells = React.useMemo(
+    () => getCompleteDiagonalCellKeys(aisleLayout, bookingSeatsByRow, bookingRowNames),
+    [aisleLayout, bookingSeatsByRow, bookingRowNames],
+  );
+
+  const renderCoupleElement = (seats, rowName) => {
+    const isOccupied = seats.some((s) =>
+      s.availabilityStatus === 'BOOKED'
+      || s.availabilityStatus === 'LOCKED_BY_OTHER'
+      || s.availabilityStatus === 'UNAVAILABLE',
+    );
+    const isSelected = seats.some((s) => s.selected || s.availabilityStatus === 'LOCKED_BY_ME');
+    const isBlocked = seats.some((s) => s.blocked);
+
+    let seatClass = 'seat couple relative z-[1] w-full h-full';
+    if (isOccupied) seatClass += ' occupied';
+    else if (isSelected) seatClass += ' selected';
+    else if (isBlocked) seatClass += ' blocked';
+
+    const label = getCoupleLabel(rowName, seats).replace(rowName, '');
+
+    return (
+      <div
+        key={seats.map((s) => s.seatUuid).join('-')}
+        onClick={() => !isOccupied && handleCoupleClick(seats)}
+        className={seatClass}
+        title={`Sofa đôi ${getCoupleLabel(rowName, seats)}`}
+      >
+        {isOccupied ? <X className="h-3 w-3" /> : label}
+      </div>
+    );
+  };
+
   const renderSeatElement = (seat) => {
     const isOccupied = seat.availabilityStatus === 'BOOKED' || seat.availabilityStatus === 'LOCKED_BY_OTHER' || seat.availabilityStatus === 'UNAVAILABLE';
     const isSelected = seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME';
@@ -293,7 +421,7 @@ const BookingPage = () => {
       type = 'couple';
     }
 
-    let seatClass = `seat ${type}`;
+    let seatClass = `seat ${type} relative z-[1] w-full h-full`;
 
     if (isOccupied) {
       seatClass += ' occupied';
@@ -341,43 +469,162 @@ const BookingPage = () => {
           </div>
 
           {/* Seat Grid */}
-          <div className="flex flex-col gap-2.5 overflow-x-auto w-full items-center pb-4 scrollbar-hide select-none">
-            {seatRows.map((rowItem) => {
-              const row = rowItem.rowName;
-              const seatsList = rowItem.seats || [];
-              const { left: leftSeats, center: centerSeats, right: rightSeats } =
-                partitionSeatsForAisle(seatsList);
-
-              let centerClasses = 'flex gap-2 px-1';
-              if (row === 'C') {
-                centerClasses += " border-t-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-t-xl py-0.5";
-              } else if (row === 'D' || row === 'E') {
-                centerClasses += " border-x-2 border-emerald-500/30 bg-emerald-500/5 py-0.5";
-              } else if (row === 'F') {
-                centerClasses += " border-b-2 border-x-2 border-emerald-500/30 bg-emerald-500/5 rounded-b-xl py-0.5";
-              }
+          <div className="flex flex-col gap-2.5 overflow-x-auto overflow-y-visible w-full items-center pb-4 py-6 scrollbar-hide select-none">
+            {bookingRowNames.map((row) => {
+              const seatsList = bookingSeatsByRow[row] || [];
+              const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
               return (
                 <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
-                  {/* Row Label Left */}
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
 
-                  {/* Left Block */}
-                  <div className="flex gap-2">
-                    {leftSeats.map((seat) => renderSeatElement(seat))}
-                  </div>
+                  {isFullHorizontalAisle ? (
+                    <div
+                      className="seat-map-grid seat-map-grid--booking"
+                      style={getSeatMapGridStyle(maxSeatNumber)}
+                    >
+                      {(() => {
+                        const bandOverlays = computeHorizontalBandOverlays(
+                          seatsList,
+                          completeVerticalCols,
+                          maxSeatNumber,
+                        );
+                        const labelOverlayIdx = bandOverlays.length
+                          ? bandOverlays.reduce(
+                            (bestIdx, overlay, idx, arr) => (
+                              overlay.span > arr[bestIdx].span ? idx : bestIdx
+                            ),
+                            0,
+                          )
+                          : -1;
 
-                  {/* Center Block with optional border */}
-                  <div className={centerClasses}>
-                    {centerSeats.map((seat) => renderSeatElement(seat))}
-                  </div>
+                        return (
+                          <>
+                            {bandOverlays.map((overlay, idx) => (
+                              <div
+                                key={`h-band-${overlay.gridStart}`}
+                                className="seat-map-h-band aisle-band-complete aisle-band-horizontal-segment"
+                                style={getHorizontalBandOverlayStyle(overlay)}
+                              >
+                                {idx === labelOverlayIdx && (
+                                  <span className="aisle-label-horizontal">{AISLE_LABEL}</span>
+                                )}
+                              </div>
+                            ))}
+                            {seatsList.map((seat) => {
+                              const isCrossing = completeVerticalCols.includes(seat.seatNumber);
+                              return (
+                                <div
+                                  key={seat.seatUuid}
+                                  className={`seat-map-grid-cell ${isCrossing ? 'aisle-band-crossing' : ''}`}
+                                  style={getGridColumnStyle(
+                                    seatNumberToGridColumn(seat.seatNumber, maxSeatNumber),
+                                  )}
+                                  aria-hidden
+                                />
+                              );
+                            })}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div
+                      className="seat-map-grid seat-map-grid--booking seat-map-row-seats"
+                      style={getSeatMapGridStyle(maxSeatNumber)}
+                    >
+                      {buildRowPlacedItems(
+                        seatsList,
+                        maxSeatNumber,
+                        (seat) => hasAisleSlot(aisleLayout, row, seat.seatNumber),
+                      ).map((item) => (
+                        <div
+                          key={item.key}
+                          className="seat-map-grid-cell relative z-[1]"
+                          style={getGridColumnStyle(item.gridStart, item.span)}
+                        >
+                          {item.kind === 'couple-invalid' ? (
+                            <div
+                              className="seat standard occupied relative z-[1] w-full h-full flex items-center justify-center text-[9px] font-bold opacity-50 cursor-not-allowed"
+                              title="Ghế sofa chưa đủ cặp — không thể đặt"
+                              aria-hidden
+                            >
+                              <X className="h-3 w-3" />
+                            </div>
+                          ) : item.kind === 'couple'
+                            ? renderCoupleElement(item.seats, row)
+                            : (() => {
+                              const seat = item.seats[0];
+                              const isAisle = hasAisleSlot(aisleLayout, row, seat.seatNumber);
+                              const inCompleteVert = isInCompleteVerticalCol(
+                                seat.seatNumber,
+                                completeVerticalCols,
+                              );
+                              const inCompleteDiag = completeDiagonalCells.has(
+                                slotKey(row, seat.seatNumber),
+                              );
+                              const showDiagonalBand = isAisle
+                                && aisleLabelAnchors.has(slotKey(row, seat.seatNumber))
+                                && inCompleteDiag
+                                && !inCompleteVert;
 
-                  {/* Right Block */}
-                  <div className="flex gap-2">
-                    {rightSeats.map((seat) => renderSeatElement(seat))}
-                  </div>
+                              if (!isAisle) {
+                                return renderSeatElement(seat);
+                              }
 
-                  {/* Row Label Right */}
+                              const verticalCell = inCompleteVert
+                                ? renderVerticalAisleCellProps(
+                                  row,
+                                  seat.seatNumber,
+                                  bookingRowNames,
+                                  aisleLayout,
+                                  completeHorizontalRows,
+                                  'booking',
+                                )
+                                : null;
+
+                              if (verticalCell) {
+                                return (
+                                  <div
+                                    className={`seat-map-slot flex items-center justify-center ${verticalCell.cellClass} ${verticalCell.showLabel ? 'overflow-visible' : ''}`}
+                                    aria-hidden
+                                  >
+                                    {verticalCell.showLabel && (
+                                      <div
+                                        className="aisle-label-vertical-wrap"
+                                        style={verticalCell.labelStyle}
+                                      >
+                                        <span className="aisle-label-vertical">{AISLE_LABEL}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              if (showDiagonalBand) {
+                                return (
+                                  <div
+                                    className="seat-map-slot aisle-band-complete flex items-center justify-center"
+                                    aria-hidden
+                                  >
+                                    <span className="aisle-label-horizontal text-[10px] tracking-[0.28em]">{AISLE_LABEL}</span>
+                                  </div>
+                                );
+                              }
+
+                              if (inCompleteDiag) {
+                                return <div className="seat-map-slot" aria-hidden />;
+                              }
+
+                              return (
+                                <div className="seat-map-slot rounded-lg aisle-slot-incomplete" aria-hidden />
+                              );
+                            })()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
                 </div>
               );
@@ -403,7 +650,7 @@ const BookingPage = () => {
               <span className="text-xs font-bold text-gray-300">Ghế VIP (120k)</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-16 h-6 border-2 border-red-500/35 rounded-lg bg-transparent flex items-center justify-center text-[9px] font-bold text-red-500/70">1</div>
+              <div className="seat couple opacity-80 pointer-events-none flex items-center justify-center text-[9px] font-bold w-[calc(2.25rem*2+0.5rem)] h-6">12·11</div>
               <span className="text-xs font-bold text-gray-300">Ghế Đôi (160k)</span>
             </div>
             <div className="flex items-center gap-2.5">
@@ -421,8 +668,10 @@ const BookingPage = () => {
               <span className="text-xs font-bold text-gray-300">Cảnh báo khe hở</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-6 border-2 border-emerald-500/40 bg-emerald-500/10 rounded-lg"></div>
-              <span className="text-xs font-bold text-gray-300">Vùng trung tâm</span>
+              <div className="w-16 h-6 rounded-lg aisle-band-complete flex items-center justify-center px-1">
+                <span className="aisle-label-horizontal text-[8px] tracking-[0.22em]">Lối đi</span>
+              </div>
+              <span className="text-xs font-bold text-gray-300">Lối đi</span>
             </div>
           </div>
         </div>

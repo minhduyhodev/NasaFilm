@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, TrendingUp, Ticket, DollarSign, Percent } from 'lucide-react';
+import { Loader2, TrendingUp, Ticket, DollarSign, Percent, Film, Building2, Tags } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
 import TabTransition from '../../../shared/components/TabTransition';
+import PosterImage from '../../../shared/components/PosterImage';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import './DashboardPage.css';
@@ -144,6 +145,258 @@ const DonutChart = ({ segments }) => {
   );
 };
 
+const getRankIndexClass = (rank) => {
+  if (rank === 1) return 'is-gold';
+  if (rank === 2) return 'is-silver';
+  if (rank === 3) return 'is-bronze';
+  return '';
+};
+
+const MoviePosterThumb = ({ url, title }) => (
+  <div className="dashboard-movie-poster">
+    {url ? (
+      <PosterImage
+        src={url}
+        alt={title || 'Poster phim'}
+        width={120}
+        loading="lazy"
+        className="dashboard-movie-poster-img"
+      />
+    ) : (
+      <div className="dashboard-movie-poster-fallback" aria-hidden>
+        <Film className="h-5 w-5" />
+      </div>
+    )}
+  </div>
+);
+
+const TopMovieRankRow = ({ movie, rank, maxRevenue, formatRevenueFull, variant = 'default' }) => {
+  const revenue = Number(movie.revenue) || 0;
+  const share = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
+  const isRunner = variant === 'runner';
+
+  if (isRunner) {
+    return (
+      <li className="dashboard-movie-rank-item is-runner">
+        <span className={`dashboard-rank-index ${getRankIndexClass(rank)}`}>{rank}</span>
+        <MoviePosterThumb url={movie.primaryMediaUrl} title={movie.title} />
+        <div className="dashboard-movie-rank-body">
+          <span className="dashboard-rank-name" title={movie.title}>{movie.title}</span>
+          <span className="dashboard-rank-meta">{movie.bookingCount ?? 0} giao dịch</span>
+        </div>
+        <div className="dashboard-runner-trail">
+          <span className="dashboard-rank-value">{formatRevenueFull(movie.revenue)}</span>
+          <div className="dashboard-rank-bar-wrap">
+            <div className="dashboard-rank-bar dashboard-rank-bar--movie" style={{ width: `${share}%` }} />
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li className={`dashboard-movie-rank-item${isRunner ? ' is-runner' : ''}`}>
+      <span className={`dashboard-rank-index ${getRankIndexClass(rank)}`}>{rank}</span>
+      <MoviePosterThumb url={movie.primaryMediaUrl} title={movie.title} />
+      <div className="dashboard-movie-rank-body">
+        <span className="dashboard-rank-name" title={movie.title}>{movie.title}</span>
+        <span className="dashboard-rank-meta">{movie.bookingCount ?? 0} giao dịch</span>
+        {!isRunner && (
+          <div className="dashboard-rank-bar-wrap">
+            <div
+              className="dashboard-rank-bar dashboard-rank-bar--movie"
+              style={{ width: `${share}%` }}
+            />
+          </div>
+        )}
+      </div>
+      {!isRunner && (
+        <span className="dashboard-rank-value">{formatRevenueFull(movie.revenue)}</span>
+      )}
+    </li>
+  );
+};
+
+const MovieSpotlightHero = ({ movie, formatRevenueFull, maxRevenue }) => {
+  if (!movie) {
+    return (
+      <article className="dashboard-spotlight-hero dashboard-spotlight-hero--empty">
+        <Film className="h-10 w-10 text-white/20" />
+        <p>Chưa có dữ liệu phim dẫn đầu</p>
+      </article>
+    );
+  }
+
+  const revenue = Number(movie.revenue) || 0;
+  const share = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
+
+  return (
+    <article className="dashboard-spotlight-hero">
+      <div className="dashboard-spotlight-hero-poster">
+        {movie.primaryMediaUrl ? (
+          <PosterImage
+            src={movie.primaryMediaUrl}
+            alt={movie.title}
+            width={240}
+            loading="eager"
+            className="dashboard-spotlight-hero-poster-img"
+          />
+        ) : (
+          <div className="dashboard-spotlight-hero-poster-fallback">
+            <Film className="h-7 w-7" />
+          </div>
+        )}
+        <span className="dashboard-spotlight-hero-rank">#1</span>
+      </div>
+      <div className="dashboard-spotlight-hero-content">
+        <span className="dashboard-spotlight-hero-badge">Phim dẫn đầu</span>
+        <h3 className="dashboard-spotlight-title">{movie.title}</h3>
+        <p className="dashboard-spotlight-meta">{movie.bookingCount ?? 0} giao dịch · vé rạp & VOD</p>
+        <div className="dashboard-spotlight-stats">
+          <div>
+            <span className="dashboard-spotlight-stat-label">Doanh thu</span>
+            <strong className="dashboard-spotlight-stat-value">{formatRevenueFull(movie.revenue)}</strong>
+          </div>
+          <div>
+            <span className="dashboard-spotlight-stat-label">Thị phần</span>
+            <strong className="dashboard-spotlight-stat-value">{share.toFixed(0)}%</strong>
+          </div>
+        </div>
+        <div className="dashboard-rank-bar-wrap dashboard-spotlight-bar">
+          <div className="dashboard-rank-bar dashboard-rank-bar--movie" style={{ width: `${share}%` }} />
+        </div>
+      </div>
+    </article>
+  );
+};
+
+const DashboardSpotlightSection = ({ stats, formatRevenueFull, maxMovieRevenue, maxCinemaRevenue }) => {
+  const topMovies = stats?.topMovies || [];
+  const spotlight = topMovies[0];
+  const runners = topMovies.slice(1, 5);
+  const topGenres = [...(stats?.genres || [])]
+    .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
+    .slice(0, 6);
+  const topCinemas = (stats?.cinemas || []).slice(0, 4);
+
+  return (
+    <section className="dashboard-spotlight">
+      <div className="dashboard-spotlight-head">
+        <div>
+          <p className="dashboard-spotlight-eyebrow">Box office insights</p>
+          <h2 className="dashboard-spotlight-heading">Phim & rạp nổi bật</h2>
+        </div>
+        <span className="dashboard-spotlight-tag">Tháng hiện tại</span>
+      </div>
+
+      <div className="dashboard-spotlight-bento">
+        <MovieSpotlightHero
+          movie={spotlight}
+          formatRevenueFull={formatRevenueFull}
+          maxRevenue={maxMovieRevenue}
+        />
+
+        <div className="dashboard-spotlight-aside">
+          <div className="dashboard-spotlight-runners">
+            <h3 className="dashboard-spotlight-subtitle">
+              <Film className="dashboard-mini-title-icon" aria-hidden />
+              Top tiếp theo
+            </h3>
+            {runners.length === 0 ? (
+              <p className="dashboard-rank-empty">Chưa có phim xếp hạng tiếp theo</p>
+            ) : (
+              <ul className="dashboard-movie-rank-list dashboard-movie-rank-list--runners">
+                {runners.map((movie, index) => (
+                  <TopMovieRankRow
+                    key={movie.uuid || `runner-${index}`}
+                    movie={movie}
+                    rank={index + 2}
+                    maxRevenue={maxMovieRevenue}
+                    formatRevenueFull={formatRevenueFull}
+                    variant="runner"
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="dashboard-spotlight-side">
+            <div className="dashboard-side-card">
+              <h3 className="dashboard-spotlight-subtitle">
+                <Building2 className="dashboard-mini-title-icon" aria-hidden />
+                Cụm rạp
+              </h3>
+              <ul className="dashboard-cinema-stack">
+                {topCinemas.map((cinema, index) => {
+                  const rank = index + 1;
+                  const share = ((Number(cinema.revenue) || 0) / maxCinemaRevenue) * 100;
+                  return (
+                    <li key={`cinema-${cinema.name}`} className="dashboard-cinema-stack-item">
+                      <div className="dashboard-cinema-stack-head">
+                        <span className={`dashboard-rank-index ${getRankIndexClass(rank)}`}>{rank}</span>
+                        <div className="dashboard-cinema-stack-info">
+                          <span className="dashboard-rank-name">{cinema.name}</span>
+                          <span className="dashboard-rank-meta">{cinema.occupancyRate}% lấp đầy</span>
+                        </div>
+                        <span className="dashboard-rank-value">{formatRevenueFull(cinema.revenue)}</span>
+                      </div>
+                      <div className="dashboard-rank-bar-wrap">
+                        <div className="dashboard-rank-bar dashboard-rank-bar--cinema" style={{ width: `${share}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="dashboard-side-card">
+              <h3 className="dashboard-spotlight-subtitle">
+                <Tags className="dashboard-mini-title-icon" aria-hidden />
+                Thể loại hot
+              </h3>
+              <div className="dashboard-genre-cloud">
+                {topGenres.map((genre, index) => (
+                  <div
+                    key={`genre-${genre.name}`}
+                    className="dashboard-genre-pill"
+                    style={{ '--genre-weight': `${Math.max(genre.occupancyRate || 0, 12)}%` }}
+                  >
+                    <span className="dashboard-genre-pill-rank">{index + 1}</span>
+                    <span className="dashboard-genre-pill-name">{genre.name}</span>
+                    <span className="dashboard-genre-pill-value">{genre.occupancyRate}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const TopMoviesRevenuePanel = ({ movies, formatRevenueFull }) => {
+  if (!movies.length) {
+    return <div className="dashboard-empty-chart">Chưa có dữ liệu doanh thu theo phim</div>;
+  }
+
+  const maxRevenue = Math.max(...movies.map((m) => Number(m.revenue) || 0), 1);
+
+  return (
+    <ul className="dashboard-movie-rank-list">
+      {movies.map((movie, index) => (
+        <TopMovieRankRow
+          key={movie.uuid || `movie-${index}`}
+          movie={movie}
+          rank={index + 1}
+          maxRevenue={maxRevenue}
+          formatRevenueFull={formatRevenueFull}
+        />
+      ))}
+    </ul>
+  );
+};
+
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -188,6 +441,9 @@ const DashboardPage = () => {
       .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
       .slice(0, 6);
 
+    const topMovies = (stats.topMovies || []).slice(0, 6);
+    const movieRevenues = topMovies.map((m) => Number(m.revenue) || 0);
+
     const cinemaRevenues = cinemas.map((c) => Number(c.revenue) || 0);
     const genreOccupancy = genres.map((g) => g.occupancyRate || 0);
 
@@ -200,8 +456,10 @@ const DashboardPage = () => {
     return {
       cinemas,
       genres,
+      topMovies,
       cinemaRevenues,
       genreOccupancy,
+      movieRevenues,
       donutSegments: donutSegments.length ? donutSegments : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155' }],
     };
   }, [stats]);
@@ -270,12 +528,20 @@ const DashboardPage = () => {
 
   const tabs = [
     { id: 'cinemas', label: 'Doanh thu rạp' },
+    { id: 'movies', label: 'Top phim' },
     { id: 'genres', label: 'Thể loại phim' },
     { id: 'overview', label: 'Tổng quan' },
   ];
 
   const activeChart =
-    activeTab === 'genres'
+    activeTab === 'movies'
+      ? {
+          labels: chartData?.topMovies.map((m) => m.title) || [],
+          values: chartData?.movieRevenues || [],
+          title: 'Top phim doanh thu cao',
+          subtitle: 'Tổng doanh thu vé rạp và VOD theo phim',
+        }
+      : activeTab === 'genres'
       ? {
           labels: chartData?.genres.map((g) => g.name) || [],
           values: chartData?.genreOccupancy || [],
@@ -296,19 +562,38 @@ const DashboardPage = () => {
             subtitle: 'So sánh hiệu suất kinh doanh từng chi nhánh',
           };
 
+  const maxMovieRevenue = Math.max(...(stats?.topMovies || []).map((m) => Number(m.revenue) || 0), 1);
+  const cinemasList = stats?.cinemas || [];
+  const maxCinemaRevenue = Math.max(...cinemasList.map((c) => Number(c.revenue) || 0), 1);
+
   return (
     <div className="dashboard-page">
       <header className="dashboard-page-header">
-        <h1 className="dashboard-page-title">Bảng điều khiển</h1>
-        <p className="dashboard-page-desc">Tổng quan vận hành và phân tích hệ thống rạp chiếu phim</p>
+        <div className="dashboard-page-header-main">
+          <span className="dashboard-page-eyebrow">NASAFilm · Operations</span>
+          <h1 className="dashboard-page-title">Bảng điều khiển</h1>
+          <p className="dashboard-page-desc">Tổng quan vận hành và phân tích hệ thống rạp chiếu phim</p>
+        </div>
+        <div className="dashboard-page-header-kpi">
+          <span className="dashboard-header-stat-label">Doanh thu tháng</span>
+          <strong className="dashboard-header-stat-value">{revenueVal}đ</strong>
+          <span className={`dashboard-header-stat-change ${isGrowthPositive ? 'is-positive' : 'is-negative'}`}>
+            {growthLabel} so với tháng trước
+          </span>
+        </div>
       </header>
 
       <div className="dashboard-kpi-grid">
-        {kpis.map((kpi) => (
-          <div key={kpi.id} className="dashboard-kpi-card">
+        {kpis.map((kpi, index) => (
+          <div
+            key={kpi.id}
+            className={`dashboard-kpi-card${index === 0 ? ' dashboard-kpi-card--featured' : ''}`}
+          >
             <div className="dashboard-kpi-top">
               <span className="dashboard-kpi-label">{kpi.label}</span>
-              <kpi.icon className="dashboard-kpi-icon" />
+              <span className="dashboard-kpi-icon-wrap">
+                <kpi.icon className="dashboard-kpi-icon" />
+              </span>
             </div>
             <div className="dashboard-kpi-body">
               <div className="dashboard-kpi-values">
@@ -326,20 +611,28 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      <div className="dashboard-tabs">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`dashboard-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <DashboardSpotlightSection
+        stats={stats}
+        maxMovieRevenue={maxMovieRevenue}
+        maxCinemaRevenue={maxCinemaRevenue}
+        formatRevenueFull={formatRevenueFull}
+      />
 
-      <TabTransition activeKey={activeTab} className="dashboard-charts-grid">
+      <section className="dashboard-analytics">
+        <div className="dashboard-tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`dashboard-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <TabTransition activeKey={activeTab} className="dashboard-charts-grid">
         <div className="dashboard-chart-panel">
           <div className="dashboard-panel-header">
             <div>
@@ -348,16 +641,23 @@ const DashboardPage = () => {
             </div>
           </div>
           <div className="dashboard-chart-area">
-            {activeChart.labels.length > 0 ? (
+            {activeTab === 'movies' ? (
+              <TopMoviesRevenuePanel
+                movies={chartData?.topMovies || []}
+                formatRevenueFull={formatRevenueFull}
+              />
+            ) : activeChart.labels.length > 0 ? (
               <AreaChart labels={activeChart.labels} values={activeChart.values} />
             ) : (
               <div className="dashboard-empty-chart">Chưa có dữ liệu biểu đồ</div>
             )}
           </div>
-          <div className="dashboard-chart-legend">
-            <span className="dashboard-legend-dot" style={{ background: '#a855f7' }} />
-            <span>{activeTab === 'genres' ? 'Tỷ lệ lấp đầy (%)' : 'Doanh thu (đ)'}</span>
-          </div>
+          {activeTab !== 'movies' && (
+            <div className="dashboard-chart-legend">
+              <span className="dashboard-legend-dot" style={{ background: '#a855f7' }} />
+              <span>{activeTab === 'genres' ? 'Tỷ lệ lấp đầy (%)' : 'Doanh thu (đ)'}</span>
+            </div>
+          )}
         </div>
 
         <div className="dashboard-chart-panel dashboard-donut-panel">
@@ -379,44 +679,7 @@ const DashboardPage = () => {
           </ul>
         </div>
       </TabTransition>
-
-      <div className="dashboard-bottom-grid">
-        <div className="dashboard-mini-panel">
-          <h3 className="dashboard-mini-title">Top cụm rạp</h3>
-          <ul className="dashboard-rank-list">
-            {(stats?.cinemas || []).slice(0, 5).map((cinema, i) => (
-              <li key={`cinema-${i}-${cinema.name}`} className="dashboard-rank-item">
-                <span className="dashboard-rank-index">{i + 1}</span>
-                <div className="dashboard-rank-info">
-                  <span className="dashboard-rank-name">{cinema.name}</span>
-                  <span className="dashboard-rank-meta">{cinema.occupancyRate}% lấp đầy</span>
-                </div>
-                <span className="dashboard-rank-value">{formatRevenueFull(cinema.revenue)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="dashboard-mini-panel">
-          <h3 className="dashboard-mini-title">Thể loại nổi bật</h3>
-          <ul className="dashboard-rank-list">
-            {[...(stats?.genres || [])]
-              .sort((a, b) => (b.occupancyRate || 0) - (a.occupancyRate || 0))
-              .slice(0, 5)
-              .map((genre, i) => (
-                <li key={`genre-${i}-${genre.name}`} className="dashboard-rank-item">
-                  <span className="dashboard-rank-index">{i + 1}</span>
-                  <div className="dashboard-rank-info">
-                    <span className="dashboard-rank-name">{genre.name}</span>
-                    <div className="dashboard-rank-bar-wrap">
-                      <div className="dashboard-rank-bar" style={{ width: `${Math.min(genre.occupancyRate || 0, 100)}%` }} />
-                    </div>
-                  </div>
-                  <span className="dashboard-rank-value">{genre.occupancyRate}%</span>
-                </li>
-              ))}
-          </ul>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

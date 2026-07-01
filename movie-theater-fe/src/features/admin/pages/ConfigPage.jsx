@@ -326,10 +326,20 @@ const ConfigPage = () => {
             </div>
           </Section>
 
-          <Section title="Thời lượng khóa phim online" divided>
-            <div className="max-w-md space-y-3">
+          <Section title="Đồng hồ thời gian đếm ngược" divided>
+            <div className="max-w-md space-y-4">
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.onlineCountdownEnabled !== false}
+                  onChange={(e) => updateField('onlineCountdownEnabled', e.target.checked)}
+                  className="rounded border-white/20 bg-white/5"
+                />
+                Hiển thị đồng hồ đếm ngược trên trang xem phim trực tuyến
+              </label>
+
               <div>
-                <label className={labelClass}>Hệ số thời lượng xem (× thời lượng phim)</label>
+                <label className={labelClass}>Thời lượng xem (× thời lượng phim)</label>
                 <input
                   type="number"
                   min="0.5"
@@ -340,13 +350,29 @@ const ConfigPage = () => {
                   onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value) || 2)}
                 />
                 <p className={hintClass}>
-                  Sau khi kích hoạt vé VOD, thời gian xem = thời lượng phim × hệ số.
+                  Sau khi bấm phát, đồng hồ đếm ngược = thời lượng phim × hệ số.
                   {' '}{lockPreviewMinutes(config.onlineWatchLockMultiplier)}
                 </p>
               </div>
+
+              <div>
+                <label className={labelClass}>Cảnh báo sắp hết hạn (phút)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  className={fieldClass}
+                  value={config.onlineCountdownWarningMinutes ?? 10}
+                  onChange={(e) => updateField('onlineCountdownWarningMinutes', parseInt(e.target.value) || 10)}
+                />
+                <p className={hintClass}>
+                  Khi thời gian còn lại dưới ngưỡng này, đồng hồ chuyển sang trạng thái cảnh báo.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Hệ số</span>
+                  <span className="text-gray-500">Hệ số thời lượng</span>
                   <span className="text-gray-300">{config.onlineWatchLockMultiplier}x</span>
                 </div>
                 <input

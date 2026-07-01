@@ -183,6 +183,27 @@ public class ShowtimeService {
         return cancelled;
     }
 
+    @Transactional
+    public int finishExpiredShowtimes() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<ShowtimeStatus> activeStatuses = List.of(
+                ShowtimeStatus.SCHEDULED,
+                ShowtimeStatus.OPEN_FOR_BOOKING,
+                ShowtimeStatus.SOLD_OUT);
+
+        entityManager.createNativeQuery("""
+                DELETE FROM seat_locked sl
+                USING showtime st
+                WHERE sl.showtime_uuid = st.uuid
+                  AND st.end_time <= :now
+                  AND st.status IN ('SCHEDULED', 'OPEN_FOR_BOOKING', 'SOLD_OUT')
+                """)
+                .setParameter("now", now)
+                .executeUpdate();
+
+        return showtimeRepository.markFinishedIfExpired(now, activeStatuses, ShowtimeStatus.FINISHED);
+    }
+
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getAdminShowtimes() {
         List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();

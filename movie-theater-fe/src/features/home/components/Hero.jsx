@@ -1,61 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-
-const HERO_VIDEO_URL = '/Interstellar-Trailer.mp4';
+import heroVideoUrl from '../../../shared/assets/Interstellar-Trailer.mp4?url';
 
 const Hero = () => {
   const reduceMotion = useReducedMotion();
-  const [videoSrc, setVideoSrc] = useState('');
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (reduceMotion) return undefined;
 
-    let cancelled = false;
-    const loadVideo = () => {
-      if (!cancelled) setVideoSrc(HERO_VIDEO_URL);
+    const video = videoRef.current;
+    if (!video) return undefined;
+
+    const playVideo = () => {
+      video.play().catch(() => {});
     };
 
-    if (typeof window.requestIdleCallback === 'function') {
-      const idleId = window.requestIdleCallback(loadVideo, { timeout: 2000 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(idleId);
-      };
+    video.addEventListener('canplay', playVideo);
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      playVideo();
     }
 
-    const timerId = window.setTimeout(loadVideo, 400);
     return () => {
-      cancelled = true;
-      window.clearTimeout(timerId);
+      video.removeEventListener('canplay', playVideo);
     };
   }, [reduceMotion]);
 
   return (
     <section className="relative min-h-[90vh] md:min-h-screen w-full flex items-center pt-24 pb-32 overflow-hidden bg-black">
-      {/* 1. Background Video Layer */}
       <div className="absolute inset-0 z-0 select-none pointer-events-none">
-        {videoSrc ? (
+        {!reduceMotion && (
           <video
-            src={videoSrc}
+            ref={videoRef}
+            src={heroVideoUrl}
             autoPlay
             loop
             muted
             playsInline
-            preload="none"
+            preload="auto"
+            aria-hidden="true"
             className="w-full h-full object-cover"
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
         )}
-        {/* Cinematic dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-950/40 to-neutral-950/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-neutral-950/25" />
       </div>
 
-      {/* 2. Text Content Overlay Layer */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 lg:px-20 w-full flex flex-col justify-center h-full">
         <div className="max-w-2xl text-left space-y-4 md:space-y-6">
-          
-          {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -63,10 +54,9 @@ const Hero = () => {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/20 bg-red-600/10 text-red-400 text-xs font-extrabold uppercase tracking-wider"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-             HỆ THỐNG RẠP CHIẾU PHIM HIỆN ĐẠI
+            HỆ THỐNG RẠP CHIẾU PHIM HIỆN ĐẠI
           </motion.div>
 
-          {/* Heading */}
           <motion.h1
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
@@ -79,7 +69,6 @@ const Hero = () => {
             </span>
           </motion.h1>
 
-          {/* Subheading */}
           <motion.p
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}

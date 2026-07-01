@@ -66,3 +66,15 @@ export function getPointsToCashValue(config = readCachedSystemConfig()) {
     ? value
     : DEFAULT_SYSTEM_CONFIG.pointsToCashValue;
 }
+
+export function getOnlineCountdownSettings(config = readCachedSystemConfig()) {
+  const warningMinutes = Number(config.onlineCountdownWarningMinutes);
+  return {
+    enabled: config.onlineCountdownEnabled !== false,
+    warningMinutes:
+      Number.isFinite(warningMinutes) && warningMinutes >= 1
+        ? warningMinutes
+        : DEFAULT_SYSTEM_CONFIG.onlineCountdownWarningMinutes,
+    lockMultiplier: Number(config.onlineWatchLockMultiplier) || DEFAULT_SYSTEM_CONFIG.onlineWatchLockMultiplier,
+  };
+}

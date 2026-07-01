@@ -9,6 +9,8 @@ import {
 import { movieService } from '../../../shared/services/movieService';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader } from '../components';
@@ -235,11 +237,18 @@ const ShowtimesPage = () => {
     if (main) main.scrollTop = 0;
   }, []);
 
-  const handleAutoClick = () => {
+  const handleAutoClick = async () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    let config = DEFAULT_SYSTEM_CONFIG;
+    try {
+      config = await systemConfigService.getConfig();
+    } catch {
+      // fallback to defaults
+    }
 
     setAutoFormData({
       startDate: todayStr,
@@ -247,17 +256,17 @@ const ShowtimesPage = () => {
       cinemaUuid: cinemas[0]?.uuid || '',
       roomUuids: [],
       movieUuids: [],
-      startTime: '08:00',
-      endTime: '23:30',
-      basePrice: 85000,
-      vipPrice: 120000,
-      couplePrice: 160000,
-      intervalMinutes: 15,
-      trailerBuffer: 10,
-      goldenHourWeight: 1.0,
-      weekendWeight: 1.0,
-      ratingWeight: 1.0,
-      genreWeight: 1.0,
+      startTime: config.startTime ?? DEFAULT_SYSTEM_CONFIG.startTime,
+      endTime: config.endTime ?? DEFAULT_SYSTEM_CONFIG.endTime,
+      basePrice: config.basePrice ?? DEFAULT_SYSTEM_CONFIG.basePrice,
+      vipPrice: config.vipPrice ?? DEFAULT_SYSTEM_CONFIG.vipPrice,
+      couplePrice: config.couplePrice ?? DEFAULT_SYSTEM_CONFIG.couplePrice,
+      intervalMinutes: config.intervalMinutes ?? DEFAULT_SYSTEM_CONFIG.intervalMinutes,
+      trailerBuffer: config.trailerBuffer ?? DEFAULT_SYSTEM_CONFIG.trailerBuffer,
+      goldenHourWeight: config.goldenHourWeight ?? DEFAULT_SYSTEM_CONFIG.goldenHourWeight,
+      weekendWeight: config.weekendWeight ?? DEFAULT_SYSTEM_CONFIG.weekendWeight,
+      ratingWeight: config.ratingWeight ?? DEFAULT_SYSTEM_CONFIG.ratingWeight,
+      genreWeight: config.genreWeight ?? DEFAULT_SYSTEM_CONFIG.genreWeight,
     });
     setAutoRooms([]);
     setPreviewGenerated([]);

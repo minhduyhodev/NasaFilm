@@ -19,6 +19,22 @@ class BookingService {
     }
   }
 
+  async watchSeatMap(showtimeUuid) {
+    try {
+      await authService.api.post(`/api/showtimes/${showtimeUuid}/seat-map/watch`);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async unwatchSeatMap(showtimeUuid) {
+    try {
+      await authService.api.delete(`/api/showtimes/${showtimeUuid}/seat-map/watch`);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async syncSeatLocks(showtimeUuid, seatUuids) {
     try {
       const response = await authService.api.put('/api/showtimes/locks', {
@@ -199,10 +215,22 @@ class BookingService {
     }
   }
 
-  async vodHeartbeat(movieUuid, streamToken) {
+  async vodHeartbeat(movieUuid, streamToken, positionSeconds = null, durationSeconds = null) {
     try {
-      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?streamToken=${encodeURIComponent(streamToken)}`);
+      const params = new URLSearchParams({ streamToken });
+      if (positionSeconds != null) params.set('positionSeconds', String(Math.floor(positionSeconds)));
+      if (durationSeconds != null) params.set('durationSeconds', String(Math.floor(durationSeconds)));
+      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?${params.toString()}`);
       return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getVodHistory() {
+    try {
+      const response = await authService.api.get('/api/vod/history');
+      return response.data.data ?? response.data ?? [];
     } catch (error) {
       throw authService.handleError(error);
     }

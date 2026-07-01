@@ -57,6 +57,16 @@ public class ShowtimeSeatService {
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatMapEventPublisher seatMapEventPublisher;
     private final ShowtimeCapacityService showtimeCapacityService;
+    private final SeatMapWatchRegistry seatMapWatchRegistry;
+
+    public void registerSeatMapWatch(UUID showtimeUuid) {
+        bookingRepository.ensureShowtimeExists(showtimeUuid);
+        seatMapWatchRegistry.register(showtimeUuid);
+    }
+
+    public void unregisterSeatMapWatch(UUID showtimeUuid) {
+        seatMapWatchRegistry.unregister(showtimeUuid);
+    }
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -94,6 +104,9 @@ public class ShowtimeSeatService {
         }
 
         int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        String layoutConfig = cinemaRoomRepository.findById(cinemaRoomUuid)
+                .map(CinemaRoom::getLayoutConfig)
+                .orElse(null);
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,
@@ -101,7 +114,8 @@ public class ShowtimeSeatService {
                 endTime,
                 lockTtlSeconds,
                 now,
-                responseRows);
+                responseRows,
+                layoutConfig);
     }
 
     @Transactional

@@ -4,6 +4,7 @@ import { Search, X, Plus, Film, Clock, ChevronDown, Clapperboard, PlayCircle, Ca
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
+import VirtualGrid from '../../../shared/components/VirtualGrid';
 import {
   AdminPage,
   PageHeader,
@@ -380,8 +381,11 @@ const MoviesPage = () => {
           </div>
         ) : movies.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {movies.map((movie) => (
+            <VirtualGrid
+              items={movies}
+              threshold={12}
+              getItemKey={(movie) => movie.uuid}
+              renderItem={(movie) => (
                 <button
                   key={movie.uuid}
                   type="button"
@@ -423,8 +427,8 @@ const MoviesPage = () => {
                     )}
                   </p>
                 </button>
-              ))}
-            </div>
+              )}
+            />
 
             {totalMoviesCount > 0 && (
               <Pagination
