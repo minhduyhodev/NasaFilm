@@ -24,13 +24,34 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
             where r.movieUuid = :movieUuid
               and r.status = :status
               and (:onlyWithComment = false or (r.comment is not null and trim(r.comment) <> ''))
-              and (:vibeTag is null or r.vibeTags like concat('%\"', :vibeTag, '\"%'))
             """)
     Page<MovieReview> findVisibleReviews(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") MovieReviewStatus status,
             @Param("onlyWithComment") boolean onlyWithComment,
-            @Param("vibeTag") String vibeTag,
+            Pageable pageable);
+
+    @Query(
+            value = """
+                    select r.* from movie_review r
+                    where r.movie_uuid = :movieUuid
+                      and r.status = :status
+                      and (:onlyWithComment = false or (r.comment is not null and btrim(r.comment) <> ''))
+                      and r.vibe_tags @> cast(:vibeTagArrayJson as jsonb)
+                    """,
+            countQuery = """
+                    select count(*) from movie_review r
+                    where r.movie_uuid = :movieUuid
+                      and r.status = :status
+                      and (:onlyWithComment = false or (r.comment is not null and btrim(r.comment) <> ''))
+                      and r.vibe_tags @> cast(:vibeTagArrayJson as jsonb)
+                    """,
+            nativeQuery = true)
+    Page<MovieReview> findVisibleReviewsByVibeTag(
+            @Param("movieUuid") UUID movieUuid,
+            @Param("status") String status,
+            @Param("onlyWithComment") boolean onlyWithComment,
+            @Param("vibeTagArrayJson") String vibeTagArrayJson,
             Pageable pageable);
 
     Optional<MovieReview> findByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
@@ -62,14 +83,17 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
             @Param("movieUuids") Collection<UUID> movieUuids,
             @Param("status") MovieReviewStatus status);
 
-    @Query("""
-            select r.vibeTags from MovieReview r
-            where r.movieUuid = :movieUuid
-              and r.status = :status
-              and r.vibeTags is not null
-              and trim(r.vibeTags) <> ''
-            """)
+    @Query(
+            value = """
+                    select r.vibe_tags::text from movie_review r
+                    where r.movie_uuid = :movieUuid
+                      and r.status = :status
+                      and r.vibe_tags is not null
+                      and r.vibe_tags <> 'null'::jsonb
+                      and jsonb_array_length(r.vibe_tags) > 0
+                    """,
+            nativeQuery = true)
     java.util.List<String> findVibeTagsJsonByMovieUuidAndStatus(
             @Param("movieUuid") UUID movieUuid,
-            @Param("status") MovieReviewStatus status);
+            @Param("status") String status);
 }

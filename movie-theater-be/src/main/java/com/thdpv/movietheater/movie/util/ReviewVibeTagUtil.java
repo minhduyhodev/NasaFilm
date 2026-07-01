@@ -1,11 +1,11 @@
 package com.thdpv.movietheater.movie.util;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -28,11 +28,6 @@ public final class ReviewVibeTagUtil {
         if (rawTags == null || rawTags.isEmpty()) {
             return List.of();
         }
-        if (rawTags.size() > MAX_TAGS_PER_REVIEW) {
-            throw new AppException(
-                    ErrorCode.REVIEW_INVALID_VIBE_TAGS,
-                    "Chi duoc chon toi da " + MAX_TAGS_PER_REVIEW + " vibe tag");
-        }
 
         Set<String> unique = new LinkedHashSet<>();
         for (String raw : rawTags) {
@@ -45,7 +40,21 @@ public final class ReviewVibeTagUtil {
             }
             unique.add(code);
         }
+
+        if (unique.size() > MAX_TAGS_PER_REVIEW) {
+            throw new AppException(
+                    ErrorCode.REVIEW_INVALID_VIBE_TAGS,
+                    "Chi duoc chon toi da " + MAX_TAGS_PER_REVIEW + " vibe tag");
+        }
+
         return List.copyOf(unique);
+    }
+
+    public static String toJsonArrayContainsQuery(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        return "[\"" + code.trim().toLowerCase() + "\"]";
     }
 
     public static String toJson(List<String> tags) {
@@ -74,9 +83,6 @@ public final class ReviewVibeTagUtil {
 
     public static Map<String, Long> aggregateTagCounts(List<String> vibeTagsJsonRows) {
         Map<String, Long> counts = new LinkedHashMap<>();
-        for (ReviewVibeTag tag : ReviewVibeTag.values()) {
-            counts.put(tag.getCode(), 0L);
-        }
         if (vibeTagsJsonRows == null) {
             return counts;
         }
@@ -85,8 +91,14 @@ public final class ReviewVibeTagUtil {
                 counts.merge(code, 1L, Long::sum);
             }
         }
-        counts.entrySet().removeIf(entry -> entry.getValue() == 0L);
-        return counts;
+        return counts.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (left, right) -> left,
+                        LinkedHashMap::new));
     }
 
     public static boolean isBestOnBigScreen(long totalReviews, Map<String, Long> vibeTagCounts) {

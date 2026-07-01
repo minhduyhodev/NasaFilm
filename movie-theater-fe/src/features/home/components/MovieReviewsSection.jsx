@@ -21,8 +21,8 @@ import MovieReviewPagination from './MovieReviewPagination';
 import StarRating from './StarRating';
 import {
   MAX_VIBE_TAGS_PER_REVIEW,
-  REVIEW_VIBE_TAGS,
   getVibeTagLabel,
+  loadReviewVibeTags,
 } from '../../../shared/constants/reviewVibeTags';
 import Swal from 'sweetalert2';
 import './MovieReviewsSection.css';
@@ -93,7 +93,26 @@ const MovieReviewsSection = ({
   const [onlyWithComment, setOnlyWithComment] = useState(false);
   const [activeVibeTag, setActiveVibeTag] = useState('');
   const [selectedVibeTags, setSelectedVibeTags] = useState([]);
+  const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadReviewVibeTags()
+      .then((tags) => {
+        if (!cancelled) {
+          setVibeTagCatalog(tags);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setVibeTagCatalog([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadSummary = useCallback(async () => {
     const data = await movieReviewService.getSummary(movieUuid);
@@ -499,7 +518,7 @@ const MovieReviewsSection = ({
                         }
                         aria-pressed={activeVibeTag === code}
                       >
-                        {getVibeTagLabel(code)}
+                        {getVibeTagLabel(code, vibeTagCatalog)}
                         <span className="movie-reviews-vibe-chip-count">{count}</span>
                       </button>
                     ))}
@@ -594,7 +613,7 @@ const MovieReviewsSection = ({
                       Vibe tag <span className="movie-reviews-optional">(tối đa {MAX_VIBE_TAGS_PER_REVIEW})</span>
                     </span>
                     <div className="movie-reviews-vibe-picker" role="group" aria-label="Chọn vibe tag">
-                      {REVIEW_VIBE_TAGS.map((tag) => {
+                      {vibeTagCatalog.map((tag) => {
                         const isSelected = selectedVibeTags.includes(tag.code);
                         return (
                           <button
@@ -786,7 +805,7 @@ const MovieReviewsSection = ({
                       <div className="movie-reviews-item-tags">
                         {review.vibeTags.map((code) => (
                           <span key={`${review.uuid}-${code}`} className="movie-reviews-item-tag">
-                            {getVibeTagLabel(code)}
+                            {getVibeTagLabel(code, vibeTagCatalog)}
                           </span>
                         ))}
                       </div>

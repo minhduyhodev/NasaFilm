@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { getVibeTagLabel, loadReviewVibeTags } from '../../../shared/constants/reviewVibeTags';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -66,6 +67,13 @@ const FeedbackReviewsPage = () => {
   const [newBannedWord, setNewBannedWord] = useState('');
   const [isBannedWordsLoading, setIsBannedWordsLoading] = useState(false);
   const [isSavingBannedWords, setIsSavingBannedWords] = useState(false);
+  const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
+
+  useEffect(() => {
+    loadReviewVibeTags()
+      .then((tags) => setVibeTagCatalog(tags))
+      .catch(() => setVibeTagCatalog([]));
+  }, []);
 
   const loadReports = useCallback(async () => {
     setIsReportsLoading(true);
@@ -303,6 +311,15 @@ const FeedbackReviewsPage = () => {
                         <p className="feedback-review-comment" title={item.reviewComment}>
                           {item.reviewComment || 'Không có bình luận'}
                         </p>
+                        {(item.reviewVibeTags || []).length > 0 && (
+                          <div className="feedback-review-tags">
+                            {item.reviewVibeTags.map((code) => (
+                              <span key={`${item.uuid}-${code}`} className="feedback-review-tag">
+                                {getVibeTagLabel(code, vibeTagCatalog)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="feedback-reason-cell" title={item.reason}>
                         {item.reason}

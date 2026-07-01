@@ -34,6 +34,30 @@ public class FeatureSchemaMigrationConfig {
                     ALTER TABLE movie_review
                     ADD COLUMN IF NOT EXISTS vibe_tags text
                     """);
+            jdbc.execute("""
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = current_schema()
+                              AND table_name = 'movie_review'
+                              AND column_name = 'vibe_tags'
+                              AND udt_name = 'text'
+                        ) THEN
+                            ALTER TABLE movie_review
+                            ALTER COLUMN vibe_tags TYPE jsonb
+                            USING CASE
+                                WHEN vibe_tags IS NULL OR btrim(vibe_tags) = '' THEN NULL
+                                ELSE vibe_tags::jsonb
+                            END;
+                        END IF;
+                    END $$
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_movie_review_vibe_tags
+                    ON movie_review USING GIN (vibe_tags)
+                    """);
 
             jdbc.execute("""
                     ALTER TABLE booking

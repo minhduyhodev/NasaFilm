@@ -89,8 +89,18 @@ public class MovieReviewService {
         Pageable safePageable = sanitizeReviewPageable(pageable);
         String safeVibeTag = ReviewVibeTagUtil.validateFilterTag(vibeTag);
 
-        Page<MovieReview> reviewPage = movieReviewRepository.findVisibleReviews(
-                movieUuid, MovieReviewStatus.VISIBLE, onlyWithComment, safeVibeTag, safePageable);
+        Page<MovieReview> reviewPage;
+        if (safeVibeTag == null) {
+            reviewPage = movieReviewRepository.findVisibleReviews(
+                    movieUuid, MovieReviewStatus.VISIBLE, onlyWithComment, safePageable);
+        } else {
+            reviewPage = movieReviewRepository.findVisibleReviewsByVibeTag(
+                    movieUuid,
+                    MovieReviewStatus.VISIBLE.name(),
+                    onlyWithComment,
+                    ReviewVibeTagUtil.toJsonArrayContainsQuery(safeVibeTag),
+                    mapSortForNativeReviewQuery(safePageable));
+        }
         List<MovieReview> reviews = reviewPage.getContent();
 
         Map<UUID, User> usersById = loadUsersById(reviews.stream().map(MovieReview::getUserUuid).collect(Collectors.toSet()));
@@ -198,6 +208,16 @@ public class MovieReviewService {
         return sanitized.isSorted() ? sanitized : defaultReviewSort();
     }
 
+    private Pageable mapSortForNativeReviewQuery(Pageable pageable) {
+        Sort sort = pageable.getSort().isSorted() ? sanitizeReviewSort(pageable.getSort()) : defaultReviewSort();
+        Sort mapped = Sort.unsorted();
+        for (Sort.Order order : sort) {
+            String column = "rating".equals(order.getProperty()) ? "rating" : "created_at";
+            mapped = mapped.and(Sort.by(order.getDirection(), column));
+        }
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mapped);
+    }
+
     private void assertReviewCooldown(UUID movieUuid, UUID userUuid) {
         if (isInCooldown(movieUuid, userUuid)) {
             throw new AppException(ErrorCode.REVIEW_COOLDOWN_ACTIVE, REVIEW_COOLDOWN_MESSAGE);
@@ -284,7 +304,7 @@ public class MovieReviewService {
 
     private Map<String, Long> buildVibeTagCounts(UUID movieUuid) {
         List<String> rows = movieReviewRepository.findVibeTagsJsonByMovieUuidAndStatus(
-                movieUuid, MovieReviewStatus.VISIBLE);
+                movieUuid, MovieReviewStatus.VISIBLE.name());
         return ReviewVibeTagUtil.aggregateTagCounts(rows);
     }
 }

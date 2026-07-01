@@ -46,7 +46,7 @@ public class MovieReview {
     @Column(name = "comment", columnDefinition = "text")
     private String comment;
 
-    @Column(name = "vibe_tags", columnDefinition = "text")
+    @Column(name = "vibe_tags", columnDefinition = "jsonb")
     private String vibeTags;
 
     @Enumerated(EnumType.STRING)
