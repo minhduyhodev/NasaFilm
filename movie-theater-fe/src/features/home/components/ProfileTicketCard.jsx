@@ -33,7 +33,7 @@ const ProfileTicketCard = ({ tkt, onTicketClick, onCancel, onRefund }) => {
           ? archiveMeta?.label || 'Vé đã hết hạn hoặc không còn hiệu lực'
           : isVod
             ? 'Nhấn để kích hoạt hoặc tiếp tục xem phim online'
-            : 'Nhấp để xem chi tiết / In lại vé'
+            : 'Nhấn để mở thẻ lên máy bay / in vé'
       }
     >
       {archived && archiveMeta && (

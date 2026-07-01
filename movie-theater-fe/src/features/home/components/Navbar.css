@@ -228,6 +228,10 @@
   @apply flex items-start gap-3 p-4 hover:bg-white/[0.04] transition duration-200 relative;
 }
 
+.notif-item--actionable {
+  @apply cursor-pointer;
+}
+
 .notif-item.unread {
   @apply bg-violet-500/5;
 }

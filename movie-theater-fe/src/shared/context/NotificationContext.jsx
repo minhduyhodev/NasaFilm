@@ -19,6 +19,7 @@ export const NotificationProvider = ({ children }) => {
             id: item.uuid,
             title: item.title,
             content: item.content,
+            actionUrl: item.actionUrl,
             type: item.type || 'info',
             timestamp: item.createdAt,
             read: item.read,

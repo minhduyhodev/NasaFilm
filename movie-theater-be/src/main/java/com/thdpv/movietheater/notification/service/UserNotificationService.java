@@ -51,6 +51,7 @@ public class UserNotificationService {
         notification.setUserUuid(userUuid);
         notification.setTitle(request.getTitle());
         notification.setContent(request.getContent());
+        notification.setActionUrl(request.getActionUrl());
         notification.setType(request.getType() != null ? request.getType() : "info");
         notification.setCreatedAt(OffsetDateTime.now());
         return toResponse(userNotificationRepository.save(notification));
@@ -80,11 +81,18 @@ public class UserNotificationService {
 
     @Transactional
     public void createSystemNotification(UUID userUuid, String title, String content, String type) {
+        createSystemNotification(userUuid, title, content, type, null);
+    }
+
+    @Transactional
+    public void createSystemNotification(
+            UUID userUuid, String title, String content, String type, String actionUrl) {
         UserNotification notification = new UserNotification();
         notification.setUuid(UUID.randomUUID());
         notification.setUserUuid(userUuid);
         notification.setTitle(title);
         notification.setContent(content);
+        notification.setActionUrl(actionUrl);
         notification.setType(type != null ? type : "info");
         notification.setCreatedAt(OffsetDateTime.now());
         userNotificationRepository.save(notification);
@@ -95,6 +103,7 @@ public class UserNotificationService {
         response.setUuid(notification.getUuid());
         response.setTitle(notification.getTitle());
         response.setContent(notification.getContent());
+        response.setActionUrl(notification.getActionUrl());
         response.setType(notification.getType());
         response.setRead(notification.getReadAt() != null);
         response.setCreatedAt(notification.getCreatedAt());

@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.thdpv.movietheater.booking.entity.Booking;
+import com.thdpv.movietheater.preshow.dto.PreShowReminderCandidate;
+import com.thdpv.movietheater.preshow.dto.TheaterBoardingContext;
 
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
     boolean existsByUserUuidAndPromotionUuid(UUID userUuid, UUID promotionUuid);
@@ -105,4 +107,69 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findVodWatchHistory(
             @Param("userUuid") UUID userUuid,
             @Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT b FROM Booking b
+            JOIN Showtime s ON s.uuid = b.showtimeUuid
+            WHERE UPPER(b.status) = 'CONFIRMED'
+              AND (b.bookingType IS NULL OR UPPER(b.bookingType) = 'THEATER')
+              AND b.showtimeUuid IS NOT NULL
+              AND s.startTime > :now
+              AND s.startTime <= :until
+            """)
+    List<Booking> findUpcomingTheaterBookings(
+            @Param("now") OffsetDateTime now,
+            @Param("until") OffsetDateTime until);
+
+    @Query("""
+            SELECT new com.thdpv.movietheater.preshow.dto.PreShowReminderCandidate(
+                b.uuid,
+                b.userUuid,
+                s.startTime,
+                m.title,
+                c.name,
+                c.latitude,
+                c.longitude,
+                c.address)
+            FROM Booking b
+            JOIN Showtime s ON s.uuid = b.showtimeUuid
+            JOIN Movie m ON m.uuid = s.movieUuid
+            JOIN CinemaRoom r ON r.uuid = s.cinemaRoomUuid
+            JOIN r.cinema c
+            WHERE UPPER(b.status) = 'CONFIRMED'
+              AND (b.bookingType IS NULL OR UPPER(b.bookingType) = 'THEATER')
+              AND b.showtimeUuid IS NOT NULL
+              AND s.startTime > :now
+              AND s.startTime <= :until
+            """)
+    List<PreShowReminderCandidate> findUpcomingTheaterReminderCandidates(
+            @Param("now") OffsetDateTime now,
+            @Param("until") OffsetDateTime until);
+
+    @Query("""
+            SELECT new com.thdpv.movietheater.preshow.dto.TheaterBoardingContext(
+                b.uuid,
+                b.userUuid,
+                b.status,
+                b.bookingType,
+                s.movieUuid,
+                s.startTime,
+                s.endTime,
+                m.title,
+                c.name,
+                c.address,
+                c.entranceNote,
+                c.latitude,
+                c.longitude,
+                r.name,
+                u.score)
+            FROM Booking b
+            JOIN Showtime s ON s.uuid = b.showtimeUuid
+            JOIN Movie m ON m.uuid = s.movieUuid
+            JOIN CinemaRoom r ON r.uuid = s.cinemaRoomUuid
+            JOIN r.cinema c
+            JOIN User u ON u.id = b.userUuid
+            WHERE b.uuid = :bookingUuid
+            """)
+    java.util.Optional<TheaterBoardingContext> findTheaterBoardingContext(@Param("bookingUuid") UUID bookingUuid);
 }

@@ -113,6 +113,9 @@ const CinemasPage = () => {
             city: extractCity(cinema.address),
             address: cinema.address,
             phone: cinema.phoneNumber || '',
+            entranceNote: cinema.entranceNote || '',
+            latitude: cinema.latitude,
+            longitude: cinema.longitude,
             image: FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
             techs: techs.length > 0 ? techs : [`${cinema.totalRooms || rooms.length || 0} phòng chiếu`],
             totalRooms: cinema.totalRooms ?? rooms.length,
@@ -299,6 +302,12 @@ const CinemasPage = () => {
                             </a>
                           </div>
                         )}
+                        {cinema.entranceNote && (
+                          <div className="cinema-card-detail-item">
+                            <MapIcon className="cinema-card-icon h-4 w-4" />
+                            <span>{cinema.entranceNote}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="cinema-card-techs">
@@ -315,7 +324,11 @@ const CinemasPage = () => {
                         {expandedCinemaId === cinema.id ? 'Ẩn lịch chiếu' : 'Lịch chiếu'}
                       </button>
                       <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(cinema.name + ' ' + cinema.address)}`}
+                        href={
+                          cinema.latitude != null && cinema.longitude != null
+                            ? `https://maps.google.com/?q=${cinema.latitude},${cinema.longitude}`
+                            : `https://maps.google.com/?q=${encodeURIComponent(cinema.name + ' ' + cinema.address)}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="cinema-btn-secondary flex items-center justify-center"

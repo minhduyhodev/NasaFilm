@@ -16,7 +16,14 @@ const AdminCinemaFormPage = () => {
 
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', address: '', phoneNumber: '' });
+  const [form, setForm] = useState({
+    name: '',
+    address: '',
+    phoneNumber: '',
+    entranceNote: '',
+    latitude: '',
+    longitude: '',
+  });
 
   useEffect(() => {
     if (!isEditing) return;
@@ -30,6 +37,9 @@ const AdminCinemaFormPage = () => {
           name: detail.name || '',
           address: detail.address || '',
           phoneNumber: detail.phoneNumber || '',
+          entranceNote: detail.entranceNote || '',
+          latitude: detail.latitude ?? '',
+          longitude: detail.longitude ?? '',
         });
       } catch (err) {
         notificationService.error('Khong the tai chi nhanh');
@@ -46,12 +56,20 @@ const AdminCinemaFormPage = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const payload = {
+        name: form.name.trim(),
+        address: form.address.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        entranceNote: form.entranceNote.trim() || null,
+        latitude: form.latitude === '' ? null : Number(form.latitude),
+        longitude: form.longitude === '' ? null : Number(form.longitude),
+      };
       if (isEditing) {
-        await cinemaService.updateCinema(cinemaUuid, form);
+        await cinemaService.updateCinema(cinemaUuid, payload);
         notificationService.success('Cap nhat chi nhanh thanh cong');
         navigate(`/admin/cinemas/${cinemaUuid}`);
       } else {
-        const created = await cinemaService.createCinema(form);
+        const created = await cinemaService.createCinema(payload);
         notificationService.success('Them chi nhanh thanh cong');
         navigate(`/admin/cinemas/${created?.uuid || ''}`);
       }
@@ -91,6 +109,24 @@ const AdminCinemaFormPage = () => {
             <div>
               <label className={labelClass}>So dien thoai *</label>
               <input className={inputClass} value={form.phoneNumber} onChange={(e) => setForm((p) => ({ ...p, phoneNumber: e.target.value }))} required />
+            </div>
+            <div>
+              <label className={labelClass}>Huong dan vao cong</label>
+              <textarea
+                className={`${inputClass} min-h-[88px] resize-y`}
+                value={form.entranceNote}
+                onChange={(e) => setForm((p) => ({ ...p, entranceNote: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Vi do</label>
+                <input className={inputClass} type="number" step="any" value={form.latitude} onChange={(e) => setForm((p) => ({ ...p, latitude: e.target.value }))} />
+              </div>
+              <div>
+                <label className={labelClass}>Kinh do</label>
+                <input className={inputClass} type="number" step="any" value={form.longitude} onChange={(e) => setForm((p) => ({ ...p, longitude: e.target.value }))} />
+              </div>
             </div>
           </div>
         </Section>

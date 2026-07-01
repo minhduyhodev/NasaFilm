@@ -325,6 +325,21 @@ export const maskTicketCode = (code) => {
   return `${str.slice(0, -3)}***`;
 };
 
+/** Hiển thị gọn mã vé trên màn hình xác nhận — tránh tràn ô. */
+export const formatCompactTicketCode = (code) => {
+  if (!code) return '—';
+  const str = String(code).trim();
+  if (str.length <= 14) return maskTicketCode(str);
+  return `${str.slice(0, 8)}···${str.slice(-4)}`;
+};
+
+/** Mã nhiệm vụ ngắn từ booking UUID (đồng bộ boarding pass). */
+export const formatMissionCode = (bookingUuid) => {
+  if (!bookingUuid) return '—';
+  const raw = String(bookingUuid).replace(/-/g, '');
+  return `NF-${raw.slice(0, 8).toUpperCase()}`;
+};
+
 export const formatDisplayTicketCode = (booking) => {
   if (!booking) return '—';
   const raw = booking.id || booking.ticketCode || '';

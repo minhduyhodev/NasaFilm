@@ -8,6 +8,9 @@ public class CinemaResponse {
     private String name;
     private String address;
     private String phoneNumber;
+    private String entranceNote;
+    private Double latitude;
+    private Double longitude;
     private int totalRooms; // Helper field to show how many rooms this cinema has
 
     public CinemaResponse() {
@@ -51,6 +54,30 @@ public class CinemaResponse {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getEntranceNote() {
+        return entranceNote;
+    }
+
+    public void setEntranceNote(String entranceNote) {
+        this.entranceNote = entranceNote;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public int getTotalRooms() {
