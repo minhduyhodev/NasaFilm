@@ -284,8 +284,12 @@ const Navbar = () => {
             <Play className="h-4 w-4 fill-white text-white" />
             <span>TRỰC TUYẾN</span>
           </Link>
+                </div>
+              </>
+            )}
 
           <NotificationBell />
+          </div>
 
           <button className="navbar-btn-menu">
             <Menu className="h-5 w-5" />
