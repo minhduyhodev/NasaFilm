@@ -4,7 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
 
@@ -46,6 +48,7 @@ public class MovieReview {
     @Column(name = "comment", columnDefinition = "text")
     private String comment;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "vibe_tags", columnDefinition = "jsonb")
     private String vibeTags;
 

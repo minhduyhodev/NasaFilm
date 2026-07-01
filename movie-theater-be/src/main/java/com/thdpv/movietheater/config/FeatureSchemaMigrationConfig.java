@@ -63,8 +63,6 @@ public class FeatureSchemaMigrationConfig {
                     ON movie_review (movie_uuid)
                     WHERE status = 'VISIBLE'
                       AND vibe_tags IS NOT NULL
-                      AND vibe_tags <> 'null'::jsonb
-                      AND jsonb_array_length(vibe_tags) > 0
                     """);
 
             jdbc.execute("""
