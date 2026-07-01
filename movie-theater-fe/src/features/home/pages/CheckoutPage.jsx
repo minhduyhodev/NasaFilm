@@ -295,25 +295,32 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       
-      navigate('/booking-confirmed', {
-        state: {
-          bookingUuid: response.bookingUuid,
-          movie: movie,
-          moviePoster: resolvedPoster,
-          movieFormat: isVod ? 'VOD Online' : resolvedFormat,
-          movieRating: resolvedAge,
-          theater: isVod ? 'Trình phát video NASA VOD' : theater,
-          date: isVod ? 'Mọi lúc, mọi nơi' : date,
-          showtime: isVod ? 'Xem trực tuyến' : showtime,
-          selectedSeats: selectedSeats,
-          tickets: response.tickets || [],
-          totalPrice: finalTotal,
-          combos: response.combos || [],
-          isVod: isVod,
-          movieUuid: movieUuid
-        },
-        replace: true
-      });
+      if (isVod) {
+        navigate('/booking-confirmed', {
+          state: {
+            bookingUuid: response.bookingUuid,
+            movie: movie,
+            moviePoster: resolvedPoster,
+            movieFormat: 'VOD Online',
+            movieRating: resolvedAge,
+            theater: 'Trình phát video NASA VOD',
+            date: 'Mọi lúc, mọi nơi',
+            showtime: 'Xem trực tuyến',
+            selectedSeats: selectedSeats,
+            tickets: response.tickets || [],
+            totalPrice: finalTotal,
+            combos: response.combos || [],
+            isVod: true,
+            movieUuid: movieUuid,
+          },
+          replace: true,
+        });
+      } else {
+        navigate(`/pre-show/boarding/${response.bookingUuid}`, {
+          state: { justConfirmed: true },
+          replace: true,
+        });
+      }
     } catch (error) {
       console.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");

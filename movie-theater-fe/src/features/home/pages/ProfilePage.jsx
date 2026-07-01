@@ -60,40 +60,9 @@ export const ProfilePage = () => {
       return;
     }
 
-    let showtime = "";
-    let date = "";
-    if (tkt.showtime) {
-      const parts = tkt.showtime.split(" | ");
-      if (parts.length >= 2) {
-        showtime = parts[0];
-        date = parts[1];
-      } else {
-        showtime = tkt.showtime;
-      }
+    if (tkt.bookingUuid) {
+      navigate(`/pre-show/boarding/${tkt.bookingUuid}`);
     }
-
-    let selectedSeats = [];
-    if (tkt.seats) {
-      selectedSeats = tkt.seats.split(", ").map((seatName) => ({
-        id: seatName,
-      }));
-    }
-
-    const bookingData = {
-      bookingUuid: tkt.bookingUuid || "",
-      movie: tkt.movieTitle,
-      moviePoster: tkt.moviePoster || "",
-      movieFormat: "Rạp chiếu",
-      movieRating: tkt.movieAgeRestriction || "",
-      theater: tkt.cinema,
-      date: date,
-      showtime: showtime,
-      selectedSeats: selectedSeats,
-      tickets: [{ ticketCode: tkt.id }],
-      totalPrice: tkt.price ? parseInt(tkt.price.replace(/[^\d]/g, ""), 10) : 0,
-    };
-
-    navigate("/booking-confirmed", { state: bookingData });
   };
 
   const handleVodTicketClick = async (tkt) => {

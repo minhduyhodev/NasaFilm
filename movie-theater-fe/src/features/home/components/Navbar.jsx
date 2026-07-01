@@ -249,6 +249,7 @@ const Navbar = () => {
 };
 
 const NotificationBell = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
   const anchorRef = useRef(null);
@@ -301,6 +302,14 @@ const NotificationBell = () => {
 
   const handleClearAll = () => {
     clearAll();
+  };
+
+  const handleNotificationClick = (notif) => {
+    if (!notif.actionUrl) {
+      return;
+    }
+    setIsOpen(false);
+    navigate(notif.actionUrl);
   };
 
   const formatTime = (isoString) => {
@@ -374,7 +383,17 @@ const NotificationBell = () => {
                   {notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`notif-item ${notif.read ? 'read' : 'unread'} ${notif.type}`}
+                      className={`notif-item ${notif.read ? 'read' : 'unread'} ${notif.type} ${notif.actionUrl ? 'notif-item--actionable' : ''}`}
+                      role={notif.actionUrl ? 'button' : undefined}
+                      tabIndex={notif.actionUrl ? 0 : undefined}
+                      onClick={() => handleNotificationClick(notif)}
+                      onKeyDown={(event) => {
+                        if (!notif.actionUrl) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleNotificationClick(notif);
+                        }
+                      }}
                     >
                       <div className="notif-item-dot" />
                       <div className="notif-item-body">
