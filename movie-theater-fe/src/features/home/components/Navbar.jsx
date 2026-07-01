@@ -270,25 +270,25 @@ const Navbar = () => {
                     <span>Mua vé tại rạp</span>
                   </button>
 
-          <Link
-            to="/online"
-            onClick={(e) => {
-              handleOnlineNav(e);
-              handleLinkClick(e, '/online');
-            }}
-            onMouseEnter={prefetchOnlinePage}
-            onFocus={prefetchOnlinePage}
-            onTouchStart={prefetchOnlinePage}
-            className={`navbar-cta-btn ${isLinkActive('/online') ? 'navbar-cta-btn--active' : ''}`}
-          >
-            <Play className="h-4 w-4 fill-white text-white" />
-            <span>TRỰC TUYẾN</span>
-          </Link>
+                  <Link
+                    to="/online"
+                    onClick={(e) => {
+                      handleOnlineNav(e);
+                      handleLinkClick(e, '/online');
+                    }}
+                    onMouseEnter={prefetchOnlinePage}
+                    onFocus={prefetchOnlinePage}
+                    onTouchStart={prefetchOnlinePage}
+                    className={`navbar-cta-btn ${isLinkActive('/online') ? 'navbar-cta-btn--active' : ''}`}
+                  >
+                    <Play className="h-4 w-4 fill-white text-white" />
+                    <span>TRỰC TUYẾN</span>
+                  </Link>
                 </div>
               </>
             )}
 
-          <NotificationBell />
+            <NotificationBell />
           </div>
 
           <button className="navbar-btn-menu">
