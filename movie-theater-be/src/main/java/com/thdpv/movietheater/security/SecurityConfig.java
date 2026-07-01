@@ -71,6 +71,8 @@ public class SecurityConfig {
             "/api/promotions/public",
             "/api/promotions/validate",
             "/api/combos/active",
+            "/api/review-vibe-tags",
+            "/api/review-vibe-tags/**",
             "/ws/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",

@@ -19,7 +19,7 @@ import { bookingService } from "../../../shared/services/bookingService";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
-import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl } from "../utils/movieUtils";
+import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl, formatAgeRestrictionBadge } from "../utils/movieUtils";
 import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
 import FavoriteButton from "../components/FavoriteButton";
@@ -51,6 +51,7 @@ const MovieDetailPage = () => {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState(null);
 
   const [dbMovie, setDbMovie] = useState(null);
   const [showtimes, setShowtimes] = useState([]);
@@ -452,7 +453,12 @@ const MovieDetailPage = () => {
           {/* Detail Overlay Content Layer (z-index: 30) */}
           <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 lg:px-20 pb-12 md:pb-16 flex flex-col md:flex-row gap-8 items-end z-30">
             {/* Poster */}
-            <div className="hidden lg:block w-64 h-[380px] rounded-2xl overflow-hidden shadow-2xl poster-hover flex-shrink-0 border border-white/10 bg-[#0f121d]">
+            <div className="hidden lg:block relative w-64 h-[380px] rounded-2xl overflow-hidden shadow-2xl poster-hover flex-shrink-0 border border-white/10 bg-[#0f121d]">
+              {reviewSummary?.bestOnBigScreen && (
+                <span className="movie-detail-best-screen-badge" title="Khán giả NASA khuyên xem trên màn chiếu lớn">
+                  Best on Big Screen
+                </span>
+              )}
               <PosterImage
                 alt="High-res Movie Poster"
                 className="w-full h-full object-contain"
@@ -473,8 +479,9 @@ const MovieDetailPage = () => {
                           ? "bg-red-600 text-white"
                           : "bg-amber-600 text-white"
                     }`}
+                    title={movie.ageRestriction}
                   >
-                    {movie.ageRestriction}
+                    {formatAgeRestrictionBadge(movie.ageRestriction)}
                   </span>
                 )}
                 {movie.genres.map((g) => (
@@ -485,6 +492,12 @@ const MovieDetailPage = () => {
                     {g}
                   </span>
                 ))}
+                {reviewSummary?.bestOnBigScreen && (
+                  <span className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-300 px-3 py-1 rounded-full text-xs font-black border border-amber-400/40 lg:hidden">
+                    <Award className="h-3.5 w-3.5" />
+                    Best on Big Screen
+                  </span>
+                )}
 
               </div>
 
@@ -763,6 +776,7 @@ const MovieDetailPage = () => {
             movieTitle={movie.title}
             isExpanded={reviewsExpanded}
             onExpandedChange={setReviewsExpanded}
+            onSummaryChange={setReviewSummary}
             showTheaterCta={
               !isFromOnline &&
               (dbMovie.screeningMode === 'THEATER_ONLY' ||

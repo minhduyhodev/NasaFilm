@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.movie.dto.response;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class MovieReviewResponse {
@@ -12,6 +14,7 @@ public class MovieReviewResponse {
     private String userAvatarUrl;
     private int rating;
     private String comment;
+    private List<String> vibeTags = new ArrayList<>();
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private boolean mine;
@@ -74,6 +77,14 @@ public class MovieReviewResponse {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public List<String> getVibeTags() {
+        return vibeTags;
+    }
+
+    public void setVibeTags(List<String> vibeTags) {
+        this.vibeTags = vibeTags;
     }
 
     public OffsetDateTime getCreatedAt() {

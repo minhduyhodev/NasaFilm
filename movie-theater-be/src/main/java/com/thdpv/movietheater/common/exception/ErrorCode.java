@@ -39,7 +39,8 @@ public enum ErrorCode {
 
     REVIEW_PURCHASE_REQUIRED(403, "Ban can mua ve rap hoac ve online de danh gia phim nay", HttpStatus.FORBIDDEN),
     REVIEW_NOT_FOUND(404, "Danh gia khong ton tai", HttpStatus.NOT_FOUND),
-    REVIEW_BANNED_WORD(400, "Binh luan chua noi dung khong phu hop", HttpStatus.BAD_REQUEST),
+    REVIEW_BANNED_WORD(400, "Bình luận chứa nội dung không phù hợp. Vui lòng chỉnh sửa và thử lại.", HttpStatus.BAD_REQUEST),
+    REVIEW_INVALID_VIBE_TAGS(400, "Vibe tag khong hop le hoac vuot qua gioi han", HttpStatus.BAD_REQUEST),
     REVIEW_COOLDOWN_ACTIVE(429, "Vui long doi truoc khi gui danh gia moi cho phim nay", HttpStatus.TOO_MANY_REQUESTS),
     REVIEW_RATE_LIMITED(429, "Ban thao tac qua nhanh. Vui long thu lai sau.", HttpStatus.TOO_MANY_REQUESTS),
     REVIEW_ALREADY_REPORTED(409, "Ban da bao cao danh gia nay", HttpStatus.CONFLICT),

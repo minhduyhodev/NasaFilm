@@ -9,8 +9,11 @@ import {
 } from 'lucide-react';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { getVibeTagLabel, loadReviewVibeTags, clearReviewVibeTagsCache } from '../../../shared/constants/reviewVibeTags';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
+import AdminModal from '../components/AdminModal';
+import { adminInputClass, adminLabelClass } from '../components/adminFormStyles';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
@@ -66,6 +69,35 @@ const FeedbackReviewsPage = () => {
   const [newBannedWord, setNewBannedWord] = useState('');
   const [isBannedWordsLoading, setIsBannedWordsLoading] = useState(false);
   const [isSavingBannedWords, setIsSavingBannedWords] = useState(false);
+  const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
+  const [adminVibeTags, setAdminVibeTags] = useState([]);
+  const [isVibeTagsLoading, setIsVibeTagsLoading] = useState(false);
+  const [isSavingVibeTag, setIsSavingVibeTag] = useState(false);
+  const [isCreateVibeTagModalOpen, setIsCreateVibeTagModalOpen] = useState(false);
+  const [newVibeTag, setNewVibeTag] = useState({
+    code: '',
+    label: '',
+    hash: '',
+  });
+
+  useEffect(() => {
+    loadReviewVibeTags()
+      .then((tags) => setVibeTagCatalog(tags))
+      .catch(() => setVibeTagCatalog([]));
+  }, []);
+
+  const loadAdminVibeTags = useCallback(async () => {
+    setIsVibeTagsLoading(true);
+    try {
+      const tags = await adminReviewService.getVibeTags();
+      setAdminVibeTags(Array.isArray(tags) ? tags : []);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể tải danh sách vibe tag.');
+      setAdminVibeTags([]);
+    } finally {
+      setIsVibeTagsLoading(false);
+    }
+  }, []);
 
   const loadReports = useCallback(async () => {
     setIsReportsLoading(true);
@@ -113,6 +145,12 @@ const FeedbackReviewsPage = () => {
       loadBannedWords();
     }
   }, [activeTab, loadBannedWords]);
+
+  useEffect(() => {
+    if (activeTab === 'vibe-tags') {
+      loadAdminVibeTags();
+    }
+  }, [activeTab, loadAdminVibeTags]);
 
   useRealtimeTopic(
     activeTab === 'reports' ? REALTIME_TOPICS.ADMIN_REVIEW_REPORTS : null,
@@ -196,14 +234,73 @@ const FeedbackReviewsPage = () => {
     }
   };
 
+  const handleCreateVibeTag = async () => {
+    const code = newVibeTag.code.trim().toLowerCase();
+    const label = newVibeTag.label.trim();
+    const hash = newVibeTag.hash.trim();
+    if (!code || !label || !hash) {
+      notificationService.warning('Vui lòng nhập đủ mã, nhãn và hash.');
+      return;
+    }
+    setIsSavingVibeTag(true);
+    try {
+      await adminReviewService.createVibeTag({ code, label, hash });
+      clearReviewVibeTagsCache();
+      setNewVibeTag({ code: '', label: '', hash: '' });
+      setIsCreateVibeTagModalOpen(false);
+      notificationService.success('Đã thêm vibe tag.');
+      await loadAdminVibeTags();
+      const tags = await loadReviewVibeTags();
+      setVibeTagCatalog(tags);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể thêm vibe tag.');
+    } finally {
+      setIsSavingVibeTag(false);
+    }
+  };
+
+  const handleCloseCreateVibeTagModal = () => {
+    if (isSavingVibeTag) return;
+    setIsCreateVibeTagModalOpen(false);
+    setNewVibeTag({ code: '', label: '', hash: '' });
+  };
+
+  const handleUpdateVibeTag = async (tag) => {
+    setIsSavingVibeTag(true);
+    try {
+      await adminReviewService.updateVibeTag(tag.uuid, {
+        label: tag.label,
+        hash: tag.hash,
+        active: tag.active,
+      });
+      clearReviewVibeTagsCache();
+      notificationService.success('Đã cập nhật vibe tag.');
+      await loadAdminVibeTags();
+      const tags = await loadReviewVibeTags();
+      setVibeTagCatalog(tags);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể cập nhật vibe tag.');
+    } finally {
+      setIsSavingVibeTag(false);
+    }
+  };
+
+  const handleAdminVibeTagFieldChange = (uuid, field, value) => {
+    setAdminVibeTags((prev) =>
+      prev.map((item) => (item.uuid === uuid ? { ...item, [field]: value } : item)),
+    );
+  };
+
   const refreshCurrentTab = () => {
     if (activeTab === 'reports') loadReports();
-    else loadBannedWords();
+    else if (activeTab === 'banned-words') loadBannedWords();
+    else loadAdminVibeTags();
   };
 
   const isLoading =
     (activeTab === 'reports' && isReportsLoading) ||
-    (activeTab === 'banned-words' && isBannedWordsLoading);
+    (activeTab === 'banned-words' && isBannedWordsLoading) ||
+    (activeTab === 'vibe-tags' && isVibeTagsLoading);
 
   return (
     <AdminPage>
@@ -234,6 +331,13 @@ const FeedbackReviewsPage = () => {
           onClick={() => setActiveTab('banned-words')}
         >
           Từ cấm
+        </button>
+        <button
+          type="button"
+          className={`feedback-tab${activeTab === 'vibe-tags' ? ' feedback-tab--active' : ''}`}
+          onClick={() => setActiveTab('vibe-tags')}
+        >
+          Vibe tag
         </button>
       </div>
 
@@ -303,6 +407,15 @@ const FeedbackReviewsPage = () => {
                         <p className="feedback-review-comment" title={item.reviewComment}>
                           {item.reviewComment || 'Không có bình luận'}
                         </p>
+                        {(item.reviewVibeTags || []).length > 0 && (
+                          <div className="feedback-review-tags">
+                            {item.reviewVibeTags.map((code) => (
+                              <span key={`${item.uuid}-${code}`} className="feedback-review-tag">
+                                {getVibeTagLabel(code, vibeTagCatalog)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="feedback-reason-cell" title={item.reason}>
                         {item.reason}
@@ -424,6 +537,157 @@ const FeedbackReviewsPage = () => {
           )}
         </div>
       )}
+
+      {activeTab === 'vibe-tags' && (
+        <div className="feedback-banned-panel">
+          <div className="feedback-banned-head">
+            <div>
+              <h3 className="feedback-banned-title">Quản lý vibe tag</h3>
+              <p className="feedback-banned-desc">
+                Cấu hình thẻ cảm xúc khách chọn khi đánh giá phim. Thứ tự hiển thị ưu tiên theo số lượt dùng.
+                Tag tắt sẽ không hiển thị khi viết review mới.
+              </p>
+            </div>
+            <PrimaryButton type="button" onClick={() => setIsCreateVibeTagModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Thêm tag
+            </PrimaryButton>
+          </div>
+
+          {isVibeTagsLoading ? (
+            <div className="feedback-state">
+              <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
+              <p>Đang tải vibe tag...</p>
+            </div>
+          ) : adminVibeTags.length === 0 ? (
+            <div className="feedback-state">
+              <p>Chưa có vibe tag nào.</p>
+            </div>
+          ) : (
+            <div className="feedback-table-wrap">
+              <table className="feedback-table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Nhãn</th>
+                    <th>Hash</th>
+                    <th>Active</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminVibeTags.map((tag) => (
+                    <tr key={tag.uuid}>
+                      <td><code>{tag.code}</code></td>
+                      <td>
+                        <input
+                          type="text"
+                          className="feedback-search"
+                          value={tag.label}
+                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'label', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="feedback-search"
+                          value={tag.hash}
+                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'hash', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <label className="feedback-banned-check">
+                          <input
+                            type="checkbox"
+                            checked={tag.active}
+                            onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'active', e.target.checked)}
+                          />
+                          <span>{tag.active ? 'Bật' : 'Tắt'}</span>
+                        </label>
+                      </td>
+                      <td>
+                        <GhostButton
+                          type="button"
+                          disabled={isSavingVibeTag}
+                          onClick={() => handleUpdateVibeTag(tag)}
+                        >
+                          Lưu
+                        </GhostButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      <AdminModal
+        open={isCreateVibeTagModalOpen}
+        onClose={handleCloseCreateVibeTagModal}
+        title="Thêm vibe tag"
+        subtitle="Nhập thông tin thẻ cảm xúc mới cho khách chọn khi đánh giá phim."
+        size="md"
+      >
+        <form
+          className="feedback-vibe-modal-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateVibeTag();
+          }}
+        >
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-code">
+              Mã tag *
+            </label>
+            <input
+              id="vibe-tag-code"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: cam_dong"
+              value={newVibeTag.code}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, code: e.target.value }))}
+              autoFocus
+            />
+            <p className="feedback-vibe-field-hint">Chỉ dùng chữ thường, số và dấu gạch dưới.</p>
+          </div>
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-label">
+              Nhãn hiển thị *
+            </label>
+            <input
+              id="vibe-tag-label"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: Cảm động"
+              value={newVibeTag.label}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, label: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className={adminLabelClass} htmlFor="vibe-tag-hash">
+              Hash *
+            </label>
+            <input
+              id="vibe-tag-hash"
+              type="text"
+              className={adminInputClass}
+              placeholder="vd: #cảm_động"
+              value={newVibeTag.hash}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, hash: e.target.value }))}
+            />
+          </div>
+          <div className="feedback-vibe-modal-actions">
+            <GhostButton type="button" onClick={handleCloseCreateVibeTagModal} disabled={isSavingVibeTag}>
+              Hủy
+            </GhostButton>
+            <PrimaryButton type="submit" disabled={isSavingVibeTag}>
+              {isSavingVibeTag ? 'Đang lưu...' : 'Thêm tag'}
+            </PrimaryButton>
+          </div>
+        </form>
+      </AdminModal>
     </AdminPage>
   );
 };

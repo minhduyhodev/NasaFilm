@@ -297,13 +297,23 @@ class AuthService {
 
   handleError(error) {
     if (axios.isAxiosError(error)) {
-      const beMessage =
-        error.response?.data?.message ||
-        error.response?.data?.data?.message ||
-        error.message;
-      return new Error(beMessage);
+      const data = error.response?.data;
+      const beMessage = data?.message || data?.data?.message;
+
+      if (typeof beMessage === 'string' && beMessage.trim()) {
+        return new Error(beMessage.trim());
+      }
+
+      if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+        const firstFieldMessage = Object.values(data.data).find((value) => typeof value === 'string');
+        if (firstFieldMessage) {
+          return new Error(firstFieldMessage);
+        }
+      }
+
+      return new Error('Đã xảy ra lỗi. Vui lòng thử lại.');
     }
-    return error instanceof Error ? error : new Error('An unexpected error occurred');
+    return error instanceof Error ? error : new Error('Đã xảy ra lỗi. Vui lòng thử lại.');
   }
 }
 

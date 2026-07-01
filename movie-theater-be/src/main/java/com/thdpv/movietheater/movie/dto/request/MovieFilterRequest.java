@@ -19,7 +19,7 @@ public class MovieFilterRequest {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate showtimeDate;
 
-    /** Chỉ lấy phim có suất chiếu rạp còn đặt được (OPEN_FOR_BOOKING / SOLD_OUT, startTime > now). */
+    /** Chỉ lấy phim có suất chiếu rạp sắp tới (SCHEDULED / OPEN_FOR_BOOKING / SOLD_OUT, startTime > now). */
     private Boolean requireBookableShowtime;
 
     /** Chỉ lấy phim có thể xem trực tuyến (screeningMode ONLINE_ONLY hoặc BOTH). */
