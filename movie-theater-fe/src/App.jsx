@@ -12,6 +12,7 @@ import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
 import { initMediaUrlRouting } from './shared/utils/mediaUrlUtils';
+import NasaAiAssistantWidget from './shared/components/NasaAiAssistantWidget';
 import './index.css';
 
 const LoginPage = lazy(() => import('./features/auth/pages/LoginPage'));
@@ -99,6 +100,7 @@ export default function App() {
           </NotificationProvider>
 
           <ToastViewport />
+          <NasaAiAssistantWidget />
         </AuthProvider>
         </QueryProvider>
       </BrowserRouter>
