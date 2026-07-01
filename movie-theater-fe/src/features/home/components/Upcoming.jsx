@@ -1,13 +1,17 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Bell, BellRing } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Bell, BellRing, Radar, LogIn } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { useUpcomingMovies } from '../hooks/useHomeQueries';
-import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { getMovieTrailerUrl } from '../utils/movieUtils';
+import PosterImage from '../../../shared/components/PosterImage';
+import TrailerModal from './TrailerModal';
+import './ShowtimeRadarWidget.css';
+
+const ShowtimeRadarWidget = React.lazy(() => import('./ShowtimeRadarWidget'));
 import {
   loadMovieReminders,
   saveMovieReminders,
@@ -16,8 +20,6 @@ import {
   formatReminderLabel,
   REMINDERS_UPDATED_EVENT,
 } from '../utils/movieReminderUtils';
-import PosterImage from '../../../shared/components/PosterImage';
-import TrailerModal from './TrailerModal';
 
 const formatShowtimeLabel = (isoString) => {
   if (!isoString) return null;
@@ -39,7 +41,6 @@ const Upcoming = () => {
   const upcomingMovies = moviesData?.content || [];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [movieDetail, setMovieDetail] = useState(null);
-  const [familyCombo, setFamilyCombo] = useState(null);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerLoading, setTrailerLoading] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState('');
@@ -56,21 +57,6 @@ const Upcoming = () => {
     window.addEventListener(REMINDERS_UPDATED_EVENT, refreshReminders);
     return () => window.removeEventListener(REMINDERS_UPDATED_EVENT, refreshReminders);
   }, [refreshReminders]);
-
-  useEffect(() => {
-    const fetchCombos = async () => {
-      try {
-        const combos = await comboService.getActiveCombos().catch(() => []);
-        const family = (combos || []).find(c =>
-          c.name?.toLowerCase().includes('gia đình') || c.name?.toLowerCase().includes('gia dinh')
-        );
-        setFamilyCombo(family || combos?.[0] || null);
-      } catch (err) {
-        console.error('Failed to fetch combo data:', err);
-      }
-    };
-    fetchCombos();
-  }, []);
 
   useEffect(() => {
     if (currentIndex >= upcomingMovies.length && upcomingMovies.length > 0) {
@@ -343,44 +329,45 @@ const Upcoming = () => {
           </div>
         </motion.div>
 
-        <div className="grid gap-6 w-full">
-          <Link
-            to="/concessions"
-            className="p-8 rounded-[28px] bg-[#111216]/40 backdrop-blur-xl border border-white/5 hover:border-red-500/20 transition-all duration-300 block group"
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500">Gói Ưu Đãi</span>
-            <h4 className="mt-1.5 text-xl font-black text-white uppercase font-heading group-hover:text-red-400 transition-colors">
-              {familyCombo?.name || 'Combo Bắp Nước'}
-            </h4>
-            {familyCombo?.price != null && (
-              <div className="mt-3 text-3xl font-black text-white font-heading">
-                {Number(familyCombo.price).toLocaleString('vi-VN')} đ
-              </div>
+        {isAuthenticated ? (
+          <Suspense
+            fallback={(
+              <aside className="showtime-radar-widget showtime-radar-widget--loading">
+                <div className="showtime-radar-widget__glow" aria-hidden />
+                <p className="showtime-radar-widget__empty">Đang tải Smart Showtime Radar...</p>
+              </aside>
             )}
-            <p className="mt-3 text-xs leading-relaxed text-gray-400 font-medium">
-              {familyCombo?.description || 'Tiết kiệm hơn khi mua combo trực tuyến cùng vé xem phim.'}
-            </p>
-            <span className="inline-block mt-4 text-[10px] font-black uppercase tracking-wider text-red-500 group-hover:underline">
-              Xem combo →
-            </span>
-          </Link>
-
-          <Link
-            to="/offers"
-            className="p-8 rounded-[28px] bg-[#111216]/40 backdrop-blur-xl border border-white/5 hover:border-amber-500/20 transition-all duration-300 block group"
           >
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Dịch Vụ Rạp</span>
-            <h4 className="mt-1.5 text-xl font-black text-white uppercase font-heading group-hover:text-amber-400 transition-colors">
-              Loại Phòng &amp; Combo
-            </h4>
-            <p className="mt-3 text-sm leading-relaxed text-gray-300">
-              Khám phá combo bắp nước, các loại phòng IMAX, 4DX, Gold Class và hệ thống rạp NASA Film.
-            </p>
-            <span className="inline-block mt-4 text-[10px] font-black uppercase tracking-wider text-amber-500 group-hover:underline">
-              Xem chi tiết →
-            </span>
-          </Link>
-        </div>
+            <ShowtimeRadarWidget />
+          </Suspense>
+        ) : (
+          <motion.aside
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.55 }}
+            className="showtime-radar-widget showtime-radar-widget--guest"
+          >
+            <div className="showtime-radar-widget__glow" aria-hidden />
+            <div className="showtime-radar-widget__header">
+              <div className="showtime-radar-widget__title-row">
+                <Radar className="h-5 w-5 text-sky-400" />
+                <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
+              </div>
+              <p className="showtime-radar-widget__subtitle">
+                Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="showtime-radar-widget__login-btn"
+            >
+              <LogIn className="h-4 w-4" />
+              Đăng nhập để xem Radar
+            </button>
+          </motion.aside>
+        )}
       </section>
 
       <TrailerModal

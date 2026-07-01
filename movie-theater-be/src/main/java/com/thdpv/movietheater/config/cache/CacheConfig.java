@@ -35,7 +35,8 @@ public class CacheConfig {
             RedisConnectionFactory connectionFactory,
             @Value("${app.cache.movies-ttl-minutes:10}") long moviesTtlMinutes,
             @Value("${app.cache.genres-ttl-minutes:15}") long genresTtlMinutes,
-            @Value("${app.cache.system-config-ttl-minutes:15}") long systemConfigTtlMinutes) {
+            @Value("${app.cache.system-config-ttl-minutes:15}") long systemConfigTtlMinutes,
+            @Value("${app.cache.boarding-pass-ttl-minutes:2}") long boardingPassTtlMinutes) {
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -60,6 +61,7 @@ public class CacheConfig {
         perCache.put(CacheNames.MOVIE_REVIEW_SUMMARY, defaults.entryTtl(Duration.ofMinutes(5)));
         perCache.put(CacheNames.MOVIE_REVIEW_VIBE_STATS, defaults.entryTtl(Duration.ofMinutes(5)));
         perCache.put(CacheNames.REVIEW_VIBE_TAG_CATALOG, defaults.entryTtl(Duration.ofMinutes(15)));
+        perCache.put(CacheNames.BOARDING_PASS, defaults.entryTtl(Duration.ofMinutes(boardingPassTtlMinutes)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaults)
@@ -73,7 +75,8 @@ public class CacheConfig {
     public CacheManager caffeineCacheManager(
             @Value("${app.cache.movies-ttl-minutes:10}") long moviesTtlMinutes,
             @Value("${app.cache.genres-ttl-minutes:15}") long genresTtlMinutes,
-            @Value("${app.cache.system-config-ttl-minutes:15}") long systemConfigTtlMinutes) {
+            @Value("${app.cache.system-config-ttl-minutes:15}") long systemConfigTtlMinutes,
+            @Value("${app.cache.boarding-pass-ttl-minutes:2}") long boardingPassTtlMinutes) {
 
         CaffeineCacheManager manager = new CaffeineCacheManager(
                 CacheNames.MOVIES,
@@ -82,7 +85,8 @@ public class CacheConfig {
                 CacheNames.SYSTEM_CONFIG,
                 CacheNames.MOVIE_REVIEW_SUMMARY,
                 CacheNames.MOVIE_REVIEW_VIBE_STATS,
-                CacheNames.REVIEW_VIBE_TAG_CATALOG);
+                CacheNames.REVIEW_VIBE_TAG_CATALOG,
+                CacheNames.BOARDING_PASS);
 
         manager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(moviesTtlMinutes, TimeUnit.MINUTES)
@@ -111,6 +115,11 @@ public class CacheConfig {
         manager.registerCustomCache(CacheNames.REVIEW_VIBE_TAG_CATALOG, Caffeine.newBuilder()
                 .expireAfterWrite(15, TimeUnit.MINUTES)
                 .maximumSize(10)
+                .build());
+
+        manager.registerCustomCache(CacheNames.BOARDING_PASS, Caffeine.newBuilder()
+                .expireAfterWrite(boardingPassTtlMinutes, TimeUnit.MINUTES)
+                .maximumSize(300)
                 .build());
 
         return manager;

@@ -1231,9 +1231,15 @@ public class DataSeeder implements CommandLineRunner {
                 UUID cinemaUuid = cinemaData.uuid != null ? UUID.fromString(cinemaData.uuid) : UUID.randomUUID();
                 if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class,
                         cinemaUuid) == 0) {
-                    jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
-                            cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber);
+                    jdbcTemplate.update(
+                            "INSERT INTO cinema (uuid, name, address, phone_number, entrance_note, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber,
+                            cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude);
                     logger.info("Seeded cinema from JSON: {}", cinemaData.name);
+                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null || cinemaData.longitude != null) {
+                    jdbcTemplate.update(
+                            "UPDATE cinema SET entrance_note = COALESCE(?, entrance_note), latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude) WHERE uuid = ?",
+                            cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude, cinemaUuid);
                 }
 
                 if (cinemaData.rooms != null) {
@@ -1356,6 +1362,7 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime baseDay = now.plusDays(1);
 
         if (showtimesToSeed != null) {
             for (ShowtimeJsonData data : showtimesToSeed) {
@@ -1398,8 +1405,8 @@ public class DataSeeder implements CommandLineRunner {
                     jdbcTemplate.update(
                             "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtimeUuid, movieUuid, roomUuid,
-                            now.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
-                            now.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
+                            baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
+                            baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
                             basePrice, status);
                     logger.info("Seeded showtime from JSON: {}", showtimeUuid);
                 }
@@ -1516,6 +1523,9 @@ public class DataSeeder implements CommandLineRunner {
         public String name;
         public String address;
         public String phoneNumber;
+        public String entranceNote;
+        public Double latitude;
+        public Double longitude;
         public List<RoomJsonData> rooms;
     }
 

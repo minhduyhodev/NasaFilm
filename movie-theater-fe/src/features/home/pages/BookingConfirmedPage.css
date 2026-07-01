@@ -52,6 +52,27 @@
   animation: item-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.booking-confirmed-details {
+  overflow: hidden;
+}
+
+.booking-confirmed-field,
+.booking-confirmed-qr {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.booking-confirmed-qr .font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 768px) {
+  .booking-confirmed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @keyframes item-slide-up {
   to {
     opacity: 1;
@@ -78,9 +99,20 @@
   }
 }
 
-/* Print layout optimizations */
+.booking-confirmed-print-code {
+  display: none;
+}
+
+/* Print layout optimizations — scoped to VOD confirmation page only */
 @media print {
-  body, .bg-mesh, main {
+  @page {
+    margin: 12mm;
+    size: A4 portrait;
+  }
+
+  body:has(.booking-confirmed-ticket),
+  body:has(.booking-confirmed-ticket) .bg-mesh,
+  body:has(.booking-confirmed-ticket) main {
     background: #ffffff !important;
     background-image: none !important;
     color: #000000 !important;
@@ -88,63 +120,132 @@
     margin: 0 !important;
   }
 
-  header,
-  footer,
-  .action-buttons-group,
-  button {
+  body:has(.booking-confirmed-ticket) header,
+  body:has(.booking-confirmed-ticket) footer,
+  body:has(.booking-confirmed-ticket) .navbar-header,
+  body:has(.booking-confirmed-ticket) .no-print,
+  body:has(.booking-confirmed-ticket) .action-buttons-group,
+  body:has(.booking-confirmed-ticket) .booking-confirmed-skip,
+  body:has(.booking-confirmed-ticket) .booking-confirmed-ticket button {
     display: none !important;
   }
 
+  .booking-confirmed-ticket .stagger-item {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .booking-confirmed-ticket,
   .glass-panel {
     background: transparent !important;
-    border: none !important;
+    border: 1px solid #cccccc !important;
     box-shadow: none !important;
     color: #000000 !important;
     backdrop-filter: none !important;
     width: 100% !important;
     max-width: 100% !important;
     flex-direction: row !important;
+    overflow: visible !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
-  /* Make movie poster smaller or hidden for printing if preferred, but keep layout clean */
-  .relative.w-full.md\:w-2\/5 {
-    width: 30% !important;
+  .booking-confirmed-poster {
+    width: 34% !important;
+    min-width: 34% !important;
+    min-height: 320px !important;
     height: auto !important;
-    border: 1px solid #ddd !important;
+    border: 1px solid #dddddd !important;
     border-radius: 8px !important;
     overflow: hidden !important;
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .relative.w-full.md\:w-2\/5 img {
+  .booking-confirmed-poster__image {
     position: relative !important;
+    inset: auto !important;
+    display: block !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 300px !important;
+    max-height: 420px !important;
+    object-fit: cover !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* Hide success checkmark overlay on print for a cleaner ticket */
-  .absolute.inset-0.flex.flex-col.items-center {
+  .booking-confirmed-poster__fallback {
+    position: relative !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 300px !important;
+    background: #eeeeee !important;
+  }
+
+  .booking-confirmed-poster__shade,
+  .booking-confirmed-poster__success {
     display: none !important;
   }
 
-  .text-on-surface,
-  .text-on-background,
-  h1,
-  h2,
-  h3,
-  span,
-  p,
-  div {
+  .booking-confirmed-details {
+    overflow: visible !important;
+    padding: 1rem 1.25rem !important;
+  }
+
+  .booking-confirmed-qr {
+    border: 1px solid #cccccc !important;
+    background: #fafafa !important;
+    animation: none !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .booking-confirmed-qr__frame {
+    width: 7rem !important;
+    height: 7rem !important;
+    border: 1px solid #dddddd !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .booking-confirmed-qr__image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .booking-confirmed-print-code {
+    display: block !important;
+    margin-top: 0.35rem !important;
+    color: #000000 !important;
+    border-top: 1px dashed #cccccc;
+    padding-top: 0.35rem;
+  }
+
+  .booking-confirmed-ticket .text-on-surface,
+  .booking-confirmed-ticket .text-on-background,
+  .booking-confirmed-ticket h1,
+  .booking-confirmed-ticket h2,
+  .booking-confirmed-ticket h3,
+  .booking-confirmed-ticket span,
+  .booking-confirmed-ticket p,
+  .booking-confirmed-ticket div {
     color: #000000 !important;
   }
 
-  .text-tertiary {
-    color: #b45309 !important; /* amber/brown color for print contrast */
+  .booking-confirmed-ticket .text-tertiary {
+    color: #b45309 !important;
   }
 
-  .qr-pulse {
+  .booking-confirmed-ticket .qr-pulse {
     animation: none !important;
     box-shadow: none !important;
-    border: 1px solid #cccccc !important;
-    background: #f9f9f9 !important;
   }
 }

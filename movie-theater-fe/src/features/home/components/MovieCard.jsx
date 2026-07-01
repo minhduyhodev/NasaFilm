@@ -148,7 +148,7 @@ const MovieCard = ({
         )}
 
         <Link to={linkTarget} className="movie-card__cta">
-          [{actionLabel}]
+          {actionLabel}
         </Link>
       </div>
     </article>

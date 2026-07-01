@@ -4,6 +4,9 @@
     "name": "NASA Landmark 81",
     "address": "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM",
     "phoneNumber": "19001080",
+    "entranceNote": "Cổng VIP: tầng B2, thang máy phía Đông Landmark 81",
+    "latitude": 10.7951,
+    "longitude": 106.7218,
     "rooms": [
       {
         "uuid": "88888888-8888-8888-8888-888888888888",
