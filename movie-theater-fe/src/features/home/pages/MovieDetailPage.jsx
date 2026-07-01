@@ -46,7 +46,7 @@ const MovieDetailPage = () => {
   const [searchParams] = useSearchParams();
   const isFromOnline = searchParams.get("from") === "online";
   const { isAuthenticated } = useAuthContext();
-  const [activeDateTab, setActiveDateTab] = useState("today");
+  const [activeDateTab, setActiveDateTab] = useState("day-0");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
@@ -162,7 +162,7 @@ const MovieDetailPage = () => {
     ];
     const now = new Date();
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 10; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i);
 
@@ -170,7 +170,7 @@ const MovieDetailPage = () => {
       const dateStr = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
       dates.push({
-        id: i === 0 ? "today" : i === 1 ? "fri" : i === 2 ? "sat" : "sun",
+        id: `day-${i}`,
         label: `${dayName}, ${dateStr}`,
         fullDateText: `${dayName}, ${dateStr}`,
         rawDate: d,
@@ -181,12 +181,10 @@ const MovieDetailPage = () => {
 
   const dynamicDates = getDynamicDates();
 
-  const dateMap = {
-    today: dynamicDates[0].fullDateText,
-    fri: dynamicDates[1].fullDateText,
-    sat: dynamicDates[2].fullDateText,
-    sun: dynamicDates[3].fullDateText,
-  };
+  const dateMap = {};
+  dynamicDates.forEach((d) => {
+    dateMap[d.id] = d.fullDateText;
+  });
 
   const getShowtimesForActiveTab = () => {
     const activeDateObj = dynamicDates.find(
@@ -618,15 +616,7 @@ const MovieDetailPage = () => {
                     type="button"
                     onClick={() => {
                       setActiveDateTab(date.id);
-                      if (selectedShowtime) {
-                        const isPast = checkIfTimeInPastForTab(
-                          selectedShowtime.time,
-                          date.id,
-                        );
-                        if (isPast) {
-                          setSelectedShowtime(null);
-                        }
-                      }
+                      setSelectedShowtime(null);
                     }}
                     className={`movie-detail-date-tab${activeDateTab === date.id ? ' is-active' : ''}`}
                   >

@@ -105,6 +105,25 @@ const Navbar = () => {
     setOpenCatalog(null);
   }, [location.pathname, location.search]);
 
+  const handleLinkClick = (e, path) => {
+    if (location.pathname === path) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const isLinkActive = (path, type) => {
+    if (type === 'genre') {
+      return location.pathname === '/movies' && location.search.includes('genre');
+    }
+    if (type === 'country') {
+      return location.pathname === '/movies' && location.search.includes('country');
+    }
+    if (path === '/movies') {
+      return location.pathname === '/movies' && !location.search.includes('genre') && !location.search.includes('country');
+    }
+    return location.pathname === path;
+  };
+
   const handleBookingClick = () => {
     if (!user) {
       notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
@@ -130,9 +149,9 @@ const Navbar = () => {
     <header className="navbar-header">
       <div className="navbar-container">
         <div className="navbar-logo-group">
-          <Link to="/" className="navbar-logo-link gap-3">
+          <Link to="/" className="navbar-logo-link gap-3" onClick={(e) => handleLinkClick(e, '/')}>
             <img src={nasaFilmLogo} alt="NASAFILM Logo" className="navbar-logo-img" />
-            <span className="font-heading hidden text-2xl font-black leading-none tracking-wider text-white sm:inline sm:text-3xl">
+            <span className="navbar-logo-text font-heading hidden sm:inline font-black leading-none tracking-wider text-white">
               NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
             </span>
           </Link>
@@ -140,26 +159,51 @@ const Navbar = () => {
 
         <div className="navbar-center">
           <nav className="navbar-nav">
-            <Link to="/movies" className="navbar-nav-link">Phim</Link>
+            <Link
+              to="/movies"
+              className={`navbar-nav-link ${isLinkActive('/movies') ? 'navbar-nav-link--active' : ''}`}
+              onClick={(e) => handleLinkClick(e, '/movies')}
+            >
+              Phim
+            </Link>
             {Object.entries(CATALOG_MENUS).map(([key, menu]) => {
               const isOpen = openCatalog === key;
+              const isActive = isLinkActive(null, key);
               return (
                 <button
                   key={key}
                   type="button"
-                  className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}`}
+                  className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}${isActive ? ' navbar-nav-link--active' : ''}`}
                   aria-expanded={isOpen}
                   aria-haspopup="menu"
                   onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
                 >
                   {menu.label}
-                  <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}`} aria-hidden />
+                  <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}${isActive ? ' nav-catalog-chevron--active' : ''}`} aria-hidden />
                 </button>
               );
             })}
-            <Link to="/cinemas" className="navbar-nav-link">Rạp Chiếu</Link>
-            <Link to="/offers" className="navbar-nav-link">Bắp Nước</Link>
-            <Link to="/about" className="navbar-nav-link">Giới Thiệu</Link>
+            <Link
+              to="/cinemas"
+              className={`navbar-nav-link ${isLinkActive('/cinemas') ? 'navbar-nav-link--active' : ''}`}
+              onClick={(e) => handleLinkClick(e, '/cinemas')}
+            >
+              Rạp Chiếu
+            </Link>
+            <Link
+              to="/offers"
+              className={`navbar-nav-link ${isLinkActive('/offers') ? 'navbar-nav-link--active' : ''}`}
+              onClick={(e) => handleLinkClick(e, '/offers')}
+            >
+              Bắp Nước
+            </Link>
+            <Link
+              to="/about"
+              className={`navbar-nav-link ${isLinkActive('/about') ? 'navbar-nav-link--active' : ''}`}
+              onClick={(e) => handleLinkClick(e, '/about')}
+            >
+              Giới Thiệu
+            </Link>
           </nav>
 
           <GlobalSearchBar className="navbar-search hidden lg:block" />
@@ -177,11 +221,14 @@ const Navbar = () => {
 
           <Link
             to="/online"
-            onClick={handleOnlineNav}
+            onClick={(e) => {
+              handleOnlineNav(e);
+              handleLinkClick(e, '/online');
+            }}
             onMouseEnter={prefetchOnlinePage}
             onFocus={prefetchOnlinePage}
             onTouchStart={prefetchOnlinePage}
-            className="navbar-cta-btn"
+            className={`navbar-cta-btn ${isLinkActive('/online') ? 'navbar-cta-btn--active' : ''}`}
           >
             <Play className="h-4 w-4 fill-white text-white" />
             <span>TRỰC TUYẾN</span>

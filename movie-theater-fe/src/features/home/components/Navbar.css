@@ -34,8 +34,21 @@
   @apply flex flex-nowrap items-center justify-center gap-3 lg:gap-4 xl:gap-6;
 }
 
+.navbar-logo-text {
+  font-size: clamp(1.15rem, 1.8vw, 1.75rem);
+}
+
 .navbar-nav-link {
   @apply shrink-0 whitespace-nowrap text-sm font-semibold tracking-wide text-white/80 transition-colors hover:text-white;
+}
+
+.navbar-nav-link--active {
+  @apply text-red-500 font-bold !important;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.nav-catalog-chevron--active {
+  @apply text-red-500 !important;
 }
 
 .nav-catalog-trigger {
@@ -258,4 +271,56 @@
 
 .notif-item.warning .notif-item-title {
   @apply text-yellow-400;
+}
+
+/* Active CTA button state */
+.navbar-cta-btn--active {
+  @apply from-red-500 to-rose-600 shadow-[0_4px_15px_rgba(239,68,68,0.45)] border border-red-400/20 !important;
+}
+
+/* Intermediate Desktop Screen Support (1024px to 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .navbar-container {
+    @apply px-4 gap-2;
+  }
+  .navbar-logo-link {
+    @apply gap-2;
+  }
+  .navbar-nav {
+    @apply gap-2.5;
+  }
+  .navbar-nav-link {
+    @apply text-[13px] tracking-normal;
+  }
+  .navbar-search.global-search {
+    width: 140px;
+  }
+  .navbar-actions {
+    @apply gap-1.5;
+  }
+  .navbar-cta-btn {
+    @apply px-2.5 text-[10px];
+  }
+  .user-profile-trigger {
+    @apply max-w-[7.5rem] pr-2 pl-1.5;
+  }
+  .user-name {
+    @apply text-[13px];
+  }
+}
+
+/* Intermediate Tablet Screen Support (768px to 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .navbar-container {
+    @apply px-4 gap-2;
+  }
+  .navbar-actions {
+    @apply gap-1.5;
+  }
+  .navbar-cta-btn {
+    @apply px-2.5 text-[10px];
+  }
+  .user-profile-trigger {
+    @apply max-w-[7.5rem] pr-2 pl-1.5;
+  }
 }
