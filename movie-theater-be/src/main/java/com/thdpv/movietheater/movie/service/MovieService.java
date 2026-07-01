@@ -262,9 +262,10 @@ public class MovieService {
                 bookableSubquery.select(bookableRoot.get("movieUuid"));
                 bookableSubquery.where(
                         cb.greaterThan(bookableRoot.get("startTime"), now),
-                        cb.or(
-                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.OPEN_FOR_BOOKING),
-                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.SOLD_OUT)));
+                        bookableRoot.get("status").in(
+                                ShowtimeStatus.SCHEDULED,
+                                ShowtimeStatus.OPEN_FOR_BOOKING,
+                                ShowtimeStatus.SOLD_OUT));
                 predicates.add(root.get("uuid").in(bookableSubquery));
                 predicates.add(cb.or(
                         cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),

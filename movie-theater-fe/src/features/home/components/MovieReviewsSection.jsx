@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
@@ -21,8 +21,13 @@ import MovieReviewPagination from './MovieReviewPagination';
 import StarRating from './StarRating';
 import {
   MAX_VIBE_TAGS_PER_REVIEW,
+  VIBE_TAG_CLOUD_COLLAPSED_LIMIT,
+  VIBE_TAG_COLLAPSED_LIMIT,
+  VIBE_TAG_SEARCH_MIN_CATALOG,
+  buildCollapsedVibeTagList,
   getVibeTagLabel,
   loadReviewVibeTags,
+  matchesVibeTagQuery,
 } from '../../../shared/constants/reviewVibeTags';
 import Swal from 'sweetalert2';
 import './MovieReviewsSection.css';
@@ -94,6 +99,9 @@ const MovieReviewsSection = ({
   const [selectedVibeTags, setSelectedVibeTags] = useState([]);
   const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const [isVibePickerExpanded, setIsVibePickerExpanded] = useState(false);
+  const [vibePickerSearch, setVibePickerSearch] = useState('');
+  const [isVibeCloudExpanded, setIsVibeCloudExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,6 +281,8 @@ const MovieReviewsSection = ({
       setRating(0);
       setComment('');
       setSelectedVibeTags([]);
+      setIsVibePickerExpanded(false);
+      setVibePickerSearch('');
     } catch (error) {
       notificationService.error(error.message || 'Không thể gửi đánh giá.');
     } finally {
@@ -365,6 +375,56 @@ const MovieReviewsSection = ({
 
   const vibeTagCounts = summary?.vibeTagCounts || {};
   const hasVibeTags = Object.keys(vibeTagCounts).length > 0;
+
+  const vibePickerSearchActive = vibePickerSearch.trim().length > 0;
+  const showVibePickerSearch = vibeTagCatalog.length >= VIBE_TAG_SEARCH_MIN_CATALOG;
+
+  const visiblePickerTags = useMemo(() => {
+    if (vibePickerSearchActive) {
+      return vibeTagCatalog.filter((tag) => matchesVibeTagQuery(tag, vibePickerSearch));
+    }
+    if (isVibePickerExpanded || vibeTagCatalog.length <= VIBE_TAG_COLLAPSED_LIMIT) {
+      return vibeTagCatalog;
+    }
+    return buildCollapsedVibeTagList(vibeTagCatalog, selectedVibeTags, VIBE_TAG_COLLAPSED_LIMIT);
+  }, [
+    vibeTagCatalog,
+    vibePickerSearch,
+    vibePickerSearchActive,
+    isVibePickerExpanded,
+    selectedVibeTags,
+  ]);
+
+  const hiddenPickerTagCount = useMemo(() => {
+    if (vibePickerSearchActive || isVibePickerExpanded) return 0;
+    if (vibeTagCatalog.length <= VIBE_TAG_COLLAPSED_LIMIT) return 0;
+    return vibeTagCatalog.length - visiblePickerTags.length;
+  }, [
+    vibeTagCatalog.length,
+    vibePickerSearchActive,
+    isVibePickerExpanded,
+    visiblePickerTags.length,
+  ]);
+
+  const visibleVibeCloudEntries = useMemo(() => {
+    const entries = Object.entries(vibeTagCounts);
+    if (isVibeCloudExpanded || entries.length <= VIBE_TAG_CLOUD_COLLAPSED_LIMIT) {
+      return entries;
+    }
+    if (activeVibeTag) {
+      const activeEntry = entries.find(([code]) => code === activeVibeTag);
+      const rest = entries.filter(([code]) => code !== activeVibeTag);
+      const limit = VIBE_TAG_CLOUD_COLLAPSED_LIMIT - (activeEntry ? 1 : 0);
+      return activeEntry ? [activeEntry, ...rest.slice(0, limit)] : rest.slice(0, VIBE_TAG_CLOUD_COLLAPSED_LIMIT);
+    }
+    return entries.slice(0, VIBE_TAG_CLOUD_COLLAPSED_LIMIT);
+  }, [vibeTagCounts, isVibeCloudExpanded, activeVibeTag]);
+
+  const hiddenVibeCloudCount = useMemo(() => {
+    const total = Object.keys(vibeTagCounts).length;
+    if (isVibeCloudExpanded || total <= VIBE_TAG_CLOUD_COLLAPSED_LIMIT) return 0;
+    return total - visibleVibeCloudEntries.length;
+  }, [vibeTagCounts, isVibeCloudExpanded, visibleVibeCloudEntries.length]);
 
   return (
     <section
@@ -507,7 +567,7 @@ const MovieReviewsSection = ({
                 <div className="movie-reviews-vibe-cloud">
                   <h3 className="movie-reviews-block-title">Vibe tag phổ biến</h3>
                   <div className="movie-reviews-vibe-tags">
-                    {Object.entries(vibeTagCounts).map(([code, count]) => (
+                    {visibleVibeCloudEntries.map(([code, count]) => (
                       <button
                         key={code}
                         type="button"
@@ -522,6 +582,24 @@ const MovieReviewsSection = ({
                       </button>
                     ))}
                   </div>
+                  {hiddenVibeCloudCount > 0 && (
+                    <button
+                      type="button"
+                      className="movie-reviews-vibe-toggle"
+                      onClick={() => setIsVibeCloudExpanded(true)}
+                    >
+                      Xem thêm {hiddenVibeCloudCount} tag
+                    </button>
+                  )}
+                  {isVibeCloudExpanded && Object.keys(vibeTagCounts).length > VIBE_TAG_CLOUD_COLLAPSED_LIMIT && (
+                    <button
+                      type="button"
+                      className="movie-reviews-vibe-toggle"
+                      onClick={() => setIsVibeCloudExpanded(false)}
+                    >
+                      Thu gọn
+                    </button>
+                  )}
                   {activeVibeTag && (
                     <button
                       type="button"
@@ -611,22 +689,56 @@ const MovieReviewsSection = ({
                     <span className="movie-reviews-form-label">
                       Vibe tag <span className="movie-reviews-optional">(tối đa {MAX_VIBE_TAGS_PER_REVIEW})</span>
                     </span>
+                    {showVibePickerSearch && (
+                      <input
+                        type="search"
+                        className="movie-reviews-vibe-search"
+                        placeholder="Tìm vibe tag..."
+                        value={vibePickerSearch}
+                        onChange={(e) => setVibePickerSearch(e.target.value)}
+                        aria-label="Tìm vibe tag"
+                      />
+                    )}
                     <div className="movie-reviews-vibe-picker" role="group" aria-label="Chọn vibe tag">
-                      {vibeTagCatalog.map((tag) => {
-                        const isSelected = selectedVibeTags.includes(tag.code);
-                        return (
-                          <button
-                            key={tag.code}
-                            type="button"
-                            className={`movie-reviews-vibe-picker-chip${isSelected ? ' is-selected' : ''}`}
-                            onClick={() => handleToggleVibeTag(tag.code)}
-                            aria-pressed={isSelected}
-                          >
-                            {tag.hash}
-                          </button>
-                        );
-                      })}
+                      {visiblePickerTags.length === 0 ? (
+                        <p className="movie-reviews-vibe-empty">Không tìm thấy vibe tag phù hợp.</p>
+                      ) : (
+                        visiblePickerTags.map((tag) => {
+                          const isSelected = selectedVibeTags.includes(tag.code);
+                          return (
+                            <button
+                              key={tag.code}
+                              type="button"
+                              className={`movie-reviews-vibe-picker-chip${isSelected ? ' is-selected' : ''}`}
+                              onClick={() => handleToggleVibeTag(tag.code)}
+                              aria-pressed={isSelected}
+                            >
+                              {tag.hash}
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
+                    {hiddenPickerTagCount > 0 && (
+                      <button
+                        type="button"
+                        className="movie-reviews-vibe-toggle"
+                        onClick={() => setIsVibePickerExpanded(true)}
+                      >
+                        Xem thêm {hiddenPickerTagCount} tag
+                      </button>
+                    )}
+                    {isVibePickerExpanded
+                      && !vibePickerSearchActive
+                      && vibeTagCatalog.length > VIBE_TAG_COLLAPSED_LIMIT && (
+                      <button
+                        type="button"
+                        className="movie-reviews-vibe-toggle"
+                        onClick={() => setIsVibePickerExpanded(false)}
+                      >
+                        Thu gọn
+                      </button>
+                    )}
                   </div>
 
                   <div className="movie-reviews-form-field">
