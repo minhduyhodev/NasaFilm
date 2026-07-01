@@ -42,6 +42,7 @@ import com.thdpv.movietheater.radar.entity.ShowtimeRadarPreference;
 import com.thdpv.movietheater.radar.repository.ShowtimeRadarAlertRepository;
 import com.thdpv.movietheater.radar.repository.ShowtimeRadarPreferenceRepository;
 import com.thdpv.movietheater.radar.support.ShowtimeAvailabilityRow;
+import com.thdpv.movietheater.radar.support.ShowtimeRadarFavoriteMatcher;
 import com.thdpv.movietheater.radar.support.ShowtimeRadarGenreCodec;
 import com.thdpv.movietheater.radar.support.ShowtimeRadarGenreMatcher;
 import com.thdpv.movietheater.user.entity.User;
@@ -202,7 +203,7 @@ public class ShowtimeRadarService {
         Set<UUID> userUuids = enabledPreferences.stream()
                 .map(ShowtimeRadarPreference::getUserUuid)
                 .collect(Collectors.toSet());
-        Map<UUID, Set<UUID>> favoritesByUser = loadFavoriteMovieUuidsByUsers(userUuids);
+        Map<UUID, FavoriteSignals> favoritesByUser = loadFavoriteSignalsByUsers(userUuids);
         Map<UUID, Set<UUID>> notifiedByUser = loadNotifiedShowtimeUuidsByUsers(userUuids);
 
         for (ShowtimeRadarPreference preference : enabledPreferences) {
@@ -213,7 +214,7 @@ public class ShowtimeRadarService {
                     context,
                     true,
                     false,
-                    favoritesByUser.getOrDefault(userUuid, Set.of()),
+                    favoritesByUser.getOrDefault(userUuid, FavoriteSignals.EMPTY),
                     notifiedByUser.getOrDefault(userUuid, Set.of()));
             int sentForUser = 0;
             for (ShowtimeRadarSuggestionResponse suggestion : suggestions) {
@@ -259,20 +260,20 @@ public class ShowtimeRadarService {
             RadarContext context,
             boolean excludeNotified,
             boolean previewMode,
-            Set<UUID> preloadedFavoriteMovieUuids,
+            FavoriteSignals preloadedFavoriteSignals,
             Set<UUID> preloadedNotifiedShowtimeUuids) {
         if (!previewMode && !preference.isEnabled()) {
             return List.of();
         }
 
-        if (!hasActiveFilters(preference)) {
+        FavoriteSignals favoriteSignals = resolveFavoriteSignals(userUuid, preference, preloadedFavoriteSignals);
+        if (!hasActiveFilters(preference, favoriteSignals)) {
             return List.of();
         }
 
         List<UUID> selectedGenres = ShowtimeRadarGenreCodec.decode(preference.getGenreUuids());
-        Set<UUID> favoriteMovieUuids = preloadedFavoriteMovieUuids != null
-                ? preloadedFavoriteMovieUuids
-                : loadFavoriteMovieUuids(userUuid);
+        Set<UUID> favoriteMovieUuids = favoriteSignals.movieUuids();
+        Set<UUID> favoriteGenreUuids = favoriteSignals.genreUuids();
         Set<UUID> notifiedShowtimeUuids = excludeNotified
                 ? (preloadedNotifiedShowtimeUuids != null
                         ? preloadedNotifiedShowtimeUuids
@@ -301,18 +302,23 @@ public class ShowtimeRadarService {
             boolean genreMatch = !selectedGenres.isEmpty()
                     && ShowtimeRadarGenreMatcher.matches(selectedGenres, movieGenres, context.genreNamesByUuid());
             boolean favoriteMatch = preference.isIncludeFavorites()
-                    && favoriteMovieUuids.contains(row.movieUuid());
+                    && ShowtimeRadarFavoriteMatcher.matchesFavoriteMovie(row.movieUuid(), favoriteMovieUuids);
+            boolean favoriteGenreMatch = preference.isIncludeFavorites()
+                    && ShowtimeRadarFavoriteMatcher.matchesFavoriteGenre(
+                            movieGenres, favoriteGenreUuids, favoriteMatch);
+            boolean favoriteSignal = ShowtimeRadarFavoriteMatcher.hasFavoriteSignal(favoriteMatch, favoriteGenreMatch);
 
-            if (!selectedGenres.isEmpty() && !genreMatch && !favoriteMatch) {
-                continue;
-            }
-            if (selectedGenres.isEmpty() && preference.isIncludeFavorites() && !favoriteMatch) {
+            if (!selectedGenres.isEmpty()) {
+                if (!genreMatch) {
+                    continue;
+                }
+            } else if (preference.isIncludeFavorites() && !favoriteSignal) {
                 continue;
             }
 
             ScoredSuggestion suggestion = scoreSuggestion(
                     row, movie, context.cinemaNamesByRoom().get(row.cinemaRoomUuid()),
-                    genreMatch, favoriteMatch, preference);
+                    genreMatch, favoriteMatch, favoriteGenreMatch, preference);
             if (suggestion.heatScore() >= MIN_HEAT_SCORE) {
                 scored.add(suggestion);
             }
@@ -337,6 +343,7 @@ public class ShowtimeRadarService {
             String cinemaName,
             boolean genreMatch,
             boolean favoriteMatch,
+            boolean favoriteGenreMatch,
             ShowtimeRadarPreference preference) {
         int score = 0;
         List<String> reasons = new ArrayList<>();
@@ -348,6 +355,10 @@ public class ShowtimeRadarService {
         if (favoriteMatch) {
             score += 40;
             reasons.add("Phim trong danh sách yêu thích");
+        }
+        if (favoriteGenreMatch) {
+            score += 28;
+            reasons.add("Cùng gu với phim yêu thích");
         }
         if (ShowtimeRadarGenreCodec.matchesTimeSlot(
                 row.startTime(), preference.getTimeSlotStartHour(), preference.getTimeSlotEndHour())
@@ -445,22 +456,79 @@ public class ShowtimeRadarService {
         return new RadarContext(rows, moviesByUuid, genresByMovie, cinemaNamesByRoom, genreNamesByUuid, upcomingShowtimeCount);
     }
 
-    private Set<UUID> loadFavoriteMovieUuids(UUID userUuid) {
-        return userFavoriteRepository.findByUserUuidOrderByCreatedAtDesc(userUuid).stream()
-                .map(UserFavorite::getMovieUuid)
-                .collect(Collectors.toSet());
+    private FavoriteSignals resolveFavoriteSignals(
+            UUID userUuid,
+            ShowtimeRadarPreference preference,
+            FavoriteSignals preloadedFavoriteSignals) {
+        if (!preference.isIncludeFavorites()) {
+            return FavoriteSignals.EMPTY;
+        }
+        if (preloadedFavoriteSignals != null) {
+            return preloadedFavoriteSignals;
+        }
+        return loadFavoriteSignals(userUuid);
     }
 
-    private Map<UUID, Set<UUID>> loadFavoriteMovieUuidsByUsers(Collection<UUID> userUuids) {
+    private FavoriteSignals loadFavoriteSignals(UUID userUuid) {
+        List<UserFavorite> favorites = userFavoriteRepository.findByUserUuidOrderByCreatedAtDesc(userUuid);
+        if (favorites.isEmpty()) {
+            return FavoriteSignals.EMPTY;
+        }
+        Set<UUID> movieUuids = favorites.stream()
+                .map(UserFavorite::getMovieUuid)
+                .collect(Collectors.toSet());
+        Set<UUID> genreUuids = loadGenreUuidsForMovies(movieUuids);
+        return new FavoriteSignals(movieUuids, genreUuids);
+    }
+
+    private Map<UUID, FavoriteSignals> loadFavoriteSignalsByUsers(Collection<UUID> userUuids) {
         if (userUuids == null || userUuids.isEmpty()) {
             return Map.of();
         }
-        Map<UUID, Set<UUID>> result = new HashMap<>();
-        for (UserFavorite favorite : userFavoriteRepository.findByUserUuidIn(userUuids)) {
-            result.computeIfAbsent(favorite.getUserUuid(), ignored -> new HashSet<>())
+        List<UserFavorite> favorites = userFavoriteRepository.findByUserUuidIn(userUuids);
+        if (favorites.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, Set<UUID>> movieUuidsByUser = new HashMap<>();
+        for (UserFavorite favorite : favorites) {
+            movieUuidsByUser.computeIfAbsent(favorite.getUserUuid(), ignored -> new HashSet<>())
                     .add(favorite.getMovieUuid());
         }
+
+        Set<UUID> allFavoriteMovieUuids = favorites.stream()
+                .map(UserFavorite::getMovieUuid)
+                .collect(Collectors.toSet());
+        Map<UUID, Set<UUID>> genresByMovie = loadGenresByMovie(allFavoriteMovieUuids);
+
+        Map<UUID, FavoriteSignals> result = new HashMap<>();
+        for (Map.Entry<UUID, Set<UUID>> entry : movieUuidsByUser.entrySet()) {
+            Set<UUID> genreUuids = entry.getValue().stream()
+                    .flatMap(movieUuid -> genresByMovie.getOrDefault(movieUuid, Set.of()).stream())
+                    .collect(Collectors.toSet());
+            result.put(entry.getKey(), new FavoriteSignals(entry.getValue(), genreUuids));
+        }
         return result;
+    }
+
+    private Set<UUID> loadGenreUuidsForMovies(Set<UUID> movieUuids) {
+        return loadGenresByMovie(movieUuids).values().stream()
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private Map<UUID, Set<UUID>> loadGenresByMovie(Set<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return Map.of();
+        }
+        return movieRepository.findAllByIdWithGenres(movieUuids).stream()
+                .collect(Collectors.toMap(
+                        Movie::getUuid,
+                        movie -> movie.getMovieGenres().stream()
+                                .map(MovieGenre::getGenre)
+                                .filter(genre -> genre != null && genre.getUuid() != null)
+                                .map(Genre::getUuid)
+                                .collect(Collectors.toSet())));
     }
 
     private Map<UUID, Set<UUID>> loadNotifiedShowtimeUuidsByUsers(Collection<UUID> userUuids) {
@@ -544,10 +612,16 @@ public class ShowtimeRadarService {
         }
     }
 
-    private boolean hasActiveFilters(ShowtimeRadarPreference preference) {
+    private boolean hasActiveFilters(ShowtimeRadarPreference preference, FavoriteSignals favoriteSignals) {
         boolean hasGenres = !ShowtimeRadarGenreCodec.decode(preference.getGenreUuids()).isEmpty();
-        boolean hasFavorites = preference.isIncludeFavorites();
+        boolean hasFavorites = preference.isIncludeFavorites()
+                && favoriteSignals != null
+                && !favoriteSignals.movieUuids().isEmpty();
         return hasGenres || hasFavorites;
+    }
+
+    private record FavoriteSignals(Set<UUID> movieUuids, Set<UUID> genreUuids) {
+        private static final FavoriteSignals EMPTY = new FavoriteSignals(Set.of(), Set.of());
     }
 
     private record ScoredSuggestion(int heatScore, ShowtimeRadarSuggestionResponse response) {

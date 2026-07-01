@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.dto.response.FavoriteMovieResponse;
+import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserFavorite;
@@ -43,12 +45,15 @@ public class FavoriteService {
             return List.of();
         }
         List<UUID> movieUuids = favorites.stream().map(UserFavorite::getMovieUuid).toList();
-        Map<UUID, Movie> movies = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+        Map<UUID, Movie> moviesWithMedias = movieRepository.findAllByIdWithMedias(movieUuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
+        Map<UUID, Movie> moviesWithGenres = movieRepository.findAllByIdWithGenres(movieUuids).stream()
                 .collect(Collectors.toMap(Movie::getUuid, movie -> movie));
 
         return favorites.stream()
                 .map(fav -> {
-                    Movie movie = movies.get(fav.getMovieUuid());
+                    Movie movie = moviesWithMedias.get(fav.getMovieUuid());
+                    Movie movieWithGenres = moviesWithGenres.get(fav.getMovieUuid());
                     FavoriteMovieResponse response = new FavoriteMovieResponse();
                     response.setMovieUuid(fav.getMovieUuid());
                     response.setFavoritedAt(fav.getCreatedAt());
@@ -57,6 +62,7 @@ public class FavoriteService {
                         response.setAgeRestriction(movie.getAgeRestriction());
                         response.setPrimaryMediaUrl(extractPosterUrl(movie));
                     }
+                    response.setGenreUuids(extractGenreUuids(movieWithGenres));
                     return response;
                 })
                 .toList();
@@ -107,5 +113,17 @@ public class FavoriteService {
                 .map(media -> media.getMediaUrl())
                 .findFirst()
                 .orElse(movie.getMovieMedias().get(0).getMediaUrl());
+    }
+
+    private List<UUID> extractGenreUuids(Movie movie) {
+        if (movie == null || movie.getMovieGenres() == null) {
+            return List.of();
+        }
+        return movie.getMovieGenres().stream()
+                .map(MovieGenre::getGenre)
+                .filter(genre -> genre != null && genre.getUuid() != null)
+                .map(Genre::getUuid)
+                .distinct()
+                .toList();
     }
 }

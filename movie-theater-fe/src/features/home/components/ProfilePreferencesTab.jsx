@@ -17,6 +17,8 @@ const ProfilePreferencesTab = () => {
     includeFavorites,
     setIncludeFavorites,
     selectedGenres,
+    favoriteMovieCount,
+    favoriteGenreUuids,
     suggestions,
     emptyMessage,
     savePreferences,
@@ -37,18 +39,25 @@ const ProfilePreferencesTab = () => {
 
       <section className="profile-preferences-tab__form">
         <h3>Thể loại yêu thích</h3>
+        {includeFavorites && favoriteGenreUuids.length > 0 && (
+          <p className="profile-preferences-tab__muted profile-preferences-tab__genre-hint">
+            Thể loại từ {favoriteMovieCount} phim yêu thích được chọn tự động (viền vàng). Radar chỉ gợi ý phim khớp thể loại đã chọn; phim yêu thích được ưu tiên khi cùng thể loại.
+          </p>
+        )}
         {genresLoading ? (
           <p className="profile-preferences-tab__muted">Đang tải thể loại...</p>
         ) : (
           <div className="profile-preferences-tab__chips">
             {genres.map((genre) => {
-              const active = selectedGenres.includes(String(genre.uuid));
+              const genreId = String(genre.uuid);
+              const active = selectedGenres.includes(genreId);
+              const fromFavorite = includeFavorites && favoriteGenreUuids.includes(genreId);
               return (
                 <button
                   key={genre.uuid}
                   type="button"
-                  className={`profile-preferences-tab__chip${active ? ' is-active' : ''}`}
-                  onClick={() => toggleGenre(String(genre.uuid))}
+                  className={`profile-preferences-tab__chip${active ? ' is-active' : ''}${fromFavorite ? ' is-from-favorite' : ''}`}
+                  onClick={() => toggleGenre(genreId)}
                 >
                   {genre.name}
                 </button>
@@ -63,8 +72,21 @@ const ProfilePreferencesTab = () => {
             checked={includeFavorites}
             onChange={(event) => setIncludeFavorites(event.target.checked)}
           />
-          <span>Gợi ý từ phim yêu thích của tôi</span>
+          <span>
+            Gợi ý từ phim yêu thích của tôi
+            {favoriteMovieCount > 0 && (
+              <span className="profile-preferences-tab__favorite-count">
+                {' '}({favoriteMovieCount} phim đã lưu)
+              </span>
+            )}
+          </span>
         </label>
+
+        {includeFavorites && favoriteMovieCount === 0 && (
+          <p className="profile-preferences-tab__muted">
+            Chưa có phim yêu thích. Bật gợi ý sẽ tự chọn thể loại sau khi bạn lưu ít nhất một phim.
+          </p>
+        )}
 
         {includeFavorites && (
           <Link to="/my-movies" className="profile-preferences-tab__link">

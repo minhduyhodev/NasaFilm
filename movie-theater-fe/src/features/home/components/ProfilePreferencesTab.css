@@ -28,6 +28,30 @@
   color: #64748b;
 }
 
+.profile-preferences-tab__favorite-count {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.profile-preferences-tab__genre-hint {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.profile-preferences-tab__chip.is-from-favorite.is-active {
+  border-color: rgba(251, 191, 36, 0.75);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+.profile-preferences-tab__chip.is-readonly {
+  cursor: default;
+  pointer-events: none;
+}
+
+.profile-preferences-tab__chips--readonly {
+  margin-top: 0.75rem;
+}
+
 .profile-preferences-tab__chips {
   display: flex;
   flex-wrap: wrap;

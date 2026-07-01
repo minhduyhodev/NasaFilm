@@ -7,4 +7,5 @@ export const queryKeys = {
   onlineCatalog: (params) => ['online', 'catalog', params],
   adminShowtimes: ['admin', 'showtimes'],
   showtimeRadar: ['user', 'showtime-radar'],
+  favorites: ['favorites', 'list'],
 };

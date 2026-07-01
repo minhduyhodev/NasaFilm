@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
 
 export const FAVORITE_STORAGE_KEY = 'nasa_guest_favorites';
 
@@ -20,6 +22,7 @@ export const writeGuestFavorites = (ids) => {
 
 export const useMovieFavorite = (movieUuid, { quiet = false } = {}) => {
   const { isAuthenticated } = useAuthContext();
+  const queryClient = useQueryClient();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,10 +59,12 @@ export const useMovieFavorite = (movieUuid, { quiet = false } = {}) => {
       if (isFavorite) {
         await favoriteService.remove(movieUuid);
         setIsFavorite(false);
+        queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
         if (!quiet) notificationService.success('Đã bỏ lưu phim');
       } else {
         await favoriteService.add(movieUuid);
         setIsFavorite(true);
+        queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
         if (!quiet) notificationService.success('Đã lưu vào Phim của tôi');
       }
     } catch (err) {
@@ -67,7 +72,7 @@ export const useMovieFavorite = (movieUuid, { quiet = false } = {}) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, isFavorite, isLoading, movieUuid, quiet]);
+  }, [isAuthenticated, isFavorite, isLoading, movieUuid, quiet, queryClient]);
 
   return { isFavorite, isLoading, toggleFavorite };
 };

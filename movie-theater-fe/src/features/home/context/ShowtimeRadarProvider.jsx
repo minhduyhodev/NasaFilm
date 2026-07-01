@@ -1,9 +1,14 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { showtimeRadarService } from '../../../shared/services/showtimeRadarService';
+import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { buildShowtimeRadarPayload } from '../../../shared/utils/showtimeRadarPayload';
-import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
+import {
+  collectGenreUuidsFromFavorites,
+  mergeGenreSelections,
+  removeFavoriteDerivedGenres,
+} from '../../../shared/utils/showtimeRadarFavorites';import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
 import {
   resolveRadarEmptyMessage,
   useShowtimeRadarQuery,
@@ -28,6 +33,16 @@ const useShowtimeRadarState = () => {
   const queryClient = useQueryClient();
   const radarQuery = useShowtimeRadarQuery();
   const { refreshSuggestions: refreshScan, refreshing: scanRefreshing } = useShowtimeRadarRefresh();
+  const favoritesQuery = useQuery({
+    queryKey: queryKeys.favorites,
+    queryFn: () => favoriteService.list(),
+    staleTime: 2 * 60 * 1000,
+  });
+  const favoriteMovieCount = favoritesQuery.data?.length ?? 0;
+  const favoriteGenreUuids = useMemo(
+    () => collectGenreUuidsFromFavorites(favoritesQuery.data),
+    [favoritesQuery.data],
+  );
 
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -50,6 +65,8 @@ const useShowtimeRadarState = () => {
   const saveQueueRef = useRef(Promise.resolve());
   const persistPreferenceRef = useRef(async () => null);
   const draftDirtyRef = useRef(false);
+  const favoriteGenresSnapshotRef = useRef([]);
+  const favoriteGenresTrackedRef = useRef(false);
 
   const syncPreferenceStateRef = useCallback((next) => {
     preferenceStateRef.current = next;
@@ -83,6 +100,37 @@ const useShowtimeRadarState = () => {
       applyPreferenceData(radarQuery.data);
     }
   }, [radarQuery.data, applyPreferenceData]);
+
+  useEffect(() => {
+    if (!favoritesQuery.isSuccess) {
+      return;
+    }
+
+    if (!favoriteGenresTrackedRef.current) {
+      favoriteGenresTrackedRef.current = true;
+      favoriteGenresSnapshotRef.current = [...favoriteGenreUuids];
+      return;
+    }
+
+    const previous = favoriteGenresSnapshotRef.current;
+    favoriteGenresSnapshotRef.current = [...favoriteGenreUuids];
+
+    const current = preferenceStateRef.current;
+    if (!current.includeFavorites) {
+      return;
+    }
+
+    const newlyAdded = favoriteGenreUuids.filter((genreUuid) => !previous.includes(genreUuid));
+    if (newlyAdded.length === 0) {
+      return;
+    }
+
+    const merged = mergeGenreSelections(current.selectedGenres, newlyAdded);
+    const nextState = { ...current, selectedGenres: merged };
+    draftDirtyRef.current = true;
+    syncPreferenceStateRef(nextState);
+    setSelectedGenres(merged);
+  }, [favoriteGenreUuids, favoritesQuery.isSuccess, syncPreferenceStateRef]);
 
   const resetLocalState = useCallback(() => {
     const nextState = {
@@ -168,13 +216,19 @@ const useShowtimeRadarState = () => {
 
   const savePreferences = async () => {
     const current = preferenceStateRef.current;
+
     if (current.selectedGenres.length === 0 && !current.includeFavorites) {
       notificationService.warning('Chọn ít nhất một thể loại hoặc bật phim yêu thích');
       return false;
     }
 
+    if (current.selectedGenres.length === 0 && current.includeFavorites && favoriteMovieCount === 0) {
+      notificationService.warning('Hãy lưu ít nhất một phim yêu thích trước');
+      return false;
+    }
+
     const result = await savePreferenceDraft(
-      { enabled: true },
+      { enabled: true, selectedGenres: current.selectedGenres },
       'Đã lưu sở thích — hiển thị trên hồ sơ của bạn',
     );
     return Boolean(result);
@@ -233,10 +287,17 @@ const useShowtimeRadarState = () => {
 
   const updateIncludeFavorites = (value) => {
     const current = preferenceStateRef.current;
-    const nextState = { ...current, includeFavorites: value };
+    const nextGenres = value
+      ? mergeGenreSelections(current.selectedGenres, favoriteGenreUuids)
+      : removeFavoriteDerivedGenres(current.selectedGenres, favoriteGenreUuids);
+    if (value) {
+      favoriteGenresSnapshotRef.current = [...favoriteGenreUuids];
+    }
+    const nextState = { ...current, includeFavorites: value, selectedGenres: nextGenres };
     draftDirtyRef.current = true;
     syncPreferenceStateRef(nextState);
     setIncludeFavorites(value);
+    setSelectedGenres(nextGenres);
   };
 
   const emptyMessage = resolveRadarEmptyMessage({
@@ -244,6 +305,7 @@ const useShowtimeRadarState = () => {
     includeFavorites: savedIncludeFavorites,
     upcomingShowtimeCount,
     enabled,
+    favoriteMovieCount,
   });
 
   return {
@@ -257,6 +319,8 @@ const useShowtimeRadarState = () => {
     savedSelectedGenres,
     suggestions,
     upcomingShowtimeCount,
+    favoriteMovieCount,
+    favoriteGenreUuids,
     emptyMessage,
     loadRadar: () => queryClient.invalidateQueries({ queryKey: queryKeys.showtimeRadar }),
     savePreferences,

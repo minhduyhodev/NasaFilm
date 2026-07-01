@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { showtimeRadarService } from '../../../shared/services/showtimeRadarService';
+import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
 
@@ -12,6 +13,7 @@ export const resolveRadarEmptyMessage = ({
   includeFavorites = true,
   upcomingShowtimeCount = 0,
   enabled = false,
+  favoriteMovieCount = 0,
 } = {}) => {
   if (selectedGenres.length === 0 && !includeFavorites) {
     return 'Chọn thể loại hoặc bật phim yêu thích, sau đó bấm Lưu sở thích.';
@@ -19,13 +21,16 @@ export const resolveRadarEmptyMessage = ({
   if (!enabled) {
     return 'Bấm Lưu sở thích để kích hoạt gợi ý Radar.';
   }
+  if (includeFavorites && favoriteMovieCount === 0) {
+    return 'Bật gợi ý từ phim yêu thích nhưng bạn chưa lưu phim nào. Hãy bấm «Lưu phim» trên trang chi tiết phim.';
+  }
   if (upcomingShowtimeCount === 0) {
     return 'Hiện chưa có suất chiếu mở bán trong 48 giờ tới. Radar sẽ cập nhật khi có lịch mới.';
   }
   if (selectedGenres.length > 0) {
-    return 'Có suất chiếu trong 48 giờ nhưng chưa khớp thể loại đã lưu. Thử chọn thể loại khác hoặc bật phim yêu thích.';
+    return 'Có suất chiếu trong 48 giờ nhưng chưa khớp thể loại hoặc phim yêu thích. Thử chọn thể loại khác hoặc lưu thêm phim yêu thích.';
   }
-  return 'Chưa có suất phù hợp sở thích trong 48 giờ tới. Radar sẽ thông báo khi có suất mới.';
+  return 'Chưa có suất phim yêu thích hoặc phim cùng gu trong 48 giờ tới. Radar sẽ thông báo khi có suất mới.';
 };
 
 export const useShowtimeRadarQuery = ({ enabled: enabledOverride } = {}) => {
@@ -67,14 +72,21 @@ export const useShowtimeRadarRefresh = () => {
 
 export const useShowtimeRadarWidget = () => {
   const radarQuery = useShowtimeRadarQuery();
+  const favoritesQuery = useQuery({
+    queryKey: queryKeys.favorites,
+    queryFn: () => favoriteService.list(),
+    staleTime: 2 * 60 * 1000,
+  });
   const { refreshSuggestions, refreshing } = useShowtimeRadarRefresh();
   const data = radarQuery.data;
+  const favoriteMovieCount = favoritesQuery.data?.length ?? 0;
 
   const emptyMessage = resolveRadarEmptyMessage({
     selectedGenres: (data?.genreUuids ?? []).map(String),
     includeFavorites: data?.includeFavorites !== false,
     upcomingShowtimeCount: Number(data?.upcomingShowtimeCount ?? 0),
     enabled: Boolean(data?.enabled),
+    favoriteMovieCount,
   });
 
   return {
