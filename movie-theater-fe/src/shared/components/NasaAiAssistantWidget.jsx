@@ -268,7 +268,7 @@ const NasaAiAssistantWidget = () => {
     }
     closeHoverTimerRef.current = window.setTimeout(() => {
       setOpen(false);
-    }, 160);
+    }, 60);
   };
 
   const startCategoryFlow = async (key) => {
