@@ -132,6 +132,12 @@
 		</dependency>
 
 
+		<!-- Jsoup for HTML sanitization (XSS protection) -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.18.1</version>
+		</dependency>
 	</dependencies>
 
 	<build>

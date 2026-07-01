@@ -382,6 +382,34 @@ export const formatShowtimeDisplay = (value, mode = 'full') => {
 
 export const VOD_VERIFIED_KEY = (movieUuid) => `vodVerified:${movieUuid}`;
 
+export const setTemporaryVodToken = (movieUuid, bookingUuid) => {
+  const item = {
+    value: bookingUuid,
+    expiry: Date.now() + 10 * 60 * 1000 // 10 minutes
+  };
+  localStorage.setItem(VOD_VERIFIED_KEY(movieUuid), JSON.stringify(item));
+};
+
+export const getTemporaryVodToken = (movieUuid) => {
+  const str = localStorage.getItem(VOD_VERIFIED_KEY(movieUuid));
+  if (!str) return null;
+  try {
+    const item = JSON.parse(str);
+    if (Date.now() > item.expiry) {
+      localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+      return null;
+    }
+    return item.value;
+  } catch (e) {
+    localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+    return null;
+  }
+};
+
+export const removeTemporaryVodToken = (movieUuid) => {
+  localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+};
+
 export const isOnlineBooking = (booking) =>
   booking?.bookingType === 'ONLINE' ||
   (booking?.cinema || '').toLowerCase().includes('vod');
