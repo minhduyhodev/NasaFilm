@@ -1,9 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Film, MapPin, User } from 'lucide-react';
 import { searchService } from '../../../shared/services/searchService';
 import PageMeta from '../../../shared/components/PageMeta';
 import './SearchResultsPage.css';
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const highlightMatches = (text, query) => {
+  if (!text) return null;
+  const trimmed = query.trim();
+  if (!trimmed) return text;
+
+  const parts = text.split(new RegExp(`(${escapeRegex(trimmed)})`, 'ig'));
+  return parts.map((part, index) =>
+    part.toLowerCase() === trimmed.toLowerCase()
+      ? <mark key={`${part}-${index}`} className="search-highlight">{part}</mark>
+      : part
+  );
+};
+
+const rankSections = (query, sections) => {
+  const normalized = query.trim().toLowerCase();
+  const actorFirst = normalized.length > 0 && sections.some((section) =>
+    section.key === 'actors' && section.items.some((item) => item.title?.toLowerCase() === normalized)
+  );
+
+  if (actorFirst) {
+    return [
+      sections.find((section) => section.key === 'actors'),
+      sections.find((section) => section.key === 'movies'),
+      sections.find((section) => section.key === 'cinemas'),
+    ].filter(Boolean);
+  }
+
+  return sections;
+};
 
 const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
@@ -29,6 +61,8 @@ const SearchResultsPage = () => {
     { key: 'actors', label: 'Diễn viên', icon: User, items: results?.actors || [] },
   ];
 
+  const orderedSections = useMemo(() => rankSections(query, sections), [query, results]);
+
   return (
     <div className="search-results-page">
       <PageMeta
@@ -47,7 +81,7 @@ const SearchResultsPage = () => {
           <p className="search-results-empty">Không tìm thấy kết quả phù hợp.</p>
         )}
 
-        {sections.map((section) => {
+        {orderedSections.map((section) => {
           if (!section.items.length) return null;
           const Icon = section.icon;
           return (
@@ -60,8 +94,8 @@ const SearchResultsPage = () => {
                 {section.items.map((item) => (
                   <Link key={`${section.key}-${item.uuid}`} to={item.href} className="search-results-card">
                     <div>
-                      <p className="search-results-card-title">{item.title}</p>
-                      {item.subtitle && <p className="search-results-card-sub">{item.subtitle}</p>}
+                      <p className="search-results-card-title">{highlightMatches(item.title, query)}</p>
+                      {item.subtitle && <p className="search-results-card-sub">{highlightMatches(item.subtitle, query)}</p>}
                     </div>
                   </Link>
                 ))}
