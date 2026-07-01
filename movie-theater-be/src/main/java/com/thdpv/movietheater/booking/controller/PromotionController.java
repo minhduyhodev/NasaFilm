@@ -59,7 +59,7 @@ public class PromotionController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("code") String code) {
 
-        String trimmedCode = code != null ? code.trim() : "";
+        String trimmedCode = code != null ? code.trim().toUpperCase() : "";
         if (trimmedCode.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(new PromotionValidateResponse(
                     false, "", "", null, "", "Mã khuyến mãi không được trống")));

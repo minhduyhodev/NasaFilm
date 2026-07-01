@@ -29,7 +29,7 @@ public class Actor {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)

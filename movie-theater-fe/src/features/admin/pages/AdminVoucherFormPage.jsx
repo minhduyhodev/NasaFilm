@@ -17,10 +17,7 @@ const AdminVoucherFormPage = () => {
   const { voucherId } = useParams();
   const isEditing = Boolean(voucherId);
 
-  const [isLoading, setIsLoading] = useState(isEditing);
-  const [isSaving, setIsSaving] = useState(false);
-  const [pointsToCashValue, setPointsToCashValue] = useState(() => getPointsToCashValue());
-  const [form, setForm] = useState({
+  const defaultForm = {
     code: '',
     discountType: 'PERCENTAGE',
     discountValue: '',
@@ -28,7 +25,13 @@ const AdminVoucherFormPage = () => {
     startDate: '',
     endDate: '',
     status: 'ACTIVE',
-  });
+  };
+
+  const [isLoading, setIsLoading] = useState(isEditing);
+  const [isSaving, setIsSaving] = useState(false);
+  const [pointsToCashValue, setPointsToCashValue] = useState(() => getPointsToCashValue());
+  const [form, setForm] = useState(defaultForm);
+  const [initialForm, setInitialForm] = useState(defaultForm);
 
   useEffect(() => {
     systemConfigService.getConfig()
@@ -50,7 +53,7 @@ const AdminVoucherFormPage = () => {
           navigate('/admin/vouchers');
           return;
         }
-        setForm({
+        const loadedForm = {
           code: voucher.code || '',
           discountType: voucher.discountType || 'PERCENTAGE',
           discountValue:
@@ -61,7 +64,9 @@ const AdminVoucherFormPage = () => {
           startDate: formatDateForInput(voucher.startDate),
           endDate: formatDateForInput(voucher.endDate),
           status: voucher.status || 'ACTIVE',
-        });
+        };
+        setForm(loadedForm);
+        setInitialForm(loadedForm);
       } catch (err) {
         notificationService.error('Khong the tai voucher');
         navigate('/admin/vouchers');
@@ -72,6 +77,17 @@ const AdminVoucherFormPage = () => {
     load();
     return () => { isMounted = false; };
   }, [voucherId, isEditing, navigate]);
+
+  const isDirty = initialForm && JSON.stringify(form) !== JSON.stringify(initialForm);
+
+  const handleCancel = () => {
+    if (isDirty) {
+      if (!window.confirm('Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.')) {
+        return;
+      }
+    }
+    navigate(isEditing ? `/admin/vouchers/${voucherId}` : '/admin/vouchers');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -146,7 +162,7 @@ const AdminVoucherFormPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
             <div>
               <label className={labelClass}>Ma voucher *</label>
-              <input className={`${inputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
+              <input className={`${inputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.replace(/\s/g, '').toUpperCase() }))} required />
             </div>
             <div>
               <label className={labelClass}>Loai giam gia *</label>
@@ -193,9 +209,8 @@ const AdminVoucherFormPage = () => {
             </div>
           </div>
         </Section>
-
         <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.06]">
-          <GhostButton type="button" onClick={() => navigate(isEditing ? `/admin/vouchers/${voucherId}` : '/admin/vouchers')}>Huy</GhostButton>
+          <GhostButton type="button" onClick={handleCancel}>Huy</GhostButton>
           <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
             {isEditing ? 'Cap nhat' : 'Tao voucher'}
           </PrimaryButton>

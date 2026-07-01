@@ -23,6 +23,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
@@ -158,9 +160,7 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.MOVIES,
-            key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
+    @Cacheable(value = CacheNames.MOVIES, key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
         Sort resolvedSort = Sort.unsorted();
         if (pageable.getSort().isSorted()) {
@@ -292,8 +292,8 @@ public class MovieService {
         }
         List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
         Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
-        Map<UUID, com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse> reviewStats =
-                movieReviewStatsService.getStatsBatch(uuids);
+        Map<UUID, com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse> reviewStats = movieReviewStatsService
+                .getStatsBatch(uuids);
         return movies.stream()
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie));
@@ -319,9 +319,7 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.UPCOMING_MOVIES,
-            key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = CacheNames.UPCOMING_MOVIES, key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -591,8 +589,12 @@ public class MovieService {
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
             LocalDate releaseDate, String status, String ageRestriction) {
-        movie.setTitle(trim(title));
-        movie.setDescription(trimToNull(description));
+        String cleanTitle = title != null ? Jsoup.clean(title, Safelist.none()).trim() : null;
+        if (cleanTitle == null || cleanTitle.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tên phim không hợp lệ hoặc không được để trống.");
+        }
+        movie.setTitle(cleanTitle);
+        movie.setDescription(description != null ? Jsoup.clean(description, Safelist.none()).trim() : null);
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));

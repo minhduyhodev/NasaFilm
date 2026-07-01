@@ -6,7 +6,7 @@ import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, VOD_VERIFIED_KEY, isLiveTicket } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
@@ -183,7 +183,7 @@ const TicketActivationPage = () => {
         return;
       }
 
-      sessionStorage.setItem(VOD_VERIFIED_KEY(movieId), matched.bookingUuid);
+      setTemporaryVodToken(movieId, matched.bookingUuid);
       invalidateVodStatus(movieId);
       notificationService.success('Xác thực mã vé thành công! Nhấn Play để bắt đầu xem.');
       navigate(getOnlineWatchPath(movieId));

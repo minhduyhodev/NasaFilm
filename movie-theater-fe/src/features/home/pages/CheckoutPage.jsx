@@ -237,7 +237,7 @@ const CheckoutPage = () => {
   };
 
   const handleApplyVoucher = async () => {
-    const code = voucherInput.trim();
+    const code = voucherInput.trim().toUpperCase();
     if (code === '') {
       setDiscount(0);
       setVoucherError('');
@@ -569,7 +569,7 @@ const CheckoutPage = () => {
                     type="text" 
                     placeholder="Nhập mã KM (Ví dụ: THDPV50, CINELUXE)"
                     value={voucherInput}
-                    onChange={(e) => setVoucherInput(e.target.value)}
+                    onChange={(e) => setVoucherInput(e.target.value.replace(/\s/g, '').toUpperCase())}
                     className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:outline-none focus:border-red-500/50 text-xs text-white transition-colors uppercase tracking-wider font-bold"
                   />
                   <button 
