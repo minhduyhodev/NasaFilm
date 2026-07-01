@@ -74,6 +74,11 @@
   color: #fff;
 }
 
+.movie-card__status--bigscreen {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #111827;
+}
+
 .movie-card__rating {
   display: inline-flex;
   align-items: center;

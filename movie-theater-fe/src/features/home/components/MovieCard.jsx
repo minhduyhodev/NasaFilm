@@ -55,6 +55,7 @@ const MovieCard = ({
   reviewAverageRating,
   reviewCount,
   releaseDate,
+  bestOnBigScreen = false,
   countries,
   hoverDetails,
 }) => {
@@ -93,6 +94,11 @@ const MovieCard = ({
         </Link>
 
         <div className="movie-card__badges-left">
+          {bestOnBigScreen && (
+            <span className="movie-card__status movie-card__status--bigscreen" title="Khán giả NASA khuyên xem rạp">
+              BIG SCREEN
+            </span>
+          )}
           {statusBadge && (
             <span className={`movie-card__status movie-card__status--${statusBadge.type}`}>
               {statusBadge.label}

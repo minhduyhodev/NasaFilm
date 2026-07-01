@@ -26,6 +26,7 @@ public class MovieListResponse {
     private Double rating;
     private Double reviewAverageRating;
     private Long reviewCount;
+    private Boolean bestOnBigScreen;
     private OffsetDateTime nextShowtimeStart;
 
     public MovieListResponse() {
@@ -197,6 +198,14 @@ public class MovieListResponse {
 
     public void setReviewCount(Long reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    public Boolean getBestOnBigScreen() {
+        return bestOnBigScreen;
+    }
+
+    public void setBestOnBigScreen(Boolean bestOnBigScreen) {
+        this.bestOnBigScreen = bestOnBigScreen;
     }
 
     public OffsetDateTime getNextShowtimeStart() {

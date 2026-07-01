@@ -270,3 +270,24 @@
 .feedback-banned-check input {
   accent-color: #ef4444;
 }
+
+.feedback-vibe-create {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 120px auto;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.feedback-search--narrow {
+  max-width: 120px;
+}
+
+@media (max-width: 960px) {
+  .feedback-vibe-create {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-search--narrow {
+    max-width: none;
+  }
+}

@@ -37,6 +37,21 @@ class AdminReviewService {
     });
     return response.data.data ?? response.data;
   }
+
+  async getVibeTags() {
+    const response = await authService.api.get('/api/admin/review-vibe-tags');
+    return response.data.data ?? response.data ?? [];
+  }
+
+  async createVibeTag(payload) {
+    const response = await authService.api.post('/api/admin/review-vibe-tags', payload);
+    return response.data.data ?? response.data;
+  }
+
+  async updateVibeTag(uuid, payload) {
+    const response = await authService.api.put(`/api/admin/review-vibe-tags/${uuid}`, payload);
+    return response.data.data ?? response.data;
+  }
 }
 
 export const adminReviewService = new AdminReviewService();

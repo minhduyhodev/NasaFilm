@@ -96,4 +96,40 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
     java.util.List<String> findVibeTagsJsonByMovieUuidAndStatus(
             @Param("movieUuid") UUID movieUuid,
             @Param("status") String status);
+
+    @Query(
+            value = """
+                    select count(*) from movie_review r
+                    where r.movie_uuid = :movieUuid
+                      and r.status = :status
+                      and r.vibe_tags is not null
+                      and r.vibe_tags <> 'null'::jsonb
+                      and jsonb_array_length(r.vibe_tags) > 0
+                    """,
+            nativeQuery = true)
+    long countTaggedVisibleReviews(
+            @Param("movieUuid") UUID movieUuid,
+            @Param("status") String status);
+
+    @Query(
+            value = """
+                    select r.movie_uuid,
+                           count(*) filter (
+                               where r.vibe_tags is not null
+                                 and r.vibe_tags <> 'null'::jsonb
+                                 and jsonb_array_length(r.vibe_tags) > 0
+                           ) as tagged_count,
+                           count(*) filter (
+                               where r.vibe_tags @> cast(:theaterTagJson as jsonb)
+                           ) as theater_tag_count
+                    from movie_review r
+                    where r.movie_uuid in :movieUuids
+                      and r.status = :status
+                    group by r.movie_uuid
+                    """,
+            nativeQuery = true)
+    java.util.List<Object[]> aggregateVibeBadgeByMovieUuids(
+            @Param("movieUuids") Collection<UUID> movieUuids,
+            @Param("status") String status,
+            @Param("theaterTagJson") String theaterTagJson);
 }

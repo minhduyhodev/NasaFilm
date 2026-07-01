@@ -56,6 +56,7 @@ public class MovieReviewService {
     private final MovieReviewStatsService movieReviewStatsService;
     private final MovieReviewCacheEvictor movieReviewCacheEvictor;
     private final ReviewActionRateLimiter reviewActionRateLimiter;
+    private final ReviewVibeTagService reviewVibeTagService;
 
     public MovieReviewService(
             MovieReviewRepository movieReviewRepository,
@@ -66,7 +67,8 @@ public class MovieReviewService {
             SystemConfigService systemConfigService,
             MovieReviewStatsService movieReviewStatsService,
             MovieReviewCacheEvictor movieReviewCacheEvictor,
-            ReviewActionRateLimiter reviewActionRateLimiter) {
+            ReviewActionRateLimiter reviewActionRateLimiter,
+            ReviewVibeTagService reviewVibeTagService) {
         this.movieReviewRepository = movieReviewRepository;
         this.movieReviewReportRepository = movieReviewReportRepository;
         this.movieRepository = movieRepository;
@@ -76,6 +78,7 @@ public class MovieReviewService {
         this.movieReviewStatsService = movieReviewStatsService;
         this.movieReviewCacheEvictor = movieReviewCacheEvictor;
         this.reviewActionRateLimiter = reviewActionRateLimiter;
+        this.reviewVibeTagService = reviewVibeTagService;
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +90,7 @@ public class MovieReviewService {
             String vibeTag) {
         ensureMovieVisible(movieUuid);
         Pageable safePageable = sanitizeReviewPageable(pageable);
-        String safeVibeTag = ReviewVibeTagUtil.validateFilterTag(vibeTag);
+        String safeVibeTag = reviewVibeTagService.validateFilterCode(vibeTag);
 
         Page<MovieReview> reviewPage;
         if (safeVibeTag == null) {
@@ -125,8 +128,10 @@ public class MovieReviewService {
 
         Map<String, Long> vibeTagCounts = buildVibeTagCounts(movieUuid);
         summary.setVibeTagCounts(vibeTagCounts);
+        long taggedReviewCount = movieReviewRepository.countTaggedVisibleReviews(
+                movieUuid, MovieReviewStatus.VISIBLE.name());
         summary.setBestOnBigScreen(
-                ReviewVibeTagUtil.isBestOnBigScreen(stats.getTotalReviews(), vibeTagCounts));
+                ReviewVibeTagUtil.isBestOnBigScreen(taggedReviewCount, vibeTagCounts));
 
         if (currentUserUuid != null) {
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
@@ -160,7 +165,7 @@ public class MovieReviewService {
         assertReviewCooldown(movieUuid, user.getId());
 
         String normalizedComment = normalizeComment(request.getComment());
-        List<String> vibeTags = ReviewVibeTagUtil.normalizeAndValidate(request.getVibeTags());
+        List<String> vibeTags = reviewVibeTagService.normalizeAndValidate(request.getVibeTags());
 
         MovieReview review = new MovieReview();
         review.setMovieUuid(movieUuid);

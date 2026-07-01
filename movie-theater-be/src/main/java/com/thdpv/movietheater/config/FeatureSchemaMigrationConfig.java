@@ -60,6 +60,20 @@ public class FeatureSchemaMigrationConfig {
                     """);
 
             jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS review_vibe_tag (
+                        uuid uuid PRIMARY KEY,
+                        code varchar(64) NOT NULL,
+                        label varchar(120) NOT NULL,
+                        hash varchar(120) NOT NULL,
+                        active boolean NOT NULL DEFAULT true,
+                        display_order integer NOT NULL DEFAULT 0,
+                        created_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_review_vibe_tag_code UNIQUE (code)
+                    )
+                    """);
+
+            jdbc.execute("""
                     ALTER TABLE booking
                     ADD COLUMN IF NOT EXISTS vod_position_seconds integer
                     """);

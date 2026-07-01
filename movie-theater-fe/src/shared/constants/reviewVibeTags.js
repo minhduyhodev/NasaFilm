@@ -15,6 +15,11 @@ const FALLBACK_REVIEW_VIBE_TAGS = [
 let cachedTags = null;
 let inflightRequest = null;
 
+export function clearReviewVibeTagsCache() {
+  cachedTags = null;
+  inflightRequest = null;
+}
+
 export async function loadReviewVibeTags() {
   if (cachedTags) {
     return cachedTags;

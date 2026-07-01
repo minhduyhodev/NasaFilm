@@ -1,10 +1,8 @@
 package com.thdpv.movietheater.movie.util;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,36 +16,9 @@ public final class ReviewVibeTagUtil {
 
     public static final String BEST_ON_BIG_SCREEN_TAG = ReviewVibeTag.DANG_XEM_RAP.getCode();
     public static final double BEST_ON_BIG_SCREEN_THRESHOLD = 0.4;
-    private static final int MAX_TAGS_PER_REVIEW = 3;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private ReviewVibeTagUtil() {
-    }
-
-    public static List<String> normalizeAndValidate(List<String> rawTags) {
-        if (rawTags == null || rawTags.isEmpty()) {
-            return List.of();
-        }
-
-        Set<String> unique = new LinkedHashSet<>();
-        for (String raw : rawTags) {
-            if (raw == null || raw.isBlank()) {
-                continue;
-            }
-            String code = raw.trim().toLowerCase();
-            if (ReviewVibeTag.fromCode(code).isEmpty()) {
-                throw new AppException(ErrorCode.REVIEW_INVALID_VIBE_TAGS, "Vibe tag khong hop le: " + raw);
-            }
-            unique.add(code);
-        }
-
-        if (unique.size() > MAX_TAGS_PER_REVIEW) {
-            throw new AppException(
-                    ErrorCode.REVIEW_INVALID_VIBE_TAGS,
-                    "Chi duoc chon toi da " + MAX_TAGS_PER_REVIEW + " vibe tag");
-        }
-
-        return List.copyOf(unique);
     }
 
     public static String toJsonArrayContainsQuery(String code) {
@@ -101,22 +72,15 @@ public final class ReviewVibeTagUtil {
                         LinkedHashMap::new));
     }
 
-    public static boolean isBestOnBigScreen(long totalReviews, Map<String, Long> vibeTagCounts) {
-        if (totalReviews <= 0 || vibeTagCounts == null) {
+    /**
+     * @param taggedReviewCount reviews that have at least one vibe tag
+     */
+    public static boolean isBestOnBigScreen(long taggedReviewCount, Map<String, Long> vibeTagCounts) {
+        if (taggedReviewCount <= 0 || vibeTagCounts == null) {
             return false;
         }
         long theaterTagCount = vibeTagCounts.getOrDefault(BEST_ON_BIG_SCREEN_TAG, 0L);
-        return theaterTagCount > 0 && ((double) theaterTagCount / totalReviews) >= BEST_ON_BIG_SCREEN_THRESHOLD;
-    }
-
-    public static String validateFilterTag(String vibeTag) {
-        if (vibeTag == null || vibeTag.isBlank()) {
-            return null;
-        }
-        String code = vibeTag.trim().toLowerCase();
-        if (ReviewVibeTag.fromCode(code).isEmpty()) {
-            throw new AppException(ErrorCode.REVIEW_INVALID_VIBE_TAGS, "Vibe tag loc khong hop le");
-        }
-        return code;
+        return theaterTagCount > 0
+                && ((double) theaterTagCount / taggedReviewCount) >= BEST_ON_BIG_SCREEN_THRESHOLD;
     }
 }

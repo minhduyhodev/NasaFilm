@@ -294,6 +294,7 @@ public class MovieService {
         Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
         Map<UUID, com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse> reviewStats =
                 movieReviewStatsService.getStatsBatch(uuids);
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(uuids);
         return movies.stream()
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie));
@@ -302,6 +303,7 @@ public class MovieService {
                         response.setReviewAverageRating(stats.getAverageRating());
                         response.setReviewCount(stats.getTotalReviews());
                     }
+                    response.setBestOnBigScreen(bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -352,12 +354,16 @@ public class MovieService {
                         row -> (OffsetDateTime) row[1],
                         (a, b) -> a));
 
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(pageUuids);
+
         List<MovieListResponse> pageContent = pageUuids.stream()
                 .map(movieByUuid::get)
                 .filter(Objects::nonNull)
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(movie);
                     response.setNextShowtimeStart(nextStarts.get(movie.getUuid()));
+                    response.setBestOnBigScreen(
+                            bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
                     return response;
                 })
                 .collect(Collectors.toList());

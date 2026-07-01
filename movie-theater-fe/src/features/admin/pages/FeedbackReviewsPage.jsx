@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { getVibeTagLabel, loadReviewVibeTags } from '../../../shared/constants/reviewVibeTags';
+import { getVibeTagLabel, loadReviewVibeTags, clearReviewVibeTagsCache } from '../../../shared/constants/reviewVibeTags';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -68,11 +68,33 @@ const FeedbackReviewsPage = () => {
   const [isBannedWordsLoading, setIsBannedWordsLoading] = useState(false);
   const [isSavingBannedWords, setIsSavingBannedWords] = useState(false);
   const [vibeTagCatalog, setVibeTagCatalog] = useState([]);
+  const [adminVibeTags, setAdminVibeTags] = useState([]);
+  const [isVibeTagsLoading, setIsVibeTagsLoading] = useState(false);
+  const [isSavingVibeTag, setIsSavingVibeTag] = useState(false);
+  const [newVibeTag, setNewVibeTag] = useState({
+    code: '',
+    label: '',
+    hash: '',
+    displayOrder: 0,
+  });
 
   useEffect(() => {
     loadReviewVibeTags()
       .then((tags) => setVibeTagCatalog(tags))
       .catch(() => setVibeTagCatalog([]));
+  }, []);
+
+  const loadAdminVibeTags = useCallback(async () => {
+    setIsVibeTagsLoading(true);
+    try {
+      const tags = await adminReviewService.getVibeTags();
+      setAdminVibeTags(Array.isArray(tags) ? tags : []);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể tải danh sách vibe tag.');
+      setAdminVibeTags([]);
+    } finally {
+      setIsVibeTagsLoading(false);
+    }
   }, []);
 
   const loadReports = useCallback(async () => {
@@ -121,6 +143,12 @@ const FeedbackReviewsPage = () => {
       loadBannedWords();
     }
   }, [activeTab, loadBannedWords]);
+
+  useEffect(() => {
+    if (activeTab === 'vibe-tags') {
+      loadAdminVibeTags();
+    }
+  }, [activeTab, loadAdminVibeTags]);
 
   useRealtimeTopic(
     activeTab === 'reports' ? REALTIME_TOPICS.ADMIN_REVIEW_REPORTS : null,
@@ -204,14 +232,72 @@ const FeedbackReviewsPage = () => {
     }
   };
 
+  const handleCreateVibeTag = async () => {
+    const code = newVibeTag.code.trim().toLowerCase();
+    const label = newVibeTag.label.trim();
+    const hash = newVibeTag.hash.trim();
+    if (!code || !label || !hash) {
+      notificationService.warning('Vui lòng nhập đủ mã, nhãn và hash.');
+      return;
+    }
+    setIsSavingVibeTag(true);
+    try {
+      await adminReviewService.createVibeTag({
+        code,
+        label,
+        hash,
+        displayOrder: Number(newVibeTag.displayOrder) || 0,
+      });
+      clearReviewVibeTagsCache();
+      setNewVibeTag({ code: '', label: '', hash: '', displayOrder: 0 });
+      notificationService.success('Đã thêm vibe tag.');
+      await loadAdminVibeTags();
+      const tags = await loadReviewVibeTags();
+      setVibeTagCatalog(tags);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể thêm vibe tag.');
+    } finally {
+      setIsSavingVibeTag(false);
+    }
+  };
+
+  const handleUpdateVibeTag = async (tag) => {
+    setIsSavingVibeTag(true);
+    try {
+      await adminReviewService.updateVibeTag(tag.uuid, {
+        label: tag.label,
+        hash: tag.hash,
+        active: tag.active,
+        displayOrder: Number(tag.displayOrder) || 0,
+      });
+      clearReviewVibeTagsCache();
+      notificationService.success('Đã cập nhật vibe tag.');
+      await loadAdminVibeTags();
+      const tags = await loadReviewVibeTags();
+      setVibeTagCatalog(tags);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể cập nhật vibe tag.');
+    } finally {
+      setIsSavingVibeTag(false);
+    }
+  };
+
+  const handleAdminVibeTagFieldChange = (uuid, field, value) => {
+    setAdminVibeTags((prev) =>
+      prev.map((item) => (item.uuid === uuid ? { ...item, [field]: value } : item)),
+    );
+  };
+
   const refreshCurrentTab = () => {
     if (activeTab === 'reports') loadReports();
-    else loadBannedWords();
+    else if (activeTab === 'banned-words') loadBannedWords();
+    else loadAdminVibeTags();
   };
 
   const isLoading =
     (activeTab === 'reports' && isReportsLoading) ||
-    (activeTab === 'banned-words' && isBannedWordsLoading);
+    (activeTab === 'banned-words' && isBannedWordsLoading) ||
+    (activeTab === 'vibe-tags' && isVibeTagsLoading);
 
   return (
     <AdminPage>
@@ -242,6 +328,13 @@ const FeedbackReviewsPage = () => {
           onClick={() => setActiveTab('banned-words')}
         >
           Từ cấm
+        </button>
+        <button
+          type="button"
+          className={`feedback-tab${activeTab === 'vibe-tags' ? ' feedback-tab--active' : ''}`}
+          onClick={() => setActiveTab('vibe-tags')}
+        >
+          Vibe tag
         </button>
       </div>
 
@@ -438,6 +531,129 @@ const FeedbackReviewsPage = () => {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'vibe-tags' && (
+        <div className="feedback-banned-panel">
+          <div className="feedback-banned-head">
+            <div>
+              <h3 className="feedback-banned-title">Quản lý vibe tag</h3>
+              <p className="feedback-banned-desc">
+                Cấu hình thẻ cảm xúc khách chọn khi đánh giá phim. Tag tắt sẽ không hiển thị khi viết review mới.
+              </p>
+            </div>
+          </div>
+
+          <div className="feedback-vibe-create">
+            <input
+              type="text"
+              className="feedback-search"
+              placeholder="Mã (vd: cam_dong)"
+              value={newVibeTag.code}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, code: e.target.value }))}
+            />
+            <input
+              type="text"
+              className="feedback-search"
+              placeholder="Nhãn hiển thị"
+              value={newVibeTag.label}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, label: e.target.value }))}
+            />
+            <input
+              type="text"
+              className="feedback-search"
+              placeholder="Hash (vd: #cảm_động)"
+              value={newVibeTag.hash}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, hash: e.target.value }))}
+            />
+            <input
+              type="number"
+              className="feedback-search feedback-search--narrow"
+              placeholder="Thứ tự"
+              value={newVibeTag.displayOrder}
+              onChange={(e) => setNewVibeTag((prev) => ({ ...prev, displayOrder: e.target.value }))}
+            />
+            <PrimaryButton type="button" onClick={handleCreateVibeTag} disabled={isSavingVibeTag}>
+              {isSavingVibeTag ? 'Đang lưu...' : 'Thêm tag'}
+            </PrimaryButton>
+          </div>
+
+          {isVibeTagsLoading ? (
+            <div className="feedback-state">
+              <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
+              <p>Đang tải vibe tag...</p>
+            </div>
+          ) : adminVibeTags.length === 0 ? (
+            <div className="feedback-state">
+              <p>Chưa có vibe tag nào.</p>
+            </div>
+          ) : (
+            <div className="feedback-table-wrap">
+              <table className="feedback-table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Nhãn</th>
+                    <th>Hash</th>
+                    <th>Thứ tự</th>
+                    <th>Active</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminVibeTags.map((tag) => (
+                    <tr key={tag.uuid}>
+                      <td><code>{tag.code}</code></td>
+                      <td>
+                        <input
+                          type="text"
+                          className="feedback-search"
+                          value={tag.label}
+                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'label', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="feedback-search"
+                          value={tag.hash}
+                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'hash', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="feedback-search feedback-search--narrow"
+                          value={tag.displayOrder}
+                          onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'displayOrder', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <label className="feedback-banned-check">
+                          <input
+                            type="checkbox"
+                            checked={tag.active}
+                            onChange={(e) => handleAdminVibeTagFieldChange(tag.uuid, 'active', e.target.checked)}
+                          />
+                          <span>{tag.active ? 'Bật' : 'Tắt'}</span>
+                        </label>
+                      </td>
+                      <td>
+                        <GhostButton
+                          type="button"
+                          disabled={isSavingVibeTag}
+                          onClick={() => handleUpdateVibeTag(tag)}
+                        >
+                          Lưu
+                        </GhostButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
