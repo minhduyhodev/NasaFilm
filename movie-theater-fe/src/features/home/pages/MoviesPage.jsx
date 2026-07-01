@@ -74,10 +74,12 @@ const MoviesPage = () => {
   useEffect(() => {
     const genreUuid = searchParams.get('genre');
     const countryUuid = searchParams.get('country');
-    if (genreUuid || countryUuid) {
+    const actorUuid = searchParams.get('actor');
+    if (genreUuid || countryUuid || actorUuid) {
       applyUrlFilters({
         genre: genreUuid || null,
         country: countryUuid || null,
+        actor: actorUuid || null,
       });
     }
   }, [searchParams, applyUrlFilters]);
