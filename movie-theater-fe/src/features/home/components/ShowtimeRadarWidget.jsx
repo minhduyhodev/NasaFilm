@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, LogIn, Radar, RefreshCw, Settings2 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
-import useShowtimeRadar from '../hooks/useShowtimeRadar';
+import { useShowtimeRadarWidget } from '../hooks/useShowtimeRadarQuery';
 import ShowtimeRadarSuggestionsList from './ShowtimeRadarSuggestionsList';
 import './ShowtimeRadarWidget.css';
 import './ProfilePreferencesTab.css';
@@ -19,7 +19,7 @@ const ShowtimeRadarWidget = () => {
     suggestions,
     emptyMessage,
     refreshSuggestions,
-  } = useShowtimeRadar();
+  } = useShowtimeRadarWidget();
 
   if (!isAuthenticated) {
     return (

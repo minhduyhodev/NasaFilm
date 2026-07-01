@@ -17,6 +17,4 @@ public interface ShowtimeRadarPreferenceRepository extends JpaRepository<Showtim
     Optional<ShowtimeRadarPreference> findByUserUuid(UUID userUuid);
 
     List<ShowtimeRadarPreference> findByEnabledTrueAndDeletedAtIsNull();
-
-    List<ShowtimeRadarPreference> findByDeletedAtIsNullOrderByUpdatedAtDesc();
 }

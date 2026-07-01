@@ -1,7 +1,5 @@
 package com.thdpv.movietheater.radar.controller;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.radar.dto.request.UpdateShowtimeRadarRequest;
 import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarPreferenceResponse;
-import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarSuggestionResponse;
+import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarScanResponse;
 import com.thdpv.movietheater.radar.service.ShowtimeRadarService;
 
 @RestController
@@ -47,10 +45,10 @@ public class ShowtimeRadarController {
     }
 
     @GetMapping("/suggestions")
-    public ResponseEntity<ApiResponse<List<ShowtimeRadarSuggestionResponse>>> getSuggestions(
+    public ResponseEntity<ApiResponse<ShowtimeRadarScanResponse>> getSuggestions(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
-                showtimeRadarService.getSuggestions(userDetails.getUsername())));
+                showtimeRadarService.getSuggestionsScan(userDetails.getUsername())));
     }
 
     @DeleteMapping

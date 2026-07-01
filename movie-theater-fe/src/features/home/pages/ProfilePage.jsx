@@ -37,6 +37,7 @@ import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
 import ProfilePreferencesTab from "../components/ProfilePreferencesTab";
 import ProfilePreferenceBanner from "../components/ProfilePreferenceBanner";
+import { ShowtimeRadarProvider } from "../context/ShowtimeRadarProvider";
 import Pagination from "../../../shared/components/Pagination";
 import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
@@ -563,6 +564,7 @@ export const ProfilePage = () => {
   }
 
   return (
+    <ShowtimeRadarProvider>
     <>
       <div className="profile-wrapper">
         <div className="profile-container">
@@ -1932,6 +1934,7 @@ export const ProfilePage = () => {
         onClose={() => setRefundTargetUuid(null)}
       />
     </>
+    </ShowtimeRadarProvider>
   );
 };
 

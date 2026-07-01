@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Bell, BellRing } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Bell, BellRing, Radar, LogIn } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { useUpcomingMovies } from '../hooks/useHomeQueries';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -9,7 +9,9 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { getMovieTrailerUrl } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import TrailerModal from './TrailerModal';
-import ShowtimeRadarWidget from './ShowtimeRadarWidget';
+import './ShowtimeRadarWidget.css';
+
+const ShowtimeRadarWidget = React.lazy(() => import('./ShowtimeRadarWidget'));
 import {
   loadMovieReminders,
   saveMovieReminders,
@@ -327,7 +329,45 @@ const Upcoming = () => {
           </div>
         </motion.div>
 
-        <ShowtimeRadarWidget />
+        {isAuthenticated ? (
+          <Suspense
+            fallback={(
+              <aside className="showtime-radar-widget showtime-radar-widget--loading">
+                <div className="showtime-radar-widget__glow" aria-hidden />
+                <p className="showtime-radar-widget__empty">Đang tải Smart Showtime Radar...</p>
+              </aside>
+            )}
+          >
+            <ShowtimeRadarWidget />
+          </Suspense>
+        ) : (
+          <motion.aside
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.55 }}
+            className="showtime-radar-widget showtime-radar-widget--guest"
+          >
+            <div className="showtime-radar-widget__glow" aria-hidden />
+            <div className="showtime-radar-widget__header">
+              <div className="showtime-radar-widget__title-row">
+                <Radar className="h-5 w-5 text-sky-400" />
+                <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
+              </div>
+              <p className="showtime-radar-widget__subtitle">
+                Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="showtime-radar-widget__login-btn"
+            >
+              <LogIn className="h-4 w-4" />
+              Đăng nhập để xem Radar
+            </button>
+          </motion.aside>
+        )}
       </section>
 
       <TrailerModal

@@ -124,6 +124,11 @@ public class FeatureSchemaMigrationConfig {
             ensureSearchVector("movie", "title", "description");
             ensureSearchVector("cinema", "name", "address");
             ensureSearchVector("actor", "full_name", null);
+
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_showtime_status_start_time
+                    ON showtime (status, start_time)
+                    """);
         }
 
         private void ensureSearchVector(String table, String primaryCol, String secondaryCol) {

@@ -33,7 +33,6 @@ const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
 const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
-const ShowtimeRadarPreferencesPage = lazy(() => import("../pages/ShowtimeRadarPreferencesPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -91,7 +90,6 @@ export const AdminRoutes = () => {
             element={<AdminCinemaDetailPage />}
           />
           <Route path="users" element={<UsersPage />} />
-          <Route path="showtime-radar-preferences" element={<ShowtimeRadarPreferencesPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
           <Route path="vouchers/new" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId/edit" element={<Navigate to="/admin/vouchers" replace />} />

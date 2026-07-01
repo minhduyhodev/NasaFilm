@@ -13,7 +13,14 @@ export const showtimeRadarService = {
 
   async getSuggestions() {
     const response = await authService.api.get('/api/user/showtime-radar/suggestions');
-    return response.data.data ?? response.data ?? [];
+    const data = response.data.data ?? response.data ?? {};
+    if (Array.isArray(data)) {
+      return { suggestions: data, upcomingShowtimeCount: 0 };
+    }
+    return {
+      suggestions: data.suggestions ?? [],
+      upcomingShowtimeCount: data.upcomingShowtimeCount ?? 0,
+    };
   },
 
   async deletePreference() {

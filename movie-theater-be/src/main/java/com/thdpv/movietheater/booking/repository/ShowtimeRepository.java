@@ -204,18 +204,28 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                    st.movie_uuid,
                    st.cinema_room_uuid,
                    st.start_time,
-                   COALESCE(
-                     NULLIF(cr.capacity, 0),
-                     (SELECT COUNT(*) FROM seat s
-                      WHERE s.cinema_room_uuid = cr.uuid AND s.is_active = true)
-                   ) AS capacity,
-                   (SELECT COUNT(*) FROM booking_seat bs WHERE bs.showtime_uuid = st.uuid) AS booked,
-                   (SELECT COUNT(DISTINCT sl.seat_uuid)
-                    FROM seat_locked sl
-                    WHERE sl.showtime_uuid = st.uuid
-                      AND sl.expired_at > :now) AS locked
+                   COALESCE(NULLIF(cr.capacity, 0), seat_counts.active_seats, 0) AS capacity,
+                   COALESCE(booked_counts.booked, 0) AS booked,
+                   COALESCE(locked_counts.locked, 0) AS locked
             FROM showtime st
             JOIN cinema_room cr ON cr.uuid = st.cinema_room_uuid
+            LEFT JOIN (
+                SELECT s.cinema_room_uuid, COUNT(*) AS active_seats
+                FROM seat s
+                WHERE s.is_active = true
+                GROUP BY s.cinema_room_uuid
+            ) seat_counts ON seat_counts.cinema_room_uuid = cr.uuid
+            LEFT JOIN (
+                SELECT bs.showtime_uuid, COUNT(*) AS booked
+                FROM booking_seat bs
+                GROUP BY bs.showtime_uuid
+            ) booked_counts ON booked_counts.showtime_uuid = st.uuid
+            LEFT JOIN (
+                SELECT sl.showtime_uuid, COUNT(DISTINCT sl.seat_uuid) AS locked
+                FROM seat_locked sl
+                WHERE sl.expired_at > :now
+                GROUP BY sl.showtime_uuid
+            ) locked_counts ON locked_counts.showtime_uuid = st.uuid
             WHERE st.status IN ('OPEN_FOR_BOOKING', 'SCHEDULED')
               AND st.start_time > :now
               AND st.start_time < :windowEnd

@@ -1,11 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Clapperboard, Loader2 } from 'lucide-react';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
-import useShowtimeRadar from '../hooks/useShowtimeRadar';
+import { useShowtimeRadar } from '../context/ShowtimeRadarProvider';
+
+const VISIBLE_CHIP_LIMIT = 6;
 
 const ProfilePreferenceBanner = () => {
   const { data: filterOptions } = useMovieFilterOptions();
   const genres = filterOptions?.genres ?? [];
+  const [expanded, setExpanded] = useState(false);
   const {
     loading,
     savedSelectedGenres,
@@ -17,6 +20,12 @@ const ProfilePreferenceBanner = () => {
       .filter(Boolean),
     [genres, savedSelectedGenres],
   );
+
+  const hasOverflow = selectedGenreNames.length > VISIBLE_CHIP_LIMIT;
+  const visibleNames = expanded
+    ? selectedGenreNames
+    : selectedGenreNames.slice(0, VISIBLE_CHIP_LIMIT);
+  const hiddenCount = selectedGenreNames.length - VISIBLE_CHIP_LIMIT;
 
   if (loading) {
     return (
@@ -33,17 +42,43 @@ const ProfilePreferenceBanner = () => {
 
   return (
     <div className="profile-preference-banner">
-      <div className="profile-preference-banner__label">
-        <Clapperboard size={12} className="text-amber-500" />
-        <span>Sở thích xem phim</span>
+      <div className="profile-preference-banner__label-row">
+        <div className="profile-preference-banner__label">
+          <Clapperboard size={12} className="text-amber-500" />
+          <span>Sở thích xem phim</span>
+        </div>
+        <span className="profile-preference-banner__count" title={`${selectedGenreNames.length} thể loại`}>
+          {selectedGenreNames.length}
+        </span>
       </div>
-      <div className="profile-preference-banner__chips">
-        {selectedGenreNames.map((name) => (
+      <div className={`profile-preference-banner__chips${expanded ? ' is-expanded' : ''}`}>
+        {visibleNames.map((name) => (
           <span key={name} className="profile-preference-banner__chip">
             {name}
           </span>
         ))}
+        {!expanded && hasOverflow && (
+          <button
+            type="button"
+            className="profile-preference-banner__chip profile-preference-banner__chip--more"
+            onClick={() => setExpanded(true)}
+            aria-expanded={false}
+            aria-label={`Xem thêm ${hiddenCount} thể loại`}
+          >
+            +{hiddenCount}
+          </button>
+        )}
       </div>
+      {expanded && hasOverflow && (
+        <button
+          type="button"
+          className="profile-preference-banner__toggle"
+          onClick={() => setExpanded(false)}
+          aria-expanded
+        >
+          Thu gọn
+        </button>
+      )}
     </div>
   );
 };

@@ -1,11 +1,15 @@
 package com.thdpv.movietheater.radar.service;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -23,13 +27,15 @@ import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
-import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.service.MovieService;
 import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.radar.dto.request.UpdateShowtimeRadarRequest;
 import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarPreferenceResponse;
+import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarScanResponse;
 import com.thdpv.movietheater.radar.dto.response.ShowtimeRadarSuggestionResponse;
 import com.thdpv.movietheater.radar.entity.ShowtimeRadarAlert;
 import com.thdpv.movietheater.radar.entity.ShowtimeRadarPreference;
@@ -51,24 +57,28 @@ public class ShowtimeRadarService {
     private static final int MAX_SUGGESTIONS = 5;
     private static final int MAX_NOTIFICATIONS_PER_USER = 3;
     private static final int MIN_HEAT_SCORE = 25;
+    private static final Duration RADAR_CONTEXT_CACHE_TTL = Duration.ofMinutes(3);
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final ShowtimeRadarPreferenceRepository preferenceRepository;
     private final ShowtimeRadarAlertRepository alertRepository;
     private final ShowtimeRepository showtimeRepository;
     private final MovieRepository movieRepository;
-    private final GenreRepository genreRepository;
+    private final MovieService movieService;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final UserFavoriteRepository userFavoriteRepository;
     private final UserRepository userRepository;
     private final UserNotificationService userNotificationService;
+
+    private volatile RadarContext cachedRadarContext;
+    private volatile OffsetDateTime cachedRadarContextAt;
 
     public ShowtimeRadarService(
             ShowtimeRadarPreferenceRepository preferenceRepository,
             ShowtimeRadarAlertRepository alertRepository,
             ShowtimeRepository showtimeRepository,
             MovieRepository movieRepository,
-            GenreRepository genreRepository,
+            MovieService movieService,
             CinemaRoomRepository cinemaRoomRepository,
             UserFavoriteRepository userFavoriteRepository,
             UserRepository userRepository,
@@ -77,7 +87,7 @@ public class ShowtimeRadarService {
         this.alertRepository = alertRepository;
         this.showtimeRepository = showtimeRepository;
         this.movieRepository = movieRepository;
-        this.genreRepository = genreRepository;
+        this.movieService = movieService;
         this.cinemaRoomRepository = cinemaRoomRepository;
         this.userFavoriteRepository = userFavoriteRepository;
         this.userRepository = userRepository;
@@ -91,7 +101,7 @@ public class ShowtimeRadarService {
                 .orElseGet(() -> defaultPreference(userUuid));
         RadarContext context = loadRadarContext();
         List<ShowtimeRadarSuggestionResponse> suggestions = buildSuggestions(
-                userUuid, preference, context, false, true);
+                userUuid, preference, context, false, true, null, null);
         return toResponse(preference, suggestions, context.upcomingShowtimeCount());
     }
 
@@ -127,16 +137,12 @@ public class ShowtimeRadarService {
             preference.setIncludeFavorites(request.getIncludeFavorites());
         }
         preference.setUpdatedAt(OffsetDateTime.now());
-        ShowtimeRadarPreference saved = preferenceRepository.saveAndFlush(preference);
-        log.info(
-                "Saved showtime radar preference userUuid={} enabled={} genreCount={}",
-                userUuid,
-                saved.isEnabled(),
-                ShowtimeRadarGenreCodec.decode(saved.getGenreUuids()).size());
+        preferenceRepository.save(preference);
 
+        invalidateRadarContextCache();
         RadarContext context = loadRadarContext();
         List<ShowtimeRadarSuggestionResponse> suggestions = buildSuggestions(
-                userUuid, preference, context, false, true);
+                userUuid, preference, context, false, true, null, null);
         return toResponse(preference, suggestions, context.upcomingShowtimeCount());
     }
 
@@ -163,11 +169,22 @@ public class ShowtimeRadarService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShowtimeRadarSuggestionResponse> getSuggestions(String userEmail) {
+    public ShowtimeRadarScanResponse getSuggestionsScan(String userEmail) {
         UUID userUuid = resolveUserUuid(userEmail);
         ShowtimeRadarPreference preference = preferenceRepository.findByUserUuidAndDeletedAtIsNull(userUuid)
                 .orElseGet(() -> defaultPreference(userUuid));
-        return buildSuggestions(userUuid, preference, false, true);
+        RadarContext context = loadRadarContext();
+        List<ShowtimeRadarSuggestionResponse> suggestions = buildSuggestions(
+                userUuid, preference, context, false, true, null, null);
+        ShowtimeRadarScanResponse response = new ShowtimeRadarScanResponse();
+        response.setSuggestions(suggestions);
+        response.setUpcomingShowtimeCount(context.upcomingShowtimeCount());
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShowtimeRadarSuggestionResponse> getSuggestions(String userEmail) {
+        return getSuggestionsScan(userEmail).getSuggestions();
     }
 
     @Transactional
@@ -182,17 +199,26 @@ public class ShowtimeRadarService {
         RadarContext context = loadRadarContext();
         int sentCount = 0;
 
+        Set<UUID> userUuids = enabledPreferences.stream()
+                .map(ShowtimeRadarPreference::getUserUuid)
+                .collect(Collectors.toSet());
+        Map<UUID, Set<UUID>> favoritesByUser = loadFavoriteMovieUuidsByUsers(userUuids);
+        Map<UUID, Set<UUID>> notifiedByUser = loadNotifiedShowtimeUuidsByUsers(userUuids);
+
         for (ShowtimeRadarPreference preference : enabledPreferences) {
+            UUID userUuid = preference.getUserUuid();
             List<ShowtimeRadarSuggestionResponse> suggestions = buildSuggestions(
-                    preference.getUserUuid(), preference, context, true, false);
+                    userUuid,
+                    preference,
+                    context,
+                    true,
+                    false,
+                    favoritesByUser.getOrDefault(userUuid, Set.of()),
+                    notifiedByUser.getOrDefault(userUuid, Set.of()));
             int sentForUser = 0;
             for (ShowtimeRadarSuggestionResponse suggestion : suggestions) {
                 if (sentForUser >= MAX_NOTIFICATIONS_PER_USER) {
                     break;
-                }
-                if (alertRepository.existsByUserUuidAndShowtimeUuidAndDeletedAtIsNull(
-                        preference.getUserUuid(), suggestion.getShowtimeUuid())) {
-                    continue;
                 }
 
                 String timeLabel = suggestion.getStartTime() != null
@@ -228,16 +254,13 @@ public class ShowtimeRadarService {
     }
 
     private List<ShowtimeRadarSuggestionResponse> buildSuggestions(
-            UUID userUuid, ShowtimeRadarPreference preference, boolean excludeNotified, boolean previewMode) {
-        return buildSuggestions(userUuid, preference, loadRadarContext(), excludeNotified, previewMode);
-    }
-
-    private List<ShowtimeRadarSuggestionResponse> buildSuggestions(
             UUID userUuid,
             ShowtimeRadarPreference preference,
             RadarContext context,
             boolean excludeNotified,
-            boolean previewMode) {
+            boolean previewMode,
+            Set<UUID> preloadedFavoriteMovieUuids,
+            Set<UUID> preloadedNotifiedShowtimeUuids) {
         if (!previewMode && !preference.isEnabled()) {
             return List.of();
         }
@@ -247,15 +270,21 @@ public class ShowtimeRadarService {
         }
 
         List<UUID> selectedGenres = ShowtimeRadarGenreCodec.decode(preference.getGenreUuids());
-        Set<UUID> favoriteMovieUuids = loadFavoriteMovieUuids(userUuid);
+        Set<UUID> favoriteMovieUuids = preloadedFavoriteMovieUuids != null
+                ? preloadedFavoriteMovieUuids
+                : loadFavoriteMovieUuids(userUuid);
+        Set<UUID> notifiedShowtimeUuids = excludeNotified
+                ? (preloadedNotifiedShowtimeUuids != null
+                        ? preloadedNotifiedShowtimeUuids
+                        : new HashSet<>(alertRepository.findActiveShowtimeUuidsByUserUuid(userUuid)))
+                : Set.of();
 
         List<ScoredSuggestion> scored = new ArrayList<>();
         for (ShowtimeAvailabilityRow row : context.availabilityRows()) {
             if (row.availableSeats() <= 0) {
                 continue;
             }
-            if (excludeNotified && alertRepository.existsByUserUuidAndShowtimeUuidAndDeletedAtIsNull(
-                    userUuid, row.showtimeUuid())) {
+            if (excludeNotified && notifiedShowtimeUuids.contains(row.showtimeUuid())) {
                 continue;
             }
             if (!ShowtimeRadarGenreCodec.matchesTimeSlot(
@@ -290,6 +319,12 @@ public class ShowtimeRadarService {
         }
 
         return scored.stream()
+                .sorted(Comparator.comparingInt(ScoredSuggestion::heatScore).reversed())
+                .collect(Collectors.toMap(
+                        suggestion -> suggestion.response().getMovieUuid(),
+                        suggestion -> suggestion,
+                        (left, right) -> left.heatScore() >= right.heatScore() ? left : right))
+                .values().stream()
                 .sorted(Comparator.comparingInt(ScoredSuggestion::heatScore).reversed())
                 .limit(MAX_SUGGESTIONS)
                 .map(ScoredSuggestion::response)
@@ -353,6 +388,23 @@ public class ShowtimeRadarService {
 
     private RadarContext loadRadarContext() {
         OffsetDateTime now = OffsetDateTime.now();
+        if (cachedRadarContext != null
+                && cachedRadarContextAt != null
+                && cachedRadarContextAt.plus(RADAR_CONTEXT_CACHE_TTL).isAfter(now)) {
+            return cachedRadarContext;
+        }
+        RadarContext loaded = loadRadarContextUncached(now);
+        cachedRadarContext = loaded;
+        cachedRadarContextAt = now;
+        return loaded;
+    }
+
+    private void invalidateRadarContextCache() {
+        cachedRadarContext = null;
+        cachedRadarContextAt = null;
+    }
+
+    private RadarContext loadRadarContextUncached(OffsetDateTime now) {
         OffsetDateTime windowEnd = now.plusHours(LOOKAHEAD_HOURS);
 
         List<ShowtimeAvailabilityRow> rows = showtimeRepository.findUpcomingAvailabilityRows(now, windowEnd).stream()
@@ -383,8 +435,8 @@ public class ShowtimeRadarService {
                                 CinemaRoom::getUuid,
                                 room -> room.getCinema() != null ? room.getCinema().getName() : "Rạp NASAFILM"));
 
-        Map<UUID, String> genreNamesByUuid = genreRepository.findAll().stream()
-                .collect(Collectors.toMap(genre -> genre.getUuid(), genre -> genre.getName()));
+        Map<UUID, String> genreNamesByUuid = movieService.getAllGenres().stream()
+                .collect(Collectors.toMap(Genre::getUuid, Genre::getName, (left, right) -> left));
 
         int upcomingShowtimeCount = (int) rows.stream()
                 .filter(row -> row.availableSeats() > 0)
@@ -397,6 +449,30 @@ public class ShowtimeRadarService {
         return userFavoriteRepository.findByUserUuidOrderByCreatedAtDesc(userUuid).stream()
                 .map(UserFavorite::getMovieUuid)
                 .collect(Collectors.toSet());
+    }
+
+    private Map<UUID, Set<UUID>> loadFavoriteMovieUuidsByUsers(Collection<UUID> userUuids) {
+        if (userUuids == null || userUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Set<UUID>> result = new HashMap<>();
+        for (UserFavorite favorite : userFavoriteRepository.findByUserUuidIn(userUuids)) {
+            result.computeIfAbsent(favorite.getUserUuid(), ignored -> new HashSet<>())
+                    .add(favorite.getMovieUuid());
+        }
+        return result;
+    }
+
+    private Map<UUID, Set<UUID>> loadNotifiedShowtimeUuidsByUsers(Collection<UUID> userUuids) {
+        if (userUuids == null || userUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Set<UUID>> result = new HashMap<>();
+        for (ShowtimeRadarAlert alert : alertRepository.findActiveByUserUuidIn(userUuids)) {
+            result.computeIfAbsent(alert.getUserUuid(), ignored -> new HashSet<>())
+                    .add(alert.getShowtimeUuid());
+        }
+        return result;
     }
 
     private ShowtimeAvailabilityRow mapAvailabilityRow(Object[] row) {
