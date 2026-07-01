@@ -168,6 +168,20 @@
   align-items: stretch;
 }
 
+.nasa-assistant-slide {
+  opacity: 0;
+  transform: translateY(18px) scale(0.985);
+  animation: nasaCardSlideIn 620ms cubic-bezier(0.2, 0.85, 0.2, 1) forwards;
+}
+
+.nasa-assistant-slide--1 { animation-delay: 60ms; }
+.nasa-assistant-slide--2 { animation-delay: 160ms; }
+.nasa-assistant-slide--3 { animation-delay: 260ms; }
+.nasa-assistant-slide--4 { animation-delay: 360ms; }
+.nasa-assistant-slide--5 { animation-delay: 460ms; }
+.nasa-assistant-slide--6 { animation-delay: 560ms; }
+.nasa-assistant-slide--7 { animation-delay: 660ms; }
+
 .nasa-assistant-sidebar {
   display: grid;
   align-content: start;
@@ -712,6 +726,32 @@
 @keyframes nasaTyping {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
   40% { transform: translateY(-3px); opacity: 1; }
+}
+
+@keyframes nasaCardSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+    filter: blur(4px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nasa-assistant-slide {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {
