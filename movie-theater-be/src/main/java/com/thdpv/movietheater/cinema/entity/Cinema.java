@@ -31,6 +31,15 @@ public class Cinema {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @Column(name = "entrance_note", length = 500)
+    private String entranceNote;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CinemaRoom> cinemaRooms = new ArrayList<>();
 
@@ -74,6 +83,30 @@ public class Cinema {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getEntranceNote() {
+        return entranceNote;
+    }
+
+    public void setEntranceNote(String entranceNote) {
+        this.entranceNote = entranceNote;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public List<CinemaRoom> getCinemaRooms() {

@@ -81,6 +81,9 @@ const AdminCinemaDetailPage = () => {
           <div className="w-full max-w-xs rounded-xl bg-white/[0.03] border border-white/[0.06] p-6 flex flex-col items-center gap-3">
             <MapPin className="w-10 h-10 text-red-500" />
             <p className="text-sm text-gray-400 text-center">{cinema.address}</p>
+            {cinema.entranceNote && (
+              <p className="text-xs text-amber-300/90 text-center">{cinema.entranceNote}</p>
+            )}
             <p className="text-xs text-gray-500">{cinema.phoneNumber}</p>
           </div>
           <div className="w-full max-w-xs flex flex-col gap-2">

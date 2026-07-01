@@ -23,6 +23,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
@@ -45,6 +47,7 @@ import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
 import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
@@ -158,9 +161,7 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.MOVIES,
-            key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
+    @Cacheable(value = CacheNames.MOVIES, key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
         Sort resolvedSort = Sort.unsorted();
         if (pageable.getSort().isSorted()) {
@@ -262,9 +263,10 @@ public class MovieService {
                 bookableSubquery.select(bookableRoot.get("movieUuid"));
                 bookableSubquery.where(
                         cb.greaterThan(bookableRoot.get("startTime"), now),
-                        cb.or(
-                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.OPEN_FOR_BOOKING),
-                                cb.equal(bookableRoot.get("status"), ShowtimeStatus.SOLD_OUT)));
+                        bookableRoot.get("status").in(
+                                ShowtimeStatus.SCHEDULED,
+                                ShowtimeStatus.OPEN_FOR_BOOKING,
+                                ShowtimeStatus.SOLD_OUT));
                 predicates.add(root.get("uuid").in(bookableSubquery));
                 predicates.add(cb.or(
                         cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
@@ -292,8 +294,8 @@ public class MovieService {
         }
         List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
         Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
-        Map<UUID, com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse> reviewStats =
-                movieReviewStatsService.getStatsBatch(uuids);
+        Map<UUID, MovieReviewStatsResponse> reviewStats = movieReviewStatsService.getStatsBatch(uuids);
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(uuids);
         return movies.stream()
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie));
@@ -302,6 +304,7 @@ public class MovieService {
                         response.setReviewAverageRating(stats.getAverageRating());
                         response.setReviewCount(stats.getTotalReviews());
                     }
+                    response.setBestOnBigScreen(bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -319,9 +322,7 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.UPCOMING_MOVIES,
-            key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    @Cacheable(value = CacheNames.UPCOMING_MOVIES, key = "#pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -352,12 +353,16 @@ public class MovieService {
                         row -> (OffsetDateTime) row[1],
                         (a, b) -> a));
 
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(pageUuids);
+
         List<MovieListResponse> pageContent = pageUuids.stream()
                 .map(movieByUuid::get)
                 .filter(Objects::nonNull)
                 .map(movie -> {
                     MovieListResponse response = toMovieListResponse(movie);
                     response.setNextShowtimeStart(nextStarts.get(movie.getUuid()));
+                    response.setBestOnBigScreen(
+                            bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -591,8 +596,12 @@ public class MovieService {
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
             LocalDate releaseDate, String status, String ageRestriction) {
-        movie.setTitle(trim(title));
-        movie.setDescription(trimToNull(description));
+        String cleanTitle = title != null ? Jsoup.clean(title, Safelist.none()).trim() : null;
+        if (cleanTitle == null || cleanTitle.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tên phim không hợp lệ hoặc không được để trống.");
+        }
+        movie.setTitle(cleanTitle);
+        movie.setDescription(description != null ? Jsoup.clean(description, Safelist.none()).trim() : null);
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));

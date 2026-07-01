@@ -24,6 +24,7 @@ const BookingPage = lazy(() => import('../pages/BookingPage'));
 const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
+const PreShowBoardingPage = lazy(() => import('../pages/PreShowBoardingPage'));
 const WatchPage = lazy(() => import('../pages/WatchPage'));
 const RemindersPage = lazy(() => import('../pages/RemindersPage'));
 const WalletPage = lazy(() => import('../pages/WalletPage'));
@@ -106,6 +107,14 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <BookingConfirmedPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="pre-show/boarding/:bookingUuid"
+            element={
+              <ProtectedRoute>
+                <PreShowBoardingPage />
               </ProtectedRoute>
             }
           />

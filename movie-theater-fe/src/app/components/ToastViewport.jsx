@@ -8,7 +8,7 @@ const TOAST_STYLES = {
   },
   error: {
     accent: 'bg-red-500',
-    title: 'Error',
+    title: 'Lỗi',
   },
   warning: {
     accent: 'bg-amber-500',

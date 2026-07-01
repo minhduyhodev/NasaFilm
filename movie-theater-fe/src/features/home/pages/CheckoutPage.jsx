@@ -237,7 +237,7 @@ const CheckoutPage = () => {
   };
 
   const handleApplyVoucher = async () => {
-    const code = voucherInput.trim();
+    const code = voucherInput.trim().toUpperCase();
     if (code === '') {
       setDiscount(0);
       setVoucherError('');
@@ -295,25 +295,32 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       
-      navigate('/booking-confirmed', {
-        state: {
-          bookingUuid: response.bookingUuid,
-          movie: movie,
-          moviePoster: resolvedPoster,
-          movieFormat: isVod ? 'VOD Online' : resolvedFormat,
-          movieRating: resolvedAge,
-          theater: isVod ? 'Trình phát video NASA VOD' : theater,
-          date: isVod ? 'Mọi lúc, mọi nơi' : date,
-          showtime: isVod ? 'Xem trực tuyến' : showtime,
-          selectedSeats: selectedSeats,
-          tickets: response.tickets || [],
-          totalPrice: finalTotal,
-          combos: response.combos || [],
-          isVod: isVod,
-          movieUuid: movieUuid
-        },
-        replace: true
-      });
+      if (isVod) {
+        navigate('/booking-confirmed', {
+          state: {
+            bookingUuid: response.bookingUuid,
+            movie: movie,
+            moviePoster: resolvedPoster,
+            movieFormat: 'VOD Online',
+            movieRating: resolvedAge,
+            theater: 'Trình phát video NASA VOD',
+            date: 'Mọi lúc, mọi nơi',
+            showtime: 'Xem trực tuyến',
+            selectedSeats: selectedSeats,
+            tickets: response.tickets || [],
+            totalPrice: finalTotal,
+            combos: response.combos || [],
+            isVod: true,
+            movieUuid: movieUuid,
+          },
+          replace: true,
+        });
+      } else {
+        navigate(`/pre-show/boarding/${response.bookingUuid}`, {
+          state: { justConfirmed: true },
+          replace: true,
+        });
+      }
     } catch (error) {
       console.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
@@ -569,7 +576,7 @@ const CheckoutPage = () => {
                     type="text" 
                     placeholder="Nhập mã KM (Ví dụ: THDPV50, CINELUXE)"
                     value={voucherInput}
-                    onChange={(e) => setVoucherInput(e.target.value)}
+                    onChange={(e) => setVoucherInput(e.target.value.replace(/\s/g, '').toUpperCase())}
                     className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:outline-none focus:border-red-500/50 text-xs text-white transition-colors uppercase tracking-wider font-bold"
                   />
                   <button 

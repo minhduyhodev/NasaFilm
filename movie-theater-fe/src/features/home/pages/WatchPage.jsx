@@ -14,7 +14,7 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
-import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, VOD_VERIFIED_KEY, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
+import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getTemporaryVodToken, removeTemporaryVodToken, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
@@ -259,7 +259,7 @@ const WatchPage = () => {
           return;
         }
 
-        const verifiedBookingUuid = sessionStorage.getItem(VOD_VERIFIED_KEY(id));
+        const verifiedBookingUuid = getTemporaryVodToken(id);
         if (!verifiedBookingUuid) {
           navigate(getOnlineActivatePath(id), { replace: true });
           return;
@@ -363,7 +363,7 @@ const WatchPage = () => {
     if (isStartingPlay) return;
     setIsStartingPlay(true);
     try {
-      const verifiedBookingUuid = sessionStorage.getItem(VOD_VERIFIED_KEY(id));
+      const verifiedBookingUuid = getTemporaryVodToken(id);
       const playSession = await vodService.activatePlay(id, verifiedBookingUuid || undefined);
       const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movie);
       if (!resolvedStreamUrl?.trim()) {
@@ -374,7 +374,7 @@ const WatchPage = () => {
         movie,
         countdownSettings.lockMultiplier
       );
-      sessionStorage.removeItem(VOD_VERIFIED_KEY(id));
+      removeTemporaryVodToken(id);
       setStreamData({
         ...playSession,
         streamingUrl: resolvedStreamUrl.trim(),

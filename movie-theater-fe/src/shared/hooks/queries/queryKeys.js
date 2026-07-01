@@ -8,4 +8,5 @@ export const queryKeys = {
   adminShowtimes: ['admin', 'showtimes'],
   showtimeRadar: ['user', 'showtime-radar'],
   favorites: ['favorites', 'list'],
+  boardingPass: (bookingUuid) => ['pre-show', 'boarding', bookingUuid],
 };

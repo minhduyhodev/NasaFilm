@@ -8,6 +8,7 @@ public class UserNotificationResponse {
     private UUID uuid;
     private String title;
     private String content;
+    private String actionUrl;
     private String type;
     private boolean read;
     private OffsetDateTime createdAt;
@@ -34,6 +35,14 @@ public class UserNotificationResponse {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getActionUrl() {
+        return actionUrl;
+    }
+
+    public void setActionUrl(String actionUrl) {
+        this.actionUrl = actionUrl;
     }
 
     public String getType() {

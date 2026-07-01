@@ -11,6 +11,27 @@ import {
 export const isOnlineMovie = (movie) =>
   movie?.screeningMode === 'ONLINE_ONLY' || movie?.screeningMode === 'BOTH';
 
+/** Nhãn tuổi ngắn gọn cho badge poster (vd: 0+, 13+, 18+). */
+export const formatAgeRestrictionBadge = (ageRestriction) => {
+  const age = (ageRestriction || '').trim().toUpperCase();
+  if (!age) return '';
+  if (age === 'P') return '0+';
+  if (age === 'K') return '<13';
+  const match = age.match(/T?(\d{1,2})/);
+  if (match) return `${match[1]}+`;
+  return age;
+};
+
+export const resolveAgeRestrictionClass = (ageRestriction, prefix = 'movie-card__age') => {
+  const age = (ageRestriction || '').trim().toUpperCase();
+  if (age === 'P') return `${prefix} ${prefix}--p`;
+  if (age === 'K') return `${prefix} ${prefix}--k`;
+  if (age.includes('18')) return `${prefix} ${prefix}--t18`;
+  if (age.includes('16')) return `${prefix} ${prefix}--t16`;
+  if (age.includes('13')) return `${prefix} ${prefix}--t13`;
+  return `${prefix} ${prefix}--default`;
+};
+
 /** URL poster gốc từ API (chưa qua CDN/proxy). */
 const isPosterImageUrl = (url) => {
   if (!url?.trim()) return false;
@@ -304,6 +325,21 @@ export const maskTicketCode = (code) => {
   return `${str.slice(0, -3)}***`;
 };
 
+/** Hiển thị gọn mã vé trên màn hình xác nhận — tránh tràn ô. */
+export const formatCompactTicketCode = (code) => {
+  if (!code) return '—';
+  const str = String(code).trim();
+  if (str.length <= 14) return maskTicketCode(str);
+  return `${str.slice(0, 8)}···${str.slice(-4)}`;
+};
+
+/** Mã nhiệm vụ ngắn từ booking UUID (đồng bộ boarding pass). */
+export const formatMissionCode = (bookingUuid) => {
+  if (!bookingUuid) return '—';
+  const raw = String(bookingUuid).replace(/-/g, '');
+  return `NF-${raw.slice(0, 8).toUpperCase()}`;
+};
+
 export const formatDisplayTicketCode = (booking) => {
   if (!booking) return '—';
   const raw = booking.id || booking.ticketCode || '';
@@ -360,6 +396,34 @@ export const formatShowtimeDisplay = (value, mode = 'full') => {
 };
 
 export const VOD_VERIFIED_KEY = (movieUuid) => `vodVerified:${movieUuid}`;
+
+export const setTemporaryVodToken = (movieUuid, bookingUuid) => {
+  const item = {
+    value: bookingUuid,
+    expiry: Date.now() + 10 * 60 * 1000 // 10 minutes
+  };
+  localStorage.setItem(VOD_VERIFIED_KEY(movieUuid), JSON.stringify(item));
+};
+
+export const getTemporaryVodToken = (movieUuid) => {
+  const str = localStorage.getItem(VOD_VERIFIED_KEY(movieUuid));
+  if (!str) return null;
+  try {
+    const item = JSON.parse(str);
+    if (Date.now() > item.expiry) {
+      localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+      return null;
+    }
+    return item.value;
+  } catch (e) {
+    localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+    return null;
+  }
+};
+
+export const removeTemporaryVodToken = (movieUuid) => {
+  localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
+};
 
 export const isOnlineBooking = (booking) =>
   booking?.bookingType === 'ONLINE' ||

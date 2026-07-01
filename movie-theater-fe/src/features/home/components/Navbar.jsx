@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play } from 'lucide-react';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play, Film } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -100,10 +100,35 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [openCatalog, setOpenCatalog] = useState(null);
+  const [showBookingDropdown, setShowBookingDropdown] = useState(false);
+  const closeCatalogTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
+    setShowBookingDropdown(false);
   }, [location.pathname, location.search]);
+
+  useEffect(() => () => {
+    if (closeCatalogTimerRef.current) {
+      window.clearTimeout(closeCatalogTimerRef.current);
+    }
+  }, []);
+
+  const openCatalogMenu = (key) => {
+    if (closeCatalogTimerRef.current) {
+      window.clearTimeout(closeCatalogTimerRef.current);
+    }
+    setOpenCatalog(key);
+  };
+
+  const scheduleCloseCatalogMenu = () => {
+    if (closeCatalogTimerRef.current) {
+      window.clearTimeout(closeCatalogTimerRef.current);
+    }
+    closeCatalogTimerRef.current = window.setTimeout(() => {
+      setOpenCatalog(null);
+    }, 120);
+  };
 
   const handleBookingClick = () => {
     if (!user) {
@@ -150,7 +175,10 @@ const Navbar = () => {
                   className={`navbar-nav-link nav-catalog-trigger${isOpen ? ' nav-catalog-trigger--open' : ''}`}
                   aria-expanded={isOpen}
                   aria-haspopup="menu"
-                  onClick={() => setOpenCatalog((prev) => (prev === key ? null : key))}
+                  onMouseEnter={() => openCatalogMenu(key)}
+                  onMouseLeave={scheduleCloseCatalogMenu}
+                  onFocus={() => openCatalogMenu(key)}
+                  onBlur={scheduleCloseCatalogMenu}
                 >
                   {menu.label}
                   <ChevronDown className={`nav-catalog-chevron${isOpen ? ' nav-catalog-chevron--open' : ''}`} aria-hidden />
@@ -166,26 +194,51 @@ const Navbar = () => {
         </div>
 
         <div className="navbar-actions">
-          <button
-            type="button"
-            onClick={handleBookingClick}
-            className="navbar-cta-btn"
-          >
-            <Star className="h-4 w-4 fill-white text-white" />
-            <span>MUA VÉ</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowBookingDropdown(!showBookingDropdown)}
+              className="navbar-cta-btn inline-flex items-center gap-1.5"
+            >
+              <Star className="h-4 w-4 fill-white text-white" />
+              <span>MUA VÉ</span>
+              <ChevronDown className={`h-3 w-3 shrink-0 text-white/80 transition-transform duration-200 ${showBookingDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-          <Link
-            to="/online"
-            onClick={handleOnlineNav}
-            onMouseEnter={prefetchOnlinePage}
-            onFocus={prefetchOnlinePage}
-            onTouchStart={prefetchOnlinePage}
-            className="navbar-cta-btn"
-          >
-            <Play className="h-4 w-4 fill-white text-white" />
-            <span>TRỰC TUYẾN</span>
-          </Link>
+            {showBookingDropdown && (
+              <>
+                {/* Backdrop click-away trigger */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowBookingDropdown(false)} />
+
+                {/* Dropdown list */}
+                <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBookingDropdown(false);
+                      handleBookingClick();
+                    }}
+                    className="flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-all duration-200 text-left"
+                  >
+                    <Film className="h-4 w-4 text-red-500" />
+                    <span>Mua vé tại rạp</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      setShowBookingDropdown(false);
+                      handleOnlineNav(e);
+                    }}
+                    className="flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-all duration-200 text-left"
+                  >
+                    <Play className="h-4 w-4 text-red-500" />
+                    <span>Xem phim trực tuyến</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           <NotificationBell />
 
@@ -206,7 +259,16 @@ const Navbar = () => {
             aria-label="Đóng menu danh mục"
             onClick={() => setOpenCatalog(null)}
           />
-          <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
+          <div
+            onMouseEnter={() => {
+              if (closeCatalogTimerRef.current) {
+                window.clearTimeout(closeCatalogTimerRef.current);
+              }
+            }}
+            onMouseLeave={scheduleCloseCatalogMenu}
+          >
+            <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
+          </div>
         </>
       )}
     </header>
@@ -214,6 +276,7 @@ const Navbar = () => {
 };
 
 const NotificationBell = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
   const anchorRef = useRef(null);
@@ -266,6 +329,14 @@ const NotificationBell = () => {
 
   const handleClearAll = () => {
     clearAll();
+  };
+
+  const handleNotificationClick = (notif) => {
+    if (!notif.actionUrl) {
+      return;
+    }
+    setIsOpen(false);
+    navigate(notif.actionUrl);
   };
 
   const formatTime = (isoString) => {
@@ -339,7 +410,17 @@ const NotificationBell = () => {
                   {notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`notif-item ${notif.read ? 'read' : 'unread'} ${notif.type}`}
+                      className={`notif-item ${notif.read ? 'read' : 'unread'} ${notif.type} ${notif.actionUrl ? 'notif-item--actionable' : ''}`}
+                      role={notif.actionUrl ? 'button' : undefined}
+                      tabIndex={notif.actionUrl ? 0 : undefined}
+                      onClick={() => handleNotificationClick(notif)}
+                      onKeyDown={(event) => {
+                        if (!notif.actionUrl) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleNotificationClick(notif);
+                        }
+                      }}
                     >
                       <div className="notif-item-dot" />
                       <div className="notif-item-body">

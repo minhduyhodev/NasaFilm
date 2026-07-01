@@ -25,6 +25,9 @@ public class UserNotification {
     @Column(name = "content")
     private String content;
 
+    @Column(name = "action_url")
+    private String actionUrl;
+
     @Column(name = "type", nullable = false)
     private String type = "info";
 
@@ -67,6 +70,14 @@ public class UserNotification {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getActionUrl() {
+        return actionUrl;
+    }
+
+    public void setActionUrl(String actionUrl) {
+        this.actionUrl = actionUrl;
     }
 
     public String getType() {

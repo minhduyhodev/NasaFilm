@@ -63,6 +63,9 @@ public class CinemaService {
         cinema.setName(nameTrimmed);
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
+        cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setLatitude(request.getLatitude());
+        cinema.setLongitude(request.getLongitude());
 
         Cinema savedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(savedCinema);
@@ -81,6 +84,9 @@ public class CinemaService {
         cinema.setName(nameTrimmed);
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
+        cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setLatitude(request.getLatitude());
+        cinema.setLongitude(request.getLongitude());
 
         Cinema updatedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(updatedCinema);
@@ -394,12 +400,24 @@ public class CinemaService {
     }
 
     private CinemaResponse toCinemaResponse(Cinema cinema, int totalRooms) {
-        return new CinemaResponse(
+        CinemaResponse response = new CinemaResponse(
                 cinema.getUuid(),
                 cinema.getName(),
                 cinema.getAddress(),
                 cinema.getPhoneNumber(),
                 totalRooms);
+        response.setEntranceNote(cinema.getEntranceNote());
+        response.setLatitude(cinema.getLatitude());
+        response.setLongitude(cinema.getLongitude());
+        return response;
+    }
+
+    private String trimOrNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private CinemaRoomResponse toCinemaRoomResponse(CinemaRoom room) {

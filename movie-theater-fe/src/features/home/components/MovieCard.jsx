@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
+import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl, formatAgeRestrictionBadge, resolveAgeRestrictionClass } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import FavoriteIconButton from './FavoriteIconButton';
 import './MovieCard.css';
@@ -31,13 +31,6 @@ const resolveStatusBadge = ({ releaseDate, reviewAverageRating, reviewCount }) =
   return null;
 };
 
-const resolveAgeClass = (ageRestriction) => {
-  const age = ageRestriction?.toUpperCase() || '';
-  if (age === 'P') return 'movie-card__age--p';
-  if (age.includes('T18') || age.includes('18')) return 'movie-card__age--t18';
-  return 'movie-card__age--default';
-};
-
 const MovieCard = ({
   uuid,
   title,
@@ -55,6 +48,7 @@ const MovieCard = ({
   reviewAverageRating,
   reviewCount,
   releaseDate,
+  bestOnBigScreen = false,
   countries,
   hoverDetails,
 }) => {
@@ -93,6 +87,11 @@ const MovieCard = ({
         </Link>
 
         <div className="movie-card__badges-left">
+          {bestOnBigScreen && (
+            <span className="movie-card__status movie-card__status--bigscreen" title="Khán giả NASA khuyên xem rạp">
+              BIG SCREEN
+            </span>
+          )}
           {statusBadge && (
             <span className={`movie-card__status movie-card__status--${statusBadge.type}`}>
               {statusBadge.label}
@@ -113,8 +112,11 @@ const MovieCard = ({
         )}
 
         {ageRestriction && (
-          <span className={`movie-card__age ${resolveAgeClass(ageRestriction)}`}>
-            {ageRestriction}
+          <span
+            className={resolveAgeRestrictionClass(ageRestriction)}
+            title={ageRestriction}
+          >
+            {formatAgeRestrictionBadge(ageRestriction)}
           </span>
         )}
       </div>
@@ -146,7 +148,7 @@ const MovieCard = ({
         )}
 
         <Link to={linkTarget} className="movie-card__cta">
-          [{actionLabel}]
+          {actionLabel}
         </Link>
       </div>
     </article>
