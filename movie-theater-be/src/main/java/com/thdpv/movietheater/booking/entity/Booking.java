@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
         indexes = {
                 @Index(name = "idx_booking_user", columnList = "user_uuid"),
                 @Index(name = "idx_booking_showtime", columnList = "showtime_uuid"),
+                @Index(name = "idx_booking_staff", columnList = "staff_uuid"),
                 @Index(name = "idx_booking_promotion", columnList = "promotion_uuid"),
                 @Index(name = "idx_booking_movie", columnList = "movie_uuid"),
                 @Index(name = "idx_booking_user_status_created", columnList = "user_uuid, status, created_at"),
@@ -29,6 +30,9 @@ public class Booking {
 
     @Column(name = "user_uuid", nullable = false)
     private UUID userUuid;
+
+    @Column(name = "staff_uuid")
+    private UUID staffUuid;
 
     @Column(name = "showtime_uuid")
     private UUID showtimeUuid;
@@ -119,6 +123,14 @@ public class Booking {
 
     public void setUserUuid(UUID userUuid) {
         this.userUuid = userUuid;
+    }
+
+    public UUID getStaffUuid() {
+        return staffUuid;
+    }
+
+    public void setStaffUuid(UUID staffUuid) {
+        this.staffUuid = staffUuid;
     }
 
     public UUID getShowtimeUuid() {

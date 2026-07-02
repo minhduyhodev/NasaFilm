@@ -60,6 +60,9 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "is_system_account", nullable = false)
+    private Boolean isSystemAccount = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, length = 50)
     private AuthProvider authProvider = AuthProvider.LOCAL;
@@ -146,6 +149,9 @@ public class User {
         if (walletVersion == null) {
             walletVersion = 0L;
         }
+        if (isSystemAccount == null) {
+            isSystemAccount = false;
+        }
     }
 
     public UUID getId() {
@@ -218,6 +224,14 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public Boolean getIsSystemAccount() {
+        return isSystemAccount;
+    }
+
+    public void setIsSystemAccount(Boolean isSystemAccount) {
+        this.isSystemAccount = isSystemAccount;
     }
 
     public AuthProvider getAuthProvider() {
