@@ -20,9 +20,12 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.auth.service.EmailService;
+import com.thdpv.movietheater.auth.service.PasswordResetService;
 import com.thdpv.movietheater.security.JwtUtils;
 import com.thdpv.movietheater.user.dto.AdminCreateUserRequest;
 import com.thdpv.movietheater.user.dto.AdminCreateUserResponse;
+import com.thdpv.movietheater.user.dto.CounterCreateCustomerRequest;
+import com.thdpv.movietheater.user.dto.CounterCreateCustomerResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
 import com.thdpv.movietheater.user.dto.UpdateProfileRequest;
 import com.thdpv.movietheater.user.dto.UserProfileResponse;
@@ -43,6 +46,7 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
+    private final PasswordResetService passwordResetService;
     private final JwtUtils jwtUtils;
 
     @Value("${app.frontend-url:http://localhost:5173}")
@@ -57,6 +61,7 @@ public class UserService {
             UserRoleRepository userRoleRepository,
             RoleRepository roleRepository,
             EmailService emailService,
+            PasswordResetService passwordResetService,
             JwtUtils jwtUtils) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -64,6 +69,7 @@ public class UserService {
         this.userRoleRepository = userRoleRepository;
         this.roleRepository = roleRepository;
         this.emailService = emailService;
+        this.passwordResetService = passwordResetService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -307,6 +313,59 @@ public class UserService {
                 List.of(roleName.name()),
                 message,
                 activationEmailSent);
+    }
+
+    @Transactional
+    public CounterCreateCustomerResponse createCustomer(CounterCreateCustomerRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        String fullName = request.getFullName().trim();
+        String phoneNumber = request.getPhoneNumber().trim();
+
+        return userRepository.findByEmailIgnoreCase(email)
+                .map(existingUser -> new CounterCreateCustomerResponse(
+                        existingUser.getId(),
+                        existingUser.getEmail(),
+                        existingUser.getFullName(),
+                        existingUser.getPhoneNumber(),
+                        existingUser.getStatus(),
+                        "Email đã tồn tại. Vui lòng xác nhận để gán giao dịch vào tài khoản có sẵn.",
+                        true))
+                .orElseGet(() -> createCounterCustomer(email, fullName, phoneNumber));
+    }
+
+    private CounterCreateCustomerResponse createCounterCustomer(String email, String fullName, String phoneNumber) {
+        UUID staffId = resolveCurrentAdminId();
+        String temporaryPassword = generateSecureTemporaryPassword();
+
+        User user = new User();
+        user.setEmail(email);
+        user.setFullName(fullName);
+        user.setPhoneNumber(phoneNumber);
+        user.setPassword(passwordEncoder.encode(temporaryPassword));
+        user.setAuthProvider(AuthProvider.LOCAL);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setCreatedBy(staffId);
+        user.setUpdatedBy(staffId);
+        userRepository.save(user);
+
+        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Role not found"));
+
+        UserRole userRole = new UserRole();
+        userRole.setUser(user);
+        userRole.setRole(customerRole);
+        userRoleRepository.save(userRole);
+
+        passwordResetService.requestPasswordReset(email);
+
+        return new CounterCreateCustomerResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getPhoneNumber(),
+                user.getStatus(),
+                "Tạo tài khoản khách hàng thành công. Email đặt mật khẩu đã được gửi.",
+                false);
     }
 
     private UUID resolveCurrentAdminId() {
