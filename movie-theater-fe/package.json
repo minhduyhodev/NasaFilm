@@ -23,6 +23,8 @@
     "clsx": "^2.0.0",
     "framer-motion": "^10.16.16",
     "hls.js": "^1.6.16",
+    "html5-qrcode": "^2.3.8",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.396.0",
     "postcss": "^8.4.31",
     "qrcode": "^1.5.4",

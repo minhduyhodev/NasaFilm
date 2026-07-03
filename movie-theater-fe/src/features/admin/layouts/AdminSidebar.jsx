@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Rocket,
   Headset,
+  ScanLine,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -305,6 +306,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Calendar,
                 "Quản lý suất chiếu",
                 "text-amber-400",
+              )}
+              {renderLink(
+                "/admin/staff-control",
+                ScanLine,
+                "Mission Control",
+                "text-red-400",
               )}
             </div>
           )}
