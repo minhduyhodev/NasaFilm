@@ -160,8 +160,13 @@ class BookingService {
 
   async checkInTicket(ticketCode) {
     try {
-      const response = await authService.api.put(`/api/bookings/tickets/${ticketCode}/check-in`);
-      return response.data.data ?? response.data;
+      const response = await authService.api.put(
+        `/api/staff/tickets/${encodeURIComponent(ticketCode)}/check-in`,
+      );
+      return {
+        data: response.data.data ?? response.data,
+        message: response.data.message,
+      };
     } catch (error) {
       throw authService.handleError(error);
     }

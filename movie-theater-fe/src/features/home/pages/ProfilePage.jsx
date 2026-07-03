@@ -158,7 +158,7 @@ export const ProfilePage = () => {
   };
 
   useEffect(() => {
-    if (activeTab !== "missions" || !user) {
+    if (!user || (activeTab !== "missions" && activeTab !== "member")) {
       return;
     }
 
@@ -399,9 +399,12 @@ export const ProfilePage = () => {
         ? user.score
         : 0;
   const lifetimePoints =
-    profileData && typeof profileData.lifetimeScore === "number"
+    (typeof missionBoard?.tier?.lifetimeScore === "number"
+      ? missionBoard.tier.lifetimeScore
+      : null) ??
+    (profileData && typeof profileData.lifetimeScore === "number"
       ? profileData.lifetimeScore
-      : currentPoints;
+      : currentPoints);
   const tierProgress = useMemo(
     () => resolveTierProgress(lifetimePoints),
     [lifetimePoints],
@@ -1338,14 +1341,14 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {lifetimePoints >= 5000 ? (
-                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                              HẠNG HIỆN TẠI: NASA'FRIEND
+                          {tierProgress.tier.code !== "MEMBER" ? (
+                            <div className="w-full py-3 bg-slate-900 border border-slate-800 text-emerald-400/90 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
+                              ĐÃ ĐẠT NASA&apos;FRIEND
                             </div>
                           ) : (
-                            <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
-                              TIẾN TỚI NASA'FRIEND — {nextTierAt.toLocaleString("vi-VN")} ĐIỂM
-                            </button>
+                            <div className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg text-center">
+                              TIẾN TỚI NASA&apos;FRIEND — còn {pointsToNext.toLocaleString("vi-VN")} điểm
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1441,6 +1444,25 @@ export const ProfilePage = () => {
 
                     {/* Horizontal line separator */}
                     <div className="border-t border-slate-800 my-8" />
+
+                    {missionBoard?.badges?.length > 0 && (
+                      <div className="mb-8 bg-slate-950/40 border border-white/5 rounded-2xl p-6">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                          <Award size={16} className="text-amber-400" />
+                          Huy hiệu đã mở khóa
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {missionBoard.badges.map((badge) => (
+                            <span
+                              key={badge.code}
+                              className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300"
+                            >
+                              {badge.title || badge.code}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Table Section: MỨC THƯỞNG THẺ THÀNH VIÊN */}
                     <div className="bg-[#0b0a1a] border border-white/5 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
