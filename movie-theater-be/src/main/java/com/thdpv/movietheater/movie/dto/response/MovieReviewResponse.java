@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
+
 public class MovieReviewResponse {
 
     private UUID uuid;
@@ -19,6 +21,7 @@ public class MovieReviewResponse {
     private OffsetDateTime updatedAt;
     private boolean mine;
     private boolean reportedByMe;
+    private List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
 
     public MovieReviewResponse() {
     }
@@ -117,5 +120,13 @@ public class MovieReviewResponse {
 
     public void setReportedByMe(boolean reportedByMe) {
         this.reportedByMe = reportedByMe;
+    }
+
+    public List<MissionCompletionResponse> getMissionCompletions() {
+        return missionCompletions;
+    }
+
+    public void setMissionCompletions(List<MissionCompletionResponse> missionCompletions) {
+        this.missionCompletions = missionCompletions != null ? missionCompletions : new ArrayList<>();
     }
 }

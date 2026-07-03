@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { dismissToast, subscribeToToasts } from '../../shared/services/notificationService';
 
 const TOAST_STYLES = {
@@ -59,6 +60,15 @@ export const ToastViewport = () => {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white">{style.title}</p>
                 <p className="mt-1 break-words text-sm text-slate-300">{toast.message}</p>
+                {toast.actionPath && toast.actionLabel && (
+                  <Link
+                    to={toast.actionPath}
+                    onClick={() => dismissToast(toast.id)}
+                    className="mt-2 inline-flex text-xs font-semibold text-amber-300 transition-colors hover:text-amber-200"
+                  >
+                    {toast.actionLabel}
+                  </Link>
+                )}
               </div>
               <button
                 type="button"

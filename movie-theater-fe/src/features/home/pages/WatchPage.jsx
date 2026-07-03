@@ -14,6 +14,7 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getTemporaryVodToken, removeTemporaryVodToken, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
@@ -243,6 +244,7 @@ const WatchPage = () => {
         if (canWatchOnlineDirectly(status)) {
           const playSession = await vodService.activatePlay(id);
           if (!active) return;
+          showMissionCompletionToasts(playSession?.missionCompletions);
           const expiresAt = resolvePlayExpiresAt(
             playSession,
             movieDetail,
@@ -365,6 +367,7 @@ const WatchPage = () => {
     try {
       const verifiedBookingUuid = getTemporaryVodToken(id);
       const playSession = await vodService.activatePlay(id, verifiedBookingUuid || undefined);
+      showMissionCompletionToasts(playSession?.missionCompletions);
       const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movie);
       if (!resolvedStreamUrl?.trim()) {
         throw new Error('Phim chưa được cấu hình link phát trực tuyến.');

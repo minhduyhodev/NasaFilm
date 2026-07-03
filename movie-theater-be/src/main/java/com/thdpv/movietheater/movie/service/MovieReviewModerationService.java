@@ -182,6 +182,7 @@ public class MovieReviewModerationService {
         String action = request.getAction().trim().toUpperCase();
         OffsetDateTime now = OffsetDateTime.now();
         if ("HIDE_REVIEW".equals(action)) {
+            // Mission progress from this review is kept even after hide/report moderation.
             review.setStatus(MovieReviewStatus.HIDDEN);
             review.setModeratedByUuid(moderatorUuid);
             review.setModeratedAt(now);

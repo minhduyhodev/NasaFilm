@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
@@ -23,6 +23,7 @@ import {
   LogOut,
   Camera,
   Star,
+  Rocket,
   X,
   History,
   Phone,
@@ -31,7 +32,10 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
-import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/queries/useBookingQueries";
+import {
+  useMyBookings,
+  useInvalidateMyBookings,
+} from "../../../shared/hooks/queries/useBookingQueries";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
@@ -48,13 +52,16 @@ import {
   getOnlineMoviePath,
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
-import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
+import { resolveTierFromLifetime, resolveTierProgress } from "../../../shared/utils/memberTiers";
+import { missionService, MISSION_BOARD_REFRESH_EVENT } from "../../../shared/services/missionService";
+import MissionBoard from "../components/MissionBoard";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
@@ -91,7 +98,11 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
-  const { data: bookings = [], isLoading: isLoadingBookings, refetch: refetchBookings } = useMyBookings(Boolean(user));
+  const {
+    data: bookings = [],
+    isLoading: isLoadingBookings,
+    refetch: refetchBookings,
+  } = useMyBookings(Boolean(user));
   const invalidateBookings = useInvalidateMyBookings();
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
   const [refundTargetUuid, setRefundTargetUuid] = useState(null);
@@ -103,6 +114,9 @@ export const ProfilePage = () => {
   const [voucherCatalog, setVoucherCatalog] = useState([]);
   const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
   const [redeemingVoucherId, setRedeemingVoucherId] = useState(null);
+  const [missionBoard, setMissionBoard] = useState(null);
+  const [isLoadingMissions, setIsLoadingMissions] = useState(false);
+  const [missionError, setMissionError] = useState("");
   const fileInputRef = useRef(null);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const genderDropdownRef = useRef(null);
@@ -123,11 +137,91 @@ export const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+      return;
+    }
     const tabFromNav = location.state?.tab;
     if (tabFromNav === "preferences") {
       setActiveTab("preferences");
     }
-  }, [location.state?.tab]);
+  }, [searchParams, location.state?.tab]);
+
+  const selectProfileTab = (tab) => {
+    setActiveTab(tab);
+    if (tab === "info") {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    setSearchParams({ tab }, { replace: true });
+  };
+
+  useEffect(() => {
+    if (activeTab !== "missions" || !user) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadMissions = async () => {
+      setIsLoadingMissions(true);
+      setMissionError("");
+      try {
+        const data = await missionService.getMissionBoard();
+        if (!cancelled) {
+          setMissionBoard(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMissionError(err.message || "Không thể tải bảng nhiệm vụ.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMissions(false);
+        }
+      }
+    };
+
+    loadMissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    const refreshBoard = async () => {
+      try {
+        const data = await missionService.getMissionBoard();
+        setMissionBoard(data);
+        setMissionError("");
+      } catch {
+        // ignore background refresh errors
+      }
+    };
+
+    window.addEventListener(MISSION_BOARD_REFRESH_EVENT, refreshBoard);
+    return () => {
+      window.removeEventListener(MISSION_BOARD_REFRESH_EVENT, refreshBoard);
+    };
+  }, [user]);
+
+  const reloadMissions = async () => {
+    if (!user) return;
+    setIsLoadingMissions(true);
+    setMissionError("");
+    try {
+      const data = await missionService.getMissionBoard();
+      setMissionBoard(data);
+    } catch (err) {
+      setMissionError(err.message || "Không thể tải bảng nhiệm vụ.");
+    } finally {
+      setIsLoadingMissions(false);
+    }
+  };
 
   const reloadBookings = async () => {
     await invalidateBookings();
@@ -308,10 +402,15 @@ export const ProfilePage = () => {
     profileData && typeof profileData.lifetimeScore === "number"
       ? profileData.lifetimeScore
       : currentPoints;
-  const nextTierPoints = 10000;
-  const rawProgress = (lifetimePoints / nextTierPoints) * 100;
-  const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
-  const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+  const tierProgress = useMemo(
+    () => resolveTierProgress(lifetimePoints),
+    [lifetimePoints],
+  );
+  const loyaltyTier = tierProgress.tier.label;
+  const progressPercent = tierProgress.percent;
+  const isMaxTier = tierProgress.isMaxTier;
+  const pointsToNext = tierProgress.pointsToNext;
+  const nextTierAt = tierProgress.nextTierAt;
 
   const usableVouchers = useMemo(
     () => vouchers.filter((v) => !v.used),
@@ -703,7 +802,7 @@ export const ProfilePage = () => {
                     <Star
                       size={14}
                       className={
-                        lifetimePoints >= 10000
+                        lifetimePoints >= 5000
                           ? "fill-current"
                           : "text-zinc-800"
                       }
@@ -711,7 +810,15 @@ export const ProfilePage = () => {
                     <Star
                       size={14}
                       className={
-                        lifetimePoints >= 10000
+                        isMaxTier
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
+                    <Star
+                      size={14}
+                      className={
+                        isMaxTier
                           ? "fill-current"
                           : "text-zinc-800"
                       }
@@ -719,7 +826,7 @@ export const ProfilePage = () => {
                   </div>
 
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {lifetimePoints >= 10000 ? (
+                    {isMaxTier ? (
                       <span>
                         Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.
                       </span>
@@ -727,12 +834,12 @@ export const ProfilePage = () => {
                       <span>
                         Còn{" "}
                         <span className="text-amber-400 font-bold">
-                          {(nextTierPoints - lifetimePoints).toLocaleString(
+                          {pointsToNext.toLocaleString(
                             "vi-VN",
                           )}{" "}
                           điểm
                         </span>{" "}
-                        nữa để nâng cấp lên hạng thành viên NASA'VIP.
+                        nữa để nâng cấp lên hạng tiếp theo ({nextTierAt.toLocaleString("vi-VN")} điểm).
                       </span>
                     )}
                   </p>
@@ -755,7 +862,7 @@ export const ProfilePage = () => {
             <div className="navigation-rail">
               <div className="rail-container">
                 <button
-                  onClick={() => setActiveTab("info")}
+                  onClick={() => selectProfileTab("info")}
                   className={`rail-item ${activeTab === "info" ? "active" : ""}`}
                   title="Thông tin khách hàng"
                 >
@@ -766,7 +873,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("member")}
+                  onClick={() => selectProfileTab("member")}
                   className={`rail-item ${activeTab === "member" ? "active" : ""}`}
                   title="Thành viên NASAFilm"
                 >
@@ -777,7 +884,18 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("preferences")}
+                  onClick={() => selectProfileTab("missions")}
+                  className={`rail-item ${activeTab === "missions" ? "active" : ""}`}
+                  title="Trung tâm nhiệm vụ NASA"
+                >
+                  <div className="rail-icon-wrapper">
+                    <Rocket size={20} />
+                  </div>
+                  <span className="rail-label">Nhiệm vụ NASA</span>
+                </button>
+
+                <button
+                  onClick={() => selectProfileTab("preferences")}
                   className={`rail-item ${activeTab === "preferences" ? "active" : ""}`}
                   title="Sở thích xem phim"
                 >
@@ -788,7 +906,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("tickets")}
+                  onClick={() => selectProfileTab("tickets")}
                   className={`rail-item ${activeTab === "tickets" ? "active" : ""}`}
                   title="Vé của tôi"
                 >
@@ -802,7 +920,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("vouchers")}
+                  onClick={() => selectProfileTab("vouchers")}
                   className={`rail-item ${activeTab === "vouchers" ? "active" : ""}`}
                   title="Ưu đãi của tôi"
                 >
@@ -815,7 +933,7 @@ export const ProfilePage = () => {
 
                 {authProvider !== "GOOGLE" && (
                   <button
-                    onClick={() => setActiveTab("security")}
+                    onClick={() => selectProfileTab("security")}
                     className={`rail-item ${activeTab === "security" ? "active" : ""}`}
                     title="Cài đặt bảo mật"
                   >
@@ -827,7 +945,7 @@ export const ProfilePage = () => {
                 )}
 
                 <button
-                  onClick={() => setActiveTab("history")}
+                  onClick={() => selectProfileTab("history")}
                   className={`rail-item ${activeTab === "history" ? "active" : ""}`}
                   title="Lịch sử mua hàng"
                 >
@@ -1085,6 +1203,24 @@ export const ProfilePage = () => {
                   </motion.div>
                 )}
 
+                {activeTab === "missions" && (
+                  <motion.div
+                    key="missions"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <MissionBoard
+                      board={missionBoard}
+                      loading={isLoadingMissions}
+                      error={missionError}
+                      onRetry={reloadMissions}
+                    />
+                  </motion.div>
+                )}
+
                 {/* TAB: NASAFilm Member */}
                 {activeTab === "member" && (
                   <motion.div
@@ -1109,14 +1245,16 @@ export const ProfilePage = () => {
                           Tích điểm N'VIP MEMBER
                         </span>
                         <span className="text-yellow-400 font-mono text-base">
-                          {lifetimePoints}/10K
+                          {isMaxTier
+                            ? `${lifetimePoints.toLocaleString("vi-VN")} điểm`
+                            : `${lifetimePoints.toLocaleString("vi-VN")}/${nextTierAt.toLocaleString("vi-VN")}`}
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.min((lifetimePoints / 10000) * 100, 100)}%`,
+                            width: `${progressPercent}%`,
                           }}
                         />
                       </div>
@@ -1200,13 +1338,13 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {lifetimePoints >= 10000 ? (
+                          {lifetimePoints >= 5000 ? (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                              HẠNG HIỆN TẠI: NASA'VIP
+                              HẠNG HIỆN TẠI: NASA'FRIEND
                             </div>
                           ) : (
                             <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
-                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
+                              TIẾN TỚI NASA'FRIEND — {nextTierAt.toLocaleString("vi-VN")} ĐIỂM
                             </button>
                           )}
                         </div>
@@ -1288,13 +1426,13 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          {lifetimePoints >= 10000 ? (
+                          {isMaxTier ? (
                             <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
                               BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
                             </button>
                           ) : (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                              CẦN TÍCH LŨY 10.000 ĐIỂM
+                              CẦN TÍCH LŨY {nextTierAt.toLocaleString("vi-VN")} ĐIỂM
                             </div>
                           )}
                         </div>
@@ -1454,7 +1592,7 @@ export const ProfilePage = () => {
                     <div className="panel-header">
                       <h2>Vé của tôi</h2>
                       <button
-                        onClick={() => setActiveTab("history")}
+                        onClick={() => selectProfileTab("history")}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
                       >
                         <History size={14} />
@@ -1492,29 +1630,29 @@ export const ProfilePage = () => {
                               </p>
                             ) : (
                               <>
-                              <div className="tickets-section__grid">
-                                {paginatedLiveBookings.map((tkt) => (
-                                  <ProfileTicketCard
-                                    key={tkt.id}
-                                    tkt={tkt}
-                                    onTicketClick={handleTicketClick}
-                                    onCancel={setCancelTargetUuid}
-                                    onRefund={setRefundTargetUuid}
+                                <div className="tickets-section__grid">
+                                  {paginatedLiveBookings.map((tkt) => (
+                                    <ProfileTicketCard
+                                      key={tkt.id}
+                                      tkt={tkt}
+                                      onTicketClick={handleTicketClick}
+                                      onCancel={setCancelTargetUuid}
+                                      onRefund={setRefundTargetUuid}
+                                    />
+                                  ))}
+                                </div>
+                                {liveBookings.length > ticketsPerPage && (
+                                  <Pagination
+                                    currentPage={liveTicketPage}
+                                    totalItems={liveBookings.length}
+                                    itemsPerPage={ticketsPerPage}
+                                    onPageChange={setLiveTicketPage}
+                                    onItemsPerPageChange={(size) => {
+                                      setTicketsPerPage(size);
+                                      setLiveTicketPage(1);
+                                    }}
                                   />
-                                ))}
-                              </div>
-                              {liveBookings.length > ticketsPerPage && (
-                                <Pagination
-                                  currentPage={liveTicketPage}
-                                  totalItems={liveBookings.length}
-                                  itemsPerPage={ticketsPerPage}
-                                  onPageChange={setLiveTicketPage}
-                                  onItemsPerPageChange={(size) => {
-                                    setTicketsPerPage(size);
-                                    setLiveTicketPage(1);
-                                  }}
-                                />
-                              )}
+                                )}
                               </>
                             )}
                           </section>
@@ -1524,7 +1662,9 @@ export const ProfilePage = () => {
                               <button
                                 type="button"
                                 className="tickets-section__toggle"
-                                onClick={() => setShowArchivedTickets((v) => !v)}
+                                onClick={() =>
+                                  setShowArchivedTickets((v) => !v)
+                                }
                                 aria-expanded={showArchivedTickets}
                               >
                                 <div className="tickets-section__header tickets-section__header--toggle">
@@ -1537,34 +1677,34 @@ export const ProfilePage = () => {
                                 </div>
                                 <ChevronDown
                                   size={18}
-                                  className={`tickets-section__chevron${showArchivedTickets ? ' tickets-section__chevron--open' : ''}`}
+                                  className={`tickets-section__chevron${showArchivedTickets ? " tickets-section__chevron--open" : ""}`}
                                 />
                               </button>
                               {showArchivedTickets && (
                                 <>
-                                <div className="tickets-section__grid tickets-section__grid--archived">
-                                  {paginatedArchivedBookings.map((tkt) => (
-                                    <ProfileTicketCard
-                                      key={tkt.id}
-                                      tkt={tkt}
-                                      onTicketClick={handleTicketClick}
-                                      onCancel={setCancelTargetUuid}
-                                      onRefund={setRefundTargetUuid}
+                                  <div className="tickets-section__grid tickets-section__grid--archived">
+                                    {paginatedArchivedBookings.map((tkt) => (
+                                      <ProfileTicketCard
+                                        key={tkt.id}
+                                        tkt={tkt}
+                                        onTicketClick={handleTicketClick}
+                                        onCancel={setCancelTargetUuid}
+                                        onRefund={setRefundTargetUuid}
+                                      />
+                                    ))}
+                                  </div>
+                                  {archivedBookings.length > ticketsPerPage && (
+                                    <Pagination
+                                      currentPage={archivedTicketPage}
+                                      totalItems={archivedBookings.length}
+                                      itemsPerPage={ticketsPerPage}
+                                      onPageChange={setArchivedTicketPage}
+                                      onItemsPerPageChange={(size) => {
+                                        setTicketsPerPage(size);
+                                        setArchivedTicketPage(1);
+                                      }}
                                     />
-                                  ))}
-                                </div>
-                                {archivedBookings.length > ticketsPerPage && (
-                                  <Pagination
-                                    currentPage={archivedTicketPage}
-                                    totalItems={archivedBookings.length}
-                                    itemsPerPage={ticketsPerPage}
-                                    onPageChange={setArchivedTicketPage}
-                                    onItemsPerPageChange={(size) => {
-                                      setTicketsPerPage(size);
-                                      setArchivedTicketPage(1);
-                                    }}
-                                  />
-                                )}
+                                  )}
                                 </>
                               )}
                             </section>

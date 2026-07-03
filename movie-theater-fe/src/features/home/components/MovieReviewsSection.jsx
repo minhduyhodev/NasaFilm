@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { movieReviewService } from '../../../shared/services/movieReviewService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import MovieReviewPagination from './MovieReviewPagination';
@@ -271,12 +272,13 @@ const MovieReviewsSection = ({
 
     setIsSubmitting(true);
     try {
-      await movieReviewService.createReview(movieUuid, {
+      const reviewResponse = await movieReviewService.createReview(movieUuid, {
         rating,
         comment,
         vibeTags: selectedVibeTags,
       });
       notificationService.success('Đã gửi đánh giá mới.');
+      showMissionCompletionToasts(reviewResponse?.missionCompletions);
       await refreshAll();
       setRating(0);
       setComment('');

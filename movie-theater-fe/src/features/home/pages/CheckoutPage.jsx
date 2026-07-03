@@ -8,6 +8,7 @@ import { authService } from '../../auth/api/authService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { promotionService } from '../../../shared/services/promotionService';
 import { walletService } from '../../../shared/services/walletService';
 import PosterImage from '../../../shared/components/PosterImage';
@@ -294,6 +295,7 @@ const CheckoutPage = () => {
       notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
+      showMissionCompletionToasts(response?.missionCompletions);
       
       if (isVod) {
         navigate('/booking-confirmed', {

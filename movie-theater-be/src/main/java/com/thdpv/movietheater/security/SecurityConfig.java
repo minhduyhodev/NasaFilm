@@ -74,6 +74,7 @@ public class SecurityConfig {
             "/api/review-vibe-tags",
             "/api/review-vibe-tags/**",
             "/ws/**",
+            "/stomp/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"

@@ -50,6 +50,7 @@ import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.config.service.SystemConfigService;
+import com.thdpv.movietheater.mission.service.MissionService;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -90,6 +91,9 @@ class BookingServiceTest {
     @Mock
     private ShowtimeCapacityService showtimeCapacityService;
 
+    @Mock
+    private MissionService missionService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -109,6 +113,7 @@ class BookingServiceTest {
         lenient().when(systemConfigService.getOnlineWatchLockMultiplier()).thenReturn(2.0);
         lenient().doNothing().when(showtimeCapacityService)
                 .validateCapacity(any(), any(Integer.class), any(), any());
+        lenient().when(missionService.handleEvent(any())).thenReturn(List.of());
     }
 
     @Test
@@ -253,6 +258,7 @@ class BookingServiceTest {
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
         Booking booking = new Booking();
+        booking.setUuid(UUID.randomUUID());
         booking.setUserUuid(userUuid);
         booking.setMovieUuid(movieUuid);
         booking.setBookingType("ONLINE");
@@ -282,6 +288,7 @@ class BookingServiceTest {
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
         Booking booking = new Booking();
+        booking.setUuid(UUID.randomUUID());
         booking.setUserUuid(userUuid);
         booking.setMovieUuid(movieUuid);
         booking.setBookingType("ONLINE");

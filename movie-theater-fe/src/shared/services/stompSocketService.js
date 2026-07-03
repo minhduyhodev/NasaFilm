@@ -1,16 +1,21 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const resolveWsHttpUrl = () => {
+const resolveApiBaseUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    return apiUrl.replace(/\/$/, '');
+  }
+  return window.location.origin;
+};
+
+const resolveWsHttpUrl = (useSockJs = useSockJsTransport()) => {
   const configured = import.meta.env.VITE_WS_URL;
   if (configured) {
     return configured.replace(/\/$/, '');
   }
-  const apiUrl = import.meta.env.VITE_API_URL;
-  if (apiUrl) {
-    return `${apiUrl.replace(/\/$/, '')}/ws`;
-  }
-  return `${window.location.origin}/ws`;
+  const base = resolveApiBaseUrl();
+  return useSockJs ? `${base}/ws` : `${base}/stomp`;
 };
 
 const toNativeWebSocketUrl = (httpUrl) =>
@@ -27,10 +32,38 @@ class StompSocketService {
     this.activeSubscriptions = new Map();
     this.subscriptionCounter = 0;
     this.connected = false;
+    this.usingSockJs = false;
   }
 
   isConnected() {
     return Boolean(this.client?.connected && this.connected);
+  }
+
+  createClient(useSockJs) {
+    this.usingSockJs = useSockJs;
+    return new Client({
+      webSocketFactory: () => {
+        const httpUrl = resolveWsHttpUrl(useSockJs);
+        if (useSockJs) {
+          return new SockJS(httpUrl);
+        }
+        return new WebSocket(toNativeWebSocketUrl(httpUrl));
+      },
+      reconnectDelay: 5000,
+      connectionTimeout: 8000,
+      heartbeatIncoming: 5000,
+      heartbeatOutgoing: 5000,
+      onConnect: () => {
+        this.connected = true;
+      },
+      onStompError: (frame) => {
+        console.error('WebSocket error:', frame.headers?.message ?? frame.body);
+      },
+      onWebSocketClose: () => {
+        this.connected = false;
+        this.connectPromise = null;
+      },
+    });
   }
 
   ensureConnected() {
@@ -42,56 +75,50 @@ class StompSocketService {
       return this.connectPromise;
     }
 
-    this.connectPromise = new Promise((resolve, reject) => {
-      let settled = false;
-      const settle = (fn, value) => {
-        if (settled) return;
-        settled = true;
-        fn(value);
-      };
+    const tryConnect = (useSockJs) =>
+      new Promise((resolve, reject) => {
+        let settled = false;
+        const settle = (fn, value) => {
+          if (settled) return;
+          settled = true;
+          fn(value);
+        };
 
-      this.client = new Client({
-        webSocketFactory: () => {
-          const httpUrl = resolveWsHttpUrl();
-          if (useSockJsTransport()) {
-            return new SockJS(httpUrl);
-          }
-          return new WebSocket(toNativeWebSocketUrl(httpUrl));
-        },
-        reconnectDelay: 5000,
-        connectionTimeout: 8000,
-        heartbeatIncoming: 5000,
-        heartbeatOutgoing: 5000,
-        onConnect: () => {
+        this.client = this.createClient(useSockJs);
+        this.client.onConnect = () => {
           this.connected = true;
           settle(resolve);
-        },
-        onStompError: (frame) => {
+        };
+        this.client.onStompError = (frame) => {
           console.error('WebSocket error:', frame.headers?.message ?? frame.body);
           settle(reject, new Error(frame.headers?.message ?? 'STOMP error'));
-        },
-        onWebSocketError: () => {
+        };
+        this.client.onWebSocketError = () => {
           this.connected = false;
           settle(reject, new Error('WebSocket connection failed'));
-        },
-        onWebSocketClose: () => {
+        };
+        this.client.onDisconnect = () => {
           this.connected = false;
           this.connectPromise = null;
-        },
+        };
+
+        try {
+          this.client.activate();
+        } catch (error) {
+          this.connected = false;
+          this.client = null;
+          reject(error);
+        }
       });
 
-      this.client.onDisconnect = () => {
-        this.connected = false;
-        this.connectPromise = null;
-      };
-
-      try {
-        this.client.activate();
-      } catch (error) {
-        this.connected = false;
-        this.connectPromise = null;
-        reject(error);
+    const preferredSockJs = useSockJsTransport();
+    this.connectPromise = tryConnect(preferredSockJs).catch((error) => {
+      if (preferredSockJs) {
+        throw error;
       }
+      console.warn('Native WebSocket failed, retrying with SockJS:', error?.message ?? error);
+      this.client = null;
+      return tryConnect(true);
     });
 
     return this.connectPromise;
@@ -142,6 +169,7 @@ class StompSocketService {
       this.client = null;
       this.connected = false;
       this.connectPromise = null;
+      this.usingSockJs = false;
     }
   }
 }

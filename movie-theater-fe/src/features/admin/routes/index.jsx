@@ -33,6 +33,7 @@ const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
 const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
+const MissionsPage = lazy(() => import("../pages/MissionsPage"));
 const SupportInboxPage = lazy(() => import("../pages/SupportInboxPage"));
 
 const AdminPageLoader = () => (
@@ -93,6 +94,7 @@ export const AdminRoutes = () => {
           />
           <Route path="users" element={<UsersPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
+          <Route path="missions" element={<MissionsPage />} />
           <Route path="vouchers/new" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId/edit" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId" element={<Navigate to="/admin/vouchers" replace />} />
