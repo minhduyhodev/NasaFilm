@@ -60,6 +60,8 @@ const CheckoutPage = () => {
   const movieUuid = checkoutState?.movieUuid ?? '';
   const durationMinutes = checkoutState?.durationMinutes ?? 0;
   const lockExpiresAt = checkoutState?.lockExpiresAt ?? null;
+  const orbitRoomUuid = checkoutState?.orbitRoomUuid ?? null;
+  const isOrbit = checkoutState?.isOrbit ?? Boolean(orbitRoomUuid);
 
   const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
@@ -279,7 +281,14 @@ const CheckoutPage = () => {
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
         const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null, paymentMethod);
+        response = await bookingService.confirmBooking(
+          showtimeUuid,
+          seatUuids,
+          combos,
+          discount > 0 ? voucherInput.trim() : null,
+          paymentMethod,
+          orbitRoomUuid,
+        );
       }
       
       const successMessage = isVod

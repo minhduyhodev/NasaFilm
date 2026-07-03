@@ -1,0 +1,73 @@
+import { authService } from '../../features/auth/api/authService';
+
+class OrbitService {
+  async createRoom(showtimeUuid, maxMembers = 4) {
+    try {
+      const response = await authService.api.post('/api/orbit-rooms', {
+        showtimeUuid,
+        maxMembers,
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async joinRoom(roomUuid) {
+    try {
+      const response = await authService.api.post(`/api/orbit-rooms/${roomUuid}/join`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async leaveRoom(roomUuid) {
+    try {
+      const response = await authService.api.delete(`/api/orbit-rooms/${roomUuid}/leave`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async cancelRoom(roomUuid) {
+    try {
+      const response = await authService.api.delete(`/api/orbit-rooms/${roomUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getRoom(roomUuid) {
+    try {
+      const response = await authService.api.get(`/api/orbit-rooms/${roomUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateMemberSeats(roomUuid, seatUuids) {
+    try {
+      const response = await authService.api.put(`/api/orbit-rooms/${roomUuid}/seats`, {
+        seatUuids,
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async prepareCheckout(roomUuid) {
+    try {
+      const response = await authService.api.post(`/api/orbit-rooms/${roomUuid}/prepare-checkout`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+}
+
+export const orbitService = new OrbitService();

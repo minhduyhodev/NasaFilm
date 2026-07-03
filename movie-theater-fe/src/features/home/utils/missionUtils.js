@@ -28,7 +28,7 @@ export const MISSION_ACTION_HINTS = {
   EXPLORER: 'Đặt vé rạp hoặc phát VOD lần đầu để khám phá thể loại mới.',
   PREMIERE: 'Chọn phim vừa khởi chiếu và đặt vé trong 3 ngày đầu.',
   HYBRID_PILOT: 'Xem cùng một phim ở rạp và mua thêm bản VOD.',
-  SOCIAL_ORBIT: 'Tham gia phòng Orbit Seat khi tính năng ra mắt.',
+  SOCIAL_ORBIT: 'Tạo hoặc tham gia phòng Orbit Seat trên trang chi tiết phim.',
   REVIEWER: 'Viết đánh giá có gắn vibe tag trên trang chi tiết phim.',
 };
 
@@ -36,7 +36,7 @@ export const MISSION_ACTION_HINTS_BY_TYPE = {
   GENRE_WINDOW: 'Đặt vé rạp hoặc phát VOD lần đầu để khám phá thể loại mới.',
   PREMIERE_BOOKING: 'Chọn phim vừa khởi chiếu và đặt vé trong khung thời gian quy định.',
   HYBRID_THEATER_VOD: 'Xem cùng một phim ở rạp và mua thêm bản VOD.',
-  ORBIT_ROOM_JOIN: 'Tham gia phòng Orbit Seat hoặc đặt vé nhóm khi tính năng mở.',
+  ORBIT_ROOM_JOIN: 'Tạo phòng Orbit từ trang phim hoặc tham gia qua link mời bạn bè.',
   REVIEW_WITH_VIBE_TAG: 'Viết đánh giá có gắn vibe tag trên trang chi tiết phim.',
 };
 
@@ -59,6 +59,12 @@ export const getMissionCta = (mission, { completed = false, locked = false } = {
     mission?.conditionType === 'HYBRID_THEATER_VOD'
   ) {
     return { label: 'Khám phá phim', to: '/movies' };
+  }
+  if (
+    mission?.code === 'SOCIAL_ORBIT' ||
+    mission?.conditionType === 'ORBIT_ROOM_JOIN'
+  ) {
+    return { label: 'Tạo phòng Orbit', to: '/movies' };
   }
   return null;
 };

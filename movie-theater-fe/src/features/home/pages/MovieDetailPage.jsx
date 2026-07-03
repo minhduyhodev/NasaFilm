@@ -9,6 +9,7 @@ import {
   Award,
   X,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { movieService } from "../../../shared/services/movieService";
@@ -16,6 +17,7 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
+import { orbitService } from "../../../shared/services/orbitService";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
@@ -48,6 +50,7 @@ const MovieDetailPage = () => {
   const { isAuthenticated } = useAuthContext();
   const [activeDateTab, setActiveDateTab] = useState("today");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
+  const [isCreatingOrbit, setIsCreatingOrbit] = useState(false);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
@@ -270,6 +273,44 @@ const MovieDetailPage = () => {
         showtime: showtimeText,
       },
     });
+  };
+
+  const handleCreateOrbitRoom = async () => {
+    if (!selectedShowtime) return;
+    if (!isAuthenticated) {
+      notificationService.info("Vui lòng đăng nhập để tạo phòng Orbit Seat.");
+      navigate("/login", { state: { from: `/movie/${id}` } });
+      return;
+    }
+    const theater = `${selectedShowtime.cinemaName} - ${selectedShowtime.cinemaRoomName}`;
+    const dateText = dateMap[activeDateTab];
+    const showtimeText = new Date(selectedShowtime.startTime).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    setIsCreatingOrbit(true);
+    try {
+      const room = await orbitService.createRoom(selectedShowtime.uuid, 4);
+      notificationService.success("Đã tạo phòng Orbit — mời bạn bè qua link chia sẻ.");
+      navigate(`/booking/orbit/${room.uuid}`, {
+        state: {
+          theater,
+          movie: movie.title,
+          movieUuid: dbMovie.uuid,
+          moviePoster: movie.poster,
+          movieRating: movie.rating,
+          movieFormat: movie.format,
+          movieAgeRestriction: movie.ageRestriction,
+          date: dateText,
+          showtime: showtimeText,
+        },
+      });
+    } catch (err) {
+      notificationService.error(err.message || "Không thể tạo phòng Orbit.");
+    } finally {
+      setIsCreatingOrbit(false);
+    }
   };
 
   const handleBuyVodClick = () => {
@@ -757,12 +798,23 @@ const MovieDetailPage = () => {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={handleProceedToBooking}
-                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Đặt ghế ngay</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={handleProceedToBooking}
+                      className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Đặt ghế ngay</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateOrbitRoom}
+                      disabled={isCreatingOrbit}
+                      className="border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Users className="w-4 h-4" />
+                      {isCreatingOrbit ? "Đang tạo..." : "Tạo phòng Orbit"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

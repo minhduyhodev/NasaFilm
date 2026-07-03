@@ -250,6 +250,44 @@ public class FeatureSchemaMigrationConfig {
                     CREATE INDEX IF NOT EXISTS idx_showtime_status_start_time
                     ON showtime (status, start_time)
                     """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS orbit_room (
+                        uuid uuid PRIMARY KEY,
+                        showtime_uuid uuid NOT NULL,
+                        host_user_uuid uuid NOT NULL,
+                        max_members integer NOT NULL,
+                        status varchar(32) NOT NULL,
+                        expires_at timestamptz NOT NULL,
+                        booking_uuid uuid,
+                        created_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_orbit_room_showtime
+                    ON orbit_room (showtime_uuid, status)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_orbit_room_host
+                    ON orbit_room (host_user_uuid, status)
+                    """);
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS orbit_member (
+                        uuid uuid PRIMARY KEY,
+                        room_uuid uuid NOT NULL,
+                        user_uuid uuid NOT NULL,
+                        display_name varchar(120),
+                        seat_uuids_json text NOT NULL DEFAULT '[]',
+                        joined_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_orbit_member_room_user UNIQUE (room_uuid, user_uuid)
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_orbit_member_room
+                    ON orbit_member (room_uuid, joined_at)
+                    """);
         }
 
         private void ensureSearchVector(String table, String primaryCol, String secondaryCol) {

@@ -64,6 +64,7 @@ import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -98,6 +99,8 @@ public class BookingService {
     private final PaymentService paymentService;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
+    private final OrbitRoomService orbitRoomService;
+    private final SeatGapValidationService seatGapValidationService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -251,11 +254,16 @@ public class BookingService {
         OffsetDateTime now = OffsetDateTime.now();
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
         Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
+        UUID orbitRoomUuid = request.getOrbitRoomUuid();
+        boolean isOrbitCheckout = orbitRoomUuid != null;
 
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
+        if (isOrbitCheckout) {
+            orbitRoomService.assertCheckoutReady(orbitRoomUuid, userUuid, request.getShowtimeUuid(), seatUuids);
+        }
         showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
@@ -404,11 +412,16 @@ public class BookingService {
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
 
-        int scoreAdded = calculateScore(totalPrice);
-        if (scoreAdded > 0) {
-            bookingRepository.addUserScore(userUuid, scoreAdded);
-            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
-            bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+        int scoreAdded;
+        if (isOrbitCheckout) {
+            scoreAdded = 0;
+        } else {
+            scoreAdded = calculateScore(totalPrice);
+            if (scoreAdded > 0) {
+                bookingRepository.addUserScore(userUuid, scoreAdded);
+                bookingRepository.addLifetimeScore(userUuid, scoreAdded);
+                bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+            }
         }
 
         bookingRepository.deleteSeatLocks(request.getShowtimeUuid(), userUuid, seatUuids);
@@ -449,12 +462,19 @@ public class BookingService {
         Showtime bookedShowtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
         UUID movieUuid = bookedShowtime != null ? bookedShowtime.getMovieUuid() : null;
         List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
-        if (movieUuid != null) {
-            missionCompletions.addAll(missionService.handleEvent(
-                    MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+        if (isOrbitCheckout) {
+            var orbitResult = orbitRoomService.completeAfterBooking(
+                    orbitRoomUuid, bookingUuid, movieUuid, userUuid, lockedSeats, now);
+            scoreAdded = orbitResult.hostScoreAdded();
+            missionCompletions.addAll(orbitResult.missionCompletions());
+        } else {
+            if (movieUuid != null) {
+                missionCompletions.addAll(missionService.handleEvent(
+                        MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+            }
+            missionCompletions.addAll(
+                    missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
         }
-        missionCompletions.addAll(
-                missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
 
         BookingResponse response = new BookingResponse(
                 bookingUuid,
