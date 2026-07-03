@@ -57,7 +57,7 @@ export const ProfilePage = () => {
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -137,6 +137,15 @@ export const ProfilePage = () => {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  const selectProfileTab = (tab) => {
+    setActiveTab(tab);
+    if (tab === "info") {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    setSearchParams({ tab }, { replace: true });
+  };
 
   useEffect(() => {
     if (activeTab !== "missions" || !user) {
@@ -827,7 +836,7 @@ export const ProfilePage = () => {
             <div className="navigation-rail">
               <div className="rail-container">
                 <button
-                  onClick={() => setActiveTab("info")}
+                  onClick={() => selectProfileTab("info")}
                   className={`rail-item ${activeTab === "info" ? "active" : ""}`}
                   title="Thông tin khách hàng"
                 >
@@ -838,7 +847,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("member")}
+                  onClick={() => selectProfileTab("member")}
                   className={`rail-item ${activeTab === "member" ? "active" : ""}`}
                   title="Thành viên NASAFilm"
                 >
@@ -849,7 +858,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("missions")}
+                  onClick={() => selectProfileTab("missions")}
                   className={`rail-item ${activeTab === "missions" ? "active" : ""}`}
                   title="Trung tâm nhiệm vụ NASA"
                 >
@@ -860,7 +869,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("tickets")}
+                  onClick={() => selectProfileTab("tickets")}
                   className={`rail-item ${activeTab === "tickets" ? "active" : ""}`}
                   title="Vé của tôi"
                 >
@@ -874,7 +883,7 @@ export const ProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("vouchers")}
+                  onClick={() => selectProfileTab("vouchers")}
                   className={`rail-item ${activeTab === "vouchers" ? "active" : ""}`}
                   title="Ưu đãi của tôi"
                 >
@@ -887,7 +896,7 @@ export const ProfilePage = () => {
 
                 {authProvider !== "GOOGLE" && (
                   <button
-                    onClick={() => setActiveTab("security")}
+                    onClick={() => selectProfileTab("security")}
                     className={`rail-item ${activeTab === "security" ? "active" : ""}`}
                     title="Cài đặt bảo mật"
                   >
@@ -899,7 +908,7 @@ export const ProfilePage = () => {
                 )}
 
                 <button
-                  onClick={() => setActiveTab("history")}
+                  onClick={() => selectProfileTab("history")}
                   className={`rail-item ${activeTab === "history" ? "active" : ""}`}
                   title="Lịch sử mua hàng"
                 >
@@ -1544,7 +1553,7 @@ export const ProfilePage = () => {
                     <div className="panel-header">
                       <h2>Vé của tôi</h2>
                       <button
-                        onClick={() => setActiveTab("history")}
+                        onClick={() => selectProfileTab("history")}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
                       >
                         <History size={14} />

@@ -70,6 +70,16 @@ public class MissionEventPayload {
                 at);
     }
 
+    public static MissionEventPayload orbitRoomJoined(UUID userUuid, UUID roomUuid, OffsetDateTime at) {
+        return new MissionEventPayload(
+                userUuid,
+                MissionEventType.ORBIT_ROOM_JOINED,
+                roomUuid.toString(),
+                null,
+                null,
+                at);
+    }
+
     public UUID getUserUuid() {
         return userUuid;
     }

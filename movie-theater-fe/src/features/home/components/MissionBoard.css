@@ -439,6 +439,79 @@
   color: #fff;
 }
 
+.mission-board__section-head span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.mission-board__extras {
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.mission-board__extras-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.mission-board__extras-head h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.mission-board__extras-head span {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.mission-board__badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.mission-board__badge {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+  color: #fcd34d;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mission-board__recent-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mission-board__recent-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+.mission-board__recent-list em {
+  font-style: normal;
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .mission-board__intro {
     grid-template-columns: 1fr;

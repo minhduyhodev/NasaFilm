@@ -315,6 +315,12 @@ const MissionFormPanel = ({
         </div>
       </div>
 
+      {form.campaignUuid && (
+        <p className="mc-form-note">
+          Nhiệm vụ chỉ hiện với khán giả khi chiến dịch <strong>Đang chạy</strong> và còn trong thời gian.
+        </p>
+      )}
+
       <label className="mc-form-toggle">
         <input
           type="checkbox"
@@ -326,7 +332,8 @@ const MissionFormPanel = ({
 
       {form.requiresFeature && (
         <p className="mc-form-note">
-          Khóa tới khi có {getFeatureLabel(form.requiresFeature)}
+          Khóa tới khi có {getFeatureLabel(form.requiresFeature)}.
+          {form.code === 'SOCIAL_ORBIT' && ' Tính năng chưa kích hoạt trên hệ thống.'}
         </p>
       )}
 

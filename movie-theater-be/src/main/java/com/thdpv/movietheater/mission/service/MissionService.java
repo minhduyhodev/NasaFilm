@@ -223,7 +223,7 @@ public class MissionService {
             }
 
             String cycleKey = MissionCycleResolver.resolve(template.getRecurrence(), event.getOccurredAt());
-            UserMission userMission = enrollIfNeeded(event.getUserUuid(), template, cycleKey);
+            UserMission userMission = resolveUserMissionForUpdate(event.getUserUuid(), template, cycleKey);
             if (userMission.getStatus() == UserMissionStatus.COMPLETED) {
                 continue;
             }
@@ -235,7 +235,10 @@ public class MissionService {
             userMissionRepository.save(userMission);
 
             if (userMission.getStatus() == UserMissionStatus.COMPLETED) {
-                completions.add(completeMission(userMission, template, event.getOccurredAt()));
+                MissionCompletionResponse completion = completeMission(userMission, template, event.getOccurredAt());
+                if (completion != null) {
+                    completions.add(completion);
+                }
             }
         }
         return completions;
@@ -271,6 +274,11 @@ public class MissionService {
         return missionTemplateRepository.save(template);
     }
 
+    @Transactional
+    public AdminMissionTemplateResponse upsertTemplateForAdmin(AdminMissionTemplateRequest request) {
+        return toAdminTemplateResponse(upsertTemplate(request));
+    }
+
     @Transactional(readOnly = true)
     public List<AdminMissionTemplateResponse> listTemplatesForAdmin() {
         return missionTemplateRepository.findAll().stream()
@@ -297,11 +305,57 @@ public class MissionService {
         return missionCampaignRepository.save(campaign);
     }
 
+    @Transactional
+    public AdminMissionCampaignResponse upsertCampaignForAdmin(AdminMissionCampaignRequest request) {
+        return toAdminCampaignResponse(upsertCampaign(request));
+    }
+
     @Transactional(readOnly = true)
     public List<AdminMissionCampaignResponse> listCampaignsForAdmin() {
         return missionCampaignRepository.findAllByOrderBySortOrderAscTitleAsc().stream()
                 .map(this::toAdminCampaignResponse)
                 .toList();
+    }
+
+    @Transactional
+    public List<MissionCompletionResponse> handleOrbitRoomJoined(UUID userUuid, UUID roomUuid, OffsetDateTime at) {
+        if (userUuid == null || roomUuid == null) {
+            return List.of();
+        }
+        return handleEvent(MissionEventPayload.orbitRoomJoined(userUuid, roomUuid, at));
+    }
+
+    private UserMission resolveUserMissionForUpdate(UUID userUuid, MissionTemplate template, String cycleKey) {
+        Optional<UserMission> locked = userMissionRepository.findWithLockByUserUuidAndMissionTemplateUuidAndCycleKey(
+                userUuid, template.getUuid(), cycleKey);
+        UserMission userMission;
+        if (locked.isPresent()) {
+            userMission = locked.get();
+        } else {
+            enrollIfNeeded(userUuid, template, cycleKey);
+            userMission = userMissionRepository.findWithLockByUserUuidAndMissionTemplateUuidAndCycleKey(
+                    userUuid, template.getUuid(), cycleKey)
+                    .orElseThrow(() -> new IllegalStateException("Không thể ghi nhận tiến độ nhiệm vụ."));
+        }
+        syncUserMissionWithTemplate(userMission, template);
+        return userMission;
+    }
+
+    private void syncUserMissionWithTemplate(UserMission userMission, MissionTemplate template) {
+        if (userMission.getStatus() == UserMissionStatus.COMPLETED) {
+            return;
+        }
+        if (userMission.getTemplateVersion() == template.getVersion()) {
+            if (userMission.getProgressTarget() != template.getTargetValue()) {
+                userMission.setProgressTarget(template.getTargetValue());
+            }
+            return;
+        }
+        userMission.setTemplateVersion(template.getVersion());
+        userMission.setProgressTarget(template.getTargetValue());
+        userMission.setProgressCurrent(0);
+        userMission.setProgressJson("{}");
+        userMission.setStatus(isFeatureLocked(template) ? UserMissionStatus.LOCKED : UserMissionStatus.IN_PROGRESS);
     }
 
     private UserMission enrollIfNeeded(UUID userUuid, MissionTemplate template, String cycleKey) {
@@ -437,6 +491,9 @@ public class MissionService {
 
     private MissionCompletionResponse completeMission(
             UserMission userMission, MissionTemplate template, OffsetDateTime at) {
+        if (userMission.getStatus() != UserMissionStatus.COMPLETED) {
+            return null;
+        }
         OffsetDateTime grantedAt = at != null ? at : OffsetDateTime.now();
         missionScoreService.grantMissionReward(
                 userMission.getUserUuid(),
@@ -568,12 +625,16 @@ public class MissionService {
     }
 
     private List<MissionCompletionResponse> buildRecentCompletions(UUID userUuid, List<MissionTemplate> visibleTemplates) {
-        Map<UUID, MissionTemplate> templatesById = missionTemplateRepository.findAll().stream()
+        Set<UUID> visibleIds = visibleTemplates.stream()
+                .map(MissionTemplate::getUuid)
+                .collect(Collectors.toSet());
+        Map<UUID, MissionTemplate> templatesById = visibleTemplates.stream()
                 .collect(Collectors.toMap(MissionTemplate::getUuid, template -> template, (a, b) -> a));
         return userMissionRepository
                 .findByUserUuidAndStatusOrderByCompletedAtDesc(
                         userUuid, UserMissionStatus.COMPLETED, PageRequest.of(0, 8))
                 .stream()
+                .filter(mission -> visibleIds.contains(mission.getMissionTemplateUuid()))
                 .map(mission -> {
                     MissionTemplate template = templatesById.get(mission.getMissionTemplateUuid());
                     if (template == null) {

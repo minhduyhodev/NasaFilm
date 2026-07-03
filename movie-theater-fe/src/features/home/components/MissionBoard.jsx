@@ -54,10 +54,21 @@ const getMissionCta = (mission, completed, locked) => {
   if (mission.code === 'REVIEWER') {
     return { label: 'Xem phim', to: '/movies' };
   }
-  if (mission.code === 'PREMIERE' || mission.code === 'EXPLORER') {
+  if (mission.code === 'PREMIERE' || mission.code === 'EXPLORER' || mission.code === 'HYBRID_PILOT') {
     return { label: 'Khám phá phim', to: '/movies' };
   }
   return null;
+};
+
+const formatMissionReward = (mission) => {
+  const parts = [];
+  if (mission.rewardPoints > 0) {
+    parts.push(`+${mission.rewardPoints} điểm`);
+  }
+  if (mission.rewardBadge?.title) {
+    parts.push(mission.rewardBadge.title);
+  }
+  return parts.join(' · ');
 };
 
 const getRowState = (mission) => {
@@ -119,16 +130,18 @@ const MissionRow = ({ mission, index = 0 }) => {
             )}
             {locked && (
               <span className="mission-row__hint mission-row__hint--locked">
-                Mở khi Orbit Seat ra mắt.
+                {mission.code === 'SOCIAL_ORBIT'
+                  ? 'Mở khi Phòng Orbit ra mắt.'
+                  : 'Chưa khả dụng.'}
               </span>
             )}
           </div>
         </div>
 
         <div className="mission-row__aside">
-          {mission.rewardPoints > 0 && (
+          {formatMissionReward(mission) && (
             <span className="mission-row__reward">
-              +{mission.rewardPoints} điểm
+              {formatMissionReward(mission)}
             </span>
           )}
           {cta && (
@@ -205,6 +218,8 @@ const MissionBoard = ({ board, loading, error, onRetry }) => {
   const activeMissions = board.activeMissions ?? board.missions?.filter((m) => m.status !== 'COMPLETED') ?? [];
   const completedMissions = board.completedMissions ?? board.missions?.filter((m) => m.status === 'COMPLETED') ?? [];
   const allMissions = sortMissions([...activeMissions, ...completedMissions]);
+  const badges = board.badges ?? [];
+  const recentCompletions = board.recentCompletions ?? [];
   const lifetimeScore = tier.lifetimeScore ?? 0;
   const nextTierAt = tier.nextTierAt ?? 5000;
   const tierProgress = nextTierAt ? Math.min((lifetimeScore / nextTierAt) * 100, 100) : 0;
@@ -250,6 +265,39 @@ const MissionBoard = ({ board, loading, error, onRetry }) => {
             <p>Nhiệm vụ lặp sẽ reset theo chu kỳ. Theo dõi chiến dịch mới để tiếp tục nhận thưởng.</p>
           </div>
         </div>
+      )}
+
+      {badges.length > 0 && (
+        <section className="mission-board__extras">
+          <div className="mission-board__extras-head">
+            <h4>Huy hiệu</h4>
+            <span>{badges.length}</span>
+          </div>
+          <div className="mission-board__badge-list">
+            {badges.map((badge) => (
+              <span key={badge.code} className="mission-board__badge">
+                {badge.title || badge.code}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recentCompletions.length > 0 && (
+        <section className="mission-board__extras">
+          <div className="mission-board__extras-head">
+            <h4>Hoàn thành gần đây</h4>
+          </div>
+          <ul className="mission-board__recent-list">
+            {recentCompletions.map((item) => (
+              <li key={`${item.code}-${item.title}`}>
+                <span>{getMissionTitleVi({ code: item.code, title: item.title })}</span>
+                {item.pointsAwarded > 0 && <em>+{item.pointsAwarded} điểm</em>}
+                {item.badge?.title && <em>{item.badge.title}</em>}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {allMissions.length > 0 && (

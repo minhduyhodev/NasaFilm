@@ -28,6 +28,11 @@ class MissionRulesTest {
     }
 
     @Test
+    void resolveWindowDays_enforcesMinimumOne() {
+        assertEquals(1, MissionRules.resolveWindowDays("{\"windowDays\":0}", 30));
+    }
+
+    @Test
     void isTemplateVisible_requiresActiveCampaignInDateRange() {
         UUID campaignId = UUID.randomUUID();
         OffsetDateTime now = OffsetDateTime.parse("2026-07-01T12:00:00+07:00");

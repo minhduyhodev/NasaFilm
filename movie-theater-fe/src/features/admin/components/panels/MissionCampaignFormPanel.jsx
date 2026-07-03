@@ -13,6 +13,12 @@ const emptyForm = {
   endsAt: '',
 };
 
+const STATUS_HINTS = {
+  DRAFT: 'Nhiệm vụ gắn chiến dịch sẽ ẩn với khán giả.',
+  ACTIVE: 'Chiến dịch hiện trên tab Nhiệm vụ của khách.',
+  ARCHIVED: 'Đã kết thúc — nhiệm vụ gắn sẽ không hiện.',
+};
+
 const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,6 +106,7 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
+          <p className="mc-form-note">{STATUS_HINTS[form.status]}</p>
         </div>
         <div className="mc-form-field">
           <label className={adminLabelClass}>Bắt đầu</label>

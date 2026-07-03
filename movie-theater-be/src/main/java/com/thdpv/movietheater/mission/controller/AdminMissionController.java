@@ -15,8 +15,6 @@ import com.thdpv.movietheater.mission.dto.request.AdminMissionCampaignRequest;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionTemplateRequest;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateResponse;
-import com.thdpv.movietheater.mission.entity.MissionCampaign;
-import com.thdpv.movietheater.mission.entity.MissionTemplate;
 import com.thdpv.movietheater.mission.service.MissionService;
 
 import jakarta.validation.Valid;
@@ -36,9 +34,9 @@ public class AdminMissionController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<MissionTemplate>> upsertTemplate(
+    public ResponseEntity<ApiResponse<AdminMissionTemplateResponse>> upsertTemplate(
             @Valid @RequestBody AdminMissionTemplateRequest request) {
-        MissionTemplate saved = missionService.upsertTemplate(request);
+        AdminMissionTemplateResponse saved = missionService.upsertTemplateForAdmin(request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Lưu mission template thành công"));
     }
 
@@ -48,9 +46,9 @@ public class AdminMissionController {
     }
 
     @PostMapping("/campaigns")
-    public ResponseEntity<ApiResponse<MissionCampaign>> upsertCampaign(
+    public ResponseEntity<ApiResponse<AdminMissionCampaignResponse>> upsertCampaign(
             @Valid @RequestBody AdminMissionCampaignRequest request) {
-        MissionCampaign saved = missionService.upsertCampaign(request);
+        AdminMissionCampaignResponse saved = missionService.upsertCampaignForAdmin(request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Lưu chiến dịch mission thành công"));
     }
 }

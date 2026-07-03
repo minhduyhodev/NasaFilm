@@ -42,19 +42,6 @@ export const formatCycleLabel = (mission) => {
   return MISSION_RECURRENCE_LABELS[mission.recurrence] || mission.cycleKey;
 };
 
-export const getMissionStatusMeta = (mission) => {
-  if (mission?.visibility === 'LOCKED_FEATURE') {
-    return { label: 'Sắp mở', tone: 'locked' };
-  }
-  if (mission?.status === 'COMPLETED') {
-    return { label: 'Hoàn thành', tone: 'done' };
-  }
-  if (mission?.status === 'LOCKED') {
-    return { label: 'Khóa', tone: 'locked' };
-  }
-  return { label: 'Đang làm', tone: 'active' };
-};
-
 export const formatTierGap = (lifetimeScore = 0, nextTierAt = 5000) => {
   const gap = Math.max(nextTierAt - lifetimeScore, 0);
   if (gap <= 0) {
