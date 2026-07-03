@@ -10,7 +10,7 @@ import {
   Target,
   Zap,
 } from 'lucide-react';
-import { adminMissionService, MISSION_PRESETS } from '../api/adminMissionService';
+import { adminMissionService } from '../api/adminMissionService';
 import { notificationService } from '../../../shared/services/notificationService';
 import AdminModal from '../components/AdminModal';
 import MissionFormPanel from '../components/panels/MissionFormPanel';
@@ -20,10 +20,8 @@ import {
   filterByQuery,
   formatAdminDateRange,
   getCampaignStatusLabel,
-  getConditionLabel,
-  getFeatureLabel,
   getMissionDisplayTitle,
-  getRecurrenceLabel,
+  resolveCampaignTitle,
 } from '../utils/missionAdminUtils';
 import './MissionsPage.css';
 
@@ -42,8 +40,9 @@ const MissionSkeleton = () => (
   </div>
 );
 
-const TemplateRow = ({ item, onEdit, onToggle, isToggling }) => {
+const TemplateRow = ({ item, campaigns, onEdit, onToggle, isToggling }) => {
   const displayTitle = getMissionDisplayTitle(item);
+  const campaignTitle = resolveCampaignTitle(item.campaignUuid, campaigns);
 
   return (
     <article
@@ -55,17 +54,13 @@ const TemplateRow = ({ item, onEdit, onToggle, isToggling }) => {
         <div className="mc-row__copy">
           <h3 className="mc-row__title">{displayTitle}</h3>
           <p className="mc-row__desc">{item.description}</p>
+          {campaignTitle && (
+            <span className="mc-row__campaign">
+              <Rocket size={11} />
+              {campaignTitle}
+            </span>
+          )}
         </div>
-      </div>
-
-      <div className="mc-row__tags">
-        <span className="mc-tag">{getRecurrenceLabel(item.recurrence)}</span>
-        <span className="mc-tag mc-tag--muted">{getConditionLabel(item.conditionType)}</span>
-        {item.requiresFeature && (
-          <span className="mc-tag mc-tag--lock">
-            Chờ tính năng: {getFeatureLabel(item.requiresFeature)}
-          </span>
-        )}
       </div>
 
       <div className="mc-row__metrics">
@@ -209,7 +204,7 @@ const MissionsPage = () => {
         title="Quản lý nhiệm vụ"
         description="Bật hoặc tắt nhiệm vụ cho khán giả và gom theo chiến dịch."
         primaryAction={{
-          label: activeTab === 'templates' ? 'Cấu hình nhiệm vụ' : 'Thêm chiến dịch',
+          label: activeTab === 'templates' ? 'Thêm nhiệm vụ' : 'Thêm chiến dịch',
           icon: <Plus size={16} />,
           onClick: openCreate,
         }}
@@ -287,10 +282,6 @@ const MissionsPage = () => {
         </label>
       </div>
 
-      {activeTab === 'templates' && templates.length >= MISSION_PRESETS.length && (
-        <div className="mc-notice">Đã có đủ {MISSION_PRESETS.length} loại — dùng Sửa để chỉnh.</div>
-      )}
-
       {isLoading ? (
         <MissionSkeleton />
       ) : activeTab === 'templates' ? (
@@ -316,6 +307,7 @@ const MissionsPage = () => {
               <TemplateRow
                 key={item.uuid || item.code}
                 item={item}
+                campaigns={campaigns}
                 onEdit={(template) => setTemplateModal({ open: true, template })}
                 onToggle={handleToggleActive}
                 isToggling={togglingCode === item.code}
@@ -353,7 +345,7 @@ const MissionsPage = () => {
 
       <AdminModal
         open={templateModal.open}
-        title={templateModal.template ? 'Sửa nhiệm vụ' : 'Cấu hình nhiệm vụ'}
+        title={templateModal.template ? 'Sửa nhiệm vụ' : 'Thêm nhiệm vụ'}
         onClose={() => setTemplateModal({ open: false, template: null })}
       >
         <MissionFormPanel

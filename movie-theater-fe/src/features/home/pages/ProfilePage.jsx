@@ -49,7 +49,7 @@ import {
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
-import { missionService } from "../../../shared/services/missionService";
+import { missionService, MISSION_BOARD_REFRESH_EVENT } from "../../../shared/services/missionService";
 import MissionBoard from "../components/MissionBoard";
 import "./ProfilePage.css";
 
@@ -168,6 +168,27 @@ export const ProfilePage = () => {
       cancelled = true;
     };
   }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    const refreshBoard = async () => {
+      try {
+        const data = await missionService.getMissionBoard();
+        setMissionBoard(data);
+        setMissionError("");
+      } catch {
+        // ignore background refresh errors
+      }
+    };
+
+    window.addEventListener(MISSION_BOARD_REFRESH_EVENT, refreshBoard);
+    return () => {
+      window.removeEventListener(MISSION_BOARD_REFRESH_EVENT, refreshBoard);
+    };
+  }, [user]);
 
   const reloadMissions = async () => {
     if (!user) return;

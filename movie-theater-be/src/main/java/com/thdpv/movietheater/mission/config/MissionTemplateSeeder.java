@@ -24,20 +24,20 @@ public class MissionTemplateSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         seedIfAbsent(
                 "EXPLORER",
-                "Explorer",
+                "Khám phá phim",
                 "Xem phim thuộc 3 thể loại khác nhau trong 30 ngày gần nhất.",
                 MissionConditionType.GENRE_WINDOW,
                 "{\"windowDays\":30}",
                 200,
                 "EXPLORER",
-                "Explorer",
+                "Khám phá phim",
                 null,
                 3,
                 1,
                 MissionRecurrence.MONTHLY);
         seedIfAbsent(
                 "PREMIERE",
-                "Premiere",
+                "Suất chiếu đầu",
                 "Đặt vé rạp trong 3 ngày đầu phim mới ra mắt.",
                 MissionConditionType.PREMIERE_BOOKING,
                 "{\"windowDays\":3}",
@@ -50,8 +50,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 MissionRecurrence.ONCE);
         seedIfAbsent(
                 "HYBRID_PILOT",
-                "Hybrid Pilot",
-                "Xem cùng một bộ phim ở rạp và mua VOD online.",
+                "Xem rạp + online",
+                "Xem cùng một bộ phim ở rạp và mua bản xem online.",
                 MissionConditionType.HYBRID_THEATER_VOD,
                 "{}",
                 100,
@@ -63,8 +63,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 MissionRecurrence.ONCE);
         seedIfAbsent(
                 "SOCIAL_ORBIT",
-                "Social Orbit",
-                "Tham gia một phòng Orbit Seat để đặt vé nhóm.",
+                "Đặt vé nhóm",
+                "Tham gia phòng Orbit để đặt vé cùng bạn bè.",
                 MissionConditionType.ORBIT_ROOM_JOIN,
                 "{}",
                 100,
@@ -76,8 +76,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 MissionRecurrence.ONCE);
         seedIfAbsent(
                 "REVIEWER",
-                "Reviewer",
-                "Viết 5 đánh giá có gắn vibe tag.",
+                "Nhà phê bình",
+                "Viết 5 đánh giá có gắn vibe tag trên trang phim.",
                 MissionConditionType.REVIEW_WITH_VIBE_TAG,
                 "{}",
                 0,
@@ -87,6 +87,36 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 5,
                 5,
                 MissionRecurrence.ONCE);
+
+        alignLocalizedCopy();
+    }
+
+    private void alignLocalizedCopy() {
+        updateIfMatches("EXPLORER", "Explorer", "Khám phá phim",
+                "Xem phim thuộc 3 thể loại khác nhau trong 30 ngày gần nhất.");
+        updateIfMatches("PREMIERE", "Premiere", "Suất chiếu đầu",
+                "Đặt vé rạp trong 3 ngày đầu phim mới ra mắt.");
+        updateIfMatches("HYBRID_PILOT", "Hybrid Pilot", "Xem rạp + online",
+                "Xem cùng một bộ phim ở rạp và mua bản xem online.");
+        updateIfMatches("SOCIAL_ORBIT", "Social Orbit", "Đặt vé nhóm",
+                "Tham gia phòng Orbit để đặt vé cùng bạn bè.");
+        updateIfMatches("REVIEWER", "Reviewer", "Nhà phê bình",
+                "Viết 5 đánh giá có gắn vibe tag trên trang phim.");
+    }
+
+    private void updateIfMatches(String code, String oldTitle, String newTitle, String newDescription) {
+        missionTemplateRepository.findByCodeIgnoreCase(code).ifPresent(template -> {
+            if (!oldTitle.equalsIgnoreCase(template.getTitle())) {
+                return;
+            }
+            template.setTitle(newTitle);
+            template.setDescription(newDescription);
+            if ("EXPLORER".equals(code) && template.getRewardBadgeTitle() != null
+                    && "Explorer".equalsIgnoreCase(template.getRewardBadgeTitle())) {
+                template.setRewardBadgeTitle("Khám phá phim");
+            }
+            missionTemplateRepository.save(template);
+        });
     }
 
     private void seedIfAbsent(

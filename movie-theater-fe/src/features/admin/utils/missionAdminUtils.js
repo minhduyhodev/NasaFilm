@@ -36,6 +36,13 @@ export const getRecurrenceLabel = (value) => recurrenceMap[value] || value || 'M
 
 export const getCampaignStatusLabel = (value) => campaignStatusMap[value] || value || '—';
 
+export const resolveCampaignTitle = (campaignUuid, campaigns = []) => {
+  if (!campaignUuid) return null;
+  const id = String(campaignUuid);
+  const found = campaigns.find((item) => String(item.uuid) === id);
+  return found?.title ?? null;
+};
+
 export const formatAdminDateRange = (startsAt, endsAt) => {
   const fmt = (value) => {
     if (!value) return null;

@@ -13,6 +13,7 @@ public class MissionItemResponse {
     private String recurrence;
     private MissionProgressResponse progress;
     private int rewardPoints;
+    private int sortOrder;
     private MissionBadgeResponse rewardBadge;
     private OffsetDateTime completedAt;
 
@@ -86,6 +87,14 @@ public class MissionItemResponse {
 
     public void setRewardPoints(int rewardPoints) {
         this.rewardPoints = rewardPoints;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public MissionBadgeResponse getRewardBadge() {

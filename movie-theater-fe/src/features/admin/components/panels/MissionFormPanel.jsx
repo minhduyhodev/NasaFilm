@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   adminMissionService,
   getMissionPreset,
+  MISSION_CONDITION_TYPES,
   MISSION_PRESETS,
   MISSION_RECURRENCE_TYPES,
 } from '../../api/adminMissionService';
@@ -9,6 +10,30 @@ import { getFeatureLabel, getMissionDisplayTitle } from '../../utils/missionAdmi
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
+
+const CUSTOM_OPTION = '__CUSTOM__';
+
+const CONDITION_JSON_DEFAULTS = {
+  GENRE_WINDOW: '{"windowDays":30}',
+  PREMIERE_BOOKING: '{"windowDays":3}',
+};
+
+const emptyCustomForm = () => ({
+  code: '',
+  title: '',
+  description: '',
+  conditionType: 'GENRE_WINDOW',
+  conditionJson: CONDITION_JSON_DEFAULTS.GENRE_WINDOW,
+  recurrence: 'ONCE',
+  campaignUuid: '',
+  rewardPoints: 100,
+  rewardBadgeCode: '',
+  rewardBadgeTitle: '',
+  requiresFeature: '',
+  targetValue: 1,
+  active: true,
+  sortOrder: 0,
+});
 
 const buildFormFromPreset = (preset, overrides = {}) => ({
   code: preset.code,
@@ -19,6 +44,8 @@ const buildFormFromPreset = (preset, overrides = {}) => ({
   recurrence: preset.recurrence,
   campaignUuid: '',
   rewardPoints: preset.rewardPoints,
+  rewardBadgeCode: preset.rewardBadgeCode || '',
+  rewardBadgeTitle: preset.rewardBadgeTitle || '',
   requiresFeature: preset.requiresFeature || '',
   targetValue: preset.targetValue,
   active: true,
@@ -33,8 +60,10 @@ const buildFormFromTemplate = (template) => ({
   conditionType: template.conditionType || 'GENRE_WINDOW',
   conditionJson: template.conditionJson || '{}',
   recurrence: template.recurrence || 'ONCE',
-  campaignUuid: template.campaignUuid || '',
+  campaignUuid: template.campaignUuid ? String(template.campaignUuid) : '',
   rewardPoints: template.rewardPoints ?? 0,
+  rewardBadgeCode: template.rewardBadgeCode || '',
+  rewardBadgeTitle: template.rewardBadgeTitle || '',
   requiresFeature: template.requiresFeature || '',
   targetValue: template.targetValue ?? 1,
   active: template.active !== false,
@@ -50,6 +79,9 @@ const resolveFormForCode = (code, existingTemplates) => {
   return preset ? buildFormFromPreset(preset) : null;
 };
 
+const resolveRequiresFeature = (conditionType) =>
+  conditionType === 'ORBIT_ROOM_JOIN' ? 'ORBIT_SEAT' : '';
+
 const MissionFormPanel = ({
   template,
   campaigns = [],
@@ -63,54 +95,87 @@ const MissionFormPanel = ({
     [existingTemplates],
   );
 
+  const [mode, setMode] = useState('preset');
   const [form, setForm] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (template) {
-      setForm(buildFormFromTemplate(template));
+      const nextForm = buildFormFromTemplate(template);
+      setForm(nextForm);
+      setMode(getMissionPreset(template.code) ? 'preset' : 'custom');
       return;
     }
-    const initialCode = MISSION_PRESETS[0]?.code;
-    setForm(initialCode ? resolveFormForCode(initialCode, existingTemplates) : null);
-  }, [template, existingTemplates]);
+
+    const firstOpenPreset = MISSION_PRESETS.find((item) => !usedCodes.has(item.code));
+    if (firstOpenPreset) {
+      setMode('preset');
+      setForm(resolveFormForCode(firstOpenPreset.code, existingTemplates));
+      return;
+    }
+
+    setMode('custom');
+    setForm(emptyCustomForm());
+  }, [template, existingTemplates, usedCodes]);
 
   const preset = getMissionPreset(form?.code);
-  const isExistingType = form?.code ? usedCodes.has(form.code) : false;
+  const isCustomMission = mode === 'custom' || (isEditing && !preset);
+  const selectValue = mode === 'custom' ? CUSTOM_OPTION : form?.code || '';
 
-  const handlePresetChange = (code) => {
-    const nextForm = resolveFormForCode(code, existingTemplates);
+  const handleTypeChange = (value) => {
+    if (value === CUSTOM_OPTION) {
+      setMode('custom');
+      setForm(emptyCustomForm());
+      return;
+    }
+    setMode('preset');
+    const nextForm = resolveFormForCode(value, existingTemplates);
     if (nextForm) {
       setForm(nextForm);
     }
   };
 
+  const handleConditionChange = (conditionType) => {
+    setForm((prev) => ({
+      ...prev,
+      conditionType,
+      conditionJson: CONDITION_JSON_DEFAULTS[conditionType] || '{}',
+      requiresFeature: resolveRequiresFeature(conditionType),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form?.code) {
-      notificationService.error('Hãy chọn loại nhiệm vụ.');
+    const code = form?.code?.trim().toUpperCase();
+    if (!code) {
+      notificationService.error(isCustomMission ? 'Mã nhiệm vụ không được để trống.' : 'Hãy chọn loại nhiệm vụ.');
+      return;
+    }
+    if (!/^[A-Z0-9_]+$/.test(code)) {
+      notificationService.error('Mã chỉ gồm chữ in hoa, số và dấu gạch dưới.');
       return;
     }
     if (!form.title.trim()) {
       notificationService.error('Tên không được để trống.');
       return;
     }
+    if (!isEditing && mode === 'custom' && usedCodes.has(code)) {
+      notificationService.error('Mã này đã tồn tại. Hãy chọn mã khác hoặc Sửa nhiệm vụ hiện có.');
+      return;
+    }
     setIsSaving(true);
     try {
       await adminMissionService.upsertTemplate({
         ...form,
+        code,
         title: form.title.trim(),
         description: form.description.trim(),
         campaignUuid: form.campaignUuid || null,
-        rewardBadgeCode: null,
-        rewardBadgeTitle: null,
+        rewardBadgeCode: form.rewardBadgeCode?.trim() || null,
+        rewardBadgeTitle: form.rewardBadgeTitle?.trim() || null,
         requiresFeature: form.requiresFeature?.trim() || null,
       });
-      notificationService.success(
-        isExistingType && !isEditing
-          ? 'Đã cập nhật nhiệm vụ.'
-          : 'Đã lưu nhiệm vụ.',
-      );
+      notificationService.success(isEditing ? 'Đã cập nhật nhiệm vụ.' : 'Đã thêm nhiệm vụ.');
       onSuccess?.();
     } catch (error) {
       notificationService.error(error.message || 'Không thể lưu nhiệm vụ.');
@@ -126,33 +191,66 @@ const MissionFormPanel = ({
   return (
     <form onSubmit={handleSubmit} className="mc-form mc-form--compact">
       <div className="mc-form-grid">
-        <div className="mc-form-field mc-form-field--full">
-          {isEditing ? (
-            <>
+        {isEditing ? (
+          isCustomMission ? (
+            <div className="mc-form-field mc-form-field--full">
+              <label className={adminLabelClass}>Mã</label>
+              <div className="mc-form-static">{form.code}</div>
+            </div>
+          ) : (
+            <div className="mc-form-field mc-form-field--full">
               <label className={adminLabelClass}>Loại</label>
               <div className="mc-form-static">
                 {preset?.label || getMissionDisplayTitle({ code: form.code, title: form.title })}
               </div>
-            </>
-          ) : (
-            <>
-              <label className={adminLabelClass} htmlFor="mission-preset">Loại</label>
-              <select
-                id="mission-preset"
-                className={adminSelectClass}
-                value={form.code}
-                onChange={(e) => handlePresetChange(e.target.value)}
-              >
-                {MISSION_PRESETS.map((item) => (
-                  <option key={item.code} value={item.code}>
-                    {item.label}
-                    {usedCodes.has(item.code) ? ' · đã có' : ''}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-        </div>
+            </div>
+          )
+        ) : (
+          <div className="mc-form-field mc-form-field--full">
+            <label className={adminLabelClass} htmlFor="mission-preset">Loại</label>
+            <select
+              id="mission-preset"
+              className={adminSelectClass}
+              value={selectValue}
+              onChange={(e) => handleTypeChange(e.target.value)}
+            >
+              {MISSION_PRESETS.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.label}
+                </option>
+              ))}
+              <option value={CUSTOM_OPTION}>Loại mới…</option>
+            </select>
+          </div>
+        )}
+
+        {isCustomMission && !isEditing && (
+          <div className="mc-form-field mc-form-field--full">
+            <label className={adminLabelClass}>Mã</label>
+            <input
+              className={adminInputClass}
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+              placeholder="SUMMER_WATCH"
+            />
+          </div>
+        )}
+
+        {isCustomMission && (
+          <div className="mc-form-field mc-form-field--full">
+            <label className={adminLabelClass}>Hành động theo dõi</label>
+            <select
+              className={adminSelectClass}
+              value={form.conditionType}
+              onChange={(e) => handleConditionChange(e.target.value)}
+            >
+              {MISSION_CONDITION_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="mc-form-field mc-form-field--full">
           <label className={adminLabelClass}>Tên</label>
           <input
@@ -186,12 +284,12 @@ const MissionFormPanel = ({
           <label className={adminLabelClass}>Chiến dịch</label>
           <select
             className={adminSelectClass}
-            value={form.campaignUuid}
+            value={form.campaignUuid ? String(form.campaignUuid) : ''}
             onChange={(e) => setForm({ ...form, campaignUuid: e.target.value })}
           >
             <option value="">Không gắn</option>
             {campaigns.map((campaign) => (
-              <option key={campaign.uuid} value={campaign.uuid}>{campaign.title}</option>
+              <option key={campaign.uuid} value={String(campaign.uuid)}>{campaign.title}</option>
             ))}
           </select>
         </div>

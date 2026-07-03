@@ -59,6 +59,7 @@ import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.mission.util.MissionCycleResolver;
+import com.thdpv.movietheater.mission.util.MissionRules;
 
 @Service
 public class MissionService {
@@ -113,7 +114,7 @@ public class MissionService {
                 .collect(Collectors.toMap(MissionCampaign::getUuid, campaign -> campaign, (a, b) -> a));
 
         List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc().stream()
-                .filter(template -> isTemplateVisible(template, campaignsById, now))
+                .filter(template -> MissionRules.isTemplateVisible(template, campaignsById, now))
                 .toList();
 
         Map<String, UserMission> missionsByKey = userMissionRepository.findByUserUuidOrderByUpdatedAtDesc(user.getId())
@@ -217,7 +218,7 @@ public class MissionService {
                 continue;
             }
 
-            if (!isTemplateVisible(template, campaigns, eventTime)) {
+            if (!MissionRules.isTemplateVisible(template, campaigns, eventTime)) {
                 continue;
             }
 
@@ -360,8 +361,9 @@ public class MissionService {
             return;
         }
         ExplorerProgress progress = readExplorerProgress(userMission.getProgressJson());
+        int windowDays = MissionRules.resolveWindowDays(template.getConditionJson(), EXPLORER_WINDOW_DAYS);
         OffsetDateTime cutoff = (event.getOccurredAt() != null ? event.getOccurredAt() : OffsetDateTime.now())
-                .minusDays(EXPLORER_WINDOW_DAYS);
+                .minusDays(windowDays);
         progress.genreEvents.removeIf(item -> item.at == null || item.at.isBefore(cutoff));
 
         List<UUID> genreIds = movieGenreRepository.findByMovie_Uuid(event.getMovieUuid()).stream()
@@ -519,13 +521,16 @@ public class MissionService {
         }
 
         return switch (template.getConditionType()) {
-            case PREMIERE_BOOKING -> isPremiereBooking(movie, event.getOccurredAt());
+            case PREMIERE_BOOKING -> isPremiereBooking(
+                    movie,
+                    event.getOccurredAt(),
+                    MissionRules.resolveWindowDays(template.getConditionJson(), PREMIERE_WINDOW_DAYS));
             case GENRE_WINDOW, HYBRID_THEATER_VOD -> true;
             default -> true;
         };
     }
 
-    private boolean isPremiereBooking(Movie movie, OffsetDateTime occurredAt) {
+    private boolean isPremiereBooking(Movie movie, OffsetDateTime occurredAt, int windowDays) {
         if (movie.getReleaseDate() == null || occurredAt == null) {
             return false;
         }
@@ -534,7 +539,7 @@ public class MissionService {
         if (bookingDate.isBefore(releaseDate)) {
             return false;
         }
-        return !bookingDate.isAfter(releaseDate.plusDays(PREMIERE_WINDOW_DAYS));
+        return !bookingDate.isAfter(releaseDate.plusDays(windowDays));
     }
 
     private boolean isFeatureLocked(MissionTemplate template) {
@@ -544,29 +549,6 @@ public class MissionService {
     private Map<UUID, MissionCampaign> loadCampaignMap() {
         return missionCampaignRepository.findAll().stream()
                 .collect(Collectors.toMap(MissionCampaign::getUuid, campaign -> campaign, (a, b) -> a));
-    }
-
-    private boolean isTemplateVisible(MissionTemplate template, Map<UUID, MissionCampaign> campaigns, OffsetDateTime now) {
-        if (!template.isActive()) {
-            return false;
-        }
-        if (template.getStartsAt() != null && now.isBefore(template.getStartsAt())) {
-            return false;
-        }
-        if (template.getEndsAt() != null && now.isAfter(template.getEndsAt())) {
-            return false;
-        }
-        if (template.getCampaignUuid() == null) {
-            return true;
-        }
-        MissionCampaign campaign = campaigns.get(template.getCampaignUuid());
-        if (campaign == null || campaign.getStatus() != MissionCampaignStatus.ACTIVE) {
-            return false;
-        }
-        if (campaign.getStartsAt() != null && now.isBefore(campaign.getStartsAt())) {
-            return false;
-        }
-        return campaign.getEndsAt() == null || !now.isAfter(campaign.getEndsAt());
     }
 
     private MissionCampaignResponse resolveFeaturedCampaign(Map<UUID, MissionCampaign> campaigns, OffsetDateTime now) {
@@ -656,6 +638,7 @@ public class MissionService {
         item.setTitle(template.getTitle());
         item.setDescription(template.getDescription());
         item.setRewardPoints(template.getRewardPoints());
+        item.setSortOrder(template.getSortOrder());
         item.setCycleKey(cycleKey);
         item.setRecurrence(template.getRecurrence() != null ? template.getRecurrence().name() : MissionRecurrence.ONCE.name());
         if (template.getRewardBadgeCode() != null) {
