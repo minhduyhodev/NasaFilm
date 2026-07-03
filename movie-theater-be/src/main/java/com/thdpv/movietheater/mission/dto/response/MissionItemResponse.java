@@ -9,6 +9,8 @@ public class MissionItemResponse {
     private String description;
     private String status;
     private String visibility;
+    private String cycleKey;
+    private String recurrence;
     private MissionProgressResponse progress;
     private int rewardPoints;
     private MissionBadgeResponse rewardBadge;
@@ -52,6 +54,22 @@ public class MissionItemResponse {
 
     public void setVisibility(String visibility) {
         this.visibility = visibility;
+    }
+
+    public String getCycleKey() {
+        return cycleKey;
+    }
+
+    public void setCycleKey(String cycleKey) {
+        this.cycleKey = cycleKey;
+    }
+
+    public String getRecurrence() {
+        return recurrence;
+    }
+
+    public void setRecurrence(String recurrence) {
+        this.recurrence = recurrence;
     }
 
     public MissionProgressResponse getProgress() {

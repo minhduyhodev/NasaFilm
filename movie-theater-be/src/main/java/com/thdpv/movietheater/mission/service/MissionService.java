@@ -8,12 +8,14 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,20 +23,29 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.booking.util.MemberTierUtils;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
+import com.thdpv.movietheater.mission.dto.request.AdminMissionCampaignRequest;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionTemplateRequest;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignResponse;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBadgeResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBoardResponse;
+import com.thdpv.movietheater.mission.dto.response.MissionBoardSummaryResponse;
+import com.thdpv.movietheater.mission.dto.response.MissionCampaignResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionItemResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionProgressResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionTierResponse;
+import com.thdpv.movietheater.mission.entity.MissionCampaign;
 import com.thdpv.movietheater.mission.entity.MissionProgressEvent;
 import com.thdpv.movietheater.mission.entity.MissionTemplate;
 import com.thdpv.movietheater.mission.entity.UserBadge;
 import com.thdpv.movietheater.mission.entity.UserMission;
+import com.thdpv.movietheater.mission.enums.MissionCampaignStatus;
 import com.thdpv.movietheater.mission.enums.MissionConditionType;
 import com.thdpv.movietheater.mission.enums.MissionEventType;
+import com.thdpv.movietheater.mission.enums.MissionRecurrence;
 import com.thdpv.movietheater.mission.enums.UserMissionStatus;
+import com.thdpv.movietheater.mission.repository.MissionCampaignRepository;
 import com.thdpv.movietheater.mission.repository.MissionProgressEventRepository;
 import com.thdpv.movietheater.mission.repository.MissionTemplateRepository;
 import com.thdpv.movietheater.mission.repository.UserBadgeRepository;
@@ -47,6 +58,7 @@ import com.thdpv.movietheater.notification.dto.CreateUserNotificationRequest;
 import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.mission.util.MissionCycleResolver;
 
 @Service
 public class MissionService {
@@ -57,6 +69,7 @@ public class MissionService {
     private static final String FEATURE_ORBIT_SEAT = "ORBIT_SEAT";
 
     private final MissionTemplateRepository missionTemplateRepository;
+    private final MissionCampaignRepository missionCampaignRepository;
     private final UserMissionRepository userMissionRepository;
     private final MissionProgressEventRepository missionProgressEventRepository;
     private final UserBadgeRepository userBadgeRepository;
@@ -69,6 +82,7 @@ public class MissionService {
 
     public MissionService(
             MissionTemplateRepository missionTemplateRepository,
+            MissionCampaignRepository missionCampaignRepository,
             UserMissionRepository userMissionRepository,
             MissionProgressEventRepository missionProgressEventRepository,
             UserBadgeRepository userBadgeRepository,
@@ -79,6 +93,7 @@ public class MissionService {
             UserNotificationService userNotificationService,
             ObjectMapper objectMapper) {
         this.missionTemplateRepository = missionTemplateRepository;
+        this.missionCampaignRepository = missionCampaignRepository;
         this.userMissionRepository = userMissionRepository;
         this.missionProgressEventRepository = missionProgressEventRepository;
         this.userBadgeRepository = userBadgeRepository;
@@ -93,18 +108,82 @@ public class MissionService {
     @Transactional(readOnly = true)
     public MissionBoardResponse getMissionBoard(String userEmail) {
         User user = resolveUser(userEmail);
-        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc();
-        Map<UUID, UserMission> missionsByTemplate = userMissionRepository.findByUserUuidOrderByUpdatedAtDesc(user.getId())
+        OffsetDateTime now = OffsetDateTime.now();
+        Map<UUID, MissionCampaign> campaignsById = missionCampaignRepository.findAll().stream()
+                .collect(Collectors.toMap(MissionCampaign::getUuid, campaign -> campaign, (a, b) -> a));
+
+        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc().stream()
+                .filter(template -> isTemplateVisible(template, campaignsById, now))
+                .toList();
+
+        Map<String, UserMission> missionsByKey = userMissionRepository.findByUserUuidOrderByUpdatedAtDesc(user.getId())
                 .stream()
-                .collect(Collectors.toMap(UserMission::getMissionTemplateUuid, mission -> mission, (a, b) -> a));
+                .collect(Collectors.toMap(
+                        mission -> mission.getMissionTemplateUuid() + "::" + mission.getCycleKey(),
+                        mission -> mission,
+                        (a, b) -> a));
 
         MissionBoardResponse board = new MissionBoardResponse();
         board.setTier(buildTier(user.getLifetimeScore() != null ? user.getLifetimeScore() : 0));
+        board.setCampaign(resolveFeaturedCampaign(campaignsById, now));
+        board.setBadges(getUserBadges(userEmail));
+
+        List<MissionItemResponse> activeMissions = new ArrayList<>();
+        List<MissionItemResponse> completedMissions = new ArrayList<>();
 
         for (MissionTemplate template : templates) {
-            UserMission userMission = missionsByTemplate.get(template.getUuid());
-            board.getMissions().add(toMissionItem(template, userMission));
+            String cycleKey = MissionCycleResolver.resolve(template.getRecurrence(), now);
+            UserMission userMission = missionsByKey.get(template.getUuid() + "::" + cycleKey);
+            MissionItemResponse item = toMissionItem(template, userMission, cycleKey, now);
+
+            if (isFeatureLocked(template)) {
+                activeMissions.add(item);
+                continue;
+            }
+
+            boolean completedThisCycle = userMission != null && userMission.getStatus() == UserMissionStatus.COMPLETED;
+            if (completedThisCycle) {
+                completedMissions.add(item);
+            } else {
+                activeMissions.add(item);
+            }
+
+            if (template.getRecurrence() == MissionRecurrence.ONCE) {
+                continue;
+            }
+
+            missionsByKey.values().stream()
+                    .filter(mission -> mission.getMissionTemplateUuid().equals(template.getUuid()))
+                    .filter(mission -> mission.getStatus() == UserMissionStatus.COMPLETED)
+                    .filter(mission -> !mission.getCycleKey().equals(cycleKey))
+                    .sorted((a, b) -> {
+                        if (a.getCompletedAt() == null || b.getCompletedAt() == null) {
+                            return 0;
+                        }
+                        return b.getCompletedAt().compareTo(a.getCompletedAt());
+                    })
+                    .limit(3)
+                    .map(mission -> toMissionItem(template, mission, mission.getCycleKey(), now))
+                    .forEach(historyItem -> {
+                        if (completedMissions.stream().noneMatch(existing -> existing.getCode().equals(historyItem.getCode())
+                                && Objects.equals(existing.getCycleKey(), historyItem.getCycleKey()))) {
+                            completedMissions.add(historyItem);
+                        }
+                    });
         }
+
+        board.setActiveMissions(activeMissions);
+        board.setCompletedMissions(completedMissions);
+        board.getMissions().addAll(activeMissions);
+        board.getMissions().addAll(completedMissions);
+        board.setRecentCompletions(buildRecentCompletions(user.getId(), templates));
+        board.setSummary(new MissionBoardSummaryResponse(
+                (int) activeMissions.stream().filter(item -> !"LOCKED_FEATURE".equals(item.getVisibility())).count(),
+                completedMissions.size(),
+                templates.size(),
+                !templates.isEmpty()
+                        && activeMissions.stream().noneMatch(item -> !"LOCKED_FEATURE".equals(item.getVisibility()))
+                        && completedMissions.size() >= templates.stream().filter(t -> !isFeatureLocked(t)).count()));
         return board;
     }
 
@@ -124,6 +203,8 @@ public class MissionService {
 
         List<MissionCompletionResponse> completions = new ArrayList<>();
         List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc();
+        Map<UUID, MissionCampaign> campaigns = loadCampaignMap();
+        OffsetDateTime eventTime = event.getOccurredAt() != null ? event.getOccurredAt() : OffsetDateTime.now();
 
         for (MissionTemplate template : templates) {
             if (!supportsEvent(template, event)) {
@@ -136,11 +217,16 @@ public class MissionService {
                 continue;
             }
 
-            UserMission userMission = enrollIfNeeded(event.getUserUuid(), template);
+            if (!isTemplateVisible(template, campaigns, eventTime)) {
+                continue;
+            }
+
+            String cycleKey = MissionCycleResolver.resolve(template.getRecurrence(), event.getOccurredAt());
+            UserMission userMission = enrollIfNeeded(event.getUserUuid(), template, cycleKey);
             if (userMission.getStatus() == UserMissionStatus.COMPLETED) {
                 continue;
             }
-            if (!recordProgressEvent(event, template)) {
+            if (!recordProgressEvent(event, template, cycleKey)) {
                 continue;
             }
 
@@ -165,6 +251,10 @@ public class MissionService {
         template.setDescription(request.getDescription());
         template.setConditionType(request.getConditionType());
         template.setConditionJson(request.getConditionJson());
+        template.setRecurrence(request.getRecurrence() != null ? request.getRecurrence() : MissionRecurrence.ONCE);
+        template.setCampaignUuid(request.getCampaignUuid());
+        template.setStartsAt(request.getStartsAt());
+        template.setEndsAt(request.getEndsAt());
         template.setRewardPoints(Math.max(request.getRewardPoints(), 0));
         template.setRewardBadgeCode(blankToNull(request.getRewardBadgeCode()));
         template.setRewardBadgeTitle(blankToNull(request.getRewardBadgeTitle()));
@@ -181,13 +271,41 @@ public class MissionService {
     }
 
     @Transactional(readOnly = true)
-    public List<MissionTemplate> listTemplatesForAdmin() {
-        return missionTemplateRepository.findAll();
+    public List<AdminMissionTemplateResponse> listTemplatesForAdmin() {
+        return missionTemplateRepository.findAll().stream()
+                .sorted((a, b) -> {
+                    int order = Integer.compare(a.getSortOrder(), b.getSortOrder());
+                    return order != 0 ? order : a.getTitle().compareToIgnoreCase(b.getTitle());
+                })
+                .map(this::toAdminTemplateResponse)
+                .toList();
     }
 
-    private UserMission enrollIfNeeded(UUID userUuid, MissionTemplate template) {
-        Optional<UserMission> existing = userMissionRepository.findByUserUuidAndMissionTemplateUuid(
-                userUuid, template.getUuid());
+    @Transactional
+    public MissionCampaign upsertCampaign(AdminMissionCampaignRequest request) {
+        MissionCampaign campaign = missionCampaignRepository
+                .findByCodeIgnoreCase(request.getCode().trim())
+                .orElseGet(MissionCampaign::new);
+        campaign.setCode(request.getCode().trim().toUpperCase());
+        campaign.setTitle(request.getTitle().trim());
+        campaign.setDescription(request.getDescription());
+        campaign.setStatus(request.getStatus() != null ? request.getStatus() : MissionCampaignStatus.DRAFT);
+        campaign.setStartsAt(request.getStartsAt());
+        campaign.setEndsAt(request.getEndsAt());
+        campaign.setSortOrder(request.getSortOrder());
+        return missionCampaignRepository.save(campaign);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminMissionCampaignResponse> listCampaignsForAdmin() {
+        return missionCampaignRepository.findAllByOrderBySortOrderAscTitleAsc().stream()
+                .map(this::toAdminCampaignResponse)
+                .toList();
+    }
+
+    private UserMission enrollIfNeeded(UUID userUuid, MissionTemplate template, String cycleKey) {
+        Optional<UserMission> existing = userMissionRepository.findByUserUuidAndMissionTemplateUuidAndCycleKey(
+                userUuid, template.getUuid(), cycleKey);
         if (existing.isPresent()) {
             return existing.get();
         }
@@ -195,6 +313,7 @@ public class MissionService {
         UserMission mission = new UserMission();
         mission.setUserUuid(userUuid);
         mission.setMissionTemplateUuid(template.getUuid());
+        mission.setCycleKey(cycleKey);
         mission.setTemplateVersion(template.getVersion());
         mission.setProgressTarget(template.getTargetValue());
         if (isFeatureLocked(template)) {
@@ -207,11 +326,12 @@ public class MissionService {
         return userMissionRepository.save(mission);
     }
 
-    private boolean recordProgressEvent(MissionEventPayload event, MissionTemplate template) {
+    private boolean recordProgressEvent(MissionEventPayload event, MissionTemplate template, String cycleKey) {
         MissionProgressEvent progressEvent = new MissionProgressEvent();
         progressEvent.setUuid(UUID.randomUUID());
         progressEvent.setUserUuid(event.getUserUuid());
         progressEvent.setMissionTemplateUuid(template.getUuid());
+        progressEvent.setCycleKey(cycleKey);
         progressEvent.setSourceType(event.getEventType().name());
         progressEvent.setSourceId(event.getSourceId());
         progressEvent.setEventAt(event.getOccurredAt() != null ? event.getOccurredAt() : OffsetDateTime.now());
@@ -421,12 +541,123 @@ public class MissionService {
         return FEATURE_ORBIT_SEAT.equalsIgnoreCase(template.getRequiresFeature());
     }
 
-    private MissionItemResponse toMissionItem(MissionTemplate template, UserMission userMission) {
+    private Map<UUID, MissionCampaign> loadCampaignMap() {
+        return missionCampaignRepository.findAll().stream()
+                .collect(Collectors.toMap(MissionCampaign::getUuid, campaign -> campaign, (a, b) -> a));
+    }
+
+    private boolean isTemplateVisible(MissionTemplate template, Map<UUID, MissionCampaign> campaigns, OffsetDateTime now) {
+        if (!template.isActive()) {
+            return false;
+        }
+        if (template.getStartsAt() != null && now.isBefore(template.getStartsAt())) {
+            return false;
+        }
+        if (template.getEndsAt() != null && now.isAfter(template.getEndsAt())) {
+            return false;
+        }
+        if (template.getCampaignUuid() == null) {
+            return true;
+        }
+        MissionCampaign campaign = campaigns.get(template.getCampaignUuid());
+        if (campaign == null || campaign.getStatus() != MissionCampaignStatus.ACTIVE) {
+            return false;
+        }
+        if (campaign.getStartsAt() != null && now.isBefore(campaign.getStartsAt())) {
+            return false;
+        }
+        return campaign.getEndsAt() == null || !now.isAfter(campaign.getEndsAt());
+    }
+
+    private MissionCampaignResponse resolveFeaturedCampaign(Map<UUID, MissionCampaign> campaigns, OffsetDateTime now) {
+        return campaigns.values().stream()
+                .filter(campaign -> campaign.getStatus() == MissionCampaignStatus.ACTIVE)
+                .filter(campaign -> campaign.getStartsAt() == null || !now.isBefore(campaign.getStartsAt()))
+                .filter(campaign -> campaign.getEndsAt() == null || !now.isAfter(campaign.getEndsAt()))
+                .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                .findFirst()
+                .map(campaign -> new MissionCampaignResponse(
+                        campaign.getCode(),
+                        campaign.getTitle(),
+                        campaign.getDescription(),
+                        campaign.getStartsAt(),
+                        campaign.getEndsAt()))
+                .orElse(null);
+    }
+
+    private List<MissionCompletionResponse> buildRecentCompletions(UUID userUuid, List<MissionTemplate> visibleTemplates) {
+        Map<UUID, MissionTemplate> templatesById = missionTemplateRepository.findAll().stream()
+                .collect(Collectors.toMap(MissionTemplate::getUuid, template -> template, (a, b) -> a));
+        return userMissionRepository
+                .findByUserUuidAndStatusOrderByCompletedAtDesc(
+                        userUuid, UserMissionStatus.COMPLETED, PageRequest.of(0, 8))
+                .stream()
+                .map(mission -> {
+                    MissionTemplate template = templatesById.get(mission.getMissionTemplateUuid());
+                    if (template == null) {
+                        return null;
+                    }
+                    MissionBadgeResponse badge = null;
+                    if (template.getRewardBadgeCode() != null) {
+                        badge = new MissionBadgeResponse(
+                                template.getRewardBadgeCode(), template.getRewardBadgeTitle());
+                    }
+                    return new MissionCompletionResponse(
+                            template.getCode(), template.getTitle(), template.getRewardPoints(), badge);
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private AdminMissionTemplateResponse toAdminTemplateResponse(MissionTemplate template) {
+        AdminMissionTemplateResponse response = new AdminMissionTemplateResponse();
+        response.setUuid(template.getUuid());
+        response.setCode(template.getCode());
+        response.setVersion(template.getVersion());
+        response.setTitle(template.getTitle());
+        response.setDescription(template.getDescription());
+        response.setConditionType(template.getConditionType());
+        response.setConditionJson(template.getConditionJson());
+        response.setRecurrence(template.getRecurrence());
+        response.setCampaignUuid(template.getCampaignUuid());
+        response.setStartsAt(template.getStartsAt());
+        response.setEndsAt(template.getEndsAt());
+        response.setRewardPoints(template.getRewardPoints());
+        response.setRewardBadgeCode(template.getRewardBadgeCode());
+        response.setRewardBadgeTitle(template.getRewardBadgeTitle());
+        response.setRequiresFeature(template.getRequiresFeature());
+        response.setTargetValue(template.getTargetValue());
+        response.setActive(template.isActive());
+        response.setSortOrder(template.getSortOrder());
+        response.setEnrolledCount(userMissionRepository.countByMissionTemplateUuid(template.getUuid()));
+        response.setCompletedCount(userMissionRepository.countByMissionTemplateUuidAndStatus(
+                template.getUuid(), UserMissionStatus.COMPLETED));
+        return response;
+    }
+
+    private AdminMissionCampaignResponse toAdminCampaignResponse(MissionCampaign campaign) {
+        AdminMissionCampaignResponse response = new AdminMissionCampaignResponse();
+        response.setUuid(campaign.getUuid());
+        response.setCode(campaign.getCode());
+        response.setTitle(campaign.getTitle());
+        response.setDescription(campaign.getDescription());
+        response.setStatus(campaign.getStatus());
+        response.setStartsAt(campaign.getStartsAt());
+        response.setEndsAt(campaign.getEndsAt());
+        response.setSortOrder(campaign.getSortOrder());
+        response.setTemplateCount(missionTemplateRepository.countByCampaignUuid(campaign.getUuid()));
+        return response;
+    }
+
+    private MissionItemResponse toMissionItem(
+            MissionTemplate template, UserMission userMission, String cycleKey, OffsetDateTime now) {
         MissionItemResponse item = new MissionItemResponse();
         item.setCode(template.getCode());
         item.setTitle(template.getTitle());
         item.setDescription(template.getDescription());
         item.setRewardPoints(template.getRewardPoints());
+        item.setCycleKey(cycleKey);
+        item.setRecurrence(template.getRecurrence() != null ? template.getRecurrence().name() : MissionRecurrence.ONCE.name());
         if (template.getRewardBadgeCode() != null) {
             item.setRewardBadge(new MissionBadgeResponse(
                     template.getRewardBadgeCode(),

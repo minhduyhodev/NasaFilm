@@ -104,6 +104,91 @@
   color: #94a3b8;
 }
 
+.mission-board__campaign {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mission-board__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mission-board__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mission-board__section-head h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mission-board__section-head span {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.mission-board__empty {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  background: rgba(20, 83, 45, 0.12);
+  color: #d1fae5;
+}
+
+.mission-board__empty p {
+  margin: 0.25rem 0 0;
+  color: #86efac;
+  font-size: 0.9rem;
+}
+
+.mission-board__grid--completed .mission-card {
+  min-height: 180px;
+}
+
+.mission-card__cycle {
+  font-size: 0.75rem;
+  color: #7dd3fc;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.mission-board__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.mission-board__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
 .mission-board__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

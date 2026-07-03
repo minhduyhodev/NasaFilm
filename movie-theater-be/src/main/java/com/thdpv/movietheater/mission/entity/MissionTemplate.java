@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import com.thdpv.movietheater.mission.enums.MissionConditionType;
+import com.thdpv.movietheater.mission.enums.MissionRecurrence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -62,6 +63,19 @@ public class MissionTemplate {
 
     @Column(name = "requires_feature", length = 64)
     private String requiresFeature;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurrence", nullable = false, length = 32)
+    private MissionRecurrence recurrence = MissionRecurrence.ONCE;
+
+    @Column(name = "campaign_uuid")
+    private UUID campaignUuid;
+
+    @Column(name = "starts_at")
+    private OffsetDateTime startsAt;
+
+    @Column(name = "ends_at")
+    private OffsetDateTime endsAt;
 
     @Column(name = "target_value", nullable = false)
     private int targetValue = 1;
@@ -166,6 +180,38 @@ public class MissionTemplate {
 
     public void setRequiresFeature(String requiresFeature) {
         this.requiresFeature = requiresFeature;
+    }
+
+    public MissionRecurrence getRecurrence() {
+        return recurrence;
+    }
+
+    public void setRecurrence(MissionRecurrence recurrence) {
+        this.recurrence = recurrence;
+    }
+
+    public UUID getCampaignUuid() {
+        return campaignUuid;
+    }
+
+    public void setCampaignUuid(UUID campaignUuid) {
+        this.campaignUuid = campaignUuid;
+    }
+
+    public OffsetDateTime getStartsAt() {
+        return startsAt;
+    }
+
+    public void setStartsAt(OffsetDateTime startsAt) {
+        this.startsAt = startsAt;
+    }
+
+    public OffsetDateTime getEndsAt() {
+        return endsAt;
+    }
+
+    public void setEndsAt(OffsetDateTime endsAt) {
+        this.endsAt = endsAt;
     }
 
     public int getTargetValue() {

@@ -21,6 +21,7 @@ import {
   DollarSign,
   Megaphone,
   MessageSquare,
+  Rocket,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -261,6 +262,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Tag,
                 "Sự kiện & Khuyến mãi",
                 "text-pink-400",
+              )}
+              {renderLink(
+                "/admin/missions",
+                Rocket,
+                "Mission Control",
+                "text-sky-400",
               )}
               {renderLink(
                 "/admin/feedback-reviews",

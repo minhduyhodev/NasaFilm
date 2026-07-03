@@ -13,4 +13,6 @@ public interface MissionTemplateRepository extends JpaRepository<MissionTemplate
     List<MissionTemplate> findByActiveTrueOrderBySortOrderAscTitleAsc();
 
     Optional<MissionTemplate> findByCodeIgnoreCase(String code);
+
+    long countByCampaignUuid(UUID campaignUuid);
 }

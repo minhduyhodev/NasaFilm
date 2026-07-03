@@ -1,47 +1,42 @@
-package com.thdpv.movietheater.mission.dto.request;
+package com.thdpv.movietheater.mission.dto.response;
 
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import com.thdpv.movietheater.mission.enums.MissionCampaignStatus;
 import com.thdpv.movietheater.mission.enums.MissionConditionType;
 import com.thdpv.movietheater.mission.enums.MissionRecurrence;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+public class AdminMissionTemplateResponse {
 
-public class AdminMissionTemplateRequest {
-
-    @NotBlank
+    private UUID uuid;
     private String code;
-
-    @NotBlank
+    private int version;
     private String title;
-
     private String description;
-
-    @NotNull
     private MissionConditionType conditionType;
-
     private String conditionJson;
-
-    private MissionRecurrence recurrence = MissionRecurrence.ONCE;
-
-    private java.util.UUID campaignUuid;
-
-    private java.time.OffsetDateTime startsAt;
-
-    private java.time.OffsetDateTime endsAt;
-
+    private MissionRecurrence recurrence;
+    private UUID campaignUuid;
+    private OffsetDateTime startsAt;
+    private OffsetDateTime endsAt;
     private int rewardPoints;
-
     private String rewardBadgeCode;
-
     private String rewardBadgeTitle;
-
     private String requiresFeature;
-
-    private int targetValue = 1;
-
-    private boolean active = true;
-
+    private int targetValue;
+    private boolean active;
     private int sortOrder;
+    private long enrolledCount;
+    private long completedCount;
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
 
     public String getCode() {
         return code;
@@ -49,6 +44,14 @@ public class AdminMissionTemplateRequest {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
     }
 
     public String getTitle() {
@@ -91,27 +94,27 @@ public class AdminMissionTemplateRequest {
         this.recurrence = recurrence;
     }
 
-    public java.util.UUID getCampaignUuid() {
+    public UUID getCampaignUuid() {
         return campaignUuid;
     }
 
-    public void setCampaignUuid(java.util.UUID campaignUuid) {
+    public void setCampaignUuid(UUID campaignUuid) {
         this.campaignUuid = campaignUuid;
     }
 
-    public java.time.OffsetDateTime getStartsAt() {
+    public OffsetDateTime getStartsAt() {
         return startsAt;
     }
 
-    public void setStartsAt(java.time.OffsetDateTime startsAt) {
+    public void setStartsAt(OffsetDateTime startsAt) {
         this.startsAt = startsAt;
     }
 
-    public java.time.OffsetDateTime getEndsAt() {
+    public OffsetDateTime getEndsAt() {
         return endsAt;
     }
 
-    public void setEndsAt(java.time.OffsetDateTime endsAt) {
+    public void setEndsAt(OffsetDateTime endsAt) {
         this.endsAt = endsAt;
     }
 
@@ -169,5 +172,21 @@ public class AdminMissionTemplateRequest {
 
     public void setSortOrder(int sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public long getEnrolledCount() {
+        return enrolledCount;
+    }
+
+    public void setEnrolledCount(long enrolledCount) {
+        this.enrolledCount = enrolledCount;
+    }
+
+    public long getCompletedCount() {
+        return completedCount;
+    }
+
+    public void setCompletedCount(long completedCount) {
+        this.completedCount = completedCount;
     }
 }

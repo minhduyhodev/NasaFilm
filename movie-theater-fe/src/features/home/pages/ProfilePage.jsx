@@ -31,7 +31,10 @@ import {
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
-import { useMyBookings, useInvalidateMyBookings } from "../../../shared/hooks/queries/useBookingQueries";
+import {
+  useMyBookings,
+  useInvalidateMyBookings,
+} from "../../../shared/hooks/queries/useBookingQueries";
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
@@ -90,7 +93,11 @@ export const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState(null);
-  const { data: bookings = [], isLoading: isLoadingBookings, refetch: refetchBookings } = useMyBookings(Boolean(user));
+  const {
+    data: bookings = [],
+    isLoading: isLoadingBookings,
+    refetch: refetchBookings,
+  } = useMyBookings(Boolean(user));
   const invalidateBookings = useInvalidateMyBookings();
   const [cancelTargetUuid, setCancelTargetUuid] = useState(null);
   const [refundTargetUuid, setRefundTargetUuid] = useState(null);
@@ -814,7 +821,7 @@ export const ProfilePage = () => {
                   <div className="rail-icon-wrapper">
                     <Rocket size={20} />
                   </div>
-                  <span className="rail-label">Mission Control</span>
+                  <span className="rail-label">Nhiệm vụ</span>
                 </button>
 
                 <button
@@ -1539,29 +1546,29 @@ export const ProfilePage = () => {
                               </p>
                             ) : (
                               <>
-                              <div className="tickets-section__grid">
-                                {paginatedLiveBookings.map((tkt) => (
-                                  <ProfileTicketCard
-                                    key={tkt.id}
-                                    tkt={tkt}
-                                    onTicketClick={handleTicketClick}
-                                    onCancel={setCancelTargetUuid}
-                                    onRefund={setRefundTargetUuid}
+                                <div className="tickets-section__grid">
+                                  {paginatedLiveBookings.map((tkt) => (
+                                    <ProfileTicketCard
+                                      key={tkt.id}
+                                      tkt={tkt}
+                                      onTicketClick={handleTicketClick}
+                                      onCancel={setCancelTargetUuid}
+                                      onRefund={setRefundTargetUuid}
+                                    />
+                                  ))}
+                                </div>
+                                {liveBookings.length > ticketsPerPage && (
+                                  <Pagination
+                                    currentPage={liveTicketPage}
+                                    totalItems={liveBookings.length}
+                                    itemsPerPage={ticketsPerPage}
+                                    onPageChange={setLiveTicketPage}
+                                    onItemsPerPageChange={(size) => {
+                                      setTicketsPerPage(size);
+                                      setLiveTicketPage(1);
+                                    }}
                                   />
-                                ))}
-                              </div>
-                              {liveBookings.length > ticketsPerPage && (
-                                <Pagination
-                                  currentPage={liveTicketPage}
-                                  totalItems={liveBookings.length}
-                                  itemsPerPage={ticketsPerPage}
-                                  onPageChange={setLiveTicketPage}
-                                  onItemsPerPageChange={(size) => {
-                                    setTicketsPerPage(size);
-                                    setLiveTicketPage(1);
-                                  }}
-                                />
-                              )}
+                                )}
                               </>
                             )}
                           </section>
@@ -1571,7 +1578,9 @@ export const ProfilePage = () => {
                               <button
                                 type="button"
                                 className="tickets-section__toggle"
-                                onClick={() => setShowArchivedTickets((v) => !v)}
+                                onClick={() =>
+                                  setShowArchivedTickets((v) => !v)
+                                }
                                 aria-expanded={showArchivedTickets}
                               >
                                 <div className="tickets-section__header tickets-section__header--toggle">
@@ -1584,34 +1593,34 @@ export const ProfilePage = () => {
                                 </div>
                                 <ChevronDown
                                   size={18}
-                                  className={`tickets-section__chevron${showArchivedTickets ? ' tickets-section__chevron--open' : ''}`}
+                                  className={`tickets-section__chevron${showArchivedTickets ? " tickets-section__chevron--open" : ""}`}
                                 />
                               </button>
                               {showArchivedTickets && (
                                 <>
-                                <div className="tickets-section__grid tickets-section__grid--archived">
-                                  {paginatedArchivedBookings.map((tkt) => (
-                                    <ProfileTicketCard
-                                      key={tkt.id}
-                                      tkt={tkt}
-                                      onTicketClick={handleTicketClick}
-                                      onCancel={setCancelTargetUuid}
-                                      onRefund={setRefundTargetUuid}
+                                  <div className="tickets-section__grid tickets-section__grid--archived">
+                                    {paginatedArchivedBookings.map((tkt) => (
+                                      <ProfileTicketCard
+                                        key={tkt.id}
+                                        tkt={tkt}
+                                        onTicketClick={handleTicketClick}
+                                        onCancel={setCancelTargetUuid}
+                                        onRefund={setRefundTargetUuid}
+                                      />
+                                    ))}
+                                  </div>
+                                  {archivedBookings.length > ticketsPerPage && (
+                                    <Pagination
+                                      currentPage={archivedTicketPage}
+                                      totalItems={archivedBookings.length}
+                                      itemsPerPage={ticketsPerPage}
+                                      onPageChange={setArchivedTicketPage}
+                                      onItemsPerPageChange={(size) => {
+                                        setTicketsPerPage(size);
+                                        setArchivedTicketPage(1);
+                                      }}
                                     />
-                                  ))}
-                                </div>
-                                {archivedBookings.length > ticketsPerPage && (
-                                  <Pagination
-                                    currentPage={archivedTicketPage}
-                                    totalItems={archivedBookings.length}
-                                    itemsPerPage={ticketsPerPage}
-                                    onPageChange={setArchivedTicketPage}
-                                    onItemsPerPageChange={(size) => {
-                                      setTicketsPerPage(size);
-                                      setArchivedTicketPage(1);
-                                    }}
-                                  />
-                                )}
+                                  )}
                                 </>
                               )}
                             </section>

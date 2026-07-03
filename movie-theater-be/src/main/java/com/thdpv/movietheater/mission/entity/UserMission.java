@@ -24,8 +24,8 @@ import jakarta.persistence.UniqueConstraint;
 @Table(
         name = "user_mission",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_user_mission_user_template",
-                columnNames = { "user_uuid", "mission_template_uuid" }))
+                name = "uk_user_mission_user_template_cycle",
+                columnNames = { "user_uuid", "mission_template_uuid", "cycle_key" }))
 public class UserMission {
 
     @Id
@@ -38,6 +38,9 @@ public class UserMission {
 
     @Column(name = "mission_template_uuid", nullable = false)
     private UUID missionTemplateUuid;
+
+    @Column(name = "cycle_key", nullable = false, length = 32)
+    private String cycleKey = "ONCE";
 
     @Column(name = "template_version", nullable = false)
     private int templateVersion = 1;
@@ -89,6 +92,14 @@ public class UserMission {
 
     public void setMissionTemplateUuid(UUID missionTemplateUuid) {
         this.missionTemplateUuid = missionTemplateUuid;
+    }
+
+    public String getCycleKey() {
+        return cycleKey;
+    }
+
+    public void setCycleKey(String cycleKey) {
+        this.cycleKey = cycleKey;
     }
 
     public int getTemplateVersion() {

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.thdpv.movietheater.mission.entity.MissionTemplate;
 import com.thdpv.movietheater.mission.enums.MissionConditionType;
+import com.thdpv.movietheater.mission.enums.MissionRecurrence;
 import com.thdpv.movietheater.mission.repository.MissionTemplateRepository;
 
 @Component
@@ -32,7 +33,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 "Explorer",
                 null,
                 3,
-                1);
+                1,
+                MissionRecurrence.MONTHLY);
         seedIfAbsent(
                 "PREMIERE",
                 "Premiere",
@@ -44,7 +46,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 null,
                 null,
                 1,
-                2);
+                2,
+                MissionRecurrence.ONCE);
         seedIfAbsent(
                 "HYBRID_PILOT",
                 "Hybrid Pilot",
@@ -56,7 +59,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 null,
                 null,
                 1,
-                3);
+                3,
+                MissionRecurrence.ONCE);
         seedIfAbsent(
                 "SOCIAL_ORBIT",
                 "Social Orbit",
@@ -68,7 +72,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 null,
                 "ORBIT_SEAT",
                 1,
-                4);
+                4,
+                MissionRecurrence.ONCE);
         seedIfAbsent(
                 "REVIEWER",
                 "Reviewer",
@@ -80,7 +85,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 "Khán giả NASA",
                 null,
                 5,
-                5);
+                5,
+                MissionRecurrence.ONCE);
     }
 
     private void seedIfAbsent(
@@ -94,7 +100,8 @@ public class MissionTemplateSeeder implements ApplicationRunner {
             String badgeTitle,
             String requiresFeature,
             int targetValue,
-            int sortOrder) {
+            int sortOrder,
+            MissionRecurrence recurrence) {
         if (missionTemplateRepository.findByCodeIgnoreCase(code).isPresent()) {
             return;
         }
@@ -110,6 +117,7 @@ public class MissionTemplateSeeder implements ApplicationRunner {
         template.setRewardBadgeCode(badgeCode);
         template.setRewardBadgeTitle(badgeTitle);
         template.setRequiresFeature(requiresFeature);
+        template.setRecurrence(recurrence != null ? recurrence : MissionRecurrence.ONCE);
         template.setTargetValue(targetValue);
         template.setActive(true);
         template.setSortOrder(sortOrder);

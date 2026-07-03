@@ -1,0 +1,96 @@
+.missions-admin-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.missions-admin-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8c5ca;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.missions-admin-tabs button.active {
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.missions-admin-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.missions-admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(15, 19, 34, 0.72);
+}
+
+.missions-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.missions-admin-table th,
+.missions-admin-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  vertical-align: top;
+}
+
+.missions-admin-table th {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.missions-admin-title {
+  color: #fff;
+  font-weight: 600;
+}
+
+.missions-admin-desc {
+  color: #9ca3af;
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+.missions-admin-pill {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.missions-admin-pill.is-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
+.missions-admin-pill.is-off {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+
+.missions-admin-edit {
+  border: none;
+  background: transparent;
+  color: #fca5a5;
+  font-weight: 600;
+  cursor: pointer;
+}

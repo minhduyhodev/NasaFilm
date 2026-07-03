@@ -16,7 +16,7 @@ import jakarta.persistence.UniqueConstraint;
         name = "mission_progress_event",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_mission_progress_event",
-                columnNames = { "user_uuid", "mission_template_uuid", "source_type", "source_id" }))
+                columnNames = { "user_uuid", "mission_template_uuid", "cycle_key", "source_type", "source_id" }))
 public class MissionProgressEvent {
 
     @Id
@@ -29,6 +29,9 @@ public class MissionProgressEvent {
 
     @Column(name = "mission_template_uuid", nullable = false)
     private UUID missionTemplateUuid;
+
+    @Column(name = "cycle_key", nullable = false, length = 32)
+    private String cycleKey = "ONCE";
 
     @Column(name = "source_type", nullable = false, length = 64)
     private String sourceType;
@@ -61,6 +64,14 @@ public class MissionProgressEvent {
 
     public void setMissionTemplateUuid(UUID missionTemplateUuid) {
         this.missionTemplateUuid = missionTemplateUuid;
+    }
+
+    public String getCycleKey() {
+        return cycleKey;
+    }
+
+    public void setCycleKey(String cycleKey) {
+        this.cycleKey = cycleKey;
     }
 
     public String getSourceType() {
