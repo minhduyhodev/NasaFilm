@@ -1,97 +1,197 @@
-import React from 'react';
-import { Award, Lock, Rocket, Sparkles, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  CheckCircle2,
+  ChevronRight,
+  Film,
+  Lock,
+  MessageSquare,
+  Rocket,
+  Sparkles,
+  Ticket,
+  Trophy,
+} from 'lucide-react';
+import {
+  formatCycleLabel,
+  formatTierGap,
+  MISSION_ACTION_HINTS,
+  MISSION_RECURRENCE_LABELS,
+} from '../utils/missionUtils';
 import './MissionBoard.css';
 
-const statusLabel = (mission) => {
-  if (mission.visibility === 'LOCKED_FEATURE') {
-    return 'Sắp mở';
+const fadeUp = (reduce, delay = 0) =>
+  reduce
+    ? {}
+    : {
+        initial: { opacity: 0, y: 12 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] },
+      };
+
+const MissionSkeleton = () => (
+  <div className="mission-board mission-board--loading" aria-busy="true" aria-label="Đang tải nhiệm vụ">
+    <div className="mission-board__skeleton-intro" />
+    <div className="mission-board__skeleton-list">
+      <div /><div /><div /><div />
+    </div>
+  </div>
+);
+
+const MissionIcon = ({ mission, locked, completed }) => {
+  if (completed) return <CheckCircle2 size={17} strokeWidth={2} />;
+  if (locked) return <Lock size={17} strokeWidth={2} />;
+  if (mission.code === 'REVIEWER') return <MessageSquare size={17} strokeWidth={2} />;
+  if (mission.code === 'PREMIERE' || mission.code === 'HYBRID_PILOT') {
+    return <Ticket size={17} strokeWidth={2} />;
   }
-  if (mission.status === 'COMPLETED') {
-    return 'Hoàn thành';
-  }
-  if (mission.status === 'LOCKED') {
-    return 'Khóa';
-  }
-  return 'Đang làm';
+  if (mission.code === 'EXPLORER') return <Film size={17} strokeWidth={2} />;
+  return <Rocket size={17} strokeWidth={2} />;
 };
 
-const recurrenceLabel = (mission) => {
-  if (!mission.recurrence || mission.recurrence === 'ONCE') {
-    return null;
+const getMissionCta = (mission, completed, locked) => {
+  if (completed || locked) return null;
+  if (mission.code === 'REVIEWER') {
+    return { label: 'Xem phim', to: '/movies' };
   }
-  if (mission.recurrence === 'WEEKLY') {
-    return `Tuần ${mission.cycleKey || ''}`;
+  if (mission.code === 'PREMIERE' || mission.code === 'EXPLORER') {
+    return { label: 'Khám phá phim', to: '/movies' };
   }
-  if (mission.recurrence === 'MONTHLY') {
-    return `Tháng ${mission.cycleKey || ''}`;
-  }
-  return mission.cycleKey;
+  return null;
 };
 
-const MissionCard = ({ mission }) => {
+const getRowState = (mission) => {
+  if (mission.status === 'COMPLETED') return 'completed';
+  if (mission.visibility === 'LOCKED_FEATURE' || mission.status === 'LOCKED') return 'locked';
+  return 'active';
+};
+
+const MissionRow = ({ mission, index = 0 }) => {
   const completed = mission.status === 'COMPLETED';
   const locked = mission.visibility === 'LOCKED_FEATURE' || mission.status === 'LOCKED';
+  const rowState = getRowState(mission);
   const progress = mission.progress;
   const percent = progress?.target
     ? Math.min((progress.current / progress.target) * 100, 100)
     : completed
       ? 100
       : 0;
-  const cycleText = recurrenceLabel(mission);
+  const cycleText = formatCycleLabel(mission);
+  const actionHint = MISSION_ACTION_HINTS[mission.code];
+  const cta = getMissionCta(mission, completed, locked);
+  const reduceMotion = useReducedMotion();
+  const progressCurrent = completed ? progress?.target ?? 1 : progress?.current ?? 0;
+  const progressTarget = progress?.target ?? 1;
+  const progressUnit = progress?.unit ?? '';
 
   return (
-    <article
-      className={`mission-card ${completed ? 'is-completed' : ''} ${locked ? 'is-locked' : ''}`}
+    <motion.article
+      {...fadeUp(reduceMotion, index * 0.04)}
+      className={`mission-row mission-row--${rowState}`}
+      aria-label={
+        completed
+          ? `${mission.title} đã hoàn thành`
+          : locked
+            ? `${mission.title} chưa mở`
+            : `${mission.title} chưa hoàn thành`
+      }
     >
-      <div className="mission-card__header">
-        <div className="mission-card__icon">
-          {locked ? <Lock size={18} /> : completed ? <Award size={18} /> : <Rocket size={18} />}
+      <div className="mission-row__inner">
+        <div className="mission-row__icon">
+          <MissionIcon mission={mission} locked={locked} completed={completed} />
         </div>
-        <span className="mission-card__status">{statusLabel(mission)}</span>
-      </div>
 
-      <h4 className="mission-card__title">{mission.title}</h4>
-      {cycleText && <div className="mission-card__cycle">{cycleText}</div>}
-      <p className="mission-card__description">{mission.description}</p>
+        <div className="mission-row__main">
+          <div className="mission-row__titles">
+            <h4 className="mission-row__title">{mission.title}</h4>
+            <p className="mission-row__description">{mission.description}</p>
+          </div>
 
-      {!completed && progress && (
-        <div className="mission-card__progress">
-          <div className="mission-card__progress-meta">
-            <span>
-              {progress.current}/{progress.target} {progress.unit}
+          <div className="mission-row__meta">
+            {cycleText && <span className="mission-row__chip">{cycleText}</span>}
+            {mission.recurrence && mission.recurrence !== 'ONCE' && (
+              <span className="mission-row__chip mission-row__chip--muted">
+                {MISSION_RECURRENCE_LABELS[mission.recurrence]}
+              </span>
+            )}
+            {!completed && !locked && actionHint && (
+              <span className="mission-row__hint">{actionHint}</span>
+            )}
+            {locked && (
+              <span className="mission-row__hint mission-row__hint--locked">
+                Mở khi Orbit Seat ra mắt.
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="mission-row__aside">
+          {mission.rewardPoints > 0 && (
+            <span className="mission-row__reward">
+              <Sparkles size={13} />
+              +{mission.rewardPoints} điểm
             </span>
-            <span>{Math.round(percent)}%</span>
-          </div>
-          <div className="mission-card__progress-bar">
-            <div className="mission-card__progress-fill" style={{ width: `${percent}%` }} />
-          </div>
+          )}
+          {cta && (
+            <Link to={cta.to} className="mission-row__cta">
+              {cta.label}
+              <ChevronRight size={14} />
+            </Link>
+          )}
         </div>
-      )}
-
-      <div className="mission-card__reward">
-        <Sparkles size={14} />
-        {mission.rewardPoints > 0 && <span>+{mission.rewardPoints} điểm</span>}
-        {mission.rewardBadge?.title && <span>{mission.rewardBadge.title}</span>}
-        {locked && <span>Chờ tính năng Orbit Seat</span>}
       </div>
-    </article>
+
+      <div className="mission-row__progress">
+        <div
+          className="mission-row__progress-bar"
+          role="progressbar"
+          aria-valuenow={progressCurrent}
+          aria-valuemin={0}
+          aria-valuemax={progressTarget}
+          aria-label={`Tiến độ ${mission.title}`}
+        >
+          <div
+            className="mission-row__progress-fill"
+            style={{ width: `${completed ? 100 : percent}%` }}
+          />
+        </div>
+        <span className="mission-row__progress-text">
+          {completed
+            ? 'Hoàn thành'
+            : `${progressCurrent}/${progressTarget}${progressUnit ? ` ${progressUnit}` : ''} · ${Math.round(percent)}%`}
+        </span>
+      </div>
+    </motion.article>
   );
 };
 
-const MissionBoard = ({ board, loading, error }) => {
+const sortMissions = (missions) => {
+  const order = { active: 0, locked: 1, completed: 2 };
+  return [...missions].sort((a, b) => {
+    const stateA = getRowState(a);
+    const stateB = getRowState(b);
+    if (order[stateA] !== order[stateB]) {
+      return order[stateA] - order[stateB];
+    }
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  });
+};
+
+const MissionBoard = ({ board, loading, error, onRetry }) => {
+  const reduceMotion = useReducedMotion();
+
   if (loading) {
-    return (
-      <div className="mission-board mission-board--loading">
-        <div className="mission-board__spinner" />
-        <p>Đang tải bảng nhiệm vụ...</p>
-      </div>
-    );
+    return <MissionSkeleton />;
   }
 
   if (error) {
     return (
       <div className="mission-board mission-board--error">
         <p>{error}</p>
+        {onRetry && (
+          <button type="button" className="mission-board__retry" onClick={onRetry}>
+            Thử lại
+          </button>
+        )}
       </div>
     );
   }
@@ -104,95 +204,74 @@ const MissionBoard = ({ board, loading, error }) => {
   const summary = board.summary ?? {};
   const activeMissions = board.activeMissions ?? board.missions?.filter((m) => m.status !== 'COMPLETED') ?? [];
   const completedMissions = board.completedMissions ?? board.missions?.filter((m) => m.status === 'COMPLETED') ?? [];
-  const badges = board.badges ?? [];
-  const tierProgress = tier.nextTierAt
-    ? Math.min((tier.lifetimeScore / tier.nextTierAt) * 100, 100)
-    : 0;
+  const allMissions = sortMissions([...activeMissions, ...completedMissions]);
+  const lifetimeScore = tier.lifetimeScore ?? 0;
+  const nextTierAt = tier.nextTierAt ?? 5000;
+  const tierProgress = nextTierAt ? Math.min((lifetimeScore / nextTierAt) * 100, 100) : 0;
 
   return (
     <div className="mission-board">
-      <div className="mission-board__hero">
-        <div className="mission-board__hero-copy">
-          <span className="mission-board__eyebrow">Nhiệm vụ</span>
-          <h3>Hành trình phi hành NASA</h3>
-          <p>
-            Hoàn thành nhiệm vụ để nhận điểm, huy hiệu và tiến gần hơn tới hạng tiếp theo.
+      <motion.header className="mission-board__intro" {...fadeUp(reduceMotion)}>
+        <div className="mission-board__intro-copy">
+          <h3 className="mission-board__title">Trung tâm nhiệm vụ NASA</h3>
+          <p className="mission-board__lede">
+            Làm nhiệm vụ khi đặt vé, xem phim và viết review để tích điểm thành viên.
           </p>
           {board.campaign?.title && (
             <div className="mission-board__campaign">
-              <Trophy size={14} />
-              <span>{board.campaign.title}</span>
+              <Trophy size={15} strokeWidth={2} />
+              <span>Chiến dịch: {board.campaign.title}</span>
             </div>
           )}
         </div>
-        <div className="mission-board__tier-card">
+
+        <aside className="mission-board__tier-panel">
+          <div className="mission-board__tier-orbit" aria-hidden="true">
+            <span className="mission-board__tier-orbit-ring" />
+            <Rocket size={18} strokeWidth={2} />
+          </div>
           <div className="mission-board__tier-label">Hạng hiện tại</div>
           <div className="mission-board__tier-name">{tier.label || 'NASA Member'}</div>
-          <div className="mission-board__tier-score">
-            {(tier.lifetimeScore ?? 0).toLocaleString('vi-VN')} điểm
-          </div>
-          <div className="mission-board__tier-bar">
+          <div className="mission-board__tier-score">{lifetimeScore.toLocaleString('vi-VN')} điểm tích lũy</div>
+          <div className="mission-board__tier-bar" aria-hidden="true">
             <div className="mission-board__tier-fill" style={{ width: `${tierProgress}%` }} />
           </div>
-          <div className="mission-board__tier-next">
-            Mốc tiếp theo: {(tier.nextTierAt ?? 5000).toLocaleString('vi-VN')} điểm
-          </div>
-        </div>
-      </div>
+          <p className="mission-board__tier-gap">{formatTierGap(lifetimeScore, nextTierAt)}</p>
+        </aside>
+      </motion.header>
 
-      {summary.allCompleted && (
-        <div className="mission-board__empty">
-          <Trophy size={22} />
+      {summary.allCompleted && activeMissions.length === 0 && (
+        <div className="mission-board__notice mission-board__notice--success">
+          <Trophy size={20} strokeWidth={2} />
           <div>
             <strong>Bạn đã hoàn thành tất cả nhiệm vụ hiện có.</strong>
-            <p>Hãy theo dõi chiến dịch mới — nhiệm vụ lặp sẽ reset theo chu kỳ để tiếp tục nhận thưởng.</p>
+            <p>Nhiệm vụ lặp sẽ reset theo chu kỳ. Theo dõi chiến dịch mới để tiếp tục nhận thưởng.</p>
           </div>
         </div>
       )}
 
-      {activeMissions.length > 0 && (
+      {allMissions.length > 0 && (
         <section className="mission-board__section">
           <div className="mission-board__section-head">
-            <h4>Nhiệm vụ đang mở</h4>
-            <span>{summary.activeCount ?? activeMissions.length} nhiệm vụ</span>
+            <h4>Nhiệm vụ</h4>
+            <span>{allMissions.length} mục</span>
           </div>
-          <div className="mission-board__grid">
-            {activeMissions.map((mission) => (
-              <MissionCard key={`${mission.code}-${mission.cycleKey || 'once'}`} mission={mission} />
+          <div className="mission-board__list">
+            {allMissions.map((mission, index) => (
+              <MissionRow key={`${mission.code}-${mission.cycleKey || 'once'}`} mission={mission} index={index} />
             ))}
           </div>
         </section>
       )}
 
-      {completedMissions.length > 0 && (
-        <section className="mission-board__section">
-          <div className="mission-board__section-head">
-            <h4>Thành tích đã đạt</h4>
-            <span>{summary.completedCount ?? completedMissions.length} mục</span>
+      {allMissions.length === 0 && !summary.allCompleted && (
+        <div className="mission-board__notice">
+          <Rocket size={20} strokeWidth={2} />
+          <div>
+            <strong>Chưa có nhiệm vụ khả dụng.</strong>
+            <p>Hãy quay lại sau khi hệ thống cập nhật chiến dịch mới.</p>
           </div>
-          <div className="mission-board__grid mission-board__grid--completed">
-            {completedMissions.map((mission) => (
-              <MissionCard key={`done-${mission.code}-${mission.cycleKey || 'once'}`} mission={mission} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {badges.length > 0 && (
-        <section className="mission-board__section">
-          <div className="mission-board__section-head">
-            <h4>Huy hiệu NASA</h4>
-            <span>{badges.length} huy hiệu</span>
-          </div>
-          <div className="mission-board__badges">
-            {badges.map((badge) => (
-              <div key={badge.code} className="mission-board__badge">
-                <Award size={16} />
-                <span>{badge.title || badge.code}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
       )}
     </div>
   );

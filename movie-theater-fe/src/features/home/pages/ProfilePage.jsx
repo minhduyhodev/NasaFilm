@@ -169,6 +169,20 @@ export const ProfilePage = () => {
     };
   }, [activeTab, user]);
 
+  const reloadMissions = async () => {
+    if (!user) return;
+    setIsLoadingMissions(true);
+    setMissionError("");
+    try {
+      const data = await missionService.getMissionBoard();
+      setMissionBoard(data);
+    } catch (err) {
+      setMissionError(err.message || "Không thể tải bảng nhiệm vụ.");
+    } finally {
+      setIsLoadingMissions(false);
+    }
+  };
+
   const reloadBookings = async () => {
     await invalidateBookings();
     await refetchBookings();
@@ -816,12 +830,12 @@ export const ProfilePage = () => {
                 <button
                   onClick={() => setActiveTab("missions")}
                   className={`rail-item ${activeTab === "missions" ? "active" : ""}`}
-                  title="Mission Control"
+                  title="Trung tâm nhiệm vụ NASA"
                 >
                   <div className="rail-icon-wrapper">
                     <Rocket size={20} />
                   </div>
-                  <span className="rail-label">Nhiệm vụ</span>
+                  <span className="rail-label">Nhiệm vụ NASA</span>
                 </button>
 
                 <button
@@ -1135,6 +1149,7 @@ export const ProfilePage = () => {
                       board={missionBoard}
                       loading={isLoadingMissions}
                       error={missionError}
+                      onRetry={reloadMissions}
                     />
                   </motion.div>
                 )}

@@ -29,9 +29,8 @@ export const showMissionCompletionToasts = (completions = []) => {
   }
 
   completions.forEach((item) => {
-    const badgeText = item?.badge?.title ? ` Huy hiệu: ${item.badge.title}.` : '';
-    const pointsText = item?.pointsAwarded > 0 ? `+${item.pointsAwarded} điểm NASA.` : '';
-    const message = `Hoàn thành nhiệm vụ "${item.title}". ${pointsText}${badgeText}`.trim();
+    const pointsText = item?.pointsAwarded > 0 ? ` +${item.pointsAwarded} điểm NASA.` : '';
+    const message = `Hoàn thành nhiệm vụ "${item.title}".${pointsText}`.trim();
     notificationService.success(message, { autoClose: 6000 });
   });
 };
