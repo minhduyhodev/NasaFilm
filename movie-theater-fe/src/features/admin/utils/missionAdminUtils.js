@@ -43,6 +43,19 @@ export const resolveCampaignTitle = (campaignUuid, campaigns = []) => {
   return found?.title ?? null;
 };
 
+export const formatAdminDateTime = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export const formatAdminDateRange = (startsAt, endsAt) => {
   const fmt = (value) => {
     if (!value) return null;

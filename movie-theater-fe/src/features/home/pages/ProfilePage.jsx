@@ -48,7 +48,7 @@ import {
   getOnlineMoviePath,
 } from "../utils/movieUtils";
 import { vodService } from "../../../shared/services/vodService";
-import { resolveTierFromLifetime } from "../../../shared/utils/memberTiers";
+import { resolveTierFromLifetime, resolveTierProgress } from "../../../shared/utils/memberTiers";
 import { missionService, MISSION_BOARD_REFRESH_EVENT } from "../../../shared/services/missionService";
 import MissionBoard from "../components/MissionBoard";
 import "./ProfilePage.css";
@@ -392,10 +392,15 @@ export const ProfilePage = () => {
     profileData && typeof profileData.lifetimeScore === "number"
       ? profileData.lifetimeScore
       : currentPoints;
-  const nextTierPoints = 10000;
-  const rawProgress = (lifetimePoints / nextTierPoints) * 100;
-  const progressPercent = isNaN(rawProgress) ? 0 : Math.min(rawProgress, 100);
-  const loyaltyTier = resolveTierFromLifetime(lifetimePoints).label;
+  const tierProgress = useMemo(
+    () => resolveTierProgress(lifetimePoints),
+    [lifetimePoints],
+  );
+  const loyaltyTier = tierProgress.tier.label;
+  const progressPercent = tierProgress.percent;
+  const isMaxTier = tierProgress.isMaxTier;
+  const pointsToNext = tierProgress.pointsToNext;
+  const nextTierAt = tierProgress.nextTierAt;
 
   const usableVouchers = useMemo(
     () => vouchers.filter((v) => !v.used),
@@ -784,7 +789,7 @@ export const ProfilePage = () => {
                     <Star
                       size={14}
                       className={
-                        lifetimePoints >= 10000
+                        lifetimePoints >= 5000
                           ? "fill-current"
                           : "text-zinc-800"
                       }
@@ -792,7 +797,15 @@ export const ProfilePage = () => {
                     <Star
                       size={14}
                       className={
-                        lifetimePoints >= 10000
+                        isMaxTier
+                          ? "fill-current"
+                          : "text-zinc-800"
+                      }
+                    />
+                    <Star
+                      size={14}
+                      className={
+                        isMaxTier
                           ? "fill-current"
                           : "text-zinc-800"
                       }
@@ -800,7 +813,7 @@ export const ProfilePage = () => {
                   </div>
 
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    {lifetimePoints >= 10000 ? (
+                    {isMaxTier ? (
                       <span>
                         Chúc mừng! Bạn đã đạt hạng thành viên cao nhất.
                       </span>
@@ -808,12 +821,12 @@ export const ProfilePage = () => {
                       <span>
                         Còn{" "}
                         <span className="text-amber-400 font-bold">
-                          {(nextTierPoints - lifetimePoints).toLocaleString(
+                          {pointsToNext.toLocaleString(
                             "vi-VN",
                           )}{" "}
                           điểm
                         </span>{" "}
-                        nữa để nâng cấp lên hạng thành viên NASA'VIP.
+                        nữa để nâng cấp lên hạng tiếp theo ({nextTierAt.toLocaleString("vi-VN")} điểm).
                       </span>
                     )}
                   </p>
@@ -1208,14 +1221,16 @@ export const ProfilePage = () => {
                           Tích điểm N'VIP MEMBER
                         </span>
                         <span className="text-yellow-400 font-mono text-base">
-                          {lifetimePoints}/10K
+                          {isMaxTier
+                            ? `${lifetimePoints.toLocaleString("vi-VN")} điểm`
+                            : `${lifetimePoints.toLocaleString("vi-VN")}/${nextTierAt.toLocaleString("vi-VN")}`}
                         </span>
                       </div>
                       <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 rounded-full transition-all duration-500"
                           style={{
-                            width: `${Math.min((lifetimePoints / 10000) * 100, 100)}%`,
+                            width: `${progressPercent}%`,
                           }}
                         />
                       </div>
@@ -1299,13 +1314,13 @@ export const ProfilePage = () => {
 
                         {/* Member status button */}
                         <div className="mt-8">
-                          {lifetimePoints >= 10000 ? (
+                          {lifetimePoints >= 5000 ? (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                              HẠNG HIỆN TẠI: NASA'VIP
+                              HẠNG HIỆN TẠI: NASA'FRIEND
                             </div>
                           ) : (
                             <button className="w-full py-3 bg-[#cbd5e1] text-[#1e293b] font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
-                              BẠN ĐÃ LÀ THÀNH VIÊN NASA'FRIEND
+                              TIẾN TỚI NASA'FRIEND — {nextTierAt.toLocaleString("vi-VN")} ĐIỂM
                             </button>
                           )}
                         </div>
@@ -1387,13 +1402,13 @@ export const ProfilePage = () => {
 
                         {/* Progress/Condition placeholder */}
                         <div className="mt-8">
-                          {lifetimePoints >= 10000 ? (
+                          {isMaxTier ? (
                             <button className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-black text-sm uppercase rounded-lg tracking-widest shadow-lg cursor-default">
                               BẠN ĐÃ LÀ THÀNH VIÊN NASA'VIP
                             </button>
                           ) : (
                             <div className="w-full py-3 bg-slate-900 border border-slate-800 text-slate-500 font-black text-sm uppercase rounded-lg text-center tracking-widest shadow-md">
-                              CẦN TÍCH LŨY 10.000 ĐIỂM
+                              CẦN TÍCH LŨY {nextTierAt.toLocaleString("vi-VN")} ĐIỂM
                             </div>
                           )}
                         </div>

@@ -1,8 +1,10 @@
 package com.thdpv.movietheater.mission.controller;
 
-import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +20,7 @@ import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionCampaignRequest;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionTemplateRequest;
 import com.thdpv.movietheater.mission.dto.request.DuplicateMissionTemplateRequest;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionAnalyticsResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
@@ -33,10 +36,17 @@ public class AdminMissionController {
 
     private final MissionService missionService;
 
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<AdminMissionAnalyticsResponse>> getAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success(missionService.getAdminAnalytics()));
+    }
+
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AdminMissionTemplateResponse>>> listTemplates(
-            @RequestParam(defaultValue = "false") boolean deleted) {
-        return ResponseEntity.ok(ApiResponse.success(missionService.listTemplatesForAdmin(deleted)));
+    public ResponseEntity<ApiResponse<Page<AdminMissionTemplateResponse>>> listTemplates(
+            @RequestParam(defaultValue = "false") boolean deleted,
+            @RequestParam(required = false) String query,
+            @PageableDefault(page = 0, size = 10) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(missionService.listTemplatesForAdmin(deleted, query, pageable)));
     }
 
     @PostMapping
@@ -67,8 +77,10 @@ public class AdminMissionController {
     }
 
     @GetMapping("/campaigns")
-    public ResponseEntity<ApiResponse<List<AdminMissionCampaignResponse>>> listCampaigns() {
-        return ResponseEntity.ok(ApiResponse.success(missionService.listCampaignsForAdmin()));
+    public ResponseEntity<ApiResponse<Page<AdminMissionCampaignResponse>>> listCampaigns(
+            @RequestParam(required = false) String query,
+            @PageableDefault(page = 0, size = 10) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(missionService.listCampaignsForAdmin(query, pageable)));
     }
 
     @PostMapping("/campaigns")

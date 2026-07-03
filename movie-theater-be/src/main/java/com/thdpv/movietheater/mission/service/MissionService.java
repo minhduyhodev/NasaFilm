@@ -3,6 +3,7 @@ package com.thdpv.movietheater.mission.service;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -16,21 +17,28 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.thdpv.movietheater.booking.util.MemberTierUtils;
+import com.thdpv.movietheater.booking.entity.Booking;
+import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionCampaignRequest;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionTemplateRequest;
 import com.thdpv.movietheater.mission.dto.request.DuplicateMissionTemplateRequest;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionAnalyticsResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignResponse;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignStatResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateResponse;
+import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateStatResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBadgeResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBoardResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBoardSummaryResponse;
@@ -56,12 +64,16 @@ import com.thdpv.movietheater.mission.repository.UserBadgeRepository;
 import com.thdpv.movietheater.mission.repository.UserMissionRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
+import com.thdpv.movietheater.movie.entity.MovieReview;
 import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.booking.util.MemberTierUtils;
 import com.thdpv.movietheater.notification.dto.CreateUserNotificationRequest;
 import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.mission.util.MissionConditionValidator;
 import com.thdpv.movietheater.mission.util.MissionCycleResolver;
 import com.thdpv.movietheater.mission.util.MissionRules;
 
@@ -81,6 +93,8 @@ public class MissionService {
     private final UserRepository userRepository;
     private final MovieRepository movieRepository;
     private final MovieGenreRepository movieGenreRepository;
+    private final BookingRepository bookingRepository;
+    private final MovieReviewRepository movieReviewRepository;
     private final MissionScoreService missionScoreService;
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
@@ -97,6 +111,8 @@ public class MissionService {
             UserRepository userRepository,
             MovieRepository movieRepository,
             MovieGenreRepository movieGenreRepository,
+            BookingRepository bookingRepository,
+            MovieReviewRepository movieReviewRepository,
             MissionScoreService missionScoreService,
             UserNotificationService userNotificationService,
             ObjectMapper objectMapper) {
@@ -108,6 +124,8 @@ public class MissionService {
         this.userRepository = userRepository;
         this.movieRepository = movieRepository;
         this.movieGenreRepository = movieGenreRepository;
+        this.bookingRepository = bookingRepository;
+        this.movieReviewRepository = movieReviewRepository;
         this.missionScoreService = missionScoreService;
         this.userNotificationService = userNotificationService;
         this.objectMapper = objectMapper;
@@ -255,9 +273,17 @@ public class MissionService {
 
     @Transactional
     public MissionTemplate upsertTemplate(AdminMissionTemplateRequest request) {
+        validateTemplateRequest(request);
+
         MissionTemplate template = missionTemplateRepository
                 .findByCodeIgnoreCase(request.getCode().trim())
                 .orElseGet(MissionTemplate::new);
+
+        boolean isNew = template.getUuid() == null;
+        MissionConditionType previousConditionType = template.getConditionType();
+        int previousTargetValue = template.getTargetValue();
+        String previousConditionJson = template.getConditionJson();
+        int previousVersion = template.getVersion();
 
         template.setCode(request.getCode().trim().toUpperCase());
         template.setTitle(request.getTitle().trim());
@@ -276,12 +302,41 @@ public class MissionService {
         template.setActive(request.isActive());
         template.setSortOrder(request.getSortOrder());
         template.setDeletedAt(null);
-        if (template.getVersion() <= 0) {
+        if (isNew || previousVersion <= 0) {
             template.setVersion(1);
+        } else if (hasMaterialTemplateChange(
+                previousConditionType,
+                previousTargetValue,
+                previousConditionJson,
+                template)) {
+            template.setVersion(previousVersion + 1);
         } else {
-            template.setVersion(template.getVersion() + 1);
+            template.setVersion(previousVersion);
         }
         return missionTemplateRepository.save(template);
+    }
+
+    private boolean hasMaterialTemplateChange(
+            MissionConditionType previousConditionType,
+            int previousTargetValue,
+            String previousConditionJson,
+            MissionTemplate updated) {
+        if (previousConditionType != updated.getConditionType()) {
+            return true;
+        }
+        if (previousTargetValue != updated.getTargetValue()) {
+            return true;
+        }
+        return !Objects.equals(
+                normalizeConditionJson(previousConditionJson),
+                normalizeConditionJson(updated.getConditionJson()));
+    }
+
+    private String normalizeConditionJson(String conditionJson) {
+        if (conditionJson == null || conditionJson.isBlank()) {
+            return "{}";
+        }
+        return conditionJson.trim();
     }
 
     @Transactional
@@ -291,22 +346,73 @@ public class MissionService {
 
     @Transactional(readOnly = true)
     public List<AdminMissionTemplateResponse> listTemplatesForAdmin(boolean deletedOnly) {
-        List<MissionTemplate> templates = deletedOnly
-                ? missionTemplateRepository.findByDeletedAtIsNotNullOrderByDeletedAtDesc()
-                : missionTemplateRepository.findByDeletedAtIsNullOrderBySortOrderAscTitleAsc();
-        return templates.stream()
-                .sorted((a, b) -> {
-                    if (deletedOnly) {
-                        if (a.getDeletedAt() == null || b.getDeletedAt() == null) {
-                            return 0;
-                        }
-                        return b.getDeletedAt().compareTo(a.getDeletedAt());
-                    }
-                    int order = Integer.compare(a.getSortOrder(), b.getSortOrder());
-                    return order != 0 ? order : a.getTitle().compareToIgnoreCase(b.getTitle());
+        Page<AdminMissionTemplateResponse> page = listTemplatesForAdmin(deletedOnly, null, PageRequest.of(0, 500));
+        return page.getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminMissionTemplateResponse> listTemplatesForAdmin(
+            boolean deletedOnly, String query, Pageable pageable) {
+        String needle = normalizeAdminQuery(query);
+        Pageable safePageable = sanitizeTemplatePageable(pageable, deletedOnly);
+        Page<MissionTemplate> templates = deletedOnly
+                ? missionTemplateRepository.searchDeletedForAdmin(needle, safePageable)
+                : missionTemplateRepository.searchActiveForAdmin(needle, safePageable);
+        return templates.map(this::toAdminTemplateResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminMissionAnalyticsResponse getAdminAnalytics() {
+        AdminMissionAnalyticsResponse analytics = new AdminMissionAnalyticsResponse();
+        long activeTemplateCount = missionTemplateRepository.countByDeletedAtIsNull();
+        long deletedTemplateCount = missionTemplateRepository.countByDeletedAtIsNotNull();
+        analytics.setTotalTemplates(activeTemplateCount + deletedTemplateCount);
+        analytics.setActiveTemplates(missionTemplateRepository.countByActiveTrueAndDeletedAtIsNull());
+        analytics.setDeletedTemplates(deletedTemplateCount);
+        analytics.setTotalCampaigns(missionCampaignRepository.count());
+        analytics.setLiveCampaigns(missionCampaignRepository.countByStatus(MissionCampaignStatus.ACTIVE));
+
+        long enrollments = userMissionRepository.count();
+        long completions = userMissionRepository.countByStatus(UserMissionStatus.COMPLETED);
+        analytics.setTotalEnrollments(enrollments);
+        analytics.setTotalCompletions(completions);
+        analytics.setDistinctParticipants(userMissionRepository.countDistinctUserUuid());
+        analytics.setTotalPointsAwarded(missionScoreService.getTotalMissionPointsAwarded());
+        analytics.setOverallCompletionRate(enrollments > 0 ? (completions * 100.0) / enrollments : 0.0);
+
+        List<AdminMissionTemplateStatResponse> topTemplates = missionTemplateRepository
+                .findByDeletedAtIsNullOrderBySortOrderAscTitleAsc()
+                .stream()
+                .map(template -> {
+                    long enrolled = userMissionRepository.countByMissionTemplateUuid(template.getUuid());
+                    long completed = userMissionRepository.countByMissionTemplateUuidAndStatus(
+                            template.getUuid(), UserMissionStatus.COMPLETED);
+                    double rate = enrolled > 0 ? (completed * 100.0) / enrolled : 0.0;
+                    return new AdminMissionTemplateStatResponse(
+                            template.getCode(), template.getTitle(), enrolled, completed, rate);
                 })
-                .map(this::toAdminTemplateResponse)
+                .sorted(Comparator.comparingLong(AdminMissionTemplateStatResponse::getCompletedCount).reversed()
+                        .thenComparing(Comparator.comparingLong(AdminMissionTemplateStatResponse::getEnrolledCount)
+                                .reversed()))
+                .limit(5)
                 .toList();
+        analytics.setTopTemplates(topTemplates);
+
+        List<AdminMissionCampaignStatResponse> campaignStats = missionCampaignRepository
+                .findAllByOrderBySortOrderAscTitleAsc()
+                .stream()
+                .map(campaign -> new AdminMissionCampaignStatResponse(
+                        campaign.getUuid(),
+                        campaign.getCode(),
+                        campaign.getTitle(),
+                        campaign.getStatus() != null ? campaign.getStatus().name() : MissionCampaignStatus.DRAFT.name(),
+                        missionTemplateRepository.countByCampaignUuidAndDeletedAtIsNull(campaign.getUuid()),
+                        userMissionRepository.countByCampaignUuid(campaign.getUuid()),
+                        userMissionRepository.countByCampaignUuidAndStatus(
+                                campaign.getUuid(), UserMissionStatus.COMPLETED)))
+                .toList();
+        analytics.setCampaignStats(campaignStats);
+        return analytics;
     }
 
     @Transactional
@@ -351,9 +457,14 @@ public class MissionService {
 
     @Transactional(readOnly = true)
     public List<AdminMissionCampaignResponse> listCampaignsForAdmin() {
-        return missionCampaignRepository.findAllByOrderBySortOrderAscTitleAsc().stream()
-                .map(this::toAdminCampaignResponse)
-                .toList();
+        return listCampaignsForAdmin(null, PageRequest.of(0, 200)).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminMissionCampaignResponse> listCampaignsForAdmin(String query, Pageable pageable) {
+        String needle = normalizeAdminQuery(query);
+        Pageable safePageable = sanitizeCampaignPageable(pageable);
+        return missionCampaignRepository.searchForAdmin(needle, safePageable).map(this::toAdminCampaignResponse);
     }
 
     @Transactional
@@ -375,6 +486,80 @@ public class MissionService {
             return List.of();
         }
         return handleOrbitRoomJoined(userUuid, bookingUuid, at);
+    }
+
+    /**
+     * Rebuilds mission progress after a booking is cancelled/refunded by removing events tied to the booking.
+     */
+    @Transactional
+    public void rollbackBookingProgress(UUID userUuid, UUID bookingUuid, OffsetDateTime at) {
+        if (userUuid == null || bookingUuid == null) {
+            return;
+        }
+        rollbackReversibleSourceProgress(
+                userUuid,
+                bookingUuid.toString(),
+                BOOKING_ROLLBACK_SOURCE_TYPES,
+                at);
+    }
+
+    /**
+     * Rolls back progress for a reversible source. Review progress is immutable once recorded
+     * (report/hide moderation does not revoke mission credit).
+     */
+    @Transactional
+    public void rollbackSourceProgress(UUID userUuid, String sourceId, OffsetDateTime at) {
+        rollbackReversibleSourceProgress(userUuid, sourceId, null, at);
+    }
+
+    private static final List<String> BOOKING_ROLLBACK_SOURCE_TYPES = List.of(
+            MissionEventType.THEATER_BOOKING_CONFIRMED.name(),
+            MissionEventType.VOD_PURCHASE_CONFIRMED.name(),
+            MissionEventType.VOD_FIRST_PLAY.name(),
+            MissionEventType.ORBIT_ROOM_JOINED.name());
+
+    private void rollbackReversibleSourceProgress(
+            UUID userUuid, String sourceId, List<String> allowedSourceTypes, OffsetDateTime at) {
+        if (userUuid == null || sourceId == null || sourceId.isBlank()) {
+            return;
+        }
+
+        List<MissionProgressEvent> sourceEvents =
+                missionProgressEventRepository.findByUserUuidAndSourceId(userUuid, sourceId);
+        if (sourceEvents.isEmpty()) {
+            return;
+        }
+
+        List<MissionProgressEvent> removedEvents = sourceEvents.stream()
+                .filter(event -> !MissionRules.isImmutableProgressSource(event.getSourceType()))
+                .filter(event -> allowedSourceTypes == null || allowedSourceTypes.contains(event.getSourceType()))
+                .toList();
+        if (removedEvents.isEmpty()) {
+            return;
+        }
+
+        Set<String> affectedKeys = new LinkedHashSet<>();
+        for (MissionProgressEvent event : removedEvents) {
+            affectedKeys.add(event.getMissionTemplateUuid() + "||" + event.getCycleKey());
+        }
+
+        List<String> sourceTypesToDelete = removedEvents.stream()
+                .map(MissionProgressEvent::getSourceType)
+                .distinct()
+                .toList();
+        missionProgressEventRepository.deleteByUserUuidAndSourceIdAndSourceTypeIn(
+                userUuid, sourceId, sourceTypesToDelete);
+
+        OffsetDateTime rollbackAt = at != null ? at : OffsetDateTime.now();
+        for (String key : affectedKeys) {
+            int splitAt = key.indexOf("||");
+            if (splitAt <= 0) {
+                continue;
+            }
+            UUID templateUuid = UUID.fromString(key.substring(0, splitAt));
+            String cycleKey = key.substring(splitAt + 2);
+            recalculateUserMissionProgress(userUuid, templateUuid, cycleKey, rollbackAt);
+        }
     }
 
     @Transactional
@@ -483,7 +668,140 @@ public class MissionService {
         }
         mission.setProgressCurrent(0);
         mission.setProgressJson("{}");
-        return userMissionRepository.save(mission);
+        try {
+            return userMissionRepository.save(mission);
+        } catch (DataIntegrityViolationException ex) {
+            return userMissionRepository
+                    .findByUserUuidAndMissionTemplateUuidAndCycleKey(userUuid, template.getUuid(), cycleKey)
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private void validateTemplateRequest(AdminMissionTemplateRequest request) {
+        MissionConditionValidator.validate(request.getConditionType(), request.getConditionJson());
+        if (request.getCampaignUuid() != null) {
+            missionCampaignRepository
+                    .findById(request.getCampaignUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy chiến dịch."));
+        }
+        if (request.getStartsAt() != null
+                && request.getEndsAt() != null
+                && request.getEndsAt().isBefore(request.getStartsAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Thời gian kết thúc phải sau thời gian bắt đầu.");
+        }
+    }
+
+    private void recalculateUserMissionProgress(
+            UUID userUuid, UUID templateUuid, String cycleKey, OffsetDateTime at) {
+        MissionTemplate template = missionTemplateRepository.findById(templateUuid).orElse(null);
+        if (template == null) {
+            return;
+        }
+
+        UserMission userMission = userMissionRepository
+                .findByUserUuidAndMissionTemplateUuidAndCycleKey(userUuid, templateUuid, cycleKey)
+                .orElse(null);
+        if (userMission == null) {
+            return;
+        }
+
+        boolean wasCompleted = userMission.getStatus() == UserMissionStatus.COMPLETED;
+
+        userMission.setStatus(
+                isFeatureLocked(template) ? UserMissionStatus.LOCKED : UserMissionStatus.IN_PROGRESS);
+        userMission.setProgressCurrent(0);
+        userMission.setProgressTarget(template.getTargetValue());
+        userMission.setProgressJson("{}");
+        userMission.setCompletedAt(null);
+
+        List<MissionProgressEvent> remainingEvents = missionProgressEventRepository
+                .findByUserUuidAndMissionTemplateUuidAndCycleKeyOrderByEventAtAsc(
+                        userUuid, templateUuid, cycleKey);
+
+        for (MissionProgressEvent progressEvent : remainingEvents) {
+            MissionEventPayload payload = toEventPayload(progressEvent);
+            if (payload == null) {
+                continue;
+            }
+            if (!supportsEvent(template, payload)) {
+                continue;
+            }
+            boolean immutableReview = MissionRules.isImmutableProgressSource(progressEvent.getSourceType());
+            if (!immutableReview && !isEligibleForTemplate(template, payload)) {
+                continue;
+            }
+            applyProgress(template, userMission, payload);
+        }
+
+        userMissionRepository.save(userMission);
+
+        if (wasCompleted && userMission.getStatus() != UserMissionStatus.COMPLETED) {
+            missionScoreService.revokeMissionReward(
+                    userUuid,
+                    template.getRewardPoints(),
+                    userMission.getUuid(),
+                    template.getTitle(),
+                    at);
+            revokeMissionBadge(userMission);
+        }
+    }
+
+    private MissionEventPayload toEventPayload(MissionProgressEvent progressEvent) {
+        MissionEventType eventType;
+        try {
+            eventType = MissionEventType.valueOf(progressEvent.getSourceType());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+
+        UUID userUuid = progressEvent.getUserUuid();
+        String sourceId = progressEvent.getSourceId();
+        OffsetDateTime occurredAt = progressEvent.getEventAt();
+        UUID sourceUuid;
+        try {
+            sourceUuid = UUID.fromString(sourceId);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+
+        UUID movieUuid = progressEvent.getMovieUuid();
+        if (movieUuid == null) {
+            movieUuid = resolveMovieUuidForProgressEvent(eventType, sourceUuid);
+        }
+        return switch (eventType) {
+            case THEATER_BOOKING_CONFIRMED -> MissionEventPayload.theaterBooking(
+                    userUuid, sourceUuid, movieUuid, occurredAt);
+            case VOD_PURCHASE_CONFIRMED -> MissionEventPayload.vodPurchase(
+                    userUuid, sourceUuid, movieUuid, occurredAt);
+            case VOD_FIRST_PLAY -> MissionEventPayload.vodFirstPlay(userUuid, sourceUuid, movieUuid, occurredAt);
+            case REVIEW_WITH_VIBE_TAG_CREATED -> MissionEventPayload.reviewWithVibeTag(
+                    userUuid, sourceUuid, movieUuid, occurredAt);
+            case ORBIT_ROOM_JOINED -> MissionEventPayload.orbitRoomJoined(userUuid, sourceUuid, occurredAt);
+        };
+    }
+
+    private UUID resolveMovieUuidForProgressEvent(MissionEventType eventType, UUID sourceUuid) {
+        return switch (eventType) {
+            case THEATER_BOOKING_CONFIRMED, VOD_PURCHASE_CONFIRMED, VOD_FIRST_PLAY, ORBIT_ROOM_JOINED ->
+                    resolveMovieUuidFromBooking(sourceUuid);
+            case REVIEW_WITH_VIBE_TAG_CREATED -> movieReviewRepository
+                    .findById(sourceUuid)
+                    .map(MovieReview::getMovieUuid)
+                    .orElse(null);
+        };
+    }
+
+    private UUID resolveMovieUuidFromBooking(UUID bookingUuid) {
+        return bookingRepository
+                .findById(bookingUuid)
+                .map(Booking::getMovieUuid)
+                .orElse(null);
+    }
+
+    private void revokeMissionBadge(UserMission userMission) {
+        userBadgeRepository
+                .findBySourceUserMissionUuid(userMission.getUuid())
+                .ifPresent(userBadgeRepository::delete);
     }
 
     private boolean recordProgressEvent(MissionEventPayload event, MissionTemplate template, String cycleKey) {
@@ -494,6 +812,7 @@ public class MissionService {
         progressEvent.setCycleKey(cycleKey);
         progressEvent.setSourceType(event.getEventType().name());
         progressEvent.setSourceId(event.getSourceId());
+        progressEvent.setMovieUuid(event.getMovieUuid());
         progressEvent.setEventAt(event.getOccurredAt() != null ? event.getOccurredAt() : OffsetDateTime.now());
         try {
             missionProgressEventRepository.save(progressEvent);
@@ -806,6 +1125,8 @@ public class MissionService {
             MissionTemplate template, UserMission userMission, String cycleKey, OffsetDateTime now) {
         MissionItemResponse item = new MissionItemResponse();
         item.setCode(template.getCode());
+        item.setConditionType(
+                template.getConditionType() != null ? template.getConditionType().name() : null);
         item.setTitle(template.getTitle());
         item.setDescription(template.getDescription());
         item.setRewardPoints(template.getRewardPoints());
@@ -869,6 +1190,29 @@ public class MissionService {
         return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new com.thdpv.movietheater.common.exception.AppException(
                         com.thdpv.movietheater.common.exception.ErrorCode.USER_NOT_FOUND));
+    }
+
+    private String normalizeAdminQuery(String query) {
+        if (query == null || query.isBlank()) {
+            return null;
+        }
+        return query.trim();
+    }
+
+    private Pageable sanitizeTemplatePageable(Pageable pageable, boolean deletedOnly) {
+        int page = Math.max(pageable.getPageNumber(), 0);
+        int size = pageable.getPageSize() > 0 ? Math.min(pageable.getPageSize(), 50) : 10;
+        Sort sort = deletedOnly
+                ? Sort.by(Sort.Direction.DESC, "deletedAt")
+                : Sort.by(Sort.Direction.ASC, "sortOrder").and(Sort.by("title"));
+        return PageRequest.of(page, size, sort);
+    }
+
+    private Pageable sanitizeCampaignPageable(Pageable pageable) {
+        int page = Math.max(pageable.getPageNumber(), 0);
+        int size = pageable.getPageSize() > 0 ? Math.min(pageable.getPageSize(), 50) : 10;
+        Sort sort = Sort.by(Sort.Direction.ASC, "sortOrder").and(Sort.by("title"));
+        return PageRequest.of(page, size, sort);
     }
 
     private ExplorerProgress readExplorerProgress(String json) {

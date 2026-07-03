@@ -59,6 +59,8 @@ const showToast = (type, message, options = {}) => {
     type,
     message,
     autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
+    actionLabel: options.actionLabel || null,
+    actionPath: options.actionPath || null,
   };
 
   upsertToast(toast);
@@ -120,6 +122,8 @@ export const notificationService = {
       type: options.type || existingToast.type,
       message: options.render || options.message || existingToast.message,
       autoClose: options.autoClose ?? existingToast.autoClose,
+      actionLabel: options.actionLabel ?? existingToast.actionLabel,
+      actionPath: options.actionPath ?? existingToast.actionPath,
     };
 
     upsertToast(nextToast);

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Archive,
+  BarChart3,
   CalendarRange,
   Copy,
   Pencil,
@@ -12,19 +13,23 @@ import {
   Search,
   Target,
   Trash2,
+  Users,
   Zap,
 } from 'lucide-react';
 import { adminMissionService } from '../api/adminMissionService';
 import { notificationService } from '../../../shared/services/notificationService';
+import Pagination from '../../../shared/components/Pagination';
 import AdminModal from '../components/AdminModal';
 import MissionFormPanel from '../components/panels/MissionFormPanel';
 import MissionCampaignFormPanel from '../components/panels/MissionCampaignFormPanel';
 import { AdminPage, PageHeader, PrimaryButton } from '../components';
 import {
-  filterByQuery,
   formatAdminDateRange,
+  formatAdminDateTime,
   getCampaignStatusLabel,
+  getConditionLabel,
   getMissionDisplayTitle,
+  getRecurrenceLabel,
   resolveCampaignTitle,
 } from '../utils/missionAdminUtils';
 import './MissionsPage.css';
@@ -60,6 +65,9 @@ const TemplateRow = ({
 }) => {
   const displayTitle = getMissionDisplayTitle(item);
   const campaignTitle = resolveCampaignTitle(item.campaignUuid, campaigns);
+  const enrolledCount = item.enrolledCount ?? 0;
+  const completedCount = item.completedCount ?? 0;
+  const deletedLabel = isDeletedView && item.deletedAt ? formatAdminDateTime(item.deletedAt) : null;
 
   return (
     <article
@@ -71,12 +79,19 @@ const TemplateRow = ({
         <div className="mc-row__copy">
           <h3 className="mc-row__title">{displayTitle}</h3>
           <p className="mc-row__desc">{item.description}</p>
-          {campaignTitle && (
-            <span className="mc-row__campaign">
-              <Rocket size={11} />
-              {campaignTitle}
-            </span>
-          )}
+          <div className="mc-row__tags">
+            <span className="mc-tag mc-tag--muted">{getConditionLabel(item.conditionType)}</span>
+            <span className="mc-tag">{getRecurrenceLabel(item.recurrence)}</span>
+            {campaignTitle && (
+              <span className="mc-row__campaign">
+                <Rocket size={11} />
+                {campaignTitle}
+              </span>
+            )}
+            {deletedLabel && (
+              <span className="mc-tag mc-tag--calendar">Xóa lúc {deletedLabel}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -84,6 +99,10 @@ const TemplateRow = ({
         <div className="mc-row__points">
           <strong>+{item.rewardPoints ?? 0}</strong>
           <span>điểm</span>
+        </div>
+        <div className="mc-row__stats">
+          <span>{enrolledCount} tham gia</span>
+          <span>{completedCount} hoàn thành</span>
         </div>
       </div>
 
@@ -210,8 +229,17 @@ const MissionsPage = () => {
   const [activeTab, setActiveTab] = useState('templates');
   const [templates, setTemplates] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
+  const [campaignOptions, setCampaignOptions] = useState([]);
+  const [formTemplates, setFormTemplates] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [templatePage, setTemplatePage] = useState(1);
+  const [campaignPage, setCampaignPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [templateTotal, setTemplateTotal] = useState(0);
+  const [campaignTotal, setCampaignTotal] = useState(0);
   const [templateModal, setTemplateModal] = useState({ open: false, template: null });
   const [campaignModal, setCampaignModal] = useState({ open: false, campaign: null });
   const [togglingCode, setTogglingCode] = useState(null);
@@ -221,38 +249,69 @@ const MissionsPage = () => {
   const [templateView, setTemplateView] = useState('active');
   const [archivingUuid, setArchivingUuid] = useState(null);
   const [deletingUuid, setDeletingUuid] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setTemplatePage(1);
+    setCampaignPage(1);
+  }, [debouncedSearch, templateView, activeTab]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const [templateData, campaignData] = await Promise.all([
-        adminMissionService.getTemplates({ deleted: templateView === 'deleted' }),
-        adminMissionService.getCampaigns(),
+      const [
+        templateData,
+        campaignData,
+        analyticsData,
+        campaignOptionsData,
+        formTemplateData,
+      ] = await Promise.all([
+        adminMissionService.getTemplates({
+          deleted: templateView === 'deleted',
+          query: debouncedSearch,
+          page: templatePage - 1,
+          size: pageSize,
+        }),
+        adminMissionService.getCampaigns({
+          query: activeTab === 'campaigns' ? debouncedSearch : '',
+          page: campaignPage - 1,
+          size: pageSize,
+        }),
+        adminMissionService.getAnalytics(),
+        adminMissionService.getCampaigns({ page: 0, size: 100 }),
+        adminMissionService.getTemplates({ deleted: false, page: 0, size: 500 }),
       ]);
-      setTemplates(Array.isArray(templateData) ? templateData : []);
-      setCampaigns(Array.isArray(campaignData) ? campaignData : []);
+      setTemplates(templateData.items);
+      setTemplateTotal(templateData.total);
+      setCampaigns(campaignData.items);
+      setCampaignTotal(campaignData.total);
+      setAnalytics(analyticsData);
+      setCampaignOptions(campaignOptionsData.items);
+      setFormTemplates(formTemplateData.items);
     } catch (error) {
-      notificationService.error(error.message || 'Không thể tải dữ liệu nhiệm vụ.');
+      const message = error.message || 'Không thể tải dữ liệu nhiệm vụ.';
+      setLoadError(message);
+      setTemplates([]);
+      setCampaigns([]);
+      setAnalytics(null);
+      notificationService.error(message);
     } finally {
       setIsLoading(false);
     }
-  }, [templateView]);
+  }, [activeTab, campaignPage, debouncedSearch, pageSize, templatePage, templateView]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const activeTemplates = templates.filter((item) => item.active).length;
-  const liveCampaigns = campaigns.filter((item) => item.status === 'ACTIVE').length;
-
-  const filteredTemplates = useMemo(
-    () => filterByQuery(templates, search),
-    [templates, search],
-  );
-  const filteredCampaigns = useMemo(
-    () => filterByQuery(campaigns, search),
-    [campaigns, search],
-  );
+  const activeTemplates = analytics?.activeTemplates ?? templates.filter((item) => item.active).length;
+  const liveCampaigns = analytics?.liveCampaigns ?? campaigns.filter((item) => item.status === 'ACTIVE').length;
 
   const openCreate = () => {
     if (activeTab === 'templates') {
@@ -266,16 +325,12 @@ const MissionsPage = () => {
     setTogglingCode(template.code);
     try {
       await adminMissionService.toggleTemplateActive(template);
-      setTemplates((prev) =>
-        prev.map((item) =>
-          item.code === template.code ? { ...item, active: !item.active } : item,
-        ),
-      );
       notificationService.success(
         template.active
           ? `Đã tắt "${getMissionDisplayTitle(template)}". Khán giả không còn thấy nhiệm vụ này.`
           : `Đã bật "${getMissionDisplayTitle(template)}". Khán giả sẽ thấy trên tab Nhiệm vụ.`,
       );
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể đổi trạng thái nhiệm vụ.');
     } finally {
@@ -289,8 +344,8 @@ const MissionsPage = () => {
     setDuplicatingCode(template.code);
     try {
       const created = await adminMissionService.duplicateTemplate(template.code, newCode);
-      setTemplates((prev) => [...prev, created]);
       notificationService.success(`Đã tạo bản sao "${created.title || newCode}". Bản sao đang tắt — bật khi sẵn sàng.`);
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể nhân bản nhiệm vụ.');
     } finally {
@@ -307,8 +362,8 @@ const MissionsPage = () => {
     setDeletingCode(template.code);
     try {
       await adminMissionService.softDeleteTemplate(template.code);
-      setTemplates((prev) => prev.filter((item) => item.code !== template.code));
       notificationService.success(`Đã xóa "${getMissionDisplayTitle(template)}".`);
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể xóa nhiệm vụ.');
     } finally {
@@ -320,10 +375,10 @@ const MissionsPage = () => {
     setRestoringCode(template.code);
     try {
       const restored = await adminMissionService.restoreTemplate(template.code);
-      setTemplates((prev) => prev.filter((item) => item.code !== template.code));
       notificationService.success(
         `Đã khôi phục "${restored.title || template.code}". Bật lại nếu muốn hiển thị với khán giả.`,
       );
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể khôi phục nhiệm vụ.');
     } finally {
@@ -340,6 +395,7 @@ const MissionsPage = () => {
         prev.map((item) => (item.uuid === campaign.uuid ? { ...item, ...updated } : item)),
       );
       notificationService.success(`Đã lưu trữ chiến dịch "${campaign.title}".`);
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể lưu trữ chiến dịch.');
     } finally {
@@ -359,8 +415,8 @@ const MissionsPage = () => {
     setDeletingUuid(campaign.uuid);
     try {
       await adminMissionService.deleteCampaign(campaign.uuid);
-      setCampaigns((prev) => prev.filter((item) => item.uuid !== campaign.uuid));
       notificationService.success('Đã xóa chiến dịch.');
+      loadData();
     } catch (error) {
       notificationService.error(error.message || 'Không thể xóa chiến dịch.');
     } finally {
@@ -412,7 +468,60 @@ const MissionsPage = () => {
             <span>Chiến dịch đang chạy</span>
           </div>
         </div>
+        <div className="mc-kpi">
+          <div className="mc-kpi__icon mc-kpi__icon--green">
+            <Users size={18} />
+          </div>
+          <div>
+            <strong>{analytics?.distinctParticipants ?? '—'}</strong>
+            <span>Người tham gia</span>
+          </div>
+        </div>
+        <div className="mc-kpi">
+          <div className="mc-kpi__icon mc-kpi__icon--red">
+            <Target size={18} />
+          </div>
+          <div>
+            <strong>
+              {analytics != null ? `${Math.round(analytics.overallCompletionRate ?? 0)}%` : '—'}
+            </strong>
+            <span>Tỷ lệ hoàn thành</span>
+          </div>
+        </div>
+        <div className="mc-kpi">
+          <div className="mc-kpi__icon mc-kpi__icon--amber">
+            <BarChart3 size={18} />
+          </div>
+          <div>
+            <strong>{analytics?.totalPointsAwarded?.toLocaleString('vi-VN') ?? '—'}</strong>
+            <span>Điểm thưởng đã trao</span>
+          </div>
+        </div>
       </div>
+
+      {analytics?.topTemplates?.length > 0 && (
+        <section className="mc-analytics" aria-label="Nhiệm vụ nổi bật">
+          <div className="mc-analytics__head">
+            <BarChart3 size={16} />
+            <h3>Top nhiệm vụ theo lượt tham gia</h3>
+          </div>
+          <ul className="mc-analytics__list">
+            {analytics.topTemplates.map((item) => (
+              <li key={item.code} className="mc-analytics__item">
+                <div>
+                  <strong>{item.title || item.code}</strong>
+                  <span>
+                    {item.enrolledCount} tham gia · {item.completedCount} hoàn thành
+                  </span>
+                </div>
+                <span className="mc-analytics__rate">
+                  {Math.round(item.completionRate ?? 0)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mc-toolbar">
         <div className="mc-tabs" role="tablist">
@@ -428,7 +537,11 @@ const MissionsPage = () => {
           >
             <Target size={15} />
             Nhiệm vụ
-            <span className="mc-tabs__count">{templates.length}</span>
+            <span className="mc-tabs__count">
+              {templateView === 'deleted'
+                ? (analytics?.deletedTemplates ?? templateTotal)
+                : (analytics?.totalTemplates ?? templateTotal)}
+            </span>
           </button>
           <button
             type="button"
@@ -442,7 +555,7 @@ const MissionsPage = () => {
           >
             <Rocket size={15} />
             Chiến dịch
-            <span className="mc-tabs__count">{campaigns.length}</span>
+            <span className="mc-tabs__count">{analytics?.totalCampaigns ?? campaignTotal}</span>
           </button>
         </div>
 
@@ -488,8 +601,18 @@ const MissionsPage = () => {
 
       {isLoading ? (
         <MissionSkeleton />
+      ) : loadError ? (
+        <div className="mc-empty mc-empty--error">
+          <Target size={28} strokeWidth={1.5} />
+          <strong>Không tải được dữ liệu</strong>
+          <p>{loadError}</p>
+          <PrimaryButton type="button" onClick={loadData}>
+            <RefreshCw size={16} />
+            Thử lại
+          </PrimaryButton>
+        </div>
       ) : activeTab === 'templates' ? (
-        filteredTemplates.length === 0 ? (
+        templates.length === 0 ? (
           <div className="mc-empty">
             <Target size={28} strokeWidth={1.5} />
             <strong>
@@ -515,11 +638,11 @@ const MissionsPage = () => {
           </div>
         ) : (
           <div className="mc-list">
-            {filteredTemplates.map((item) => (
+            {templates.map((item) => (
               <TemplateRow
                 key={item.uuid || item.code}
                 item={item}
-                campaigns={campaigns}
+                campaigns={campaignOptions}
                 onEdit={(template) => setTemplateModal({ open: true, template })}
                 onToggle={handleToggleActive}
                 onDuplicate={handleDuplicateTemplate}
@@ -534,7 +657,7 @@ const MissionsPage = () => {
             ))}
           </div>
         )
-      ) : filteredCampaigns.length === 0 ? (
+      ) : campaigns.length === 0 ? (
         <div className="mc-empty">
           <Rocket size={28} strokeWidth={1.5} />
           <strong>{search ? 'Không tìm thấy chiến dịch' : 'Chưa có chiến dịch'}</strong>
@@ -552,7 +675,7 @@ const MissionsPage = () => {
         </div>
       ) : (
         <div className="mc-list">
-          {filteredCampaigns.map((item) => (
+          {campaigns.map((item) => (
             <CampaignRow
               key={item.uuid || item.code}
               item={item}
@@ -566,6 +689,24 @@ const MissionsPage = () => {
         </div>
       )}
 
+      {!isLoading && !loadError && activeTab === 'templates' && templateTotal > pageSize && (
+        <Pagination
+          currentPage={templatePage}
+          totalItems={templateTotal}
+          itemsPerPage={pageSize}
+          onPageChange={setTemplatePage}
+        />
+      )}
+
+      {!isLoading && !loadError && activeTab === 'campaigns' && campaignTotal > pageSize && (
+        <Pagination
+          currentPage={campaignPage}
+          totalItems={campaignTotal}
+          itemsPerPage={pageSize}
+          onPageChange={setCampaignPage}
+        />
+      )}
+
       <AdminModal
         open={templateModal.open}
         title={templateModal.template ? 'Sửa nhiệm vụ' : 'Thêm nhiệm vụ'}
@@ -573,8 +714,8 @@ const MissionsPage = () => {
       >
         <MissionFormPanel
           template={templateModal.template}
-          campaigns={campaigns}
-          existingTemplates={templates}
+          campaigns={campaignOptions}
+          existingTemplates={formTemplates}
           onCancel={() => setTemplateModal({ open: false, template: null })}
           onSuccess={() => {
             setTemplateModal({ open: false, template: null });

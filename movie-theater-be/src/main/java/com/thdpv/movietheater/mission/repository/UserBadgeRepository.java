@@ -13,4 +13,6 @@ public interface UserBadgeRepository extends JpaRepository<UserBadge, UUID> {
     List<UserBadge> findByUserUuidOrderByUnlockedAtDesc(UUID userUuid);
 
     Optional<UserBadge> findByUserUuidAndBadgeCodeIgnoreCase(UUID userUuid, String badgeCode);
+
+    Optional<UserBadge> findBySourceUserMissionUuid(UUID sourceUserMissionUuid);
 }

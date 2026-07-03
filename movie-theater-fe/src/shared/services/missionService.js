@@ -40,7 +40,11 @@ export const showMissionCompletionToasts = (completions = []) => {
     const pointsText = item?.pointsAwarded > 0 ? ` +${item.pointsAwarded} điểm NASA.` : '';
     const badgeText = item?.badge?.title ? ` Huy hiệu: ${item.badge.title}.` : '';
     const message = `Hoàn thành nhiệm vụ "${item.title}".${pointsText}${badgeText}`.trim();
-    notificationService.success(message, { autoClose: 6000 });
+    notificationService.success(message, {
+      autoClose: 8000,
+      actionLabel: 'Xem bảng nhiệm vụ',
+      actionPath: '/profile?tab=missions',
+    });
   });
 
   notifyMissionBoardRefresh();

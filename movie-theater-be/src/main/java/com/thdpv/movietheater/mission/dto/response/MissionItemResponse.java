@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 public class MissionItemResponse {
 
     private String code;
+    private String conditionType;
     private String title;
     private String description;
     private String status;
@@ -23,6 +24,14 @@ public class MissionItemResponse {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public String getConditionType() {
+        return conditionType;
+    }
+
+    public void setConditionType(String conditionType) {
+        this.conditionType = conditionType;
     }
 
     public String getTitle() {

@@ -41,6 +41,7 @@ import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.mission.service.MissionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -72,6 +73,7 @@ public class CancellationRefundService {
     private final VoucherRedemptionService voucherRedemptionService;
     private final WalletService walletService;
     private final MovieRepository movieRepository;
+    private final MissionService missionService;
 
     @Transactional(readOnly = true)
     public CancellationPreviewResponse getCancellationPreview(UUID bookingUuid, UUID actorUuid, boolean adminOverride,
@@ -190,6 +192,12 @@ public class CancellationRefundService {
 
         auditLogService.log("BOOKING", bookingUuid, "BOOKING_CANCELLED", actorUuid, actorRole,
                 java.util.Map.of("reason", reason != null ? reason : "", "fee", calc.fee(), "refund", calc.refundAmount()));
+
+        try {
+            missionService.rollbackBookingProgress(booking.getUserUuid(), bookingUuid, now);
+        } catch (Exception ignored) {
+            // Không chặn hủy vé nếu hoàn tác nhiệm vụ thất bại
+        }
 
         Refund refund = null;
         if (calc.refundAmount().compareTo(BigDecimal.ZERO) > 0) {

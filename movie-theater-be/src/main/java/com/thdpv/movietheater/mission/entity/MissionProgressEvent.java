@@ -39,6 +39,9 @@ public class MissionProgressEvent {
     @Column(name = "source_id", nullable = false, length = 64)
     private String sourceId;
 
+    @Column(name = "movie_uuid")
+    private UUID movieUuid;
+
     @Column(name = "event_at", nullable = false)
     private OffsetDateTime eventAt;
 
@@ -88,6 +91,14 @@ public class MissionProgressEvent {
 
     public void setSourceId(String sourceId) {
         this.sourceId = sourceId;
+    }
+
+    public UUID getMovieUuid() {
+        return movieUuid;
+    }
+
+    public void setMovieUuid(UUID movieUuid) {
+        this.movieUuid = movieUuid;
     }
 
     public OffsetDateTime getEventAt() {

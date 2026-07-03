@@ -1,12 +1,36 @@
 import { authService } from '../../auth/api/authService';
 
+const parseSpringPage = (data) => {
+  const page = data?.content !== undefined ? data : { content: Array.isArray(data) ? data : [] };
+  return {
+    items: page.content ?? [],
+    total: page.totalElements ?? page.content?.length ?? 0,
+    page: (page.number ?? 0) + 1,
+    totalPages: page.totalPages ?? 1,
+  };
+};
+
 class AdminMissionService {
-  async getTemplates({ deleted = false } = {}) {
+  async getAnalytics() {
+    try {
+      const response = await authService.api.get('/api/admin/missions/analytics');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getTemplates({ deleted = false, query = '', page = 0, size = 10 } = {}) {
     try {
       const response = await authService.api.get('/api/admin/missions', {
-        params: deleted ? { deleted: true } : undefined,
+        params: {
+          deleted,
+          query: query.trim() || undefined,
+          page,
+          size,
+        },
       });
-      return response.data.data ?? response.data ?? [];
+      return parseSpringPage(response.data.data ?? response.data);
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -27,10 +51,16 @@ class AdminMissionService {
     );
   }
 
-  async getCampaigns() {
+  async getCampaigns({ query = '', page = 0, size = 10 } = {}) {
     try {
-      const response = await authService.api.get('/api/admin/missions/campaigns');
-      return response.data.data ?? response.data ?? [];
+      const response = await authService.api.get('/api/admin/missions/campaigns', {
+        params: {
+          query: query.trim() || undefined,
+          page,
+          size,
+        },
+      });
+      return parseSpringPage(response.data.data ?? response.data);
     } catch (error) {
       throw authService.handleError(error);
     }

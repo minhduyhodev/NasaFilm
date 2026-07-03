@@ -64,6 +64,12 @@ class MissionRulesTest {
         assertFalse(MissionRules.isTemplateVisible(template, Map.of(), now));
     }
 
+    @Test
+    void isImmutableProgressSource_marksReviewEventsAsPermanent() {
+        assertTrue(MissionRules.isImmutableProgressSource("REVIEW_WITH_VIBE_TAG_CREATED"));
+        assertFalse(MissionRules.isImmutableProgressSource("THEATER_BOOKING_CONFIRMED"));
+    }
+
     private static MissionTemplate activeTemplate(UUID campaignUuid) {
         MissionTemplate template = new MissionTemplate();
         template.setActive(true);

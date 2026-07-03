@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.mission.entity.MissionCampaign;
 import com.thdpv.movietheater.mission.entity.MissionTemplate;
 import com.thdpv.movietheater.mission.enums.MissionCampaignStatus;
+import com.thdpv.movietheater.mission.enums.MissionEventType;
 
 public final class MissionRules {
 
@@ -59,5 +60,13 @@ public final class MissionRules {
             return false;
         }
         return campaign.getEndsAt() == null || !now.isAfter(campaign.getEndsAt());
+    }
+
+    /**
+     * Review mission progress is earned at submission time and is not reversed when a review is
+     * reported or hidden by moderation.
+     */
+    public static boolean isImmutableProgressSource(String sourceType) {
+        return MissionEventType.REVIEW_WITH_VIBE_TAG_CREATED.name().equals(sourceType);
     }
 }

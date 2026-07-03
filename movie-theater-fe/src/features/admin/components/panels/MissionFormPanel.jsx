@@ -26,6 +26,8 @@ const emptyCustomForm = () => ({
   conditionJson: CONDITION_JSON_DEFAULTS.GENRE_WINDOW,
   recurrence: 'ONCE',
   campaignUuid: '',
+  startsAt: '',
+  endsAt: '',
   rewardPoints: 100,
   rewardBadgeCode: '',
   rewardBadgeTitle: '',
@@ -43,6 +45,8 @@ const buildFormFromPreset = (preset, overrides = {}) => ({
   conditionJson: preset.conditionJson,
   recurrence: preset.recurrence,
   campaignUuid: '',
+  startsAt: '',
+  endsAt: '',
   rewardPoints: preset.rewardPoints,
   rewardBadgeCode: preset.rewardBadgeCode || '',
   rewardBadgeTitle: preset.rewardBadgeTitle || '',
@@ -61,6 +65,8 @@ const buildFormFromTemplate = (template) => ({
   conditionJson: template.conditionJson || '{}',
   recurrence: template.recurrence || 'ONCE',
   campaignUuid: template.campaignUuid ? String(template.campaignUuid) : '',
+  startsAt: template.startsAt ? template.startsAt.slice(0, 16) : '',
+  endsAt: template.endsAt ? template.endsAt.slice(0, 16) : '',
   rewardPoints: template.rewardPoints ?? 0,
   rewardBadgeCode: template.rewardBadgeCode || '',
   rewardBadgeTitle: template.rewardBadgeTitle || '',
@@ -81,6 +87,27 @@ const resolveFormForCode = (code, existingTemplates) => {
 
 const resolveRequiresFeature = (conditionType) =>
   conditionType === 'ORBIT_ROOM_JOIN' ? 'ORBIT_SEAT' : '';
+
+const parseWindowDays = (conditionJson) => {
+  try {
+    const parsed = JSON.parse(conditionJson || '{}');
+    return parsed.windowDays ?? '';
+  } catch {
+    return '';
+  }
+};
+
+const withWindowDays = (conditionJson, days) => {
+  try {
+    const parsed = JSON.parse(conditionJson || '{}');
+    return JSON.stringify({ ...parsed, windowDays: Number(days) || 1 });
+  } catch {
+    return JSON.stringify({ windowDays: Number(days) || 1 });
+  }
+};
+
+const usesWindowDays = (conditionType) =>
+  conditionType === 'GENRE_WINDOW' || conditionType === 'PREMIERE_BOOKING';
 
 const MissionFormPanel = ({
   template,
@@ -174,6 +201,8 @@ const MissionFormPanel = ({
         rewardBadgeCode: form.rewardBadgeCode?.trim() || null,
         rewardBadgeTitle: form.rewardBadgeTitle?.trim() || null,
         requiresFeature: form.requiresFeature?.trim() || null,
+        startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
+        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       });
       notificationService.success(isEditing ? 'Đã cập nhật nhiệm vụ.' : 'Đã thêm nhiệm vụ.');
       onSuccess?.();
@@ -215,7 +244,11 @@ const MissionFormPanel = ({
               onChange={(e) => handleTypeChange(e.target.value)}
             >
               {MISSION_PRESETS.map((item) => (
-                <option key={item.code} value={item.code}>
+                <option
+                  key={item.code}
+                  value={item.code}
+                  disabled={usedCodes.has(item.code)}
+                >
                   {item.label}
                 </option>
               ))}
@@ -311,6 +344,70 @@ const MissionFormPanel = ({
             className={adminInputClass}
             value={form.rewardPoints}
             onChange={(e) => setForm({ ...form, rewardPoints: Number(e.target.value) })}
+          />
+        </div>
+        {usesWindowDays(form.conditionType) && (
+          <div className="mc-form-field">
+            <label className={adminLabelClass}>Cửa sổ (ngày)</label>
+            <input
+              type="number"
+              min="1"
+              max="365"
+              className={adminInputClass}
+              value={parseWindowDays(form.conditionJson)}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  conditionJson: withWindowDays(prev.conditionJson, e.target.value),
+                }))
+              }
+            />
+          </div>
+        )}
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Thứ tự hiển thị</label>
+          <input
+            type="number"
+            min="0"
+            className={adminInputClass}
+            value={form.sortOrder}
+            onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
+          />
+        </div>
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Bắt đầu (tuỳ chọn)</label>
+          <input
+            type="datetime-local"
+            className={adminInputClass}
+            value={form.startsAt}
+            onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+          />
+        </div>
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Kết thúc (tuỳ chọn)</label>
+          <input
+            type="datetime-local"
+            className={adminInputClass}
+            value={form.endsAt}
+            onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+          />
+        </div>
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Mã huy hiệu (tuỳ chọn)</label>
+          <input
+            className={adminInputClass}
+            value={form.rewardBadgeCode}
+            onChange={(e) => setForm({ ...form, rewardBadgeCode: e.target.value })}
+            placeholder="EXPLORER_BADGE"
+          />
+        </div>
+        <div className="mc-form-field mc-form-field--full">
+          <label className={adminLabelClass}>Tên huy hiệu (tuỳ chọn)</label>
+          <input
+            className={adminInputClass}
+            value={form.rewardBadgeTitle}
+            onChange={(e) => setForm({ ...form, rewardBadgeTitle: e.target.value })}
+            placeholder="Nhà thám hiểm"
           />
         </div>
       </div>

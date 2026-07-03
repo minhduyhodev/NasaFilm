@@ -11,10 +11,13 @@ import {
   Trophy,
 } from 'lucide-react';
 import {
+  formatCompletedAt,
   formatCycleLabel,
   formatTierGap,
+  getMissionActionHint,
+  getMissionCta,
+  getMissionIconType,
   getMissionTitleVi,
-  MISSION_ACTION_HINTS,
   MISSION_RECURRENCE_LABELS,
   MISSION_TIER_LABEL_VI,
 } from '../utils/missionUtils';
@@ -39,25 +42,13 @@ const MissionSkeleton = () => (
 );
 
 const MissionIcon = ({ mission, locked, completed }) => {
-  if (completed) return <CheckCircle2 size={17} strokeWidth={2} />;
-  if (locked) return <Lock size={17} strokeWidth={2} />;
-  if (mission.code === 'REVIEWER') return <MessageSquare size={17} strokeWidth={2} />;
-  if (mission.code === 'PREMIERE' || mission.code === 'HYBRID_PILOT') {
-    return <Ticket size={17} strokeWidth={2} />;
-  }
-  if (mission.code === 'EXPLORER') return <Film size={17} strokeWidth={2} />;
+  const iconType = getMissionIconType(mission, { locked, completed });
+  if (iconType === 'completed') return <CheckCircle2 size={17} strokeWidth={2} />;
+  if (iconType === 'locked') return <Lock size={17} strokeWidth={2} />;
+  if (iconType === 'review') return <MessageSquare size={17} strokeWidth={2} />;
+  if (iconType === 'ticket') return <Ticket size={17} strokeWidth={2} />;
+  if (iconType === 'film') return <Film size={17} strokeWidth={2} />;
   return <Rocket size={17} strokeWidth={2} />;
-};
-
-const getMissionCta = (mission, completed, locked) => {
-  if (completed || locked) return null;
-  if (mission.code === 'REVIEWER') {
-    return { label: 'Xem phim', to: '/movies' };
-  }
-  if (mission.code === 'PREMIERE' || mission.code === 'EXPLORER' || mission.code === 'HYBRID_PILOT') {
-    return { label: 'Khám phá phim', to: '/movies' };
-  }
-  return null;
 };
 
 const formatMissionReward = (mission) => {
@@ -88,8 +79,9 @@ const MissionRow = ({ mission, index = 0 }) => {
       ? 100
       : 0;
   const cycleText = formatCycleLabel(mission);
-  const actionHint = MISSION_ACTION_HINTS[mission.code];
-  const cta = getMissionCta(mission, completed, locked);
+  const actionHint = getMissionActionHint(mission);
+  const cta = getMissionCta(mission, { completed, locked });
+  const completedAtLabel = completed ? formatCompletedAt(mission.completedAt) : null;
   const reduceMotion = useReducedMotion();
   const progressCurrent = completed ? progress?.target ?? 1 : progress?.current ?? 0;
   const progressTarget = progress?.target ?? 1;
@@ -120,6 +112,11 @@ const MissionRow = ({ mission, index = 0 }) => {
 
           <div className="mission-row__meta">
             {cycleText && <span className="mission-row__chip">{cycleText}</span>}
+            {completedAtLabel && (
+              <span className="mission-row__chip mission-row__chip--muted">
+                Hoàn thành {completedAtLabel}
+              </span>
+            )}
             {mission.recurrence && mission.recurrence !== 'ONCE' && (
               <span className="mission-row__chip mission-row__chip--muted">
                 {MISSION_RECURRENCE_LABELS[mission.recurrence]}
@@ -130,7 +127,7 @@ const MissionRow = ({ mission, index = 0 }) => {
             )}
             {locked && (
               <span className="mission-row__hint mission-row__hint--locked">
-                {mission.code === 'SOCIAL_ORBIT'
+                {mission.code === 'SOCIAL_ORBIT' || mission.conditionType === 'ORBIT_ROOM_JOIN'
                   ? 'Mở khi Phòng Orbit ra mắt.'
                   : 'Chưa khả dụng.'}
               </span>
@@ -256,6 +253,17 @@ const MissionBoard = ({ board, loading, error, onRetry }) => {
           <p className="mission-board__tier-gap">{formatTierGap(lifetimeScore, nextTierAt)}</p>
         </aside>
       </motion.header>
+
+      {(summary.activeCount > 0 || summary.completedCount > 0) && (
+        <div className="mission-board__summary" aria-label="Tóm tắt nhiệm vụ">
+          <span className="mission-board__summary-chip">
+            {summary.activeCount ?? 0} đang làm
+          </span>
+          <span className="mission-board__summary-chip mission-board__summary-chip--done">
+            {summary.completedCount ?? 0} hoàn thành
+          </span>
+        </div>
+      )}
 
       {summary.allCompleted && activeMissions.length === 0 && (
         <div className="mission-board__notice mission-board__notice--success">

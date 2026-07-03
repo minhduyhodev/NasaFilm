@@ -1,4 +1,6 @@
--- Reference SQL for mission schema (canonical source: Flyway R__mission_schema_patches.sql).
+-- Repeatable Flyway migration: idempotent mission schema patches.
+-- Supersedes MissionSchemaMigrator JDBC patches.
+
 CREATE TABLE IF NOT EXISTS mission_campaign (
     uuid uuid PRIMARY KEY,
     code varchar(64) NOT NULL,

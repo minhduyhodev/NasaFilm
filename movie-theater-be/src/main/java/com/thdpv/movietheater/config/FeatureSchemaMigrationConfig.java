@@ -8,8 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.thdpv.movietheater.mission.config.MissionSchemaMigrator;
-
 @Configuration
 public class FeatureSchemaMigrationConfig {
 
@@ -206,7 +204,7 @@ public class FeatureSchemaMigrationConfig {
                     )
                     """);
 
-            MissionSchemaMigrator.apply(jdbc);
+            // Mission incremental schema: Flyway R__mission_schema_patches.sql
 
             ensureSearchVector("movie", "title", null);
             ensureSearchVector("cinema", "name", "address");
