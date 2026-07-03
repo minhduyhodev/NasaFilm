@@ -84,7 +84,7 @@ class MissionServiceTest {
         MissionTemplate template = reviewerTemplate();
         UserMission userMission = enrolledMission(0);
 
-        when(missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc()).thenReturn(List.of(template));
+        when(missionTemplateRepository.findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc()).thenReturn(List.of(template));
         when(missionCampaignRepository.findAll()).thenReturn(List.of());
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(new Movie()));
         when(userMissionRepository.findWithLockByUserUuidAndMissionTemplateUuidAndCycleKey(
@@ -110,7 +110,7 @@ class MissionServiceTest {
         MissionTemplate template = reviewerTemplate();
         UserMission userMission = enrolledMission(1);
 
-        when(missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc()).thenReturn(List.of(template));
+        when(missionTemplateRepository.findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc()).thenReturn(List.of(template));
         when(missionCampaignRepository.findAll()).thenReturn(List.of());
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(new Movie()));
         when(userMissionRepository.findWithLockByUserUuidAndMissionTemplateUuidAndCycleKey(
@@ -128,7 +128,7 @@ class MissionServiceTest {
     @Test
     void handleOrbitRoomJoined_skippedWhenFeatureLocked() {
         MissionTemplate orbit = orbitTemplate();
-        when(missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc()).thenReturn(List.of(orbit));
+        when(missionTemplateRepository.findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc()).thenReturn(List.of(orbit));
         when(missionCampaignRepository.findAll()).thenReturn(List.of());
 
         List<?> completions = missionService.handleOrbitRoomJoined(userUuid, UUID.randomUUID(), now);
@@ -144,7 +144,7 @@ class MissionServiceTest {
         UserMission userMission = enrolledMission(0);
         UUID bookingUuid = UUID.randomUUID();
 
-        when(missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc()).thenReturn(List.of(orbit));
+        when(missionTemplateRepository.findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc()).thenReturn(List.of(orbit));
         when(missionCampaignRepository.findAll()).thenReturn(List.of());
         when(userMissionRepository.findWithLockByUserUuidAndMissionTemplateUuidAndCycleKey(
                         userUuid, templateUuid, "ONCE"))

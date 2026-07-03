@@ -10,9 +10,17 @@ import com.thdpv.movietheater.mission.entity.MissionTemplate;
 
 public interface MissionTemplateRepository extends JpaRepository<MissionTemplate, UUID> {
 
-    List<MissionTemplate> findByActiveTrueOrderBySortOrderAscTitleAsc();
+    List<MissionTemplate> findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc();
+
+    List<MissionTemplate> findByDeletedAtIsNullOrderBySortOrderAscTitleAsc();
+
+    List<MissionTemplate> findByDeletedAtIsNotNullOrderByDeletedAtDesc();
 
     Optional<MissionTemplate> findByCodeIgnoreCase(String code);
 
+    Optional<MissionTemplate> findByCodeIgnoreCaseAndDeletedAtIsNull(String code);
+
     long countByCampaignUuid(UUID campaignUuid);
+
+    long countByCampaignUuidAndDeletedAtIsNull(UUID campaignUuid);
 }

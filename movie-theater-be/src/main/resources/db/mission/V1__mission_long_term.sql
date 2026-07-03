@@ -51,3 +51,5 @@ DO $$ BEGIN
 END $$;
 
 UPDATE mission_template SET recurrence = 'MONTHLY' WHERE code = 'EXPLORER' AND recurrence = 'ONCE';
+
+ALTER TABLE mission_template ADD COLUMN IF NOT EXISTS deleted_at timestamptz;

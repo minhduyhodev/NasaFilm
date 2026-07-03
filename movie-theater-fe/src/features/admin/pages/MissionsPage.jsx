@@ -7,6 +7,7 @@ import {
   Plus,
   Power,
   RefreshCw,
+  RotateCcw,
   Rocket,
   Search,
   Target,
@@ -43,13 +44,26 @@ const MissionSkeleton = () => (
   </div>
 );
 
-const TemplateRow = ({ item, campaigns, onEdit, onToggle, onDuplicate, isToggling, isDuplicating }) => {
+const TemplateRow = ({
+  item,
+  campaigns,
+  onEdit,
+  onToggle,
+  onDuplicate,
+  onDelete,
+  onRestore,
+  isToggling,
+  isDuplicating,
+  isDeleting,
+  isRestoring,
+  isDeletedView,
+}) => {
   const displayTitle = getMissionDisplayTitle(item);
   const campaignTitle = resolveCampaignTitle(item.campaignUuid, campaigns);
 
   return (
     <article
-      className={`mc-row mc-row--template ${item.active ? 'is-on' : 'is-off'}`}
+      className={`mc-row mc-row--template ${isDeletedView ? 'is-deleted' : item.active ? 'is-on' : 'is-off'}`}
     >
       <div className="mc-row__signal" aria-hidden="true" />
 
@@ -74,31 +88,56 @@ const TemplateRow = ({ item, campaigns, onEdit, onToggle, onDuplicate, isTogglin
       </div>
 
       <div className="mc-row__actions">
-        <button
-          type="button"
-          className={`mc-toggle ${item.active ? 'is-on' : 'is-off'}`}
-          onClick={() => onToggle(item)}
-          disabled={isToggling}
-          aria-pressed={item.active}
-          title={item.active ? 'Bấm để tắt hiển thị với khán giả' : 'Bấm để bật hiển thị với khán giả'}
-        >
-          <Power size={12} />
-          {isToggling ? 'Đang lưu...' : item.active ? 'Đang bật' : 'Đã tắt'}
-        </button>
-        <button type="button" className="mc-row__edit" onClick={() => onEdit(item)}>
-          <Pencil size={14} />
-          Sửa
-        </button>
-        <button
-          type="button"
-          className="mc-row__edit mc-row__edit--ghost"
-          onClick={() => onDuplicate(item)}
-          disabled={isDuplicating}
-          title="Tạo bản sao (tắt mặc định)"
-        >
-          <Copy size={14} />
-          {isDuplicating ? 'Đang sao...' : 'Sao chép'}
-        </button>
+        {isDeletedView ? (
+          <button
+            type="button"
+            className="mc-row__edit mc-row__edit--ghost"
+            onClick={() => onRestore(item)}
+            disabled={isRestoring}
+            title="Khôi phục nhiệm vụ"
+          >
+            <RotateCcw size={14} />
+            {isRestoring ? 'Đang khôi phục...' : 'Khôi phục'}
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={`mc-toggle ${item.active ? 'is-on' : 'is-off'}`}
+              onClick={() => onToggle(item)}
+              disabled={isToggling}
+              aria-pressed={item.active}
+              title={item.active ? 'Bấm để tắt hiển thị với khán giả' : 'Bấm để bật hiển thị với khán giả'}
+            >
+              <Power size={12} />
+              {isToggling ? 'Đang lưu...' : item.active ? 'Đang bật' : 'Đã tắt'}
+            </button>
+            <button type="button" className="mc-row__edit" onClick={() => onEdit(item)}>
+              <Pencil size={14} />
+              Sửa
+            </button>
+            <button
+              type="button"
+              className="mc-row__edit mc-row__edit--ghost"
+              onClick={() => onDuplicate(item)}
+              disabled={isDuplicating}
+              title="Tạo bản sao (tắt mặc định)"
+            >
+              <Copy size={14} />
+              {isDuplicating ? 'Đang sao...' : 'Sao chép'}
+            </button>
+            <button
+              type="button"
+              className="mc-row__edit mc-row__edit--danger"
+              onClick={() => onDelete(item)}
+              disabled={isDeleting}
+              title="Xóa mềm — có thể khôi phục sau"
+            >
+              <Trash2 size={14} />
+              {isDeleting ? 'Đang xóa...' : 'Xóa'}
+            </button>
+          </>
+        )}
       </div>
     </article>
   );
@@ -177,6 +216,9 @@ const MissionsPage = () => {
   const [campaignModal, setCampaignModal] = useState({ open: false, campaign: null });
   const [togglingCode, setTogglingCode] = useState(null);
   const [duplicatingCode, setDuplicatingCode] = useState(null);
+  const [deletingCode, setDeletingCode] = useState(null);
+  const [restoringCode, setRestoringCode] = useState(null);
+  const [templateView, setTemplateView] = useState('active');
   const [archivingUuid, setArchivingUuid] = useState(null);
   const [deletingUuid, setDeletingUuid] = useState(null);
 
@@ -184,7 +226,7 @@ const MissionsPage = () => {
     setIsLoading(true);
     try {
       const [templateData, campaignData] = await Promise.all([
-        adminMissionService.getTemplates(),
+        adminMissionService.getTemplates({ deleted: templateView === 'deleted' }),
         adminMissionService.getCampaigns(),
       ]);
       setTemplates(Array.isArray(templateData) ? templateData : []);
@@ -194,7 +236,7 @@ const MissionsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [templateView]);
 
   useEffect(() => {
     loadData();
@@ -256,6 +298,39 @@ const MissionsPage = () => {
     }
   };
 
+  const handleDeleteTemplate = async (template) => {
+    const confirmed = window.confirm(
+      `Xóa nhiệm vụ "${getMissionDisplayTitle(template)}"?\n\nNhiệm vụ sẽ ẩn khỏi khán giả và có thể khôi phục trong tab "Đã xóa".`,
+    );
+    if (!confirmed) return;
+
+    setDeletingCode(template.code);
+    try {
+      await adminMissionService.softDeleteTemplate(template.code);
+      setTemplates((prev) => prev.filter((item) => item.code !== template.code));
+      notificationService.success(`Đã xóa "${getMissionDisplayTitle(template)}".`);
+    } catch (error) {
+      notificationService.error(error.message || 'Không thể xóa nhiệm vụ.');
+    } finally {
+      setDeletingCode(null);
+    }
+  };
+
+  const handleRestoreTemplate = async (template) => {
+    setRestoringCode(template.code);
+    try {
+      const restored = await adminMissionService.restoreTemplate(template.code);
+      setTemplates((prev) => prev.filter((item) => item.code !== template.code));
+      notificationService.success(
+        `Đã khôi phục "${restored.title || template.code}". Bật lại nếu muốn hiển thị với khán giả.`,
+      );
+    } catch (error) {
+      notificationService.error(error.message || 'Không thể khôi phục nhiệm vụ.');
+    } finally {
+      setRestoringCode(null);
+    }
+  };
+
   const handleArchiveCampaign = async (campaign) => {
     if (!campaign?.uuid) return;
     setArchivingUuid(campaign.uuid);
@@ -299,11 +374,15 @@ const MissionsPage = () => {
         eyebrow="Trung tâm điều phối nhiệm vụ"
         title="Quản lý nhiệm vụ"
         description="Bật hoặc tắt nhiệm vụ cho khán giả và gom theo chiến dịch."
-        primaryAction={{
-          label: activeTab === 'templates' ? 'Thêm nhiệm vụ' : 'Thêm chiến dịch',
-          icon: <Plus size={16} />,
-          onClick: openCreate,
-        }}
+        primaryAction={
+          activeTab === 'templates' && templateView === 'deleted'
+            ? undefined
+            : {
+                label: activeTab === 'templates' ? 'Thêm nhiệm vụ' : 'Thêm chiến dịch',
+                icon: <Plus size={16} />,
+                onClick: openCreate,
+              }
+        }
         secondaryActions={[
           {
             label: 'Làm mới',
@@ -378,19 +457,56 @@ const MissionsPage = () => {
         </label>
       </div>
 
+      {activeTab === 'templates' && (
+        <div className="mc-subtabs" role="tablist" aria-label="Lọc nhiệm vụ">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={templateView === 'active'}
+            className={templateView === 'active' ? 'is-active' : ''}
+            onClick={() => {
+              setTemplateView('active');
+              setSearch('');
+            }}
+          >
+            Đang quản lý
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={templateView === 'deleted'}
+            className={templateView === 'deleted' ? 'is-active' : ''}
+            onClick={() => {
+              setTemplateView('deleted');
+              setSearch('');
+            }}
+          >
+            Đã xóa
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <MissionSkeleton />
       ) : activeTab === 'templates' ? (
         filteredTemplates.length === 0 ? (
           <div className="mc-empty">
             <Target size={28} strokeWidth={1.5} />
-            <strong>{search ? 'Không tìm thấy nhiệm vụ' : 'Chưa có nhiệm vụ'}</strong>
+            <strong>
+              {search
+                ? 'Không tìm thấy nhiệm vụ'
+                : templateView === 'deleted'
+                  ? 'Chưa có nhiệm vụ đã xóa'
+                  : 'Chưa có nhiệm vụ'}
+            </strong>
             <p>
               {search
                 ? 'Thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
-                : 'Tạo nhiệm vụ đầu tiên để khán giả nhận điểm khi đặt vé, xem phim hoặc review.'}
+                : templateView === 'deleted'
+                  ? 'Các nhiệm vụ bạn xóa mềm sẽ xuất hiện tại đây để khôi phục.'
+                  : 'Tạo nhiệm vụ đầu tiên để khán giả nhận điểm khi đặt vé, xem phim hoặc review.'}
             </p>
-            {!search && (
+            {!search && templateView === 'active' && (
               <PrimaryButton type="button" onClick={openCreate}>
                 <Plus size={16} />
                 Thêm nhiệm vụ
@@ -407,8 +523,13 @@ const MissionsPage = () => {
                 onEdit={(template) => setTemplateModal({ open: true, template })}
                 onToggle={handleToggleActive}
                 onDuplicate={handleDuplicateTemplate}
+                onDelete={handleDeleteTemplate}
+                onRestore={handleRestoreTemplate}
                 isToggling={togglingCode === item.code}
                 isDuplicating={duplicatingCode === item.code}
+                isDeleting={deletingCode === item.code}
+                isRestoring={restoringCode === item.code}
+                isDeletedView={templateView === 'deleted'}
               />
             ))}
           </div>

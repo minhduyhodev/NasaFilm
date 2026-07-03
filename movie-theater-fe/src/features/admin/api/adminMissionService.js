@@ -1,9 +1,11 @@
 import { authService } from '../../auth/api/authService';
 
 class AdminMissionService {
-  async getTemplates() {
+  async getTemplates({ deleted = false } = {}) {
     try {
-      const response = await authService.api.get('/api/admin/missions');
+      const response = await authService.api.get('/api/admin/missions', {
+        params: deleted ? { deleted: true } : undefined,
+      });
       return response.data.data ?? response.data ?? [];
     } catch (error) {
       throw authService.handleError(error);
@@ -48,6 +50,28 @@ class AdminMissionService {
       const response = await authService.api.post(
         `/api/admin/missions/${encodeURIComponent(sourceCode)}/duplicate`,
         { newCode },
+      );
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async softDeleteTemplate(code) {
+    try {
+      const response = await authService.api.delete(
+        `/api/admin/missions/${encodeURIComponent(code)}`,
+      );
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async restoreTemplate(code) {
+    try {
+      const response = await authService.api.post(
+        `/api/admin/missions/${encodeURIComponent(code)}/restore`,
       );
       return response.data.data ?? response.data;
     } catch (error) {

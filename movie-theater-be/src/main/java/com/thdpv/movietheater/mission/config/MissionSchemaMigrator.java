@@ -71,5 +71,6 @@ public final class MissionSchemaMigrator {
                 """);
         jdbc.execute(
                 "UPDATE mission_template SET recurrence = 'MONTHLY' WHERE code = 'EXPLORER' AND recurrence = 'ONCE'");
+        jdbc.execute("ALTER TABLE mission_template ADD COLUMN IF NOT EXISTS deleted_at timestamptz");
     }
 }

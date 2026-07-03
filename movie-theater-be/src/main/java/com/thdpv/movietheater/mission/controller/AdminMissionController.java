@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,8 +34,9 @@ public class AdminMissionController {
     private final MissionService missionService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AdminMissionTemplateResponse>>> listTemplates() {
-        return ResponseEntity.ok(ApiResponse.success(missionService.listTemplatesForAdmin()));
+    public ResponseEntity<ApiResponse<List<AdminMissionTemplateResponse>>> listTemplates(
+            @RequestParam(defaultValue = "false") boolean deleted) {
+        return ResponseEntity.ok(ApiResponse.success(missionService.listTemplatesForAdmin(deleted)));
     }
 
     @PostMapping
@@ -42,6 +44,18 @@ public class AdminMissionController {
             @Valid @RequestBody AdminMissionTemplateRequest request) {
         AdminMissionTemplateResponse saved = missionService.upsertTemplateForAdmin(request);
         return ResponseEntity.ok(ApiResponse.success(saved, "Lưu mission template thành công"));
+    }
+
+    @DeleteMapping("/{code}")
+    public ResponseEntity<ApiResponse<AdminMissionTemplateResponse>> softDeleteTemplate(@PathVariable String code) {
+        AdminMissionTemplateResponse deletedTemplate = missionService.softDeleteTemplate(code);
+        return ResponseEntity.ok(ApiResponse.success(deletedTemplate, "Đã xóa nhiệm vụ"));
+    }
+
+    @PostMapping("/{code}/restore")
+    public ResponseEntity<ApiResponse<AdminMissionTemplateResponse>> restoreTemplate(@PathVariable String code) {
+        AdminMissionTemplateResponse restored = missionService.restoreTemplate(code);
+        return ResponseEntity.ok(ApiResponse.success(restored, "Đã khôi phục nhiệm vụ"));
     }
 
     @PostMapping("/{code}/duplicate")

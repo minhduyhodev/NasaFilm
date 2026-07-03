@@ -120,7 +120,8 @@ public class MissionService {
         Map<UUID, MissionCampaign> campaignsById = missionCampaignRepository.findAll().stream()
                 .collect(Collectors.toMap(MissionCampaign::getUuid, campaign -> campaign, (a, b) -> a));
 
-        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc().stream()
+        List<MissionTemplate> templates = missionTemplateRepository
+                .findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc().stream()
                 .filter(template -> MissionRules.isTemplateVisible(template, campaignsById, now))
                 .toList();
 
@@ -210,7 +211,8 @@ public class MissionService {
         }
 
         List<MissionCompletionResponse> completions = new ArrayList<>();
-        List<MissionTemplate> templates = missionTemplateRepository.findByActiveTrueOrderBySortOrderAscTitleAsc();
+        List<MissionTemplate> templates = missionTemplateRepository
+                .findByActiveTrueAndDeletedAtIsNullOrderBySortOrderAscTitleAsc();
         Map<UUID, MissionCampaign> campaigns = loadCampaignMap();
         OffsetDateTime eventTime = event.getOccurredAt() != null ? event.getOccurredAt() : OffsetDateTime.now();
 
@@ -273,6 +275,7 @@ public class MissionService {
         template.setTargetValue(Math.max(request.getTargetValue(), 1));
         template.setActive(request.isActive());
         template.setSortOrder(request.getSortOrder());
+        template.setDeletedAt(null);
         if (template.getVersion() <= 0) {
             template.setVersion(1);
         } else {
@@ -287,14 +290,43 @@ public class MissionService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminMissionTemplateResponse> listTemplatesForAdmin() {
-        return missionTemplateRepository.findAll().stream()
+    public List<AdminMissionTemplateResponse> listTemplatesForAdmin(boolean deletedOnly) {
+        List<MissionTemplate> templates = deletedOnly
+                ? missionTemplateRepository.findByDeletedAtIsNotNullOrderByDeletedAtDesc()
+                : missionTemplateRepository.findByDeletedAtIsNullOrderBySortOrderAscTitleAsc();
+        return templates.stream()
                 .sorted((a, b) -> {
+                    if (deletedOnly) {
+                        if (a.getDeletedAt() == null || b.getDeletedAt() == null) {
+                            return 0;
+                        }
+                        return b.getDeletedAt().compareTo(a.getDeletedAt());
+                    }
                     int order = Integer.compare(a.getSortOrder(), b.getSortOrder());
                     return order != 0 ? order : a.getTitle().compareToIgnoreCase(b.getTitle());
                 })
                 .map(this::toAdminTemplateResponse)
                 .toList();
+    }
+
+    @Transactional
+    public AdminMissionTemplateResponse softDeleteTemplate(String code) {
+        MissionTemplate template = missionTemplateRepository
+                .findByCodeIgnoreCaseAndDeletedAtIsNull(code.trim())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhiệm vụ"));
+        template.setDeletedAt(OffsetDateTime.now());
+        template.setActive(false);
+        return toAdminTemplateResponse(missionTemplateRepository.save(template));
+    }
+
+    @Transactional
+    public AdminMissionTemplateResponse restoreTemplate(String code) {
+        MissionTemplate template = missionTemplateRepository
+                .findByCodeIgnoreCase(code.trim())
+                .filter(MissionTemplate::isDeleted)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhiệm vụ đã xóa"));
+        template.setDeletedAt(null);
+        return toAdminTemplateResponse(missionTemplateRepository.save(template));
     }
 
     @Transactional
@@ -348,10 +380,10 @@ public class MissionService {
     @Transactional
     public AdminMissionTemplateResponse duplicateTemplate(String sourceCode, DuplicateMissionTemplateRequest request) {
         MissionTemplate source = missionTemplateRepository
-                .findByCodeIgnoreCase(sourceCode.trim())
+                .findByCodeIgnoreCaseAndDeletedAtIsNull(sourceCode.trim())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhiệm vụ nguồn"));
         String newCode = request.getNewCode().trim().toUpperCase();
-        if (missionTemplateRepository.findByCodeIgnoreCase(newCode).isPresent()) {
+        if (missionTemplateRepository.findByCodeIgnoreCaseAndDeletedAtIsNull(newCode).isPresent()) {
             throw new AppException(ErrorCode.CONFLICT, "Mã nhiệm vụ đã tồn tại");
         }
 
@@ -389,7 +421,7 @@ public class MissionService {
         MissionCampaign campaign = missionCampaignRepository
                 .findById(campaignUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy chiến dịch"));
-        long linkedTemplates = missionTemplateRepository.countByCampaignUuid(campaignUuid);
+        long linkedTemplates = missionTemplateRepository.countByCampaignUuidAndDeletedAtIsNull(campaignUuid);
         if (linkedTemplates > 0) {
             throw new AppException(
                     ErrorCode.CONFLICT,
@@ -749,6 +781,7 @@ public class MissionService {
         response.setTargetValue(template.getTargetValue());
         response.setActive(template.isActive());
         response.setSortOrder(template.getSortOrder());
+        response.setDeletedAt(template.getDeletedAt());
         response.setEnrolledCount(userMissionRepository.countByMissionTemplateUuid(template.getUuid()));
         response.setCompletedCount(userMissionRepository.countByMissionTemplateUuidAndStatus(
                 template.getUuid(), UserMissionStatus.COMPLETED));
@@ -765,7 +798,7 @@ public class MissionService {
         response.setStartsAt(campaign.getStartsAt());
         response.setEndsAt(campaign.getEndsAt());
         response.setSortOrder(campaign.getSortOrder());
-        response.setTemplateCount(missionTemplateRepository.countByCampaignUuid(campaign.getUuid()));
+        response.setTemplateCount(missionTemplateRepository.countByCampaignUuidAndDeletedAtIsNull(campaign.getUuid()));
         return response;
     }
 

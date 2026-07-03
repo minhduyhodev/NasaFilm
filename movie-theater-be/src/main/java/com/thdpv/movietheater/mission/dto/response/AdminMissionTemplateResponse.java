@@ -29,6 +29,7 @@ public class AdminMissionTemplateResponse {
     private int sortOrder;
     private long enrolledCount;
     private long completedCount;
+    private OffsetDateTime deletedAt;
 
     public UUID getUuid() {
         return uuid;
@@ -188,5 +189,17 @@ public class AdminMissionTemplateResponse {
 
     public void setCompletedCount(long completedCount) {
         this.completedCount = completedCount;
+    }
+
+    public OffsetDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(OffsetDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }
