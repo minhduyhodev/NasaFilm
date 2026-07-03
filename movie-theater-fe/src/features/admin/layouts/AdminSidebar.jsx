@@ -22,6 +22,7 @@ import {
   Megaphone,
   MessageSquare,
   Rocket,
+  Headset,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -275,6 +276,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 "Kiểm duyệt đánh giá",
                 "text-amber-400",
                 { badge: pendingFeedbackReportCount },
+              )}
+              {renderLink(
+                "/admin/support",
+                Headset,
+                "Hỗ trợ khách hàng",
+                "text-rose-400",
               )}
             </div>
           )}

@@ -6,5 +6,7 @@ export const queryKeys = {
   onlineSpotlight: ['online', 'spotlight'],
   onlineCatalog: (params) => ['online', 'catalog', params],
   adminShowtimes: ['admin', 'showtimes'],
+  showtimeRadar: ['user', 'showtime-radar'],
+  favorites: ['favorites', 'list'],
   boardingPass: (bookingUuid) => ['pre-show', 'boarding', bookingUuid],
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
@@ -28,6 +28,7 @@ import {
   History,
   Phone,
   ChevronDown,
+  Radar,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { useNotification } from "../../../shared/context/NotificationContext";
@@ -38,6 +39,9 @@ import {
 import CancelBookingModal from "../../../shared/components/CancelBookingModal";
 import RefundDetailModal from "../../../shared/components/RefundDetailModal";
 import PurchaseHistoryPanel from "../components/PurchaseHistoryPanel";
+import ProfilePreferencesTab from "../components/ProfilePreferencesTab";
+import ProfilePreferenceBanner from "../components/ProfilePreferenceBanner";
+import { ShowtimeRadarProvider } from "../context/ShowtimeRadarProvider";
 import Pagination from "../../../shared/components/Pagination";
 import ProfileTicketCard from "../components/ProfileTicketCard";
 import { promotionService } from "../../../shared/services/promotionService";
@@ -58,6 +62,7 @@ export const ProfilePage = () => {
   const { addNotification } = useNotification();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -132,11 +137,16 @@ export const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab) {
-      setActiveTab(tab);
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+      return;
     }
-  }, [searchParams]);
+    const tabFromNav = location.state?.tab;
+    if (tabFromNav === "preferences") {
+      setActiveTab("preferences");
+    }
+  }, [searchParams, location.state?.tab]);
 
   const selectProfileTab = (tab) => {
     setActiveTab(tab);
@@ -622,6 +632,7 @@ export const ProfilePage = () => {
   }
 
   return (
+    <ShowtimeRadarProvider>
     <>
       <div className="profile-wrapper">
         <div className="profile-container">
@@ -694,6 +705,8 @@ export const ProfilePage = () => {
                       <span className="font-semibold">Thành viên từ 2026</span>
                     </div>
                   </div>
+
+                  <ProfilePreferenceBanner />
                 </div>
               </div>
 
@@ -879,6 +892,17 @@ export const ProfilePage = () => {
                     <Rocket size={20} />
                   </div>
                   <span className="rail-label">Nhiệm vụ NASA</span>
+                </button>
+
+                <button
+                  onClick={() => selectProfileTab("preferences")}
+                  className={`rail-item ${activeTab === "preferences" ? "active" : ""}`}
+                  title="Sở thích xem phim"
+                >
+                  <div className="rail-icon-wrapper">
+                    <Radar size={20} />
+                  </div>
+                  <span className="rail-label">Sở thích</span>
                 </button>
 
                 <button
@@ -1891,6 +1915,19 @@ export const ProfilePage = () => {
                   </motion.div>
                 )}
 
+                {activeTab === "preferences" && (
+                  <motion.div
+                    key="preferences"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="tab-panel-body"
+                  >
+                    <ProfilePreferencesTab />
+                  </motion.div>
+                )}
+
                 {activeTab === "security" && authProvider !== "GOOGLE" && (
                   <motion.div
                     key="security"
@@ -2006,6 +2043,7 @@ export const ProfilePage = () => {
         onClose={() => setRefundTargetUuid(null)}
       />
     </>
+    </ShowtimeRadarProvider>
   );
 };
 

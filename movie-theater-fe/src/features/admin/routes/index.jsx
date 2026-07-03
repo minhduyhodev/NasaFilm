@@ -34,6 +34,7 @@ const StaffPage = lazy(() => import("../pages/StaffPage"));
 const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
 const MissionsPage = lazy(() => import("../pages/MissionsPage"));
+const SupportInboxPage = lazy(() => import("../pages/SupportInboxPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -72,6 +73,7 @@ export const AdminRoutes = () => {
           <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="refunds" element={<RefundsPage />} />
+          <Route path="support" element={<SupportInboxPage />} />
           <Route path="feedback-reviews" element={<FeedbackReviewsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
