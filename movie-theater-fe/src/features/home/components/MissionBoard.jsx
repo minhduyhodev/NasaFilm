@@ -7,15 +7,16 @@ import {
   Lock,
   MessageSquare,
   Rocket,
-  Sparkles,
   Ticket,
   Trophy,
 } from 'lucide-react';
 import {
   formatCycleLabel,
   formatTierGap,
+  getMissionTitleVi,
   MISSION_ACTION_HINTS,
   MISSION_RECURRENCE_LABELS,
+  MISSION_TIER_LABEL_VI,
 } from '../utils/missionUtils';
 import './MissionBoard.css';
 
@@ -102,7 +103,7 @@ const MissionRow = ({ mission, index = 0 }) => {
 
         <div className="mission-row__main">
           <div className="mission-row__titles">
-            <h4 className="mission-row__title">{mission.title}</h4>
+            <h4 className="mission-row__title">{getMissionTitleVi(mission)}</h4>
             <p className="mission-row__description">{mission.description}</p>
           </div>
 
@@ -127,7 +128,6 @@ const MissionRow = ({ mission, index = 0 }) => {
         <div className="mission-row__aside">
           {mission.rewardPoints > 0 && (
             <span className="mission-row__reward">
-              <Sparkles size={13} />
               +{mission.rewardPoints} điểm
             </span>
           )}
@@ -231,7 +231,9 @@ const MissionBoard = ({ board, loading, error, onRetry }) => {
             <Rocket size={18} strokeWidth={2} />
           </div>
           <div className="mission-board__tier-label">Hạng hiện tại</div>
-          <div className="mission-board__tier-name">{tier.label || 'NASA Member'}</div>
+          <div className="mission-board__tier-name">
+            {MISSION_TIER_LABEL_VI[tier.label] || tier.label || 'Thành viên NASA'}
+          </div>
           <div className="mission-board__tier-score">{lifetimeScore.toLocaleString('vi-VN')} điểm tích lũy</div>
           <div className="mission-board__tier-bar" aria-hidden="true">
             <div className="mission-board__tier-fill" style={{ width: `${tierProgress}%` }} />

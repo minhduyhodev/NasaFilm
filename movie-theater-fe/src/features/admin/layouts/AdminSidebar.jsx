@@ -266,7 +266,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               {renderLink(
                 "/admin/missions",
                 Rocket,
-                "Mission Control",
+                "Quản lý nhiệm vụ",
                 "text-sky-400",
               )}
               {renderLink(

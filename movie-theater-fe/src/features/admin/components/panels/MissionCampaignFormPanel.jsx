@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adminMissionService, MISSION_CAMPAIGN_STATUSES } from '../../api/adminMissionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
+import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
 
 const emptyForm = {
   code: '',
@@ -11,7 +11,6 @@ const emptyForm = {
   status: 'DRAFT',
   startsAt: '',
   endsAt: '',
-  sortOrder: 0,
 };
 
 const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
@@ -30,7 +29,6 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
       status: campaign.status || 'DRAFT',
       startsAt: campaign.startsAt ? campaign.startsAt.slice(0, 16) : '',
       endsAt: campaign.endsAt ? campaign.endsAt.slice(0, 16) : '',
-      sortOrder: campaign.sortOrder ?? 0,
     });
   }, [campaign]);
 
@@ -46,6 +44,7 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
         ...form,
         code: form.code.trim().toUpperCase(),
         title: form.title.trim(),
+        sortOrder: campaign?.sortOrder ?? 0,
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
       });
@@ -59,46 +58,74 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={adminLabelClass}>Mã chiến dịch</label>
-          <input className={adminInputClass} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+    <form onSubmit={handleSubmit} className="mc-form mc-form--compact">
+      <div className="mc-form-grid">
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Mã</label>
+          <input
+            className={adminInputClass}
+            value={form.code}
+            onChange={(e) => setForm({ ...form, code: e.target.value })}
+            placeholder="MUA_HE_2026"
+            disabled={Boolean(campaign)}
+          />
         </div>
-        <div>
-          <label className={adminLabelClass}>Tên chiến dịch</label>
-          <input className={adminInputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <div className="mc-form-field">
+          <label className={adminLabelClass}>Tên</label>
+          <input
+            className={adminInputClass}
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="Mùa hè NASA 2026"
+          />
         </div>
-      </div>
-      <div>
-        <label className={adminLabelClass}>Mô tả</label>
-        <textarea className={adminInputClass} rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
+        <div className="mc-form-field mc-form-field--full">
+          <label className={adminLabelClass}>Mô tả</label>
+          <textarea
+            className={adminTextareaClass}
+            rows={2}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Tùy chọn"
+          />
+        </div>
+        <div className="mc-form-field">
           <label className={adminLabelClass}>Trạng thái</label>
-          <select className={adminSelectClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+          <select
+            className={adminSelectClass}
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          >
             {MISSION_CAMPAIGN_STATUSES.map((item) => (
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
         </div>
-        <div>
+        <div className="mc-form-field">
           <label className={adminLabelClass}>Bắt đầu</label>
-          <input type="datetime-local" className={adminInputClass} value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
+          <input
+            type="datetime-local"
+            className={adminInputClass}
+            value={form.startsAt}
+            onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+          />
         </div>
-        <div>
+        <div className="mc-form-field">
           <label className={adminLabelClass}>Kết thúc</label>
-          <input type="datetime-local" className={adminInputClass} value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
-        </div>
-        <div>
-          <label className={adminLabelClass}>Thứ tự</label>
-          <input type="number" className={adminInputClass} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} />
+          <input
+            type="datetime-local"
+            className={adminInputClass}
+            value={form.endsAt}
+            onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+          />
         </div>
       </div>
-      <div className="flex justify-end gap-3 pt-2">
+
+      <div className="mc-form-actions">
         <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
-        <PrimaryButton type="submit" disabled={isSaving}>{isSaving ? 'Đang lưu...' : 'Lưu chiến dịch'}</PrimaryButton>
+        <PrimaryButton type="submit" disabled={isSaving}>
+          {isSaving ? 'Đang lưu...' : 'Lưu'}
+        </PrimaryButton>
       </div>
     </form>
   );

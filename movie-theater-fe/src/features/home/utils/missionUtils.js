@@ -4,6 +4,22 @@ export const MISSION_RECURRENCE_LABELS = {
   MONTHLY: 'Hàng tháng',
 };
 
+/** Tên tiếng Việt khi backend còn lưu tên tiếng Anh cũ */
+export const MISSION_TITLE_VI = {
+  EXPLORER: 'Khám phá phim',
+  PREMIERE: 'Suất chiếu đầu',
+  HYBRID_PILOT: 'Xem rạp + online',
+  SOCIAL_ORBIT: 'Đặt vé nhóm',
+  REVIEWER: 'Nhà phê bình',
+};
+
+export const getMissionTitleVi = (mission) =>
+  MISSION_TITLE_VI[mission?.code] || mission?.title || 'Nhiệm vụ';
+
+export const MISSION_TIER_LABEL_VI = {
+  'NASA Member': 'Thành viên NASA',
+};
+
 export const MISSION_ACTION_HINTS = {
   EXPLORER: 'Đặt vé rạp hoặc phát VOD lần đầu để khám phá thể loại mới.',
   PREMIERE: 'Chọn phim vừa khởi chiếu và đặt vé trong 3 ngày đầu.',
