@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Archive,
   CalendarRange,
+  Copy,
   Pencil,
   Plus,
   Power,
@@ -8,6 +10,7 @@ import {
   Rocket,
   Search,
   Target,
+  Trash2,
   Zap,
 } from 'lucide-react';
 import { adminMissionService } from '../api/adminMissionService';
@@ -40,7 +43,7 @@ const MissionSkeleton = () => (
   </div>
 );
 
-const TemplateRow = ({ item, campaigns, onEdit, onToggle, isToggling }) => {
+const TemplateRow = ({ item, campaigns, onEdit, onToggle, onDuplicate, isToggling, isDuplicating }) => {
   const displayTitle = getMissionDisplayTitle(item);
   const campaignTitle = resolveCampaignTitle(item.campaignUuid, campaigns);
 
@@ -86,13 +89,25 @@ const TemplateRow = ({ item, campaigns, onEdit, onToggle, isToggling }) => {
           <Pencil size={14} />
           Sửa
         </button>
+        <button
+          type="button"
+          className="mc-row__edit mc-row__edit--ghost"
+          onClick={() => onDuplicate(item)}
+          disabled={isDuplicating}
+          title="Tạo bản sao (tắt mặc định)"
+        >
+          <Copy size={14} />
+          {isDuplicating ? 'Đang sao...' : 'Sao chép'}
+        </button>
       </div>
     </article>
   );
 };
 
-const CampaignRow = ({ item, onEdit }) => {
+const CampaignRow = ({ item, onEdit, onArchive, onDelete, isArchiving, isDeleting }) => {
   const statusClass = CAMPAIGN_STATUS_CLASS[item.status] || 'is-draft';
+  const canDelete = (item.templateCount ?? 0) === 0;
+  const canArchive = item.status !== 'ARCHIVED';
 
   return (
     <article className={`mc-row mc-row--campaign ${statusClass}`}>
@@ -121,6 +136,32 @@ const CampaignRow = ({ item, onEdit }) => {
           <Pencil size={14} />
           Sửa
         </button>
+        {canArchive && (
+          <button
+            type="button"
+            className="mc-row__edit mc-row__edit--ghost"
+            onClick={() => onArchive(item)}
+            disabled={isArchiving}
+            title="Ẩn chiến dịch với khán giả"
+          >
+            <Archive size={14} />
+            {isArchiving ? 'Đang lưu...' : 'Lưu trữ'}
+          </button>
+        )}
+        <button
+          type="button"
+          className="mc-row__edit mc-row__edit--danger"
+          onClick={() => onDelete(item)}
+          disabled={!canDelete || isDeleting}
+          title={
+            canDelete
+              ? 'Xóa vĩnh viễn chiến dịch'
+              : 'Gỡ nhiệm vụ khỏi chiến dịch trước khi xóa'
+          }
+        >
+          <Trash2 size={14} />
+          {isDeleting ? 'Đang xóa...' : 'Xóa'}
+        </button>
       </div>
     </article>
   );
@@ -135,6 +176,9 @@ const MissionsPage = () => {
   const [templateModal, setTemplateModal] = useState({ open: false, template: null });
   const [campaignModal, setCampaignModal] = useState({ open: false, campaign: null });
   const [togglingCode, setTogglingCode] = useState(null);
+  const [duplicatingCode, setDuplicatingCode] = useState(null);
+  const [archivingUuid, setArchivingUuid] = useState(null);
+  const [deletingUuid, setDeletingUuid] = useState(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -194,6 +238,58 @@ const MissionsPage = () => {
       notificationService.error(error.message || 'Không thể đổi trạng thái nhiệm vụ.');
     } finally {
       setTogglingCode(null);
+    }
+  };
+
+  const handleDuplicateTemplate = async (template) => {
+    const suffix = Date.now().toString(36).slice(-4).toUpperCase();
+    const newCode = `${template.code}_COPY_${suffix}`;
+    setDuplicatingCode(template.code);
+    try {
+      const created = await adminMissionService.duplicateTemplate(template.code, newCode);
+      setTemplates((prev) => [...prev, created]);
+      notificationService.success(`Đã tạo bản sao "${created.title || newCode}". Bản sao đang tắt — bật khi sẵn sàng.`);
+    } catch (error) {
+      notificationService.error(error.message || 'Không thể nhân bản nhiệm vụ.');
+    } finally {
+      setDuplicatingCode(null);
+    }
+  };
+
+  const handleArchiveCampaign = async (campaign) => {
+    if (!campaign?.uuid) return;
+    setArchivingUuid(campaign.uuid);
+    try {
+      const updated = await adminMissionService.archiveCampaign(campaign.uuid);
+      setCampaigns((prev) =>
+        prev.map((item) => (item.uuid === campaign.uuid ? { ...item, ...updated } : item)),
+      );
+      notificationService.success(`Đã lưu trữ chiến dịch "${campaign.title}".`);
+    } catch (error) {
+      notificationService.error(error.message || 'Không thể lưu trữ chiến dịch.');
+    } finally {
+      setArchivingUuid(null);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaign) => {
+    if (!campaign?.uuid) return;
+    if ((campaign.templateCount ?? 0) > 0) {
+      notificationService.error('Gỡ nhiệm vụ khỏi chiến dịch trước khi xóa.');
+      return;
+    }
+    const confirmed = window.confirm(`Xóa vĩnh viễn chiến dịch "${campaign.title}"?`);
+    if (!confirmed) return;
+
+    setDeletingUuid(campaign.uuid);
+    try {
+      await adminMissionService.deleteCampaign(campaign.uuid);
+      setCampaigns((prev) => prev.filter((item) => item.uuid !== campaign.uuid));
+      notificationService.success('Đã xóa chiến dịch.');
+    } catch (error) {
+      notificationService.error(error.message || 'Không thể xóa chiến dịch.');
+    } finally {
+      setDeletingUuid(null);
     }
   };
 
@@ -310,7 +406,9 @@ const MissionsPage = () => {
                 campaigns={campaigns}
                 onEdit={(template) => setTemplateModal({ open: true, template })}
                 onToggle={handleToggleActive}
+                onDuplicate={handleDuplicateTemplate}
                 isToggling={togglingCode === item.code}
+                isDuplicating={duplicatingCode === item.code}
               />
             ))}
           </div>
@@ -338,6 +436,10 @@ const MissionsPage = () => {
               key={item.uuid || item.code}
               item={item}
               onEdit={(campaign) => setCampaignModal({ open: true, campaign })}
+              onArchive={handleArchiveCampaign}
+              onDelete={handleDeleteCampaign}
+              isArchiving={archivingUuid === item.uuid}
+              isDeleting={deletingUuid === item.uuid}
             />
           ))}
         </div>

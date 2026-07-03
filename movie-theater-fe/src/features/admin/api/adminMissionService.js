@@ -42,6 +42,40 @@ class AdminMissionService {
       throw authService.handleError(error);
     }
   }
+
+  async duplicateTemplate(sourceCode, newCode) {
+    try {
+      const response = await authService.api.post(
+        `/api/admin/missions/${encodeURIComponent(sourceCode)}/duplicate`,
+        { newCode },
+      );
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async archiveCampaign(campaignUuid) {
+    try {
+      const response = await authService.api.post(
+        `/api/admin/missions/campaigns/${campaignUuid}/archive`,
+      );
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async deleteCampaign(campaignUuid) {
+    try {
+      const response = await authService.api.delete(
+        `/api/admin/missions/campaigns/${campaignUuid}`,
+      );
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const adminMissionService = new AdminMissionService();
@@ -111,7 +145,7 @@ export const MISSION_PRESETS = [
   },
   {
     code: 'SOCIAL_ORBIT',
-    label: 'Đặt vé nhóm — Phòng Orbit (sắp mở)',
+    label: 'Đặt vé nhóm — Orbit (cần bật app.missions.orbit-seat-enabled)',
     title: 'Đặt vé nhóm',
     description: 'Tham gia phòng Orbit để đặt vé cùng bạn bè.',
     conditionType: 'ORBIT_ROOM_JOIN',

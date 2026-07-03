@@ -448,9 +448,13 @@ public class BookingService {
 
         Showtime bookedShowtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
         UUID movieUuid = bookedShowtime != null ? bookedShowtime.getMovieUuid() : null;
-        List<MissionCompletionResponse> missionCompletions = movieUuid != null
-                ? missionService.handleEvent(MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now))
-                : List.of();
+        List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
+        if (movieUuid != null) {
+            missionCompletions.addAll(missionService.handleEvent(
+                    MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+        }
+        missionCompletions.addAll(
+                missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
 
         BookingResponse response = new BookingResponse(
                 bookingUuid,

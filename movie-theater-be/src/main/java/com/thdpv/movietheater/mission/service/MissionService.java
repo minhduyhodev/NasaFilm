@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.booking.util.MemberTierUtils;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionCampaignRequest;
 import com.thdpv.movietheater.mission.dto.request.AdminMissionTemplateRequest;
+import com.thdpv.movietheater.mission.dto.request.DuplicateMissionTemplateRequest;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionCampaignResponse;
 import com.thdpv.movietheater.mission.dto.response.AdminMissionTemplateResponse;
 import com.thdpv.movietheater.mission.dto.response.MissionBadgeResponse;
@@ -80,6 +84,9 @@ public class MissionService {
     private final MissionScoreService missionScoreService;
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
+
+    @Value("${app.missions.orbit-seat-enabled:false}")
+    private boolean orbitSeatEnabled;
 
     public MissionService(
             MissionTemplateRepository missionTemplateRepository,
@@ -323,6 +330,72 @@ public class MissionService {
             return List.of();
         }
         return handleEvent(MissionEventPayload.orbitRoomJoined(userUuid, roomUuid, at));
+    }
+
+    /**
+     * Proxy for Orbit until a dedicated room module exists: group theater bookings (2+ seats)
+     * count as joining an Orbit room when {@code app.missions.orbit-seat-enabled=true}.
+     */
+    @Transactional
+    public List<MissionCompletionResponse> tryOrbitFromGroupBooking(
+            UUID userUuid, UUID bookingUuid, int seatCount, OffsetDateTime at) {
+        if (!orbitSeatEnabled || seatCount < 2 || userUuid == null || bookingUuid == null) {
+            return List.of();
+        }
+        return handleOrbitRoomJoined(userUuid, bookingUuid, at);
+    }
+
+    @Transactional
+    public AdminMissionTemplateResponse duplicateTemplate(String sourceCode, DuplicateMissionTemplateRequest request) {
+        MissionTemplate source = missionTemplateRepository
+                .findByCodeIgnoreCase(sourceCode.trim())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhiệm vụ nguồn"));
+        String newCode = request.getNewCode().trim().toUpperCase();
+        if (missionTemplateRepository.findByCodeIgnoreCase(newCode).isPresent()) {
+            throw new AppException(ErrorCode.CONFLICT, "Mã nhiệm vụ đã tồn tại");
+        }
+
+        AdminMissionTemplateRequest copy = new AdminMissionTemplateRequest();
+        copy.setCode(newCode);
+        copy.setTitle(source.getTitle() + " (bản sao)");
+        copy.setDescription(source.getDescription());
+        copy.setConditionType(source.getConditionType());
+        copy.setConditionJson(source.getConditionJson());
+        copy.setRecurrence(source.getRecurrence());
+        copy.setCampaignUuid(source.getCampaignUuid());
+        copy.setStartsAt(source.getStartsAt());
+        copy.setEndsAt(source.getEndsAt());
+        copy.setRewardPoints(source.getRewardPoints());
+        copy.setRewardBadgeCode(source.getRewardBadgeCode());
+        copy.setRewardBadgeTitle(source.getRewardBadgeTitle());
+        copy.setRequiresFeature(source.getRequiresFeature());
+        copy.setTargetValue(source.getTargetValue());
+        copy.setActive(false);
+        copy.setSortOrder(source.getSortOrder());
+        return upsertTemplateForAdmin(copy);
+    }
+
+    @Transactional
+    public AdminMissionCampaignResponse archiveCampaign(UUID campaignUuid) {
+        MissionCampaign campaign = missionCampaignRepository
+                .findById(campaignUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy chiến dịch"));
+        campaign.setStatus(MissionCampaignStatus.ARCHIVED);
+        return toAdminCampaignResponse(missionCampaignRepository.save(campaign));
+    }
+
+    @Transactional
+    public void deleteCampaign(UUID campaignUuid) {
+        MissionCampaign campaign = missionCampaignRepository
+                .findById(campaignUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy chiến dịch"));
+        long linkedTemplates = missionTemplateRepository.countByCampaignUuid(campaignUuid);
+        if (linkedTemplates > 0) {
+            throw new AppException(
+                    ErrorCode.CONFLICT,
+                    "Không thể xóa chiến dịch đang gắn " + linkedTemplates + " nhiệm vụ. Gỡ liên kết hoặc lưu trữ.");
+        }
+        missionCampaignRepository.delete(campaign);
     }
 
     private UserMission resolveUserMissionForUpdate(UUID userUuid, MissionTemplate template, String cycleKey) {
@@ -569,7 +642,8 @@ public class MissionService {
 
     private boolean isEligibleForTemplate(MissionTemplate template, MissionEventPayload event) {
         if (event.getMovieUuid() == null) {
-            return template.getConditionType() == MissionConditionType.REVIEW_WITH_VIBE_TAG;
+            return template.getConditionType() == MissionConditionType.REVIEW_WITH_VIBE_TAG
+                    || template.getConditionType() == MissionConditionType.ORBIT_ROOM_JOIN;
         }
 
         Movie movie = movieRepository.findById(event.getMovieUuid()).orElse(null);
@@ -600,7 +674,10 @@ public class MissionService {
     }
 
     private boolean isFeatureLocked(MissionTemplate template) {
-        return FEATURE_ORBIT_SEAT.equalsIgnoreCase(template.getRequiresFeature());
+        if (!FEATURE_ORBIT_SEAT.equalsIgnoreCase(template.getRequiresFeature())) {
+            return false;
+        }
+        return !orbitSeatEnabled;
     }
 
     private Map<UUID, MissionCampaign> loadCampaignMap() {
