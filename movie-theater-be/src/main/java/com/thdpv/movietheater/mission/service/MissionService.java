@@ -805,8 +805,16 @@ public class MissionService {
     }
 
     private boolean recordProgressEvent(MissionEventPayload event, MissionTemplate template, String cycleKey) {
+        if (missionProgressEventRepository.existsByUserUuidAndMissionTemplateUuidAndCycleKeyAndSourceTypeAndSourceId(
+                event.getUserUuid(),
+                template.getUuid(),
+                cycleKey,
+                event.getEventType().name(),
+                event.getSourceId())) {
+            return false;
+        }
+
         MissionProgressEvent progressEvent = new MissionProgressEvent();
-        progressEvent.setUuid(UUID.randomUUID());
         progressEvent.setUserUuid(event.getUserUuid());
         progressEvent.setMissionTemplateUuid(template.getUuid());
         progressEvent.setCycleKey(cycleKey);
