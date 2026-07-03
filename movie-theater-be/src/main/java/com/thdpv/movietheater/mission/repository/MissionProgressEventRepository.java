@@ -17,6 +17,13 @@ public interface MissionProgressEventRepository extends JpaRepository<MissionPro
     List<MissionProgressEvent> findByUserUuidAndMissionTemplateUuidAndCycleKeyOrderByEventAtAsc(
             UUID userUuid, UUID missionTemplateUuid, String cycleKey);
 
+    boolean existsByUserUuidAndMissionTemplateUuidAndCycleKeyAndSourceTypeAndSourceId(
+            UUID userUuid,
+            UUID missionTemplateUuid,
+            String cycleKey,
+            String sourceType,
+            String sourceId);
+
     @Modifying
     @Query("""
             delete from MissionProgressEvent e
