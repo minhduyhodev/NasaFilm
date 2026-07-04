@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.movie.dto.response;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class FavoriteMovieResponse {
@@ -10,6 +11,7 @@ public class FavoriteMovieResponse {
     private String primaryMediaUrl;
     private String ageRestriction;
     private OffsetDateTime favoritedAt;
+    private List<UUID> genreUuids;
 
     public UUID getMovieUuid() {
         return movieUuid;
@@ -49,5 +51,13 @@ public class FavoriteMovieResponse {
 
     public void setFavoritedAt(OffsetDateTime favoritedAt) {
         this.favoritedAt = favoritedAt;
+    }
+
+    public List<UUID> getGenreUuids() {
+        return genreUuids;
+    }
+
+    public void setGenreUuids(List<UUID> genreUuids) {
+        this.genreUuids = genreUuids;
     }
 }

@@ -201,6 +201,18 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             @Param("description") String description,
             @Param("createdAt") OffsetDateTime createdAt);
 
+    @Query(value = "SELECT COUNT(*) > 0 FROM score_history WHERE uuid = :uuid", nativeQuery = true)
+    boolean existsScoreHistoryByUuid(@Param("uuid") UUID uuid);
+
+    @Query(
+            value = """
+                    select coalesce(sum(score_amount), 0)
+                    from score_history
+                    where type = 'MISSION_REWARD' and score_amount > 0
+                    """,
+            nativeQuery = true)
+    long sumMissionRewardPoints();
+
     default void insertScoreHistory(UUID userUuid, int scoreAdded, UUID bookingUuid, OffsetDateTime createdAt) {
         queryInsertScoreHistory(UUID.randomUUID(), userUuid, scoreAdded, "EARN", "Earned from booking " + bookingUuid, createdAt);
     }

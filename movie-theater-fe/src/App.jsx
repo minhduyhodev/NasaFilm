@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
@@ -12,6 +12,7 @@ import { GlobalStyles } from './app/styles/GlobalStyles';
 import { ErrorBoundary } from './app/components/ErrorBoundary';
 import { ToastViewport } from './app/components/ToastViewport';
 import { initMediaUrlRouting } from './shared/utils/mediaUrlUtils';
+import NasaAiAssistantWidget from './shared/components/NasaAiAssistantWidget';
 import './index.css';
 
 const LoginPage = lazy(() => import('./features/auth/pages/LoginPage'));
@@ -86,6 +87,15 @@ export default function App() {
               />
 
               <Route
+                path="/staff/control"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                    <Navigate to="/admin/staff-control" replace />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
                 path="/unauthorized"
                 element={
                   <Suspense fallback={<AuthPageLoader />}>
@@ -99,6 +109,7 @@ export default function App() {
           </NotificationProvider>
 
           <ToastViewport />
+          <NasaAiAssistantWidget />
         </AuthProvider>
         </QueryProvider>
       </BrowserRouter>

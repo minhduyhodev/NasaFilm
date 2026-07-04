@@ -340,6 +340,38 @@ public class DataSeeder implements CommandLineRunner {
                     """);
             logger.info("Migrated voucher redemption and lifetime score schema.");
 
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS support_ticket (
+                        uuid UUID PRIMARY KEY,
+                        ticket_code VARCHAR(32) NOT NULL UNIQUE,
+                        owner_email VARCHAR(255) NOT NULL,
+                        owner_name VARCHAR(255),
+                        category VARCHAR(80) NOT NULL,
+                        description TEXT NOT NULL,
+                        status VARCHAR(32) NOT NULL,
+                        answer TEXT,
+                        admin_note TEXT,
+                        last_message TEXT,
+                        last_message_sender VARCHAR(24),
+                        read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at TIMESTAMPTZ,
+                        updated_at TIMESTAMPTZ
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS support_ticket_message (
+                        uuid UUID PRIMARY KEY,
+                        ticket_uuid UUID NOT NULL,
+                        sender_role VARCHAR(24) NOT NULL,
+                        sender_name VARCHAR(255),
+                        message TEXT NOT NULL,
+                        created_at TIMESTAMPTZ
+                    )
+                    """);
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
+
             jdbcTemplate.update("""
                     UPDATE promotions
                     SET status = 'ACTIVE',
@@ -1367,6 +1399,7 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime baseDay = now.plusDays(1);
 
         if (showtimesToSeed != null) {
             for (ShowtimeJsonData data : showtimesToSeed) {
@@ -1409,8 +1442,8 @@ public class DataSeeder implements CommandLineRunner {
                     jdbcTemplate.update(
                             "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                             showtimeUuid, movieUuid, roomUuid,
-                            now.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
-                            now.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
+                            baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
+                            baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
                             basePrice, status);
                     logger.info("Seeded showtime from JSON: {}", showtimeUuid);
                 }

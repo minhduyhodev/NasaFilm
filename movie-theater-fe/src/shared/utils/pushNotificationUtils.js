@@ -1,5 +1,5 @@
-import { userNotificationApi } from './userNotificationApi';
-import { notificationService } from './notificationService';
+import { userNotificationApi } from '../services/userNotificationApi';
+import { notificationService } from '../services/notificationService';
 
 export const subscribeToWebPush = async () => {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {

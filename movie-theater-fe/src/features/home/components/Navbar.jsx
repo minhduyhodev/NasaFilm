@@ -102,6 +102,7 @@ const Navbar = () => {
   const [openCatalog, setOpenCatalog] = useState(null);
   const [showBookingDropdown, setShowBookingDropdown] = useState(false);
   const closeCatalogTimerRef = useRef(null);
+  const closeBookingTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
@@ -149,6 +150,22 @@ const Navbar = () => {
     closeCatalogTimerRef.current = window.setTimeout(() => {
       setOpenCatalog(null);
     }, 120);
+  };
+
+  const openBookingDropdown = () => {
+    if (closeBookingTimerRef.current) {
+      window.clearTimeout(closeBookingTimerRef.current);
+    }
+    setShowBookingDropdown(true);
+  };
+
+  const scheduleCloseBookingDropdown = () => {
+    if (closeBookingTimerRef.current) {
+      window.clearTimeout(closeBookingTimerRef.current);
+    }
+    closeBookingTimerRef.current = window.setTimeout(() => {
+      setShowBookingDropdown(false);
+    }, 140);
   };
 
   const handleBookingClick = () => {
@@ -240,10 +257,14 @@ const Navbar = () => {
         </div>
 
         <div className="navbar-actions">
-          <div className="relative">
+          <div
+            className="relative"
+            onMouseEnter={openBookingDropdown}
+            onMouseLeave={scheduleCloseBookingDropdown}
+          >
             <button
               type="button"
-              onClick={() => setShowBookingDropdown(!showBookingDropdown)}
+              onClick={() => setShowBookingDropdown((prev) => !prev)}
               className="navbar-cta-btn inline-flex items-center gap-1.5"
             >
               <Star className="h-4 w-4 fill-white text-white" />
@@ -253,11 +274,12 @@ const Navbar = () => {
 
             {showBookingDropdown && (
               <>
-                {/* Backdrop click-away trigger */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowBookingDropdown(false)} />
-
                 {/* Dropdown list */}
-                <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-50">
+                <div
+                  className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-50"
+                  onMouseEnter={openBookingDropdown}
+                  onMouseLeave={scheduleCloseBookingDropdown}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -329,6 +351,7 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
   const anchorRef = useRef(null);
+  const closeTimerRef = useRef(null);
   const { notifications, markAllAsRead, clearAll } = useNotification();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -364,6 +387,31 @@ const NotificationBell = () => {
       window.removeEventListener('scroll', updatePanelPosition, true);
     };
   }, [isOpen, updatePanelPosition, notifications.length]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+  }, []);
+
+  const openPanel = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    setIsOpen(true);
+    if (unreadCount > 0) {
+      markAllAsRead();
+    }
+  };
+
+  const scheduleClosePanel = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+    }, 80);
+  };
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -406,7 +454,12 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="notif-bell-wrapper" ref={anchorRef}>
+    <div
+      className="notif-bell-wrapper"
+      ref={anchorRef}
+      onMouseEnter={openPanel}
+      onMouseLeave={scheduleClosePanel}
+    >
       <button
         type="button"
         onClick={handleToggle}
@@ -430,6 +483,8 @@ const NotificationBell = () => {
             style={panelStyle}
             role="dialog"
             aria-label="Thông báo"
+            onMouseEnter={openPanel}
+            onMouseLeave={scheduleClosePanel}
           >
             <div className="notif-dropdown-header">
               <h3>Thông báo</h3>
@@ -498,6 +553,7 @@ const AuthControls = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const closeTimerRef = useRef(null);
   const avatar = avatarLoadFailed ? null : normalizeAvatarUrl(user?.avatar);
 
   const isAdminOrStaff =
@@ -506,6 +562,28 @@ const AuthControls = () => {
   useEffect(() => {
     setAvatarLoadFailed(false);
   }, [user?.avatar]);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+  }, []);
+
+  const openMenu = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    setIsOpen(true);
+  };
+
+  const scheduleCloseMenu = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+    }, 80);
+  };
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -542,7 +620,11 @@ const AuthControls = () => {
   return (
     <div className="auth-controls-container">
       {/* User profile dropdown */}
-      <div className="relative">
+      <div
+        className="relative"
+        onMouseEnter={openMenu}
+        onMouseLeave={scheduleCloseMenu}
+      >
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="user-profile-trigger"
@@ -579,7 +661,7 @@ const AuthControls = () => {
             <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
 
             {/* Dropdown list */}
-            <div className="dropdown-menu-list">
+            <div className="dropdown-menu-list" onMouseEnter={openMenu} onMouseLeave={scheduleCloseMenu}>
               {isAdminOrStaff && (
                 <Link
                   to="/admin"

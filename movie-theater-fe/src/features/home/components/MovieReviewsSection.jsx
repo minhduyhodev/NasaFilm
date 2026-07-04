@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { movieReviewService } from '../../../shared/services/movieReviewService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import MovieReviewPagination from './MovieReviewPagination';
@@ -271,12 +272,13 @@ const MovieReviewsSection = ({
 
     setIsSubmitting(true);
     try {
-      await movieReviewService.createReview(movieUuid, {
+      const reviewResponse = await movieReviewService.createReview(movieUuid, {
         rating,
         comment,
         vibeTags: selectedVibeTags,
       });
       notificationService.success('Đã gửi đánh giá mới.');
+      showMissionCompletionToasts(reviewResponse?.missionCompletions);
       await refreshAll();
       setRating(0);
       setComment('');
@@ -701,7 +703,11 @@ const MovieReviewsSection = ({
                     )}
                     <div className="movie-reviews-vibe-picker" role="group" aria-label="Chọn vibe tag">
                       {visiblePickerTags.length === 0 ? (
-                        <p className="movie-reviews-vibe-empty">Không tìm thấy vibe tag phù hợp.</p>
+                        <p className="movie-reviews-vibe-empty">
+                          {vibeTagCatalog.length === 0
+                            ? 'Chưa có vibe tag trên hệ thống. Vui lòng thử lại sau.'
+                            : 'Không tìm thấy vibe tag phù hợp.'}
+                        </p>
                       ) : (
                         visiblePickerTags.map((tag) => {
                           const isSelected = selectedVibeTags.includes(tag.code);

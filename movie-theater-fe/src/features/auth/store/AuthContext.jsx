@@ -11,31 +11,95 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = React.useState(null);
 
   useEffect(() => {
-    const initializeAuth = () => {
+    let cancelled = false;
+
+    const initializeAuth = async () => {
       try {
         const token = tokenService.getToken();
         const storedUser = tokenService.getUser();
 
-        if (token && tokenService.isTokenExpired(token)) {
-          tokenService.clear();
-          setUser(null);
-        } else if (token && storedUser) {
-          setUser(storedUser);
-        } else if (token && !storedUser) {
-          tokenService.clear();
-          setUser(null);
-        } else {
-          setUser(null);
+        if (!token) {
+          if (!cancelled) setUser(null);
+          return;
         }
-      } catch (err) {
+
+        if (tokenService.isTokenExpired(token)) {
+          const refresh = tokenService.getRefreshToken();
+          if (refresh) {
+            try {
+              await authService.refreshToken();
+              if (!cancelled) {
+                setUser(tokenService.getUser() ?? storedUser);
+              }
+              return;
+            } catch {
+              tokenService.clear();
+              if (!cancelled) setUser(null);
+              return;
+            }
+          }
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+          return;
+        }
+
+        if (storedUser) {
+          if (!cancelled) setUser(storedUser);
+        } else {
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+        }
+      } catch {
         tokenService.clear();
-        setUser(null);
+        if (!cancelled) setUser(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     initializeAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser]);
+
+  useEffect(() => {
+    const refreshSoon = async () => {
+      const token = tokenService.getToken();
+      if (!token || tokenService.isTokenExpired(token)) {
+        return;
+      }
+      const expiresAt = tokenService.getTokenExpiration(token);
+      if (!expiresAt) {
+        return;
+      }
+      const msLeft = expiresAt - Date.now();
+      if (msLeft > 0 && msLeft < 60_000 && tokenService.getRefreshToken()) {
+        try {
+          await authService.refreshToken();
+        } catch {
+          // Next API call will trigger interceptor logout.
+        }
+      }
+    };
+
+    const syncExpiredSession = () => {
+      const token = tokenService.getToken();
+      if (!token) {
+        return;
+      }
+      if (tokenService.isTokenExpired(token)) {
+        tokenService.clear();
+        setUser(null);
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      refreshSoon();
+      syncExpiredSession();
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
   }, [setUser]);
 
   const login = useCallback(async (credentials) => {

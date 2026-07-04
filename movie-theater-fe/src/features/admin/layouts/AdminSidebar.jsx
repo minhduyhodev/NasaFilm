@@ -21,6 +21,10 @@ import {
   DollarSign,
   Megaphone,
   MessageSquare,
+  Rocket,
+  Headset,
+  ScanLine,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -263,11 +267,29 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 "text-pink-400",
               )}
               {renderLink(
+                "/admin/missions",
+                Rocket,
+                "Quản lý nhiệm vụ",
+                "text-sky-400",
+              )}
+              {renderLink(
+                "/admin/matchmaker-analytics",
+                Sparkles,
+                "Movie Matchmaker",
+                "text-orange-400",
+              )}
+              {renderLink(
                 "/admin/feedback-reviews",
                 MessageSquare,
                 "Kiểm duyệt đánh giá",
                 "text-amber-400",
                 { badge: pendingFeedbackReportCount },
+              )}
+              {renderLink(
+                "/admin/support",
+                Headset,
+                "Hỗ trợ khách hàng",
+                "text-rose-400",
               )}
             </div>
           )}
@@ -291,6 +313,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Calendar,
                 "Quản lý suất chiếu",
                 "text-amber-400",
+              )}
+              {renderLink(
+                "/admin/staff-control",
+                ScanLine,
+                "Mission Control",
+                "text-red-400",
               )}
             </div>
           )}

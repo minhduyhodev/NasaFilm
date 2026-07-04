@@ -3,17 +3,16 @@ import { Outlet } from 'react-router-dom';
 import PageTransition from '../../../shared/components/PageTransition';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { GuestAuthPromoBar } from '../components/GuestAuthPromo';
+import { GuestAuthPromoBar, useGuestPromoVisible } from '../components/GuestAuthPromo';
 import { HomeChromeProvider, useHomeChrome } from '../context/HomeChromeContext';
-import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useMovieReminderScheduler } from '../hooks/useMovieReminderScheduler';
 import '../components/GuestAuthPromo.css';
 
 const HomeLayoutShell = () => {
   useMovieReminderScheduler();
   const { hideChrome } = useHomeChrome();
-  const { isAuthenticated, loading } = useAuthContext();
-  const showGuestPromoBar = !hideChrome && !loading && !isAuthenticated;
+  const guestPromoVisible = useGuestPromoVisible();
+  const showGuestPromoBar = !hideChrome && guestPromoVisible;
 
   return (
     <div className={`text-white min-h-screen flex flex-col${showGuestPromoBar ? ' guest-layout--guest-promo' : ''}`}>

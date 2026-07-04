@@ -28,7 +28,7 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions, showtime radar, matchmaker history)...");
 
             jdbc.execute("""
                     ALTER TABLE movie_review
@@ -134,9 +134,198 @@ public class FeatureSchemaMigrationConfig {
                     )
                     """);
 
-            ensureSearchVector("movie", "title", null);
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS mission_template (
+                        uuid uuid PRIMARY KEY,
+                        code varchar(64) NOT NULL,
+                        version integer NOT NULL DEFAULT 1,
+                        title varchar(255) NOT NULL,
+                        description text,
+                        condition_type varchar(64) NOT NULL,
+                        condition_json jsonb,
+                        reward_points integer NOT NULL DEFAULT 0,
+                        reward_badge_code varchar(64),
+                        reward_badge_title varchar(120),
+                        requires_feature varchar(64),
+                        target_value integer NOT NULL DEFAULT 1,
+                        is_active boolean NOT NULL DEFAULT true,
+                        sort_order integer NOT NULL DEFAULT 0,
+                        created_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_mission_template_code UNIQUE (code)
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_mission (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        mission_template_uuid uuid NOT NULL,
+                        template_version integer NOT NULL DEFAULT 1,
+                        status varchar(32) NOT NULL,
+                        progress_current integer NOT NULL DEFAULT 0,
+                        progress_target integer NOT NULL DEFAULT 1,
+                        progress_json jsonb,
+                        completed_at timestamptz,
+                        enrolled_at timestamptz NOT NULL DEFAULT now(),
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        CONSTRAINT uk_user_mission_user_template UNIQUE (user_uuid, mission_template_uuid)
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_mission_user
+                    ON user_mission (user_uuid, updated_at DESC)
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS mission_progress_event (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        mission_template_uuid uuid NOT NULL,
+                        source_type varchar(64) NOT NULL,
+                        source_id varchar(64) NOT NULL,
+                        event_at timestamptz NOT NULL,
+                        CONSTRAINT uk_mission_progress_event UNIQUE (
+                            user_uuid, mission_template_uuid, source_type, source_id
+                        )
+                    )
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_badge (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        badge_code varchar(64) NOT NULL,
+                        badge_title varchar(120) NOT NULL,
+                        source_user_mission_uuid uuid,
+                        unlocked_at timestamptz NOT NULL,
+                        CONSTRAINT uk_user_badge_user_code UNIQUE (user_uuid, badge_code)
+                    )
+                    """);
+
+            // Mission incremental schema: Flyway R__mission_schema_patches.sql
+            jdbc.execute("ALTER TABLE mission_template DROP CONSTRAINT IF EXISTS mission_template_condition_type_check");
+            jdbc.execute("""
+                    ALTER TABLE mission_template ADD CONSTRAINT mission_template_condition_type_check
+                    CHECK (condition_type IN (
+                        'GENRE_WINDOW',
+                        'PREMIERE_BOOKING',
+                        'HYBRID_THEATER_VOD',
+                        'ORBIT_ROOM_JOIN',
+                        'REVIEW_WITH_VIBE_TAG',
+                        'MATCHMAKER_QUIZ'
+                    ))
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS showtime_radar_preference (
+                        user_uuid uuid PRIMARY KEY,
+                        enabled boolean NOT NULL DEFAULT false,
+                        genre_uuids text,
+                        time_slot_start_hour integer,
+                        time_slot_end_hour integer,
+                        include_favorites boolean NOT NULL DEFAULT true,
+                        updated_at timestamptz NOT NULL DEFAULT now(),
+                        deleted_at timestamptz
+                    )
+                    """);
+            jdbc.execute("""
+                    ALTER TABLE showtime_radar_preference
+                    ADD COLUMN IF NOT EXISTS deleted_at timestamptz
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS showtime_radar_alert (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid NOT NULL,
+                        showtime_uuid uuid NOT NULL,
+                        notified_at timestamptz NOT NULL DEFAULT now(),
+                        deleted_at timestamptz,
+                        CONSTRAINT uk_showtime_radar_alert_user_showtime UNIQUE (user_uuid, showtime_uuid)
+                    )
+                    """);
+            jdbc.execute("""
+                    ALTER TABLE showtime_radar_alert
+                    ADD COLUMN IF NOT EXISTS deleted_at timestamptz
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_showtime_radar_alert_user
+                    ON showtime_radar_alert (user_uuid, notified_at DESC)
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_matchmaker_history (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid,
+                        mood varchar(32) NOT NULL,
+                        duration varchar(16) NOT NULL,
+                        viewing_location varchar(16) NOT NULL,
+                        genre_uuids text,
+                        use_history boolean NOT NULL DEFAULT false,
+                        flight_code varchar(32),
+                        match_count integer NOT NULL DEFAULT 0,
+                        matched_movie_uuids text,
+                        top_match_movie_uuid uuid,
+                        top_match_score integer,
+                        created_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_user
+                    ON user_matchmaker_history (user_uuid, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_created
+                    ON user_matchmaker_history (created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_mood
+                    ON user_matchmaker_history (mood)
+                    """);
+
+            ensureSearchVector("movie", "title", "description");
             ensureSearchVector("cinema", "name", "address");
             ensureSearchVector("actor", "full_name", null);
+
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_showtime_status_start_time
+                    ON showtime (status, start_time)
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS staff_gate_event (
+                        uuid uuid PRIMARY KEY,
+                        showtime_uuid uuid,
+                        booking_uuid uuid,
+                        ticket_code varchar(64) NOT NULL,
+                        event_type varchar(48) NOT NULL,
+                        staff_uuid uuid,
+                        staff_email varchar(255),
+                        customer_name varchar(255),
+                        movie_title varchar(255),
+                        seat_labels text,
+                        error_message text,
+                        scan_source varchar(16),
+                        created_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_showtime
+                    ON staff_gate_event (showtime_uuid, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_ticket
+                    ON staff_gate_event (ticket_code, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_staff
+                    ON staff_gate_event (staff_uuid, created_at DESC)
+                    """);
+            jdbc.execute("COMMENT ON TABLE staff_gate_event IS 'Nhật ký soát vé tại cửa (Staff Mission Control): thành công, trùng, lỗi, preview sai'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.event_type IS 'TICKET_CHECK_IN_SUCCESS | TICKET_CHECK_IN_ALREADY_USED | TICKET_CHECK_IN_FAILED | TICKET_PREVIEW_FAILED'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.scan_source IS 'MANUAL (gõ tay) hoặc CAMERA (quét QR)'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.error_message IS 'Lý do lỗi khi preview/soát thất bại'");
         }
 
         private void ensureSearchVector(String table, String primaryCol, String secondaryCol) {

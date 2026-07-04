@@ -10,6 +10,58 @@
 .admin-modal-panel {
   @apply relative flex flex-col w-full max-h-[90vh] rounded-2xl border border-white/10 bg-[#0f1322] shadow-2xl shadow-black/50 overflow-hidden;
   animation: admin-modal-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --adm-bg-input: #0f172a;
+  --adm-border-strong: #3d4f6f;
+  --adm-text: #f8fafc;
+  --adm-text-dim: #94a3b8;
+  --adm-focus-ring: rgba(239, 68, 68, 0.55);
+  --adm-accent-soft: rgba(239, 68, 68, 0.14);
+  --adm-radius-sm: 10px;
+}
+
+.admin-modal-body .adm-input,
+.admin-modal-body .adm-select,
+.admin-modal-body .adm-textarea {
+  width: 100%;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-bg-input);
+  border: 1px solid var(--adm-border-strong);
+  color: var(--adm-text);
+  font-size: 13px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-modal-body .adm-input:focus,
+.admin-modal-body .adm-select:focus,
+.admin-modal-body .adm-textarea:focus {
+  outline: none;
+  border-color: var(--adm-focus-ring);
+  box-shadow: 0 0 0 2px var(--adm-accent-soft);
+}
+
+.admin-modal-body .adm-input::placeholder,
+.admin-modal-body .adm-textarea::placeholder {
+  color: #64748b;
+}
+
+.admin-modal-body .adm-textarea {
+  min-height: 88px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.admin-modal-body .adm-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #cbd5e1;
+  margin-bottom: 5px;
+}
+
+.admin-modal-body .adm-textarea {
+  min-height: 64px;
 }
 
 .admin-modal-panel-md {
