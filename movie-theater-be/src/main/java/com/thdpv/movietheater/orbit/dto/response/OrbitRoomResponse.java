@@ -20,6 +20,12 @@ public class OrbitRoomResponse {
     private String sharePath;
     private List<OrbitMemberResponse> members = new ArrayList<>();
 
+    private UUID movieUuid;
+    private String movieTitle;
+    private String moviePoster;
+    private String theater;
+    private OffsetDateTime showtimeStartTime;
+
     public UUID getUuid() {
         return uuid;
     }
@@ -114,5 +120,45 @@ public class OrbitRoomResponse {
 
     public void setMembers(List<OrbitMemberResponse> members) {
         this.members = members;
+    }
+
+    public UUID getMovieUuid() {
+        return movieUuid;
+    }
+
+    public void setMovieUuid(UUID movieUuid) {
+        this.movieUuid = movieUuid;
+    }
+
+    public String getMovieTitle() {
+        return movieTitle;
+    }
+
+    public void setMovieTitle(String movieTitle) {
+        this.movieTitle = movieTitle;
+    }
+
+    public String getMoviePoster() {
+        return moviePoster;
+    }
+
+    public void setMoviePoster(String moviePoster) {
+        this.moviePoster = moviePoster;
+    }
+
+    public String getTheater() {
+        return theater;
+    }
+
+    public void setTheater(String theater) {
+        this.theater = theater;
+    }
+
+    public OffsetDateTime getShowtimeStartTime() {
+        return showtimeStartTime;
+    }
+
+    public void setShowtimeStartTime(OffsetDateTime showtimeStartTime) {
+        this.showtimeStartTime = showtimeStartTime;
     }
 }

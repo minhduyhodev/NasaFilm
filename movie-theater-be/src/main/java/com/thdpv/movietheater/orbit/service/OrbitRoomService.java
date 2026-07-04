@@ -63,6 +63,9 @@ public class OrbitRoomService {
     private final SystemConfigService systemConfigService;
     private final OrbitRoomBroadcaster orbitRoomBroadcaster;
     private final SeatMapEventPublisher seatMapEventPublisher;
+    private final OrbitRoomLockHelper orbitRoomLockHelper;
+    private final OrbitRoomMissionHelper orbitRoomMissionHelper;
+    private final OrbitRoomResponseMapper orbitRoomResponseMapper;
 
     @Value("${app.orbit.enabled:true}")
     private boolean orbitEnabled;
@@ -112,22 +115,22 @@ public class OrbitRoomService {
 
         if (orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid).isPresent()) {
             OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
             return toRoomResponse(room, userUuid);
         }
 
         OrbitRoom room = orbitRoomRepository.findByIdForUpdate(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
         if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong con mo de tham gia");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn mở để tham gia");
         }
         if (room.getExpiresAt().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit da het han");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit đã hết hạn");
         }
 
         long memberCount = orbitMemberRepository.countByRoomUuid(roomUuid);
         if (memberCount >= room.getMaxMembers()) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit da du day");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit đã đủ thành viên");
         }
 
         User user = userRepository.findById(userUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -143,20 +146,21 @@ public class OrbitRoomService {
 
     @Transactional
     public OrbitRoomResponse leaveRoom(String currentUserEmail, UUID roomUuid) {
+        assertOrbitEnabled();
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
 
         if (room.getHostUserUuid().equals(userUuid)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Host khong the roi phong. Hay huy phong neu can.");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Host không thể rời phòng. Hãy hủy phòng nếu cần.");
         }
         if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong con o trang thai cho phep roi");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn ở trạng thái cho phép rời");
         }
 
         OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Ban khong o trong phong nay"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Bạn không ở trong phòng này"));
 
         List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
         if (!seatUuids.isEmpty()) {
@@ -174,14 +178,15 @@ public class OrbitRoomService {
 
     @Transactional
     public OrbitRoomResponse getRoom(String currentUserEmail, UUID roomUuid) {
+        assertOrbitEnabled();
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
 
         boolean isMember = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid).isPresent();
         if (!isMember && room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Ban chua tham gia phong Orbit nay");
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này");
         }
         if (isMember && room.getStatus() == OrbitRoomStatus.OPEN) {
             reconcileMemberSeats(room, now);
@@ -203,12 +208,12 @@ public class OrbitRoomService {
         OrbitRoom room = loadEditableRoom(roomUuid, now);
 
         OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Ban chua tham gia phong Orbit nay"));
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này"));
 
         List<UUID> seatUuids = OrbitSeatJson.normalizeSeatUuids(request.getSeatUuids());
         int maxSeatsPerBooking = systemConfigService.getMaxSeatsPerBooking();
         if (seatUuids.size() > maxSeatsPerBooking) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Moi thanh vien toi da " + maxSeatsPerBooking + " ghe");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi thành viên tối đa " + maxSeatsPerBooking + " ghế");
         }
 
         assertNoCrossMemberSeatConflict(roomUuid, userUuid, seatUuids);
@@ -231,15 +236,21 @@ public class OrbitRoomService {
         assertOrbitEnabled();
         UUID hostUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
-        OrbitRoom room = loadEditableRoom(roomUuid, now);
-
+        OrbitRoom room = orbitRoomRepository.findByIdForUpdate(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
+        if (room.getStatus() != OrbitRoomStatus.OPEN) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn cho phép chỉnh sửa ghế");
+        }
+        if (room.getExpiresAt().isBefore(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit đã hết hạn");
+        }
         if (!room.getHostUserUuid().equals(hostUuid)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi co the xac nhan nhom");
+            throw new AppException(ErrorCode.FORBIDDEN, "Chỉ host mới có thể xác nhận nhóm");
         }
 
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
         if (members.size() < 2) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit can it nhat 2 thanh vien");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit cần ít nhất 2 thành viên");
         }
 
         List<UUID> allSeats = new ArrayList<>();
@@ -247,11 +258,11 @@ public class OrbitRoomService {
         for (OrbitMember member : members) {
             List<UUID> memberSeats = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
             if (memberSeats.isEmpty()) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Moi thanh vien phai chon it nhat 1 ghe");
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi thành viên phải chọn ít nhất 1 ghế");
             }
             for (UUID seatUuid : memberSeats) {
                 if (!seen.add(seatUuid)) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Co ghe bi trung giua cac thanh vien");
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Có ghế bị trùng giữa các thành viên");
                 }
                 allSeats.add(seatUuid);
             }
@@ -259,7 +270,7 @@ public class OrbitRoomService {
 
         int maxSeatsPerBooking = systemConfigService.getMaxSeatsPerBooking();
         if (allSeats.size() > maxSeatsPerBooking) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Tong so ghe vuot qua gioi han " + maxSeatsPerBooking);
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tổng số ghế vượt quá giới hạn " + maxSeatsPerBooking);
         }
 
         validateMemberSeatLocks(room.getShowtimeUuid(), members, now);
@@ -267,7 +278,7 @@ public class OrbitRoomService {
         int transferred = bookingNativeRepository.transferSeatLocksToUser(
                 room.getShowtimeUuid(), hostUuid, allSeats, now);
         if (transferred != allSeats.size()) {
-            throw new AppException(ErrorCode.CONFLICT, "Co ghe chua duoc giu hoac da het han");
+            throw new AppException(ErrorCode.CONFLICT, "Có ghế chưa được giữ hoặc đã hết hạn");
         }
 
         room.setStatus(OrbitRoomStatus.CHECKOUT);
@@ -291,13 +302,13 @@ public class OrbitRoomService {
         UUID hostUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
 
         if (!room.getHostUserUuid().equals(hostUuid)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi co the huy checkout");
+            throw new AppException(ErrorCode.FORBIDDEN, "Chỉ host mới có thể hủy checkout");
         }
         if (room.getStatus() != OrbitRoomStatus.CHECKOUT) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong o trang thai checkout");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không ở trạng thái checkout");
         }
 
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
@@ -309,7 +320,7 @@ public class OrbitRoomService {
             int transferred = bookingNativeRepository.transferSeatLocksToUser(
                     room.getShowtimeUuid(), member.getUserUuid(), seatUuids, now);
             if (transferred != seatUuids.size()) {
-                throw new AppException(ErrorCode.CONFLICT, "Khong the tra lai khoa ghe cho thanh vien");
+                throw new AppException(ErrorCode.CONFLICT, "Không thể trả lại khóa ghế cho thành viên");
             }
         }
 
@@ -329,23 +340,28 @@ public class OrbitRoomService {
             UUID hostUserUuid,
             UUID showtimeUuid,
             List<UUID> seatUuids) {
+        assertOrbitEnabled();
+        OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(orbitRoomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong hop le"));
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không hợp lệ"));
 
         if (room.getStatus() != OrbitRoomStatus.CHECKOUT) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit chua san sang thanh toan");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit chưa sẵn sàng thanh toán");
+        }
+        if (room.getExpiresAt() != null && !room.getExpiresAt().isAfter(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit đã hết hạn thanh toán");
         }
         if (!room.getHostUserUuid().equals(hostUserUuid)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi thanh toan phong Orbit");
+            throw new AppException(ErrorCode.FORBIDDEN, "Chỉ host mới thanh toán phòng Orbit");
         }
         if (!room.getShowtimeUuid().equals(showtimeUuid)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu khong khop voi phong Orbit");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suất chiếu không khớp với phòng Orbit");
         }
 
         List<UUID> expected = collectRoomSeatUuids(orbitRoomUuid);
         Set<UUID> requested = new LinkedHashSet<>(OrbitSeatJson.normalizeSeatUuids(seatUuids));
         if (!requested.equals(new LinkedHashSet<>(expected))) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe khong khop voi phong Orbit");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Danh sách ghế không khớp với phòng Orbit");
         }
     }
 
@@ -358,16 +374,16 @@ public class OrbitRoomService {
             List<LockedSeat> lockedSeats,
             OffsetDateTime now) {
         OrbitRoom room = orbitRoomRepository.findById(orbitRoomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong hop le"));
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không hợp lệ"));
 
         if (room.getStatus() != OrbitRoomStatus.CHECKOUT) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong o trang thai thanh toan");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không ở trạng thái thanh toán");
         }
         if (room.getBookingUuid() != null) {
-            throw new AppException(ErrorCode.CONFLICT, "Phong Orbit da duoc thanh toan");
+            throw new AppException(ErrorCode.CONFLICT, "Phòng Orbit đã được thanh toán");
         }
         if (!room.getHostUserUuid().equals(hostUserUuid)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi hoan tat phong Orbit");
+            throw new AppException(ErrorCode.FORBIDDEN, "Chỉ host mới hoàn tất phòng Orbit");
         }
 
         Map<UUID, BigDecimal> seatPrices = new HashMap<>();
@@ -439,31 +455,38 @@ public class OrbitRoomService {
     }
 
     @Transactional
-    public void cancelRoom(String currentUserEmail, UUID roomUuid) {
+    public OrbitRoomResponse cancelRoom(String currentUserEmail, UUID roomUuid) {
+        assertOrbitEnabled();
         UUID hostUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
 
         if (!room.getHostUserUuid().equals(hostUuid)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi co the huy phong");
+            throw new AppException(ErrorCode.FORBIDDEN, "Chỉ host mới có thể hủy phòng");
         }
         if (room.getStatus() == OrbitRoomStatus.CLOSED || room.getStatus() == OrbitRoomStatus.CANCELLED) {
-            return;
+            return toRoomResponse(room, hostUuid);
         }
 
-        releaseAllMemberLocks(room, now);
-        rollbackAllMemberProgress(roomUuid, now);
+        orbitRoomLockHelper.releaseAllRoomLocks(room, now);
+        orbitRoomMissionHelper.rollbackAllMemberProgress(roomUuid, now);
         room.setStatus(OrbitRoomStatus.CANCELLED);
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
-        broadcastRoom(toRoomResponse(room, hostUuid));
+        OrbitRoomResponse response = toRoomResponse(room, hostUuid);
+        broadcastRoom(response);
+        return response;
     }
 
     private void assertOrbitEnabled() {
         if (!orbitEnabled) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Tinh nang Orbit Seat chua duoc bat");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tính năng Orbit Seat chưa được bật");
         }
+    }
+
+    public boolean isOrbitEnabled() {
+        return orbitEnabled;
     }
 
     private UUID resolveRequiredUserUuid(String email) {
@@ -476,10 +499,10 @@ public class OrbitRoomService {
         Showtime showtime = showtimeRepository.findById(showtimeUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOWTIME_NOT_FOUND));
         if (showtime.getStatus() != ShowtimeStatus.OPEN_FOR_BOOKING) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu khong mo ban ve");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suất chiếu không mở bán vé");
         }
         if (showtime.getStartTime() != null && showtime.getStartTime().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suất chiếu đã bắt đầu");
         }
         return showtime;
     }
@@ -535,17 +558,18 @@ public class OrbitRoomService {
         response.setViewerMember(false);
         response.setMemberCount((int) orbitMemberRepository.countByRoomUuid(room.getUuid()));
         response.setMembers(List.of());
+        orbitRoomResponseMapper.enrichShowtimeContext(response, room);
         return response;
     }
 
     private OrbitRoom loadEditableRoom(UUID roomUuid, OffsetDateTime now) {
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
         if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong con cho phep chinh sua ghe");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn cho phép chỉnh sửa ghế");
         }
         if (room.getExpiresAt().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit da het han");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit đã hết hạn");
         }
         return room;
     }
@@ -596,7 +620,7 @@ public class OrbitRoomService {
         }
         for (UUID seatUuid : seatUuids) {
             if (taken.contains(seatUuid)) {
-                throw new AppException(ErrorCode.CONFLICT, "Ghe da duoc thanh vien khac chon");
+                throw new AppException(ErrorCode.CONFLICT, "Ghế đã được thành viên khác chọn");
             }
         }
     }
@@ -607,7 +631,7 @@ public class OrbitRoomService {
             List<LockedSeat> locked = bookingNativeRepository.lockActiveSeatsForConfirm(
                     showtimeUuid, member.getUserUuid(), seatUuids, now);
             if (locked.size() != seatUuids.size()) {
-                throw new AppException(ErrorCode.CONFLICT, "Co ghe chua duoc thanh vien giu hop le");
+                throw new AppException(ErrorCode.CONFLICT, "Có ghế chưa được thành viên giữ hợp lệ");
             }
         }
     }
@@ -618,23 +642,6 @@ public class OrbitRoomService {
             all.addAll(OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson()));
         }
         return all;
-    }
-
-    private void releaseAllMemberLocks(OrbitRoom room, OffsetDateTime now) {
-        List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(room.getUuid());
-        for (OrbitMember member : members) {
-            List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
-            if (!seatUuids.isEmpty()) {
-                bookingNativeRepository.deleteSeatLocks(room.getShowtimeUuid(), member.getUserUuid(), seatUuids);
-            }
-        }
-        bookingNativeRepository.cleanupExpiredLocks(room.getShowtimeUuid(), now);
-    }
-
-    private void rollbackAllMemberProgress(UUID roomUuid, OffsetDateTime now) {
-        for (OrbitMember member : orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)) {
-            missionService.rollbackSourceProgress(member.getUserUuid(), roomUuid.toString(), now);
-        }
     }
 
     private BigDecimal sumMemberSeatPrices(OrbitMember member, Map<UUID, BigDecimal> seatPrices) {
@@ -670,6 +677,7 @@ public class OrbitRoomService {
         response.setMemberCount(members.size());
         response.setSharePath("/booking/orbit/" + room.getUuid());
         response.setMembers(toMemberResponses(members, room.getHostUserUuid()));
+        orbitRoomResponseMapper.enrichShowtimeContext(response, room);
         return response;
     }
 

@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.orbit.controller;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,11 @@ public class OrbitRoomController {
 
     private final OrbitRoomService orbitRoomService;
 
+    @GetMapping("/feature-status")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> getFeatureStatus() {
+        return ResponseEntity.ok(ApiResponse.success(Map.of("enabled", orbitRoomService.isOrbitEnabled())));
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<OrbitRoomResponse>> createRoom(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -57,11 +63,11 @@ public class OrbitRoomController {
     }
 
     @DeleteMapping("/{roomUuid}")
-    public ResponseEntity<ApiResponse<Void>> cancelRoom(
+    public ResponseEntity<ApiResponse<OrbitRoomResponse>> cancelRoom(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID roomUuid) {
-        orbitRoomService.cancelRoom(userDetails.getUsername(), roomUuid);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        OrbitRoomResponse room = orbitRoomService.cancelRoom(userDetails.getUsername(), roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(room));
     }
 
     @GetMapping("/{roomUuid}")

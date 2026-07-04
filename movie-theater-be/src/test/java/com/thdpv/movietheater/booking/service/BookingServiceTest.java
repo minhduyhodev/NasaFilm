@@ -53,6 +53,7 @@ import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -98,6 +99,9 @@ class BookingServiceTest {
 
     @Mock
     private SeatGapValidationService seatGapValidationService;
+
+    @Mock
+    private OrbitRoomService orbitRoomService;
 
     @InjectMocks
     private BookingService bookingService;
@@ -249,6 +253,34 @@ class BookingServiceTest {
 
         assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
         assertEquals("Khong duoc de trong 1 ghe le bi kep giua", exception.getMessage());
+    }
+
+    @Test
+    void confirmBookingWithOrbitShouldInvokeAssertCheckoutReady() {
+        UUID orbitRoomUuid = UUID.randomUUID();
+        UUID seatUuid = UUID.randomUUID();
+        List<UUID> seatUuids = List.of(seatUuid);
+
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
+        request.setOrbitRoomUuid(orbitRoomUuid);
+
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Showtime mockShowtime = new Showtime();
+        mockShowtime.setUuid(showtimeUuid);
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
+
+        org.mockito.Mockito.doThrow(new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit chưa sẵn sàng thanh toán"))
+                .when(orbitRoomService)
+                .assertCheckoutReady(orbitRoomUuid, userUuid, showtimeUuid, seatUuids);
+
+        AppException exception = assertThrows(AppException.class, () ->
+                bookingService.confirmBooking("customer@example.com", request));
+
+        assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+        verify(orbitRoomService).assertCheckoutReady(orbitRoomUuid, userUuid, showtimeUuid, seatUuids);
     }
 
     @Test

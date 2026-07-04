@@ -1,6 +1,15 @@
 import { authService } from '../../features/auth/api/authService';
 
 class OrbitService {
+  async getFeatureStatus() {
+    try {
+      const response = await authService.api.get('/api/orbit-rooms/feature-status');
+      return response.data.data ?? response.data;
+    } catch {
+      return { enabled: false };
+    }
+  }
+
   async createRoom(showtimeUuid, maxMembers = 8) {
     try {
       const response = await authService.api.post('/api/orbit-rooms', {

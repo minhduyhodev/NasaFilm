@@ -52,6 +52,7 @@ const MovieDetailPage = () => {
   const [activeDateTab, setActiveDateTab] = useState("today");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isCreatingOrbit, setIsCreatingOrbit] = useState(false);
+  const [orbitFeatureEnabled, setOrbitFeatureEnabled] = useState(true);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
@@ -66,6 +67,7 @@ const MovieDetailPage = () => {
 
   useEffect(() => {
     systemConfigService.getConfig().catch(() => {});
+    orbitService.getFeatureStatus().then((s) => setOrbitFeatureEnabled(Boolean(s?.enabled))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -806,15 +808,17 @@ const MovieDetailPage = () => {
                     >
                       <span>Đặt ghế ngay</span>
                     </button>
+                    {orbitFeatureEnabled && (
                     <button
                       type="button"
                       onClick={handleCreateOrbitRoom}
                       disabled={isCreatingOrbit}
-                      className="border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <Users className="w-4 h-4" />
                       {isCreatingOrbit ? "Đang tạo..." : "Tạo phòng Orbit"}
                     </button>
+                    )}
                   </div>
                 </div>
               )}

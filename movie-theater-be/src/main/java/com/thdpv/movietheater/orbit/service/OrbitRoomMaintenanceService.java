@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +23,14 @@ public class OrbitRoomMaintenanceService {
     private final OrbitRoomRepository orbitRoomRepository;
     private final OrbitRoomExpiryService orbitRoomExpiryService;
 
+    @Value("${app.orbit.enabled:true}")
+    private boolean orbitEnabled;
+
     @Scheduled(fixedDelayString = "${app.orbit.expire-check-ms:60000}")
     public void expireStaleRooms() {
+        if (!orbitEnabled) {
+            return;
+        }
         OffsetDateTime now = OffsetDateTime.now();
         List<OrbitRoom> expired = orbitRoomRepository.findExpiredOpenRooms(now);
         for (OrbitRoom room : expired) {

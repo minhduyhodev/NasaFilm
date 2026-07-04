@@ -64,7 +64,8 @@ export const getMissionCta = (mission, { completed = false, locked = false } = {
     mission?.code === 'SOCIAL_ORBIT' ||
     mission?.conditionType === 'ORBIT_ROOM_JOIN'
   ) {
-    return { label: 'Tạo phòng Orbit', to: '/movies' };
+    const moviePath = mission?.movieUuid ? `/movie/${mission.movieUuid}` : '/movies';
+    return { label: 'Tạo phòng Orbit', to: moviePath };
   }
   return null;
 };

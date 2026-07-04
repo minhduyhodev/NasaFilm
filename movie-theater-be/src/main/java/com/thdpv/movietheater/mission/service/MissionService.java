@@ -99,7 +99,7 @@ public class MissionService {
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.missions.orbit-seat-enabled:false}")
+    @Value("${app.missions.orbit-seat-enabled:true}")
     private boolean orbitSeatEnabled;
 
     public MissionService(

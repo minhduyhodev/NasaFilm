@@ -66,6 +66,12 @@ class OrbitRoomServiceTest {
     private OrbitRoomBroadcaster orbitRoomBroadcaster;
     @Mock
     private SeatMapEventPublisher seatMapEventPublisher;
+    @Mock
+    private OrbitRoomLockHelper orbitRoomLockHelper;
+    @Mock
+    private OrbitRoomMissionHelper orbitRoomMissionHelper;
+    @Mock
+    private OrbitRoomResponseMapper orbitRoomResponseMapper;
 
     @InjectMocks
     private OrbitRoomService orbitRoomService;

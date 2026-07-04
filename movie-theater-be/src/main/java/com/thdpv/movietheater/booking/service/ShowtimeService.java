@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -231,6 +232,14 @@ public class ShowtimeService {
             showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
         }
         return mapShowtimesToResponses(showtimes);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ShowtimeResponse> getShowtimeSummary(UUID showtimeUuid) {
+        return showtimeRepository.findById(showtimeUuid)
+                .map(st -> mapShowtimesToResponses(List.of(st)))
+                .filter(list -> !list.isEmpty())
+                .map(list -> list.get(0));
     }
 
     private OffsetDateTime toDayStart(LocalDate date) {

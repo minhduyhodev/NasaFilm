@@ -17,10 +17,22 @@ import { orbitService } from '../../../shared/services/orbitService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
-import { stompSocketService, SEAT_MAP_REFRESH_MS } from '../../../shared/services/stompSocketService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { parseLayoutConfig } from '../../../shared/utils/aisleLayoutUtils';
+import {
+  BOOKING_SESSION_KEYS,
+  readBookingSession,
+  writeBookingSession,
+} from '../../../shared/utils/bookingSessionStorage';
+import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
+import {
+  ORBIT_TERMINAL_STATUSES,
+  buildSelectedFromMap,
+  formatOrbitStatus,
+  formatShowtimeDate,
+  formatShowtimeLabel,
+  resolveSeatLabels,
+} from '../../../shared/utils/orbitUtils';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
 import './BookingPage.css';
 import './OrbitBookingPage.css';
@@ -31,26 +43,20 @@ function isValidUuid(value) {
   return Boolean(value && UUID_PATTERN.test(value));
 }
 
-function buildSelectedFromMap(rows, seatUuids) {
-  const wanted = new Set(seatUuids);
-  const selected = [];
-  rows.forEach((row) => {
-    row.seats.forEach((seat) => {
-      if (!wanted.has(seat.seatUuid)) return;
-      let type = 'Ghế Thường';
-      if (seat.seatTypeName === 'VIP') type = 'Ghế VIP';
-      if (seat.seatTypeName === 'COUPLE') type = 'Ghế Đôi';
-      selected.push({
-        seatUuid: seat.seatUuid,
-        id: `${row.rowName}${seat.seatNumber}`,
-        rowName: row.rowName,
-        seatNumber: seat.seatNumber,
-        price: seat.price,
-        type,
-      });
-    });
-  });
-  return selected;
+function persistOrbitMeta(meta) {
+  writeBookingSession(BOOKING_SESSION_KEYS.ORBIT, meta);
+}
+
+function metaFromRoom(room) {
+  if (!room) return {};
+  return {
+    theater: room.theater || '',
+    movie: room.movieTitle || '',
+    movieUuid: room.movieUuid || '',
+    moviePoster: room.moviePoster || '',
+    date: formatShowtimeDate(room.showtimeStartTime),
+    showtime: formatShowtimeLabel(room.showtimeStartTime),
+  };
 }
 
 const OrbitBookingPage = () => {
@@ -59,23 +65,9 @@ const OrbitBookingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
 
-  const [orbitState] = useState(() => {
-    if (location.state) {
-      try {
-        sessionStorage.setItem('orbit_booking_state', JSON.stringify(location.state));
-      } catch {
-        /* ignore */
-      }
-      return location.state;
-    }
-    try {
-      const saved = sessionStorage.getItem('orbit_booking_state');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      /* ignore */
-    }
-    return {};
-  });
+  const [orbitState] = useState(() =>
+    readBookingSession(BOOKING_SESSION_KEYS.ORBIT, location.state) ?? {},
+  );
   const {
     theater = '',
     movie = '',
@@ -90,115 +82,69 @@ const OrbitBookingPage = () => {
 
   const [room, setRoom] = useState(null);
   const [showtimeUuid, setShowtimeUuid] = useState('');
-  const [seatRows, setSeatRows] = useState([]);
-  const [aisleLayout, setAisleLayout] = useState(() => parseLayoutConfig(null));
-  const [selectedSeats, setSelectedSeats] = useState([]);
-  const [hasGapViolation, setHasGapViolation] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [isPreparing, setIsPreparing] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(null);
   const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
   const [roomExpiresIn, setRoomExpiresIn] = useState(null);
-
-  const selectedSeatsRef = useRef([]);
-  useEffect(() => {
-    selectedSeatsRef.current = selectedSeats;
-  }, [selectedSeats]);
-
-  const seatMapInFlightRef = useRef(null);
 
   const currentUserUuid = user?.id || user?.uuid;
   const isHostUser = room?.hostUserUuid === currentUserUuid || Boolean(room?.host);
   const isCheckout = room?.status === 'CHECKOUT';
   const canEditSeats = room?.status === 'OPEN';
 
-  const refreshRoom = useCallback(async () => {
-    if (!isValidUuid(roomUuid)) return null;
-    const data = await orbitService.getRoom(roomUuid);
-    if (['EXPIRED', 'CANCELLED', 'CLOSED'].includes(data.status)) {
-      notificationService.info('Phòng Orbit đã kết thúc.');
-      navigate(movieUuid ? `/movie/${movieUuid}` : '/movies', { replace: true });
-      return null;
-    }
-    setRoom(data);
-    setShowtimeUuid(data.showtimeUuid);
-    return data;
-  }, [roomUuid, movieUuid, navigate]);
+  const seatMapActionsRef = useRef({
+    fetchSeatMap: async () => {},
+    setSelectedSeats: () => {},
+  });
 
-  const fetchSeatMap = useCallback(async (overrideUuids, options = {}) => {
-    const { silent = false } = options;
-    if (!showtimeUuid) return;
-    if (seatMapInFlightRef.current) {
-      return seatMapInFlightRef.current;
-    }
-    const request = (async () => {
-      try {
-        const uuids = overrideUuids !== undefined
-          ? overrideUuids
-          : selectedSeatsRef.current.map((s) => s.seatUuid);
-        const data = await bookingService.getSeatMap(showtimeUuid, uuids);
-        if (data?.rows) {
-          setSeatRows(data.rows);
-          if (data.layoutConfig) {
-            setAisleLayout(parseLayoutConfig(data.layoutConfig));
-          }
-          const offset = data._serverTimeOffset || 0;
-          let expiresAtVal = null;
-          let gapFound = false;
-          const newSelected = [];
-          data.rows.forEach((row) => {
-            row.seats.forEach((seat) => {
-              if (seat.blocked) {
-                gapFound = true;
-              }
-              if (seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME') {
-                if (seat.lockedUntil) {
-                  const seatExpire = new Date(seat.lockedUntil).getTime() - offset;
-                  if (!expiresAtVal || seatExpire > expiresAtVal) expiresAtVal = seatExpire;
-                }
-                let type = 'Ghế Thường';
-                if (seat.seatTypeName === 'VIP') type = 'Ghế VIP';
-                if (seat.seatTypeName === 'COUPLE') type = 'Ghế Đôi';
-                newSelected.push({
-                  seatUuid: seat.seatUuid,
-                  id: `${row.rowName}${seat.seatNumber}`,
-                  rowName: row.rowName,
-                  seatNumber: seat.seatNumber,
-                  price: seat.price,
-                  type,
-                });
-              }
-            });
-          });
-          setSelectedSeats(newSelected);
-          setHasGapViolation(gapFound);
-          if (expiresAtVal) {
-            const serverTime = data.serverTime ? new Date(data.serverTime).getTime() : Date.now();
-            setTimeLeft(Math.max(0, Math.floor((expiresAtVal - serverTime) / 1000)));
-          } else {
-            setTimeLeft(null);
-          }
-        }
-      } catch (err) {
-        if (!silent) notificationService.error('Không thể tải sơ đồ ghế');
-      } finally {
-        setIsLoading(false);
-        seatMapInFlightRef.current = null;
-      }
-    })();
-    seatMapInFlightRef.current = request;
-    return request;
-  }, [showtimeUuid]);
+  const {
+    seatRows,
+    aisleLayout,
+    selectedSeats,
+    setSelectedSeats,
+    hasGapViolation,
+    timeLeft,
+    fetchSeatMap,
+    fetchSeatMapRef,
+  } = useSeatMapState(showtimeUuid, {
+    enabled: Boolean(showtimeUuid),
+    dedupeInFlight: true,
+    lockTimerEnabled: canEditSeats,
+    onLockTimeout: async () => {
+      await orbitService.updateMemberSeats(roomUuid, []);
+      seatMapActionsRef.current.setSelectedSeats([]);
+      await seatMapActionsRef.current.fetchSeatMap([], { silent: true });
+      notificationService.error('Hết thời gian giữ ghế.');
+    },
+    onFetchError: () => notificationService.error('Không thể tải sơ đồ ghế'),
+  });
 
-  const fetchSeatMapRef = useRef(fetchSeatMap);
-  fetchSeatMapRef.current = fetchSeatMap;
+  useEffect(() => {
+    seatMapActionsRef.current = { fetchSeatMap, setSelectedSeats };
+  }, [fetchSeatMap, setSelectedSeats]);
+
+  const [orbitMeta, setOrbitMeta] = useState(orbitState);
+
+  const displayMovie = orbitMeta.movie || room?.movieTitle || 'Phòng đặt vé nhóm';
+  const displayTheater = orbitMeta.theater || room?.theater || '';
+  const displayDate = orbitMeta.date || formatShowtimeDate(room?.showtimeStartTime);
+  const displayShowtime = orbitMeta.showtime || formatShowtimeLabel(room?.showtimeStartTime);
+  const resolvedMovieUuid = orbitMeta.movieUuid || room?.movieUuid || movieUuid;
 
   const applyRoomPayload = useCallback((payload) => {
     if (!payload?.uuid) return;
-    if (['EXPIRED', 'CANCELLED', 'CLOSED'].includes(payload.status)) {
+    if (ORBIT_TERMINAL_STATUSES.includes(payload.status)) {
       notificationService.info('Phòng Orbit đã kết thúc.');
-      navigate(movieUuid ? `/movie/${movieUuid}` : '/movies', { replace: true });
+      navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
       return;
+    }
+    const meta = metaFromRoom(payload);
+    if (meta.movie || meta.theater) {
+      setOrbitMeta((prev) => {
+        const next = { ...prev, ...meta };
+        persistOrbitMeta(next);
+        return next;
+      });
     }
     setRoom({
       ...payload,
@@ -207,7 +153,19 @@ const OrbitBookingPage = () => {
     if (payload.showtimeUuid) {
       setShowtimeUuid(payload.showtimeUuid);
     }
-  }, [currentUserUuid, movieUuid, navigate]);
+  }, [currentUserUuid, resolvedMovieUuid, navigate]);
+
+  const refreshRoom = useCallback(async () => {
+    if (!isValidUuid(roomUuid)) return null;
+    const data = await orbitService.getRoom(roomUuid);
+    if (ORBIT_TERMINAL_STATUSES.includes(data.status)) {
+      notificationService.info('Phòng Orbit đã kết thúc.');
+      navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
+      return null;
+    }
+    applyRoomPayload(data);
+    return data;
+  }, [roomUuid, resolvedMovieUuid, navigate, applyRoomPayload]);
 
   useEffect(() => {
     if (!isValidUuid(roomUuid)) {
@@ -226,7 +184,7 @@ const OrbitBookingPage = () => {
     let cancelled = false;
     const boot = async () => {
       try {
-        setIsLoading(true);
+        setIsPageLoading(true);
         let data = await orbitService.getRoom(roomUuid);
         const isMember = data.viewerMember === true
           || data.members?.some((m) => m.userUuid === currentUserUuid);
@@ -235,34 +193,26 @@ const OrbitBookingPage = () => {
           notificationService.success('Bạn đã tham gia phòng Orbit.');
         }
         if (cancelled) return;
-        setRoom(data);
-        setShowtimeUuid(data.showtimeUuid);
+        applyRoomPayload(data);
       } catch (err) {
-        notificationService.error(err.message || 'Không thể mở phòng Orbit.');
+        const msg = err.message || '';
+        if (msg.includes('đầy') || msg.includes('du day')) {
+          notificationService.error('Phòng Orbit đã đủ thành viên.');
+        } else if (msg.includes('hết hạn') || msg.includes('het han')) {
+          notificationService.error('Phòng Orbit đã hết hạn.');
+        } else if (msg.includes('chưa được bật') || msg.includes('chua duoc bat')) {
+          notificationService.error('Tính năng Orbit Seat chưa được bật.');
+        } else {
+          notificationService.error(msg || 'Không thể mở phòng Orbit.');
+        }
         navigate('/movies', { replace: true });
+      } finally {
+        if (!cancelled) setIsPageLoading(false);
       }
     };
     if (roomUuid && currentUserUuid) boot();
     return () => { cancelled = true; };
   }, [roomUuid, currentUserUuid, navigate]);
-
-  useEffect(() => {
-    if (!showtimeUuid) return undefined;
-    fetchSeatMapRef.current();
-    stompSocketService.ensureConnected().catch(() => {});
-    bookingService.watchSeatMap(showtimeUuid).catch(() => {});
-    const intervalId = setInterval(() => fetchSeatMapRef.current(undefined, { silent: true }), SEAT_MAP_REFRESH_MS);
-    return () => {
-      clearInterval(intervalId);
-      bookingService.unwatchSeatMap(showtimeUuid).catch(() => {});
-    };
-  }, [showtimeUuid]);
-
-  useRealtimeTopic(
-    showtimeUuid ? REALTIME_TOPICS.showtimeSeats(showtimeUuid) : null,
-    () => fetchSeatMapRef.current(undefined, { silent: true }),
-    400,
-  );
 
   useRealtimeTopic(
     roomUuid ? REALTIME_TOPICS.orbitRoom(roomUuid) : null,
@@ -286,20 +236,6 @@ const OrbitBookingPage = () => {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [room?.expiresAt]);
-
-  useEffect(() => {
-    if (timeLeft === null || !canEditSeats) return undefined;
-    if (timeLeft === 0) {
-      orbitService.updateMemberSeats(roomUuid, []).then(() => {
-        setSelectedSeats([]);
-        fetchSeatMapRef.current([], { silent: true });
-        notificationService.error('Hết thời gian giữ ghế.');
-      }).catch(() => {});
-      return undefined;
-    }
-    const timer = setTimeout(() => setTimeLeft((p) => p - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [timeLeft, canEditSeats, roomUuid]);
 
   const syncMemberSeats = async (nextUuids) => {
     const updatedRoom = await orbitService.updateMemberSeats(roomUuid, nextUuids);
@@ -366,26 +302,6 @@ const OrbitBookingPage = () => {
     }
   };
 
-  const handleLeave = async () => {
-    try {
-      await orbitService.leaveRoom(roomUuid);
-      notificationService.info('Bạn đã rời phòng Orbit.');
-      navigate(`/movie/${movieUuid || ''}`);
-    } catch (err) {
-      notificationService.error(err.message || 'Không thể rời phòng.');
-    }
-  };
-
-  const handleCancelRoom = async () => {
-    try {
-      await orbitService.cancelRoom(roomUuid);
-      notificationService.info('Đã hủy phòng Orbit.');
-      navigate(`/movie/${movieUuid || ''}`);
-    } catch (err) {
-      notificationService.error(err.message || 'Không thể hủy phòng.');
-    }
-  };
-
   const allMembersReady = useMemo(() => {
     if (!room?.members?.length) return false;
     return room.members.length >= 2 && room.members.every((m) => (m.seatUuids?.length || 0) > 0);
@@ -398,33 +314,61 @@ const OrbitBookingPage = () => {
 
   const isGroupSeatLimitOk = totalRoomSeats <= maxSeatsPerBooking;
 
+  const checkoutBlockReason = useMemo(() => {
+    if (!isHostUser || !canEditSeats) return null;
+    if ((room?.members?.length || 0) < 2) return 'Cần ít nhất 2 thành viên trong phòng.';
+    if (!allMembersReady) return 'Mọi thành viên cần chọn ít nhất 1 ghế.';
+    if (!isGroupSeatLimitOk) return `Tổng ghế nhóm tối đa ${maxSeatsPerBooking}.`;
+    if (hasGapViolation) return 'Sơ đồ ghế có khe hở không hợp lệ.';
+    return null;
+  }, [isHostUser, canEditSeats, room?.members, allMembersReady, isGroupSeatLimitOk, hasGapViolation, maxSeatsPerBooking]);
+
+  const handleLeave = async () => {
+    if (!window.confirm('Bạn có chắc muốn rời phòng Orbit?')) return;
+    try {
+      await orbitService.leaveRoom(roomUuid);
+      notificationService.info('Bạn đã rời phòng Orbit.');
+      navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể rời phòng.');
+    }
+  };
+
+  const handleCancelRoom = async () => {
+    if (!window.confirm('Hủy phòng Orbit? Mọi ghế đang giữ sẽ được giải phóng.')) return;
+    try {
+      await orbitService.cancelRoom(roomUuid);
+      notificationService.info('Đã hủy phòng Orbit.');
+      navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể hủy phòng.');
+    }
+  };
+
   const navigateToConcessions = async (preparedSeatUuids, lockExpiresAtMs) => {
     const mapData = await bookingService.getSeatMap(showtimeUuid, preparedSeatUuids);
     const aggregatedSeats = buildSelectedFromMap(mapData.rows || [], preparedSeatUuids);
     const totalAmount = aggregatedSeats.reduce((acc, s) => acc + (s.price || 0), 0);
     const checkoutPayload = {
       showtimeUuid,
-      theater,
-      movie,
-      movieUuid,
-      moviePoster,
+      theater: displayTheater,
+      movie: displayMovie,
+      movieUuid: resolvedMovieUuid,
+      moviePoster: orbitMeta.moviePoster || moviePoster,
       movieRating,
       movieFormat,
       movieAgeRestriction,
-      date,
-      showtime,
+      date: displayDate,
+      showtime: displayShowtime,
       selectedSeats: aggregatedSeats,
       totalAmount,
       lockExpiresAt: lockExpiresAtMs,
       orbitRoomUuid: roomUuid,
       isOrbit: true,
+      orbitMembers: room?.members || [],
     };
-    try {
-      sessionStorage.setItem('orbit_booking_state', JSON.stringify(orbitState));
-      sessionStorage.setItem('booking_state', JSON.stringify(checkoutPayload));
-    } catch {
-      /* ignore */
-    }
+    writeBookingSession(BOOKING_SESSION_KEYS.ORBIT, { ...orbitMeta, ...metaFromRoom(room) });
+    writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, checkoutPayload);
     navigate('/concessions', { state: checkoutPayload });
   };
 
@@ -497,10 +441,16 @@ const OrbitBookingPage = () => {
     }
   };
 
-  if (isLoading && !room) {
+  if (isPageLoading && !room) {
     return (
-      <div className="orbit-booking flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      <div className="orbit-booking px-4 md:px-10 pb-16">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 pt-8">
+          <div className="lg:col-span-8 orbit-booking__skeleton h-[420px]" />
+          <div className="lg:col-span-4 space-y-4">
+            <div className="orbit-booking__skeleton h-48" />
+            <div className="orbit-booking__skeleton h-32" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -521,14 +471,14 @@ const OrbitBookingPage = () => {
               Orbit Seat
             </span>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mt-2">
-              {movie || 'Phòng đặt vé nhóm'}
+              {displayMovie}
             </h1>
             <p className="text-sm text-zinc-400 mt-1">
-              {theater} · {date} · {showtime}
+              {[displayTheater, displayDate, displayShowtime].filter(Boolean).join(' · ') || 'Đang tải thông tin suất chiếu…'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className={`orbit-booking__status ${statusClass}`}>{room?.status}</span>
+          <div className="flex flex-wrap items-center gap-3 text-sm" aria-live="polite">
+            <span className={`orbit-booking__status ${statusClass}`}>{formatOrbitStatus(room?.status)}</span>
             {roomExpiresIn !== null && (
               <span className="flex items-center gap-1.5 text-zinc-400">
                 <Clock className="w-4 h-4" />
@@ -553,7 +503,7 @@ const OrbitBookingPage = () => {
               disabled={!canEditSeats}
               onSeatClick={handleSeatClick}
               onCoupleClick={handleCoupleClick}
-              screenAccent="cyan"
+              screenAccent="white"
               footerNote={
                 !canEditSeats
                   ? (isCheckout ? 'Host đang thanh toán — ghế đã khóa cho nhóm.' : 'Phòng đã đóng.')
@@ -566,26 +516,32 @@ const OrbitBookingPage = () => {
             <div className="orbit-booking__panel p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-cyan-400" />
+                  <Users className="w-4 h-4 text-red-400" />
                   Thành viên ({room?.members?.length || 0}/{room?.maxMembers})
                 </h2>
               </div>
+              {(room?.members?.length || 0) < 2 && canEditSeats && (
+                <p className="text-xs text-amber-400 mb-3">
+                  Mời thêm {Math.max(0, 2 - (room?.members?.length || 0))} thành viên để host có thể thanh toán nhóm.
+                </p>
+              )}
               <ul className="space-y-2">
                 {room?.members?.map((member) => {
                   const isSelf = member.userUuid === currentUserUuid;
+                  const seatLabels = resolveSeatLabels(member.seatUuids, seatRows);
                   return (
                     <li
                       key={member.userUuid}
-                      className={`orbit-booking__member ${isSelf ? 'orbit-booking__member--self' : ''} ${member.host ? 'orbit-booking__member--host' : ''}`}
+                      className={`orbit-booking__member ${isSelf ? 'orbit-booking__member--self' : ''}`}
                     >
                       <div>
                         <p className="orbit-booking__member-name text-sm font-bold text-white">
                           {member.displayName}
-                          {member.host && <Crown className="inline w-3.5 h-3.5 ml-1 text-amber-400" />}
+                          {member.host && <Crown className="inline w-3.5 h-3.5 ml-1 text-amber-400" aria-hidden />}
                         </p>
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          {(member.seatUuids?.length || 0) > 0
-                            ? `${member.seatUuids.length} ghế`
+                          {seatLabels.length > 0
+                            ? `Ghế ${seatLabels.join(', ')}`
                             : 'Chưa chọn ghế'}
                         </p>
                       </div>
@@ -619,12 +575,16 @@ const OrbitBookingPage = () => {
               </button>
             </div>
 
+            {isHostUser && canEditSeats && checkoutBlockReason && (
+              <p className="text-xs text-zinc-400 text-center px-2">{checkoutBlockReason}</p>
+            )}
+
             {isHostUser && canEditSeats && (
               <button
                 type="button"
                 disabled={!allMembersReady || isPreparing || hasGapViolation || !isGroupSeatLimitOk}
                 onClick={handleHostCheckout}
-                className="orbit-booking__cta-host w-full py-4 rounded-xl text-white font-black text-sm uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                className="orbit-booking__cta-host w-full py-4 rounded-xl text-white font-black text-sm uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 hidden lg:flex"
               >
                 {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                 Xác nhận nhóm &amp; thanh toán
@@ -683,6 +643,20 @@ const OrbitBookingPage = () => {
           </aside>
         </div>
       </div>
+
+      {isHostUser && canEditSeats && (
+        <div className="orbit-booking__sticky-cta lg:hidden">
+          <button
+            type="button"
+            disabled={!allMembersReady || isPreparing || hasGapViolation || !isGroupSeatLimitOk}
+            onClick={handleHostCheckout}
+            className="orbit-booking__cta-host w-full py-3.5 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+          >
+            {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+            Xác nhận nhóm &amp; thanh toán
+          </button>
+        </div>
+      )}
     </div>
   );
 };

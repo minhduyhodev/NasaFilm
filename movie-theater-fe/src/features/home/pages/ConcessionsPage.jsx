@@ -6,7 +6,7 @@ import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
-import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
+import { BOOKING_SESSION_KEYS, readBookingSession } from '../../../shared/utils/bookingSessionStorage';
 
 function getComboImageUrl(combo) {
   const raw = combo?.imageUrl?.trim();
@@ -22,28 +22,7 @@ const ConcessionsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Khôi phục booking state từ sessionStorage nếu trang bị reload
-  const getBookingState = () => {
-    if (location.state) {
-      try {
-        sessionStorage.setItem('booking_state', JSON.stringify(location.state));
-      } catch (e) {
-        console.error("Failed to save booking state to sessionStorage:", e);
-      }
-      return location.state;
-    }
-    try {
-      const saved = sessionStorage.getItem('booking_state');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to parse booking state from sessionStorage:", e);
-    }
-    return {};
-  };
-
-  const bookingState = getBookingState();
+  const bookingState = readBookingSession(BOOKING_SESSION_KEYS.BOOKING, location.state) ?? {};
 
   const {
     showtimeUuid = '11111111-1111-1111-1111-111111111111',

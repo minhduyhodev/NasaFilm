@@ -1,8 +1,8 @@
 .orbit-booking {
-  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(56, 189, 248, 0.08), transparent 55%),
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(220, 38, 38, 0.06), transparent 55%),
     #0a0a0c;
   color: #e5e2e1;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding-top: 96px;
 }
 
@@ -16,16 +16,22 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #67e8f9;
-  background: rgba(6, 182, 212, 0.08);
-  border: 1px solid rgba(34, 211, 238, 0.25);
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.28);
 }
 
 .orbit-booking__panel {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(18px);
+  background: rgba(17, 18, 21, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 1rem;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .orbit-booking__panel {
+    background: #111215;
+    backdrop-filter: none;
+  }
 }
 
 .orbit-booking__member {
@@ -41,14 +47,8 @@
 }
 
 .orbit-booking__member--self {
-  border-color: rgba(34, 211, 238, 0.35);
-  background: rgba(6, 182, 212, 0.06);
-}
-
-.orbit-booking__member--host .orbit-booking__member-name::after {
-  content: ' · Host';
-  color: #fbbf24;
-  font-weight: 700;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(220, 38, 38, 0.06);
 }
 
 .orbit-booking__share {
@@ -59,8 +59,12 @@
 }
 
 .orbit-booking__cta-host {
-  background: linear-gradient(135deg, #0891b2 0%, #6366f1 100%);
-  box-shadow: 0 0 24px rgba(6, 182, 212, 0.25);
+  background: #dc2626;
+  box-shadow: 0 0 24px rgba(220, 38, 38, 0.28);
+}
+
+.orbit-booking__cta-host:hover:not(:disabled) {
+  background: #b91c1c;
 }
 
 .orbit-booking__cta-host:disabled {
@@ -100,20 +104,42 @@
   color: #71717a;
 }
 
-.orbit-booking__orbit-ring {
-  position: absolute;
-  inset: -8px;
-  border-radius: 999px;
-  border: 1px dashed rgba(34, 211, 238, 0.25);
-  animation: orbit-spin 12s linear infinite;
-  pointer-events: none;
+.orbit-booking__skeleton {
+  animation: orbit-pulse 1.4s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  border-radius: 0.75rem;
 }
 
-@keyframes orbit-spin {
-  from {
-    transform: rotate(0deg);
+@keyframes orbit-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.orbit-booking__sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(10, 10, 12, 0.98), rgba(10, 10, 12, 0.85));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 1024px) {
+  .orbit-booking__sticky-cta {
+    display: none;
   }
-  to {
-    transform: rotate(360deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-booking__cta-host {
+    transition: none;
+  }
+
+  .orbit-booking__skeleton {
+    animation: none;
+    background: rgba(255, 255, 255, 0.06);
   }
 }
