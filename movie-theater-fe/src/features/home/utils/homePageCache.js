@@ -1,7 +1,7 @@
 import { queryClient } from '../../../app/providers/QueryProvider';
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
-import { fetchNowShowingMovies, homeQueryKeys } from '../hooks/useHomeQueries';
+import { fetchNowShowingMovies, fetchUpcomingMoviesForHome, homeQueryKeys } from '../hooks/useHomeQueries';
 
 export function prefetchNowShowingMovies() {
   return queryClient.fetchQuery({
@@ -13,7 +13,7 @@ export function prefetchNowShowingMovies() {
 export function prefetchUpcomingMovies() {
   return queryClient.fetchQuery({
     queryKey: homeQueryKeys.upcoming,
-    queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 20 }),
+    queryFn: fetchUpcomingMoviesForHome,
   });
 }
 
