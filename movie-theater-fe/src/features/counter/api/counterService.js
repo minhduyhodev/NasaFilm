@@ -26,6 +26,15 @@ class CounterService {
     }
   }
 
+  async getWalkInCustomer() {
+    try {
+      const response = await authService.api.get('/api/staff/customers/walk-in');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async createCustomer(customerData) {
     try {
       const response = await authService.api.post('/api/staff/customers', customerData);

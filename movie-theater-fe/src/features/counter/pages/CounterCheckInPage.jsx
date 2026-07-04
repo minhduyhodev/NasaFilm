@@ -5,6 +5,8 @@ import { counterService } from '../api/counterService';
 import { bookingService } from '../../../shared/services/bookingService';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { CounterPageHeader } from '../components/CounterStaffUI';
+import '../styles/counter-staff-theme.css';
 
 // Audio feedback helper using Web Audio API
 const playBeep = (isSuccess) => {
@@ -139,16 +141,16 @@ export default function CounterCheckInPage() {
     setLoading(true);
     try {
       const res = await counterService.checkInTicket(code, currentRoomUuid);
-      
+
       // Fetch fresh bookings to ensure scan details are found
       const freshBookings = await bookingService.getAdminBookings();
       setAllBookings(freshBookings || []);
 
       const bookingDetails = freshBookings.find(b => b.bookingUuid === res.bookingUuid);
-      
+
       const success = res.status === 'VALID';
       playBeep(success);
-      
+
       let speechMsg = res.message;
       if (res.status === 'VALID') {
         speechMsg = 'Soát vé thành công!';
@@ -182,7 +184,7 @@ export default function CounterCheckInPage() {
 
       setLastScanResult(resultObj);
       setScanHistory(prev => [resultObj, ...prev.slice(0, 19)]);
-      
+
       if (success) {
         notificationService.success(res.message);
       } else {
@@ -264,248 +266,185 @@ export default function CounterCheckInPage() {
   }, []);
 
   return (
-    <div className="space-y-8 font-sans max-w-7xl mx-auto">
-      {/* Title Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E293B] pb-5">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-wide flex items-center gap-2.5">
-            <QrCode className="w-6 h-6 text-indigo-500" />
-            Hệ thống soát vé QR
-          </h1>
-          <p className="text-gray-400 text-xs mt-1">
-            Quét mã QR trên vé của khách hàng hoặc nhập mã thủ công để kiểm thử
-          </p>
-        </div>
+    <div className="adm-page staff-control counter-checkin">
+      <CounterPageHeader
+        eyebrow="Trung tâm vận hành rạp"
+        title="Hệ thống soát vé QR"
+        description="Quét mã QR trên vé của khách hàng hoặc nhập mã thủ công để kiểm thử."
+        actions={(
+          <button
+            type="button"
+            onClick={() => setAudioEnabled(!audioEnabled)}
+            className={`staff-control__audio-toggle ${audioEnabled ? 'staff-control__audio-toggle--on' : ''}`}
+          >
+            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            Âm thanh: {audioEnabled ? 'BẬT (TTS)' : 'TẮT'}
+          </button>
+        )}
+      />
 
-        {/* Audio control toggles */}
-        <button
-          onClick={() => setAudioEnabled(!audioEnabled)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-            audioEnabled 
-              ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20' 
-              : 'bg-[#121826] border-[#1E293B] text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          {audioEnabled ? (
-            <>
-              <Volume2 className="w-4 h-4" />
-              <span>Âm thanh: BẬT (TTS)</span>
-            </>
-          ) : (
-            <>
-              <VolumeX className="w-4 h-4" />
-              <span>Âm thanh: TẮT</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* LEFT PANE: Scan Actions & Camera */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-[#0B0F19] border border-[#1E293B] rounded-2xl p-6 shadow-xl space-y-6">
-            <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-              <Scan className="w-4 h-4 text-indigo-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-5">
+          <aside className="staff-control__panel staff-control__panel--checkin">
+            <h2 className="staff-control__panel-title">
+              <Scan className="w-3.5 h-3.5" />
               Quét vé camera
             </h2>
 
-            {/* Qr Reader Container */}
             {isScanning ? (
               <div className="space-y-4">
-                <div className="overflow-hidden rounded-xl border border-indigo-500/30 bg-black relative aspect-square max-w-[340px] mx-auto">
+                <div className="overflow-hidden rounded-xl border border-red-500/25 bg-black relative aspect-square max-w-[340px] mx-auto">
                   <div id="qr-reader-container" className="w-full h-full" />
                 </div>
-                <button
-                  onClick={stopScanning}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
-                >
+                <button type="button" onClick={stopScanning} className="staff-control__btn staff-control__btn--secondary w-full">
                   Tắt camera
                 </button>
               </div>
             ) : (
-              <div 
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={startScanning}
-                className="border-2 border-dashed border-[#1E293B] hover:border-indigo-500/50 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer group transition-all bg-[#121826]/40 hover:bg-[#121826]/80"
+                onKeyDown={(e) => e.key === 'Enter' && startScanning()}
+                className="counter-checkin__scan-placeholder"
               >
-                <div className="w-12 h-12 rounded-full bg-indigo-500/10 group-hover:bg-indigo-500/20 flex items-center justify-center text-indigo-400 transition-colors mb-3">
-                  <QrCode className="w-6 h-6 animate-pulse" />
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 mb-3">
+                  <QrCode className="w-6 h-6" />
                 </div>
-                <p className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">
-                  Nhấp để kích hoạt camera
-                </p>
-                <p className="text-[10px] text-gray-500 mt-1">
-                  Yêu cầu cấp quyền truy cập camera
-                </p>
+                <p className="text-xs font-bold text-slate-300">Nhấp để kích hoạt camera</p>
+                <p className="text-[0.65rem] text-slate-500 mt-1">Yêu cầu cấp quyền truy cập camera</p>
               </div>
             )}
 
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-[#1E293B]" />
-              <span className="flex-shrink mx-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">Hoặc nhập mã thủ công</span>
-              <div className="flex-grow border-t border-[#1E293B]" />
-            </div>
+            <div className="counter-checkin__divider">Hoặc nhập mã thủ công</div>
 
-            {/* Manual input */}
-            <div className="space-y-2.5">
+            <div className="staff-control__checkin-form">
               <input
                 type="text"
+                className="staff-control__input"
                 value={ticketCode}
                 onChange={(e) => setTicketCode(e.target.value)}
                 placeholder="Ví dụ: T102394..."
-                className="w-full bg-[#121826] border border-[#1E293B] focus:border-indigo-500 rounded-xl py-3 px-4 text-xs text-gray-100 placeholder-gray-500 focus:outline-none transition-colors"
                 onKeyDown={(e) => e.key === 'Enter' && handleCheckIn()}
               />
               <button
+                type="button"
                 onClick={() => handleCheckIn()}
                 disabled={loading || !ticketCode.trim()}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md hover:shadow-indigo-500/10 cursor-pointer"
+                className="staff-control__btn staff-control__btn--primary w-full"
               >
                 {loading ? 'Đang kiểm tra...' : 'Kiểm tra & Soát vé'}
               </button>
             </div>
-          </div>
+          </aside>
         </div>
 
-        {/* RIGHT PANE: Last scan result & Info */}
-        <div className="lg:col-span-7 space-y-6">
-          
-          {/* Scan result display */}
-          <div className="bg-[#0B0F19] border border-[#1E293B] rounded-2xl p-6 shadow-xl min-h-[380px] flex flex-col justify-between">
+        <div className="lg:col-span-7">
+          <section className="staff-control__panel min-h-[380px] flex flex-col">
             {lastScanResult ? (
-              <div className="space-y-6 flex-1 flex flex-col justify-between">
-                
-                {/* Result header banner */}
-                <div className={`p-4 rounded-xl border flex items-start gap-4 ${
-                  lastScanResult.status === 'VALID'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-red-500/10 border-red-500/20 text-red-400'
-                }`}>
-                  <div className={`p-2 rounded-lg ${
-                    lastScanResult.status === 'VALID' ? 'bg-emerald-500/20' : 'bg-red-500/20'
-                  }`}>
-                    {lastScanResult.status === 'VALID' ? (
-                      <ShieldCheck className="w-6 h-6" />
-                    ) : (
-                      <ShieldAlert className="w-6 h-6" />
-                    )}
-                  </div>
+              <div className="space-y-5 flex-1 flex flex-col">
+                <div className={`staff-control__result-banner ${lastScanResult.status === 'VALID' ? 'staff-control__result-banner--success' : 'staff-control__result-banner--error'}`}>
+                  {lastScanResult.status === 'VALID' ? <ShieldCheck className="w-5 h-5 shrink-0" /> : <ShieldAlert className="w-5 h-5 shrink-0" />}
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-wider">
                       {lastScanResult.status === 'VALID' ? 'VÉ HỢP LỆ' : `LỖI SOÁT VÉ: ${lastScanResult.status}`}
                     </h3>
-                    <p className="text-xs mt-1 text-gray-300">
-                      {lastScanResult.message}
-                    </p>
+                    <p className="text-xs mt-1 opacity-90">{lastScanResult.message}</p>
                   </div>
                 </div>
 
-                {/* Booking details table */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4 bg-[#121826]/40 p-4 border border-[#1E293B] rounded-xl text-xs">
+                <div className="staff-control__result-details">
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Phim chọi</span>
-                    <span className="text-white font-bold">{lastScanResult.booking.movieTitle}</span>
+                    <span className="staff-control__result-label">Phim chiếu</span>
+                    <span className="staff-control__result-value">{lastScanResult.booking.movieTitle}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Phòng chiếu chọi</span>
-                    <span className="text-white font-bold">{lastScanResult.expectedRoomName}</span>
+                    <span className="staff-control__result-label">Phòng chiếu</span>
+                    <span className="staff-control__result-value">{lastScanResult.expectedRoomName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Vị trí ghế</span>
-                    <span className="text-indigo-400 font-extrabold text-sm">{lastScanResult.booking.seats}</span>
+                    <span className="staff-control__result-label">Vị trí ghế</span>
+                    <span className="staff-control__result-value staff-control__result-value--accent">{lastScanResult.booking.seats}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Mã giao dịch</span>
-                    <span className="text-gray-300 font-mono">{lastScanResult.code}</span>
+                    <span className="staff-control__result-label">Mã giao dịch</span>
+                    <span className="staff-control__result-value font-mono">{lastScanResult.code}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Tên khách hàng</span>
-                    <span className="text-white font-semibold">{lastScanResult.booking.customerName}</span>
+                    <span className="staff-control__result-label">Tên khách hàng</span>
+                    <span className="staff-control__result-value">{lastScanResult.booking.customerName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block font-semibold mb-0.5">Email</span>
-                    <span className="text-gray-300 truncate block max-w-[200px]">{lastScanResult.booking.customerEmail}</span>
+                    <span className="staff-control__result-label">Email</span>
+                    <span className="staff-control__result-value truncate block">{lastScanResult.booking.customerEmail}</span>
                   </div>
                   {lastScanResult.booking.combos && (
-                    <div className="col-span-2 border-t border-[#1E293B] pt-3 mt-1">
-                      <span className="text-gray-500 block font-semibold mb-0.5">Combo bắp nước</span>
-                      <span className="text-yellow-500 font-semibold">{lastScanResult.booking.combos}</span>
+                    <div className="col-span-2">
+                      <span className="staff-control__result-label">Combo bắp nước</span>
+                      <span className="staff-control__result-value text-amber-400">{lastScanResult.booking.combos}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Footer verification check */}
-                <div className="border-t border-[#1E293B] pt-4 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-wider font-mono">
+                <div className="border-t border-white/5 pt-3 flex items-center justify-between text-[0.62rem] text-slate-500 font-bold uppercase tracking-wider">
                   <span>Phòng đang soát: {lastScanResult.currentRoomName}</span>
                   <span>Thời gian quét: {new Date(lastScanResult.checkedInAt).toLocaleTimeString()}</span>
                 </div>
-
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 mb-4">
-                  <ClipboardList className="w-7 h-7" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-300">Chưa có thông tin quét vé</h3>
-                <p className="text-xs text-gray-500 max-w-[280px] mt-1.5 leading-relaxed">
+              <div className="staff-control__empty flex-1 flex flex-col justify-center">
+                <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                <p>Chưa có thông tin quét vé</p>
+                <p className="text-[0.7rem] mt-1 max-w-[280px] mx-auto">
                   Vui lòng quét mã QR hoặc nhập mã vé ở bảng bên trái để hiển thị thông tin chi tiết
                 </p>
               </div>
             )}
-          </div>
+          </section>
         </div>
-
       </div>
 
-      {/* BOTTOM SCAN HISTORY LOG */}
-      <div className="bg-[#0B0F19] border border-[#1E293B] rounded-2xl p-6 shadow-xl">
-        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2 mb-4">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
+      <section className="staff-control__panel">
+        <h2 className="staff-control__panel-title">
+          <Sparkles className="w-3.5 h-3.5" />
           Lịch sử soát vé phiên làm việc
         </h2>
 
         {scanHistory.length === 0 ? (
-          <div className="text-center py-6 text-xs text-gray-500 font-medium">
-            Chưa có vé nào được soát trong phiên này
-          </div>
+          <p className="staff-control__empty py-4">Chưa có vé nào được soát trong phiên này</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="counter-checkin__history-table">
               <thead>
-                <tr className="border-b border-[#1E293B] text-gray-400 uppercase tracking-wider font-bold">
-                  <th className="pb-3 pr-4">Mã vé</th>
-                  <th className="pb-3 px-4">Phim</th>
-                  <th className="pb-3 px-4">Vị trí ghế</th>
-                  <th className="pb-3 px-4">Thời gian</th>
-                  <th className="pb-3 px-4">Trạng thái</th>
-                  <th className="pb-3 pl-4 text-right">Chi tiết</th>
+                <tr>
+                  <th>Mã vé</th>
+                  <th>Phim</th>
+                  <th>Vị trí ghế</th>
+                  <th>Thời gian</th>
+                  <th>Trạng thái</th>
+                  <th className="text-right">Chi tiết</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E293B]/40">
+              <tbody>
                 {scanHistory.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 pr-4 font-mono font-bold text-gray-300">{item.code}</td>
-                    <td className="py-3 px-4 font-bold text-white max-w-[200px] truncate">{item.booking.movieTitle}</td>
-                    <td className="py-3 px-4 text-indigo-400 font-extrabold">{item.booking.seats}</td>
-                    <td className="py-3 px-4 text-gray-400">{new Date(item.checkedInAt).toLocaleTimeString()}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                        item.status === 'VALID' 
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                          : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                      }`}>
+                  <tr key={idx}>
+                    <td className="font-mono font-bold text-slate-300">{item.code}</td>
+                    <td className="font-bold text-white max-w-[200px] truncate">{item.booking.movieTitle}</td>
+                    <td className="text-red-400 font-extrabold">{item.booking.seats}</td>
+                    <td>{new Date(item.checkedInAt).toLocaleTimeString()}</td>
+                    <td>
+                      <span className={`counter-checkin__badge ${item.status === 'VALID' ? 'counter-checkin__badge--ok' : 'counter-checkin__badge--err'}`}>
                         {item.status}
                       </span>
                     </td>
-                    <td className="py-3 pl-4 text-right text-gray-400 truncate max-w-[200px]">{item.message}</td>
+                    <td className="text-right truncate max-w-[200px]">{item.message}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
-
+      </section>
     </div>
   );
 }
