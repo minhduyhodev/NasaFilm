@@ -7,7 +7,7 @@ import { movieService } from '../../../shared/services/movieService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { getMoviePosterUrl } from '../utils/movieUtils';
-import { BOOKING_SESSION_KEYS, readBookingSession } from '../../../shared/utils/bookingSessionStorage';
+import { BOOKING_SESSION_KEYS, readBookingSession, writeBookingSession } from '../../../shared/utils/bookingSessionStorage';
 import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
 
@@ -161,25 +161,25 @@ const BookingPage = () => {
 
   const handleConfirm = () => {
     setIsConfirming(true);
+    const payload = {
+      showtimeUuid,
+      theater,
+      movie,
+      movieUuid,
+      moviePoster: resolvedPoster,
+      movieRating,
+      movieFormat,
+      movieAgeRestriction: resolvedAge,
+      date,
+      showtime,
+      selectedSeats,
+      totalAmount,
+      lockExpiresAt: timeLeft !== null ? Date.now() + (timeLeft * 1000) : null,
+    };
+    writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, payload);
     setTimeout(() => {
       setIsConfirming(false);
-      navigate('/concessions', {
-        state: {
-          showtimeUuid,
-          theater,
-          movie,
-          movieUuid,
-          moviePoster: resolvedPoster,
-          movieRating,
-          movieFormat,
-          movieAgeRestriction: resolvedAge,
-          date,
-          showtime,
-          selectedSeats,
-          totalAmount,
-          lockExpiresAt: timeLeft !== null ? Date.now() + (timeLeft * 1000) : null,
-        },
-      });
+      navigate('/concessions', { state: payload });
     }, 800);
   };
 

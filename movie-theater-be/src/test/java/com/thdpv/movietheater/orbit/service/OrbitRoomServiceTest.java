@@ -154,6 +154,29 @@ class OrbitRoomServiceTest {
     }
 
     @Test
+    void createRoomShouldRejectWhenHostHasActiveRoom() {
+        User host = new User();
+        host.setId(hostUuid);
+        host.setEmail("host@example.com");
+
+        when(userRepository.findByEmailIgnoreCase("host@example.com")).thenReturn(Optional.of(host));
+        when(orbitRoomRepository.findByHostUserUuidAndStatusIn(
+                eq(hostUuid), eq(List.of(OrbitRoomStatus.OPEN, OrbitRoomStatus.CHECKOUT))))
+                .thenReturn(List.of(openRoom));
+
+        com.thdpv.movietheater.orbit.dto.request.CreateOrbitRoomRequest request =
+                new com.thdpv.movietheater.orbit.dto.request.CreateOrbitRoomRequest();
+        request.setShowtimeUuid(UUID.randomUUID());
+        request.setMaxMembers(4);
+
+        AppException ex = assertThrows(AppException.class, () ->
+                orbitRoomService.createRoom("host@example.com", request));
+
+        assertEquals(ErrorCode.CONFLICT, ex.getErrorCode());
+        verify(orbitRoomRepository, never()).save(any());
+    }
+
+    @Test
     void abortCheckoutShouldRevertRoomToOpen() {
         User host = new User();
         host.setId(hostUuid);
@@ -165,10 +188,10 @@ class OrbitRoomServiceTest {
         hostMember.setSeatUuidsJson("[\"00000000-0000-0000-0000-000000000001\"]");
 
         when(userRepository.findByEmailIgnoreCase("host@example.com")).thenReturn(Optional.of(host));
-        when(orbitRoomRepository.findById(roomUuid)).thenReturn(Optional.of(openRoom));
+        when(orbitRoomRepository.findByIdForUpdate(roomUuid)).thenReturn(Optional.of(openRoom));
         when(orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)).thenReturn(List.of(hostMember));
-        when(bookingNativeRepository.transferSeatLocksToUser(
-                eq(openRoom.getShowtimeUuid()), eq(hostUuid), any(), any())).thenReturn(1);
+        when(bookingNativeRepository.transferSeatLocksFromUserToUser(
+                eq(openRoom.getShowtimeUuid()), eq(hostUuid), eq(hostUuid), any(), any())).thenReturn(1);
         when(orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)).thenReturn(List.of(hostMember));
 
         OrbitRoomResponse response = orbitRoomService.abortCheckout("host@example.com", roomUuid);

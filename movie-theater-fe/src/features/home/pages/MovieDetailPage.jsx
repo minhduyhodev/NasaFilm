@@ -18,6 +18,7 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import { orbitService } from "../../../shared/services/orbitService";
+import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
 import { getMaxSeatsPerBooking } from "../../../shared/utils/systemConfig";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
@@ -294,7 +295,7 @@ const MovieDetailPage = () => {
     });
     setIsCreatingOrbit(true);
     try {
-      const room = await orbitService.createRoom(selectedShowtime.uuid, getMaxSeatsPerBooking());
+      const room = await orbitService.createRoom(selectedShowtime.uuid, ORBIT_DEFAULT_MAX_MEMBERS);
       notificationService.success("Đã tạo phòng Orbit — mời bạn bè qua link chia sẻ.");
       navigate(`/booking/orbit/${room.uuid}`, {
         state: {

@@ -30,7 +30,7 @@ public class OrbitRoomExpiryService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void expireRoom(UUID roomUuid) {
         OffsetDateTime now = OffsetDateTime.now();
-        OrbitRoom room = orbitRoomRepository.findById(roomUuid).orElse(null);
+        OrbitRoom room = orbitRoomRepository.findByIdForUpdate(roomUuid).orElse(null);
         if (room == null) {
             return;
         }

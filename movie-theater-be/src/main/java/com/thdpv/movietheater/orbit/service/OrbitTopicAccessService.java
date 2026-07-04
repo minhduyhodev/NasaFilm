@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.thdpv.movietheater.orbit.enums.OrbitRoomStatus;
 import com.thdpv.movietheater.orbit.repository.OrbitMemberRepository;
 import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -58,14 +57,9 @@ public class OrbitTopicAccessService {
         }
         return userRepository.findByEmailIgnoreCase(userEmail.trim())
                 .flatMap(user -> orbitRoomRepository.findById(roomUuid)
-                        .map(room -> {
-                            if (orbitMemberRepository
-                                    .findByRoomUuidAndUserUuid(roomUuid, user.getId())
-                                    .isPresent()) {
-                                return true;
-                            }
-                            return room.getStatus() == OrbitRoomStatus.OPEN;
-                        }))
+                        .flatMap(room -> orbitMemberRepository
+                                .findByRoomUuidAndUserUuid(roomUuid, user.getId())
+                                .map(member -> true)))
                 .orElse(false);
     }
 }

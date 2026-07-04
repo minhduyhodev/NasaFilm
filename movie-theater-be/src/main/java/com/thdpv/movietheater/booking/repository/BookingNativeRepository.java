@@ -221,11 +221,13 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             update seat_locked
             set user_uuid = :targetUserUuid
             where showtime_uuid = :showtimeUuid
+              and user_uuid = :sourceUserUuid
               and seat_uuid in (:seatUuids)
               and expired_at > :now
             """, nativeQuery = true)
-    int transferSeatLocksToUser(
+    int transferSeatLocksFromUserToUser(
             @Param("showtimeUuid") UUID showtimeUuid,
+            @Param("sourceUserUuid") UUID sourceUserUuid,
             @Param("targetUserUuid") UUID targetUserUuid,
             @Param("seatUuids") Collection<UUID> seatUuids,
             @Param("now") OffsetDateTime now);

@@ -14,7 +14,7 @@ import { walletService } from '../../../shared/services/walletService';
 import PosterImage from '../../../shared/components/PosterImage';
 
 import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
-import { BOOKING_SESSION_KEYS, readBookingSession } from '../../../shared/utils/bookingSessionStorage';
+import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
 
 const CheckoutPage = () => {
   const location = useLocation();
@@ -291,6 +291,7 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       showMissionCompletionToasts(response?.missionCompletions);
+      clearAllBookingSessions();
       
       if (isVod) {
         navigate('/booking-confirmed', {
@@ -698,7 +699,9 @@ const CheckoutPage = () => {
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto animate-bounce shrink-0" />
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Đã hết thời gian giữ ghế (tối đa {ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm Orbit). Ghế đã được giải phóng. Vui lòng quay lại phòng Orbit để chọn lại.
+              {isOrbit
+                ? `Đã hết thời gian giữ ghế (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm Orbit). Ghế đã được giải phóng. Vui lòng quay lại phòng Orbit để chọn lại.`
+                : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button
               onClick={() => {

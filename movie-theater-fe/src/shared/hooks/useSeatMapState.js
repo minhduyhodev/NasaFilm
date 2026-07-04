@@ -132,10 +132,12 @@ export function useSeatMapState(showtimeUuid, options = {}) {
 
     let intervalId;
     if (enablePolling) {
-      intervalId = setInterval(
-        () => fetchSeatMapRef.current(undefined, { silent: true }),
-        pollIntervalMs,
-      );
+      intervalId = setInterval(() => {
+        if (enableRealtime && stompSocketService.isConnected()) {
+          return;
+        }
+        fetchSeatMapRef.current(undefined, { silent: true });
+      }, pollIntervalMs);
     }
 
     return () => {
@@ -146,7 +148,7 @@ export function useSeatMapState(showtimeUuid, options = {}) {
         bookingService.unwatchSeatMap(showtimeUuid).catch(() => {});
       }
     };
-  }, [showtimeUuid, enabled, watchSeatMap, enablePolling, pollIntervalMs]);
+  }, [showtimeUuid, enabled, watchSeatMap, enablePolling, enableRealtime, pollIntervalMs]);
 
   useRealtimeTopic(
     enableRealtime && showtimeUuid && enabled

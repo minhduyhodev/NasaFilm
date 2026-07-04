@@ -79,6 +79,13 @@ CREATE INDEX IF NOT EXISTS idx_orbit_room_showtime
 CREATE INDEX IF NOT EXISTS idx_orbit_room_host
     ON orbit_room (host_user_uuid, status);
 
+CREATE INDEX IF NOT EXISTS idx_orbit_room_expires
+    ON orbit_room (status, expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_booking
+    ON orbit_room (booking_uuid)
+    WHERE booking_uuid IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS orbit_member (
     uuid uuid PRIMARY KEY,
     room_uuid uuid NOT NULL,

@@ -82,7 +82,7 @@ class OrbitRoomServiceCheckoutLockTest {
         member.setSeatUuidsJson("[\"00000000-0000-0000-0000-000000000001\"]");
 
         when(userRepository.findByEmailIgnoreCase("host@example.com")).thenReturn(Optional.of(host));
-        when(orbitRoomRepository.findById(roomUuid)).thenReturn(Optional.of(checkoutRoom));
+        when(orbitRoomRepository.findByIdForUpdate(roomUuid)).thenReturn(Optional.of(checkoutRoom));
         when(orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)).thenReturn(List.of(member));
 
         var response = orbitRoomService.cancelRoom("host@example.com", roomUuid);

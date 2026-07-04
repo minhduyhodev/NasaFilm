@@ -26,6 +26,9 @@ public class OrbitRoomMaintenanceService {
     @Value("${app.orbit.enabled:true}")
     private boolean orbitEnabled;
 
+    @Value("${app.orbit.expire-batch-size:50}")
+    private int expireBatchSize;
+
     @Scheduled(fixedDelayString = "${app.orbit.expire-check-ms:60000}")
     public void expireStaleRooms() {
         if (!orbitEnabled) {
@@ -33,7 +36,9 @@ public class OrbitRoomMaintenanceService {
         }
         OffsetDateTime now = OffsetDateTime.now();
         List<OrbitRoom> expired = orbitRoomRepository.findExpiredOpenRooms(now);
-        for (OrbitRoom room : expired) {
+        int limit = Math.min(expired.size(), Math.max(1, expireBatchSize));
+        for (int i = 0; i < limit; i++) {
+            OrbitRoom room = expired.get(i);
             try {
                 orbitRoomExpiryService.expireRoom(room.getUuid());
             } catch (Exception ex) {

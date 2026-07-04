@@ -18,6 +18,14 @@ export const ORBIT_TERMINAL_STATUSES = ['EXPIRED', 'CANCELLED', 'CLOSED'];
 
 export const ORBIT_CHECKOUT_TTL_MINUTES = 15;
 
+export const ORBIT_DEFAULT_MAX_MEMBERS = 8;
+
+/** Backend already returns Vietnamese messages; use as-is with a safe fallback. */
+export function resolveOrbitErrorMessage(err, fallback = 'Không thể thực hiện thao tác Orbit.') {
+  const msg = err?.message?.trim();
+  return msg || fallback;
+}
+
 export function formatOrbitStatus(status) {
   return ORBIT_STATUS_LABELS[status] || status;
 }

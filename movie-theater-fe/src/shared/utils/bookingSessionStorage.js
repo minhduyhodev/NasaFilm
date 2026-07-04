@@ -39,6 +39,6 @@ export function clearBookingSession(key) {
   }
 }
 
-export function useInitialRouteState(key, locationState) {
-  return readBookingSession(key, locationState) ?? {};
+export function clearAllBookingSessions() {
+  Object.values(BOOKING_SESSION_KEYS).forEach((key) => clearBookingSession(key));
 }

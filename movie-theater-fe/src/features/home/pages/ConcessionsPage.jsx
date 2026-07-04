@@ -6,7 +6,12 @@ import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
-import { BOOKING_SESSION_KEYS, readBookingSession } from '../../../shared/utils/bookingSessionStorage';
+import {
+  BOOKING_SESSION_KEYS,
+  readBookingSession,
+  writeBookingSession,
+} from '../../../shared/utils/bookingSessionStorage';
+import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
 
 function getComboImageUrl(combo) {
   const raw = combo?.imageUrl?.trim();
@@ -22,23 +27,29 @@ const ConcessionsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const bookingState = readBookingSession(BOOKING_SESSION_KEYS.BOOKING, location.state) ?? {};
+  const [bookingState] = useState(() =>
+    readBookingSession(BOOKING_SESSION_KEYS.BOOKING, location.state) ?? {},
+  );
 
   const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
+    showtimeUuid = '',
+    theater = '',
+    movie = '',
     movieUuid = '',
     moviePoster = '',
     movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30',
+    date = '',
+    showtime = '',
     selectedSeats = [],
-    totalAmount = 0, // Giá trị tiền vé
-    lockExpiresAt = null
+    totalAmount = 0,
+    lockExpiresAt = null,
+    orbitRoomUuid = null,
+    isOrbit = false,
   } = bookingState;
+
+  const isOrbitBooking = isOrbit || Boolean(orbitRoomUuid);
 
   const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
 
@@ -96,13 +107,20 @@ const ConcessionsPage = () => {
     }
   }, [lockExpiresAt]);
 
-  // Điều hướng ngược về nếu hết hạn giữ ghế
+  // Điều hướng khi hết hạn giữ ghế
   useEffect(() => {
     if (timeLeft === 0) {
-      notificationService.error("Hết thời gian giữ ghế. Vui lòng chọn lại.");
+      if (isOrbitBooking && orbitRoomUuid) {
+        notificationService.error(
+          `Hết thời gian thanh toán nhóm Orbit (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút). Vui lòng quay lại phòng.`,
+        );
+        navigate(`/booking/orbit/${orbitRoomUuid}`);
+        return;
+      }
+      notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại.');
       navigate(-1);
     }
-  }, [timeLeft, navigate]);
+  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid]);
 
   // Lấy danh sách Combo hoạt động từ Backend API
   useEffect(() => {
@@ -164,13 +182,14 @@ const ConcessionsPage = () => {
 
   // Xử lý chuyển tiếp sang trang Checkout
   const handleContinue = () => {
-    navigate('/checkout', {
-      state: {
-        ...bookingState,
-        selectedCombos: selectedCombosList,
-        totalAmount: overallTotal
-      }
-    });
+    const checkoutPayload = {
+      ...bookingState,
+      selectedCombos: selectedCombosList,
+      totalAmount: overallTotal,
+    };
+    writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, checkoutPayload);
+    writeBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, checkoutPayload);
+    navigate('/checkout', { state: checkoutPayload });
   };
 
   if (isLoading) {
@@ -191,7 +210,13 @@ const ConcessionsPage = () => {
         <div className="lg:col-span-8 flex flex-col">
           {/* Nút quay lại chọn ghế */}
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (isOrbitBooking && orbitRoomUuid) {
+                navigate(`/booking/orbit/${orbitRoomUuid}`);
+                return;
+              }
+              navigate(-1);
+            }}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group cursor-pointer w-fit"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />

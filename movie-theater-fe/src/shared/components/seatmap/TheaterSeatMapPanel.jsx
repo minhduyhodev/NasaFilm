@@ -371,4 +371,4 @@ const TheaterSeatMapPanel = ({
   );
 };
 
-export default TheaterSeatMapPanel;
+export default React.memo(TheaterSeatMapPanel);

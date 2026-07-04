@@ -59,12 +59,12 @@ class OrbitTopicAccessServiceTest {
     }
 
     @Test
-    void canSubscribeShouldAllowGuestOnOpenRoom() {
+    void canSubscribeShouldDenyGuestOnOpenRoom() {
         when(userRepository.findByEmailIgnoreCase("guest@example.com")).thenReturn(Optional.of(user));
         when(orbitRoomRepository.findById(roomUuid)).thenReturn(Optional.of(openRoom));
         when(orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)).thenReturn(Optional.empty());
 
-        assertTrue(orbitTopicAccessService.canSubscribe("guest@example.com", roomUuid));
+        assertFalse(orbitTopicAccessService.canSubscribe("guest@example.com", roomUuid));
     }
 
     @Test
