@@ -23,7 +23,7 @@ import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
-import { AdminPage, PageHeader } from "../components";
+import { AdminPage, PageHeader, AdminKpiGrid } from "../components";
 import "./UsersPage.css";
 
 const UsersPage = () => {
@@ -256,48 +256,42 @@ const UsersPage = () => {
         }}
       />
 
-      <div className="adm-kpi-grid adm-kpi-grid--4">
-        {[
+      <AdminKpiGrid
+        items={[
           {
-            label: "Tổng Khách Hàng",
+            label: "Tổng khách hàng",
             value: stats.total,
-            Icon: Users,
-            valueColor: "text-white",
-            iconColor: "text-white",
+            badge: "trong hệ thống",
+            icon: Users,
+            color: "text-pink-400",
+            kpiClass: "kpi-total",
           },
           {
-            label: "Đang Hoạt Động",
+            label: "Đang hoạt động",
             value: stats.active,
-            Icon: CheckCircle,
-            valueColor: "text-emerald-400",
-            iconColor: "text-emerald-400",
+            badge: "tài khoản active",
+            icon: CheckCircle,
+            color: "text-emerald-400",
+            kpiClass: "kpi-showing",
           },
           {
-            label: "Tài Khoản Bị Khóa",
+            label: "Tài khoản bị khóa",
             value: stats.suspended,
-            Icon: Ban,
-            valueColor: "text-rose-400",
-            iconColor: "text-rose-400",
+            badge: "đã tạm khóa",
+            icon: Ban,
+            color: "text-rose-400",
+            kpiClass: "kpi-upcoming",
           },
           {
-            label: "Hội Viên VIP ",
+            label: "Hội viên VIP",
             value: stats.vip,
-            Icon: Star,
-            valueColor: "text-amber-400",
-            iconColor: "text-amber-400",
+            badge: "từ 10.000 điểm",
+            icon: Star,
+            color: "text-amber-400",
+            kpiClass: "kpi-hidden",
           },
-        ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div key={label} className="adm-kpi-card flex items-center justify-between gap-3">
-            <div>
-              <span className="adm-kpi-card__label">{label}</span>
-              <span className={`adm-kpi-card__value ${valueColor}`}>{value}</span>
-            </div>
-            <div className={`p-2.5 rounded-xl bg-[#1a2238]/60 border border-[#2c3b5e]/30 ${iconColor}`}>
-              <Icon className="w-5 h-5" />
-            </div>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
       {/* FILTER TOOLBAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1 font-sans">

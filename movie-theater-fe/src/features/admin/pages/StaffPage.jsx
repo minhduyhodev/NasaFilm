@@ -10,7 +10,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import AdminModal from '../components/AdminModal';
 import AdminUserFormPanel from '../components/panels/AdminUserFormPanel';
 import { adminFilterSelectClass } from '../components/adminFormStyles';
-import { AdminPage, PageHeader } from '../components';
+import { AdminPage, PageHeader, AdminKpiGrid } from '../components';
 
 const StaffPage = () => {
   const { user: currentUser } = useAuthContext();
@@ -181,24 +181,42 @@ const StaffPage = () => {
         }}
       />
 
-      <div className="adm-kpi-grid adm-kpi-grid--4">
-        {[
-          { label: 'Tổng Nhân Sự', value: stats.total, Icon: Users, valueColor: 'text-white', iconColor: 'text-white' },
-          { label: 'Đang Hoạt Động', value: stats.active, Icon: CheckCircle, valueColor: 'text-emerald-400', iconColor: 'text-emerald-400' },
-          { label: 'Tài Khoản Bị Khóa', value: stats.suspended, Icon: Ban, valueColor: 'text-rose-400', iconColor: 'text-rose-400' },
-          { label: 'Quản Trị Viên (Admin)', value: stats.admins, Icon: ShieldAlert, valueColor: 'text-purple-400', iconColor: 'text-purple-400' },
-        ].map(({ label, value, Icon, valueColor, iconColor }) => (
-          <div key={label} className="adm-kpi-card flex items-center justify-between gap-3">
-            <div>
-              <span className="adm-kpi-card__label">{label}</span>
-              <span className={`adm-kpi-card__value ${valueColor}`}>{value}</span>
-            </div>
-            <div className={`p-2.5 rounded-xl bg-[#1a2238]/60 border border-[#2c3b5e]/30 ${iconColor}`}>
-              <Icon className="w-5 h-5" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdminKpiGrid
+        items={[
+          {
+            label: 'Tổng nhân sự',
+            value: stats.total,
+            badge: 'trong hệ thống',
+            icon: Users,
+            color: 'text-pink-400',
+            kpiClass: 'kpi-total',
+          },
+          {
+            label: 'Đang hoạt động',
+            value: stats.active,
+            badge: 'tài khoản active',
+            icon: CheckCircle,
+            color: 'text-emerald-400',
+            kpiClass: 'kpi-showing',
+          },
+          {
+            label: 'Tài khoản bị khóa',
+            value: stats.suspended,
+            badge: 'đã tạm khóa',
+            icon: Ban,
+            color: 'text-rose-400',
+            kpiClass: 'kpi-upcoming',
+          },
+          {
+            label: 'Quản trị viên',
+            value: stats.admins,
+            badge: 'tài khoản admin',
+            icon: ShieldAlert,
+            color: 'text-purple-400',
+            kpiClass: 'kpi-hidden',
+          },
+        ]}
+      />
 
       {/* FILTER TOOLBAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1 font-sans">

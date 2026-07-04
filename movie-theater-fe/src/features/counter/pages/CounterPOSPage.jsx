@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Building2, Calendar, Clock, Ticket, Popcorn, User, Search, UserPlus, 
+import {
+  Building2, Calendar, Clock, Ticket, Popcorn, User, Search, UserPlus,
   CreditCard, Banknote, QrCode, Tag, Check, ShoppingCart, Trash2, Printer, X
 } from 'lucide-react';
 import { counterService } from '../api/counterService';
@@ -74,14 +74,14 @@ export default function CounterPOSPage() {
   // Sync Showtimes when cinema or movie changes
   useEffect(() => {
     if (!currentCinemaUuid) return;
-    
+
     async function loadShowtimes() {
       try {
         const data = await counterService.getShowtimes({ cinemaUuid: currentCinemaUuid });
-        
+
         // Group showtimes by movie and extract available dates
         const filtered = data.filter(st => !selectedMovieUuid || st.movieUuid === selectedMovieUuid);
-        
+
         // Extract unique show dates
         const dates = [...new Set(filtered.map(st => {
           const dateObj = new Date(st.startTime);
@@ -120,7 +120,7 @@ export default function CounterPOSPage() {
       const data = await bookingService.getSeatMap(showtimeUuid);
       if (data && data.rows) {
         setSeatRows(data.rows);
-        
+
         // Sync already booked/locked/selected seats
         const selected = [];
         data.rows.forEach(row => {
@@ -165,7 +165,7 @@ export default function CounterPOSPage() {
 
     try {
       await bookingService.syncSeatLocks(selectedShowtime.uuid, nextSelectedUuids);
-      
+
       // Update local selection state
       if (isSelected) {
         setSelectedSeats(prev => prev.filter(s => s.seatUuid !== seat.seatUuid));
@@ -329,7 +329,7 @@ export default function CounterPOSPage() {
       setSelectedSeats([]);
       setSelectedCombos({});
       setPromoCode('');
-      
+
       // Reload seat map to show updated booking seats
       loadSeatMap(selectedShowtime.uuid);
       notificationService.success('Đã xuất vé và thanh toán thành công!');
@@ -342,10 +342,10 @@ export default function CounterPOSPage() {
 
   return (
     <div className="space-y-6 font-sans max-w-7xl mx-auto">
-      
+
       {/* Upper selections (Movie & Showtime Selection Panel) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#0B0F19] border border-[#1E293B] p-6 rounded-2xl shadow-lg">
-        
+
         {/* Movie Dropdown Selector */}
         <div className="space-y-2">
           <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Chọn Phim</label>
@@ -417,12 +417,12 @@ export default function CounterPOSPage() {
 
       {/* Split grid for seat map & cart detail */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* LEFT COLUMN: Seat Map Grid */}
         <div className="lg:col-span-8 bg-[#0B0F19] border border-[#1E293B] p-6 rounded-2xl shadow-xl flex flex-col items-center min-h-[460px]">
           {selectedShowtime ? (
             <div className="w-full space-y-8 flex flex-col items-center">
-              
+
               {/* Screen curve indicator */}
               <div className="w-full text-center">
                 <div className="mx-auto w-3/4 h-1.5 bg-gradient-to-b from-indigo-500/40 to-transparent rounded-[50%] blur-xs shadow-[0_-2px_10px_rgba(99,102,241,0.2)]"></div>
@@ -435,7 +435,7 @@ export default function CounterPOSPage() {
                   <div key={row.rowName} className="flex items-center gap-2 mb-0.5 justify-center min-w-max">
                     {/* Row Label */}
                     <span className="w-5 text-center text-[10px] font-black text-gray-500">{row.rowName}</span>
-                    
+
                     {row.seats.map(seat => {
                       const isOccupied = seat.availabilityStatus === 'BOOKED' || seat.availabilityStatus === 'LOCKED_BY_OTHER' || seat.availabilityStatus === 'UNAVAILABLE';
                       const isSelected = selectedSeats.some(s => s.seatUuid === seat.seatUuid);
@@ -509,7 +509,7 @@ export default function CounterPOSPage() {
 
         {/* RIGHT COLUMN: Food Combos, Customer Search, Order Summary */}
         <div className="lg:col-span-4 space-y-6">
-          
+
           {/* F&B Concessions selector */}
           <div className="bg-[#0B0F19] border border-[#1E293B] p-5 rounded-2xl shadow-xl space-y-4">
             <h2 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
@@ -614,7 +614,7 @@ export default function CounterPOSPage() {
                       <p className="font-bold text-white">{selectedCustomer.fullName}</p>
                       <p className="text-[10px] text-indigo-400/80 mt-0.5">{selectedCustomer.phoneNumber}</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setSelectedCustomer(null)}
                       className="text-gray-500 hover:text-gray-300 font-bold"
                     >
@@ -769,9 +769,9 @@ export default function CounterPOSPage() {
       {printTicketData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="w-full max-w-sm bg-white text-gray-900 rounded-2xl shadow-2xl relative border border-gray-200 overflow-hidden font-mono flex flex-col max-h-[90vh]">
-            
+
             {/* Top Close trigger */}
-            <button 
+            <button
               onClick={() => setPrintTicketData(null)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 p-1.5 hover:bg-gray-150 rounded-lg transition-colors cursor-pointer"
             >
@@ -780,7 +780,7 @@ export default function CounterPOSPage() {
 
             {/* Thermal ticket stub mockup layout */}
             <div className="p-6 overflow-y-auto no-scrollbar space-y-4">
-              
+
               {/* Theater header stub */}
               <div className="text-center border-b-2 border-dashed border-gray-300 pb-4 space-y-1">
                 <h3 className="font-extrabold text-base tracking-wider">NASA FILM</h3>

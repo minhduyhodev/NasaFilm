@@ -1,4 +1,5 @@
 export { default as AdminPage } from './AdminPage';
+export { default as AdminKpiGrid } from './AdminKpiGrid';
 export { default as PageHeader } from './PageHeader';
 export { default as Section } from './Section';
 export { default as MetadataRow } from './MetadataRow';

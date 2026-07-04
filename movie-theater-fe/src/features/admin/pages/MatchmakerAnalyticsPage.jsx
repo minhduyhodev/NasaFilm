@@ -154,7 +154,7 @@ const MatchmakerAnalyticsPage = () => {
       setAnalytics(data);
     } catch (err) {
       setAnalytics(null);
-      setError(err?.message || 'Không thể tải thống kê Movie Matchmaker');
+      setError(err?.message || 'Không thể tải thống kê quiz gợi ý phim');
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ const MatchmakerAnalyticsPage = () => {
       <AdminPage className="matchmaker-analytics">
         <PageHeader
           eyebrow="Phân tích khán giả"
-          title="Movie Matchmaker"
+          title="Thống kê quiz gợi ý phim"
           description="Phân bố tâm trạng và nơi xem từ quiz trên trang chủ — gợi ý điều phối suất chiếu và nhập phim VOD."
           variant="display"
         />
