@@ -10,35 +10,19 @@ export const homeQueryKeys = {
 };
 
 export async function fetchNowShowingMovies() {
-  const baseParams = {
+  return movieService.getMovies({
     status: 'NOW_SHOWING',
     requireBookableShowtime: true,
+    page: 0,
     size: 50,
-  };
-  const firstPage = await movieService.getMovies({ ...baseParams, page: 0 });
-  if (!firstPage?.totalPages || firstPage.totalPages <= 1) {
-    return firstPage;
-  }
-
-  const otherPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      movieService.getMovies({ ...baseParams, page: index + 1 }),
-    ),
-  );
-
-  return {
-    ...firstPage,
-    content: [
-      ...(firstPage.content ?? []),
-      ...otherPages.flatMap((page) => page?.content ?? []),
-    ],
-  };
+  });
 }
 
 export function useNowShowingMovies() {
   return useQuery({
     queryKey: homeQueryKeys.nowShowing,
     queryFn: fetchNowShowingMovies,
+    staleTime: 60_000,
   });
 }
 
@@ -46,6 +30,7 @@ export function useUpcomingMovies() {
   return useQuery({
     queryKey: homeQueryKeys.upcoming,
     queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 20 }),
+    staleTime: 60_000,
   });
 }
 

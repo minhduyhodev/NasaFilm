@@ -73,6 +73,8 @@ public class SecurityConfig {
             "/api/combos/active",
             "/api/review-vibe-tags",
             "/api/review-vibe-tags/**",
+            "/api/discover",
+            "/api/discover/**",
             "/ws/**",
             "/stomp/**",
             "/v3/api-docs/**",

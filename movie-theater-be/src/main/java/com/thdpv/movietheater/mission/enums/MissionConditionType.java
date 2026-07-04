@@ -5,5 +5,6 @@ public enum MissionConditionType {
     PREMIERE_BOOKING,
     HYBRID_THEATER_VOD,
     ORBIT_ROOM_JOIN,
-    REVIEW_WITH_VIBE_TAG
+    REVIEW_WITH_VIBE_TAG,
+    MATCHMAKER_QUIZ
 }

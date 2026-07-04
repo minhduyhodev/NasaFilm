@@ -28,7 +28,7 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions, showtime radar)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions, showtime radar, matchmaker history)...");
 
             jdbc.execute("""
                     ALTER TABLE movie_review
@@ -205,6 +205,18 @@ public class FeatureSchemaMigrationConfig {
                     """);
 
             // Mission incremental schema: Flyway R__mission_schema_patches.sql
+            jdbc.execute("ALTER TABLE mission_template DROP CONSTRAINT IF EXISTS mission_template_condition_type_check");
+            jdbc.execute("""
+                    ALTER TABLE mission_template ADD CONSTRAINT mission_template_condition_type_check
+                    CHECK (condition_type IN (
+                        'GENRE_WINDOW',
+                        'PREMIERE_BOOKING',
+                        'HYBRID_THEATER_VOD',
+                        'ORBIT_ROOM_JOIN',
+                        'REVIEW_WITH_VIBE_TAG',
+                        'MATCHMAKER_QUIZ'
+                    ))
+                    """);
 
             jdbc.execute("""
                     CREATE TABLE IF NOT EXISTS showtime_radar_preference (
@@ -240,6 +252,36 @@ public class FeatureSchemaMigrationConfig {
             jdbc.execute("""
                     CREATE INDEX IF NOT EXISTS idx_showtime_radar_alert_user
                     ON showtime_radar_alert (user_uuid, notified_at DESC)
+                    """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_matchmaker_history (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid,
+                        mood varchar(32) NOT NULL,
+                        duration varchar(16) NOT NULL,
+                        viewing_location varchar(16) NOT NULL,
+                        genre_uuids text,
+                        use_history boolean NOT NULL DEFAULT false,
+                        flight_code varchar(32),
+                        match_count integer NOT NULL DEFAULT 0,
+                        matched_movie_uuids text,
+                        top_match_movie_uuid uuid,
+                        top_match_score integer,
+                        created_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_user
+                    ON user_matchmaker_history (user_uuid, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_created
+                    ON user_matchmaker_history (created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_mood
+                    ON user_matchmaker_history (mood)
                     """);
 
             ensureSearchVector("movie", "title", "description");
