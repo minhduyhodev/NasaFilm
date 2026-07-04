@@ -388,7 +388,6 @@ const PurchaseHistoryPanel = () => {
             <p>Không tìm thấy giao dịch phù hợp</p>
           </div>
         ) : (
-          <>
           <div className="ph-list">
             {paginatedOrders.map((item) => {
               const status = statusMeta(item.bookingStatus);
@@ -437,22 +436,21 @@ const PurchaseHistoryPanel = () => {
               );
             })}
           </div>
-
-          {filteredOrders.length > 0 && (
-            <div className="ph-pagination">
-              <Pagination
-                currentPage={currentPage}
-                totalItems={filteredOrders.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
-                itemsPerPageOptions={[5, 10, 20]}
-              />
-            </div>
-          )}
-          </>
         )}
       </div>
+
+      {!isLoading && !error && !selected && filteredOrders.length > 0 && (
+        <div className="ph-pagination">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredOrders.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemsPerPageOptions={[5, 10, 20]}
+          />
+        </div>
+      )}
       <RefundDetailModal
         bookingUuid={refundBookingUuid}
         open={Boolean(refundBookingUuid)}

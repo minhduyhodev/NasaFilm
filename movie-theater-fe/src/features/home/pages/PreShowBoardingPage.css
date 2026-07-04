@@ -76,6 +76,27 @@
   color: #fff;
 }
 
+.pre-show-page__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 12, 18, 0.65);
+  backdrop-filter: blur(10px);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.pre-show-page__close:hover {
+  border-color: rgba(204, 197, 191, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
 .pre-show-page__nav-label {
   font-size: 0.68rem;
   font-weight: 800;

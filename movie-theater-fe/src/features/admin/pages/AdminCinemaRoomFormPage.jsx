@@ -12,9 +12,9 @@ const inputClass =
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
 const ROOM_STATUSES = [
-  { value: 'ACTIVE', label: 'Hoat dong' },
-  { value: 'MAINTENANCE', label: 'Bao tri' },
-  { value: 'DISABLED', label: 'Vo hieu' },
+  { value: 'ACTIVE', label: 'Hoạt động' },
+  { value: 'MAINTENANCE', label: 'Bảo trì' },
+  { value: 'DISABLED', label: 'Vô hiệu hóa' },
 ];
 
 const AdminCinemaRoomFormPage = () => {
@@ -104,23 +104,23 @@ const AdminCinemaRoomFormPage = () => {
   return (
     <AdminPage>
       <PageHeader
-        title={isEditing ? 'Chinh sua phong chieu' : 'Them phong chieu moi'}
+        title={isEditing ? 'Chỉnh sửa phòng chiếu' : 'Thêm phòng chiếu mới'}
         description={cinemaName}
         backTo={isEditing ? `/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}` : `/admin/cinemas?cinema=${cinemaUuid}`}
       />
       <form onSubmit={handleSubmit}>
-        <Section title="Thong tin phong">
+        <Section title="Thông tin phòng">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
             <div>
-              <label className={labelClass}>Ma phong *</label>
+              <label className={labelClass}>Mã phòng *</label>
               <input className={inputClass} value={form.roomCode} onChange={(e) => setForm((p) => ({ ...p, roomCode: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>Ten phong *</label>
+              <label className={labelClass}>Tên phòng *</label>
               <input className={inputClass} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>Kieu phong *</label>
+              <label className={labelClass}>Kiểu phòng *</label>
               <select className={`${inputClass} app-select`} value={form.roomType} onChange={(e) => setForm((p) => ({ ...p, roomType: e.target.value }))}>
                 {roomTypes.map((t) => (
                   <option key={t.value} value={t.value}>
@@ -130,7 +130,7 @@ const AdminCinemaRoomFormPage = () => {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Trang thai *</label>
+              <label className={labelClass}>Trạng thái *</label>
               <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
                 {ROOM_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -145,8 +145,8 @@ const AdminCinemaRoomFormPage = () => {
           </div>
         </Section>
         <div className="flex justify-end gap-2 pt-4 border-t border-white/[0.06]">
-          <GhostButton type="button" onClick={() => navigate(isEditing ? `/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}` : `/admin/cinemas?cinema=${cinemaUuid}`)}>Huy</GhostButton>
-          <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>{isEditing ? 'Cap nhat' : 'Tao phong'}</PrimaryButton>
+          <GhostButton type="button" onClick={() => navigate(isEditing ? `/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}` : `/admin/cinemas?cinema=${cinemaUuid}`)}>Hủy</GhostButton>
+          <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>{isEditing ? 'Cập nhật' : 'Tạo phòng'}</PrimaryButton>
         </div>
       </form>
     </AdminPage>

@@ -38,6 +38,7 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.enums.SeatStatus;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -66,6 +67,7 @@ public class CinemaService {
         cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
         cinema.setLatitude(request.getLatitude());
         cinema.setLongitude(request.getLongitude());
+        cinema.setStatus(request.getStatus() != null ? request.getStatus() : CinemaStatus.ACTIVE);
 
         Cinema savedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(savedCinema);
@@ -87,6 +89,7 @@ public class CinemaService {
         cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
         cinema.setLatitude(request.getLatitude());
         cinema.setLongitude(request.getLongitude());
+        cinema.setStatus(request.getStatus() != null ? request.getStatus() : cinema.getStatus());
 
         Cinema updatedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(updatedCinema);
@@ -361,8 +364,37 @@ public class CinemaService {
             throw new AppException(ErrorCode.CONFLICT,
                     "Khong the xoa phong chieu vi dang co lich chieu hoac ve da dat");
         }
+        if (room.getStatus() == CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Chi co the xoa phong chieu dang bao tri hoac vo hieu hoa");
+        }
         seatRepository.deleteByCinemaRoomUuid(roomUuid);
         cinemaRoomRepository.delete(room);
+    }
+
+    @Transactional
+    public void deleteCinema(UUID cinemaUuid) {
+        Cinema cinema = cinemaRepository.findById(cinemaUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Rap phim khong ton tai"));
+
+        for (CinemaRoom room : cinema.getCinemaRooms()) {
+            boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(room.getUuid(), OffsetDateTime.now());
+            boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(room.getUuid());
+            if (hasFutureShowtimes || hasConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT, 
+                        "Khong the xoa rap vi phong chieu " + room.getName() + " dang co lich chieu hoac ve da dat");
+            }
+        }
+        
+        if (cinema.getStatus() == CinemaStatus.ACTIVE) {
+            throw new AppException(ErrorCode.CONFLICT, 
+                    "Chi co the xoa rap chieu dang bao tri hoac vo hieu hoa");
+        }
+
+        for (CinemaRoom room : cinema.getCinemaRooms()) {
+            seatRepository.deleteByCinemaRoomUuid(room.getUuid());
+        }
+        cinemaRepository.delete(cinema);
     }
 
     private SeatResponse toSeatResponse(Seat seat) {
@@ -409,6 +441,7 @@ public class CinemaService {
         response.setEntranceNote(cinema.getEntranceNote());
         response.setLatitude(cinema.getLatitude());
         response.setLongitude(cinema.getLongitude());
+        response.setStatus(cinema.getStatus());
         return response;
     }
 

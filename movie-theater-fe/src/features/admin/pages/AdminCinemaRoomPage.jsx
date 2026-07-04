@@ -308,6 +308,24 @@ const AdminCinemaRoomPage = () => {
     navigate(`/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}/edit`);
   };
 
+  const handleDeleteRoom = async () => {
+    const confirmDelete = await confirm({
+      title: 'Xóa phòng chiếu',
+      message: `Bạn có chắc chắn muốn xóa phòng chiếu "${room.name}"? Hành động này sẽ xóa toàn bộ sơ đồ ghế của phòng chiếu và không thể hoàn tác.`,
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!confirmDelete) return;
+
+    try {
+      await cinemaService.deleteRoom(room.uuid);
+      notificationService.success('Xóa phòng chiếu thành công');
+      navigate(`/admin/cinemas?cinema=${cinemaUuid}`);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể xóa phòng chiếu');
+    }
+  };
+
   const handleBackToCinemas = () => {
     navigate(`/admin/cinemas?cinema=${cinemaUuid}`);
   };
@@ -543,9 +561,28 @@ const AdminCinemaRoomPage = () => {
     setIsLoadingSeats(true);
     try {
       await cinemaService.generateSeats(room.uuid, finalRows, finalCols);
+      
+      const tempRowNames = Array.from({ length: finalRows }, (_, i) =>
+        String.fromCharCode(65 + i)
+      );
+      const newLayout = buildDefaultLayout(finalCols, tempRowNames);
+      const layoutJson = serializeLayoutConfig(newLayout);
+      
+      await cinemaService.updateRoom(room.uuid, {
+        roomCode: room.roomCode,
+        name: room.name,
+        roomType: room.roomType,
+        capacity: finalRows * finalCols,
+        status: room.status,
+        layoutConfig: layoutJson,
+      });
+
+      setAisleLayout(newLayout);
+      setOriginalAisleLayout(newLayout);
+
       await refreshRoomMeta();
       notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng x ${finalCols} ghế (${finalRows * finalCols} ghế).`);
-      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
+      fetchSeats(room.uuid, layoutJson);
     } catch (error) {
       notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
     } finally {
@@ -908,14 +945,23 @@ const AdminCinemaRoomPage = () => {
           </div>
         </div>
         {room && (
-          <button
-            type="button"
-            onClick={handleEditRoomClick}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A2238] bg-[#0B0F19] px-4 py-2 text-xs text-gray-300 hover:border-[#2C3B5E] hover:text-white transition-colors cursor-pointer shrink-0"
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            Sửa Thông Tin Phòng
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleDeleteRoom}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-400 hover:bg-red-500/20 transition cursor-pointer"
+            >
+              Xóa Phòng
+            </button>
+            <button
+              type="button"
+              onClick={handleEditRoomClick}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A2238] bg-[#0B0F19] px-4 py-2 text-xs text-gray-300 hover:border-[#2C3B5E] hover:text-white transition-colors cursor-pointer"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Sửa Thông Tin Phòng
+            </button>
+          </div>
         )}
       </div>
 

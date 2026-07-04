@@ -2,6 +2,7 @@ package com.thdpv.movietheater.cinema.dto.response;
 
 import java.util.List;
 import java.util.UUID;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 public class CinemaWithRoomsResponse {
 
@@ -11,6 +12,7 @@ public class CinemaWithRoomsResponse {
     private String phoneNumber;
     private int totalRooms;
     private List<CinemaRoomResponse> rooms;
+    private CinemaStatus status;
 
     public CinemaWithRoomsResponse() {
     }
@@ -22,6 +24,7 @@ public class CinemaWithRoomsResponse {
         this.phoneNumber = cinema.getPhoneNumber();
         this.totalRooms = cinema.getTotalRooms();
         this.rooms = rooms;
+        this.status = cinema.getStatus();
     }
 
     public UUID getUuid() {
@@ -70,5 +73,13 @@ public class CinemaWithRoomsResponse {
 
     public void setRooms(List<CinemaRoomResponse> rooms) {
         this.rooms = rooms;
+    }
+
+    public CinemaStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(CinemaStatus status) {
+        this.status = status;
     }
 }

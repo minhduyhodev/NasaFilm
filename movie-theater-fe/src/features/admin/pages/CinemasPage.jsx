@@ -6,10 +6,12 @@ import { notificationService } from '../../../shared/services/notificationServic
 import AdminModal from '../components/AdminModal';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const CinemasPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const confirm = useConfirm();
 
   const [cinemas, setCinemas] = useState([]);
   const [selectedCinema, setSelectedCinema] = useState(null);
@@ -109,11 +111,30 @@ const CinemasPage = () => {
     (c) =>
       (c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.address && c.address.toLowerCase().includes(searchTerm.toLowerCase()))) &&
-      (!statusFilter ||
-        (statusFilter === 'ACTIVE'
-          ? getCinemaStats(c.uuid).activeCount > 0
-          : getCinemaStats(c.uuid).activeCount === 0))
+      (!statusFilter || c.status === statusFilter)
   );
+
+  const handleDeleteCinemaClick = async (cinema, e) => {
+    e.stopPropagation();
+    const confirmDelete = await confirm({
+      title: 'Xóa chi nhánh rạp',
+      message: `Bạn có chắc chắn muốn xóa rạp "${cinema.name}"? Hành động này sẽ xóa toàn bộ phòng chiếu và sơ đồ ghế liên quan, và không thể hoàn tác.`,
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!confirmDelete) return;
+
+    try {
+      await cinemaService.deleteCinema(cinema.uuid);
+      notificationService.success('Xóa rạp chiếu thành công');
+      if (selectedCinema?.uuid === cinema.uuid) {
+        setSelectedCinema(null);
+      }
+      await fetchCinemasAndGlobalStats(false);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể xóa rạp chiếu');
+    }
+  };
 
   const handleAddCinemaClick = () => {
     setCinemaModal({ open: true, mode: 'create', cinema: null });
@@ -252,7 +273,34 @@ const CinemasPage = () => {
             {filteredCinemas.map((cinema) => {
               const isSelected = selectedCinema?.uuid === cinema.uuid;
               const cStats = getCinemaStats(cinema.uuid);
-              const isBranchOpen = cStats.activeCount > 0;
+              
+              const getCinemaStatusLabel = (status) => {
+                switch (status) {
+                  case 'MAINTENANCE': return 'Bảo Trì';
+                  case 'DISABLED': return 'Vô Hiệu';
+                  case 'ACTIVE':
+                  default:
+                    return 'Đang Mở';
+                }
+              };
+              const getCinemaStatusColor = (status) => {
+                switch (status) {
+                  case 'MAINTENANCE': return 'text-amber-400';
+                  case 'DISABLED': return 'text-rose-400';
+                  case 'ACTIVE':
+                  default:
+                    return 'text-emerald-400';
+                }
+              };
+              const getCinemaStatusDotBg = (status) => {
+                switch (status) {
+                  case 'MAINTENANCE': return 'bg-amber-400';
+                  case 'DISABLED': return 'bg-rose-400';
+                  case 'ACTIVE':
+                  default:
+                    return 'bg-emerald-400 animate-pulse';
+                }
+              };
 
               return (
                 <div
@@ -269,9 +317,9 @@ const CinemasPage = () => {
                 >
                   <div className="flex justify-between items-center mb-1 gap-2">
                     <h3 className="text-xs text-white uppercase font-black truncate">{cinema.name}</h3>
-                    <span className={`flex items-center gap-1 text-[9px] uppercase font-bold shrink-0 ${isBranchOpen ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${isBranchOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-                      {isBranchOpen ? 'Đang Mở' : 'Bảo Trì'}
+                    <span className={`flex items-center gap-1 text-[9px] uppercase font-bold shrink-0 ${getCinemaStatusColor(cinema.status)}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${getCinemaStatusDotBg(cinema.status)}`} />
+                      {getCinemaStatusLabel(cinema.status)}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-400 opacity-80 truncate" title={cinema.address}>
@@ -281,11 +329,18 @@ const CinemasPage = () => {
                     <span>{cStats.totalRoomsCount} PHÒNG CHIẾU</span>
                     <span>{cStats.capacity} GHẾ</span>
                   </div>
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-2.5 pt-2 border-t border-[#1A2238]/30 flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteCinemaClick(cinema, e)}
+                      className="text-[10px] text-red-500 hover:text-red-400 uppercase font-bold bg-transparent border-none cursor-pointer p-0 transition-colors"
+                    >
+                      Xóa rạp
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => handleEditCinemaClick(cinema, e)}
-                      className="text-[10px] text-gray-500 hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer"
+                      className="text-[10px] text-gray-500 hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer p-0 transition-colors"
                     >
                       Chỉnh sửa rạp
                     </button>

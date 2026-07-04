@@ -63,6 +63,8 @@ import com.thdpv.movietheater.movie.repository.MovieActorRepository;
 import com.thdpv.movietheater.movie.repository.MovieCountryRepository;
 import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.user.entity.User;

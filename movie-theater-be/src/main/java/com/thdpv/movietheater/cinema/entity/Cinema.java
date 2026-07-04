@@ -12,6 +12,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 @Entity
 @Table(name = "cinema")
@@ -24,6 +27,7 @@ public class Cinema {
 
     @Column(name = "name", nullable = false)
     private String name;
+
 
     @Column(name = "address")
     private String address;
@@ -39,6 +43,10 @@ public class Cinema {
 
     @Column(name = "longitude")
     private Double longitude;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private CinemaStatus status = CinemaStatus.ACTIVE;
 
     @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CinemaRoom> cinemaRooms = new ArrayList<>();
@@ -120,5 +128,13 @@ public class Cinema {
     public void addCinemaRoom(CinemaRoom room) {
         cinemaRooms.add(room);
         room.setCinema(this);
+    }
+
+    public CinemaStatus getStatus() {
+        return status != null ? status : CinemaStatus.ACTIVE;
+    }
+
+    public void setStatus(CinemaStatus status) {
+        this.status = status;
     }
 }

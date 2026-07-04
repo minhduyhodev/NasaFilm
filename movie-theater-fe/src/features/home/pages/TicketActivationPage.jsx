@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail } from 'lucide-react';
+import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail, X } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -225,8 +225,18 @@ const TicketActivationPage = () => {
 
   return (
     <div className="ticket-activation-page text-white min-h-screen">
+      <div className="max-w-7xl mx-auto pt-28 px-4 md:px-8 lg:px-20 no-print flex justify-end">
+        <button 
+          type="button" 
+          onClick={() => navigate('/profile')} 
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-semibold rounded-lg transition duration-200 cursor-pointer"
+        >
+          <X size={14} />
+          <span>Đóng</span>
+        </button>
+      </div>
 
-      <main className="pt-24 pb-16 px-4 md:px-8 lg:px-20">
+      <main className="pt-8 pb-16 px-4 md:px-8 lg:px-20">
         <div className="max-w-7xl mx-auto">
           {/* Hero */}
           <section className="mb-12 md:mb-16">

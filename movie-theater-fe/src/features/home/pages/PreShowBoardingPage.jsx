@@ -5,6 +5,7 @@ import { useBoardingPass } from '../../../shared/hooks/queries/usePreShowQueries
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatCountdown, getMovieGlowClass } from '../utils/preShowUtils';
 import { maskTicketCode } from '../utils/movieUtils';
+import { X } from 'lucide-react';
 import './PreShowBoardingPage.css';
 
 const PreShowBoardingPage = () => {
@@ -110,6 +111,9 @@ const PreShowBoardingPage = () => {
             Quay lại
           </button>
           <span className="pre-show-page__nav-label">Thẻ lên máy bay</span>
+          <button type="button" className="pre-show-page__close" onClick={handleBack} aria-label="Đóng">
+            <X size={16} />
+          </button>
         </nav>
 
         {justConfirmed && (
