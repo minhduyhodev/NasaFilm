@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2, TrendingUp, ShoppingBag, Package, DollarSign } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
+import AdminKpiGrid from '../components/AdminKpiGrid';
 import '../pages/DashboardPage.css';
 import './AdminComboRevenuePage.css';
 
@@ -157,34 +158,38 @@ const AdminComboRevenuePage = () => {
   const growth = stats?.growth ?? 0;
   const growthLabel = growth >= 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
 
-  const kpis = [
+  const comboKpis = [
     {
       label: 'Doanh thu tháng',
       value: formatMoney(stats?.totalRevenueThisMonth),
-      change: growthLabel,
-      positive: growth >= 0,
+      badge: growthLabel,
       icon: DollarSign,
+      color: 'text-amber-400',
+      kpiClass: 'kpi-revenue',
     },
     {
       label: 'Đơn có bắp nước',
       value: new Intl.NumberFormat('vi-VN').format(stats?.totalOrdersThisMonth ?? 0),
-      change: 'Tháng này',
-      positive: true,
+      badge: 'tháng này',
       icon: ShoppingBag,
+      color: 'text-emerald-400',
+      kpiClass: 'kpi-showing',
     },
     {
       label: 'Combo đã bán',
       value: new Intl.NumberFormat('vi-VN').format(stats?.totalItemsSoldThisMonth ?? 0),
-      change: 'Số lượng',
-      positive: true,
+      badge: 'số lượng',
       icon: Package,
+      color: 'text-blue-400',
+      kpiClass: 'kpi-upcoming',
     },
     {
-      label: 'Tháng trước',
+      label: 'Doanh thu tháng trước',
       value: formatMoney(stats?.totalRevenueLastMonth),
-      change: growthLabel,
-      positive: growth >= 0,
+      badge: 'để so sánh',
       icon: TrendingUp,
+      color: 'text-pink-400',
+      kpiClass: 'kpi-total',
     },
   ];
 
@@ -202,24 +207,7 @@ const AdminComboRevenuePage = () => {
         </p>
       </header>
 
-      <div className="dashboard-kpi-grid">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="dashboard-kpi-card">
-            <div className="dashboard-kpi-top">
-              <span className="dashboard-kpi-label">{kpi.label}</span>
-              <kpi.icon className="dashboard-kpi-icon text-amber-500/70" />
-            </div>
-            <div className="dashboard-kpi-body">
-              <div className="dashboard-kpi-values">
-                <span className="dashboard-kpi-value">{kpi.value}</span>
-                <span className={`dashboard-kpi-change ${kpi.positive ? 'is-positive' : 'is-negative'}`}>
-                  {kpi.change}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdminKpiGrid items={comboKpis} />
 
       <div className="dashboard-charts-grid">
         <div className="dashboard-chart-panel">

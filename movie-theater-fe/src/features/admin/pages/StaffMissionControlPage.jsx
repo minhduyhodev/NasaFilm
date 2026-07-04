@@ -335,8 +335,8 @@ const StaffMissionControlPage = () => {
       <AdminPage className="staff-control">
         <PageHeader
           eyebrow="Trung tâm vận hành rạp"
-          title="Staff Mission Control"
-          description="Soát vé, giám sát ghế trực tiếp và vận hành suất chiếu "
+          title="Soát vé & giám sát suất chiếu"
+          description="Soát vé, giám sát ghế trực tiếp và vận hành suất chiếu."
           variant="display"
         />
 

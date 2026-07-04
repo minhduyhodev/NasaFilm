@@ -33,7 +33,7 @@ export default function CounterLayout() {
             const defaultCinema = data[0];
             setSelectedCinemaUuid(defaultCinema.uuid);
             localStorage.setItem('counter_cinema_uuid', defaultCinema.uuid);
-            
+
             if (defaultCinema.rooms && defaultCinema.rooms.length > 0) {
               setSelectedRoomUuid(defaultCinema.rooms[0].uuid);
               localStorage.setItem('counter_room_uuid', defaultCinema.rooms[0].uuid);
@@ -118,7 +118,7 @@ export default function CounterLayout() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          
+
           <Link to="/counter/pos" className="flex items-center gap-2.5">
             <img src={nasaLogo} alt="NASA Film" className="h-8 w-8 rounded-lg object-cover shadow" />
             <span className="text-lg font-black tracking-wider text-white">
