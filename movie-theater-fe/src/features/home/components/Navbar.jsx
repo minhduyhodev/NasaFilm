@@ -161,12 +161,13 @@ const Navbar = () => {
   };
 
   const handleOnlineNav = async (e) => {
-    if (getCachedOnlineMovies()) return;
     e.preventDefault();
-    try {
-      await prefetchOnlinePage();
-    } catch {
-      // still navigate; page shows error state
+    if (!getCachedOnlineMovies()) {
+      try {
+        await prefetchOnlinePage();
+      } catch {
+        // still navigate; page shows error state
+      }
     }
     navigate('/online');
   };
