@@ -34,5 +34,18 @@ public interface OrbitRoomRepository extends JpaRepository<OrbitRoom, UUID> {
 
     List<OrbitRoom> findByHostUserUuidAndStatusIn(UUID hostUserUuid, List<OrbitRoomStatus> statuses);
 
+    @Query("""
+            select distinct r from OrbitRoom r
+            inner join OrbitMember m on m.roomUuid = r.uuid
+            where m.userUuid = :userUuid
+              and r.status in :statuses
+              and r.expiresAt > :now
+            order by r.updatedAt desc
+            """)
+    List<OrbitRoom> findActiveRoomsForMember(
+            @Param("userUuid") UUID userUuid,
+            @Param("statuses") List<OrbitRoomStatus> statuses,
+            @Param("now") OffsetDateTime now);
+
     Optional<OrbitRoom> findByUuidAndStatusIn(UUID uuid, List<OrbitRoomStatus> statuses);
 }

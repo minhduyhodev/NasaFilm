@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, Crown } from 'lucide-react';
-import { getOrbitMemberColor, resolveSeatLabels } from '../../../shared/utils/orbitUtils';
+import { getOrbitMemberColor, resolveSeatLabels, sameUuid } from '../../../shared/utils/orbitUtils';
 
 const OrbitMemberPanel = ({
   members = [],
@@ -34,7 +34,7 @@ const OrbitMemberPanel = ({
     )}
     <ul className="space-y-2">
       {members.map((member, index) => {
-        const isSelf = member.userUuid === currentUserUuid;
+        const isSelf = sameUuid(member.userUuid, currentUserUuid);
         const seatLabels = resolveSeatLabels(member.seatUuids, seatRows);
         const color = getOrbitMemberColor(index);
         return (

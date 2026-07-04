@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.orbit.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -68,6 +69,13 @@ public class OrbitRoomController {
             @PathVariable UUID roomUuid) {
         OrbitRoomResponse room = orbitRoomService.cancelRoom(userDetails.getUsername(), roomUuid);
         return ResponseEntity.ok(ApiResponse.success(room));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<OrbitRoomResponse>>> getActiveRooms(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        List<OrbitRoomResponse> rooms = orbitRoomService.getActiveRoomsForUser(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(rooms));
     }
 
     @GetMapping("/{roomUuid}")

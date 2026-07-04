@@ -18,6 +18,7 @@ import {
   getCompleteHorizontalRows,
   getCompleteDiagonalCellKeys,
 } from '../../utils/aisleLayoutUtils';
+import { normalizeUuid } from '../../utils/orbitUtils';
 import {
   AISLE_LABEL,
   isInCompleteVerticalCol,
@@ -43,10 +44,11 @@ const TheaterSeatMapPanel = ({
 }) => {
   const resolveOrbitOwner = (seatUuid) => {
     if (!orbitSeatOwners || !seatUuid) return null;
+    const key = normalizeUuid(seatUuid);
     if (orbitSeatOwners instanceof Map) {
-      return orbitSeatOwners.get(seatUuid) ?? null;
+      return orbitSeatOwners.get(key) ?? orbitSeatOwners.get(seatUuid) ?? null;
     }
-    return orbitSeatOwners[seatUuid] ?? null;
+    return orbitSeatOwners[key] ?? orbitSeatOwners[seatUuid] ?? null;
   };
 
   const buildOrbitSeatClass = (baseClass, owner, extras = '') => {
@@ -131,7 +133,7 @@ const TheaterSeatMapPanel = ({
             if (e.key === 'Enter' && !notClickable) onCoupleClick?.(seats);
           }}
         >
-          {orbitOwner.initial}
+          {label}
         </div>
       );
     }
@@ -196,7 +198,7 @@ const TheaterSeatMapPanel = ({
             if (e.key === 'Enter' && !notClickable) onSeatClick?.(seat);
           }}
         >
-          {orbitOwner.initial}
+          {seat.seatNumber}
         </div>
       );
     }

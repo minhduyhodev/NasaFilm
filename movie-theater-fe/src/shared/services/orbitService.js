@@ -58,6 +58,16 @@ class OrbitService {
     }
   }
 
+  async getActiveRooms() {
+    try {
+      const response = await authService.api.get('/api/orbit-rooms/active');
+      const data = response.data.data ?? response.data;
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async updateMemberSeats(roomUuid, seatUuids) {
     try {
       const response = await authService.api.put(`/api/orbit-rooms/${roomUuid}/seats`, {

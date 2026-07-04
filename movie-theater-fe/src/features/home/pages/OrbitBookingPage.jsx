@@ -21,11 +21,14 @@ import {
   buildOrbitSeatOwnerMap,
   buildSelectedFromMap,
   countOrbitRoomSeats,
+  countMyOrbitMemberSeats,
   formatShowtimeDate,
   formatShowtimeLabel,
   resolveOrbitErrorMessage,
+  sameUuid,
   wouldExceedOrbitRoomSeatLimit,
 } from '../../../shared/utils/orbitUtils';
+import { stompSocketService } from '../../../shared/services/stompSocketService';
 import OrbitBookingHeader from '../components/OrbitBookingHeader';
 import OrbitMemberPanel from '../components/OrbitMemberPanel';
 import OrbitSharePanel from '../components/OrbitSharePanel';
@@ -37,6 +40,11 @@ import {
   persistOrbitMeta,
   resolveLockExpiresAt,
 } from '../utils/orbitBookingUtils';
+import {
+  markOrbitRoomLeft,
+  rememberOrbitRoom,
+  removeOrbitRoom,
+} from '../../../shared/utils/orbitRecentStorage';
 import './BookingPage.css';
 import './OrbitBookingPage.css';
 
@@ -44,7 +52,7 @@ const OrbitBookingPage = () => {
   const { roomUuid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
 
   const [orbitState] = useState(() =>
     readBookingSession(BOOKING_SESSION_KEYS.ORBIT, location.state) ?? {},
@@ -71,10 +79,16 @@ const OrbitBookingPage = () => {
     setSelectedSeats: () => {},
   });
   const currentUserUuidRef = useRef(null);
+  const orbitBootPromiseRef = useRef(null);
+  const lastRoomSyncRef = useRef(0);
+
+  const markRoomSynced = useCallback(() => {
+    lastRoomSyncRef.current = Date.now();
+  }, []);
 
   const currentUserUuid = user?.id || user?.uuid;
   currentUserUuidRef.current = currentUserUuid;
-  const isHostUser = room?.hostUserUuid === currentUserUuid || Boolean(room?.host);
+  const isHostUser = sameUuid(room?.hostUserUuid, currentUserUuid) || Boolean(room?.host);
   const isCheckout = room?.status === 'CHECKOUT';
   const canEditSeats = room?.status === 'OPEN';
 
@@ -105,6 +119,15 @@ const OrbitBookingPage = () => {
     seatMapActionsRef.current = { fetchSeatMap, setSelectedSeats };
   }, [fetchSeatMap, setSelectedSeats]);
 
+  const refreshSeatMapForRoom = useCallback((members, preferredUserUuid) => {
+    const myMember = members?.find(
+      (member) => sameUuid(member.userUuid, preferredUserUuid),
+    );
+    const mySeatUuids = myMember?.seatUuids || [];
+    // Only pass current user's seats — passing the whole group's uuids marks them as "selected" locally.
+    return fetchSeatMapRef.current(mySeatUuids, { silent: true }).catch(() => {});
+  }, [fetchSeatMapRef]);
+
   const displayMovie = orbitMeta.movie || room?.movieTitle || 'Phòng đặt vé nhóm';
   const displayTheater = orbitMeta.theater || room?.theater || '';
   const displayDate = orbitMeta.date || formatShowtimeDate(room?.showtimeStartTime);
@@ -119,6 +142,7 @@ const OrbitBookingPage = () => {
   const applyRoomPayload = useCallback((payload) => {
     if (!payload?.uuid) return;
     if (ORBIT_TERMINAL_STATUSES.includes(payload.status)) {
+      removeOrbitRoom(payload.uuid);
       clearAllBookingSessions();
       notificationService.info('Phòng Orbit đã kết thúc.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
@@ -134,7 +158,7 @@ const OrbitBookingPage = () => {
     }
     setRoom({
       ...payload,
-      host: payload.hostUserUuid === currentUserUuid || payload.host,
+      host: sameUuid(payload.hostUserUuid, currentUserUuid) || payload.host,
     });
     if (payload.showtimeUuid) {
       setShowtimeUuid(payload.showtimeUuid);
@@ -151,8 +175,9 @@ const OrbitBookingPage = () => {
       return null;
     }
     applyRoomPayload(data);
+    markRoomSynced();
     return data;
-  }, [roomUuid, resolvedMovieUuid, navigate, applyRoomPayload]);
+  }, [roomUuid, resolvedMovieUuid, navigate, applyRoomPayload, markRoomSynced]);
 
   useEffect(() => {
     if (!isValidUuid(roomUuid)) {
@@ -168,45 +193,108 @@ const OrbitBookingPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!isValidUuid(roomUuid) || authLoading || !currentUserUuid) {
+      return undefined;
+    }
+
     let cancelled = false;
+
+    const resolveMembership = (payload) => payload.viewerMember === true
+      || payload.members?.some((member) => sameUuid(member.userUuid, currentUserUuid));
+
     const boot = async () => {
-      try {
-        setIsPageLoading(true);
-        let data = await orbitService.getRoom(roomUuid);
-        const isMember = data.viewerMember === true
-          || data.members?.some((m) => m.userUuid === currentUserUuid);
-        if (!isMember) {
+      setIsPageLoading(true);
+
+      let data = await orbitService.getRoom(roomUuid);
+      if (!resolveMembership(data)) {
+        try {
           data = await orbitService.joinRoom(roomUuid);
           notificationService.success('Bạn đã tham gia phòng Orbit.');
+        } catch (joinErr) {
+          const retry = await orbitService.getRoom(roomUuid);
+          if (resolveMembership(retry)) {
+            data = retry;
+          } else {
+            throw joinErr;
+          }
         }
+      }
+
+      return data;
+    };
+
+    const runBoot = async () => {
+      if (!orbitBootPromiseRef.current) {
+        orbitBootPromiseRef.current = boot().finally(() => {
+          orbitBootPromiseRef.current = null;
+        });
+      }
+
+      try {
+        const data = await orbitBootPromiseRef.current;
         if (cancelled) return;
         applyRoomPayload(data);
+        rememberOrbitRoom(data, orbitMeta);
+        markRoomSynced();
       } catch (err) {
+        if (cancelled) return;
         notificationService.error(resolveOrbitErrorMessage(err, 'Không thể mở phòng Orbit.'));
         navigate('/movies', { replace: true });
       } finally {
         if (!cancelled) setIsPageLoading(false);
       }
     };
-    if (roomUuid && currentUserUuid) boot();
-    return () => { cancelled = true; };
-  }, [roomUuid, currentUserUuid, navigate, applyRoomPayload]);
+
+    runBoot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomUuid, currentUserUuid, authLoading, navigate, applyRoomPayload, markRoomSynced]);
+
+  useEffect(() => {
+    if (!roomUuid || authLoading || !currentUserUuid) return undefined;
+    stompSocketService.ensureConnected().catch(() => {});
+    return undefined;
+  }, [roomUuid, authLoading, currentUserUuid]);
+
+  useEffect(() => {
+    if (!roomUuid || !currentUserUuid) return undefined;
+    const intervalId = window.setInterval(() => {
+      const wsQuiet = Date.now() - lastRoomSyncRef.current > 5000;
+      if (wsQuiet || !stompSocketService.isConnected()) {
+        refreshRoom().catch(() => {});
+      }
+    }, 4000);
+    return () => window.clearInterval(intervalId);
+  }, [roomUuid, currentUserUuid, refreshRoom]);
 
   useRealtimeTopic(
     roomUuid ? REALTIME_TOPICS.orbitRoom(roomUuid) : null,
     (payload) => {
       if (payload?.uuid && payload?.status) {
         applyRoomPayload(payload);
-        const myMember = payload.members?.find(
-          (member) => member.userUuid === currentUserUuidRef.current,
-        );
-        const mySeatUuids = myMember?.seatUuids || [];
-        fetchSeatMapRef.current(mySeatUuids, { silent: true }).catch(() => {});
+        markRoomSynced();
+        refreshSeatMapForRoom(payload.members, currentUserUuidRef.current);
         return;
       }
       refreshRoom().catch(() => {});
     },
-    400,
+    300,
+  );
+
+  useRealtimeTopic(
+    showtimeUuid ? REALTIME_TOPICS.showtimeSeats(showtimeUuid) : null,
+    () => {
+      refreshRoom()
+        .then((data) => {
+          if (data?.members) {
+            refreshSeatMapForRoom(data.members, currentUserUuidRef.current);
+          }
+        })
+        .catch(() => {});
+    },
+    350,
   );
 
   const syncMemberSeats = useCallback(async (nextUuids) => {
@@ -215,6 +303,7 @@ const OrbitBookingPage = () => {
       try {
         const updatedRoom = await orbitService.updateMemberSeats(roomUuid, nextUuids);
         setRoom(updatedRoom);
+        markRoomSynced();
         await fetchSeatMap(nextUuids, { silent: true });
         return updatedRoom;
       } finally {
@@ -223,7 +312,7 @@ const OrbitBookingPage = () => {
     });
     syncQueueRef.current = task.catch(() => {});
     return task;
-  }, [roomUuid, fetchSeatMap]);
+  }, [roomUuid, fetchSeatMap, markRoomSynced]);
 
   const handleCoupleClick = async (seats) => {
     if (!canEditSeats || isSyncing) return;
@@ -232,14 +321,15 @@ const OrbitBookingPage = () => {
       selectedSeats.some((s) => s.seatUuid === uuid),
     );
     if (!bothSelected) {
-      const seatsAfterAdd = new Set([
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
-        ...pairUuids,
-      ]);
+      const mySeatCount = countMyOrbitMemberSeats(room?.members, currentUserUuid, selectedSeats);
+      const newInPair = pairUuids.filter(
+        (uuid) => !selectedSeats.some((s) => s.seatUuid === uuid),
+      ).length;
+      const nextMyCount = mySeatCount + newInPair;
       if (wouldExceedOrbitRoomSeatLimit(
         room?.members,
         currentUserUuid,
-        seatsAfterAdd.size,
+        nextMyCount,
         maxSeatsPerBooking,
       )) {
         notificationService.error(`Phòng Orbit tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
@@ -262,7 +352,8 @@ const OrbitBookingPage = () => {
   const handleSeatClick = async (seat) => {
     if (!canEditSeats || isSyncing) return;
     const isSelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
-    const nextMyCount = isSelected ? selectedSeats.length - 1 : selectedSeats.length + 1;
+    const mySeatCount = countMyOrbitMemberSeats(room?.members, currentUserUuid, selectedSeats);
+    const nextMyCount = isSelected ? Math.max(0, mySeatCount - 1) : mySeatCount + 1;
     if (!isSelected && wouldExceedOrbitRoomSeatLimit(
       room?.members,
       currentUserUuid,
@@ -317,8 +408,12 @@ const OrbitBookingPage = () => {
     if (!window.confirm('Bạn có chắc muốn rời phòng Orbit?')) return;
     try {
       await orbitService.leaveRoom(roomUuid);
+      if (room) {
+        rememberOrbitRoom({ ...room, uuid: roomUuid }, orbitMeta);
+      }
+      markOrbitRoomLeft(roomUuid);
       clearAllBookingSessions();
-      notificationService.info('Bạn đã rời phòng Orbit.');
+      notificationService.info('Bạn đã rời phòng Orbit. Có thể vào lại từ trang phim hoặc link mời.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');
     } catch (err) {
       notificationService.error(err.message || 'Không thể rời phòng.');
@@ -329,6 +424,7 @@ const OrbitBookingPage = () => {
     if (!window.confirm('Hủy phòng Orbit? Mọi ghế đang giữ sẽ được giải phóng.')) return;
     try {
       await orbitService.cancelRoom(roomUuid);
+      removeOrbitRoom(roomUuid);
       clearAllBookingSessions();
       notificationService.info('Đã hủy phòng Orbit.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');

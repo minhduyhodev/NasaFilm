@@ -20,6 +20,15 @@ export const ORBIT_CHECKOUT_TTL_MINUTES = 15;
 
 export const ORBIT_DEFAULT_MAX_MEMBERS = 8;
 
+export function normalizeUuid(value) {
+  return String(value || '').toLowerCase();
+}
+
+export function sameUuid(left, right) {
+  if (left == null || right == null) return false;
+  return normalizeUuid(left) === normalizeUuid(right);
+}
+
 /** Distinct accent colors for up to 8 Orbit members (map + sidebar). */
 export const ORBIT_MEMBER_COLORS = [
   { cssClass: 'orbit-member-0', hex: '#f87171' },
@@ -39,13 +48,20 @@ export function getOrbitMemberColor(memberIndex) {
 /** Total seats held by members other than current user. */
 export function countOtherMembersSeats(members, currentUserUuid) {
   return (members || [])
-    .filter((member) => member.userUuid !== currentUserUuid)
+    .filter((member) => !sameUuid(member.userUuid, currentUserUuid))
     .reduce((acc, member) => acc + (member.seatUuids?.length || 0), 0);
 }
 
 /** Total seats across all Orbit members. */
 export function countOrbitRoomSeats(members) {
   return (members || []).reduce((acc, member) => acc + (member.seatUuids?.length || 0), 0);
+}
+
+/** Seats currently assigned to the logged-in Orbit member (authoritative for group limit). */
+export function countMyOrbitMemberSeats(members, currentUserUuid, selectedSeats = []) {
+  const mine = (members || []).find((member) => sameUuid(member.userUuid, currentUserUuid));
+  if (mine?.seatUuids) return mine.seatUuids.length;
+  return selectedSeats.length;
 }
 
 export function wouldExceedOrbitRoomSeatLimit(members, currentUserUuid, nextMySeatCount, maxTotal) {
@@ -55,14 +71,14 @@ export function wouldExceedOrbitRoomSeatLimit(members, currentUserUuid, nextMySe
 /** seatUuid → { cssClass, hex, isSelf, displayName, initial } */
 export function buildOrbitSeatOwnerMap(members, currentUserUuid) {
   const map = new Map();
-  (members || []).forEach((member, index) => {
+    (members || []).forEach((member, index) => {
     const color = getOrbitMemberColor(index);
     const displayName = member.displayName || 'Thành viên';
     (member.seatUuids || []).forEach((seatUuid) => {
-      map.set(seatUuid, {
+      map.set(normalizeUuid(seatUuid), {
         cssClass: color.cssClass,
         hex: color.hex,
-        isSelf: member.userUuid === currentUserUuid,
+        isSelf: sameUuid(member.userUuid, currentUserUuid),
         displayName,
         initial: displayName.charAt(0).toUpperCase(),
       });

@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +53,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrbitRoomService {
 
+    private static final List<OrbitRoomStatus> ACTIVE_ROOM_STATUSES = List.of(
+            OrbitRoomStatus.OPEN, OrbitRoomStatus.CHECKOUT);
+
     private final OrbitRoomRepository orbitRoomRepository;
     private final OrbitMemberRepository orbitMemberRepository;
     private final UserRepository userRepository;
@@ -66,6 +70,7 @@ public class OrbitRoomService {
     private final OrbitRoomLockHelper orbitRoomLockHelper;
     private final OrbitRoomMissionHelper orbitRoomMissionHelper;
     private final OrbitRoomResponseMapper orbitRoomResponseMapper;
+    private final OrbitRoomExpiryService orbitRoomExpiryService;
 
     @Value("${app.orbit.enabled:true}")
     private boolean orbitEnabled;
@@ -82,8 +87,12 @@ public class OrbitRoomService {
         UUID hostUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
 
+        expireStaleOrbitRoomsForHost(hostUuid, now);
+
         List<OrbitRoom> activeHostRooms = orbitRoomRepository.findByHostUserUuidAndStatusIn(
-                hostUuid, List.of(OrbitRoomStatus.OPEN, OrbitRoomStatus.CHECKOUT));
+                hostUuid, ACTIVE_ROOM_STATUSES).stream()
+                .filter(room -> room.getExpiresAt().isAfter(now))
+                .toList();
         if (!activeHostRooms.isEmpty()) {
             throw new AppException(
                     ErrorCode.CONFLICT,
@@ -144,7 +153,13 @@ public class OrbitRoomService {
 
         User user = userRepository.findById(userUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         OrbitMember member = buildMember(roomUuid, user, now);
-        orbitMemberRepository.save(member);
+        try {
+            orbitMemberRepository.save(member);
+        } catch (DataIntegrityViolationException ex) {
+            OrbitRoom existingRoom = orbitRoomRepository.findById(roomUuid)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
+            return toRoomResponse(existingRoom, userUuid);
+        }
 
         missionService.handleOrbitRoomJoined(userUuid, roomUuid, now);
         touchRoom(room, now);
@@ -204,6 +219,31 @@ public class OrbitRoomService {
             return toPreviewResponse(room);
         }
         return toRoomResponse(room, userUuid);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrbitRoomResponse> getActiveRoomsForUser(String currentUserEmail) {
+        assertOrbitEnabled();
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
+        return getActiveRoomsForUserInternal(userUuid, now);
+    }
+
+    private List<OrbitRoomResponse> getActiveRoomsForUserInternal(UUID userUuid, OffsetDateTime now) {
+        expireStaleOrbitRoomsForHost(userUuid, now);
+
+        Map<UUID, OrbitRoom> unique = new java.util.LinkedHashMap<>();
+
+        orbitRoomRepository.findByHostUserUuidAndStatusIn(userUuid, ACTIVE_ROOM_STATUSES).stream()
+                .filter(room -> room.getExpiresAt().isAfter(now))
+                .forEach(room -> unique.putIfAbsent(room.getUuid(), room));
+
+        orbitRoomRepository.findActiveRoomsForMember(userUuid, ACTIVE_ROOM_STATUSES, now)
+                .forEach(room -> unique.putIfAbsent(room.getUuid(), room));
+
+        return unique.values().stream()
+                .map(room -> toRoomResponse(room, userUuid))
+                .toList();
     }
 
     @Transactional
@@ -690,6 +730,13 @@ public class OrbitRoomService {
             return 0;
         }
         return totalPrice.divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN).intValue();
+    }
+
+    private void expireStaleOrbitRoomsForHost(UUID hostUuid, OffsetDateTime now) {
+        orbitRoomRepository.findByHostUserUuidAndStatusIn(hostUuid, ACTIVE_ROOM_STATUSES).stream()
+                .filter(room -> !room.getExpiresAt().isAfter(now))
+                .map(OrbitRoom::getUuid)
+                .forEach(orbitRoomExpiryService::expireRoom);
     }
 
     private OrbitRoomResponse toRoomResponse(OrbitRoom room, UUID viewerUuid) {

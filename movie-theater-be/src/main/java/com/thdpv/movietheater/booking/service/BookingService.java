@@ -57,8 +57,9 @@ import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
-import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.notification.dto.TheaterTicketQrItem;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
+import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
@@ -646,9 +647,14 @@ public class BookingService {
                         .map(combo -> combo.getQuantity() + "x " + combo.getName())
                         .collect(Collectors.joining(", "));
 
-        String ticketCodes = ticketLines.stream()
-                .map(BookingResponse.TicketLine::getTicketCode)
-                .collect(Collectors.joining(", "));
+        List<TheaterTicketQrItem> qrItems = new ArrayList<>();
+        for (int i = 0; i < ticketLines.size(); i++) {
+            BookingResponse.TicketLine ticket = ticketLines.get(i);
+            String seatLabel = i < seatLines.size()
+                    ? seatLines.get(i).getRowName() + seatLines.get(i).getSeatNumber()
+                    : "";
+            qrItems.add(new TheaterTicketQrItem(ticket.getTicketCode(), seatLabel));
+        }
 
         theaterNotificationService.sendTheaterTicketEmail(
                 userUuid,
@@ -659,7 +665,7 @@ public class BookingService {
                 seatsLabel,
                 combosLabel,
                 formatPrice(totalPrice),
-                ticketCodes);
+                qrItems);
     }
 
     @Transactional(readOnly = true)
