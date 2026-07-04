@@ -215,11 +215,11 @@ public class ShowtimeSeatService {
                     boolean rightUnavailable = (i == segmentEnd) || isUnavailableForGapRule(seats.get(i + 1));
 
                     if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByMe = (i != segmentStart) && (Boolean.TRUE.equals(seats.get(i - 1).getSelected())
-                                || "LOCKED_BY_ME".equals(seats.get(i - 1).getAvailabilityStatus()));
-                        boolean rightSelectedByMe = (i != segmentEnd) && (Boolean.TRUE.equals(seats.get(i + 1).getSelected())
-                                || "LOCKED_BY_ME".equals(seats.get(i + 1).getAvailabilityStatus()));
-                        if (leftSelectedByMe || rightSelectedByMe) {
+                        boolean leftCausedByHold = (i != segmentStart)
+                                && isActiveHoldOrSelection(seats.get(i - 1));
+                        boolean rightCausedByHold = (i != segmentEnd)
+                                && isActiveHoldOrSelection(seats.get(i + 1));
+                        if (leftCausedByHold || rightCausedByHold) {
                             current.setBlocked(true);
                         }
                     }
@@ -236,6 +236,12 @@ public class ShowtimeSeatService {
 
     private boolean isUnavailableForGapRule(ShowtimeSeatMapResponse.SeatItem seat) {
         return !"AVAILABLE".equals(seat.getAvailabilityStatus()) || Boolean.TRUE.equals(seat.getSelected());
+    }
+
+    private boolean isActiveHoldOrSelection(ShowtimeSeatMapResponse.SeatItem seat) {
+        return Boolean.TRUE.equals(seat.getSelected())
+                || "LOCKED_BY_ME".equals(seat.getAvailabilityStatus())
+                || "LOCKED_BY_OTHER".equals(seat.getAvailabilityStatus());
     }
 
     private String resolveAvailabilityStatus(String seatDbStatus, boolean booked, UUID lockedUserUuid,

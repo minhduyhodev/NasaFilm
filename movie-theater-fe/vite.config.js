@@ -104,7 +104,8 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('hls.js')) return 'vendor-player';
-            if (id.includes('@stomp') || id.includes('sockjs-client')) return 'vendor-stomp';
+            if (id.includes('sockjs-client')) return 'vendor-sockjs';
+            if (id.includes('@stomp')) return 'vendor-stomp';
             if (id.includes('react-dom') || id.includes('react-router')) return 'vendor-react';
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('@tanstack/react-query')) return 'vendor-query';

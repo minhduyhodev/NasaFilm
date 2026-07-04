@@ -6,4 +6,5 @@ export const REALTIME_TOPICS = {
   STAFF_CHECK_IN: '/topic/staff/check-in',
   supportTicket: (ticketCode) => `/topic/support/${ticketCode}`,
   showtimeSeats: (showtimeUuid) => `/topic/showtimes/${showtimeUuid}/seats`,
+  orbitRoom: (roomUuid) => `/topic/orbit/${roomUuid}`,
 };

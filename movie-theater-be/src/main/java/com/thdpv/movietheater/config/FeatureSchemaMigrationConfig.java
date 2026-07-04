@@ -204,19 +204,7 @@ public class FeatureSchemaMigrationConfig {
                     )
                     """);
 
-            // Mission incremental schema: Flyway R__mission_schema_patches.sql
-            jdbc.execute("ALTER TABLE mission_template DROP CONSTRAINT IF EXISTS mission_template_condition_type_check");
-            jdbc.execute("""
-                    ALTER TABLE mission_template ADD CONSTRAINT mission_template_condition_type_check
-                    CHECK (condition_type IN (
-                        'GENRE_WINDOW',
-                        'PREMIERE_BOOKING',
-                        'HYBRID_THEATER_VOD',
-                        'ORBIT_ROOM_JOIN',
-                        'REVIEW_WITH_VIBE_TAG',
-                        'MATCHMAKER_QUIZ'
-                    ))
-                    """);
+            // Mission incremental schema: Flyway R__feature_schema_patches.sql
 
             jdbc.execute("""
                     CREATE TABLE IF NOT EXISTS showtime_radar_preference (
