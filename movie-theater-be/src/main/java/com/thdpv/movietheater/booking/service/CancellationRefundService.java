@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,7 +79,10 @@ public class CancellationRefundService {
     private final MovieRepository movieRepository;
     private final MissionService missionService;
     private final OrbitRoomRepository orbitRoomRepository;
-    private final OrbitRoomService orbitRoomService;
+
+    @Lazy
+    @Autowired
+    private OrbitRoomService orbitRoomService;
 
     @Transactional(readOnly = true)
     public CancellationPreviewResponse getCancellationPreview(UUID bookingUuid, UUID actorUuid, boolean adminOverride,
