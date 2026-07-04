@@ -34,6 +34,85 @@
   }
 }
 
+.orbit-booking__member-dot {
+  flex-shrink: 0;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+/* Orbit member seat colors on map */
+.orbit-booking .seat.orbit-member-0.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-0 {
+  border-color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.28) !important;
+  color: #fecaca !important;
+  opacity: 1;
+  cursor: default;
+}
+
+.orbit-booking .seat.orbit-member-1.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-1 {
+  border-color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.28) !important;
+  color: #bfdbfe !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-2.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-2 {
+  border-color: #34d399 !important;
+  background: rgba(52, 211, 153, 0.28) !important;
+  color: #a7f3d0 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-3.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-3 {
+  border-color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.28) !important;
+  color: #fde68a !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-4.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-4 {
+  border-color: #c084fc !important;
+  background: rgba(192, 132, 252, 0.28) !important;
+  color: #e9d5ff !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-5.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-5 {
+  border-color: #fb923c !important;
+  background: rgba(251, 146, 60, 0.28) !important;
+  color: #fed7aa !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-6.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-6 {
+  border-color: #2dd4bf !important;
+  background: rgba(45, 212, 191, 0.28) !important;
+  color: #99f6e4 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-7.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-7 {
+  border-color: #f472b6 !important;
+  background: rgba(244, 114, 182, 0.28) !important;
+  color: #fbcfe8 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-self-selected {
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.85) !important;
+}
+
 .orbit-booking__member {
   display: flex;
   align-items: center;

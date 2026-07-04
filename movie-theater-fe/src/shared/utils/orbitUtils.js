@@ -20,6 +20,41 @@ export const ORBIT_CHECKOUT_TTL_MINUTES = 15;
 
 export const ORBIT_DEFAULT_MAX_MEMBERS = 8;
 
+/** Distinct accent colors for up to 8 Orbit members (map + sidebar). */
+export const ORBIT_MEMBER_COLORS = [
+  { cssClass: 'orbit-member-0', hex: '#f87171' },
+  { cssClass: 'orbit-member-1', hex: '#60a5fa' },
+  { cssClass: 'orbit-member-2', hex: '#34d399' },
+  { cssClass: 'orbit-member-3', hex: '#fbbf24' },
+  { cssClass: 'orbit-member-4', hex: '#c084fc' },
+  { cssClass: 'orbit-member-5', hex: '#fb923c' },
+  { cssClass: 'orbit-member-6', hex: '#2dd4bf' },
+  { cssClass: 'orbit-member-7', hex: '#f472b6' },
+];
+
+export function getOrbitMemberColor(memberIndex) {
+  return ORBIT_MEMBER_COLORS[memberIndex % ORBIT_MEMBER_COLORS.length];
+}
+
+/** seatUuid → { cssClass, hex, isSelf, displayName, initial } */
+export function buildOrbitSeatOwnerMap(members, currentUserUuid) {
+  const map = new Map();
+  (members || []).forEach((member, index) => {
+    const color = getOrbitMemberColor(index);
+    const displayName = member.displayName || 'Thành viên';
+    (member.seatUuids || []).forEach((seatUuid) => {
+      map.set(seatUuid, {
+        cssClass: color.cssClass,
+        hex: color.hex,
+        isSelf: member.userUuid === currentUserUuid,
+        displayName,
+        initial: displayName.charAt(0).toUpperCase(),
+      });
+    });
+  });
+  return map;
+}
+
 /** Backend already returns Vietnamese messages; use as-is with a safe fallback. */
 export function resolveOrbitErrorMessage(err, fallback = 'Không thể thực hiện thao tác Orbit.') {
   const msg = err?.message?.trim();

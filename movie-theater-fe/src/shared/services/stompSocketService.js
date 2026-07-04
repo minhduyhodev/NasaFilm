@@ -1,5 +1,4 @@
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { tokenService } from '../../features/auth/utils/tokenService';
 
 const resolveApiBaseUrl = () => {
@@ -43,6 +42,15 @@ const appendAccessTokenQuery = (httpUrl) => {
 
 const SEAT_MAP_REFRESH_MS = 5000;
 
+/** Lazy-loaded only when native WebSocket fails or VITE_WS_USE_SOCKJS=true */
+let sockJsModulePromise = null;
+const loadSockJS = () => {
+  if (!sockJsModulePromise) {
+    sockJsModulePromise = import('sockjs-client').then((mod) => mod.default);
+  }
+  return sockJsModulePromise;
+};
+
 class StompSocketService {
   constructor() {
     this.client = null;
@@ -51,13 +59,21 @@ class StompSocketService {
     this.subscriptionCounter = 0;
     this.connected = false;
     this.usingSockJs = false;
+    this.sockJsClass = null;
   }
 
   isConnected() {
     return Boolean(this.client?.connected && this.connected);
   }
 
-  createClient(useSockJs) {
+  async ensureSockJsLoaded() {
+    if (!this.sockJsClass) {
+      this.sockJsClass = await loadSockJS();
+    }
+    return this.sockJsClass;
+  }
+
+  createClient(useSockJs, SockJSClass) {
     this.usingSockJs = useSockJs;
     return new Client({
       connectHeaders: buildConnectHeaders(),
@@ -65,7 +81,7 @@ class StompSocketService {
         let httpUrl = resolveWsHttpUrl(useSockJs);
         if (useSockJs) {
           httpUrl = appendAccessTokenQuery(httpUrl);
-          return new SockJS(httpUrl);
+          return new SockJSClass(httpUrl);
         }
         return new WebSocket(toNativeWebSocketUrl(httpUrl));
       },
@@ -95,8 +111,13 @@ class StompSocketService {
       return this.connectPromise;
     }
 
-    const tryConnect = (useSockJs) =>
-      new Promise((resolve, reject) => {
+    const tryConnect = async (useSockJs) => {
+      let SockJSClass = null;
+      if (useSockJs) {
+        SockJSClass = await this.ensureSockJsLoaded();
+      }
+
+      return new Promise((resolve, reject) => {
         let settled = false;
         const settle = (fn, value) => {
           if (settled) return;
@@ -104,7 +125,7 @@ class StompSocketService {
           fn(value);
         };
 
-        this.client = this.createClient(useSockJs);
+        this.client = this.createClient(useSockJs, SockJSClass);
         this.client.onConnect = () => {
           this.connected = true;
           settle(resolve);
@@ -130,9 +151,10 @@ class StompSocketService {
           reject(error);
         }
       });
+    };
 
     const preferredSockJs = useSockJsTransport();
-    this.connectPromise = tryConnect(preferredSockJs).catch((error) => {
+    this.connectPromise = tryConnect(preferredSockJs).catch(async (error) => {
       if (preferredSockJs) {
         throw error;
       }
