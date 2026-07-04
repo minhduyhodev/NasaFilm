@@ -14,6 +14,7 @@ public class ShowtimeRadarSuggestionResponse {
     private UUID showtimeUuid;
     private UUID movieUuid;
     private String movieTitle;
+    private String moviePosterUrl;
     private String cinemaName;
     private OffsetDateTime startTime;
     private int availableSeats;

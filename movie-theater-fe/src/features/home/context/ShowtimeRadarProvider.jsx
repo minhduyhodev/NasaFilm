@@ -165,7 +165,7 @@ const useShowtimeRadarState = () => {
       }
       return data;
     } catch (error) {
-      notificationService.error('Không thể cập nhật Smart Showtime Radar');
+      notificationService.error('Không thể cập nhật Radar Suất Chiếu');
       console.error(error);
       try {
         const data = await queryClient.fetchQuery({
@@ -229,7 +229,6 @@ const useShowtimeRadarState = () => {
 
     const result = await savePreferenceDraft(
       { enabled: true, selectedGenres: current.selectedGenres },
-      'Đã lưu sở thích — hiển thị trên hồ sơ của bạn',
     );
     return Boolean(result);
   };
