@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useEffect } from 'react';
 import { authService } from '../api/authService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import tokenService from '../utils/tokenService';
+import { clearOrbitRecentStorage } from '../../../shared/utils/orbitRecentStorage';
 
 export const AuthContext = createContext(undefined);
 
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
 
         if (!token) {
           if (!cancelled) setUser(null);
+          clearOrbitRecentStorage();
           return;
         }
 
@@ -35,11 +37,13 @@ export const AuthProvider = ({ children }) => {
             } catch {
               tokenService.clear();
               if (!cancelled) setUser(null);
+              clearOrbitRecentStorage();
               return;
             }
           }
           tokenService.clear();
           if (!cancelled) setUser(null);
+          clearOrbitRecentStorage();
           return;
         }
 
@@ -48,10 +52,12 @@ export const AuthProvider = ({ children }) => {
         } else {
           tokenService.clear();
           if (!cancelled) setUser(null);
+          clearOrbitRecentStorage();
         }
       } catch {
         tokenService.clear();
         if (!cancelled) setUser(null);
+        clearOrbitRecentStorage();
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -91,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       if (tokenService.isTokenExpired(token)) {
         tokenService.clear();
         setUser(null);
+        clearOrbitRecentStorage();
       }
     };
 
@@ -152,6 +159,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
     } finally {
+      clearOrbitRecentStorage();
       setUser(null);
       setError(null);
     }

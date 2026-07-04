@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +44,8 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -74,6 +78,11 @@ public class CancellationRefundService {
     private final WalletService walletService;
     private final MovieRepository movieRepository;
     private final MissionService missionService;
+    private final OrbitRoomRepository orbitRoomRepository;
+
+    @Lazy
+    @Autowired
+    private OrbitRoomService orbitRoomService;
 
     @Transactional(readOnly = true)
     public CancellationPreviewResponse getCancellationPreview(UUID bookingUuid, UUID actorUuid, boolean adminOverride,
@@ -163,6 +172,13 @@ public class CancellationRefundService {
         request.setUpdatedAt(now);
         cancellationRequestRepository.save(request);
 
+        var bookingSeats = bookingSeatRepository.findByBookingUuid(bookingUuid);
+        java.util.Map<UUID, BigDecimal> seatPriceByUuid = new java.util.HashMap<>();
+        for (var seat : bookingSeats) {
+            seatPriceByUuid.put(seat.getSeatUuid(), seat.getPrice());
+        }
+        var orbitRoom = orbitRoomRepository.findByBookingUuid(bookingUuid);
+
         bookingSeatRepository.deleteByBookingUuid(bookingUuid);
         bookingComboRepository.deleteByBookingUuid(bookingUuid);
 
@@ -173,7 +189,10 @@ public class CancellationRefundService {
         }
 
         int scoreDeducted = calculateScore(booking.getTotalPrice());
-        if (scoreDeducted > 0) {
+        if (orbitRoom.isPresent()) {
+            orbitRoomService.rollbackOrbitBookingRewards(
+                    orbitRoom.get().getUuid(), bookingUuid, seatPriceByUuid, now);
+        } else if (scoreDeducted > 0) {
             bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
             bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, now);
         }
@@ -194,7 +213,9 @@ public class CancellationRefundService {
                 java.util.Map.of("reason", reason != null ? reason : "", "fee", calc.fee(), "refund", calc.refundAmount()));
 
         try {
-            missionService.rollbackBookingProgress(booking.getUserUuid(), bookingUuid, now);
+            if (orbitRoom.isEmpty()) {
+                missionService.rollbackBookingProgress(booking.getUserUuid(), bookingUuid, now);
+            }
         } catch (Exception ignored) {
             // Không chặn hủy vé nếu hoàn tác nhiệm vụ thất bại
         }

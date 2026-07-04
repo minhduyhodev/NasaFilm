@@ -34,7 +34,6 @@ import com.thdpv.movietheater.booking.entity.Ticket;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.ComboPrice;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.LockedSeat;
-import com.thdpv.movietheater.booking.repository.BookingNativeRepository.SeatGapState;
 import com.thdpv.movietheater.booking.repository.BookingComboRepository;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
@@ -60,12 +59,14 @@ import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
-import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.notification.dto.TheaterTicketQrItem;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
+import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -100,6 +101,8 @@ public class BookingService {
     private final PaymentService paymentService;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
+    private final OrbitRoomService orbitRoomService;
+    private final SeatGapValidationService seatGapValidationService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -253,11 +256,16 @@ public class BookingService {
         OffsetDateTime now = OffsetDateTime.now();
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
         Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
+        UUID orbitRoomUuid = request.getOrbitRoomUuid();
+        boolean isOrbitCheckout = orbitRoomUuid != null;
 
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
+        if (isOrbitCheckout) {
+            orbitRoomService.assertCheckoutReady(orbitRoomUuid, userUuid, request.getShowtimeUuid(), seatUuids);
+        }
         showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
@@ -268,7 +276,7 @@ public class BookingService {
         }
 
         ensureNoBookedSeats(request.getShowtimeUuid(), seatUuids);
-        validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
+        seatGapValidationService.validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
 
         List<ResolvedCombo> combos = resolveCombos(comboQuantities);
         BigDecimal seatTotal = lockedSeats.stream()
@@ -406,11 +414,16 @@ public class BookingService {
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
 
-        int scoreAdded = calculateScore(totalPrice);
-        if (scoreAdded > 0) {
-            bookingRepository.addUserScore(userUuid, scoreAdded);
-            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
-            bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+        int scoreAdded;
+        if (isOrbitCheckout) {
+            scoreAdded = 0;
+        } else {
+            scoreAdded = calculateScore(totalPrice);
+            if (scoreAdded > 0) {
+                bookingRepository.addUserScore(userUuid, scoreAdded);
+                bookingRepository.addLifetimeScore(userUuid, scoreAdded);
+                bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+            }
         }
 
         bookingRepository.deleteSeatLocks(request.getShowtimeUuid(), userUuid, seatUuids);
@@ -451,12 +464,19 @@ public class BookingService {
         Showtime bookedShowtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
         UUID movieUuid = bookedShowtime != null ? bookedShowtime.getMovieUuid() : null;
         List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
-        if (movieUuid != null) {
-            missionCompletions.addAll(missionService.handleEvent(
-                    MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+        if (isOrbitCheckout) {
+            var orbitResult = orbitRoomService.completeAfterBooking(
+                    orbitRoomUuid, bookingUuid, movieUuid, userUuid, lockedSeats, now);
+            scoreAdded = orbitResult.hostScoreAdded();
+            missionCompletions.addAll(orbitResult.missionCompletions());
+        } else {
+            if (movieUuid != null) {
+                missionCompletions.addAll(missionService.handleEvent(
+                        MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+            }
+            missionCompletions.addAll(
+                    missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
         }
-        missionCompletions.addAll(
-                missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
 
         BookingResponse response = new BookingResponse(
                 bookingUuid,
@@ -775,51 +795,6 @@ public class BookingService {
         return combos;
     }
 
-    private void validateNoSingleSeatGap(UUID showtimeUuid, List<UUID> selectedSeatUuids, OffsetDateTime now) {
-        Set<UUID> selectedSeatUuidSet = new LinkedHashSet<>(selectedSeatUuids);
-        Map<String, List<GapSeat>> seatsByRow = new LinkedHashMap<>();
-
-        for (SeatGapState state : bookingRepository.loadSeatGapStates(showtimeUuid, now)) {
-            boolean selectedByUser = selectedSeatUuidSet.contains(state.seatUuid());
-            boolean unavailable = selectedByUser
-                    || state.booked()
-                    || state.locked()
-                    || (state.seatStatus() != null && !"ACTIVE".equalsIgnoreCase(state.seatStatus()));
-            GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable, selectedByUser);
-            seatsByRow.computeIfAbsent(gapSeat.rowName(), ignored -> new ArrayList<>()).add(gapSeat);
-        }
-
-        for (List<GapSeat> rowSeats : seatsByRow.values()) {
-            int segmentStart = 0;
-            while (segmentStart < rowSeats.size()) {
-                int segmentEnd = segmentStart;
-                while (segmentEnd + 1 < rowSeats.size()
-                        && rowSeats.get(segmentEnd + 1).seatNumber() == rowSeats.get(segmentEnd).seatNumber() + 1) {
-                    segmentEnd++;
-                }
-
-                for (int i = segmentStart; i <= segmentEnd; i++) {
-                    GapSeat current = rowSeats.get(i);
-                    if (current.unavailable()) {
-                        continue;
-                    }
-
-                    boolean leftUnavailable = (i == segmentStart) || rowSeats.get(i - 1).unavailable();
-                    boolean rightUnavailable = (i == segmentEnd) || rowSeats.get(i + 1).unavailable();
-
-                    if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByUser = (i != segmentStart) && rowSeats.get(i - 1).selectedByUser();
-                        boolean rightSelectedByUser = (i != segmentEnd) && rowSeats.get(i + 1).selectedByUser();
-                        if (leftSelectedByUser || rightSelectedByUser) {
-                            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
-                        }
-                    }
-                }
-                segmentStart = segmentEnd + 1;
-            }
-        }
-    }
-
     private UUID resolveRequiredUserUuid(String currentUserEmail) {
         if (currentUserEmail == null || currentUserEmail.isBlank()) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -904,9 +879,14 @@ public class BookingService {
                         .map(combo -> combo.getQuantity() + "x " + combo.getName())
                         .collect(Collectors.joining(", "));
 
-        String ticketCodes = ticketLines.stream()
-                .map(BookingResponse.TicketLine::getTicketCode)
-                .collect(Collectors.joining(", "));
+        List<TheaterTicketQrItem> qrItems = new ArrayList<>();
+        for (int i = 0; i < ticketLines.size(); i++) {
+            BookingResponse.TicketLine ticket = ticketLines.get(i);
+            String seatLabel = i < seatLines.size()
+                    ? seatLines.get(i).getRowName() + seatLines.get(i).getSeatNumber()
+                    : "";
+            qrItems.add(new TheaterTicketQrItem(ticket.getTicketCode(), seatLabel));
+        }
 
         theaterNotificationService.sendTheaterTicketEmail(
                 userUuid,
@@ -917,7 +897,7 @@ public class BookingService {
                 seatsLabel,
                 combosLabel,
                 formatPrice(totalPrice),
-                ticketCodes);
+                qrItems);
     }
 
     @Transactional(readOnly = true)
@@ -1325,9 +1305,6 @@ public class BookingService {
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
-    }
-
-    private record GapSeat(String rowName, Integer seatNumber, boolean unavailable, boolean selectedByUser) {
     }
 
     @Transactional(readOnly = true)

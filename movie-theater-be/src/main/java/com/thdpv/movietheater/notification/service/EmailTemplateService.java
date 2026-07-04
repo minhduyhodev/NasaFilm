@@ -108,6 +108,29 @@ public class EmailTemplateService {
                 "Gửi liên kết đặt lại mật khẩu khi người dùng quên mật khẩu",
                 "NASA FILM - Yêu cầu đặt lại mật khẩu",
                 EmailTemplateDefaults.passwordResetHtml());
+        upgradeTheaterTicketTemplateIfNeeded();
+    }
+
+    private void upgradeTheaterTicketTemplateIfNeeded() {
+        emailTemplateRepository.findByCodeIgnoreCase(CODE_THEATER_TICKET).ifPresent(template -> {
+            String body = template.getHtmlBody();
+            if (body == null || body.contains("{{QR_CHECKIN_SECTION}}")) {
+                return;
+            }
+            String marker = "<p>Mã vé của bạn (xuất trình tại quầy hoặc cửa soát vé):</p>";
+            if (body.contains(marker)) {
+                template.setHtmlBody(body.replace(marker, "{{QR_CHECKIN_SECTION}}\n" + marker));
+            }
+            String profileLink = "<a href=\"{{PROFILE_URL}}\"";
+            if (template.getHtmlBody().contains(profileLink)
+                    && !template.getHtmlBody().contains("{{BOARDING_URL}}")) {
+                template.setHtmlBody(template.getHtmlBody().replace(
+                        profileLink,
+                        "<a href=\"{{BOARDING_URL}}\" style=\"display:inline-block;background:linear-gradient(135deg,#334155,#1e293b);color:#fff;padding:12px 28px;text-decoration:none;border-radius:8px;font-weight:700;margin-right:8px;\">Thẻ lên máy bay</a>\n"
+                                + profileLink));
+            }
+            emailTemplateRepository.save(template);
+        });
     }
 
     private void seedIfMissing(String code, String name, String purpose, String subject, String htmlBody) {

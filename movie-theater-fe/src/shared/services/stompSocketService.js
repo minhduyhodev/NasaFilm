@@ -1,5 +1,5 @@
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import { tokenService } from '../../features/auth/utils/tokenService';
 
 const resolveApiBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -23,7 +23,33 @@ const toNativeWebSocketUrl = (httpUrl) =>
 
 const useSockJsTransport = () => import.meta.env.VITE_WS_USE_SOCKJS === 'true';
 
+const buildConnectHeaders = () => {
+  const token = tokenService.getToken();
+  if (!token) {
+    return {};
+  }
+  return { Authorization: `Bearer ${token}` };
+};
+
+const appendAccessTokenQuery = (httpUrl) => {
+  const token = tokenService.getToken();
+  if (!token) {
+    return httpUrl;
+  }
+  const separator = httpUrl.includes('?') ? '&' : '?';
+  return `${httpUrl}${separator}access_token=${encodeURIComponent(token)}`;
+};
+
 const SEAT_MAP_REFRESH_MS = 5000;
+
+/** Lazy-loaded only when native WebSocket fails or VITE_WS_USE_SOCKJS=true */
+let sockJsModulePromise = null;
+const loadSockJS = () => {
+  if (!sockJsModulePromise) {
+    sockJsModulePromise = import('sockjs-client').then((mod) => mod.default);
+  }
+  return sockJsModulePromise;
+};
 
 class StompSocketService {
   constructor() {
@@ -33,19 +59,29 @@ class StompSocketService {
     this.subscriptionCounter = 0;
     this.connected = false;
     this.usingSockJs = false;
+    this.sockJsClass = null;
   }
 
   isConnected() {
     return Boolean(this.client?.connected && this.connected);
   }
 
-  createClient(useSockJs) {
+  async ensureSockJsLoaded() {
+    if (!this.sockJsClass) {
+      this.sockJsClass = await loadSockJS();
+    }
+    return this.sockJsClass;
+  }
+
+  createClient(useSockJs, SockJSClass) {
     this.usingSockJs = useSockJs;
     return new Client({
+      connectHeaders: buildConnectHeaders(),
       webSocketFactory: () => {
-        const httpUrl = resolveWsHttpUrl(useSockJs);
+        let httpUrl = resolveWsHttpUrl(useSockJs);
         if (useSockJs) {
-          return new SockJS(httpUrl);
+          httpUrl = appendAccessTokenQuery(httpUrl);
+          return new SockJSClass(httpUrl);
         }
         // If the URL is a SockJS endpoint (e.g. /ws) and we want native WebSocket,
         // we must append '/websocket'. If it's a raw STOMP endpoint (e.g. /stomp), we don't.
@@ -79,8 +115,13 @@ class StompSocketService {
       return this.connectPromise;
     }
 
-    const tryConnect = (useSockJs) =>
-      new Promise((resolve, reject) => {
+    const tryConnect = async (useSockJs) => {
+      let SockJSClass = null;
+      if (useSockJs) {
+        SockJSClass = await this.ensureSockJsLoaded();
+      }
+
+      return new Promise((resolve, reject) => {
         let settled = false;
         const settle = (fn, value) => {
           if (settled) return;
@@ -88,7 +129,7 @@ class StompSocketService {
           fn(value);
         };
 
-        this.client = this.createClient(useSockJs);
+        this.client = this.createClient(useSockJs, SockJSClass);
         this.client.onConnect = () => {
           this.connected = true;
           settle(resolve);
@@ -114,9 +155,10 @@ class StompSocketService {
           reject(error);
         }
       });
+    };
 
     const preferredSockJs = useSockJsTransport();
-    this.connectPromise = tryConnect(preferredSockJs).catch((error) => {
+    this.connectPromise = tryConnect(preferredSockJs).catch(async (error) => {
       if (preferredSockJs) {
         throw error;
       }
@@ -142,9 +184,18 @@ class StompSocketService {
         if (entry.disposed || !this.client?.connected) {
           return;
         }
-        entry.stompSub = this.client.subscribe(topic, () => {
+        entry.stompSub = this.client.subscribe(topic, (message) => {
           if (!entry.disposed) {
-            callback();
+            let payload = null;
+            try {
+              const body = message?.body;
+              if (body) {
+                payload = JSON.parse(body);
+              }
+            } catch {
+              payload = null;
+            }
+            callback(payload);
           }
         });
       })

@@ -1,5 +1,8 @@
--- Repeatable Flyway migration: idempotent mission schema patches.
--- Supersedes MissionSchemaMigrator JDBC patches.
+-- Repeatable Flyway migration (idempotent).
+-- Bổ sung schema cho feature không do Hibernate tự sinh đủ (mission, orbit, review…).
+-- Các bảng lõi (movie, showtime, booking…) vẫn do JPA ddl-auto=update quản lý.
+
+-- ── Mission ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS mission_campaign (
     uuid uuid PRIMARY KEY,
@@ -66,3 +69,48 @@ ALTER TABLE mission_template ADD CONSTRAINT mission_template_condition_type_chec
         'REVIEW_WITH_VIBE_TAG',
         'MATCHMAKER_QUIZ'
     ));
+
+-- ── Orbit Seat ───────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS orbit_room (
+    uuid uuid PRIMARY KEY,
+    showtime_uuid uuid NOT NULL,
+    host_user_uuid uuid NOT NULL,
+    max_members integer NOT NULL,
+    status varchar(32) NOT NULL,
+    expires_at timestamptz NOT NULL,
+    booking_uuid uuid,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_showtime
+    ON orbit_room (showtime_uuid, status);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_host
+    ON orbit_room (host_user_uuid, status);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_expires
+    ON orbit_room (status, expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_booking
+    ON orbit_room (booking_uuid)
+    WHERE booking_uuid IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS orbit_member (
+    uuid uuid PRIMARY KEY,
+    room_uuid uuid NOT NULL,
+    user_uuid uuid NOT NULL,
+    display_name varchar(120),
+    seat_uuids_json text NOT NULL DEFAULT '[]',
+    joined_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uk_orbit_member_room_user UNIQUE (room_uuid, user_uuid)
+);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_member_room
+    ON orbit_member (room_uuid, joined_at);
+
+-- ── Review ───────────────────────────────────────────────────────────────────
+
+ALTER TABLE movie_review DROP CONSTRAINT IF EXISTS uk_movie_review_movie_user;
