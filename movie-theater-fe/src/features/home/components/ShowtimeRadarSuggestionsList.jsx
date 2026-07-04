@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Clock, Film, Loader2, MapPin, Sparkles, Ticket } from 'lucide-react';
+import PosterImage from '../../../shared/components/PosterImage';
 
 const formatShowtime = (value) => {
   if (!value) return '—';
@@ -16,12 +17,73 @@ const formatShowtime = (value) => {
   });
 };
 
+const RadarSuggestionCard = ({ item, variant }) => {
+  const poster = item.moviePosterUrl || item.posterUrl || '';
+
+  return (
+    <Link
+      to={`/movie/${item.movieUuid}#select-showtimes`}
+      className={`radar-suggestions__card radar-suggestions__card--${variant}`}
+    >
+      <div className="radar-suggestions__poster">
+        {poster ? (
+          <PosterImage
+            src={poster}
+            alt={item.movieTitle}
+            width={240}
+            className="radar-suggestions__poster-img"
+          />
+        ) : (
+          <div className="radar-suggestions__poster-fallback" aria-hidden>
+            <Film className="h-6 w-6" />
+          </div>
+        )}
+        {item.heatScore != null && (
+          <span className="radar-suggestions__heat">
+            <Sparkles className="h-3 w-3" />
+            {item.heatScore}
+          </span>
+        )}
+      </div>
+
+      <div className="radar-suggestions__body">
+        <h4 className="radar-suggestions__title">{item.movieTitle}</h4>
+
+        <p className="radar-suggestions__meta">
+          <Clock className="h-3 w-3" aria-hidden />
+          <span>{formatShowtime(item.startTime)}</span>
+          <span className="radar-suggestions__meta-dot" aria-hidden>·</span>
+          <span>còn {item.availableSeats} ghế</span>
+        </p>
+
+        <p className="radar-suggestions__cinema">
+          <MapPin className="h-3 w-3" aria-hidden />
+          <span>{item.cinemaName}</span>
+        </p>
+
+        {item.reasons?.length > 0 && (
+          <div className="radar-suggestions__tags">
+            {item.reasons.slice(0, 2).map((reason) => (
+              <span key={reason}>{reason}</span>
+            ))}
+          </div>
+        )}
+
+        <span className="radar-suggestions__book">
+          <Ticket className="h-3.5 w-3.5" aria-hidden />
+          Đặt vé ngay
+        </span>
+      </div>
+    </Link>
+  );
+};
+
 const ShowtimeRadarSuggestionsList = ({
   suggestions = [],
   loading = false,
   emptyMessage = 'Chưa có suất phù hợp trong 48 giờ tới.',
   maxItems = 5,
-  variant = 'widget',
+  variant = 'strip',
 }) => {
   if (loading) {
     return (
@@ -41,47 +103,23 @@ const ShowtimeRadarSuggestionsList = ({
   }
 
   return (
-    <ul className={`radar-suggestions radar-suggestions--${variant}`}>
+    <div className={`radar-suggestions radar-suggestions--${variant}`}>
       <AnimatePresence mode="popLayout">
         {suggestions.slice(0, maxItems).map((item, index) => (
-          <motion.li
+          <motion.div
             key={item.showtimeUuid}
             layout
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="radar-suggestions__item"
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.32, delay: index * 0.05 }}
+            className="radar-suggestions__slide"
           >
-            <div className="radar-suggestions__head">
-              <p className="radar-suggestions__title">{item.movieTitle}</p>
-              {item.heatScore != null && (
-                <span className="radar-suggestions__heat">
-                  <Sparkles className="h-3 w-3" />
-                  {item.heatScore}
-                </span>
-              )}
-            </div>
-            <p className="radar-suggestions__meta">
-              {formatShowtime(item.startTime)} · còn {item.availableSeats} ghế · {item.cinemaName}
-            </p>
-            {item.reasons?.length > 0 && (
-              <div className="radar-suggestions__tags">
-                {item.reasons.slice(0, 2).map((reason) => (
-                  <span key={reason}>{reason}</span>
-                ))}
-              </div>
-            )}
-            <Link
-              to={`/movie/${item.movieUuid}#select-showtimes`}
-              className="radar-suggestions__book"
-            >
-              Đặt vé ngay
-            </Link>
-          </motion.li>
+            <RadarSuggestionCard item={item} variant={variant} />
+          </motion.div>
         ))}
       </AnimatePresence>
-    </ul>
+    </div>
   );
 };
 

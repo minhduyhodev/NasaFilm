@@ -100,3 +100,15 @@
     max-width: 16.5rem;
   }
 }
+
+.home-upcoming-radar-bar {
+  margin-top: 2rem;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .home-upcoming-radar-bar {
+    margin-top: 2.5rem;
+  }
+}

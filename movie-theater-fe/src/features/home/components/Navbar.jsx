@@ -629,6 +629,15 @@ const AuthControls = () => {
               )}
 
               <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="dropdown-menu-link"
+              >
+                <User className="h-4 w-4" />
+                <span>Thông tin cá nhân</span>
+              </Link>
+
+              <Link
                 to="/my-movies"
                 onClick={() => setIsOpen(false)}
                 className="dropdown-menu-link"
@@ -637,14 +646,7 @@ const AuthControls = () => {
                 <span>Phim của tôi</span>
               </Link>
 
-              <Link
-                to="/profile"
-                onClick={() => setIsOpen(false)}
-                className="dropdown-menu-link"
-              >
-                <User className="h-4 w-4" />
-                <span>Thông tin cá nhân</span>
-              </Link>
+              
 
               <Link
                 to="/wallet"
