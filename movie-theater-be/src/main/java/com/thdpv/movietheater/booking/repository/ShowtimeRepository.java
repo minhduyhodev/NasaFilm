@@ -37,7 +37,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                     ELSE stt.basePrice
                 END,
                 COALESCE(stt.priceModifier, 1.0),
-                bs.uuid,
+                CASE WHEN b.status = 'CONFIRMED' THEN bs.uuid ELSE NULL END,
                 sl.userUuid,
                 sl.expiredAt
             )
@@ -47,6 +47,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             LEFT JOIN BookingSeat bs
                 ON bs.showtimeUuid = st.uuid
                AND bs.seatUuid = s.uuid
+            LEFT JOIN Booking b ON b.uuid = bs.bookingUuid
             LEFT JOIN SeatLocked sl
                 ON sl.showtimeUuid = st.uuid
                AND sl.seatUuid = s.uuid

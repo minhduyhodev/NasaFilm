@@ -31,8 +31,12 @@ const AdminComboRevenuePage = lazy(() => import("../pages/AdminComboRevenuePage"
 const ConfigPage = lazy(() => import("../pages/ConfigPage"));
 const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
+const StaffMissionControlPage = lazy(() => import("../pages/StaffMissionControlPage"));
+const MatchmakerAnalyticsPage = lazy(() => import("../pages/MatchmakerAnalyticsPage"));
 const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
+const MissionsPage = lazy(() => import("../pages/MissionsPage"));
+const SupportInboxPage = lazy(() => import("../pages/SupportInboxPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -71,6 +75,7 @@ export const AdminRoutes = () => {
           <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="refunds" element={<RefundsPage />} />
+          <Route path="support" element={<SupportInboxPage />} />
           <Route path="feedback-reviews" element={<FeedbackReviewsPage />} />
           <Route path="showtimes" element={<ShowtimesPage />} />
           <Route path="cinemas" element={<CinemasPage />} />
@@ -91,6 +96,7 @@ export const AdminRoutes = () => {
           />
           <Route path="users" element={<UsersPage />} />
           <Route path="vouchers" element={<VouchersPage />} />
+          <Route path="missions" element={<MissionsPage />} />
           <Route path="vouchers/new" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId/edit" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId" element={<Navigate to="/admin/vouchers" replace />} />
@@ -100,6 +106,9 @@ export const AdminRoutes = () => {
           <Route path="combos/:comboUuid/edit" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid" element={<Navigate to="/admin/combos" replace />} />
           <Route path="staff" element={<StaffPage />} />
+          <Route path="staff-control" element={<StaffMissionControlPage />} />
+          <Route path="matchmaker-analytics" element={<MatchmakerAnalyticsPage />} />
+          <Route path="staff_control" element={<Navigate to="/admin/staff-control" replace />} />
           <Route path="config" element={<ConfigPage />} />
           <Route path="email-templates" element={<EmailTemplatesPage />} />
         </Route>

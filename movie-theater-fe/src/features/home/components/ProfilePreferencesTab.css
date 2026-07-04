@@ -160,15 +160,17 @@
 }
 
 .profile-preferences-tab__toggle.is-on {
-  border-color: rgba(56, 189, 248, 0.45);
-  background: rgba(56, 189, 248, 0.14);
-  color: #e0f2fe;
+  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.14);
+  color: var(--radar-gold-text);
 }
 
 .profile-preferences-tab__radar {
   margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.15rem;
+  border-radius: 18px;
+  border: 1px solid var(--radar-border, rgba(212, 175, 55, 0.2));
+  background: linear-gradient(165deg, rgba(17, 18, 22, 0.72) 0%, rgba(12, 10, 26, 0.55) 100%);
 }
 
 .profile-preferences-tab__radar-head {
@@ -185,20 +187,27 @@
   gap: 0.5rem;
 }
 
+.profile-preferences-tab__radar-title h3 {
+  color: var(--radar-gold-text, #fde68a);
+}
+
 .profile-preferences-tab__refresh {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
+  transition: all 0.22s ease;
 }
 
 .profile-preferences-tab__refresh:hover:not(:disabled) {
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #7dd3fc;
+  border-color: rgba(212, 175, 55, 0.38);
+  color: var(--radar-gold-text);
+  background: rgba(212, 175, 55, 0.1);
 }
 
 /* Shared suggestions list */
@@ -250,7 +259,7 @@
 }
 
 .radar-suggestions__item:hover {
-  border-color: rgba(56, 189, 248, 0.25);
+  border-color: rgba(212, 175, 55, 0.28);
   transform: translateY(-1px);
 }
 
@@ -298,8 +307,8 @@
 .radar-suggestions__tags span {
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.12);
-  color: #7dd3fc;
+  background: rgba(220, 38, 38, 0.14);
+  color: #fca5a5;
   font-size: 0.62rem;
   font-weight: 700;
 }
@@ -311,11 +320,11 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #38bdf8;
+  color: var(--radar-gold-soft, #fbbf24);
   text-decoration: none;
 }
 
 .radar-suggestions__book:hover {
-  color: #7dd3fc;
+  color: var(--radar-gold-text, #fde68a);
   text-decoration: underline;
 }

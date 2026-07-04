@@ -22,12 +22,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        var endpoint = registry.addEndpoint("/ws");
-        if ("*".equals(frontendUrl)) {
-            endpoint.setAllowedOriginPatterns("*");
-        } else {
-            endpoint.setAllowedOrigins(frontendUrl);
-        }
-        endpoint.withSockJS();
+        String[] allowedOrigins = "*".equals(frontendUrl)
+                ? new String[] { "*" }
+                : new String[] { frontendUrl };
+
+        // Native WebSocket (STOMP) — used by @stomp/stompjs default transport
+        registry.addEndpoint("/stomp")
+                .setAllowedOriginPatterns(allowedOrigins);
+
+        // SockJS fallback at /ws (enable with VITE_WS_USE_SOCKJS=true on FE)
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .withSockJS();
     }
 }

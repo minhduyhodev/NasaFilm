@@ -63,6 +63,9 @@ import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
 import com.thdpv.movietheater.payment.service.PaymentService;
+import com.thdpv.movietheater.mission.dto.MissionEventPayload;
+import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
+import com.thdpv.movietheater.mission.service.MissionService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +99,7 @@ public class BookingService {
     private final CancellationRefundService cancellationRefundService;
     private final PaymentService paymentService;
     private final ShowtimeCapacityService showtimeCapacityService;
+    private final MissionService missionService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -225,7 +229,10 @@ public class BookingService {
 
         realtimeEventPublisher.notifyOnlineBookingConfirmed(bookingUuid);
 
-        return new BookingResponse(
+        List<MissionCompletionResponse> missionCompletions = missionService.handleEvent(
+                MissionEventPayload.vodPurchase(userUuid, bookingUuid, movie.getUuid(), now));
+
+        BookingResponse response = new BookingResponse(
                 bookingUuid,
                 null,
                 BOOKING_STATUS_CONFIRMED,
@@ -234,8 +241,9 @@ public class BookingService {
                 now,
                 List.of(),
                 List.of(),
-                List.of()
-        );
+                List.of());
+        response.setMissionCompletions(missionCompletions);
+        return response;
     }
 
     @Transactional
@@ -440,7 +448,17 @@ public class BookingService {
         seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
         realtimeEventPublisher.notifyBookingConfirmed(bookingUuid, request.getShowtimeUuid());
 
-        return new BookingResponse(
+        Showtime bookedShowtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
+        UUID movieUuid = bookedShowtime != null ? bookedShowtime.getMovieUuid() : null;
+        List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
+        if (movieUuid != null) {
+            missionCompletions.addAll(missionService.handleEvent(
+                    MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+        }
+        missionCompletions.addAll(
+                missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
+
+        BookingResponse response = new BookingResponse(
                 bookingUuid,
                 request.getShowtimeUuid(),
                 BOOKING_STATUS_CONFIRMED,
@@ -450,6 +468,8 @@ public class BookingService {
                 seatLines,
                 comboLines,
                 ticketLines);
+        response.setMissionCompletions(missionCompletions);
+        return response;
     }
 
     @Transactional
@@ -1479,8 +1499,9 @@ public class BookingService {
 
         OffsetDateTime now = OffsetDateTime.now();
         String streamToken = UUID.randomUUID().toString();
+        boolean isFirstPlay = booking.getFirstPlayedAt() == null;
 
-        if (booking.getFirstPlayedAt() != null) {
+        if (!isFirstPlay) {
             if (now.isAfter(booking.getExpiresAt())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
             }
@@ -1499,7 +1520,15 @@ public class BookingService {
         booking.setStreamToken(streamToken);
         bookingJpaRepository.save(booking);
 
-        return new VodPlayResponse(streamToken, streamingUrl, expiresAt);
+        List<MissionCompletionResponse> missionCompletions = List.of();
+        if (isFirstPlay) {
+            missionCompletions = missionService.handleEvent(MissionEventPayload.vodFirstPlay(
+                    userUuid, booking.getUuid(), movieUuid, now));
+        }
+
+        VodPlayResponse response = new VodPlayResponse(streamToken, streamingUrl, expiresAt);
+        response.setMissionCompletions(missionCompletions);
+        return response;
     }
 
     private Booking resolveVodBookingForPlay(UUID userUuid, UUID movieUuid, UUID bookingUuid) {

@@ -1,0 +1,233 @@
+.matchmaker-analytics {
+  max-width: none;
+  width: 100%;
+}
+
+.matchmaker-analytics__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.matchmaker-analytics__error-panel {
+  padding: 2rem;
+  text-align: center;
+  border-radius: 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  font-size: 0.875rem;
+}
+
+.matchmaker-analytics__retry-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.matchmaker-analytics__retry-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.matchmaker-analytics__kpi {
+  margin-bottom: 0.25rem;
+}
+
+.matchmaker-analytics__kpi .kpi-card {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1px solid #1a2238;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.matchmaker-analytics__kpi .kpi-card:hover {
+  border-color: #334155;
+  transform: translateY(-1px);
+}
+
+.matchmaker-analytics__highlight {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.matchmaker-analytics__highlight strong {
+  color: #fdba74;
+}
+
+.matchmaker-analytics__charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 860px) {
+  .matchmaker-analytics__charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matchmaker-analytics__chart-panel {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: rgba(15, 19, 34, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.matchmaker-analytics__chart-title {
+  margin: 0 0 1rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.matchmaker-analytics__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.matchmaker-analytics__mood-chart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.matchmaker-analytics__donut-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 10rem;
+  height: 10rem;
+}
+
+.matchmaker-analytics__donut-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.matchmaker-analytics__donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.matchmaker-analytics__donut-center-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.matchmaker-analytics__donut-center-value {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.matchmaker-analytics__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.matchmaker-analytics__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.matchmaker-analytics__legend-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.matchmaker-analytics__legend-label {
+  flex: 1;
+  color: #94a3b8;
+}
+
+.matchmaker-analytics__legend-value {
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.matchmaker-analytics__bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.matchmaker-analytics__bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.matchmaker-analytics__bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.matchmaker-analytics__bar-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.matchmaker-analytics__bar-meta {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.matchmaker-analytics__bar-track {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.matchmaker-analytics__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 2px;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
