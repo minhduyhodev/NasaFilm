@@ -47,7 +47,11 @@ class StompSocketService {
         if (useSockJs) {
           return new SockJS(httpUrl);
         }
-        return new WebSocket(toNativeWebSocketUrl(httpUrl));
+        // If the URL is a SockJS endpoint (e.g. /ws) and we want native WebSocket,
+        // we must append '/websocket'. If it's a raw STOMP endpoint (e.g. /stomp), we don't.
+        const needsWebsocketSuffix = httpUrl.includes('/ws') && !httpUrl.endsWith('/websocket');
+        const nativeUrl = needsWebsocketSuffix ? `${httpUrl}/websocket` : httpUrl;
+        return new WebSocket(toNativeWebSocketUrl(nativeUrl));
       },
       reconnectDelay: 5000,
       connectionTimeout: 8000,
@@ -126,7 +130,7 @@ class StompSocketService {
 
   subscribe(topic, callback) {
     if (!topic || typeof callback !== 'function') {
-      return () => {};
+      return () => { };
     }
 
     const id = ++this.subscriptionCounter;

@@ -4,6 +4,7 @@ import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
+import { CounterRoutes } from './features/counter/index.js';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
 import { PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
@@ -46,71 +47,80 @@ export default function App() {
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <QueryProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
+          <AuthProvider>
+            <NotificationProvider>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <PublicRoute>
+                      <Suspense fallback={<AuthPageLoader />}>
+                        <LoginPage />
+                      </Suspense>
+                    </PublicRoute>
+                  }
+                />
+
+                <Route
+                  path="/register"
+                  element={
+                    <PublicRoute>
+                      <Suspense fallback={<AuthPageLoader />}>
+                        <RegisterPage />
+                      </Suspense>
+                    </PublicRoute>
+                  }
+                />
+
+                <Route path="/forgot-password" element={<AuthRoutes mode="forgot-password" />} />
+                <Route path="/reset-password" element={<AuthRoutes mode="reset-password" />} />
+                <Route path="/activate-account" element={<AuthRoutes mode="activate-account" />} />
+
+                <Route path="/auth/*" element={<AuthRoutes />} />
+
+                <Route
+                  path="/admin/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                      <AdminRoutes />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/counter/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                      <CounterRoutes />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/staff/control"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                      <Navigate to="/admin/staff-control" replace />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/unauthorized"
+                  element={
                     <Suspense fallback={<AuthPageLoader />}>
-                      <LoginPage />
+                      <UnauthorizedPage />
                     </Suspense>
-                  </PublicRoute>
-                }
-              />
+                  }
+                />
 
-              <Route
-                path="/register"
-                element={
-                  <PublicRoute>
-                    <Suspense fallback={<AuthPageLoader />}>
-                      <RegisterPage />
-                    </Suspense>
-                  </PublicRoute>
-                }
-              />
+                <Route path="/*" element={<HomeRoutes />} />
+              </Routes>
+            </NotificationProvider>
 
-              <Route path="/forgot-password" element={<AuthRoutes mode="forgot-password" />} />
-              <Route path="/reset-password" element={<AuthRoutes mode="reset-password" />} />
-              <Route path="/activate-account" element={<AuthRoutes mode="activate-account" />} />
-
-              <Route path="/auth/*" element={<AuthRoutes />} />
-
-              <Route
-                path="/admin/*"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                    <AdminRoutes />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/staff/control"
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                    <Navigate to="/admin/staff-control" replace />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/unauthorized"
-                element={
-                  <Suspense fallback={<AuthPageLoader />}>
-                    <UnauthorizedPage />
-                  </Suspense>
-                }
-              />
-
-              <Route path="/*" element={<HomeRoutes />} />
-            </Routes>
-          </NotificationProvider>
-
-          <ToastViewport />
-          <NasaAiAssistantWidget />
-        </AuthProvider>
+            <ToastViewport />
+            <NasaAiAssistantWidget />
+          </AuthProvider>
         </QueryProvider>
       </BrowserRouter>
     </ErrorBoundary>

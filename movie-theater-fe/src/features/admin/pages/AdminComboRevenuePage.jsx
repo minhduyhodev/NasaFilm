@@ -76,11 +76,12 @@ const DonutChart = ({ segments }) => {
   const cy = size / 2;
   const r = 72;
   const stroke = 22;
-  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  const computedTotal = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  const displayTotal = segments.length === 1 && segments[0].isFallback ? 0 : segments.reduce((s, seg) => s + seg.value, 0);
   let angle = -90;
 
   const arcs = segments.map((seg, i) => {
-    const pct = seg.value / total;
+    const pct = seg.value / computedTotal;
     const sweep = pct * 360;
     const start = angle;
     angle += sweep;
@@ -104,7 +105,7 @@ const DonutChart = ({ segments }) => {
       </svg>
       <div className="dashboard-donut-center">
         <span className="dashboard-donut-center-label">Tháng này</span>
-        <span className="dashboard-donut-center-value">{formatMoney(total)}</span>
+        <span className="dashboard-donut-center-value">{formatMoney(displayTotal)}</span>
       </div>
     </div>
   );
@@ -189,7 +190,7 @@ const AdminComboRevenuePage = () => {
 
   const donutSegments = chartData?.donutSegments?.length
     ? chartData.donutSegments
-    : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155' }];
+    : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155', isFallback: true }];
 
   return (
     <div className="dashboard-page combo-revenue-page">
