@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.discover.dto.request.DiscoverMatchRequest;
 import com.thdpv.movietheater.discover.dto.response.DiscoverConfigResponse;
@@ -37,7 +39,9 @@ public class DiscoverController {
     public ResponseEntity<ApiResponse<DiscoverMatchResponse>> match(
             @Valid @RequestBody DiscoverMatchRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String email = userDetails != null ? userDetails.getUsername() : null;
-        return ResponseEntity.ok(ApiResponse.success(discoverMatchService.match(request, email)));
+        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isBlank()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập để dùng Movie Matchmaker");
+        }
+        return ResponseEntity.ok(ApiResponse.success(discoverMatchService.match(request, userDetails.getUsername())));
     }
 }
