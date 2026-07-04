@@ -54,6 +54,7 @@ public class UserService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    public static final String COUNTER_WALK_IN_EMAIL = "counter_guest@nasafilm.com";
 
     public UserService(UserRepository userRepository,
             PasswordEncoder passwordEncoder,
@@ -331,6 +332,41 @@ public class UserService {
                         "Email đã tồn tại. Vui lòng xác nhận để gán giao dịch vào tài khoản có sẵn.",
                         true))
                 .orElseGet(() -> createCounterCustomer(email, fullName, phoneNumber));
+    }
+
+    @Transactional
+    public CounterCreateCustomerResponse getWalkInCustomer() {
+        User guest = userRepository.findByEmailIgnoreCase(COUNTER_WALK_IN_EMAIL)
+                .orElseGet(this::ensureWalkInGuestAccount);
+
+        return new CounterCreateCustomerResponse(
+                guest.getId(),
+                guest.getEmail(),
+                "Khách vãng lai",
+                guest.getPhoneNumber(),
+                guest.getStatus(),
+                "Đã kích hoạt khách vãng lai",
+                true);
+    }
+
+    private User ensureWalkInGuestAccount() {
+        User guest = new User();
+        guest.setEmail(COUNTER_WALK_IN_EMAIL);
+        guest.setFullName("Khách vãng lai");
+        guest.setIsSystemAccount(true);
+        guest.setAuthProvider(AuthProvider.LOCAL);
+        guest.setStatus(UserStatus.ACTIVE);
+        userRepository.save(guest);
+
+        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Role not found"));
+
+        UserRole userRole = new UserRole();
+        userRole.setUser(guest);
+        userRole.setRole(customerRole);
+        userRoleRepository.save(userRole);
+
+        return guest;
     }
 
     private CounterCreateCustomerResponse createCounterCustomer(String email, String fullName, String phoneNumber) {

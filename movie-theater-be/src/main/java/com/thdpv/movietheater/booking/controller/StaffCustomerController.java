@@ -2,6 +2,7 @@ package com.thdpv.movietheater.booking.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,13 @@ public class StaffCustomerController {
     public ResponseEntity<ApiResponse<CounterCreateCustomerResponse>> createCustomer(
             @Valid @RequestBody CounterCreateCustomerRequest request) {
         CounterCreateCustomerResponse response = userService.createCustomer(request);
+        return ResponseEntity.ok(ApiResponse.success(response, response.getMessage()));
+    }
+
+    @GetMapping("/walk-in")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<CounterCreateCustomerResponse>> getWalkInCustomer() {
+        CounterCreateCustomerResponse response = userService.getWalkInCustomer();
         return ResponseEntity.ok(ApiResponse.success(response, response.getMessage()));
     }
 }
