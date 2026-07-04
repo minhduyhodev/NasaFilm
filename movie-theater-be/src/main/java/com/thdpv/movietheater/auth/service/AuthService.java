@@ -354,17 +354,17 @@ public class AuthService {
         user.setPassword(null);
         user.setAuthProvider(AuthProvider.GOOGLE);
         user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        User savedUser = userRepository.saveAndFlush(user);
 
         Role defaultRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Default customer role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(savedUser);
         userRole.setRole(defaultRole);
         userRoleRepository.save(userRole);
 
-        return user;
+        return savedUser;
     }
 
     @Transactional
