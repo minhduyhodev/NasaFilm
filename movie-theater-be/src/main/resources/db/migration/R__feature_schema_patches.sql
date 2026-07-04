@@ -59,6 +59,17 @@ ALTER TABLE mission_template ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 
 ALTER TABLE mission_progress_event ADD COLUMN IF NOT EXISTS movie_uuid uuid;
 
+ALTER TABLE mission_template DROP CONSTRAINT IF EXISTS mission_template_condition_type_check;
+ALTER TABLE mission_template ADD CONSTRAINT mission_template_condition_type_check
+    CHECK (condition_type IN (
+        'GENRE_WINDOW',
+        'PREMIERE_BOOKING',
+        'HYBRID_THEATER_VOD',
+        'ORBIT_ROOM_JOIN',
+        'REVIEW_WITH_VIBE_TAG',
+        'MATCHMAKER_QUIZ'
+    ));
+
 -- ── Orbit Seat ───────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS orbit_room (

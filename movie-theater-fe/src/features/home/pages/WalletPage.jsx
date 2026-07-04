@@ -47,7 +47,7 @@ const WalletPage = () => {
     try {
       await walletService.topUp(value);
       await invalidateWallet();
-      notificationService.success(`Nạp ${formatMoney(value)} vào ví thành công (mock)`);
+      notificationService.success(`Nạp ${formatMoney(value)} vào ví NASA thành công`);
     } catch (err) {
       notificationService.error(err?.message || 'Nạp tiền thất bại');
     } finally {
@@ -65,7 +65,7 @@ const WalletPage = () => {
     try {
       await walletService.withdraw(value);
       await invalidateWallet();
-      notificationService.success(`Rút ${formatMoney(value)} thành công (mock)`);
+      notificationService.success(`Rút ${formatMoney(value)} từ ví NASA thành công`);
     } catch (err) {
       notificationService.error(err?.message || 'Rút tiền thất bại');
     } finally {

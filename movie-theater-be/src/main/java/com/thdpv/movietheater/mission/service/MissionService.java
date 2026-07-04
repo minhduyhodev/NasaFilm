@@ -777,6 +777,8 @@ public class MissionService {
             case REVIEW_WITH_VIBE_TAG_CREATED -> MissionEventPayload.reviewWithVibeTag(
                     userUuid, sourceUuid, movieUuid, occurredAt);
             case ORBIT_ROOM_JOINED -> MissionEventPayload.orbitRoomJoined(userUuid, sourceUuid, occurredAt);
+            case DISCOVER_QUIZ_COMPLETED -> MissionEventPayload.discoverQuizCompleted(
+                    userUuid, sourceUuid, occurredAt);
         };
     }
 
@@ -788,6 +790,7 @@ public class MissionService {
                     .findById(sourceUuid)
                     .map(MovieReview::getMovieUuid)
                     .orElse(null);
+            case DISCOVER_QUIZ_COMPLETED -> null;
         };
     }
 
@@ -837,6 +840,7 @@ public class MissionService {
             case HYBRID_THEATER_VOD -> applyHybridProgress(userMission, event);
             case REVIEW_WITH_VIBE_TAG -> applyReviewerProgress(userMission);
             case ORBIT_ROOM_JOIN -> applySingleStepProgress(userMission);
+            case MATCHMAKER_QUIZ -> applyReviewerProgress(userMission);
             default -> {
             }
         }
@@ -996,13 +1000,15 @@ public class MissionService {
                     || event.getEventType() == MissionEventType.VOD_PURCHASE_CONFIRMED;
             case REVIEW_WITH_VIBE_TAG -> event.getEventType() == MissionEventType.REVIEW_WITH_VIBE_TAG_CREATED;
             case ORBIT_ROOM_JOIN -> event.getEventType() == MissionEventType.ORBIT_ROOM_JOINED;
+            case MATCHMAKER_QUIZ -> event.getEventType() == MissionEventType.DISCOVER_QUIZ_COMPLETED;
         };
     }
 
     private boolean isEligibleForTemplate(MissionTemplate template, MissionEventPayload event) {
         if (event.getMovieUuid() == null) {
             return template.getConditionType() == MissionConditionType.REVIEW_WITH_VIBE_TAG
-                    || template.getConditionType() == MissionConditionType.ORBIT_ROOM_JOIN;
+                    || template.getConditionType() == MissionConditionType.ORBIT_ROOM_JOIN
+                    || template.getConditionType() == MissionConditionType.MATCHMAKER_QUIZ;
         }
 
         Movie movie = movieRepository.findById(event.getMovieUuid()).orElse(null);
@@ -1179,7 +1185,7 @@ public class MissionService {
         return switch (template.getConditionType()) {
             case GENRE_WINDOW -> "thể loại";
             case REVIEW_WITH_VIBE_TAG -> "review";
-            case HYBRID_THEATER_VOD, PREMIERE_BOOKING, ORBIT_ROOM_JOIN -> "lần";
+            case HYBRID_THEATER_VOD, PREMIERE_BOOKING, ORBIT_ROOM_JOIN, MATCHMAKER_QUIZ -> "lần";
         };
     }
 

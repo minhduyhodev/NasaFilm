@@ -28,7 +28,7 @@ public class FeatureSchemaMigrationConfig {
         }
 
         void migrate() {
-            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions)...");
+            log.info("Applying feature schema patches (VOD progress, favorites, notifications, search, review vibe tags, missions, showtime radar, matchmaker history)...");
 
             jdbc.execute("""
                     ALTER TABLE movie_review
@@ -242,6 +242,36 @@ public class FeatureSchemaMigrationConfig {
                     ON showtime_radar_alert (user_uuid, notified_at DESC)
                     """);
 
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS user_matchmaker_history (
+                        uuid uuid PRIMARY KEY,
+                        user_uuid uuid,
+                        mood varchar(32) NOT NULL,
+                        duration varchar(16) NOT NULL,
+                        viewing_location varchar(16) NOT NULL,
+                        genre_uuids text,
+                        use_history boolean NOT NULL DEFAULT false,
+                        flight_code varchar(32),
+                        match_count integer NOT NULL DEFAULT 0,
+                        matched_movie_uuids text,
+                        top_match_movie_uuid uuid,
+                        top_match_score integer,
+                        created_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_user
+                    ON user_matchmaker_history (user_uuid, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_created
+                    ON user_matchmaker_history (created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_user_matchmaker_history_mood
+                    ON user_matchmaker_history (mood)
+                    """);
+
             ensureSearchVector("movie", "title", "description");
             ensureSearchVector("cinema", "name", "address");
             ensureSearchVector("actor", "full_name", null);
@@ -250,6 +280,40 @@ public class FeatureSchemaMigrationConfig {
                     CREATE INDEX IF NOT EXISTS idx_showtime_status_start_time
                     ON showtime (status, start_time)
                     """);
+
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS staff_gate_event (
+                        uuid uuid PRIMARY KEY,
+                        showtime_uuid uuid,
+                        booking_uuid uuid,
+                        ticket_code varchar(64) NOT NULL,
+                        event_type varchar(48) NOT NULL,
+                        staff_uuid uuid,
+                        staff_email varchar(255),
+                        customer_name varchar(255),
+                        movie_title varchar(255),
+                        seat_labels text,
+                        error_message text,
+                        scan_source varchar(16),
+                        created_at timestamptz NOT NULL DEFAULT now()
+                    )
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_showtime
+                    ON staff_gate_event (showtime_uuid, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_ticket
+                    ON staff_gate_event (ticket_code, created_at DESC)
+                    """);
+            jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_staff_gate_event_staff
+                    ON staff_gate_event (staff_uuid, created_at DESC)
+                    """);
+            jdbc.execute("COMMENT ON TABLE staff_gate_event IS 'Nhật ký soát vé tại cửa (Staff Mission Control): thành công, trùng, lỗi, preview sai'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.event_type IS 'TICKET_CHECK_IN_SUCCESS | TICKET_CHECK_IN_ALREADY_USED | TICKET_CHECK_IN_FAILED | TICKET_PREVIEW_FAILED'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.scan_source IS 'MANUAL (gõ tay) hoặc CAMERA (quét QR)'");
+            jdbc.execute("COMMENT ON COLUMN staff_gate_event.error_message IS 'Lý do lỗi khi preview/soát thất bại'");
         }
 
         private void ensureSearchVector(String table, String primaryCol, String secondaryCol) {

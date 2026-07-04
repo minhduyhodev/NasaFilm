@@ -16,6 +16,7 @@ const CUSTOM_OPTION = '__CUSTOM__';
 const CONDITION_JSON_DEFAULTS = {
   GENRE_WINDOW: '{"windowDays":30}',
   PREMIERE_BOOKING: '{"windowDays":3}',
+  MATCHMAKER_QUIZ: '{}',
 };
 
 const emptyCustomForm = () => ({

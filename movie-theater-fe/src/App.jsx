@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
@@ -82,6 +82,15 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'staff']}>
                     <AdminRoutes />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/staff/control"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                    <Navigate to="/admin/staff-control" replace />
                   </ProtectedRoute>
                 }
               />

@@ -80,6 +80,16 @@ public class MissionEventPayload {
                 at);
     }
 
+    public static MissionEventPayload discoverQuizCompleted(UUID userUuid, UUID sessionUuid, OffsetDateTime at) {
+        return new MissionEventPayload(
+                userUuid,
+                MissionEventType.DISCOVER_QUIZ_COMPLETED,
+                sessionUuid.toString(),
+                null,
+                null,
+                at);
+    }
+
     public UUID getUserUuid() {
         return userUuid;
     }
