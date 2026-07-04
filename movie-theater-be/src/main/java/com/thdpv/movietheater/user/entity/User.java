@@ -60,7 +60,7 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    @Column(name = "is_system_account", nullable = false)
+    @Column(name = "is_system_account", nullable = false, columnDefinition = "boolean default false")
     private Boolean isSystemAccount = false;
 
     @Enumerated(EnumType.STRING)

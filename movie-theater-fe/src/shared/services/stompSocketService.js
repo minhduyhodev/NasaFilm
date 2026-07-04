@@ -56,7 +56,8 @@ class StompSocketService {
           if (useSockJsTransport()) {
             return new SockJS(httpUrl);
           }
-          return new WebSocket(toNativeWebSocketUrl(httpUrl));
+          const nativeUrl = httpUrl.endsWith('/websocket') ? httpUrl : `${httpUrl}/websocket`;
+          return new WebSocket(toNativeWebSocketUrl(nativeUrl));
         },
         reconnectDelay: 5000,
         connectionTimeout: 8000,

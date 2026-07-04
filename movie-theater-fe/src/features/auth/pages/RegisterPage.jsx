@@ -309,7 +309,7 @@ export const RegisterPage = () => {
             {/* Phone Number Input */}
             <AuthInput
               {...register("phoneNumber")}
-              label="Số điện thoại (Không bắt buộc)"
+              label="Số điện thoại"
               placeholder="+84 900-000-000"
               type="tel"
               icon={<Phone size={20} />}

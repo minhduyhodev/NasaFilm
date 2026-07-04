@@ -4,6 +4,7 @@ import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';
 import { HomeRoutes } from './features/home/routes/index.jsx';
 import { AdminRoutes } from './features/admin/routes/index.jsx';
+import { CounterRoutes } from './features/counter/index.js';
 import { ProtectedRoute } from './features/auth/components/ProtectedRoute.jsx';
 import { PublicRoute } from './features/auth';
 import { NotificationProvider } from './shared/context/NotificationContext';
@@ -81,6 +82,15 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'staff']}>
                     <AdminRoutes />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/counter/*"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                    <CounterRoutes />
                   </ProtectedRoute>
                 }
               />
