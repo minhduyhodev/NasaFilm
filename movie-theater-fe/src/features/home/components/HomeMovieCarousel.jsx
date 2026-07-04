@@ -17,6 +17,7 @@ const HomeMovieCarousel = ({
   moviesList = [],
   isLoading = false,
   actionLabel = 'Chi tiết',
+  priorityCount = 4,
 }) => {
   const scrollerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -138,7 +139,11 @@ const HomeMovieCarousel = ({
               className={`home-movie-carousel__item ${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
               style={CARD_STYLE}
             >
-              <MovieCard {...movie} actionLabel={actionLabel} />
+              <MovieCard
+                {...movie}
+                actionLabel={actionLabel}
+                posterLoading={index < priorityCount ? 'eager' : 'lazy'}
+              />
             </div>
           ))
         )}

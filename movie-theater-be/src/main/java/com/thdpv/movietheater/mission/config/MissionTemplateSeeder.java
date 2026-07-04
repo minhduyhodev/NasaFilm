@@ -88,6 +88,20 @@ public class MissionTemplateSeeder implements ApplicationRunner {
                 5,
                 MissionRecurrence.ONCE);
 
+        seedIfAbsent(
+                "MATCHMAKER_EXPLORER",
+                "Nhà thám hiểm",
+                "Hoàn thành Movie Matchmaker 3 lần trong tháng.",
+                MissionConditionType.MATCHMAKER_QUIZ,
+                "{}",
+                150,
+                "MATCHMAKER_EXPLORER",
+                "Nhà thám hiểm",
+                null,
+                3,
+                6,
+                MissionRecurrence.MONTHLY);
+
         alignLocalizedCopy();
     }
 

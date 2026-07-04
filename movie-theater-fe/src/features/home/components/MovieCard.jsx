@@ -51,6 +51,7 @@ const MovieCard = ({
   bestOnBigScreen = false,
   countries,
   hoverDetails,
+  posterLoading = 'lazy',
 }) => {
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   const resolveOnlinePath = (movieUuid) => {
@@ -83,6 +84,7 @@ const MovieCard = ({
             alt={title}
             width={400}
             className="movie-card__poster"
+            loading={posterLoading}
           />
         </Link>
 

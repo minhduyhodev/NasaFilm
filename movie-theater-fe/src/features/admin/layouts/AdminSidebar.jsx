@@ -24,6 +24,7 @@ import {
   Rocket,
   Headset,
   ScanLine,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -270,6 +271,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Rocket,
                 "Quản lý nhiệm vụ",
                 "text-sky-400",
+              )}
+              {renderLink(
+                "/admin/matchmaker-analytics",
+                Sparkles,
+                "Movie Matchmaker",
+                "text-orange-400",
               )}
               {renderLink(
                 "/admin/feedback-reviews",

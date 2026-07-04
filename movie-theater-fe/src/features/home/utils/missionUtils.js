@@ -11,6 +11,7 @@ export const MISSION_TITLE_VI = {
   HYBRID_PILOT: 'Xem rạp + online',
   SOCIAL_ORBIT: 'Đặt vé nhóm',
   REVIEWER: 'Nhà phê bình',
+  MATCHMAKER_EXPLORER: 'Nhà thám hiểm',
 };
 
 export const getMissionTitleVi = (mission) =>
@@ -30,6 +31,7 @@ export const MISSION_ACTION_HINTS = {
   HYBRID_PILOT: 'Xem cùng một phim ở rạp và mua thêm bản VOD.',
   SOCIAL_ORBIT: 'Tham gia phòng Orbit Seat khi tính năng ra mắt.',
   REVIEWER: 'Viết đánh giá có gắn vibe tag trên trang chi tiết phim.',
+  MATCHMAKER_EXPLORER: 'Hoàn thành Movie Matchmaker trên trang chủ để ghi nhận tiến độ.',
 };
 
 export const MISSION_ACTION_HINTS_BY_TYPE = {
@@ -38,6 +40,7 @@ export const MISSION_ACTION_HINTS_BY_TYPE = {
   HYBRID_THEATER_VOD: 'Xem cùng một phim ở rạp và mua thêm bản VOD.',
   ORBIT_ROOM_JOIN: 'Tham gia phòng Orbit Seat hoặc đặt vé nhóm khi tính năng mở.',
   REVIEW_WITH_VIBE_TAG: 'Viết đánh giá có gắn vibe tag trên trang chi tiết phim.',
+  MATCHMAKER_QUIZ: 'Hoàn thành Movie Matchmaker trên trang chủ để ghi nhận tiến độ.',
 };
 
 export const getMissionActionHint = (mission) =>
@@ -49,6 +52,9 @@ export const getMissionCta = (mission, { completed = false, locked = false } = {
   if (completed || locked) return null;
   if (mission?.code === 'REVIEWER' || mission?.conditionType === 'REVIEW_WITH_VIBE_TAG') {
     return { label: 'Xem phim', to: '/movies' };
+  }
+  if (mission?.code === 'MATCHMAKER_EXPLORER' || mission?.conditionType === 'MATCHMAKER_QUIZ') {
+    return { label: 'Làm quiz', to: '/#movie-matchmaker' };
   }
   if (
     mission?.code === 'PREMIERE' ||

@@ -22,7 +22,7 @@ public final class MissionConditionValidator {
         String safeJson = conditionJson == null || conditionJson.isBlank() ? "{}" : conditionJson.trim();
         switch (conditionType) {
             case GENRE_WINDOW, PREMIERE_BOOKING -> validateWindowDays(safeJson, conditionType);
-            case HYBRID_THEATER_VOD, REVIEW_WITH_VIBE_TAG, ORBIT_ROOM_JOIN -> validateJsonObject(safeJson);
+            case HYBRID_THEATER_VOD, REVIEW_WITH_VIBE_TAG, ORBIT_ROOM_JOIN, MATCHMAKER_QUIZ -> validateJsonObject(safeJson);
             default -> validateJsonObject(safeJson);
         }
     }

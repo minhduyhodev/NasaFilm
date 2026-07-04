@@ -140,6 +140,7 @@ export const MISSION_CONDITION_TYPES = [
   { value: 'HYBRID_THEATER_VOD', label: 'Xem rạp và mua online' },
   { value: 'ORBIT_ROOM_JOIN', label: 'Tham gia phòng Orbit' },
   { value: 'REVIEW_WITH_VIBE_TAG', label: 'Viết đánh giá có vibe tag' },
+  { value: 'MATCHMAKER_QUIZ', label: 'Hoàn thành Movie Matchmaker' },
 ];
 
 export const MISSION_RECURRENCE_TYPES = [
