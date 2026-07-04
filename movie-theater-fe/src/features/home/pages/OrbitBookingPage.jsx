@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { bookingService } from '../../../shared/services/bookingService';
 import { orbitService } from '../../../shared/services/orbitService';
-import { stompSocketService } from '../../../shared/services/stompSocketService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
@@ -21,9 +20,11 @@ import {
   ORBIT_TERMINAL_STATUSES,
   buildOrbitSeatOwnerMap,
   buildSelectedFromMap,
+  countOrbitRoomSeats,
   formatShowtimeDate,
   formatShowtimeLabel,
   resolveOrbitErrorMessage,
+  wouldExceedOrbitRoomSeatLimit,
 } from '../../../shared/utils/orbitUtils';
 import OrbitBookingHeader from '../components/OrbitBookingHeader';
 import OrbitMemberPanel from '../components/OrbitMemberPanel';
@@ -69,8 +70,10 @@ const OrbitBookingPage = () => {
     fetchSeatMap: async () => {},
     setSelectedSeats: () => {},
   });
+  const currentUserUuidRef = useRef(null);
 
   const currentUserUuid = user?.id || user?.uuid;
+  currentUserUuidRef.current = currentUserUuid;
   const isHostUser = room?.hostUserUuid === currentUserUuid || Boolean(room?.host);
   const isCheckout = room?.status === 'CHECKOUT';
   const canEditSeats = room?.status === 'OPEN';
@@ -194,6 +197,11 @@ const OrbitBookingPage = () => {
     (payload) => {
       if (payload?.uuid && payload?.status) {
         applyRoomPayload(payload);
+        const myMember = payload.members?.find(
+          (member) => member.userUuid === currentUserUuidRef.current,
+        );
+        const mySeatUuids = myMember?.seatUuids || [];
+        fetchSeatMapRef.current(mySeatUuids, { silent: true }).catch(() => {});
         return;
       }
       refreshRoom().catch(() => {});
@@ -207,9 +215,7 @@ const OrbitBookingPage = () => {
       try {
         const updatedRoom = await orbitService.updateMemberSeats(roomUuid, nextUuids);
         setRoom(updatedRoom);
-        if (!stompSocketService.isConnected()) {
-          await fetchSeatMap(nextUuids, { silent: true });
-        }
+        await fetchSeatMap(nextUuids, { silent: true });
         return updatedRoom;
       } finally {
         setIsSyncing(false);
@@ -230,8 +236,13 @@ const OrbitBookingPage = () => {
         ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
         ...pairUuids,
       ]);
-      if (seatsAfterAdd.size > maxSeatsPerBooking) {
-        notificationService.error(`Tối đa ${maxSeatsPerBooking} ghế mỗi thành viên.`);
+      if (wouldExceedOrbitRoomSeatLimit(
+        room?.members,
+        currentUserUuid,
+        seatsAfterAdd.size,
+        maxSeatsPerBooking,
+      )) {
+        notificationService.error(`Phòng Orbit tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
         return;
       }
     }
@@ -251,8 +262,14 @@ const OrbitBookingPage = () => {
   const handleSeatClick = async (seat) => {
     if (!canEditSeats || isSyncing) return;
     const isSelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
-    if (!isSelected && selectedSeats.length >= maxSeatsPerBooking) {
-      notificationService.error(`Tối đa ${maxSeatsPerBooking} ghế mỗi thành viên.`);
+    const nextMyCount = isSelected ? selectedSeats.length - 1 : selectedSeats.length + 1;
+    if (!isSelected && wouldExceedOrbitRoomSeatLimit(
+      room?.members,
+      currentUserUuid,
+      nextMyCount,
+      maxSeatsPerBooking,
+    )) {
+      notificationService.error(`Phòng Orbit tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
       return;
     }
     const nextUuids = isSelected
@@ -281,7 +298,7 @@ const OrbitBookingPage = () => {
   }, [room?.members]);
 
   const totalRoomSeats = useMemo(
-    () => room?.members?.reduce((acc, m) => acc + (m.seatUuids?.length || 0), 0) || 0,
+    () => countOrbitRoomSeats(room?.members),
     [room?.members],
   );
 
@@ -292,7 +309,7 @@ const OrbitBookingPage = () => {
     if ((room?.members?.length || 0) < 2) return 'Cần ít nhất 2 thành viên trong phòng.';
     if (!allMembersReady) return 'Mọi thành viên cần chọn ít nhất 1 ghế.';
     if (!isGroupSeatLimitOk) return `Tổng ghế nhóm tối đa ${maxSeatsPerBooking}.`;
-    if (hasGapViolation) return 'Sơ đồ ghế có khe hở không hợp lệ.';
+    if (hasGapViolation) return 'Có ghế đơn bị kẹp giữa — vui lòng chọn thêm ghế trống hoặc đổi vị trí trước khi thanh toán.';
     return null;
   }, [isHostUser, canEditSeats, room?.members, allMembersReady, isGroupSeatLimitOk, hasGapViolation, maxSeatsPerBooking]);
 
@@ -348,7 +365,7 @@ const OrbitBookingPage = () => {
   };
 
   const handleHostCheckout = async () => {
-    if (!allMembersReady || !isGroupSeatLimitOk) return;
+    if (!allMembersReady || !isGroupSeatLimitOk || hasGapViolation) return;
     setIsPreparing(true);
     try {
       const prepared = await orbitService.prepareCheckout(roomUuid);
@@ -430,7 +447,6 @@ const OrbitBookingPage = () => {
             isCheckout={isCheckout}
             canEditSeats={canEditSeats}
             orbitSeatOwners={orbitSeatOwners}
-            members={room?.members}
             onSeatClick={handleSeatClick}
             onCoupleClick={handleCoupleClick}
           />

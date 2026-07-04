@@ -49,25 +49,11 @@ const TheaterSeatMapPanel = ({
     return orbitSeatOwners[seatUuid] ?? null;
   };
 
-  const applyOrbitSeatStyle = (seatClass, seat, isSelected, isForeignLock) => {
-    const owner = resolveOrbitOwner(seat.seatUuid);
-    if (!owner) return seatClass;
-    if (isSelected && owner.isSelf) {
-      return `${seatClass} ${owner.cssClass} orbit-member-self-selected`;
-    }
-    if (isForeignLock || (!owner.isSelf && isSelected)) {
-      return `${seatClass} ${owner.cssClass} orbit-member-locked`;
-    }
+  const buildOrbitSeatClass = (baseClass, owner, extras = '') => {
+    let seatClass = `${baseClass} ${owner.cssClass} orbit-member-locked`;
+    if (owner.isSelf) seatClass += ' orbit-member-self';
+    if (extras) seatClass += ` ${extras}`;
     return seatClass;
-  };
-
-  const renderOrbitSeatContent = (seat, isOccupied, isSelected, fallback) => {
-    const owner = resolveOrbitOwner(seat.seatUuid);
-    if (owner && (isSelected || seat.availabilityStatus === 'LOCKED_BY_OTHER')) {
-      if (owner.isSelf && isSelected) return fallback;
-      return owner.initial;
-    }
-    return isOccupied ? <X className="h-3 w-3" /> : fallback;
   };
   const bookingSeatsByRow = useMemo(() => {
     const map = {};
@@ -114,31 +100,47 @@ const TheaterSeatMapPanel = ({
     : 'from-white/45 to-transparent';
 
   const renderCoupleElement = (seats, rowName) => {
+    const orbitOwner = seats.map((s) => resolveOrbitOwner(s.seatUuid)).find(Boolean);
     const isBooked = seats.some((s) =>
       s.availabilityStatus === 'BOOKED' || s.availabilityStatus === 'UNAVAILABLE',
     );
     const isForeignLock = seats.some((s) => s.availabilityStatus === 'LOCKED_BY_OTHER');
-    const orbitOwned = seats.some((s) => resolveOrbitOwner(s.seatUuid));
-    const isOccupied = isBooked || (isForeignLock && !orbitOwned);
     const isSelected = seats.some((s) => s.selected || s.availabilityStatus === 'LOCKED_BY_ME');
     const isBlocked = seats.some((s) => s.blocked);
+    const label = getCoupleLabel(rowName, seats).replace(rowName, '');
 
+    if (orbitOwner) {
+      const isForeignOrbit = !orbitOwner.isSelf;
+      const notClickable = disabled || isBooked || isForeignOrbit;
+      const blockedExtra = isBlocked ? 'blocked' : '';
+      const seatClass = buildOrbitSeatClass(
+        'seat couple relative z-[1] w-full h-full',
+        orbitOwner,
+        blockedExtra,
+      );
+
+      return (
+        <div
+          key={seats.map((s) => s.seatUuid).join('-')}
+          onClick={() => !notClickable && onCoupleClick?.(seats)}
+          className={seatClass}
+          title={isForeignOrbit ? `Ghế ${orbitOwner.displayName}` : `Sofa đôi ${getCoupleLabel(rowName, seats)}`}
+          role="button"
+          tabIndex={notClickable ? -1 : 0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !notClickable) onCoupleClick?.(seats);
+          }}
+        >
+          {orbitOwner.initial}
+        </div>
+      );
+    }
+
+    const isOccupied = isBooked || isForeignLock;
     let seatClass = 'seat couple relative z-[1] w-full h-full';
     if (isOccupied) seatClass += ' occupied';
     else if (isSelected) seatClass += ' selected';
     else if (isBlocked) seatClass += ' blocked';
-
-    if (orbitOwned && (isSelected || isForeignLock)) {
-      const owner = resolveOrbitOwner(seats.find((s) => resolveOrbitOwner(s.seatUuid))?.seatUuid);
-      if (owner) {
-        seatClass = applyOrbitSeatStyle(seatClass.replace(' occupied', ''), seats[0], isSelected, isForeignLock);
-      }
-    }
-
-    const label = getCoupleLabel(rowName, seats).replace(rowName, '');
-    const coupleContent = orbitOwned && isForeignLock && !isSelected
-      ? resolveOrbitOwner(seats[0].seatUuid)?.initial ?? label
-      : (isOccupied ? <X className="h-3 w-3" /> : label);
 
     return (
       <div
@@ -152,17 +154,16 @@ const TheaterSeatMapPanel = ({
           if (e.key === 'Enter' && !disabled && !isOccupied) onCoupleClick?.(seats);
         }}
       >
-        {coupleContent}
+        {isOccupied ? <X className="h-3 w-3" /> : label}
       </div>
     );
   };
 
   const renderSeatElement = (seat) => {
+    const orbitOwner = resolveOrbitOwner(seat.seatUuid);
     const isBooked = seat.availabilityStatus === 'BOOKED'
       || seat.availabilityStatus === 'UNAVAILABLE';
     const isForeignLock = seat.availabilityStatus === 'LOCKED_BY_OTHER';
-    const orbitOwner = resolveOrbitOwner(seat.seatUuid);
-    const isOccupied = isBooked || (isForeignLock && !orbitOwner);
     const isSelected = seat.selected || seat.availabilityStatus === 'LOCKED_BY_ME';
     let type = (seat.seatTypeName || '').toLowerCase();
     if (type.includes('thường') || type.includes('standard') || type.includes('regular')) {
@@ -173,14 +174,38 @@ const TheaterSeatMapPanel = ({
       type = 'couple';
     }
 
+    if (orbitOwner) {
+      const isForeignOrbit = !orbitOwner.isSelf;
+      const notClickable = disabled || isBooked || isForeignOrbit;
+      const blockedExtra = seat.blocked ? 'blocked' : '';
+      const seatClass = buildOrbitSeatClass(
+        `seat ${type} relative z-[1] w-full h-full`,
+        orbitOwner,
+        blockedExtra,
+      );
+
+      return (
+        <div
+          key={seat.seatUuid}
+          onClick={() => !notClickable && onSeatClick?.(seat)}
+          className={seatClass}
+          role="button"
+          tabIndex={notClickable ? -1 : 0}
+          title={isForeignOrbit ? `Ghế ${orbitOwner.displayName}` : undefined}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !notClickable) onSeatClick?.(seat);
+          }}
+        >
+          {orbitOwner.initial}
+        </div>
+      );
+    }
+
+    const isOccupied = isBooked || isForeignLock;
     let seatClass = `seat ${type} relative z-[1] w-full h-full`;
     if (isOccupied) seatClass += ' occupied';
     else if (isSelected) seatClass += ' selected';
     else if (seat.blocked) seatClass += ' blocked';
-
-    if (orbitOwner && (isSelected || isForeignLock)) {
-      seatClass = applyOrbitSeatStyle(seatClass.replace(' occupied', ''), seat, isSelected, isForeignLock);
-    }
 
     return (
       <div
@@ -189,12 +214,11 @@ const TheaterSeatMapPanel = ({
         className={seatClass}
         role="button"
         tabIndex={disabled || isOccupied ? -1 : 0}
-        title={orbitOwner && isForeignLock ? `Ghế ${orbitOwner.displayName}` : undefined}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !disabled && !isOccupied) onSeatClick?.(seat);
         }}
       >
-        {renderOrbitSeatContent(seat, isOccupied, isSelected, seat.seatNumber)}
+        {isOccupied ? <X className="h-3 w-3" /> : seat.seatNumber}
       </div>
     );
   };
@@ -371,7 +395,7 @@ const TheaterSeatMapPanel = ({
       {hasGapViolation && (
         <div className="w-full mt-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-          <span>Không được để trống 1 ghế đơn bị kẹp giữa các ghế đã chọn/đã đặt. Vui lòng chọn ghế trống đó hoặc thay đổi vị trí ghế.</span>
+          <span>Không được để trống 1 ghế đơn bị kẹp giữa các ghế đã chọn/đã đặt. Vui lòng chọn ghế trống đó hoặc thay đổi vị trí — không thể xác nhận thanh toán khi còn cảnh báo này.</span>
         </div>
       )}
 
@@ -408,9 +432,10 @@ const TheaterSeatMapPanel = ({
             <span className="text-xs font-bold text-gray-300">Cảnh báo khe hở</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-16 h-6 rounded-lg aisle-band-complete flex items-center justify-center px-1">
-              <span className="aisle-label-horizontal text-[8px] tracking-[0.22em]">Lối đi</span>
-            </div>
+            <div
+              className="w-16 h-6 rounded-lg border border-blue-400/30 bg-blue-500/10"
+              aria-hidden
+            />
             <span className="text-xs font-bold text-gray-300">Lối đi</span>
           </div>
           {legendExtras}

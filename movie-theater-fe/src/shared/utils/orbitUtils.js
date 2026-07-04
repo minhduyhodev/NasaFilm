@@ -36,6 +36,22 @@ export function getOrbitMemberColor(memberIndex) {
   return ORBIT_MEMBER_COLORS[memberIndex % ORBIT_MEMBER_COLORS.length];
 }
 
+/** Total seats held by members other than current user. */
+export function countOtherMembersSeats(members, currentUserUuid) {
+  return (members || [])
+    .filter((member) => member.userUuid !== currentUserUuid)
+    .reduce((acc, member) => acc + (member.seatUuids?.length || 0), 0);
+}
+
+/** Total seats across all Orbit members. */
+export function countOrbitRoomSeats(members) {
+  return (members || []).reduce((acc, member) => acc + (member.seatUuids?.length || 0), 0);
+}
+
+export function wouldExceedOrbitRoomSeatLimit(members, currentUserUuid, nextMySeatCount, maxTotal) {
+  return countOtherMembersSeats(members, currentUserUuid) + nextMySeatCount > maxTotal;
+}
+
 /** seatUuid → { cssClass, hex, isSelf, displayName, initial } */
 export function buildOrbitSeatOwnerMap(members, currentUserUuid) {
   const map = new Map();

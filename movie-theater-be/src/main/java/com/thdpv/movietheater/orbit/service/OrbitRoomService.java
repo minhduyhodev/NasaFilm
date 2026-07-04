@@ -222,12 +222,9 @@ public class OrbitRoomService {
 
         List<UUID> seatUuids = OrbitSeatJson.normalizeSeatUuids(request.getSeatUuids());
         int maxSeatsPerBooking = systemConfigService.getMaxSeatsPerBooking();
-        if (seatUuids.size() > maxSeatsPerBooking) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi thành viên tối đa " + maxSeatsPerBooking + " ghế");
-        }
+        assertOrbitRoomSeatTotalWithinLimit(roomUuid, userUuid, seatUuids, maxSeatsPerBooking);
 
         assertNoCrossMemberSeatConflict(roomUuid, userUuid, seatUuids);
-        validateRoomSeatGap(room, roomUuid, userUuid, seatUuids, now);
         if (room.getStatus() != OrbitRoomStatus.OPEN) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn cho phép chỉnh sửa ghế");
         }
@@ -560,21 +557,6 @@ public class OrbitRoomService {
         }
     }
 
-    private void validateRoomSeatGap(
-            OrbitRoom room,
-            UUID roomUuid,
-            UUID userUuid,
-            List<UUID> seatUuids,
-            OffsetDateTime now) {
-        Set<UUID> combined = new LinkedHashSet<>(seatUuids);
-        for (OrbitMember other : orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)) {
-            if (!other.getUserUuid().equals(userUuid)) {
-                combined.addAll(OrbitSeatJson.readSeatUuids(other.getSeatUuidsJson()));
-            }
-        }
-        seatGapValidationService.validateNoSingleSeatGap(room.getShowtimeUuid(), combined, now);
-    }
-
     private OrbitRoomResponse toPreviewResponse(OrbitRoom room) {
         OrbitRoomResponse response = new OrbitRoomResponse();
         response.setUuid(room.getUuid());
@@ -634,6 +616,24 @@ public class OrbitRoomService {
     private void touchRoom(OrbitRoom room, OffsetDateTime now) {
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
+    }
+
+    private void assertOrbitRoomSeatTotalWithinLimit(
+            UUID roomUuid,
+            UUID userUuid,
+            List<UUID> seatUuids,
+            int maxSeatsPerBooking) {
+        int otherMembersTotal = 0;
+        for (OrbitMember other : orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)) {
+            if (!other.getUserUuid().equals(userUuid)) {
+                otherMembersTotal += OrbitSeatJson.readSeatUuids(other.getSeatUuidsJson()).size();
+            }
+        }
+        int nextTotal = otherMembersTotal + seatUuids.size();
+        if (nextTotal > maxSeatsPerBooking) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Phòng Orbit tối đa " + maxSeatsPerBooking + " ghế cho cả nhóm");
+        }
     }
 
     private void assertNoCrossMemberSeatConflict(UUID roomUuid, UUID userUuid, List<UUID> seatUuids) {

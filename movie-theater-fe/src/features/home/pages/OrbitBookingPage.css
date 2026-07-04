@@ -109,8 +109,8 @@
   opacity: 1;
 }
 
-.orbit-booking .seat.orbit-member-self-selected {
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.85) !important;
+.orbit-booking .seat.orbit-member-self.orbit-member-locked {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45) !important;
 }
 
 .orbit-booking__member {
