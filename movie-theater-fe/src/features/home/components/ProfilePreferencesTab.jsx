@@ -33,7 +33,7 @@ const ProfilePreferencesTab = () => {
         <div>
           <h2>Sở thích xem phim</h2>
           <p className="profile-preferences-tab__desc">
-            Chọn thể loại yêu thích — sau khi lưu sẽ hiển thị trên khung hồ sơ và Smart Showtime Radar quét suất trong 48 giờ tới.
+            Chọn thể loại yêu thích — sau khi lưu sẽ hiển thị trên khung hồ sơ và Radar Suất Chiếu quét suất trong 48 giờ tới.
           </p>
         </div>
       </div>
@@ -112,7 +112,7 @@ const ProfilePreferencesTab = () => {
         <div className="profile-preferences-tab__radar-head">
           <div className="profile-preferences-tab__radar-title">
             <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-            <h3>Smart Showtime Radar</h3>
+            <h3>Radar Suất Chiếu</h3>
           </div>
           <button
             type="button"

@@ -47,8 +47,8 @@ const DURATION_UI = {
 
 const VIEWING_UI = {
   THEATER: { label: 'Rạp chiếu', hint: 'Màn ảnh lớn · IMAX', icon: Clapperboard },
-  HOME: { label: 'Living Room', hint: 'VOD · Ghế sofa', icon: Tv },
-  BOTH: { label: 'Hybrid', hint: 'Rạp + nhà · Linh hoạt', icon: Film },
+  HOME: { label: 'Phòng khách', hint: 'VOD · Ghế sofa', icon: Tv },
+  BOTH: { label: 'Cả hai', hint: 'Rạp + nhà · Linh hoạt', icon: Film },
 };
 
 const buildConfigOptions = (values, uiMap) => {
@@ -295,7 +295,7 @@ const MovieMatchmakerWidget = () => {
       <div className="nsf-quiz-inline__control-grid" aria-hidden />
       <header className="nsf-quiz-inline__header">
         <div className="nsf-quiz-inline__brand">
-          <span>Movie Matchmaker</span>
+          <span>Ghép Phim Theo Gu</span>
         </div>
       </header>
 
@@ -610,7 +610,7 @@ const MovieMatchmakerWidget = () => {
     return (
       <div className="nsf-quiz__manifest">
         <div className="nsf-quiz__manifest-header">
-          <div className="nsf-quiz__manifest-badge">CLEARED FOR LAUNCH</div>
+          <div className="nsf-quiz__manifest-badge">Sẵn sàng cất cánh</div>
           <div className="nsf-quiz__manifest-flight">
             <Rocket className="h-5 w-5" />
             <div>
@@ -619,7 +619,7 @@ const MovieMatchmakerWidget = () => {
             </div>
           </div>
           <p className="nsf-quiz__manifest-copy">
-            Manifest gồm {result.matches.length} phim khớp chòm sao của bạn — sẵn sàng đặt vé hoặc xem VOD.
+            Danh sách gồm {result.matches.length} phim khớp chòm sao của bạn — sẵn sàng đặt vé hoặc xem VOD.
           </p>
         </div>
 
@@ -632,9 +632,9 @@ const MovieMatchmakerWidget = () => {
 
             return (
               <article key={movie.uuid} className="nsf-quiz__manifest-card">
-                <div className="nsf-quiz__manifest-rank">SEAT {index + 1}</div>
+                <div className="nsf-quiz__manifest-rank">Ghế {index + 1}</div>
                 <div className="nsf-quiz__manifest-poster">
-                  <PosterImage src={poster} alt={movie.title} />
+                  <PosterImage src={poster} alt={movie.title} width={500} loading="eager" />
                   <FavoriteIconButton movieUuid={movie.uuid} className="nsf-quiz__manifest-favorite" />
                 </div>
                 <div className="nsf-quiz__manifest-body">
@@ -678,7 +678,7 @@ const MovieMatchmakerWidget = () => {
       ref={sectionRef}
       layout
       className={`nsf-matchmaker-cta ${expanded ? 'nsf-matchmaker-cta--expanded' : ''}`}
-      aria-label="Trạm Cất Cánh Movie Matchmaker"
+      aria-label="Trạm Cất Cánh Ghép Phim Theo Gu"
       transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
     >
       <div className="nsf-matchmaker-cta__content">

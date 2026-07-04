@@ -6,9 +6,10 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useShowtimeRadarWidget } from '../hooks/useShowtimeRadarQuery';
 import ShowtimeRadarSuggestionsList from './ShowtimeRadarSuggestionsList';
 import './ShowtimeRadarWidget.css';
-import './ProfilePreferencesTab.css';
 
-const ShowtimeRadarWidget = () => {
+const RADAR_TITLE = 'Radar Suất Chiếu';
+
+const ShowtimeRadarWidget = ({ layout = 'bar' }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
 
@@ -24,21 +25,23 @@ const ShowtimeRadarWidget = () => {
   if (!isAuthenticated) {
     return (
       <motion.aside
-        initial={{ opacity: 0, x: 20 }}
-        whileInView={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.55 }}
-        className="showtime-radar-widget showtime-radar-widget--guest"
+        className={`showtime-radar-widget showtime-radar-widget--guest showtime-radar-widget--${layout}`}
       >
         <div className="showtime-radar-widget__glow" aria-hidden />
-        <div className="showtime-radar-widget__header">
-          <div className="showtime-radar-widget__title-row">
-            <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-            <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
+        <div className="showtime-radar-widget__bar-head">
+          <div className="showtime-radar-widget__header">
+            <div className="showtime-radar-widget__title-row">
+              <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
+              <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+            </div>
+            <p className="showtime-radar-widget__subtitle">
+              Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
+            </p>
           </div>
-          <p className="showtime-radar-widget__subtitle">
-            Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
-          </p>
         </div>
         <button
           type="button"
@@ -56,44 +59,46 @@ const ShowtimeRadarWidget = () => {
 
   return (
     <motion.aside
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.55 }}
-      className="showtime-radar-widget"
+      className={`showtime-radar-widget showtime-radar-widget--${layout}`}
     >
       <div className="showtime-radar-widget__glow" aria-hidden />
 
-      <div className="showtime-radar-widget__header">
-        <div className="showtime-radar-widget__title-row">
-          <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-          <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
+      <div className="showtime-radar-widget__bar-head">
+        <div className="showtime-radar-widget__header">
+          <div className="showtime-radar-widget__title-row">
+            <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
+            <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+          </div>
+          <p className="showtime-radar-widget__subtitle">
+            Quét 48h · {enabled ? 'đang bật' : 'chưa bật'}
+          </p>
         </div>
-        <p className="showtime-radar-widget__subtitle">
-          Quét 48h · {enabled ? 'đang bật' : 'chưa bật'}
-        </p>
-      </div>
 
-      <div className="showtime-radar-widget__toolbar">
-        <Link
-          to="/profile"
-          state={{ tab: 'preferences' }}
-          className="showtime-radar-widget__settings-link"
-        >
-          <Settings2 className="h-4 w-4" />
-          Cấu hình sở thích
-        </Link>
-        {(enabled || hasSuggestions) && (
-          <button
-            type="button"
-            className="showtime-radar-widget__icon-btn"
-            onClick={refreshSuggestions}
-            disabled={refreshing || loading}
-            aria-label="Làm mới gợi ý"
+        <div className="showtime-radar-widget__toolbar">
+          <Link
+            to="/profile"
+            state={{ tab: 'preferences' }}
+            className="showtime-radar-widget__settings-link"
           >
-            {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          </button>
-        )}
+            <Settings2 className="h-4 w-4" />
+            Cấu hình sở thích
+          </Link>
+          {(enabled || hasSuggestions) && (
+            <button
+              type="button"
+              className="showtime-radar-widget__icon-btn"
+              onClick={refreshSuggestions}
+              disabled={refreshing || loading}
+              aria-label="Làm mới gợi ý"
+            >
+              {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {!enabled && !hasSuggestions ? (
@@ -108,8 +113,8 @@ const ShowtimeRadarWidget = () => {
         <ShowtimeRadarSuggestionsList
           suggestions={suggestions}
           loading={loading}
-          variant="widget"
-          maxItems={4}
+          variant="strip"
+          maxItems={6}
           emptyMessage={emptyMessage}
         />
       )}

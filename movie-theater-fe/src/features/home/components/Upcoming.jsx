@@ -205,7 +205,7 @@ const Upcoming = () => {
   return (
     <>
       <div className="home-upcoming-root">
-      <section className="home-upcoming-section grid gap-8 lg:gap-12 lg:grid-cols-[minmax(0,1.38fr)_minmax(0,0.58fr)] items-start text-left">
+      <section className="home-upcoming-section text-left">
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -330,36 +330,39 @@ const Upcoming = () => {
             </div>
           </div>
         </motion.div>
+      </section>
 
-        <div className="home-upcoming-radar-slot w-full min-w-0">
+      <div className="home-upcoming-radar-bar">
         {isAuthenticated ? (
           <Suspense
             fallback={(
-              <aside className="showtime-radar-widget showtime-radar-widget--loading">
+              <aside className="showtime-radar-widget showtime-radar-widget--bar showtime-radar-widget--loading">
                 <div className="showtime-radar-widget__glow" aria-hidden />
-                <p className="showtime-radar-widget__empty">Đang tải Smart Showtime Radar...</p>
+                <p className="showtime-radar-widget__empty">Đang tải Radar Suất Chiếu...</p>
               </aside>
             )}
           >
-            <ShowtimeRadarWidget />
+            <ShowtimeRadarWidget layout="bar" />
           </Suspense>
         ) : (
           <motion.aside
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.55 }}
-            className="showtime-radar-widget showtime-radar-widget--guest"
+            className="showtime-radar-widget showtime-radar-widget--bar showtime-radar-widget--guest"
           >
             <div className="showtime-radar-widget__glow" aria-hidden />
-            <div className="showtime-radar-widget__header">
-              <div className="showtime-radar-widget__title-row">
-                <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-                <span className="showtime-radar-widget__kicker">Smart Showtime Radar</span>
+            <div className="showtime-radar-widget__bar-head">
+              <div className="showtime-radar-widget__header">
+                <div className="showtime-radar-widget__title-row">
+                  <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
+                  <span className="showtime-radar-widget__kicker">Radar Suất Chiếu</span>
+                </div>
+                <p className="showtime-radar-widget__subtitle">
+                  Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
+                </p>
               </div>
-              <p className="showtime-radar-widget__subtitle">
-                Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
-              </p>
             </div>
             <button
               type="button"
@@ -371,8 +374,7 @@ const Upcoming = () => {
             </button>
           </motion.aside>
         )}
-        </div>
-      </section>
+      </div>
       </div>
 
       <TrailerModal
