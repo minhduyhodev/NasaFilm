@@ -524,7 +524,7 @@ public class BookingService {
         }
 
         ensureNoBookedSeats(request.getShowtimeUuid(), seatUuids);
-        validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
+        seatGapValidationService.validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
 
         List<ResolvedCombo> combos = resolveCombos(comboQuantities);
         BigDecimal seatTotal = lockedSeats.stream()
