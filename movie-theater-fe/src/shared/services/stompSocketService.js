@@ -130,7 +130,7 @@ class StompSocketService {
 
   subscribe(topic, callback) {
     if (!topic || typeof callback !== 'function') {
-      return () => {};
+      return () => { };
     }
 
     const id = ++this.subscriptionCounter;
