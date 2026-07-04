@@ -1,6 +1,6 @@
 package com.thdpv.movietheater.orbit.event;
 
-import java.util.UUID;
+import com.thdpv.movietheater.orbit.dto.response.OrbitRoomResponse;
 
-public record OrbitRoomUpdatedEvent(UUID roomUuid, String eventType) {
+public record OrbitRoomUpdatedEvent(OrbitRoomResponse room) {
 }

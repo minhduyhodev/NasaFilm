@@ -13,7 +13,7 @@ public class CreateOrbitRoomRequest {
 
     @Min(value = 2, message = "Phong Orbit can it nhat 2 thanh vien")
     @Max(value = 8, message = "Phong Orbit toi da 8 thanh vien")
-    private int maxMembers = 4;
+    private int maxMembers = 8;
 
     public UUID getShowtimeUuid() {
         return showtimeUuid;

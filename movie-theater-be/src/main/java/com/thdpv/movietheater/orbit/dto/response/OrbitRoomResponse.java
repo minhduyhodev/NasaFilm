@@ -15,6 +15,8 @@ public class OrbitRoomResponse {
     private OffsetDateTime expiresAt;
     private UUID bookingUuid;
     private boolean host;
+    private boolean viewerMember;
+    private int memberCount;
     private String sharePath;
     private List<OrbitMemberResponse> members = new ArrayList<>();
 
@@ -80,6 +82,22 @@ public class OrbitRoomResponse {
 
     public void setHost(boolean host) {
         this.host = host;
+    }
+
+    public boolean isViewerMember() {
+        return viewerMember;
+    }
+
+    public void setViewerMember(boolean viewerMember) {
+        this.viewerMember = viewerMember;
+    }
+
+    public int getMemberCount() {
+        return memberCount;
+    }
+
+    public void setMemberCount(int memberCount) {
+        this.memberCount = memberCount;
     }
 
     public String getSharePath() {

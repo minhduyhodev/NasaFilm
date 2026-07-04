@@ -32,7 +32,6 @@ import com.thdpv.movietheater.booking.entity.Ticket;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.ComboPrice;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.LockedSeat;
-import com.thdpv.movietheater.booking.repository.BookingNativeRepository.SeatGapState;
 import com.thdpv.movietheater.booking.repository.BookingComboRepository;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
@@ -274,7 +273,7 @@ public class BookingService {
         }
 
         ensureNoBookedSeats(request.getShowtimeUuid(), seatUuids);
-        validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
+        seatGapValidationService.validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
 
         List<ResolvedCombo> combos = resolveCombos(comboQuantities);
         BigDecimal seatTotal = lockedSeats.stream()
@@ -561,51 +560,6 @@ public class BookingService {
             combos.add(new ResolvedCombo(comboPrice.comboUuid(), comboPrice.name(), quantity, lineTotal));
         }
         return combos;
-    }
-
-    private void validateNoSingleSeatGap(UUID showtimeUuid, List<UUID> selectedSeatUuids, OffsetDateTime now) {
-        Set<UUID> selectedSeatUuidSet = new LinkedHashSet<>(selectedSeatUuids);
-        Map<String, List<GapSeat>> seatsByRow = new LinkedHashMap<>();
-
-        for (SeatGapState state : bookingRepository.loadSeatGapStates(showtimeUuid, now)) {
-            boolean selectedByUser = selectedSeatUuidSet.contains(state.seatUuid());
-            boolean unavailable = selectedByUser
-                    || state.booked()
-                    || state.locked()
-                    || (state.seatStatus() != null && !"ACTIVE".equalsIgnoreCase(state.seatStatus()));
-            GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable, selectedByUser);
-            seatsByRow.computeIfAbsent(gapSeat.rowName(), ignored -> new ArrayList<>()).add(gapSeat);
-        }
-
-        for (List<GapSeat> rowSeats : seatsByRow.values()) {
-            int segmentStart = 0;
-            while (segmentStart < rowSeats.size()) {
-                int segmentEnd = segmentStart;
-                while (segmentEnd + 1 < rowSeats.size()
-                        && rowSeats.get(segmentEnd + 1).seatNumber() == rowSeats.get(segmentEnd).seatNumber() + 1) {
-                    segmentEnd++;
-                }
-
-                for (int i = segmentStart; i <= segmentEnd; i++) {
-                    GapSeat current = rowSeats.get(i);
-                    if (current.unavailable()) {
-                        continue;
-                    }
-
-                    boolean leftUnavailable = (i == segmentStart) || rowSeats.get(i - 1).unavailable();
-                    boolean rightUnavailable = (i == segmentEnd) || rowSeats.get(i + 1).unavailable();
-
-                    if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByUser = (i != segmentStart) && rowSeats.get(i - 1).selectedByUser();
-                        boolean rightSelectedByUser = (i != segmentEnd) && rowSeats.get(i + 1).selectedByUser();
-                        if (leftSelectedByUser || rightSelectedByUser) {
-                            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
-                        }
-                    }
-                }
-                segmentStart = segmentEnd + 1;
-            }
-        }
     }
 
     private UUID resolveRequiredUserUuid(String currentUserEmail) {
@@ -1061,9 +1015,6 @@ public class BookingService {
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
-    }
-
-    private record GapSeat(String rowName, Integer seatNumber, boolean unavailable, boolean selectedByUser) {
     }
 
     @Transactional(readOnly = true)

@@ -231,6 +231,18 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             @Param("now") OffsetDateTime now);
 
     @Query(value = """
+            select sl.seat_uuid
+            from seat_locked sl
+            where sl.showtime_uuid = :showtimeUuid
+              and sl.user_uuid = :userUuid
+              and sl.expired_at > :now
+            """, nativeQuery = true)
+    List<UUID> findActiveLockedSeatUuids(
+            @Param("showtimeUuid") UUID showtimeUuid,
+            @Param("userUuid") UUID userUuid,
+            @Param("now") OffsetDateTime now);
+
+    @Query(value = """
             select
                 b.uuid,
                 b.total_price,

@@ -6,11 +6,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.thdpv.movietheater.orbit.entity.OrbitRoom;
 import com.thdpv.movietheater.orbit.enums.OrbitRoomStatus;
+
+import jakarta.persistence.LockModeType;
 
 public interface OrbitRoomRepository extends JpaRepository<OrbitRoom, UUID> {
 
@@ -23,7 +26,11 @@ public interface OrbitRoomRepository extends JpaRepository<OrbitRoom, UUID> {
             """)
     List<OrbitRoom> findExpiredOpenRooms(@Param("now") OffsetDateTime now);
 
-    java.util.Optional<OrbitRoom> findByBookingUuid(UUID bookingUuid);
+    Optional<OrbitRoom> findByBookingUuid(UUID bookingUuid);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from OrbitRoom r where r.uuid = :uuid")
+    Optional<OrbitRoom> findByIdForUpdate(@Param("uuid") UUID uuid);
 
     List<OrbitRoom> findByHostUserUuidAndStatusIn(UUID hostUserUuid, List<OrbitRoomStatus> statuses);
 

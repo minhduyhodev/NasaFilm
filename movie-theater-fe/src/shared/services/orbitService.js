@@ -1,7 +1,7 @@
 import { authService } from '../../features/auth/api/authService';
 
 class OrbitService {
-  async createRoom(showtimeUuid, maxMembers = 4) {
+  async createRoom(showtimeUuid, maxMembers = 8) {
     try {
       const response = await authService.api.post('/api/orbit-rooms', {
         showtimeUuid,
@@ -63,6 +63,15 @@ class OrbitService {
   async prepareCheckout(roomUuid) {
     try {
       const response = await authService.api.post(`/api/orbit-rooms/${roomUuid}/prepare-checkout`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async abortCheckout(roomUuid) {
+    try {
+      const response = await authService.api.post(`/api/orbit-rooms/${roomUuid}/abort-checkout`);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

@@ -3,8 +3,10 @@ package com.thdpv.movietheater.booking.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -94,6 +96,9 @@ class BookingServiceTest {
     @Mock
     private MissionService missionService;
 
+    @Mock
+    private SeatGapValidationService seatGapValidationService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -114,6 +119,13 @@ class BookingServiceTest {
         lenient().doNothing().when(showtimeCapacityService)
                 .validateCapacity(any(), any(Integer.class), any(), any());
         lenient().when(missionService.handleEvent(any())).thenReturn(List.of());
+        lenient().doAnswer(invocation -> {
+            new SeatGapValidationService(bookingRepository).validateNoSingleSeatGap(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1),
+                    invocation.getArgument(2));
+            return null;
+        }).when(seatGapValidationService).validateNoSingleSeatGap(any(), anyCollection(), any());
     }
 
     @Test

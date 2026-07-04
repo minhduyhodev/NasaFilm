@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +22,7 @@ import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.LockedSeat;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.service.SeatGapValidationService;
 import com.thdpv.movietheater.booking.service.SeatMapEventPublisher;
 import com.thdpv.movietheater.booking.service.ShowtimeSeatService;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -52,17 +52,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrbitRoomService {
 
-    private static final List<OrbitRoomStatus> ACTIVE_STATUSES = List.of(
-            OrbitRoomStatus.OPEN,
-            OrbitRoomStatus.LOCKED,
-            OrbitRoomStatus.CHECKOUT);
-
     private final OrbitRoomRepository orbitRoomRepository;
     private final OrbitMemberRepository orbitMemberRepository;
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final ShowtimeSeatService showtimeSeatService;
     private final BookingNativeRepository bookingNativeRepository;
+    private final SeatGapValidationService seatGapValidationService;
     private final MissionService missionService;
     private final SystemConfigService systemConfigService;
     private final OrbitRoomBroadcaster orbitRoomBroadcaster;
@@ -103,8 +99,9 @@ public class OrbitRoomService {
         orbitMemberRepository.save(hostMember);
 
         missionService.handleOrbitRoomJoined(hostUuid, room.getUuid(), now);
-        orbitRoomBroadcaster.notifyRoomUpdated(room.getUuid());
-        return toRoomResponse(room, hostUuid);
+        OrbitRoomResponse response = toRoomResponse(room, hostUuid);
+        broadcastRoom(response);
+        return response;
     }
 
     @Transactional
@@ -112,10 +109,20 @@ public class OrbitRoomService {
         assertOrbitEnabled();
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
-        OrbitRoom room = loadJoinableRoom(roomUuid, now);
 
         if (orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid).isPresent()) {
+            OrbitRoom room = orbitRoomRepository.findById(roomUuid)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
             return toRoomResponse(room, userUuid);
+        }
+
+        OrbitRoom room = orbitRoomRepository.findByIdForUpdate(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+        if (room.getStatus() != OrbitRoomStatus.OPEN) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong con mo de tham gia");
+        }
+        if (room.getExpiresAt().isBefore(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit da het han");
         }
 
         long memberCount = orbitMemberRepository.countByRoomUuid(roomUuid);
@@ -129,8 +136,9 @@ public class OrbitRoomService {
 
         missionService.handleOrbitRoomJoined(userUuid, roomUuid, now);
         touchRoom(room, now);
-        orbitRoomBroadcaster.notifyRoomUpdated(roomUuid);
-        return toRoomResponse(room, userUuid);
+        OrbitRoomResponse response = toRoomResponse(room, userUuid);
+        broadcastRoom(response);
+        return response;
     }
 
     @Transactional
@@ -159,15 +167,28 @@ public class OrbitRoomService {
         missionService.rollbackSourceProgress(userUuid, roomUuid.toString(), now);
         orbitMemberRepository.delete(member);
         touchRoom(room, now);
-        orbitRoomBroadcaster.notifyRoomUpdated(roomUuid);
-        return toRoomResponse(room, userUuid);
+        OrbitRoomResponse response = toRoomResponse(room, userUuid);
+        broadcastRoom(response);
+        return response;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrbitRoomResponse getRoom(String currentUserEmail, UUID roomUuid) {
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
         OrbitRoom room = orbitRoomRepository.findById(roomUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+
+        boolean isMember = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid).isPresent();
+        if (!isMember && room.getStatus() != OrbitRoomStatus.OPEN) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Ban chua tham gia phong Orbit nay");
+        }
+        if (isMember && room.getStatus() == OrbitRoomStatus.OPEN) {
+            reconcileMemberSeats(room, now);
+        }
+        if (!isMember) {
+            return toPreviewResponse(room);
+        }
         return toRoomResponse(room, userUuid);
     }
 
@@ -191,6 +212,7 @@ public class OrbitRoomService {
         }
 
         assertNoCrossMemberSeatConflict(roomUuid, userUuid, seatUuids);
+        validateRoomSeatGap(room, roomUuid, userUuid, seatUuids, now);
         showtimeSeatService.syncSeatLocks(
                 currentUserEmail,
                 new SyncSeatLockRequest(room.getShowtimeUuid(), seatUuids));
@@ -199,8 +221,9 @@ public class OrbitRoomService {
         member.setUpdatedAt(now);
         orbitMemberRepository.save(member);
         touchRoom(room, now);
-        orbitRoomBroadcaster.notifyRoomUpdated(roomUuid);
-        return toRoomResponse(room, userUuid);
+        OrbitRoomResponse response = toRoomResponse(room, userUuid);
+        broadcastRoom(response);
+        return response;
     }
 
     @Transactional
@@ -240,6 +263,7 @@ public class OrbitRoomService {
         }
 
         validateMemberSeatLocks(room.getShowtimeUuid(), members, now);
+        seatGapValidationService.validateNoSingleSeatGap(room.getShowtimeUuid(), allSeats, now);
         int transferred = bookingNativeRepository.transferSeatLocksToUser(
                 room.getShowtimeUuid(), hostUuid, allSeats, now);
         if (transferred != allSeats.size()) {
@@ -251,13 +275,51 @@ public class OrbitRoomService {
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
         seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
-        orbitRoomBroadcaster.notifyRoomUpdated(roomUuid);
+        broadcastRoom(toRoomResponse(room, hostUuid));
 
         OrbitCheckoutPrepareResponse response = new OrbitCheckoutPrepareResponse();
         response.setOrbitRoomUuid(roomUuid);
         response.setShowtimeUuid(room.getShowtimeUuid());
         response.setSeatUuids(allSeats);
         response.setMembers(toMemberResponses(members, room.getHostUserUuid()));
+        return response;
+    }
+
+    @Transactional
+    public OrbitRoomResponse abortCheckout(String currentUserEmail, UUID roomUuid) {
+        assertOrbitEnabled();
+        UUID hostUuid = resolveRequiredUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
+        OrbitRoom room = orbitRoomRepository.findById(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
+
+        if (!room.getHostUserUuid().equals(hostUuid)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Chi host moi co the huy checkout");
+        }
+        if (room.getStatus() != OrbitRoomStatus.CHECKOUT) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong o trang thai checkout");
+        }
+
+        List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
+        for (OrbitMember member : members) {
+            List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
+            if (seatUuids.isEmpty()) {
+                continue;
+            }
+            int transferred = bookingNativeRepository.transferSeatLocksToUser(
+                    room.getShowtimeUuid(), member.getUserUuid(), seatUuids, now);
+            if (transferred != seatUuids.size()) {
+                throw new AppException(ErrorCode.CONFLICT, "Khong the tra lai khoa ghe cho thanh vien");
+            }
+        }
+
+        room.setStatus(OrbitRoomStatus.OPEN);
+        room.setExpiresAt(now.plusMinutes(roomTtlMinutes));
+        room.setUpdatedAt(now);
+        orbitRoomRepository.save(room);
+        seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
+        OrbitRoomResponse response = toRoomResponse(room, hostUuid);
+        broadcastRoom(response);
         return response;
     }
 
@@ -339,7 +401,7 @@ public class OrbitRoomService {
         room.setBookingUuid(bookingUuid);
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
-        orbitRoomBroadcaster.notifyRoomUpdated(orbitRoomUuid);
+        broadcastRoom(toRoomResponse(room, hostUserUuid));
 
         return new OrbitBookingCompletionResult(hostScoreAdded, missionCompletions);
     }
@@ -395,25 +457,7 @@ public class OrbitRoomService {
         room.setStatus(OrbitRoomStatus.CANCELLED);
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
-        orbitRoomBroadcaster.notifyRoomUpdated(roomUuid);
-    }
-
-    @Scheduled(fixedDelayString = "${app.orbit.expire-check-ms:60000}")
-    @Transactional
-    public void expireStaleRooms() {
-        OffsetDateTime now = OffsetDateTime.now();
-        List<OrbitRoom> expired = orbitRoomRepository.findExpiredOpenRooms(now);
-        for (OrbitRoom room : expired) {
-            if (room.getStatus() != OrbitRoomStatus.OPEN && room.getStatus() != OrbitRoomStatus.CHECKOUT) {
-                continue;
-            }
-            releaseAllMemberLocks(room, now);
-            rollbackAllMemberProgress(room.getUuid(), now);
-            room.setStatus(OrbitRoomStatus.EXPIRED);
-            room.setUpdatedAt(now);
-            orbitRoomRepository.save(room);
-            orbitRoomBroadcaster.notifyRoomUpdated(room.getUuid());
-        }
+        broadcastRoom(toRoomResponse(room, hostUuid));
     }
 
     private void assertOrbitEnabled() {
@@ -440,16 +484,58 @@ public class OrbitRoomService {
         return showtime;
     }
 
-    private OrbitRoom loadJoinableRoom(UUID roomUuid, OffsetDateTime now) {
-        OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Khong tim thay phong Orbit"));
-        if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit khong con mo de tham gia");
+    private void broadcastRoom(OrbitRoomResponse response) {
+        orbitRoomBroadcaster.notifyRoomUpdated(response);
+    }
+
+    private void reconcileMemberSeats(OrbitRoom room, OffsetDateTime now) {
+        List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(room.getUuid());
+        for (OrbitMember member : members) {
+            List<UUID> jsonSeats = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
+            if (jsonSeats.isEmpty()) {
+                continue;
+            }
+            Set<UUID> activeLocks = new HashSet<>(
+                    bookingNativeRepository.findActiveLockedSeatUuids(
+                            room.getShowtimeUuid(), member.getUserUuid(), now));
+            List<UUID> reconciled = jsonSeats.stream().filter(activeLocks::contains).toList();
+            if (reconciled.size() != jsonSeats.size()) {
+                member.setSeatUuidsJson(OrbitSeatJson.writeSeatUuids(reconciled));
+                member.setUpdatedAt(now);
+                orbitMemberRepository.save(member);
+            }
         }
-        if (room.getExpiresAt().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phong Orbit da het han");
+    }
+
+    private void validateRoomSeatGap(
+            OrbitRoom room,
+            UUID roomUuid,
+            UUID userUuid,
+            List<UUID> seatUuids,
+            OffsetDateTime now) {
+        Set<UUID> combined = new LinkedHashSet<>(seatUuids);
+        for (OrbitMember other : orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)) {
+            if (!other.getUserUuid().equals(userUuid)) {
+                combined.addAll(OrbitSeatJson.readSeatUuids(other.getSeatUuidsJson()));
+            }
         }
-        return room;
+        seatGapValidationService.validateNoSingleSeatGap(room.getShowtimeUuid(), combined, now);
+    }
+
+    private OrbitRoomResponse toPreviewResponse(OrbitRoom room) {
+        OrbitRoomResponse response = new OrbitRoomResponse();
+        response.setUuid(room.getUuid());
+        response.setShowtimeUuid(room.getShowtimeUuid());
+        response.setHostUserUuid(room.getHostUserUuid());
+        response.setMaxMembers(room.getMaxMembers());
+        response.setStatus(room.getStatus().name());
+        response.setExpiresAt(room.getExpiresAt());
+        response.setSharePath("/booking/orbit/" + room.getUuid());
+        response.setHost(false);
+        response.setViewerMember(false);
+        response.setMemberCount((int) orbitMemberRepository.countByRoomUuid(room.getUuid()));
+        response.setMembers(List.of());
+        return response;
     }
 
     private OrbitRoom loadEditableRoom(UUID roomUuid, OffsetDateTime now) {
@@ -466,8 +552,7 @@ public class OrbitRoomService {
 
     private int clampMaxMembers(int requested) {
         int maxSeats = systemConfigService.getMaxSeatsPerBooking();
-        int clamped = Math.max(2, Math.min(requested, maxSeats));
-        return Math.min(clamped, 8);
+        return Math.max(2, Math.min(requested, maxSeats));
     }
 
     private OrbitMember buildMember(UUID roomUuid, User user, OffsetDateTime now) {
@@ -581,6 +666,8 @@ public class OrbitRoomService {
         response.setExpiresAt(room.getExpiresAt());
         response.setBookingUuid(room.getBookingUuid());
         response.setHost(room.getHostUserUuid().equals(viewerUuid));
+        response.setViewerMember(true);
+        response.setMemberCount(members.size());
         response.setSharePath("/booking/orbit/" + room.getUuid());
         response.setMembers(toMemberResponses(members, room.getHostUserUuid()));
         return response;

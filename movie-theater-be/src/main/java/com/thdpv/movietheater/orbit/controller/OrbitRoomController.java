@@ -90,4 +90,12 @@ public class OrbitRoomController {
                 userDetails.getUsername(), roomUuid);
         return ResponseEntity.ok(ApiResponse.success(payload));
     }
+
+    @PostMapping("/{roomUuid}/abort-checkout")
+    public ResponseEntity<ApiResponse<OrbitRoomResponse>> abortCheckout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID roomUuid) {
+        OrbitRoomResponse room = orbitRoomService.abortCheckout(userDetails.getUsername(), roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(room));
+    }
 }
