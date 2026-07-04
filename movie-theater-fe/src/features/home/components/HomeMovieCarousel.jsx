@@ -78,7 +78,9 @@ const HomeMovieCarousel = ({
     });
   };
 
-  const isEmpty = !isLoading && moviesList.length === 0;
+  if (!isLoading && moviesList.length === 0) {
+    return null;
+  }
 
   return (
     <section className="home-movie-carousel relative">
@@ -96,12 +98,6 @@ const HomeMovieCarousel = ({
         )}
       </div>
 
-      {isEmpty ? (
-        <p className="home-movie-carousel__empty text-center text-sm text-white/45 py-10">
-          Chưa có phim trong mục này. Vui lòng quay lại sau.
-        </p>
-      ) : (
-        <>
       <button
         type="button"
         onClick={() => scroll('left')}
@@ -167,8 +163,6 @@ const HomeMovieCarousel = ({
             />
           ))}
         </div>
-      )}
-        </>
       )}
     </section>
   );

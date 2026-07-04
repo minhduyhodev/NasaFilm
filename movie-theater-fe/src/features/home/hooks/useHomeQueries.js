@@ -9,55 +9,12 @@ export const homeQueryKeys = {
   publicShowtimes: ['home', 'publicShowtimes'],
 };
 
-async function fetchAllMoviePages(baseParams) {
-  const firstPage = await movieService.getMovies({ ...baseParams, page: 0 });
-  if (!firstPage?.totalPages || firstPage.totalPages <= 1) {
-    return firstPage;
-  }
-
-  const otherPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      movieService.getMovies({ ...baseParams, page: index + 1 }),
-    ),
-  );
-
-  return {
-    ...firstPage,
-    content: [
-      ...(firstPage.content ?? []),
-      ...otherPages.flatMap((page) => page?.content ?? []),
-    ],
-  };
-}
-
 export async function fetchNowShowingMovies() {
-  const withBookableShowtime = await fetchAllMoviePages({
+  return movieService.getMovies({
     status: 'NOW_SHOWING',
     requireBookableShowtime: true,
-    size: 50,
-  });
-
-  if (withBookableShowtime?.content?.length) {
-    return withBookableShowtime;
-  }
-
-  // Fallback: phim status NOW_SHOWING khi chưa có suất chiếu bookable (dev/seed thiếu showtime)
-  return fetchAllMoviePages({
-    status: 'NOW_SHOWING',
-    size: 50,
-  });
-}
-
-export async function fetchUpcomingMoviesForHome() {
-  const upcoming = await movieService.getUpcomingMovies({ page: 0, size: 20 });
-  if (upcoming?.content?.length) {
-    return upcoming;
-  }
-
-  return movieService.getMovies({
-    status: 'COMING_SOON',
     page: 0,
-    size: 20,
+    size: 50,
   });
 }
 
@@ -72,7 +29,7 @@ export function useNowShowingMovies() {
 export function useUpcomingMovies() {
   return useQuery({
     queryKey: homeQueryKeys.upcoming,
-    queryFn: fetchUpcomingMoviesForHome,
+    queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 20 }),
     staleTime: 60_000,
   });
 }
