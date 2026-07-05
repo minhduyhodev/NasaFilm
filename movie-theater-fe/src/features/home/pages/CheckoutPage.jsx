@@ -259,6 +259,19 @@ const CheckoutPage = () => {
       navigate('/wallet');
       return;
     }
+    if (paymentMethod === 'card') {
+      navigate('/payment', {
+        state: {
+          amount: finalTotal,
+          checkoutState: {
+            ...checkoutState,
+            voucherCode: discount > 0 ? voucherInput.trim() : null,
+          },
+        },
+      });
+      return;
+    }
+
     setIsPaying(true);
     try {
       let response;

@@ -31,6 +31,8 @@ const RemindersPage = lazy(() => import('../pages/RemindersPage'));
 const WalletPage = lazy(() => import('../pages/WalletPage'));
 const SearchResultsPage = lazy(() => import('../pages/SearchResultsPage'));
 const MyMoviesPage = lazy(() => import('../pages/MyMoviesPage'));
+const PaymentFlow = lazy(() => import('../../payment/PaymentFlow'));
+const PaymentSuccess = lazy(() => import('../../payment/PaymentSuccess'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -156,6 +158,22 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <WatchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment"
+            element={
+              <ProtectedRoute>
+                <PaymentFlow />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment-success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccess />
               </ProtectedRoute>
             }
           />
