@@ -12,6 +12,7 @@ import {
   writeBookingSession,
 } from '../../../shared/utils/bookingSessionStorage';
 import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
+import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
 
 function getComboImageUrl(combo) {
   const raw = combo?.imageUrl?.trim();
