@@ -9,6 +9,16 @@ const CinemaRoomsNewRedirect = () => {
   return <Navigate to={`/admin/cinemas?cinema=${cinemaUuid}`} replace />;
 };
 
+const CinemaRoomEditRedirect = () => {
+  const { cinemaUuid, roomUuid } = useParams();
+  return (
+    <Navigate
+      to={`/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}?edit=1`}
+      replace
+    />
+  );
+};
+
 const DashboardPage = lazy(() => import("../pages/DashboardPage"));
 const MoviesPage = lazy(() => import("../pages/MoviesPage"));
 const AdminMovieFormPage = lazy(() => import("../pages/AdminMovieFormPage"));
@@ -21,9 +31,6 @@ const ShowtimesPage = lazy(() => import("../pages/ShowtimesPage"));
 const CinemasPage = lazy(() => import("../pages/CinemasPage"));
 const AdminCinemaDetailPage = lazy(
   () => import("../pages/AdminCinemaDetailPage"),
-);
-const AdminCinemaRoomFormPage = lazy(
-  () => import("../pages/AdminCinemaRoomFormPage"),
 );
 const AdminCinemaRoomPage = lazy(() => import("../pages/AdminCinemaRoomPage"));
 const UsersPage = lazy(() => import("../pages/UsersPage"));
@@ -92,7 +99,7 @@ export const AdminRoutes = () => {
           <Route path="cinemas/:cinemaUuid/rooms/new" element={<CinemaRoomsNewRedirect />} />
           <Route
             path="cinemas/:cinemaUuid/rooms/:roomUuid/edit"
-            element={<AdminCinemaRoomFormPage />}
+            element={<CinemaRoomEditRedirect />}
           />
           <Route
             path="cinemas/:cinemaUuid/rooms/:roomUuid"

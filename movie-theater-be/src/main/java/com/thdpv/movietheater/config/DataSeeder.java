@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -79,6 +81,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ActorRepository actorRepository;
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -126,7 +129,8 @@ public class DataSeeder implements CommandLineRunner {
             ReferenceMetadataSeeder referenceMetadataSeeder,
             ActorRepository actorRepository,
             ObjectMapper objectMapper,
-            ResourceLoader resourceLoader) {
+            ResourceLoader resourceLoader,
+            PlatformTransactionManager transactionManager) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
@@ -144,6 +148,7 @@ public class DataSeeder implements CommandLineRunner {
         this.actorRepository = actorRepository;
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
@@ -154,6 +159,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
         healWalletVersionColumn();
+        healUserSchemaColumns();
         seedRoles();
         seedAdminUser();
         seedStaffUser();
@@ -337,8 +343,10 @@ public class DataSeeder implements CommandLineRunner {
                             CONSTRAINT uk_user_permissions_user_permission UNIQUE (user_id, permission_id)
                         )
                     """);
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions (user_id)");
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions (permission_id)");
+            jdbcTemplate
+                    .execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions (user_id)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions (permission_id)");
             logger.info("Created permissions, role_permissions and user_permissions tables.");
         } catch (Exception e) {
             logger.error("Failed to create permissions tables", e);
@@ -417,23 +425,17 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        User guest = new User();
-        guest.setEmail(guestEmail);
-        guest.setFullName("Counter Guest");
-        guest.setIsSystemAccount(true);
-        guest.setAuthProvider(AuthProvider.LOCAL);
-        guest.setStatus(UserStatus.ACTIVE);
-        guest = userRepository.save(guest);
-
-        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new RuntimeException("CUSTOMER role not found"));
-
-        UserRole userRole = new UserRole();
-        userRole.setUser(guest);
-        userRole.setRole(customerRole);
-        userRoleRepository.save(userRole);
-
-        logger.info("Seeded guest account: {}", guestEmail);
+        transactionTemplate.executeWithoutResult(status -> {
+            User guest = new User();
+            guest.setEmail(guestEmail);
+            guest.setFullName("Counter Guest");
+            guest.setIsSystemAccount(true);
+            guest.setAuthProvider(AuthProvider.LOCAL);
+            guest.setStatus(UserStatus.ACTIVE);
+            guest = userRepository.saveAndFlush(guest);
+            assignRoleIfMissing(guest, RoleName.CUSTOMER);
+            logger.info("Seeded guest account: {}", guestEmail);
+        });
     }
 
     private void migrateVoucherAndScoreSchema() {
@@ -513,7 +515,8 @@ public class DataSeeder implements CommandLineRunner {
                     """);
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
 
             jdbcTemplate.update("""
                     UPDATE promotions
@@ -874,38 +877,69 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
-        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+        transactionTemplate.executeWithoutResult(status -> {
+            Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+            User user;
 
-        if (existingUserOpt.isPresent()) {
-            User user = existingUserOpt.get();
-            user.setPassword(passwordEncoder.encode(password));
-            user.setStatus(UserStatus.ACTIVE);
-            if (user.getAuthProvider() == null) {
-                user.setAuthProvider(AuthProvider.LOCAL);
+            if (existingUserOpt.isPresent()) {
+                user = existingUserOpt.get();
+                user.setPassword(passwordEncoder.encode(password));
+                user.setStatus(UserStatus.ACTIVE);
+                if (user.getAuthProvider() == null) {
+                    user.setAuthProvider(AuthProvider.LOCAL);
+                }
+                user = userRepository.saveAndFlush(user);
+                assignRoleIfMissing(user, roleName);
+                logger.info("Updated existing {} user '{}' password from env configuration.",
+                        roleName.name(), email);
+                return;
             }
-            userRepository.save(user);
-            logger.info("Updated existing {} user '{}' password from env configuration.",
-                    roleName.name(), email);
-            return;
-        }
 
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setFullName(fullName);
-        user.setAuthProvider(AuthProvider.LOCAL);
-        user.setStatus(UserStatus.ACTIVE);
-        user = userRepository.save(user);
+            user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setFullName(fullName);
+            user.setAuthProvider(AuthProvider.LOCAL);
+            user.setStatus(UserStatus.ACTIVE);
+            user = userRepository.saveAndFlush(user);
+            assignRoleIfMissing(user, roleName);
+            logger.info("Seeded {} user: {}", roleName.name(), email);
+        });
+    }
+
+    private void assignRoleIfMissing(User user, RoleName roleName) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalStateException("Cannot assign role without persisted user id");
+        }
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
+        Integer existing = jdbcTemplate.queryForObject("""
+                SELECT count(1)
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ? AND r.name = ?
+                """, Integer.class, user.getId(), roleName.name());
+        if (existing != null && existing > 0) {
+            return;
+        }
+
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(userRepository.getReferenceById(user.getId()));
         userRole.setRole(role);
         userRoleRepository.save(userRole);
+    }
 
-        logger.info("Seeded {} user: {}", roleName.name(), email);
+    private void healUserSchemaColumns() {
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_account BOOLEAN NOT NULL DEFAULT FALSE");
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+        } catch (Exception e) {
+            logger.warn("users schema self-heal skipped: {}", e.getMessage());
+        }
     }
 
     private void seedSeatTypes() {
@@ -1411,7 +1445,8 @@ public class DataSeeder implements CommandLineRunner {
                             cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber,
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude);
                     logger.info("Seeded cinema from JSON: {}", cinemaData.name);
-                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null || cinemaData.longitude != null) {
+                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null
+                        || cinemaData.longitude != null) {
                     jdbcTemplate.update(
                             "UPDATE cinema SET entrance_note = COALESCE(?, entrance_note), latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude) WHERE uuid = ?",
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude, cinemaUuid);
