@@ -1,4 +1,5 @@
 import {
+  DEFAULT_NASA_BOT_CONFIG,
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_ROOM_TYPES,
   DEFAULT_SCREENING_FORMATS,
@@ -12,6 +13,13 @@ export function mergeSystemConfig(saved) {
   }
   if (!Array.isArray(merged.screeningFormats) || merged.screeningFormats.length === 0) {
     merged.screeningFormats = DEFAULT_SCREENING_FORMATS;
+  }
+  merged.nasaBot = { ...DEFAULT_NASA_BOT_CONFIG, ...(merged.nasaBot || {}) };
+  if (!Array.isArray(merged.nasaBot.shortcuts) || merged.nasaBot.shortcuts.length === 0) {
+    merged.nasaBot.shortcuts = DEFAULT_NASA_BOT_CONFIG.shortcuts;
+  }
+  if (!Array.isArray(merged.nasaBot.openingQuestions) || merged.nasaBot.openingQuestions.length === 0) {
+    merged.nasaBot.openingQuestions = DEFAULT_NASA_BOT_CONFIG.openingQuestions;
   }
   return merged;
 }

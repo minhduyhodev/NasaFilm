@@ -206,7 +206,46 @@ public class SystemConfigService {
         defaults.put("roomTypes", defaultRoomTypes());
         defaults.put("screeningFormats", defaultScreeningFormats());
         defaults.put("reviewBannedWords", defaultReviewBannedWords());
+        defaults.put("nasaBot", defaultNasaBotConfig());
         return defaults;
+    }
+
+    private Map<String, Object> defaultNasaBotConfig() {
+        Map<String, Object> bot = new LinkedHashMap<>();
+        bot.put("title", "NASA Bot");
+        bot.put("mode", "Single Agent (LLM Mode)");
+        bot.put("billingEnabled", true);
+        bot.put("model", "gpt-4o-mini");
+        bot.put("provider", "OpenAI");
+        bot.put("temperature", 0.2);
+        bot.put("topP", 1.0);
+        bot.put("contextRounds", 8);
+        bot.put("responseMaxLength", 1024);
+        bot.put("personaPrompt", "Bạn là NASA BOT, trợ lý hỗ trợ khách hàng cho hệ thống rạp phim NASAFilm.");
+        bot.put("pluginsEnabled", false);
+        bot.put("workflowsEnabled", false);
+        bot.put("knowledgeAutoCall", true);
+        bot.put("knowledgeTextSummary", "Chính sách hỗ trợ, FAQ, ticket, thanh toán, hội viên.");
+        bot.put("knowledgeTableSummary", "Bảng danh mục ticket, trạng thái, shortcut và opening questions.");
+        bot.put("knowledgeImageSummary", "Ảnh nền, avatar và visual minh họa cho chatbox.");
+        bot.put("memoryVariablesSummary", "current_user, selected_category, current_ticket_code, live_support_state");
+        bot.put("memoryDatabaseSummary", "Lưu cấu hình shortcut, opening questions, prompt và ghi chú vận hành.");
+        bot.put("openingQuestions", List.of(
+                "Tạo ticket hỗ trợ",
+                "Thanh toán bị lỗi",
+                "Không đăng nhập được",
+                "Xem tình trạng ticket"));
+        bot.put("autoSuggestionEnabled", true);
+        bot.put("autoSuggestionPrompt", "Sau mỗi phản hồi, gợi ý 3 câu hỏi tiếp theo phù hợp với ngữ cảnh hội thoại hiện tại.");
+        bot.put("shortcuts", List.of(
+                shortcutEntry("ticket", "Vé / suất chiếu", "Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé"),
+                shortcutEntry("payment", "Thanh toán", "Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền"),
+                shortcutEntry("account", "Tài khoản", "Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản"),
+                shortcutEntry("promo", "Khuyến mãi", "Hỗ trợ voucher, combo, ưu đãi, mã giảm giá"),
+                shortcutEntry("membership", "Hội viên", "Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên"),
+                shortcutEntry("other", "Mô tả vấn đề khác", "Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn")));
+        bot.put("backgroundImageUrl", "");
+        return bot;
     }
 
     @SuppressWarnings("unchecked")
@@ -293,6 +332,14 @@ public class SystemConfigService {
         entry.put("value", value);
         entry.put("label", label);
         entry.put("enabled", enabled);
+        return entry;
+    }
+
+    private Map<String, Object> shortcutEntry(String id, String label, String description) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("id", id);
+        entry.put("label", label);
+        entry.put("description", description);
         return entry;
     }
 

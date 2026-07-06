@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Rocket,
   Headset,
+  Bot,
   ScanLine,
   Sparkles,
   Store,
@@ -335,6 +336,13 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Headset,
                 "Hỗ trợ khách hàng",
                 "text-rose-400",
+                { permission: PERMISSIONS.SUPPORT_MANAGE },
+              )}
+              {renderLink(
+                "/admin/nasa-bot",
+                Bot,
+                "Cấu hình NASA Bot",
+                "text-indigo-400",
                 { permission: PERMISSIONS.SUPPORT_MANAGE },
               )}
             </div>
