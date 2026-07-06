@@ -34,6 +34,7 @@ import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
+import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
@@ -62,6 +63,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final UserPermissionRepository userPermissionRepository;
     private final RoleRepository roleRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final PasswordEncoder passwordEncoder;
@@ -82,6 +84,7 @@ public class AuthService {
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
             RolePermissionRepository rolePermissionRepository,
+            UserPermissionRepository userPermissionRepository,
             GoogleIdTokenVerifier googleIdTokenVerifier,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
@@ -92,6 +95,7 @@ public class AuthService {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.userPermissionRepository = userPermissionRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
@@ -113,14 +117,14 @@ public class AuthService {
         ensureAccountIsActive(user);
         ensureNotSystemAccount(user);
 
-        List<String> roles = userDetails.getAuthorities().stream()
+        List<String> authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.generateToken(userDetails.getUsername());
-        return createSessionAndResponse(user, accessToken, roles, httpServletRequest);
+        return createSessionAndResponse(user, accessToken, authorities, httpServletRequest);
     }
 
     @Transactional
@@ -193,9 +197,18 @@ public class AuthService {
         userSessionRepository.save(session);
 
         String newAccessToken = jwtUtils.generateToken(user.getEmail());
-        List<String> roles = getRoleAuthorities(user);
+        List<String> authorities = getRoleAuthorities(user);
+        List<String> roles = authorities.stream()
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .distinct()
+                .toList();
+        List<String> permissions = authorities.stream()
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .distinct()
+                .toList();
 
-        return new JwtResponse(newAccessToken, newRefreshToken, user.getEmail(), roles,
+        return new JwtResponse(newAccessToken, newRefreshToken, user.getEmail(), roles, permissions,
                 user.getId(), user.getFullName(), user.getAvatarUrl());
     }
 
@@ -213,7 +226,7 @@ public class AuthService {
         SecurityContextHolder.clearContext();
     }
 
-    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> roles,
+    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> authorities,
             HttpServletRequest httpServletRequest) {
         String refreshToken = generateRefreshToken();
         LocalDateTime expiryDate = calculateRefreshExpiry();
@@ -249,7 +262,17 @@ public class AuthService {
         }
         userSessionRepository.save(userSession);
 
-        return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
+        List<String> roles = authorities.stream()
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .distinct()
+                .toList();
+        List<String> permissions = authorities.stream()
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .distinct()
+                .toList();
+
+        return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, permissions, user.getId(),
                 user.getFullName(), user.getAvatarUrl());
     }
 
@@ -298,10 +321,17 @@ public class AuthService {
         }
 
         if (!roleIds.isEmpty()) {
-            authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(roleIds));
+            List<UUID> adminRoleIds = userRoles.stream()
+                .filter(ur -> ur.getRole().getName() == RoleName.ADMIN)
+                .map(ur -> ur.getRole().getId())
+                .toList();
+            if (!adminRoleIds.isEmpty()) {
+                authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(adminRoleIds));
+            }
         }
+        authorities.addAll(userPermissionRepository.findPermissionNamesByUserId(user.getId()));
 
-        return authorities;
+        return authorities.stream().distinct().toList();
     }
 
     private String resolveIpAddress(HttpServletRequest httpServletRequest) {

@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +24,7 @@ import com.thdpv.movietheater.user.entity.RolePermission;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
 import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.PermissionName;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -78,6 +81,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ActorRepository actorRepository;
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -125,7 +129,8 @@ public class DataSeeder implements CommandLineRunner {
             ReferenceMetadataSeeder referenceMetadataSeeder,
             ActorRepository actorRepository,
             ObjectMapper objectMapper,
-            ResourceLoader resourceLoader) {
+            ResourceLoader resourceLoader,
+            PlatformTransactionManager transactionManager) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
@@ -143,6 +148,7 @@ public class DataSeeder implements CommandLineRunner {
         this.actorRepository = actorRepository;
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
@@ -153,6 +159,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
         healWalletVersionColumn();
+        healUserSchemaColumns();
         seedRoles();
         seedAdminUser();
         seedStaffUser();
@@ -327,7 +334,20 @@ public class DataSeeder implements CommandLineRunner {
                             CONSTRAINT uk_role_permissions_role_permission UNIQUE (role_id, permission_id)
                         )
                     """);
-            logger.info("Created permissions and role_permissions tables.");
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS user_permissions (
+                            uuid UUID PRIMARY KEY,
+                            user_id UUID NOT NULL,
+                            permission_id UUID NOT NULL,
+                            created_at TIMESTAMPTZ,
+                            CONSTRAINT uk_user_permissions_user_permission UNIQUE (user_id, permission_id)
+                        )
+                    """);
+            jdbcTemplate
+                    .execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions (user_id)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions (permission_id)");
+            logger.info("Created permissions, role_permissions and user_permissions tables.");
         } catch (Exception e) {
             logger.error("Failed to create permissions tables", e);
         }
@@ -335,26 +355,33 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedPermissions() {
         String[][] permissionDefs = {
-                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", "TICKET_CHECKIN", "Soát vé" },
-                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_BOOKING_CREATE", "Bán vé tại quầy" },
-                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_COMBO_CREATE", "Bán combo tại quầy" },
-                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_VOUCHER_APPLY", "Áp voucher tại quầy" },
-                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_REFUND_PROCESS", "Hoàn tiền tại quầy" },
-                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_CUSTOMER_CREATE", "Tạo tài khoản nhanh" }
+                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.TICKET_CHECKIN.name() },
+                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_BOOKING_CREATE.name() },
+                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_COMBO_CREATE.name() },
+                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_VOUCHER_APPLY.name() },
+                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_REFUND_PROCESS.name() },
+                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_CUSTOMER_CREATE.name() },
+                { "aaaaaaaa-0007-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.MOVIE_WRITE.name() },
+                { "aaaaaaaa-0008-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SHOWTIME_WRITE.name() },
+                { "aaaaaaaa-0009-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COMBO_WRITE.name() },
+                { "aaaaaaaa-0010-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.PROMOTION_WRITE.name() },
+                { "aaaaaaaa-0011-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.USER_VIEW.name() },
+                { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() }
         };
 
         for (String[] def : permissionDefs) {
             String name = def[1];
-            if (permissionRepository.findByName(name).isEmpty()) {
-                try {
-                    jdbcTemplate.update(
+            PermissionName permissionName = PermissionName.valueOf(name);
+            Permission permission = permissionRepository.findByName(name).orElse(null);
+            if (permission == null) {
+                jdbcTemplate.update(
                         "INSERT INTO permissions (uuid, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
-                        UUID.fromString(def[0]), name, def[2]
-                    );
-                    logger.info("Seeded permission: {}", name);
-                } catch (Exception e) {
-                    logger.error("Failed to seed permission: {}", name, e);
-                }
+                        UUID.fromString(def[0]), name, permissionName.getDescription());
+                logger.info("Seeded new permission: {}", name);
+            } else {
+                permission.setDescription(permissionName.getDescription());
+                permissionRepository.save(permission);
+                logger.info("Updated existing permission: {}", name);
             }
         }
     }
@@ -371,11 +398,11 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         for (Permission permission : allPermissions) {
-            if (staffRole != null) {
-                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
-            }
             if (adminRole != null) {
                 seedRolePermissionIfNotExists(adminRole.getId(), permission.getId());
+            }
+            if (staffRole != null) {
+                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
             }
         }
     }
@@ -398,23 +425,17 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        User guest = new User();
-        guest.setEmail(guestEmail);
-        guest.setFullName("Counter Guest");
-        guest.setIsSystemAccount(true);
-        guest.setAuthProvider(AuthProvider.LOCAL);
-        guest.setStatus(UserStatus.ACTIVE);
-        guest = userRepository.save(guest);
-
-        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new RuntimeException("CUSTOMER role not found"));
-
-        UserRole userRole = new UserRole();
-        userRole.setUser(userRepository.findById(guest.getId()).orElseThrow());
-        userRole.setRole(customerRole);
-        userRoleRepository.save(userRole);
-
-        logger.info("Seeded guest account: {}", guestEmail);
+        transactionTemplate.executeWithoutResult(status -> {
+            User guest = new User();
+            guest.setEmail(guestEmail);
+            guest.setFullName("Counter Guest");
+            guest.setIsSystemAccount(true);
+            guest.setAuthProvider(AuthProvider.LOCAL);
+            guest.setStatus(UserStatus.ACTIVE);
+            guest = userRepository.saveAndFlush(guest);
+            assignRoleIfMissing(guest, RoleName.CUSTOMER);
+            logger.info("Seeded guest account: {}", guestEmail);
+        });
     }
 
     private void migrateVoucherAndScoreSchema() {
@@ -494,7 +515,8 @@ public class DataSeeder implements CommandLineRunner {
                     """);
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
 
             jdbcTemplate.update("""
                     UPDATE promotions
@@ -855,38 +877,69 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
-        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+        transactionTemplate.executeWithoutResult(status -> {
+            Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+            User user;
 
-        if (existingUserOpt.isPresent()) {
-            User user = existingUserOpt.get();
-            user.setPassword(passwordEncoder.encode(password));
-            user.setStatus(UserStatus.ACTIVE);
-            if (user.getAuthProvider() == null) {
-                user.setAuthProvider(AuthProvider.LOCAL);
+            if (existingUserOpt.isPresent()) {
+                user = existingUserOpt.get();
+                user.setPassword(passwordEncoder.encode(password));
+                user.setStatus(UserStatus.ACTIVE);
+                if (user.getAuthProvider() == null) {
+                    user.setAuthProvider(AuthProvider.LOCAL);
+                }
+                user = userRepository.saveAndFlush(user);
+                assignRoleIfMissing(user, roleName);
+                logger.info("Updated existing {} user '{}' password from env configuration.",
+                        roleName.name(), email);
+                return;
             }
-            userRepository.save(user);
-            logger.info("Updated existing {} user '{}' password from env configuration.",
-                    roleName.name(), email);
-            return;
-        }
 
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setFullName(fullName);
-        user.setAuthProvider(AuthProvider.LOCAL);
-        user.setStatus(UserStatus.ACTIVE);
-        user = userRepository.save(user);
+            user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setFullName(fullName);
+            user.setAuthProvider(AuthProvider.LOCAL);
+            user.setStatus(UserStatus.ACTIVE);
+            user = userRepository.saveAndFlush(user);
+            assignRoleIfMissing(user, roleName);
+            logger.info("Seeded {} user: {}", roleName.name(), email);
+        });
+    }
+
+    private void assignRoleIfMissing(User user, RoleName roleName) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalStateException("Cannot assign role without persisted user id");
+        }
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
+        Integer existing = jdbcTemplate.queryForObject("""
+                SELECT count(1)
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ? AND r.name = ?
+                """, Integer.class, user.getId(), roleName.name());
+        if (existing != null && existing > 0) {
+            return;
+        }
+
         UserRole userRole = new UserRole();
-        userRole.setUser(userRepository.findById(user.getId()).orElseThrow());
+        userRole.setUser(userRepository.getReferenceById(user.getId()));
         userRole.setRole(role);
         userRoleRepository.save(userRole);
+    }
 
-        logger.info("Seeded {} user: {}", roleName.name(), email);
+    private void healUserSchemaColumns() {
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_account BOOLEAN NOT NULL DEFAULT FALSE");
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+        } catch (Exception e) {
+            logger.warn("users schema self-heal skipped: {}", e.getMessage());
+        }
     }
 
     private void seedSeatTypes() {
@@ -1392,7 +1445,8 @@ public class DataSeeder implements CommandLineRunner {
                             cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber,
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude);
                     logger.info("Seeded cinema from JSON: {}", cinemaData.name);
-                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null || cinemaData.longitude != null) {
+                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null
+                        || cinemaData.longitude != null) {
                     jdbcTemplate.update(
                             "UPDATE cinema SET entrance_note = COALESCE(?, entrance_note), latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude) WHERE uuid = ?",
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude, cinemaUuid);

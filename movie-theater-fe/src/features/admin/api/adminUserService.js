@@ -21,6 +21,24 @@ class AdminUserService {
     }
   }
 
+  async getPermissions() {
+    try {
+      const response = await authService.api.get('/api/admin/users/permissions');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateUserPermissions(userId, permissions) {
+    try {
+      const response = await authService.api.put(`/api/admin/users/${userId}/permissions`, { permissions });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async updateUserStatus(userId, status) {
     try {
       const response = await authService.api.put(`/api/admin/users/${userId}/status`, { status });

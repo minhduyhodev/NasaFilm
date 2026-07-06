@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { adminUserService } from '../../api/adminUserService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
@@ -8,6 +8,8 @@ const emptyStaffForm = {
   email: '',
   fullName: '',
   password: '',
+  staffPreset: '',
+  permissions: [],
 };
 
 const emptyCustomerForm = {
@@ -15,13 +17,60 @@ const emptyCustomerForm = {
   fullName: '',
 };
 
-const AdminUserFormPanel = ({ mode = 'STAFF', onSuccess, onCancel }) => {
+const STAFF_PRESETS = [
+  {
+    value: 'COUNTER',
+    label: 'Nhân viên quầy vé',
+    permissions: ['COUNTER_BOOKING_CREATE', 'COUNTER_COMBO_CREATE', 'COUNTER_VOUCHER_APPLY', 'COUNTER_CUSTOMER_CREATE'],
+  },
+  { value: 'GATE', label: 'Nhân viên soát vé', permissions: ['TICKET_CHECKIN'] },
+  { value: 'CONTENT', label: 'Quản lý nội dung', permissions: ['MOVIE_WRITE', 'SHOWTIME_WRITE', 'COMBO_WRITE', 'PROMOTION_WRITE'] },
+  { value: 'GENERAL', label: 'Full quyền Staff', permissions: null },
+];
+
+const AdminUserFormPanel = ({ mode = 'STAFF', initialPermissions, onSuccess, onCancel }) => {
   const isStaff = mode === 'STAFF';
   const [isSaving, setIsSaving] = useState(false);
+  const [availablePermissions, setAvailablePermissions] = useState(initialPermissions || []);
   const [form, setForm] = useState(isStaff ? emptyStaffForm : emptyCustomerForm);
+
+  useEffect(() => {
+    if (!isStaff || initialPermissions?.length) return;
+    adminUserService.getPermissions()
+      .then((data) => setAvailablePermissions(Array.isArray(data) ? data : []))
+      .catch(() => setAvailablePermissions([]));
+  }, [initialPermissions, isStaff]);
+
+  const permissionGroups = useMemo(() => {
+    return availablePermissions.reduce((acc, permission) => {
+      const group = permission.group || 'Khác';
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(permission);
+      return acc;
+    }, {});
+  }, [availablePermissions]);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const togglePermission = (permissionName) => {
+    setForm((prev) => {
+      const current = new Set(prev.permissions || []);
+      if (current.has(permissionName)) current.delete(permissionName);
+      else current.add(permissionName);
+      return { ...prev, permissions: Array.from(current), staffPreset: '' };
+    });
+  };
+
+  const handlePresetChange = (presetValue) => {
+    const preset = STAFF_PRESETS.find((item) => item.value === presetValue);
+    const presetPermissions = preset?.permissions ?? availablePermissions.map((permission) => permission.name);
+    setForm((prev) => ({
+      ...prev,
+      staffPreset: presetValue,
+      permissions: presetPermissions,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -48,6 +97,8 @@ const AdminUserFormPanel = ({ mode = 'STAFF', onSuccess, onCancel }) => {
       };
       if (isStaff) {
         payload.password = form.password;
+        payload.staffPreset = form.staffPreset || null;
+        payload.permissions = form.permissions || [];
       }
 
       const result = await adminUserService.createUser(payload);
@@ -64,7 +115,7 @@ const AdminUserFormPanel = ({ mode = 'STAFF', onSuccess, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-xs text-gray-500">
         {isStaff
-          ? 'Tạo tài khoản nhân viên mới — đăng nhập bằng email, có thể sử dụng ngay sau khi tạo.'
+          ? 'Tạo tài khoản nhân viên mới — chọn preset và quyền chi tiết để điều khiển chức năng nhân viên được dùng.'
           : 'Tạo tài khoản khách hàng — đăng nhập bằng email. Hệ thống gửi mật khẩu ngẫu nhiên và link kích hoạt qua email.'}
       </p>
 
@@ -104,6 +155,53 @@ const AdminUserFormPanel = ({ mode = 'STAFF', onSuccess, onCancel }) => {
           </div>
         )}
       </div>
+
+      {isStaff && (
+        <div className="space-y-4 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+          <div>
+            <label className={adminLabelClass}>Chức vụ / Preset</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {STAFF_PRESETS.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => handlePresetChange(preset.value)}
+                  className={`rounded-lg border px-3 py-2 text-left text-xs font-bold transition ${form.staffPreset === preset.value ? 'border-amber-500/50 bg-amber-500/10 text-amber-300' : 'border-white/10 bg-black/20 text-gray-300 hover:border-white/20'}`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={adminLabelClass}>Phân quyền chi tiết</label>
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              {Object.entries(permissionGroups).map(([group, permissions]) => (
+                <div key={group}>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-2">{group}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {permissions.map((permission) => (
+                      <label key={permission.name} className="flex items-start gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300 cursor-pointer hover:border-white/20">
+                        <input
+                          type="checkbox"
+                          checked={(form.permissions || []).includes(permission.name)}
+                          onChange={() => togglePermission(permission.name)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          <span className="block font-bold text-white">{permission.description}</span>
+                          <span className="block text-[10px] font-mono text-gray-500">{permission.name}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isStaff && (
         <p className="text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">

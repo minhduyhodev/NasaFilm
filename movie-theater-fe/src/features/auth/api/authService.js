@@ -20,6 +20,7 @@ const buildAuthResponse = (jwtData) => ({
     email: jwtData.email,
     avatar: resolveAvatarUrl(jwtData),
     roles: mapBackendRoles(jwtData.roles ?? []),
+    permissions: jwtData.permissions ?? [],
   },
   token: jwtData.accessToken,
   tokenType: jwtData.tokenType,

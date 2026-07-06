@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/staff")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('TICKET_CHECKIN')")
 public class StaffMissionControlController {
 
     private final StaffMissionControlService staffMissionControlService;

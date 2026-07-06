@@ -1,81 +1,60 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+/** Served from /public — avoids fragile dynamic import + works with Vite dev & build */
+const HERO_TRAILER_SRC = '/Interstellar-Trailer.mp4';
+
 const Hero = () => {
-  const [reduceMotion, setReduceMotion] = useState(() =>
-    typeof window !== 'undefined'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
   const videoRef = useRef(null);
-  const [videoUrl, setVideoUrl] = useState(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handleChange = () => setReduceMotion(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    if (reduceMotion) return undefined;
-
-    let cancelled = false;
-    const loadVideo = () => {
-      import('../../../shared/assets/Interstellar-Trailer.mp4?url')
-        .then((mod) => {
-          if (!cancelled) setVideoUrl(mod.default);
-        })
-        .catch(() => {});
-    };
-
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(loadVideo, { timeout: 2500 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(idleId);
-      };
-    }
-
-    const timerId = window.setTimeout(loadVideo, 1500);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timerId);
-    };
-  }, [reduceMotion]);
-
-  useEffect(() => {
-    if (reduceMotion || !videoUrl) return undefined;
-
     const video = videoRef.current;
     if (!video) return undefined;
 
-    const playVideo = () => {
-      video.play().catch(() => {});
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Autoplay blocked — still show first frame once metadata loads
+        setVideoReady(true);
+      });
     };
 
-    video.addEventListener('canplay', playVideo);
+    const onCanPlay = () => {
+      setVideoReady(true);
+      tryPlay();
+    };
+
+    const onError = () => setVideoFailed(true);
+
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('error', onError);
+
     if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      playVideo();
+      onCanPlay();
     }
 
     return () => {
-      video.removeEventListener('canplay', playVideo);
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('error', onError);
     };
-  }, [reduceMotion, videoUrl]);
+  }, []);
 
   return (
     <section className="relative min-h-[90vh] md:min-h-screen w-full flex items-center pt-24 pb-32 overflow-hidden bg-black">
       <div className="absolute inset-0 z-0 select-none pointer-events-none">
-        {videoUrl && !reduceMotion && (
+        {!videoFailed && (
           <video
             ref={videoRef}
-            src={videoUrl}
+            src={HERO_TRAILER_SRC}
             autoPlay
             loop
             muted
             playsInline
-            preload="none"
+            preload="auto"
             aria-hidden="true"
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover transition-opacity duration-700 ${
+              videoReady ? 'opacity-100' : 'opacity-0'
+            }`}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-neutral-950/25" />

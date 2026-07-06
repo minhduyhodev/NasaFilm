@@ -50,7 +50,7 @@ public class MovieController {
     private final MovieService movieService;
 
     @PostMapping("/admin/movies")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> createMovie(
             @Valid @RequestBody CreateMovieRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -60,7 +60,7 @@ public class MovieController {
     }
 
     @PutMapping("/admin/movies/{movieUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> updateMovie(
             @PathVariable UUID movieUuid,
             @Valid @RequestBody UpdateMovieRequest request,
@@ -71,7 +71,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/movies/{movieUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID movieUuid) {
         movieService.softDeleteMovie(movieUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa mem phim thanh cong"));
@@ -106,7 +106,7 @@ public class MovieController {
     }
 
     @PostMapping("/admin/movies/{movieUuid}/media")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieMediaResponse>> addMovieMedia(
             @PathVariable UUID movieUuid,
             @Valid @RequestBody MovieMediaRequest request,
@@ -117,7 +117,7 @@ public class MovieController {
     }
 
     @PutMapping("/admin/movies/{movieUuid}/media/{mediaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieMediaResponse>> updateMovieMedia(
             @PathVariable UUID movieUuid,
             @PathVariable UUID mediaUuid,
@@ -129,7 +129,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/movies/{movieUuid}/media/{mediaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteMovieMedia(
             @PathVariable UUID movieUuid,
             @PathVariable UUID mediaUuid) {
@@ -153,14 +153,14 @@ public class MovieController {
     }
 
     @PostMapping("/admin/actors")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<ActorSummaryResponse>> createActor(@Valid @RequestBody ActorRequest request) {
         ActorSummaryResponse response = movieService.createActor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/actors/{actorUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<ActorSummaryResponse>> updateActor(
             @PathVariable UUID actorUuid,
             @Valid @RequestBody ActorRequest request) {
@@ -169,21 +169,21 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/actors/{actorUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteActor(@PathVariable UUID actorUuid) {
         movieService.deleteActor(actorUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
     }
 
     @PostMapping("/admin/genres")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Genre>> createGenre(@Valid @RequestBody GenreRequest request) {
         Genre response = movieService.createGenre(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/genres/{genreUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Genre>> updateGenre(
             @PathVariable UUID genreUuid,
             @Valid @RequestBody GenreRequest request) {
@@ -192,21 +192,21 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/genres/{genreUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteGenre(@PathVariable UUID genreUuid) {
         movieService.deleteGenre(genreUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa the loai thanh cong"));
     }
 
     @PostMapping("/admin/countries")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Country>> createCountry(@Valid @RequestBody CountryRequest request) {
         Country response = movieService.createCountry(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/countries/{countryUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Country>> updateCountry(
             @PathVariable UUID countryUuid,
             @Valid @RequestBody CountryRequest request) {
@@ -215,7 +215,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/countries/{countryUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteCountry(@PathVariable UUID countryUuid) {
         movieService.deleteCountry(countryUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa quoc gia thanh cong"));

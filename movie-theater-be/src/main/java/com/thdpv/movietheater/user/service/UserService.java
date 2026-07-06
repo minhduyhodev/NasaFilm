@@ -1,8 +1,11 @@
 package com.thdpv.movietheater.user.service;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.thdpv.movietheater.auth.repository.PermissionRepository;
+import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -27,12 +32,16 @@ import com.thdpv.movietheater.user.dto.AdminCreateUserResponse;
 import com.thdpv.movietheater.user.dto.CounterCreateCustomerRequest;
 import com.thdpv.movietheater.user.dto.CounterCreateCustomerResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
+import com.thdpv.movietheater.user.dto.PermissionResponse;
 import com.thdpv.movietheater.user.dto.UpdateProfileRequest;
 import com.thdpv.movietheater.user.dto.UserProfileResponse;
+import com.thdpv.movietheater.user.entity.Permission;
 import com.thdpv.movietheater.user.entity.Role;
 import com.thdpv.movietheater.user.entity.User;
+import com.thdpv.movietheater.user.entity.UserPermission;
 import com.thdpv.movietheater.user.entity.UserRole;
 import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.PermissionName;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -44,6 +53,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final Cloudinary cloudinary;
     private final UserRoleRepository userRoleRepository;
+    private final UserPermissionRepository userPermissionRepository;
+    private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
     private final PasswordResetService passwordResetService;
@@ -60,6 +71,8 @@ public class UserService {
             PasswordEncoder passwordEncoder,
             Cloudinary cloudinary,
             UserRoleRepository userRoleRepository,
+            UserPermissionRepository userPermissionRepository,
+            PermissionRepository permissionRepository,
             RoleRepository roleRepository,
             EmailService emailService,
             PasswordResetService passwordResetService,
@@ -68,6 +81,8 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.cloudinary = cloudinary;
         this.userRoleRepository = userRoleRepository;
+        this.userPermissionRepository = userPermissionRepository;
+        this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.emailService = emailService;
         this.passwordResetService = passwordResetService;
@@ -191,6 +206,7 @@ public class UserService {
             List<String> roleNames = userRoles.stream()
                     .map(ur -> ur.getRole().getName().name())
                     .toList();
+            List<String> permissions = userPermissionRepository.findPermissionNamesByUserId(user.getId());
             return new AdminUserResponse(
                     user.getId(),
                     user.getEmail(),
@@ -201,6 +217,7 @@ public class UserService {
                     user.getAuthProvider(),
                     user.getScore(),
                     roleNames,
+                    permissions,
                     user.getCreatedAt());
         }).toList();
     }
@@ -210,15 +227,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
-        boolean isAdminOrStaff = userRoles.stream()
-                .map(ur -> ur.getRole().getName())
-                .anyMatch(role -> role == RoleName.ADMIN || role == RoleName.STAFF);
-
-        if (isAdminOrStaff) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Không thể cập nhật trạng thái cho tài khoản Admin hoặc Staff");
-        }
-
+        // Allow updating status for any user (except self, which is handled in frontend/controller)
         user.setStatus(status);
         userRepository.save(user);
     }
@@ -238,6 +247,10 @@ public class UserService {
         newUserRole.setUser(user);
         newUserRole.setRole(role);
         userRoleRepository.save(newUserRole);
+
+        if (roleName != RoleName.STAFF) {
+            userPermissionRepository.deleteByUserId(userId);
+        }
     }
 
     @Transactional
@@ -278,8 +291,8 @@ public class UserService {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Mật khẩu không được để trống khi tạo nhân viên");
             }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setStatus(UserStatus.ACTIVE);
-            message = "Tạo tài khoản nhân viên thành công. Nhân viên có thể đăng nhập ngay.";
+            user.setStatus(UserStatus.INACTIVE);
+            message = "Tạo tài khoản nhân viên thành công. Email kích hoạt đã được gửi.";
         } else if (roleName == RoleName.CUSTOMER) {
             String temporaryPassword = generateSecureTemporaryPassword();
             user.setPassword(passwordEncoder.encode(temporaryPassword));
@@ -296,7 +309,7 @@ public class UserService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ được tạo tài khoản STAFF hoặc CUSTOMER");
         }
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Role not found"));
@@ -305,6 +318,20 @@ public class UserService {
         userRole.setRole(role);
         userRoleRepository.save(userRole);
 
+        List<String> assignedPermissions = List.of();
+        if (roleName == RoleName.STAFF) {
+            assignedPermissions = assignUserPermissions(user.getId(), request.getStaffPreset(), request.getPermissions());
+
+            String activationToken = jwtUtils.generateActivationToken(email, user.getPassword());
+            String activationLink = frontendUrl + "/activate-account?token=" + activationToken;
+            emailService.sendStaffActivationEmail(
+                    email, fullName, email, request.getPassword(), activationLink);
+            activationEmailSent = true;
+        }
+        if (roleName == RoleName.ADMIN) {
+            assignedPermissions = userPermissionRepository.findPermissionNamesByUserId(user.getId());
+        }
+
         return new AdminCreateUserResponse(
                 user.getId(),
                 user.getEmail(),
@@ -312,8 +339,72 @@ public class UserService {
                 user.getFullName(),
                 user.getStatus(),
                 List.of(roleName.name()),
+                assignedPermissions,
                 message,
                 activationEmailSent);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PermissionResponse> getAvailablePermissions() {
+        return java.util.Arrays.stream(PermissionName.values())
+                .map(permission -> new PermissionResponse(
+                        permission.name(),
+                        permission.getDescription(),
+                        permission.getGroup()))
+                .toList();
+    }
+
+    @Transactional
+    public List<String> updateUserPermissions(UUID userId, List<String> permissions) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+        boolean isStaff = userRoles.stream()
+                .map(ur -> ur.getRole().getName())
+                .anyMatch(role -> role == RoleName.STAFF);
+        boolean isAdmin = userRoles.stream()
+                .map(ur -> ur.getRole().getName())
+                .anyMatch(role -> role == RoleName.ADMIN);
+
+        if (!isStaff || isAdmin) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ có thể cập nhật quyền chi tiết cho tài khoản STAFF");
+        }
+
+        return assignUserPermissions(user.getId(), null, permissions);
+    }
+
+    private List<String> assignUserPermissions(UUID userId, String staffPreset, List<String> requestedPermissions) {
+        Set<PermissionName> permissionNames = new LinkedHashSet<>();
+        permissionNames.addAll(PermissionName.presetPermissions(staffPreset));
+
+        if (requestedPermissions != null) {
+            for (String permission : requestedPermissions) {
+                if (permission == null || permission.isBlank()) {
+                    continue;
+                }
+                try {
+                    permissionNames.add(PermissionName.valueOf(permission.trim().toUpperCase()));
+                } catch (IllegalArgumentException ex) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Permission không hợp lệ: " + permission);
+                }
+            }
+        }
+
+        userPermissionRepository.deleteByUserId(userId);
+
+        List<String> assigned = new ArrayList<>();
+        for (PermissionName permissionName : permissionNames) {
+            Permission permission = permissionRepository.findByName(permissionName.name())
+                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST,
+                            "Permission chưa được seed: " + permissionName.name()));
+            UserPermission userPermission = new UserPermission();
+            userPermission.setUserId(userId);
+            userPermission.setPermissionId(permission.getId());
+            userPermissionRepository.save(userPermission);
+            assigned.add(permissionName.name());
+        }
+        return assigned;
     }
 
     @Transactional
@@ -356,7 +447,7 @@ public class UserService {
         guest.setIsSystemAccount(true);
         guest.setAuthProvider(AuthProvider.LOCAL);
         guest.setStatus(UserStatus.ACTIVE);
-        userRepository.save(guest);
+        guest = userRepository.save(guest);
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Role not found"));
@@ -382,7 +473,7 @@ public class UserService {
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedBy(staffId);
         user.setUpdatedBy(staffId);
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Role not found"));

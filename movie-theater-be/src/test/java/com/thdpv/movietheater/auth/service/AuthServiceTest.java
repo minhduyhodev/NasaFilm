@@ -33,6 +33,7 @@ import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 import com.thdpv.movietheater.config.repository.RoleRepository;
@@ -75,6 +76,9 @@ class AuthServiceTest {
     private RolePermissionRepository rolePermissionRepository;
 
     @Mock
+    private UserPermissionRepository userPermissionRepository;
+
+    @Mock
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Mock
@@ -94,6 +98,7 @@ class AuthServiceTest {
                 userRepository,
                 userRoleRepository,
                 rolePermissionRepository,
+                userPermissionRepository,
                 googleIdTokenVerifier,
                 passwordEncoder,
                 emailService,
@@ -121,7 +126,7 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleName.CUSTOMER)).thenReturn(Optional.of(customerRole));
         when(jwtUtils.generateToken(email)).thenReturn("generated-access-token");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             if (user.getId() == null) {
                 user.setId(userId);
@@ -145,12 +150,12 @@ class AuthServiceTest {
         assertEquals(email, response.getEmail());
         assertEquals(fullName, response.getFullName());
         assertEquals(avatarUrl, response.getAvatarUrl());
-        assertEquals(List.of("ROLE_CUSTOMER"), response.getRoles());
+        assertEquals(List.of("CUSTOMER"), response.getRoles());
         assertEquals("generated-access-token", response.getAccessToken());
         assertNotNull(response.getRefreshToken());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
+        verify(userRepository).saveAndFlush(userCaptor.capture());
         User savedUser = userCaptor.getValue();
         assertSame(savedUser.getId(), response.getUserId());
         assertEquals(avatarUrl, savedUser.getAvatarUrl());
