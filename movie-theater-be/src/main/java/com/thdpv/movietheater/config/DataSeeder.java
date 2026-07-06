@@ -401,13 +401,13 @@ public class DataSeeder implements CommandLineRunner {
         guest.setIsSystemAccount(true);
         guest.setAuthProvider(AuthProvider.LOCAL);
         guest.setStatus(UserStatus.ACTIVE);
-        userRepository.save(guest);
+        User savedGuest = userRepository.saveAndFlush(guest);
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new RuntimeException("CUSTOMER role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(guest);
+        userRole.setUser(savedGuest);
         userRole.setRole(customerRole);
         userRoleRepository.save(userRole);
 
@@ -873,13 +873,13 @@ public class DataSeeder implements CommandLineRunner {
         user.setFullName(fullName);
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        User savedUser = userRepository.saveAndFlush(user);
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(savedUser);
         userRole.setRole(role);
         userRoleRepository.save(userRole);
 

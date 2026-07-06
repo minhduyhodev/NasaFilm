@@ -5,12 +5,6 @@ import MovieCard from './MovieCard';
 import MovieCardSkeleton from './MovieCardSkeleton';
 import './HomeMovieCarousel.css';
 
-const CARD_STYLE = {
-  flex: '0 0 calc((100% - 72px) / 4)',
-  minWidth: '190px',
-  maxWidth: '300px',
-};
-
 const HomeMovieCarousel = ({
   title,
   viewAllTo,
@@ -127,7 +121,6 @@ const HomeMovieCarousel = ({
             <div
               key={`skeleton-${index}`}
               className="home-movie-carousel__item flex flex-col gap-4"
-              style={CARD_STYLE}
             >
               <MovieCardSkeleton />
             </div>
@@ -137,7 +130,6 @@ const HomeMovieCarousel = ({
             <div
               key={movie.uuid || movie.title}
               className={`home-movie-carousel__item ${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
-              style={CARD_STYLE}
             >
               <MovieCard
                 {...movie}
