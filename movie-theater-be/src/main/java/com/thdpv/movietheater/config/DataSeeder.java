@@ -12,9 +12,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import com.thdpv.movietheater.auth.repository.PermissionRepository;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.config.repository.RoleRepository;
+import com.thdpv.movietheater.user.entity.Permission;
 import com.thdpv.movietheater.user.entity.Role;
+import com.thdpv.movietheater.user.entity.RolePermission;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
 import com.thdpv.movietheater.user.enums.AuthProvider;
@@ -58,6 +62,8 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -104,6 +110,8 @@ public class DataSeeder implements CommandLineRunner {
     private String customerFullName;
 
     public DataSeeder(RoleRepository roleRepository,
+            PermissionRepository permissionRepository,
+            RolePermissionRepository rolePermissionRepository,
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
             PasswordEncoder passwordEncoder,
@@ -119,6 +127,8 @@ public class DataSeeder implements CommandLineRunner {
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader) {
         this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -147,6 +157,9 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
+        seedPermissions();
+        seedRolePermissions();
+        seedGuestAccount();
         seedUsersFromJson();
         referenceMetadataSeeder.seedAll();
         seedSeatTypes();
@@ -288,9 +301,117 @@ public class DataSeeder implements CommandLineRunner {
 
             logger.info("Created booking database tables successfully.");
             migrateVoucherAndScoreSchema();
+            createPermissionTables();
         } catch (Exception e) {
             logger.error("Failed to create booking database tables", e);
         }
+    }
+
+    private void createPermissionTables() {
+        try {
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS permissions (
+                            uuid UUID PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL UNIQUE,
+                            description VARCHAR(255),
+                            created_at TIMESTAMPTZ,
+                            updated_at TIMESTAMPTZ
+                        )
+                    """);
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS role_permissions (
+                            uuid UUID PRIMARY KEY,
+                            role_id UUID NOT NULL,
+                            permission_id UUID NOT NULL,
+                            created_at TIMESTAMPTZ,
+                            CONSTRAINT uk_role_permissions_role_permission UNIQUE (role_id, permission_id)
+                        )
+                    """);
+            logger.info("Created permissions and role_permissions tables.");
+        } catch (Exception e) {
+            logger.error("Failed to create permissions tables", e);
+        }
+    }
+
+    private void seedPermissions() {
+        String[][] permissionDefs = {
+                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", "TICKET_CHECKIN", "Soát vé" },
+                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_BOOKING_CREATE", "Bán vé tại quầy" },
+                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_COMBO_CREATE", "Bán combo tại quầy" },
+                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_VOUCHER_APPLY", "Áp voucher tại quầy" },
+                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_REFUND_PROCESS", "Hoàn tiền tại quầy" },
+                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_CUSTOMER_CREATE", "Tạo tài khoản nhanh" }
+        };
+
+        for (String[] def : permissionDefs) {
+            String name = def[1];
+            if (permissionRepository.findByName(name).isEmpty()) {
+                Permission permission = new Permission();
+                permission.setId(UUID.fromString(def[0]));
+                permission.setName(name);
+                permission.setDescription(def[2]);
+                permissionRepository.save(permission);
+                logger.info("Seeded permission: {}", name);
+            }
+        }
+    }
+
+    private void seedRolePermissions() {
+        Role staffRole = roleRepository.findByName(RoleName.STAFF)
+                .orElse(null);
+        Role adminRole = roleRepository.findByName(RoleName.ADMIN)
+                .orElse(null);
+
+        List<Permission> allPermissions = permissionRepository.findAll();
+        if (allPermissions.isEmpty()) {
+            return;
+        }
+
+        for (Permission permission : allPermissions) {
+            if (staffRole != null) {
+                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
+            }
+            if (adminRole != null) {
+                seedRolePermissionIfNotExists(adminRole.getId(), permission.getId());
+            }
+        }
+    }
+
+    private void seedRolePermissionIfNotExists(UUID roleId, UUID permissionId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(1) FROM role_permissions WHERE role_id = ? AND permission_id = ?",
+                Integer.class, roleId, permissionId);
+        if (count != null && count == 0) {
+            RolePermission rp = new RolePermission();
+            rp.setRoleId(roleId);
+            rp.setPermissionId(permissionId);
+            rolePermissionRepository.save(rp);
+        }
+    }
+
+    private void seedGuestAccount() {
+        final String guestEmail = "counter_guest@nasafilm.com";
+        if (userRepository.findByEmailIgnoreCase(guestEmail).isPresent()) {
+            return;
+        }
+
+        User guest = new User();
+        guest.setEmail(guestEmail);
+        guest.setFullName("Counter Guest");
+        guest.setIsSystemAccount(true);
+        guest.setAuthProvider(AuthProvider.LOCAL);
+        guest.setStatus(UserStatus.ACTIVE);
+        userRepository.save(guest);
+
+        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new RuntimeException("CUSTOMER role not found"));
+
+        UserRole userRole = new UserRole();
+        userRole.setUser(guest);
+        userRole.setRole(customerRole);
+        userRoleRepository.save(userRole);
+
+        logger.info("Seeded guest account: {}", guestEmail);
     }
 
     private void migrateVoucherAndScoreSchema() {

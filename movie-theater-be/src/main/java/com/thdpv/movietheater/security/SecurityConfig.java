@@ -73,13 +73,13 @@ public class SecurityConfig {
             "/api/combos/active",
             "/api/review-vibe-tags",
             "/api/review-vibe-tags/**",
-            "/api/discover",
-            "/api/discover/**",
             "/ws/**",
             "/stomp/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html"
+            "/swagger-ui.html",
+            "/v1/payments/**",
+            "/v1/webhooks/**"
     };
 
     public SecurityConfig(
@@ -140,7 +140,7 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(List.of(frontendUrl));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept", "x-api-key"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

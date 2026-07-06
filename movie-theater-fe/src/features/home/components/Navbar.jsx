@@ -179,12 +179,13 @@ const Navbar = () => {
   };
 
   const handleOnlineNav = async (e) => {
-    if (getCachedOnlineMovies()) return;
     e.preventDefault();
-    try {
-      await prefetchOnlinePage();
-    } catch {
-      // still navigate; page shows error state
+    if (!getCachedOnlineMovies()) {
+      try {
+        await prefetchOnlinePage();
+      } catch {
+        // still navigate; page shows error state
+      }
     }
     navigate('/online');
   };
@@ -674,6 +675,15 @@ const AuthControls = () => {
               )}
 
               <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="dropdown-menu-link"
+              >
+                <User className="h-4 w-4" />
+                <span>Thông tin cá nhân</span>
+              </Link>
+
+              <Link
                 to="/my-movies"
                 onClick={() => setIsOpen(false)}
                 className="dropdown-menu-link"
@@ -682,14 +692,7 @@ const AuthControls = () => {
                 <span>Phim của tôi</span>
               </Link>
 
-              <Link
-                to="/profile"
-                onClick={() => setIsOpen(false)}
-                className="dropdown-menu-link"
-              >
-                <User className="h-4 w-4" />
-                <span>Thông tin cá nhân</span>
-              </Link>
+              
 
               <Link
                 to="/wallet"

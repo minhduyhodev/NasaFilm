@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { discoverService } from '../../../shared/services/discoverService';
+import { notificationService } from '../../../shared/services/notificationService';
 import { movieService } from '../../../shared/services/movieService';
 import PosterImage from '../../../shared/components/PosterImage';
 import FavoriteIconButton from './FavoriteIconButton';
@@ -47,8 +48,8 @@ const DURATION_UI = {
 
 const VIEWING_UI = {
   THEATER: { label: 'Rạp chiếu', hint: 'Màn ảnh lớn · IMAX', icon: Clapperboard },
-  HOME: { label: 'Living Room', hint: 'VOD · Ghế sofa', icon: Tv },
-  BOTH: { label: 'Hybrid', hint: 'Rạp + nhà · Linh hoạt', icon: Film },
+  HOME: { label: 'Phòng khách', hint: 'VOD · Ghế sofa', icon: Tv },
+  BOTH: { label: 'Cả hai', hint: 'Rạp + nhà · Linh hoạt', icon: Film },
 };
 
 const buildConfigOptions = (values, uiMap) => {
@@ -112,7 +113,8 @@ const formatDuration = (mins) => {
 };
 
 const MovieMatchmakerWidget = () => {
-  const { isAuthenticated } = useAuthContext();
+  const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuthContext();
   const sectionRef = useRef(null);
   const [discoverConfig, setDiscoverConfig] = useState(null);
   const [configLoading, setConfigLoading] = useState(true);
@@ -163,6 +165,22 @@ const MovieMatchmakerWidget = () => {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated && expanded) {
+      setExpandSweep(false);
+      setExpanded(false);
+      resetQuiz();
+    }
+  }, [authLoading, isAuthenticated, expanded, resetQuiz]);
+
+  useEffect(() => {
+    if (authLoading) return undefined;
+    if (!isAuthenticated) {
+      setDiscoverConfig(null);
+      setConfigLoading(false);
+      return undefined;
+    }
+
     let cancelled = false;
     setConfigLoading(true);
     discoverService
@@ -179,7 +197,7 @@ const MovieMatchmakerWidget = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, isAuthenticated]);
 
   const loadGenres = useCallback(async () => {
     setLoadingGenres(true);
@@ -214,10 +232,8 @@ const MovieMatchmakerWidget = () => {
   const maxMatches = discoverConfig?.maxMatches;
   const maxGenreSelections = discoverConfig?.maxGenreSelections ?? 0;
   const questionCount = useMemo(() => {
-    if (!discoverConfig) return null;
-    return isAuthenticated
-      ? discoverConfig.authenticatedQuestionCount
-      : discoverConfig.guestQuestionCount;
+    if (!discoverConfig || !isAuthenticated) return null;
+    return discoverConfig.authenticatedQuestionCount;
   }, [discoverConfig, isAuthenticated]);
 
   const moodOptions = useMemo(
@@ -236,8 +252,8 @@ const MovieMatchmakerWidget = () => {
   );
 
   const visibleSteps = useMemo(
-    () => (isAuthenticated ? QUIZ_STEPS : QUIZ_STEPS.filter((item) => item.key !== 'useHistory')),
-    [isAuthenticated],
+    () => QUIZ_STEPS,
+    [],
   );
 
   const currentStep = visibleSteps[step];
@@ -277,6 +293,11 @@ const MovieMatchmakerWidget = () => {
   };
 
   const handleOpen = () => {
+    if (!isAuthenticated) {
+      notificationService.info('Vui lòng đăng nhập để dùng Movie Matchmaker.');
+      navigate('/login', { state: { from: '/#movie-matchmaker' } });
+      return;
+    }
     if (!discoverConfig) return;
     resetQuiz();
     setExpandSweep(false);
@@ -295,7 +316,7 @@ const MovieMatchmakerWidget = () => {
       <div className="nsf-quiz-inline__control-grid" aria-hidden />
       <header className="nsf-quiz-inline__header">
         <div className="nsf-quiz-inline__brand">
-          <span>Movie Matchmaker</span>
+          <span>Ghép Phim Theo Gu</span>
         </div>
       </header>
 
@@ -610,7 +631,7 @@ const MovieMatchmakerWidget = () => {
     return (
       <div className="nsf-quiz__manifest">
         <div className="nsf-quiz__manifest-header">
-          <div className="nsf-quiz__manifest-badge">CLEARED FOR LAUNCH</div>
+          <div className="nsf-quiz__manifest-badge">Sẵn sàng cất cánh</div>
           <div className="nsf-quiz__manifest-flight">
             <Rocket className="h-5 w-5" />
             <div>
@@ -619,7 +640,7 @@ const MovieMatchmakerWidget = () => {
             </div>
           </div>
           <p className="nsf-quiz__manifest-copy">
-            Manifest gồm {result.matches.length} phim khớp chòm sao của bạn — sẵn sàng đặt vé hoặc xem VOD.
+            Danh sách gồm {result.matches.length} phim khớp chòm sao của bạn — sẵn sàng đặt vé hoặc xem VOD.
           </p>
         </div>
 
@@ -632,9 +653,9 @@ const MovieMatchmakerWidget = () => {
 
             return (
               <article key={movie.uuid} className="nsf-quiz__manifest-card">
-                <div className="nsf-quiz__manifest-rank">SEAT {index + 1}</div>
+                <div className="nsf-quiz__manifest-rank">Ghế {index + 1}</div>
                 <div className="nsf-quiz__manifest-poster">
-                  <PosterImage src={poster} alt={movie.title} />
+                  <PosterImage src={poster} alt={movie.title} width={500} loading="eager" />
                   <FavoriteIconButton movieUuid={movie.uuid} className="nsf-quiz__manifest-favorite" />
                 </div>
                 <div className="nsf-quiz__manifest-body">
@@ -678,7 +699,7 @@ const MovieMatchmakerWidget = () => {
       ref={sectionRef}
       layout
       className={`nsf-matchmaker-cta ${expanded ? 'nsf-matchmaker-cta--expanded' : ''}`}
-      aria-label="Trạm Cất Cánh Movie Matchmaker"
+      aria-label="Trạm Cất Cánh Ghép Phim Theo Gu"
       transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
     >
       <div className="nsf-matchmaker-cta__content">
@@ -710,9 +731,13 @@ const MovieMatchmakerWidget = () => {
                 type="button"
                 className="nsf-matchmaker-cta__btn"
                 onClick={handleOpen}
-                disabled={configLoading || !discoverConfig}
+                disabled={authLoading || (isAuthenticated && (configLoading || !discoverConfig))}
               >
-                {configLoading
+                {authLoading
+                  ? 'Đang kiểm tra phiên đăng nhập…'
+                  : !isAuthenticated
+                    ? 'Đăng nhập để tìm phim'
+                  : configLoading
                   ? 'Đang kết nối Mission Control…'
                   : !discoverConfig
                     ? 'Mission Control chưa sẵn sàng'

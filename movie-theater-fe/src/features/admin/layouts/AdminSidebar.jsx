@@ -275,7 +275,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               {renderLink(
                 "/admin/matchmaker-analytics",
                 Sparkles,
-                "Movie Matchmaker",
+                "Thống kê gợi ý phim",
                 "text-orange-400",
               )}
               {renderLink(
@@ -317,7 +317,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               {renderLink(
                 "/admin/staff-control",
                 ScanLine,
-                "Mission Control",
+                "Soát vé suất chiếu",
                 "text-red-400",
               )}
             </div>

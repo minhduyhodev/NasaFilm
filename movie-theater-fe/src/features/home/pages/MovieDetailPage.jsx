@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
   Clock,
@@ -9,6 +9,7 @@ import {
   Award,
   X,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import { notificationService } from "../../../shared/services/notificationService";
 import { movieService } from "../../../shared/services/movieService";
@@ -16,6 +17,16 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
+import { orbitService } from "../../../shared/services/orbitService";
+import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
+import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
+import { useOrbitAccessibleRooms } from "../../../shared/hooks/useOrbitAccessibleRooms";
+import {
+  buildOrbitNavigateState,
+  getRecentOrbitRoomForShowtime,
+  rememberOrbitRoom,
+} from "../../../shared/utils/orbitRecentStorage";
+import { getMaxSeatsPerBooking } from "../../../shared/utils/systemConfig";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
@@ -48,6 +59,11 @@ const MovieDetailPage = () => {
   const { isAuthenticated } = useAuthContext();
   const [activeDateTab, setActiveDateTab] = useState("day-0");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
+  const [isCreatingOrbit, setIsCreatingOrbit] = useState(false);
+  const [orbitFeatureEnabled, setOrbitFeatureEnabled] = useState(true);
+  const { rooms: accessibleOrbitRooms, refresh: refreshOrbitRooms } = useOrbitAccessibleRooms({
+    enabled: orbitFeatureEnabled,
+  });
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
@@ -62,6 +78,7 @@ const MovieDetailPage = () => {
 
   useEffect(() => {
     systemConfigService.getConfig().catch(() => {});
+    orbitService.getFeatureStatus().then((s) => setOrbitFeatureEnabled(Boolean(s?.enabled))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -269,6 +286,100 @@ const MovieDetailPage = () => {
       },
     });
   };
+
+  const handleEnterOrbitRoom = (roomOrEntry, movieExtras = {}) => {
+    const roomUuid = roomOrEntry.uuid || roomOrEntry.roomUuid;
+    if (!roomUuid) return;
+    const state = buildOrbitNavigateState(
+      {
+        movieUuid: roomOrEntry.movieUuid,
+        movieTitle: roomOrEntry.movieTitle,
+        theater: roomOrEntry.theater,
+        showtimeUuid: roomOrEntry.showtimeUuid,
+      },
+      movieExtras,
+    );
+    if (roomOrEntry.uuid) {
+      rememberOrbitRoom(roomOrEntry, movieExtras);
+    }
+    navigate(`/booking/orbit/${roomUuid}`, { state });
+  };
+
+  const handleCreateOrbitRoom = async () => {
+    if (!selectedShowtime) return;
+    if (!isAuthenticated) {
+      notificationService.info("Vui lòng đăng nhập để tạo phòng Orbit Seat.");
+      navigate("/login", { state: { from: `/movie/${id}` } });
+      return;
+    }
+    const theater = `${selectedShowtime.cinemaName} - ${selectedShowtime.cinemaRoomName}`;
+    const dateText = dateMap[activeDateTab];
+    const showtimeText = new Date(selectedShowtime.startTime).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const movieExtras = {
+      theater,
+      movie: movie.title,
+      movieUuid: dbMovie.uuid,
+      moviePoster: movie.poster,
+      movieRating: movie.rating,
+      movieFormat: movie.format,
+      movieAgeRestriction: movie.ageRestriction,
+      date: dateText,
+      showtime: showtimeText,
+    };
+
+    setIsCreatingOrbit(true);
+    try {
+      const room = await orbitService.createRoom(selectedShowtime.uuid, ORBIT_DEFAULT_MAX_MEMBERS);
+      rememberOrbitRoom(room, movieExtras);
+      notificationService.success("Đã tạo phòng Orbit — mời bạn bè qua link chia sẻ.");
+      navigate(`/booking/orbit/${room.uuid}`, { state: movieExtras });
+    } catch (err) {
+      const msg = err.message || "";
+      if (msg.includes("phòng Orbit đang hoạt động")) {
+        try {
+          await refreshOrbitRooms();
+          const rooms = await orbitService.getActiveRooms();
+          const existing = rooms.find((r) => r.host) || rooms[0];
+          if (existing) {
+            rememberOrbitRoom(existing, movieExtras);
+            notificationService.info("Bạn đã có phòng Orbit đang mở — chuyển vào phòng hiện tại.");
+            handleEnterOrbitRoom(existing, movieExtras);
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+      notificationService.error(msg || "Không thể tạo phòng Orbit.");
+    } finally {
+      setIsCreatingOrbit(false);
+    }
+  };
+
+  const normalizeUuid = (value) => String(value || '').toLowerCase();
+
+  const orbitForSelectedShowtime = useMemo(() => {
+    if (!isAuthenticated || !selectedShowtime?.uuid) return null;
+    const fromApi = accessibleOrbitRooms.find(
+      (room) => normalizeUuid(room.showtimeUuid) === normalizeUuid(selectedShowtime.uuid),
+    );
+    if (fromApi) return { source: fromApi.source || 'active', room: fromApi };
+    const recent = getRecentOrbitRoomForShowtime(selectedShowtime.uuid);
+    if (recent) return { source: 'recent', room: recent };
+    return null;
+  }, [isAuthenticated, accessibleOrbitRooms, selectedShowtime?.uuid]);
+
+  const hostActiveOtherRoom = useMemo(() => {
+    if (!selectedShowtime?.uuid) return null;
+    return accessibleOrbitRooms.find(
+      (room) => (room.isHost || room.host)
+        && normalizeUuid(room.showtimeUuid) !== normalizeUuid(selectedShowtime.uuid),
+    ) || null;
+  }, [accessibleOrbitRooms, selectedShowtime?.uuid]);
 
   const handleBuyVodClick = () => {
     if (!isAuthenticated) {
@@ -617,6 +728,13 @@ const MovieDetailPage = () => {
           {/* Right Side: Showtimes */}
           {!isFromOnline && (
           <div className={`movie-detail-showtimes-col${movie.cast.length === 0 ? ' movie-detail-showtimes-col--full' : ''}`}>
+            {orbitFeatureEnabled && (
+              <OrbitActiveRoomsPanel
+                title="Phòng Orbit của bạn"
+                className="mb-5"
+                enabled={orbitFeatureEnabled}
+              />
+            )}
             <div className="movie-detail-showtimes-head">
               <h3 className="movie-detail-section-title">
                 Chọn suất chiếu
@@ -747,12 +865,70 @@ const MovieDetailPage = () => {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={handleProceedToBooking}
-                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Đặt ghế ngay</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={handleProceedToBooking}
+                      className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Đặt ghế ngay</span>
+                    </button>
+                    {orbitFeatureEnabled && (
+                    <>
+                    {orbitForSelectedShowtime && (
+                      <button
+                        type="button"
+                        onClick={() => handleEnterOrbitRoom(
+                          orbitForSelectedShowtime.room,
+                          {
+                            theater: `${selectedShowtime.cinemaName} - ${selectedShowtime.cinemaRoomName}`,
+                            movie: movie.title,
+                            movieUuid: dbMovie.uuid,
+                            moviePoster: movie.poster,
+                            movieRating: movie.rating,
+                            movieFormat: movie.format,
+                            movieAgeRestriction: movie.ageRestriction,
+                            date: dateMap[activeDateTab],
+                            showtime: new Date(selectedShowtime.startTime).toLocaleTimeString("vi-VN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }),
+                          },
+                        )}
+                        className="border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Users className="w-4 h-4" />
+                        {orbitForSelectedShowtime.source === "recent"
+                          ? "Vào lại phòng Orbit"
+                          : (orbitForSelectedShowtime.room.isHost || orbitForSelectedShowtime.room.host ? "Vào phòng Orbit của bạn" : "Vào phòng Orbit")}
+                      </button>
+                    )}
+                    {!orbitForSelectedShowtime && (
+                    <button
+                      type="button"
+                      onClick={handleCreateOrbitRoom}
+                      disabled={isCreatingOrbit || Boolean(hostActiveOtherRoom)}
+                      className="border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Users className="w-4 h-4" />
+                      {isCreatingOrbit ? "Đang tạo..." : "Tạo phòng Orbit"}
+                    </button>
+                    )}
+                    {hostActiveOtherRoom && !orbitForSelectedShowtime && (
+                      <button
+                        type="button"
+                        onClick={() => handleEnterOrbitRoom(hostActiveOtherRoom, {
+                          movie: movie.title,
+                          movieUuid: dbMovie.uuid,
+                        })}
+                        className="border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-100 px-4 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        Vào phòng Orbit đang mở
+                      </button>
+                    )}
+                    </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

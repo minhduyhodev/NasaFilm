@@ -20,6 +20,7 @@ import java.util.UUID;
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
+import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
@@ -83,9 +84,11 @@ public class BookingController {
     }
 
     @PutMapping("/tickets/{code}/check-in")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<Void>> checkInTicket(@PathVariable("code") String code) {
-        bookingService.checkInTicket(code);
-        return ResponseEntity.ok(ApiResponse.success(null, "Soát vé thành công"));
+    @PreAuthorize("hasAuthority('TICKET_CHECKIN') or hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<CheckInTicketResponse>> checkInTicket(
+            @PathVariable("code") String code,
+            @RequestParam(value = "currentRoomId", required = false) UUID currentRoomId) {
+        CheckInTicketResponse response = bookingService.checkInTicket(code, currentRoomId);
+        return ResponseEntity.ok(ApiResponse.success(response, response.getMessage()));
     }
 }

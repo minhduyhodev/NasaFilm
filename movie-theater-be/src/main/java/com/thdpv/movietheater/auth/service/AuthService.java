@@ -3,6 +3,7 @@ package com.thdpv.movietheater.auth.service;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,7 +33,7 @@ import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
-import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -59,6 +60,7 @@ public class AuthService {
     private final UserSessionRepository userSessionRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final RoleRepository roleRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final PasswordEncoder passwordEncoder;
@@ -78,6 +80,7 @@ public class AuthService {
             UserSessionRepository userSessionRepository,
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
+            RolePermissionRepository rolePermissionRepository,
             GoogleIdTokenVerifier googleIdTokenVerifier,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
@@ -87,6 +90,7 @@ public class AuthService {
         this.userSessionRepository = userSessionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
@@ -106,6 +110,7 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -149,6 +154,7 @@ public class AuthService {
                 .orElseGet(() -> createGoogleUser(email, fullName, avatarUrl));
 
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
         String accessToken = jwtUtils.generateToken(user.getEmail());
         return createSessionAndResponse(user, accessToken, getRoleAuthorities(user), httpServletRequest);
@@ -172,6 +178,7 @@ public class AuthService {
         User user = userRepository.findById(session.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
         String newRefreshToken = generateRefreshToken();
         LocalDateTime newExpiryDate = calculateRefreshExpiry();
@@ -273,10 +280,27 @@ public class AuthService {
         throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVE);
     }
 
+    private void ensureNotSystemAccount(User user) {
+        if (Boolean.TRUE.equals(user.getIsSystemAccount())) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
     private List<String> getRoleAuthorities(User user) {
-        return userRoleRepository.findByUserId(user.getId()).stream()
-                .map(userRole -> "ROLE_" + userRole.getRole().getName().name())
-                .toList();
+        List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+
+        List<String> authorities = new ArrayList<>();
+        List<UUID> roleIds = new ArrayList<>();
+        for (UserRole userRole : userRoles) {
+            authorities.add("ROLE_" + userRole.getRole().getName().name());
+            roleIds.add(userRole.getRole().getId());
+        }
+
+        if (!roleIds.isEmpty()) {
+            authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(roleIds));
+        }
+
+        return authorities;
     }
 
     private String resolveIpAddress(HttpServletRequest httpServletRequest) {
@@ -329,17 +353,17 @@ public class AuthService {
         user.setPassword(null);
         user.setAuthProvider(AuthProvider.GOOGLE);
         user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        User savedUser = userRepository.saveAndFlush(user);
 
         Role defaultRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Default customer role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(savedUser);
         userRole.setRole(defaultRole);
         userRoleRepository.save(userRole);
 
-        return user;
+        return savedUser;
     }
 
     @Transactional

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
 import AdminModal from '../components/AdminModal';
+import AdminKpiGrid from '../components/AdminKpiGrid';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -107,6 +108,44 @@ const CinemasPage = () => {
     };
   };
 
+  const cinemaKpis = useMemo(
+    () => [
+      {
+        label: 'Tổng số chi nhánh',
+        value: stats.totalCinemas,
+        badge: 'đã đăng ký',
+        icon: MapPin,
+        color: 'text-pink-400',
+        kpiClass: 'kpi-total',
+      },
+      {
+        label: 'Tổng số phòng',
+        value: stats.totalRooms,
+        badge: 'trên toàn hệ thống',
+        icon: Tv,
+        color: 'text-indigo-400',
+        kpiClass: 'kpi-showing',
+      },
+      {
+        label: 'Phòng hoạt động',
+        value: stats.activeRooms,
+        badge: 'đang mở bán',
+        icon: Activity,
+        color: 'text-emerald-400',
+        kpiClass: 'kpi-upcoming',
+      },
+      {
+        label: 'Tổng sức chứa',
+        value: stats.totalCapacity.toLocaleString('vi-VN'),
+        badge: 'ghế ngồi',
+        icon: Grid,
+        color: 'text-slate-400',
+        kpiClass: 'kpi-hidden',
+      },
+    ],
+    [stats],
+  );
+
   const filteredCinemas = cinemas.filter(
     (c) =>
       (c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -204,44 +243,7 @@ const CinemasPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-left">
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Số Chi Nhánh</span>
-            <h3 className="text-2xl font-black text-white">{stats.totalCinemas}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-            <MapPin className="w-5 h-5 text-red-400" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Số Phòng</span>
-            <h3 className="text-2xl font-black text-white">{stats.totalRooms}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-[#6366f1]/10 border border-[#6366f1]/20">
-            <Tv className="w-5 h-5 text-[#818cf8]" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Phòng Hoạt Động</span>
-            <h3 className="text-2xl font-black text-emerald-400">{stats.activeRooms}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Activity className="w-5 h-5 text-emerald-400" />
-          </div>
-        </div>
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-4 flex items-center justify-between shadow-lg hover:border-[#2C3B5E] transition-colors">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Tổng Sức Chứa (Ghế)</span>
-            <h3 className="text-2xl font-black text-amber-400">{stats.totalCapacity}</h3>
-          </div>
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-            <Grid className="w-5 h-5 text-amber-400" />
-          </div>
-        </div>
-      </div>
+      <AdminKpiGrid items={cinemaKpis} className="mb-6" />
 
       <div className="bg-[#0F1322] p-6 border border-[#1A2238] rounded-xl shadow-lg mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

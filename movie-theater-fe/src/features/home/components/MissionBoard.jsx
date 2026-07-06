@@ -127,9 +127,7 @@ const MissionRow = ({ mission, index = 0 }) => {
             )}
             {locked && (
               <span className="mission-row__hint mission-row__hint--locked">
-                {mission.code === 'SOCIAL_ORBIT' || mission.conditionType === 'ORBIT_ROOM_JOIN'
-                  ? 'Mở khi Phòng Orbit ra mắt.'
-                  : 'Chưa khả dụng.'}
+                {getMissionActionHint(mission) || 'Chưa khả dụng.'}
               </span>
             )}
           </div>

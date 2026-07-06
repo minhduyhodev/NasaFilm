@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2, TrendingUp, ShoppingBag, Package, DollarSign } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
+import AdminKpiGrid from '../components/AdminKpiGrid';
 import '../pages/DashboardPage.css';
 import './AdminComboRevenuePage.css';
 
@@ -76,11 +77,12 @@ const DonutChart = ({ segments }) => {
   const cy = size / 2;
   const r = 72;
   const stroke = 22;
-  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  const computedTotal = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  const displayTotal = segments.length === 1 && segments[0].isFallback ? 0 : segments.reduce((s, seg) => s + seg.value, 0);
   let angle = -90;
 
   const arcs = segments.map((seg, i) => {
-    const pct = seg.value / total;
+    const pct = seg.value / computedTotal;
     const sweep = pct * 360;
     const start = angle;
     angle += sweep;
@@ -104,7 +106,7 @@ const DonutChart = ({ segments }) => {
       </svg>
       <div className="dashboard-donut-center">
         <span className="dashboard-donut-center-label">Tháng này</span>
-        <span className="dashboard-donut-center-value">{formatMoney(total)}</span>
+        <span className="dashboard-donut-center-value">{formatMoney(displayTotal)}</span>
       </div>
     </div>
   );
@@ -156,40 +158,44 @@ const AdminComboRevenuePage = () => {
   const growth = stats?.growth ?? 0;
   const growthLabel = growth >= 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
 
-  const kpis = [
+  const comboKpis = [
     {
       label: 'Doanh thu tháng',
       value: formatMoney(stats?.totalRevenueThisMonth),
-      change: growthLabel,
-      positive: growth >= 0,
+      badge: growthLabel,
       icon: DollarSign,
+      color: 'text-amber-400',
+      kpiClass: 'kpi-revenue',
     },
     {
       label: 'Đơn có bắp nước',
       value: new Intl.NumberFormat('vi-VN').format(stats?.totalOrdersThisMonth ?? 0),
-      change: 'Tháng này',
-      positive: true,
+      badge: 'tháng này',
       icon: ShoppingBag,
+      color: 'text-emerald-400',
+      kpiClass: 'kpi-showing',
     },
     {
       label: 'Combo đã bán',
       value: new Intl.NumberFormat('vi-VN').format(stats?.totalItemsSoldThisMonth ?? 0),
-      change: 'Số lượng',
-      positive: true,
+      badge: 'số lượng',
       icon: Package,
+      color: 'text-blue-400',
+      kpiClass: 'kpi-upcoming',
     },
     {
-      label: 'Tháng trước',
+      label: 'Doanh thu tháng trước',
       value: formatMoney(stats?.totalRevenueLastMonth),
-      change: growthLabel,
-      positive: growth >= 0,
+      badge: 'để so sánh',
       icon: TrendingUp,
+      color: 'text-pink-400',
+      kpiClass: 'kpi-total',
     },
   ];
 
   const donutSegments = chartData?.donutSegments?.length
     ? chartData.donutSegments
-    : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155' }];
+    : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155', isFallback: true }];
 
   return (
     <div className="dashboard-page combo-revenue-page">
@@ -201,24 +207,7 @@ const AdminComboRevenuePage = () => {
         </p>
       </header>
 
-      <div className="dashboard-kpi-grid">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="dashboard-kpi-card">
-            <div className="dashboard-kpi-top">
-              <span className="dashboard-kpi-label">{kpi.label}</span>
-              <kpi.icon className="dashboard-kpi-icon text-amber-500/70" />
-            </div>
-            <div className="dashboard-kpi-body">
-              <div className="dashboard-kpi-values">
-                <span className="dashboard-kpi-value">{kpi.value}</span>
-                <span className={`dashboard-kpi-change ${kpi.positive ? 'is-positive' : 'is-negative'}`}>
-                  {kpi.change}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdminKpiGrid items={comboKpis} />
 
       <div className="dashboard-charts-grid">
         <div className="dashboard-chart-panel">

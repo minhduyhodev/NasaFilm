@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * @deprecated Mission schema patches are applied by Flyway ({@code R__mission_schema_patches.sql}).
+ * @deprecated Mission schema patches are applied by Flyway ({@code R__feature_schema_patches.sql}).
  * Kept for reference; do not call {@link #apply(JdbcTemplate)} in new code.
  */
 @Deprecated
@@ -21,6 +21,6 @@ public final class MissionSchemaMigrator {
      */
     @Deprecated
     public static void apply(JdbcTemplate jdbc) {
-        log.debug("MissionSchemaMigrator.apply skipped — handled by Flyway R__mission_schema_patches.sql");
+        log.debug("MissionSchemaMigrator.apply skipped — handled by Flyway R__feature_schema_patches.sql");
     }
 }

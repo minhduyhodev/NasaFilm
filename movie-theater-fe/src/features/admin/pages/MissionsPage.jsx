@@ -13,7 +13,6 @@ import {
   Search,
   Target,
   Trash2,
-  Users,
   Zap,
 } from 'lucide-react';
 import { adminMissionService } from '../api/adminMissionService';
@@ -22,7 +21,7 @@ import Pagination from '../../../shared/components/Pagination';
 import AdminModal from '../components/AdminModal';
 import MissionFormPanel from '../components/panels/MissionFormPanel';
 import MissionCampaignFormPanel from '../components/panels/MissionCampaignFormPanel';
-import { AdminPage, PageHeader, PrimaryButton } from '../components';
+import { AdminPage, PageHeader, PrimaryButton, AdminKpiGrid } from '../components';
 import {
   formatAdminDateRange,
   formatAdminDateTime,
@@ -42,7 +41,11 @@ const CAMPAIGN_STATUS_CLASS = {
 
 const MissionSkeleton = () => (
   <div className="mc-skeleton" aria-busy="true" aria-label="Đang tải">
-    <div className="mc-skeleton__kpi" />
+    <div className="admin-kpi-grid admin-kpi-grid--4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="mc-skeleton__kpi" />
+      ))}
+    </div>
     <div className="mc-skeleton__row" />
     <div className="mc-skeleton__row" />
     <div className="mc-skeleton__row" />
@@ -312,6 +315,42 @@ const MissionsPage = () => {
 
   const activeTemplates = analytics?.activeTemplates ?? templates.filter((item) => item.active).length;
   const liveCampaigns = analytics?.liveCampaigns ?? campaigns.filter((item) => item.status === 'ACTIVE').length;
+  const totalTemplates = analytics?.totalTemplates ?? templateTotal;
+
+  const missionKpis = [
+    {
+      label: 'Tổng nhiệm vụ',
+      value: totalTemplates,
+      badge: 'trong hệ thống',
+      icon: Target,
+      color: 'text-pink-400',
+      kpiClass: 'kpi-total',
+    },
+    {
+      label: 'Nhiệm vụ đang bật',
+      value: activeTemplates,
+      badge: 'khán giả đang thấy',
+      icon: Zap,
+      color: 'text-emerald-400',
+      kpiClass: 'kpi-showing',
+    },
+    {
+      label: 'Chiến dịch đang chạy',
+      value: liveCampaigns,
+      badge: 'chiến dịch active',
+      icon: Rocket,
+      color: 'text-blue-400',
+      kpiClass: 'kpi-upcoming',
+    },
+    {
+      label: 'Tỷ lệ hoàn thành',
+      value: analytics != null ? `${Math.round(analytics.overallCompletionRate ?? 0)}%` : '—',
+      badge: 'trên toàn hệ thống',
+      icon: BarChart3,
+      color: 'text-amber-400',
+      kpiClass: 'kpi-hidden',
+    },
+  ];
 
   const openCreate = () => {
     if (activeTab === 'templates') {
@@ -449,55 +488,7 @@ const MissionsPage = () => {
         ]}
       />
 
-      <div className="mc-kpis">
-        <div className="mc-kpi">
-          <div className="mc-kpi__icon mc-kpi__icon--red">
-            <Zap size={18} />
-          </div>
-          <div>
-            <strong>{activeTemplates}</strong>
-            <span>Nhiệm vụ đang bật</span>
-          </div>
-        </div>
-        <div className="mc-kpi">
-          <div className="mc-kpi__icon mc-kpi__icon--amber">
-            <Rocket size={18} />
-          </div>
-          <div>
-            <strong>{liveCampaigns}</strong>
-            <span>Chiến dịch đang chạy</span>
-          </div>
-        </div>
-        <div className="mc-kpi">
-          <div className="mc-kpi__icon mc-kpi__icon--green">
-            <Users size={18} />
-          </div>
-          <div>
-            <strong>{analytics?.distinctParticipants ?? '—'}</strong>
-            <span>Người tham gia</span>
-          </div>
-        </div>
-        <div className="mc-kpi">
-          <div className="mc-kpi__icon mc-kpi__icon--red">
-            <Target size={18} />
-          </div>
-          <div>
-            <strong>
-              {analytics != null ? `${Math.round(analytics.overallCompletionRate ?? 0)}%` : '—'}
-            </strong>
-            <span>Tỷ lệ hoàn thành</span>
-          </div>
-        </div>
-        <div className="mc-kpi">
-          <div className="mc-kpi__icon mc-kpi__icon--amber">
-            <BarChart3 size={18} />
-          </div>
-          <div>
-            <strong>{analytics?.totalPointsAwarded?.toLocaleString('vi-VN') ?? '—'}</strong>
-            <span>Điểm thưởng đã trao</span>
-          </div>
-        </div>
-      </div>
+      <AdminKpiGrid items={missionKpis} />
 
       {analytics?.topTemplates?.length > 0 && (
         <section className="mc-analytics" aria-label="Nhiệm vụ nổi bật">

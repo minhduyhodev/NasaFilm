@@ -21,6 +21,7 @@ const RefundPolicyPage = lazy(() => import('../pages/RefundPolicyPage'));
 const FaqPage = lazy(() => import('../pages/FaqPage'));
 const MovieDetailPage = lazy(() => import('../pages/MovieDetailPage'));
 const BookingPage = lazy(() => import('../pages/BookingPage'));
+const OrbitBookingPage = lazy(() => import('../pages/OrbitBookingPage'));
 const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
@@ -30,6 +31,8 @@ const RemindersPage = lazy(() => import('../pages/RemindersPage'));
 const WalletPage = lazy(() => import('../pages/WalletPage'));
 const SearchResultsPage = lazy(() => import('../pages/SearchResultsPage'));
 const MyMoviesPage = lazy(() => import('../pages/MyMoviesPage'));
+const PaymentFlow = lazy(() => import('../../payment/PaymentFlow'));
+const PaymentSuccess = lazy(() => import('../../payment/PaymentSuccess'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -83,6 +86,14 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <BookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="booking/orbit/:roomUuid"
+            element={
+              <ProtectedRoute>
+                <OrbitBookingPage />
               </ProtectedRoute>
             }
           />
@@ -147,6 +158,22 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <WatchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment"
+            element={
+              <ProtectedRoute>
+                <PaymentFlow />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment-success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccess />
               </ProtectedRoute>
             }
           />

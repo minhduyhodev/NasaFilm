@@ -69,6 +69,7 @@ final class EmailTemplateDefaults {
                               <p style="margin:0;"><strong style="color:#fff;">Tổng tiền:</strong> {{TOTAL_PRICE}}</p>
                             </td></tr>
                           </table>
+                          {{QR_CHECKIN_SECTION}}
                           <p>Mã vé của bạn (xuất trình tại quầy hoặc cửa soát vé):</p>
                           <div style="text-align:center;margin:24px 0;">
                             <div style="display:inline-block;background:#1e293b;border:2px dashed #e50914;border-radius:12px;padding:14px 28px;">
@@ -77,6 +78,7 @@ final class EmailTemplateDefaults {
                           </div>
                           <p>Mã booking: <span style="color:#ff3b47;font-family:monospace;">{{BOOKING_UUID}}</span></p>
                           <div style="text-align:center;margin:28px 0;">
+                            <a href="{{BOARDING_URL}}" style="display:inline-block;background:linear-gradient(135deg,#334155,#1e293b);color:#fff;padding:12px 28px;text-decoration:none;border-radius:8px;font-weight:700;margin-right:8px;">Thẻ lên máy bay</a>
                             <a href="{{PROFILE_URL}}" style="display:inline-block;background:linear-gradient(135deg,#e50914,#9f060f);color:#fff;padding:13px 34px;text-decoration:none;border-radius:8px;font-weight:700;">Xem vé trong tài khoản</a>
                           </div>
                           <p style="margin-bottom:0;">Chúc bạn xem phim vui vẻ!<br><strong style="color:#fff;">Đội ngũ NASA FILM</strong></p>

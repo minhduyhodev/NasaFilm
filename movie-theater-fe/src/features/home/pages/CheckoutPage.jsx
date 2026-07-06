@@ -13,31 +13,16 @@ import { promotionService } from '../../../shared/services/promotionService';
 import { walletService } from '../../../shared/services/walletService';
 import PosterImage from '../../../shared/components/PosterImage';
 
-import './CheckoutPage.css';
+import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
+import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
 
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [checkoutState] = useState(() => {
-    if (location.state) {
-      try {
-        sessionStorage.setItem('checkout_state', JSON.stringify(location.state));
-      } catch (e) {
-        console.error('Failed to save checkout state to sessionStorage:', e);
-      }
-      return location.state;
-    }
-    try {
-      const saved = sessionStorage.getItem('checkout_state');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed to parse checkout state from sessionStorage:', e);
-    }
-    return null;
-  });
+  const [checkoutState] = useState(() =>
+    readBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, location.state),
+  );
 
   const isStateValid = Boolean(
     checkoutState &&
@@ -60,6 +45,9 @@ const CheckoutPage = () => {
   const movieUuid = checkoutState?.movieUuid ?? '';
   const durationMinutes = checkoutState?.durationMinutes ?? 0;
   const lockExpiresAt = checkoutState?.lockExpiresAt ?? null;
+  const orbitRoomUuid = checkoutState?.orbitRoomUuid ?? null;
+  const isOrbit = checkoutState?.isOrbit ?? Boolean(orbitRoomUuid);
+  const orbitMembers = checkoutState?.orbitMembers ?? [];
 
   const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
@@ -271,6 +259,19 @@ const CheckoutPage = () => {
       navigate('/wallet');
       return;
     }
+    if (paymentMethod === 'card') {
+      navigate('/payment', {
+        state: {
+          amount: finalTotal,
+          checkoutState: {
+            ...checkoutState,
+            voucherCode: discount > 0 ? voucherInput.trim() : null,
+          },
+        },
+      });
+      return;
+    }
+
     setIsPaying(true);
     try {
       let response;
@@ -279,7 +280,14 @@ const CheckoutPage = () => {
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
         const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-        response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null, paymentMethod);
+        response = await bookingService.confirmBooking(
+          showtimeUuid,
+          seatUuids,
+          combos,
+          discount > 0 ? voucherInput.trim() : null,
+          paymentMethod,
+          orbitRoomUuid,
+        );
       }
       
       const successMessage = isVod
@@ -296,6 +304,7 @@ const CheckoutPage = () => {
         paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
       }.`);
       showMissionCompletionToasts(response?.missionCompletions);
+      clearAllBookingSessions();
       
       if (isVod) {
         navigate('/booking-confirmed', {
@@ -342,13 +351,35 @@ const CheckoutPage = () => {
         {/* Navigation Breadcrumb / Back Action */}
         <div 
           className="mb-8 flex items-center gap-2 group cursor-pointer w-fit" 
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (isOrbit && orbitRoomUuid) {
+              navigate(`/booking/orbit/${orbitRoomUuid}`);
+              return;
+            }
+            navigate(-1);
+          }}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
           <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
-            {isVod ? 'Quay lại chi tiết phim' : 'Quay lại chọn ghế'}
+            {isVod ? 'Quay lại chi tiết phim' : isOrbit ? 'Quay lại phòng Orbit' : 'Quay lại chọn ghế'}
           </span>
         </div>
+
+        {isOrbit && (
+          <section className="mb-6 p-4 rounded-xl border border-red-500/25 bg-red-500/5">
+            <p className="text-sm font-black text-white uppercase tracking-wide">Thanh toán nhóm Orbit Seat</p>
+            <p className="text-xs text-zinc-400 mt-1">Host trả toàn bộ vé nhóm · {selectedSeats.length} ghế · {orbitMembers.length || 'nhiều'} thành viên</p>
+            {orbitMembers.length > 0 && (
+              <ul className="mt-3 space-y-1 text-xs text-zinc-300">
+                {orbitMembers.map((m) => (
+                  <li key={m.userUuid}>
+                    {m.displayName}{m.host ? ' (Host)' : ''}: {(m.seatUuids?.length || 0)} ghế
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Order Summary & Details */}
@@ -681,10 +712,18 @@ const CheckoutPage = () => {
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto animate-bounce shrink-0" />
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Đã quá 5 phút giữ ghế kể từ lúc chọn. Ghế của bạn đã được giải phóng để người khác chọn. Vui lòng quay lại để chọn ghế mới.
+              {isOrbit
+                ? `Đã hết thời gian giữ ghế (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm Orbit). Ghế đã được giải phóng. Vui lòng quay lại phòng Orbit để chọn lại.`
+                : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (isOrbit && orbitRoomUuid) {
+                  navigate(`/booking/orbit/${orbitRoomUuid}`);
+                  return;
+                }
+                navigate(-1);
+              }}
               className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
             >
               Quay lại chọn ghế

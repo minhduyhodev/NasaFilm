@@ -25,6 +25,9 @@ public class ConfirmBookingRequest {
     /** wallet | card | apple | momo — mapped by PaymentService when provider=mock */
     private String paymentMethod;
 
+    /** Present when checkout originates from an Orbit group room (host pays all). */
+    private UUID orbitRoomUuid;
+
     public ConfirmBookingRequest() {
     }
 
@@ -56,6 +59,14 @@ public class ConfirmBookingRequest {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public UUID getOrbitRoomUuid() {
+        return orbitRoomUuid;
+    }
+
+    public void setOrbitRoomUuid(UUID orbitRoomUuid) {
+        this.orbitRoomUuid = orbitRoomUuid;
     }
 
     public UUID getShowtimeUuid() {

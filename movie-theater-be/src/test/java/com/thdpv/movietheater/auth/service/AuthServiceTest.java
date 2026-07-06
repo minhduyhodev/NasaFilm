@@ -31,6 +31,7 @@ import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.entity.UserSession;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
@@ -71,6 +72,9 @@ class AuthServiceTest {
     private RoleRepository roleRepository;
 
     @Mock
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Mock
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Mock
@@ -89,6 +93,7 @@ class AuthServiceTest {
                 userSessionRepository,
                 userRepository,
                 userRoleRepository,
+                rolePermissionRepository,
                 googleIdTokenVerifier,
                 passwordEncoder,
                 emailService,

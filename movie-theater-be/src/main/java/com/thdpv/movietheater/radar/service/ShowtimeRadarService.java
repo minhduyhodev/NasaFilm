@@ -30,6 +30,7 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.service.MovieService;
 import com.thdpv.movietheater.notification.service.UserNotificationService;
@@ -318,6 +319,7 @@ public class ShowtimeRadarService {
 
             ScoredSuggestion suggestion = scoreSuggestion(
                     row, movie, context.cinemaNamesByRoom().get(row.cinemaRoomUuid()),
+                    context.posterUrlByMovie().get(row.movieUuid()),
                     genreMatch, favoriteMatch, favoriteGenreMatch, preference);
             if (suggestion.heatScore() >= MIN_HEAT_SCORE) {
                 scored.add(suggestion);
@@ -341,6 +343,7 @@ public class ShowtimeRadarService {
             ShowtimeAvailabilityRow row,
             Movie movie,
             String cinemaName,
+            String moviePosterUrl,
             boolean genreMatch,
             boolean favoriteMatch,
             boolean favoriteGenreMatch,
@@ -388,6 +391,7 @@ public class ShowtimeRadarService {
         response.setShowtimeUuid(row.showtimeUuid());
         response.setMovieUuid(row.movieUuid());
         response.setMovieTitle(movie.getTitle());
+        response.setMoviePosterUrl(moviePosterUrl);
         response.setCinemaName(cinemaName != null ? cinemaName : "Rạp NASAFILM");
         response.setStartTime(row.startTime());
         response.setAvailableSeats((int) available);
@@ -449,11 +453,22 @@ public class ShowtimeRadarService {
         Map<UUID, String> genreNamesByUuid = movieService.getAllGenres().stream()
                 .collect(Collectors.toMap(Genre::getUuid, Genre::getName, (left, right) -> left));
 
+        Map<UUID, String> posterUrlByMovie = new HashMap<>();
+        if (!movieUuids.isEmpty()) {
+            for (Movie movie : movieRepository.findAllByIdWithMedias(movieUuids)) {
+                String posterUrl = resolvePrimaryMediaUrl(movie);
+                if (posterUrl != null && !posterUrl.isBlank()) {
+                    posterUrlByMovie.put(movie.getUuid(), posterUrl);
+                }
+            }
+        }
+
         int upcomingShowtimeCount = (int) rows.stream()
                 .filter(row -> row.availableSeats() > 0)
                 .count();
 
-        return new RadarContext(rows, moviesByUuid, genresByMovie, cinemaNamesByRoom, genreNamesByUuid, upcomingShowtimeCount);
+        return new RadarContext(
+                rows, moviesByUuid, genresByMovie, cinemaNamesByRoom, genreNamesByUuid, posterUrlByMovie, upcomingShowtimeCount);
     }
 
     private FavoriteSignals resolveFavoriteSignals(
@@ -627,12 +642,28 @@ public class ShowtimeRadarService {
     private record ScoredSuggestion(int heatScore, ShowtimeRadarSuggestionResponse response) {
     }
 
+    private String resolvePrimaryMediaUrl(Movie movie) {
+        if (movie == null || movie.getMovieMedias() == null) {
+            return null;
+        }
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
+                .findFirst()
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
+    }
+
     private record RadarContext(
             List<ShowtimeAvailabilityRow> availabilityRows,
             Map<UUID, Movie> moviesByUuid,
             Map<UUID, Set<UUID>> genresByMovie,
             Map<UUID, String> cinemaNamesByRoom,
             Map<UUID, String> genreNamesByUuid,
+            Map<UUID, String> posterUrlByMovie,
             int upcomingShowtimeCount) {
     }
 }

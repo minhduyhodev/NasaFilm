@@ -133,6 +133,15 @@ public class PaymentService {
         OffsetDateTime now = OffsetDateTime.now();
         String normalizedMethod = payment.getMethod();
 
+        if (isCounterMethod(normalizedMethod)) {
+            payment.setStatus(PaymentStatus.COMPLETED.name());
+            payment.setGatewayProvider("COUNTER");
+            payment.setGatewayTransactionId(buildCounterTransactionId(normalizedMethod, payment.getUuid()));
+            payment.setPaidAt(now);
+            payment.setUpdatedAt(now);
+            return paymentRepository.save(payment);
+        }
+
         if ("WALLET".equals(normalizedMethod)) {
             UUID userUuid = payerUserUuid;
             if (userUuid == null) {
@@ -170,6 +179,22 @@ public class PaymentService {
         payment.setPaidAt(now);
         payment.setUpdatedAt(now);
         return paymentRepository.save(payment);
+    }
+
+    private boolean isCounterMethod(String method) {
+        return "COUNTER_CASH".equals(method)
+                || "COUNTER_CARD".equals(method)
+                || "COUNTER_VIETQR".equals(method);
+    }
+
+    private String buildCounterTransactionId(String method, UUID paymentUuid) {
+        String suffix = paymentUuid.toString().substring(0, 8).toUpperCase();
+        return switch (method) {
+            case "COUNTER_CASH" -> "COUNTER-CASH-" + suffix;
+            case "COUNTER_CARD" -> "COUNTER-CARD-" + suffix;
+            case "COUNTER_VIETQR" -> "COUNTER-VIETQR-" + suffix;
+            default -> "COUNTER-" + suffix;
+        };
     }
 
     private String normalizeMethod(String method) {

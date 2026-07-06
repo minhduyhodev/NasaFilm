@@ -20,8 +20,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.booking.dto.CounterBookingConfirmRequest;
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.BookingResponse;
+import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
@@ -32,7 +34,6 @@ import com.thdpv.movietheater.booking.entity.Ticket;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.ComboPrice;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository.LockedSeat;
-import com.thdpv.movietheater.booking.repository.BookingNativeRepository.SeatGapState;
 import com.thdpv.movietheater.booking.repository.BookingComboRepository;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
@@ -58,12 +59,14 @@ import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
-import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.notification.dto.TheaterTicketQrItem;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
+import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -98,6 +101,8 @@ public class BookingService {
     private final PaymentService paymentService;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
+    private final OrbitRoomService orbitRoomService;
+    private final SeatGapValidationService seatGapValidationService;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -251,11 +256,16 @@ public class BookingService {
         OffsetDateTime now = OffsetDateTime.now();
         List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
         Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
+        UUID orbitRoomUuid = request.getOrbitRoomUuid();
+        boolean isOrbitCheckout = orbitRoomUuid != null;
 
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
+        if (isOrbitCheckout) {
+            orbitRoomService.assertCheckoutReady(orbitRoomUuid, userUuid, request.getShowtimeUuid(), seatUuids);
+        }
         showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
 
@@ -266,7 +276,7 @@ public class BookingService {
         }
 
         ensureNoBookedSeats(request.getShowtimeUuid(), seatUuids);
-        validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
+        seatGapValidationService.validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
 
         List<ResolvedCombo> combos = resolveCombos(comboQuantities);
         BigDecimal seatTotal = lockedSeats.stream()
@@ -404,11 +414,16 @@ public class BookingService {
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
 
-        int scoreAdded = calculateScore(totalPrice);
-        if (scoreAdded > 0) {
-            bookingRepository.addUserScore(userUuid, scoreAdded);
-            bookingRepository.addLifetimeScore(userUuid, scoreAdded);
-            bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+        int scoreAdded;
+        if (isOrbitCheckout) {
+            scoreAdded = 0;
+        } else {
+            scoreAdded = calculateScore(totalPrice);
+            if (scoreAdded > 0) {
+                bookingRepository.addUserScore(userUuid, scoreAdded);
+                bookingRepository.addLifetimeScore(userUuid, scoreAdded);
+                bookingRepository.insertScoreHistory(userUuid, scoreAdded, bookingUuid, now);
+            }
         }
 
         bookingRepository.deleteSeatLocks(request.getShowtimeUuid(), userUuid, seatUuids);
@@ -449,12 +464,19 @@ public class BookingService {
         Showtime bookedShowtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
         UUID movieUuid = bookedShowtime != null ? bookedShowtime.getMovieUuid() : null;
         List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
-        if (movieUuid != null) {
-            missionCompletions.addAll(missionService.handleEvent(
-                    MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+        if (isOrbitCheckout) {
+            var orbitResult = orbitRoomService.completeAfterBooking(
+                    orbitRoomUuid, bookingUuid, movieUuid, userUuid, lockedSeats, now);
+            scoreAdded = orbitResult.hostScoreAdded();
+            missionCompletions.addAll(orbitResult.missionCompletions());
+        } else {
+            if (movieUuid != null) {
+                missionCompletions.addAll(missionService.handleEvent(
+                        MissionEventPayload.theaterBooking(userUuid, bookingUuid, movieUuid, now)));
+            }
+            missionCompletions.addAll(
+                    missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
         }
-        missionCompletions.addAll(
-                missionService.tryOrbitFromGroupBooking(userUuid, bookingUuid, lockedSeats.size(), now));
 
         BookingResponse response = new BookingResponse(
                 bookingUuid,
@@ -468,6 +490,236 @@ public class BookingService {
                 ticketLines);
         response.setMissionCompletions(missionCompletions);
         return response;
+    }
+
+    @Transactional
+    public BookingResponse confirmCounterBooking(String staffEmail, CounterBookingConfirmRequest request) {
+        UUID staffUuid = resolveRequiredUserUuid(staffEmail);
+        User customer = userRepository.findById(request.getCustomerUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UUID customerUuid = customer.getId();
+        boolean isSystemAccount = Boolean.TRUE.equals(customer.getIsSystemAccount());
+        OffsetDateTime now = OffsetDateTime.now();
+        List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
+        Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
+
+        if (!isCounterPaymentMethod(request.getPaymentMethod())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phương thức thanh toán tại quầy không hợp lệ");
+        }
+        if (isSystemAccount && request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Khách vãng lai không được áp voucher");
+        }
+
+        if (autoSlideEnabled) {
+            autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
+        }
+        assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
+        showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), staffUuid, now);
+        bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
+
+        List<LockedSeat> lockedSeats = bookingRepository.lockActiveSeatsForConfirm(
+                request.getShowtimeUuid(), staffUuid, seatUuids, now);
+        if (lockedSeats.size() != seatUuids.size()) {
+            throw new AppException(ErrorCode.CONFLICT, "Có ghế chưa được giữ hoặc đã hết hạn giữ ghế");
+        }
+
+        ensureNoBookedSeats(request.getShowtimeUuid(), seatUuids);
+        seatGapValidationService.validateNoSingleSeatGap(request.getShowtimeUuid(), seatUuids, now);
+
+        List<ResolvedCombo> combos = resolveCombos(comboQuantities);
+        BigDecimal seatTotal = lockedSeats.stream()
+                .map(LockedSeat::price)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Integer userScore = customer.getScore() != null ? customer.getScore() : 0;
+        BigDecimal comboDiscountRate;
+        if (userScore >= 10000) {
+            comboDiscountRate = BigDecimal.valueOf(0.85);
+        } else if (userScore >= 5000) {
+            comboDiscountRate = BigDecimal.valueOf(0.90);
+        } else {
+            comboDiscountRate = BigDecimal.valueOf(1.00);
+        }
+
+        BigDecimal comboTotal = BigDecimal.ZERO;
+        List<ResolvedCombo> discountedResolvedCombos = new ArrayList<>();
+        for (ResolvedCombo combo : combos) {
+            BigDecimal discountedLineTotal = combo.lineTotal().multiply(comboDiscountRate).setScale(0, RoundingMode.HALF_UP);
+            comboTotal = comboTotal.add(discountedLineTotal);
+            discountedResolvedCombos.add(new ResolvedCombo(combo.comboUuid(), combo.name(), combo.quantity(), discountedLineTotal));
+        }
+
+        UUID promotionUuid = null;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        Promotion resolvedPromotion = null;
+        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
+            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
+                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
+
+            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
+            }
+            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
+            }
+            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
+            }
+            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
+                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
+            }
+            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
+                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(customerUuid, resolvedPromotion.getId());
+                if (alreadyUsed) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Khách hàng đã sử dụng mã khuyến mãi này rồi");
+                }
+            }
+            if (!resolvedPromotion.requiresPointRedemption()
+                    && resolvedPromotion.getMaxUsagePerUser() != null) {
+                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                        customerUuid, resolvedPromotion.getId());
+                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Khách hàng đã đạt giới hạn sử dụng voucher này");
+                }
+            }
+
+            promotionUuid = resolvedPromotion.getId();
+            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+                discountAmount = seatTotal.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+                discountAmount = resolvedPromotion.getDiscountValue();
+            }
+        }
+
+        BigDecimal subtotal = seatTotal.add(comboTotal);
+        BigDecimal totalPrice = subtotal.subtract(discountAmount);
+        if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            totalPrice = BigDecimal.ZERO;
+        }
+
+        UUID bookingUuid = UUID.randomUUID();
+        paymentService.chargeBooking(
+                bookingUuid,
+                totalPrice,
+                request.getPaymentMethod(),
+                "counter-pay-" + bookingUuid,
+                customerUuid);
+
+        Booking booking = new Booking(
+                bookingUuid,
+                customerUuid,
+                request.getShowtimeUuid(),
+                totalPrice,
+                BOOKING_STATUS_CONFIRMED,
+                now,
+                now,
+                now,
+                customerUuid,
+                staffUuid);
+        booking.setStaffUuid(staffUuid);
+        booking.setPromotionUuid(promotionUuid);
+        bookingJpaRepository.save(booking);
+
+        if (resolvedPromotion != null) {
+            int currentUsed = resolvedPromotion.getUsedCount() != null ? resolvedPromotion.getUsedCount() : 0;
+            resolvedPromotion.setUsedCount(currentUsed + 1);
+            promotionRepository.save(resolvedPromotion);
+            voucherRedemptionService.consumeActiveVoucher(customerUuid, resolvedPromotion, bookingUuid, now);
+        }
+
+        List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
+        List<BookingResponse.TicketLine> ticketLines = new ArrayList<>();
+        try {
+            for (LockedSeat seat : lockedSeats) {
+                UUID bookingSeatUuid = UUID.randomUUID();
+                bookingSeatRepository.save(new BookingSeat(
+                        bookingSeatUuid, bookingUuid, request.getShowtimeUuid(), seat.seatUuid(), seat.price()));
+                seatLines.add(new BookingResponse.SeatLine(
+                        seat.seatUuid(), seat.rowName(), seat.seatNumber(), seat.price()));
+
+                UUID ticketUuid = UUID.randomUUID();
+                String ticketCode = generateTicketCode();
+                String qrCode = ticketCode;
+                ticketRepository.save(new Ticket(
+                        ticketUuid, bookingUuid, bookingSeatUuid, ticketCode, qrCode, TICKET_STATUS_ISSUED, now));
+                ticketLines.add(new BookingResponse.TicketLine(ticketUuid, bookingSeatUuid, ticketCode, qrCode));
+            }
+        } catch (DataIntegrityViolationException | PersistenceException ex) {
+            throw new AppException(ErrorCode.CONFLICT, "Có ghế đã được đặt bởi giao dịch khác");
+        }
+
+        List<BookingResponse.ComboLine> comboLines = new ArrayList<>();
+        for (ResolvedCombo combo : discountedResolvedCombos) {
+            bookingComboRepository.save(new BookingCombo(
+                    UUID.randomUUID(), bookingUuid, combo.comboUuid(), combo.quantity(), combo.lineTotal()));
+            comboLines.add(new BookingResponse.ComboLine(
+                    combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
+        }
+
+        int scoreAdded = isSystemAccount ? 0 : calculateScore(totalPrice);
+        if (scoreAdded > 0) {
+            bookingRepository.addUserScore(customerUuid, scoreAdded);
+            bookingRepository.addLifetimeScore(customerUuid, scoreAdded);
+            bookingRepository.insertScoreHistory(customerUuid, scoreAdded, bookingUuid, now);
+        }
+
+        bookingRepository.deleteSeatLocks(request.getShowtimeUuid(), staffUuid, seatUuids);
+
+        try {
+            Showtime showtime = showtimeRepository.findById(request.getShowtimeUuid()).orElse(null);
+            if (showtime != null) {
+                CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+                if (room != null) {
+                    long bookedSeats = bookingSeatRepository.countByShowtimeUuid(showtime.getUuid());
+                    if (room.getCapacity() != null && room.getCapacity() > 0 && bookedSeats >= room.getCapacity()) {
+                        showtime.setStatus(ShowtimeStatus.SOLD_OUT);
+                        showtimeRepository.save(showtime);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log warning but do not break booking flow
+        }
+
+        if (!isSystemAccount) {
+            try {
+                sendTheaterTicketEmailNotification(
+                        customerUuid,
+                        bookingUuid,
+                        request.getShowtimeUuid(),
+                        seatLines,
+                        comboLines,
+                        ticketLines,
+                        totalPrice);
+            } catch (Exception ex) {
+                // Không chặn đặt vé nếu gửi email thất bại
+            }
+        }
+
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
+        realtimeEventPublisher.notifyBookingConfirmed(bookingUuid, request.getShowtimeUuid());
+
+        return new BookingResponse(
+                bookingUuid,
+                request.getShowtimeUuid(),
+                BOOKING_STATUS_CONFIRMED,
+                totalPrice,
+                scoreAdded,
+                now,
+                seatLines,
+                comboLines,
+                ticketLines);
+    }
+
+    private boolean isCounterPaymentMethod(String paymentMethod) {
+        if (paymentMethod == null) {
+            return false;
+        }
+        String normalized = paymentMethod.toUpperCase();
+        return "COUNTER_CASH".equals(normalized)
+                || "COUNTER_CARD".equals(normalized)
+                || "COUNTER_VIETQR".equals(normalized);
     }
 
     private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {
@@ -541,51 +793,6 @@ public class BookingService {
             combos.add(new ResolvedCombo(comboPrice.comboUuid(), comboPrice.name(), quantity, lineTotal));
         }
         return combos;
-    }
-
-    private void validateNoSingleSeatGap(UUID showtimeUuid, List<UUID> selectedSeatUuids, OffsetDateTime now) {
-        Set<UUID> selectedSeatUuidSet = new LinkedHashSet<>(selectedSeatUuids);
-        Map<String, List<GapSeat>> seatsByRow = new LinkedHashMap<>();
-
-        for (SeatGapState state : bookingRepository.loadSeatGapStates(showtimeUuid, now)) {
-            boolean selectedByUser = selectedSeatUuidSet.contains(state.seatUuid());
-            boolean unavailable = selectedByUser
-                    || state.booked()
-                    || state.locked()
-                    || (state.seatStatus() != null && !"ACTIVE".equalsIgnoreCase(state.seatStatus()));
-            GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable, selectedByUser);
-            seatsByRow.computeIfAbsent(gapSeat.rowName(), ignored -> new ArrayList<>()).add(gapSeat);
-        }
-
-        for (List<GapSeat> rowSeats : seatsByRow.values()) {
-            int segmentStart = 0;
-            while (segmentStart < rowSeats.size()) {
-                int segmentEnd = segmentStart;
-                while (segmentEnd + 1 < rowSeats.size()
-                        && rowSeats.get(segmentEnd + 1).seatNumber() == rowSeats.get(segmentEnd).seatNumber() + 1) {
-                    segmentEnd++;
-                }
-
-                for (int i = segmentStart; i <= segmentEnd; i++) {
-                    GapSeat current = rowSeats.get(i);
-                    if (current.unavailable()) {
-                        continue;
-                    }
-
-                    boolean leftUnavailable = (i == segmentStart) || rowSeats.get(i - 1).unavailable();
-                    boolean rightUnavailable = (i == segmentEnd) || rowSeats.get(i + 1).unavailable();
-
-                    if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByUser = (i != segmentStart) && rowSeats.get(i - 1).selectedByUser();
-                        boolean rightSelectedByUser = (i != segmentEnd) && rowSeats.get(i + 1).selectedByUser();
-                        if (leftSelectedByUser || rightSelectedByUser) {
-                            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc de trong 1 ghe le bi kep giua");
-                        }
-                    }
-                }
-                segmentStart = segmentEnd + 1;
-            }
-        }
     }
 
     private UUID resolveRequiredUserUuid(String currentUserEmail) {
@@ -672,9 +879,14 @@ public class BookingService {
                         .map(combo -> combo.getQuantity() + "x " + combo.getName())
                         .collect(Collectors.joining(", "));
 
-        String ticketCodes = ticketLines.stream()
-                .map(BookingResponse.TicketLine::getTicketCode)
-                .collect(Collectors.joining(", "));
+        List<TheaterTicketQrItem> qrItems = new ArrayList<>();
+        for (int i = 0; i < ticketLines.size(); i++) {
+            BookingResponse.TicketLine ticket = ticketLines.get(i);
+            String seatLabel = i < seatLines.size()
+                    ? seatLines.get(i).getRowName() + seatLines.get(i).getSeatNumber()
+                    : "";
+            qrItems.add(new TheaterTicketQrItem(ticket.getTicketCode(), seatLabel));
+        }
 
         theaterNotificationService.sendTheaterTicketEmail(
                 userUuid,
@@ -685,7 +897,7 @@ public class BookingService {
                 seatsLabel,
                 combosLabel,
                 formatPrice(totalPrice),
-                ticketCodes);
+                qrItems);
     }
 
     @Transactional(readOnly = true)
@@ -890,6 +1102,9 @@ public class BookingService {
             case "MOMO" -> "Ví MoMo";
             case "VNPAY" -> "VNPay";
             case "CASH" -> "Tiền mặt";
+            case "COUNTER_CASH" -> "Tiền mặt tại quầy";
+            case "COUNTER_CARD" -> "Thẻ tại quầy";
+            case "COUNTER_VIETQR" -> "VietQR tại quầy";
             default -> method;
         };
     }
@@ -1014,24 +1229,73 @@ public class BookingService {
     }
 
     @Transactional
-    public void checkInTicket(String ticketCode) {
+    public CheckInTicketResponse checkInTicket(String ticketCode, UUID currentRoomUuid) {
         if (ticketCode == null || ticketCode.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mã vé không hợp lệ");
         }
         Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy vé"));
 
-        if (!TICKET_STATUS_ISSUED.equalsIgnoreCase(ticket.getStatus())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Vé đã được soát hoặc đã bị hủy");
-        }
-
-        ticket.setStatus("USED");
-        ticket.setCheckedInAt(OffsetDateTime.now());
-        ticketRepository.save(ticket);
-
         Booking booking = bookingJpaRepository.findById(ticket.getBookingUuid()).orElse(null);
         UUID showtimeUuid = booking != null ? booking.getShowtimeUuid() : null;
+        UUID expectedRoomUuid = resolveExpectedRoomUuid(ticket, showtimeUuid);
+
+        if (booking != null && isCancelledBookingStatus(booking.getStatus())) {
+            return buildCheckInResponse("CANCELLED", "Vé đã bị hủy", ticket, showtimeUuid,
+                    expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+
+        if (!TICKET_STATUS_ISSUED.equalsIgnoreCase(ticket.getStatus())) {
+            return buildCheckInResponse("ALREADY_USED", "Vé đã được soát hoặc không còn hiệu lực", ticket,
+                    showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+
+        if (currentRoomUuid != null && expectedRoomUuid != null && !currentRoomUuid.equals(expectedRoomUuid)) {
+            return buildCheckInResponse("MISMATCHED_ROOM", "Vé hợp lệ nhưng không đúng phòng đang trực", ticket,
+                    showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+
+        OffsetDateTime checkedInAt = OffsetDateTime.now();
+        ticket.setStatus("USED");
+        ticket.setCheckedInAt(checkedInAt);
+        ticketRepository.save(ticket);
+
         realtimeEventPublisher.notifyTicketCheckedIn(ticket.getBookingUuid(), showtimeUuid, ticketCode.trim());
+        return buildCheckInResponse("VALID", "Soát vé thành công", ticket, showtimeUuid,
+                expectedRoomUuid, currentRoomUuid, checkedInAt);
+    }
+
+    @Transactional
+    public void checkInTicket(String ticketCode) {
+        checkInTicket(ticketCode, null);
+    }
+
+    private UUID resolveExpectedRoomUuid(Ticket ticket, UUID fallbackShowtimeUuid) {
+        UUID showtimeUuid = fallbackShowtimeUuid;
+        if (ticket.getBookingSeatUuid() != null) {
+            showtimeUuid = bookingSeatRepository.findById(ticket.getBookingSeatUuid())
+                    .map(BookingSeat::getShowtimeUuid)
+                    .orElse(showtimeUuid);
+        }
+        if (showtimeUuid == null) {
+            return null;
+        }
+        return showtimeRepository.findById(showtimeUuid)
+                .map(Showtime::getCinemaRoomUuid)
+                .orElse(null);
+    }
+
+    private CheckInTicketResponse buildCheckInResponse(String status, String message, Ticket ticket,
+            UUID showtimeUuid, UUID expectedRoomUuid, UUID currentRoomUuid, OffsetDateTime checkedInAt) {
+        return new CheckInTicketResponse(
+                status,
+                message,
+                ticket.getUuid(),
+                ticket.getBookingUuid(),
+                showtimeUuid,
+                expectedRoomUuid,
+                currentRoomUuid,
+                checkedInAt);
     }
 
     @Transactional
@@ -1041,9 +1305,6 @@ public class BookingService {
     }
 
     private record ResolvedCombo(UUID comboUuid, String name, Integer quantity, BigDecimal lineTotal) {
-    }
-
-    private record GapSeat(String rowName, Integer seatNumber, boolean unavailable, boolean selectedByUser) {
     }
 
     @Transactional(readOnly = true)
