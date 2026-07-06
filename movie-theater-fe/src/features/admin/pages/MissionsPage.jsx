@@ -490,30 +490,6 @@ const MissionsPage = () => {
 
       <AdminKpiGrid items={missionKpis} />
 
-      {analytics?.topTemplates?.length > 0 && (
-        <section className="mc-analytics" aria-label="Nhiệm vụ nổi bật">
-          <div className="mc-analytics__head">
-            <BarChart3 size={16} />
-            <h3>Top nhiệm vụ theo lượt tham gia</h3>
-          </div>
-          <ul className="mc-analytics__list">
-            {analytics.topTemplates.map((item) => (
-              <li key={item.code} className="mc-analytics__item">
-                <div>
-                  <strong>{item.title || item.code}</strong>
-                  <span>
-                    {item.enrolledCount} tham gia · {item.completedCount} hoàn thành
-                  </span>
-                </div>
-                <span className="mc-analytics__rate">
-                  {Math.round(item.completionRate ?? 0)}%
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       <div className="mc-toolbar">
         <div className="mc-tabs" role="tablist">
           <button
