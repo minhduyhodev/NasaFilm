@@ -65,7 +65,12 @@ const NasaBotConfigPage = () => {
       ...prev,
       shortcuts: [
         ...prev.shortcuts,
-        { id: `custom_${prev.shortcuts.length + 1}`, label: 'Shortcut mới', description: 'Mô tả ngắn cho shortcut mới' },
+        {
+          buttonName: 'Shortcut mới',
+          shortcutName: `custom_${prev.shortcuts.length + 1}`,
+          description: 'Mô tả ngắn cho shortcut mới',
+          queryContent: 'Tôi cần được hỗ trợ.',
+        },
       ],
     }));
   };
@@ -307,16 +312,30 @@ const NasaBotConfigPage = () => {
                   <div key={`${shortcut.id}-${index}`} className="nasabot-config__shortcut-card">
                     <input
                       className="nasabot-config__input"
-                      value={shortcut.label}
-                      onChange={(e) => updateShortcut(index, 'label', e.target.value)}
+                      value={shortcut.buttonName}
+                      onChange={(e) => updateShortcut(index, 'buttonName', e.target.value)}
+                      placeholder="Button name"
+                    />
+                    <input
+                      className="nasabot-config__input"
+                      value={shortcut.shortcutName}
+                      onChange={(e) => updateShortcut(index, 'shortcutName', e.target.value)}
+                      placeholder="Shortcut name"
                     />
                     <textarea
                       className="nasabot-config__textarea nasabot-config__textarea--compact"
                       value={shortcut.description}
                       onChange={(e) => updateShortcut(index, 'description', e.target.value)}
+                      placeholder="Mô tả hiển thị"
+                    />
+                    <textarea
+                      className="nasabot-config__textarea nasabot-config__textarea--compact"
+                      value={shortcut.queryContent}
+                      onChange={(e) => updateShortcut(index, 'queryContent', e.target.value)}
+                      placeholder="Nội dung gửi vào bot khi bấm shortcut"
                     />
                     <div className="nasabot-config__shortcut-foot">
-                      <span className="nasabot-config__shortcut-id">{shortcut.id}</span>
+                      <span className="nasabot-config__shortcut-id">{shortcut.shortcutName}</span>
                       <button type="button" className="nasabot-config__icon-btn" onClick={() => removeShortcut(index)}>
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -368,9 +387,9 @@ const NasaBotConfigPage = () => {
 
             <div className="nasabot-preview__shortcuts">
               {botConfig.shortcuts.slice(0, 4).map((shortcut) => (
-                <div key={shortcut.id} className="nasabot-preview__shortcut">
+                <div key={shortcut.shortcutName} className="nasabot-preview__shortcut">
                   <Lightbulb className="w-3.5 h-3.5" />
-                  <span>{shortcut.label}</span>
+                  <span>{shortcut.buttonName}</span>
                 </div>
               ))}
             </div>

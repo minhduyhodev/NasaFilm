@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bot, ChevronRight, Headset, MessageCircle, Mic, Send, Sparkles, Star, Ticket, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -104,6 +104,8 @@ const hasAdminAccess = (user) => {
 };
 
 const DEFAULT_NASA_BOT_RUNTIME = {
+  title: 'NASA BOT',
+  subtitle: 'Trợ lý hỗ trợ tự động + ticket admin',
   openingQuestions: [
     'Tạo ticket hỗ trợ',
     'Thanh toán bị lỗi',
@@ -150,6 +152,26 @@ const NasaAiAssistantWidget = () => {
   const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
   const [showSatisfactionPrompt, setShowSatisfactionPrompt] = useState(false);
   const closeHoverTimerRef = useRef(null);
+
+  const loadNasaBotRuntime = useCallback(async () => {
+    try {
+      const data = await systemConfigService.getConfig();
+      const nasaBot = data?.nasaBot || {};
+      setNasaBotRuntime({
+        ...DEFAULT_NASA_BOT_RUNTIME,
+        title: nasaBot.title || DEFAULT_NASA_BOT_RUNTIME.title,
+        subtitle: nasaBot.subtitle || DEFAULT_NASA_BOT_RUNTIME.subtitle,
+        openingQuestions: Array.isArray(nasaBot.openingQuestions) && nasaBot.openingQuestions.length > 0
+          ? nasaBot.openingQuestions
+          : DEFAULT_NASA_BOT_RUNTIME.openingQuestions,
+        shortcuts: Array.isArray(nasaBot.shortcuts) && nasaBot.shortcuts.length > 0
+          ? nasaBot.shortcuts
+          : DEFAULT_NASA_BOT_RUNTIME.shortcuts,
+      });
+    } catch {
+      setNasaBotRuntime(DEFAULT_NASA_BOT_RUNTIME);
+    }
+  }, []);
 
   const ownerLabel = useMemo(() => getOwnerLabel(user || tokenService.getUser()), [user]);
   const isAdminUser = useMemo(() => hasAdminAccess(user || tokenService.getUser()), [user]);
@@ -219,26 +241,29 @@ const NasaAiAssistantWidget = () => {
 
   useEffect(() => {
     let active = true;
-    systemConfigService.getConfig()
-      .then((data) => {
-        if (!active) return;
-        const nasaBot = data?.nasaBot || {};
-        setNasaBotRuntime({
-          openingQuestions: Array.isArray(nasaBot.openingQuestions) && nasaBot.openingQuestions.length > 0
-            ? nasaBot.openingQuestions
-            : DEFAULT_NASA_BOT_RUNTIME.openingQuestions,
-          shortcuts: Array.isArray(nasaBot.shortcuts) && nasaBot.shortcuts.length > 0
-            ? nasaBot.shortcuts
-            : DEFAULT_NASA_BOT_RUNTIME.shortcuts,
-        });
-      })
-      .catch(() => {
-        if (active) setNasaBotRuntime(DEFAULT_NASA_BOT_RUNTIME);
+    loadNasaBotRuntime().finally(() => {
+      if (!active) return;
+    });
+    const handleConfigUpdated = (event) => {
+      const nasaBot = event?.detail?.nasaBot || {};
+      setNasaBotRuntime({
+        ...DEFAULT_NASA_BOT_RUNTIME,
+        title: nasaBot.title || DEFAULT_NASA_BOT_RUNTIME.title,
+        subtitle: nasaBot.subtitle || DEFAULT_NASA_BOT_RUNTIME.subtitle,
+        openingQuestions: Array.isArray(nasaBot.openingQuestions) && nasaBot.openingQuestions.length > 0
+          ? nasaBot.openingQuestions
+          : DEFAULT_NASA_BOT_RUNTIME.openingQuestions,
+        shortcuts: Array.isArray(nasaBot.shortcuts) && nasaBot.shortcuts.length > 0
+          ? nasaBot.shortcuts
+          : DEFAULT_NASA_BOT_RUNTIME.shortcuts,
       });
+    };
+    window.addEventListener('system-config-updated', handleConfigUpdated);
     return () => {
       active = false;
+      window.removeEventListener('system-config-updated', handleConfigUpdated);
     };
-  }, []);
+  }, [loadNasaBotRuntime]);
 
   useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
     supportService.getLiveSupportAvailability()
@@ -292,6 +317,7 @@ const NasaAiAssistantWidget = () => {
 
   const openWidget = () => {
     clearHoverTimer();
+    loadNasaBotRuntime();
     setOpen(true);
     reset();
   };
@@ -640,7 +666,7 @@ const NasaAiAssistantWidget = () => {
                 ) : mode === 'chat' ? (
                   <div className="nasa-assistant-thread">
                     <div className="nasa-assistant-card">
-                      <div className="nasa-assistant-card__title">NASA Bot hỗ trợ nhanh</div>
+                    <div className="nasa-assistant-card__title">{nasaBotRuntime.title} hỗ trợ nhanh</div>
                       <div className="nasa-assistant-card__text">
                         {(nasaBotRuntime.openingQuestions || DEFAULT_NASA_BOT_RUNTIME.openingQuestions).join(' · ')}
                       </div>
@@ -694,9 +720,14 @@ const NasaAiAssistantWidget = () => {
                     </div>
                     {createStep === 'category' && (
                       <div className="nasa-assistant-chip-grid">
-                        {CATEGORIES.map((item) => (
+                        {(nasaBotRuntime.shortcuts || DEFAULT_NASA_BOT_RUNTIME.shortcuts).map((shortcut) => {
+                          const key = `${shortcut?.shortcutName || ''}`.replace('_support', '').trim();
+                          const item = CATEGORIES.find((category) => category.key === key)
+                            || CATEGORIES.find((category) => category.key === detectCategory(shortcut?.queryContent || shortcut?.buttonName || ''))
+                            || CATEGORIES.at(-1);
+                          return (
                           <button
-                            key={item.key}
+                            key={shortcut.shortcutName}
                             type="button"
                             className="nasa-assistant-chip"
                             onClick={() => {
@@ -713,12 +744,12 @@ const NasaAiAssistantWidget = () => {
                             }}
                           >
                             <div>
-                              <div className="nasa-assistant-chip__label">{item.label}</div>
-                              <div className="nasa-assistant-chip__hint">{item.hint}</div>
+                              <div className="nasa-assistant-chip__label">{shortcut.buttonName || item.label}</div>
+                              <div className="nasa-assistant-chip__hint">{shortcut.description || item.hint}</div>
                             </div>
                             <ChevronRight className="h-4 w-4" />
                           </button>
-                        ))}
+                        )})}
                       </div>
                     )}
                     {createStep === 'description' && (
@@ -883,15 +914,20 @@ const NasaAiAssistantWidget = () => {
 
                 {mode === 'chat' && stage === 'category' && (
                   <div className="nasa-assistant-chip-grid">
-                    {CATEGORIES.map((item) => (
-                      <button key={item.key} type="button" className="nasa-assistant-chip" onClick={() => startCategoryFlow(item.key)}>
+                            {(nasaBotRuntime.shortcuts || DEFAULT_NASA_BOT_RUNTIME.shortcuts).map((shortcut) => {
+                      const key = `${shortcut?.shortcutName || ''}`.replace('_support', '').trim();
+                      const item = CATEGORIES.find((category) => category.key === key)
+                        || CATEGORIES.find((category) => category.key === detectCategory(shortcut?.queryContent || shortcut?.buttonName || ''))
+                        || CATEGORIES.at(-1);
+                      return (
+                      <button key={shortcut.shortcutName} type="button" className="nasa-assistant-chip" onClick={() => handleRuntimeShortcut(shortcut)}>
                         <div>
-                          <div className="nasa-assistant-chip__label">{item.label}</div>
-                          <div className="nasa-assistant-chip__hint">{item.hint}</div>
+                          <div className="nasa-assistant-chip__label">{shortcut.buttonName || item.label}</div>
+                          <div className="nasa-assistant-chip__hint">{shortcut.description || item.hint}</div>
                         </div>
                         <ChevronRight className="h-4 w-4" />
                       </button>
-                  ))}
+                  )})}
                 </div>
                 )}
               </div>

@@ -14,6 +14,36 @@ export function mergeSystemConfig(saved) {
   if (!Array.isArray(merged.screeningFormats) || merged.screeningFormats.length === 0) {
     merged.screeningFormats = DEFAULT_SCREENING_FORMATS;
   }
+  merged.nasaBot = normalizeNasaBotConfig(merged.nasaBot);
+  return merged;
+}
+
+export function normalizeNasaBotConfig(config) {
+  const bot = { ...DEFAULT_NASA_BOT_CONFIG, ...(config || {}) };
+  bot.shortcuts = Array.isArray(bot.shortcuts) ? bot.shortcuts : [];
+  bot.shortcuts = bot.shortcuts
+    .map((item, index) => ({
+      buttonName: item?.buttonName || item?.label || `Shortcut ${index + 1}`,
+      shortcutName: item?.shortcutName || item?.id || `custom_${index + 1}`,
+      description: item?.description || '',
+      queryContent: item?.queryContent || item?.description || item?.buttonName || item?.label || 'Tôi cần được hỗ trợ.',
+    }))
+    .filter((item) => item.buttonName.trim());
+  bot.openingQuestions = Array.isArray(bot.openingQuestions) ? bot.openingQuestions.filter(Boolean) : [];
+  if (!bot.title) bot.title = DEFAULT_NASA_BOT_CONFIG.title;
+  if (!bot.subtitle) bot.subtitle = DEFAULT_NASA_BOT_CONFIG.subtitle;
+  if (!bot.personaPrompt) bot.personaPrompt = DEFAULT_NASA_BOT_CONFIG.personaPrompt;
+  if (!Array.isArray(bot.shortcuts) || bot.shortcuts.length === 0) {
+    bot.shortcuts = DEFAULT_NASA_BOT_CONFIG.shortcuts;
+  }
+  if (!Array.isArray(bot.openingQuestions) || bot.openingQuestions.length === 0) {
+    bot.openingQuestions = DEFAULT_NASA_BOT_CONFIG.openingQuestions;
+  }
+  return bot;
+}
+
+export function mergeSystemConfigLegacy(saved) {
+  const merged = { ...DEFAULT_SYSTEM_CONFIG, ...(saved || {}) };
   merged.nasaBot = { ...DEFAULT_NASA_BOT_CONFIG, ...(merged.nasaBot || {}) };
   if (!Array.isArray(merged.nasaBot.shortcuts) || merged.nasaBot.shortcuts.length === 0) {
     merged.nasaBot.shortcuts = DEFAULT_NASA_BOT_CONFIG.shortcuts;

@@ -57,6 +57,25 @@ export const DEFAULT_NASA_BOT_SHORTCUTS = [
 ];
 
 export const DEFAULT_NASA_BOT_CONFIG = {
+  title: 'NASA BOT',
+  subtitle: 'Trợ lý hỗ trợ tự động + ticket admin',
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  temperature: 0.3,
+  topP: 0.9,
+  contextRounds: 8,
+  responseMaxLength: 700,
+  pluginsEnabled: true,
+  workflowsEnabled: true,
+  knowledgeAutoCall: true,
+  knowledgeTextSummary: 'Quy trình đặt vé, thanh toán, hoàn vé, tài khoản, khuyến mãi và hội viên NASAFilm.',
+  knowledgeTableSummary: 'Bảng phân loại ticket: ticket, payment, account, promo, membership, other.',
+  knowledgeImageSummary: '',
+  memoryVariablesSummary: 'fullName, email, roles',
+  memoryDatabaseSummary: 'support tickets và lịch sử hội thoại của tài khoản hiện tại',
+  autoSuggestionEnabled: true,
+  autoSuggestionPrompt: 'Gợi ý câu hỏi ngắn liên quan tới vé, thanh toán hoặc tài khoản.',
+  backgroundImageUrl: '',
   personaPrompt: `Bạn là NASA BOT, trợ lý hỗ trợ khách hàng của NASAFilm.
 
 Nhiệm vụ:
