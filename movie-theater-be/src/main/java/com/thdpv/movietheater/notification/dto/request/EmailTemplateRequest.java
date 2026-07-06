@@ -20,8 +20,9 @@ public class EmailTemplateRequest {
     @Size(max = 255)
     private String subject;
 
-    @NotBlank
     private String htmlBody;
+
+    private String contentBlocks;
 
     private boolean active = true;
 
@@ -63,6 +64,14 @@ public class EmailTemplateRequest {
 
     public void setHtmlBody(String htmlBody) {
         this.htmlBody = htmlBody;
+    }
+
+    public String getContentBlocks() {
+        return contentBlocks;
+    }
+
+    public void setContentBlocks(String contentBlocks) {
+        this.contentBlocks = contentBlocks;
     }
 
     public boolean isActive() {

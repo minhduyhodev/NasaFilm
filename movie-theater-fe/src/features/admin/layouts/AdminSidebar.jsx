@@ -25,6 +25,7 @@ import {
   Headset,
   ScanLine,
   Sparkles,
+  Store,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -35,6 +36,7 @@ import huyAdmin from '../../../shared/assets/huyadmin.jpg';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { hasPermission, hasAnyPermission, PERMISSIONS } from '../../../shared/utils/permissions';
+import { canAccessAdminDashboard, OPERATIONS_PERMISSIONS } from '../../../shared/utils/adminNavigation';
 
 const getRoleDisplayLabel = (roles = []) => {
   if (roles.includes('admin')) return 'Quản trị viên';
@@ -54,6 +56,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     : normalizeAvatarUrl(user?.avatar) || huyAdmin;
 
   const [openGroups, setOpenGroups] = useState({
+    operations: true,
     content: true,
     facility: true,
     business: true,
@@ -243,10 +246,39 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
 
       {/* Navigation list */}
       <nav className="relative z-10 flex-1 py-5 px-4 space-y-6 overflow-y-auto no-scrollbar">
-        {/* Dashboard Link (Direct link) */}
+        {/* Dashboard — chỉ khi có quyền xem tổng quan */}
+        {canAccessAdminDashboard(user) && (
         <div className="space-y-1">
           {renderLink("/admin", LayoutDashboard, "DASHBOARD", "text-sky-400")}
         </div>
+        )}
+
+        {/* Vận hành quầy — POS & soát vé */}
+        {hasAnyPermission(user, OPERATIONS_PERMISSIONS) && (
+        <div className="space-y-1 text-left">
+          {renderGroupHeader("Vận hành quầy", "operations", Store)}
+          {(!isOpen || openGroups.operations) && (
+            <div
+              className={`${isOpen ? "pl-2 border-l border-[#1E293B]/10 ml-4.5 space-y-1" : "space-y-1"}`}
+            >
+              {renderLink(
+                "/admin/pos",
+                Ticket,
+                "Quầy bán vé POS",
+                "text-red-400",
+                { permission: PERMISSIONS.COUNTER_BOOKING_CREATE },
+              )}
+              {renderLink(
+                "/admin/staff-control",
+                ScanLine,
+                "Soát vé & giám sát",
+                "text-rose-400",
+                { permission: PERMISSIONS.TICKET_CHECKIN },
+              )}
+            </div>
+          )}
+        </div>
+        )}
 
         {/* Content Group (Collapsible) */}
         {hasAnyPermission(user, [PERMISSIONS.MOVIE_WRITE, PERMISSIONS.PROMOTION_WRITE, PERMISSIONS.SUPPORT_MANAGE, PERMISSIONS.USER_VIEW]) && (
@@ -311,7 +343,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         )}
 
         {/* Facility Group (Collapsible) */}
-        {hasAnyPermission(user, [PERMISSIONS.SHOWTIME_WRITE, PERMISSIONS.TICKET_CHECKIN]) && (
+        {hasAnyPermission(user, [PERMISSIONS.SHOWTIME_WRITE]) && (
         <div className="space-y-1 text-left">
           {renderGroupHeader("Quản lý cơ sở", "facility", Tv)}
           {(!isOpen || openGroups.facility) && (
@@ -331,13 +363,6 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 "Quản lý suất chiếu",
                 "text-amber-400",
                 { permission: PERMISSIONS.SHOWTIME_WRITE },
-              )}
-              {renderLink(
-                "/admin/staff-control",
-                ScanLine,
-                "Soát vé suất chiếu",
-                "text-red-400",
-                { permission: PERMISSIONS.TICKET_CHECKIN },
               )}
             </div>
           )}

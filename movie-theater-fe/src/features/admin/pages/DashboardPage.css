@@ -7,7 +7,7 @@
 }
 
 .dashboard-page-header {
-  @apply flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between;
+  @apply flex flex-col gap-3;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -26,31 +26,6 @@
 
 .dashboard-page-desc {
   @apply text-sm text-gray-500 mt-1.5 max-w-2xl;
-}
-
-.dashboard-page-header-kpi {
-  @apply shrink-0 rounded-xl border border-white/[0.08] bg-gradient-to-br from-white/[0.06] to-white/[0.02] px-4 py-3;
-  min-width: 200px;
-}
-
-.dashboard-header-stat-label {
-  @apply block text-[10px] font-bold uppercase tracking-wider text-gray-500;
-}
-
-.dashboard-header-stat-value {
-  @apply block text-2xl font-black text-white tabular-nums mt-1;
-}
-
-.dashboard-header-stat-change {
-  @apply block text-xs font-semibold mt-1;
-}
-
-.dashboard-header-stat-change.is-positive {
-  color: #34d399;
-}
-
-.dashboard-header-stat-change.is-negative {
-  color: #f87171;
 }
 
 /* KPI cards — template style */
