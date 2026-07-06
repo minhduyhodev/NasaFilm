@@ -346,12 +346,15 @@ public class DataSeeder implements CommandLineRunner {
         for (String[] def : permissionDefs) {
             String name = def[1];
             if (permissionRepository.findByName(name).isEmpty()) {
-                Permission permission = new Permission();
-                permission.setId(UUID.fromString(def[0]));
-                permission.setName(name);
-                permission.setDescription(def[2]);
-                permissionRepository.save(permission);
-                logger.info("Seeded permission: {}", name);
+                try {
+                    jdbcTemplate.update(
+                        "INSERT INTO permissions (uuid, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                        UUID.fromString(def[0]), name, def[2]
+                    );
+                    logger.info("Seeded permission: {}", name);
+                } catch (Exception e) {
+                    logger.error("Failed to seed permission: {}", name, e);
+                }
             }
         }
     }
@@ -401,13 +404,13 @@ public class DataSeeder implements CommandLineRunner {
         guest.setIsSystemAccount(true);
         guest.setAuthProvider(AuthProvider.LOCAL);
         guest.setStatus(UserStatus.ACTIVE);
-        userRepository.save(guest);
+        guest = userRepository.save(guest);
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new RuntimeException("CUSTOMER role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(guest);
+        userRole.setUser(userRepository.findById(guest.getId()).orElseThrow());
         userRole.setRole(customerRole);
         userRoleRepository.save(userRole);
 
@@ -873,13 +876,13 @@ public class DataSeeder implements CommandLineRunner {
         user.setFullName(fullName);
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(userRepository.findById(user.getId()).orElseThrow());
         userRole.setRole(role);
         userRoleRepository.save(userRole);
 

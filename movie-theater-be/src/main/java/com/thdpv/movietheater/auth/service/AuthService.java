@@ -34,6 +34,7 @@ import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
+import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 import com.thdpv.movietheater.common.exception.AppException;

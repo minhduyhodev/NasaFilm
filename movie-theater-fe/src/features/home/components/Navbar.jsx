@@ -310,9 +310,9 @@ const Navbar = () => {
                 </div>
               </>
             )}
-
-            <NotificationBell />
           </div>
+
+          <NotificationBell />
 
           <button className="navbar-btn-menu">
             <Menu className="h-5 w-5" />

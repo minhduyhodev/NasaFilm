@@ -6,7 +6,6 @@ import { useBoardingPass } from '../../../shared/hooks/queries/usePreShowQueries
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatCountdown, getMovieGlowClass } from '../utils/preShowUtils';
 import { maskTicketCode } from '../utils/movieUtils';
-import { X } from 'lucide-react';
 import './PreShowBoardingPage.css';
 
 const QR_OPTIONS = {
