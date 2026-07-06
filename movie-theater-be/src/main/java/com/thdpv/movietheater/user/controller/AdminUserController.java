@@ -19,16 +19,17 @@ import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.user.dto.AdminCreateUserRequest;
 import com.thdpv.movietheater.user.dto.AdminCreateUserResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
+import com.thdpv.movietheater.user.dto.PermissionResponse;
 import com.thdpv.movietheater.user.dto.UpdateRoleRequest;
 import com.thdpv.movietheater.user.dto.UpdateScoreRequest;
 import com.thdpv.movietheater.user.dto.UpdateStatusRequest;
+import com.thdpv.movietheater.user.dto.UpdateUserPermissionsRequest;
 import com.thdpv.movietheater.user.service.UserService;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/users")
-@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
 public class AdminUserController {
 
     private final UserService userService;
@@ -38,6 +39,7 @@ public class AdminUserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_VIEW')")
     public ResponseEntity<ApiResponse<List<AdminUserResponse>>> getAllUsers(
             @RequestParam(value = "query", required = false) String query) {
         List<AdminUserResponse> users = userService.getAllUsers(query);
@@ -45,6 +47,7 @@ public class AdminUserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<AdminCreateUserResponse>> createUser(
             @Valid @RequestBody AdminCreateUserRequest request) {
         AdminCreateUserResponse created = userService.createUserByAdmin(request);
@@ -52,6 +55,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateUserStatus(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateStatusRequest request) {
@@ -60,6 +64,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateUserRole(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateRoleRequest request) {
@@ -68,10 +73,26 @@ public class AdminUserController {
     }
 
     @PutMapping("/{id}/score")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateUserScore(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdateScoreRequest request) {
         userService.updateUserScore(id, request.getScore());
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật điểm tích lũy thành công"));
+    }
+
+    @GetMapping("/permissions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAvailablePermissions() {
+        return ResponseEntity.ok(ApiResponse.success(userService.getAvailablePermissions()));
+    }
+
+    @PutMapping("/{id}/permissions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<String>>> updateUserPermissions(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody UpdateUserPermissionsRequest request) {
+        List<String> permissions = userService.updateUserPermissions(id, request.getPermissions());
+        return ResponseEntity.ok(ApiResponse.success(permissions, "Cập nhật quyền nhân viên thành công"));
     }
 }

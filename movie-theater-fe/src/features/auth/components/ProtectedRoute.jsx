@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../hooks/useAuthContext';
+import { hasAnyPermission } from '../../../shared/utils/permissions';
 
 
 
@@ -8,6 +9,7 @@ import { useAuthContext } from '../hooks/useAuthContext';
 export const ProtectedRoute = ({
   children,
   allowedRoles,
+  requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuthContext();
   const location = useLocation();
@@ -33,6 +35,16 @@ export const ProtectedRoute = ({
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;
     }
+  }
+
+  const normalizedPermissions = Array.isArray(requiredPermissions)
+    ? requiredPermissions
+    : requiredPermissions
+      ? [requiredPermissions]
+      : [];
+
+  if (normalizedPermissions.length > 0 && !hasAnyPermission(user, normalizedPermissions)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

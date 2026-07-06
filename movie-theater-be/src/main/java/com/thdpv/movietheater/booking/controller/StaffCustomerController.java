@@ -26,7 +26,7 @@ public class StaffCustomerController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('COUNTER_CUSTOMER_CREATE')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_CUSTOMER_CREATE')")
     public ResponseEntity<ApiResponse<CounterCreateCustomerResponse>> createCustomer(
             @Valid @RequestBody CounterCreateCustomerRequest request) {
         CounterCreateCustomerResponse response = userService.createCustomer(request);

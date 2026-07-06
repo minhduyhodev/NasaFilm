@@ -18,10 +18,17 @@ public class AdminUserResponse {
     private AuthProvider authProvider;
     private Integer score;
     private List<String> roles;
+    private List<String> permissions;
     private LocalDateTime createdAt;
 
     public AdminUserResponse(UUID id, String email, String fullName, String phoneNumber, String avatarUrl,
             UserStatus status, AuthProvider authProvider, Integer score, List<String> roles, LocalDateTime createdAt) {
+        this(id, email, fullName, phoneNumber, avatarUrl, status, authProvider, score, roles, List.of(), createdAt);
+    }
+
+    public AdminUserResponse(UUID id, String email, String fullName, String phoneNumber, String avatarUrl,
+            UserStatus status, AuthProvider authProvider, Integer score, List<String> roles, List<String> permissions,
+            LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
@@ -31,6 +38,7 @@ public class AdminUserResponse {
         this.authProvider = authProvider;
         this.score = score;
         this.roles = roles;
+        this.permissions = permissions;
         this.createdAt = createdAt;
     }
 
@@ -104,6 +112,14 @@ public class AdminUserResponse {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
     }
 
     public LocalDateTime getCreatedAt() {

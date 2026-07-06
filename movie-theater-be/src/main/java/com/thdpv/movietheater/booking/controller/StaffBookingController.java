@@ -28,7 +28,7 @@ public class StaffBookingController {
     }
 
     @PostMapping("/confirm")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_BOOKING_CREATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmCounterBooking(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CounterBookingConfirmRequest request) {

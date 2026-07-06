@@ -34,6 +34,7 @@ import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
+import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 
 const getRoleDisplayLabel = (roles = []) => {
   if (roles.includes('admin')) return 'Quản trị viên';
@@ -123,40 +124,46 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     navigate("/login");
   }, [logout, navigate]);
 
-  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge } = {}) => (
-    <NavLink
-      to={to}
-      end={endOverride ?? to === "/admin"}
-      className={({ isActive }) =>
-        `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
-          isOpen ? "px-3 py-2.5 gap-3 justify-start" : "p-2 justify-center"
-        } ${
-          isActive
-            ? "bg-red-500/10 text-red-400 border border-red-500/30"
-            : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
-        }`
-      }
-      onClick={onClose}
-    >
-      {({ isActive }) => (
-        <>
-          <Icon
-            className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-red-400" : colorClass}`}
-          />
-          {isOpen && (
-            <>
-              <span className="truncate flex-1">{label}</span>
-              {badge > 0 && (
-                <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </NavLink>
-  );
+  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge, permission } = {}) => {
+    if (permission && !hasPermission(user, permission)) {
+      return null;
+    }
+
+    return (
+      <NavLink
+        to={to}
+        end={endOverride ?? to === "/admin"}
+        className={({ isActive }) =>
+          `flex items-center rounded-lg transition-all duration-200 text-xs font-semibold ${
+            isOpen ? "px-3 py-2.5 gap-3 justify-start" : "p-2 justify-center"
+          } ${
+            isActive
+              ? "bg-red-500/10 text-red-400 border border-red-500/30"
+              : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
+          }`
+        }
+        onClick={onClose}
+      >
+        {({ isActive }) => (
+          <>
+            <Icon
+              className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-red-400" : colorClass}`}
+            />
+            {isOpen && (
+              <>
+                <span className="truncate flex-1">{label}</span>
+                {badge > 0 && (
+                  <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </NavLink>
+    );
+  };
 
   const renderGroupHeader = (title, groupKey, Icon) => {
     if (!isOpen) return null;
@@ -253,6 +260,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Film,
                 "Quản lý phim",
                 "text-rose-400",
+                { permission: PERMISSIONS.MOVIE_WRITE },
               )}
               {renderLink(
                 "/admin/media",
@@ -265,6 +273,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Tag,
                 "Sự kiện & Khuyến mãi",
                 "text-pink-400",
+                { permission: PERMISSIONS.PROMOTION_WRITE },
               )}
               {renderLink(
                 "/admin/missions",
@@ -290,6 +299,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Headset,
                 "Hỗ trợ khách hàng",
                 "text-rose-400",
+                { permission: PERMISSIONS.SUPPORT_MANAGE },
               )}
             </div>
           )}
@@ -313,12 +323,14 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Calendar,
                 "Quản lý suất chiếu",
                 "text-amber-400",
+                { permission: PERMISSIONS.SHOWTIME_WRITE },
               )}
               {renderLink(
                 "/admin/staff-control",
                 ScanLine,
                 "Soát vé suất chiếu",
                 "text-red-400",
+                { permission: PERMISSIONS.TICKET_CHECKIN },
               )}
             </div>
           )}
@@ -355,7 +367,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Popcorn,
                 "Danh mục bắp nước",
                 "text-yellow-400",
-                { end: true },
+                { end: true, permission: PERMISSIONS.COMBO_WRITE },
               )}
             </div>
           )}
@@ -373,6 +385,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Users,
                 "Danh sách khách hàng",
                 "text-cyan-400",
+                { permission: PERMISSIONS.USER_VIEW },
               )}
               {renderLink(
                 "/admin/staff",

@@ -1,0 +1,27 @@
+package com.thdpv.movietheater.auth.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.thdpv.movietheater.user.entity.UserPermission;
+
+public interface UserPermissionRepository extends JpaRepository<UserPermission, UUID> {
+
+    List<UserPermission> findByUserId(UUID userId);
+
+    @Modifying
+    void deleteByUserId(UUID userId);
+
+    @Query(value = """
+            select distinct p.name
+            from user_permissions up
+            join permissions p on p.uuid = up.permission_id
+            where up.user_id = :userId
+            """, nativeQuery = true)
+    List<String> findPermissionNamesByUserId(@Param("userId") UUID userId);
+}

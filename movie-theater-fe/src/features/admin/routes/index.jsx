@@ -1,6 +1,8 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
+import { ProtectedRoute } from "../../auth/components/ProtectedRoute";
+import { PERMISSIONS } from "../../../shared/utils/permissions";
 
 const CinemaRoomsNewRedirect = () => {
   const { cinemaUuid } = useParams();
@@ -55,19 +57,25 @@ const PlaceholderPage = ({ title }) => (
   </div>
 );
 
+const PermissionRoute = ({ permission, children }) => (
+  <ProtectedRoute allowedRoles={['admin', 'staff']} requiredPermissions={[permission]}>
+    {children}
+  </ProtectedRoute>
+);
+
 export const AdminRoutes = () => {
   return (
     <Suspense fallback={<AdminPageLoader />}>
       <Routes>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="movies" element={<MoviesPage />} />
-          <Route path="movies/new" element={<AdminMovieFormPage />} />
+          <Route path="movies" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><MoviesPage /></PermissionRoute>} />
+          <Route path="movies/new" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieFormPage /></PermissionRoute>} />
           <Route
             path="movies/:movieUuid/edit"
-            element={<AdminMovieFormPage />}
+            element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieFormPage /></PermissionRoute>}
           />
-          <Route path="movies/:movieUuid" element={<AdminMovieDetailPage />} />
+          <Route path="movies/:movieUuid" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieDetailPage /></PermissionRoute>} />
           <Route path="media" element={<MediaCatalogPage />} />
           <Route path="actors" element={<Navigate to="/admin/media" replace />} />
           <Route path="actors/new" element={<Navigate to="/admin/media" replace />} />
@@ -75,9 +83,9 @@ export const AdminRoutes = () => {
           <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="refunds" element={<RefundsPage />} />
-          <Route path="support" element={<SupportInboxPage />} />
+          <Route path="support" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><SupportInboxPage /></PermissionRoute>} />
           <Route path="feedback-reviews" element={<FeedbackReviewsPage />} />
-          <Route path="showtimes" element={<ShowtimesPage />} />
+          <Route path="showtimes" element={<PermissionRoute permission={PERMISSIONS.SHOWTIME_WRITE}><ShowtimesPage /></PermissionRoute>} />
           <Route path="cinemas" element={<CinemasPage />} />
           <Route path="cinemas/new" element={<Navigate to="/admin/cinemas" replace />} />
           <Route path="cinemas/:cinemaUuid/edit" element={<Navigate to="/admin/cinemas" replace />} />
@@ -94,19 +102,19 @@ export const AdminRoutes = () => {
             path="cinemas/:cinemaUuid"
             element={<AdminCinemaDetailPage />}
           />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="vouchers" element={<VouchersPage />} />
+          <Route path="users" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><UsersPage /></PermissionRoute>} />
+          <Route path="vouchers" element={<PermissionRoute permission={PERMISSIONS.PROMOTION_WRITE}><VouchersPage /></PermissionRoute>} />
           <Route path="missions" element={<MissionsPage />} />
           <Route path="vouchers/new" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId/edit" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId" element={<Navigate to="/admin/vouchers" replace />} />
-          <Route path="combos" element={<AdminCombosPage />} />
+          <Route path="combos" element={<PermissionRoute permission={PERMISSIONS.COMBO_WRITE}><AdminCombosPage /></PermissionRoute>} />
           <Route path="combos/revenue" element={<AdminComboRevenuePage />} />
           <Route path="combos/new" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid/edit" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid" element={<Navigate to="/admin/combos" replace />} />
           <Route path="staff" element={<StaffPage />} />
-          <Route path="staff-control" element={<StaffMissionControlPage />} />
+          <Route path="staff-control" element={<PermissionRoute permission={PERMISSIONS.TICKET_CHECKIN}><StaffMissionControlPage /></PermissionRoute>} />
           <Route path="matchmaker-analytics" element={<MatchmakerAnalyticsPage />} />
           <Route path="staff_control" element={<Navigate to="/admin/staff-control" replace />} />
           <Route path="config" element={<ConfigPage />} />

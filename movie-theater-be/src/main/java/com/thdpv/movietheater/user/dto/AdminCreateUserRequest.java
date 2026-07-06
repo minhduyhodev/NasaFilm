@@ -1,5 +1,7 @@
 package com.thdpv.movietheater.user.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -24,6 +26,10 @@ public class AdminCreateUserRequest {
 
     @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
     private String password;
+
+    private List<String> permissions;
+
+    private String staffPreset;
 
     public AdminCreateUserRequest() {
     }
@@ -66,5 +72,21 @@ public class AdminCreateUserRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
+    }
+
+    public String getStaffPreset() {
+        return staffPreset;
+    }
+
+    public void setStaffPreset(String staffPreset) {
+        this.staffPreset = staffPreset;
     }
 }

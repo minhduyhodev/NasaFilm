@@ -84,7 +84,7 @@ public class BookingController {
     }
 
     @PutMapping("/tickets/{code}/check-in")
-    @PreAuthorize("hasAuthority('TICKET_CHECKIN') or hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('TICKET_CHECKIN')")
     public ResponseEntity<ApiResponse<CheckInTicketResponse>> checkInTicket(
             @PathVariable("code") String code,
             @RequestParam(value = "currentRoomId", required = false) UUID currentRoomId) {
