@@ -11,6 +11,7 @@ import PosterImage from '../../../shared/components/PosterImage';
 import TrailerModal from './TrailerModal';
 import './ShowtimeRadarWidget.css';
 import './Upcoming.css';
+import './HomeMovieCarousel.css';
 
 const ShowtimeRadarWidget = React.lazy(() => import('./ShowtimeRadarWidget'));
 import {
@@ -221,7 +222,7 @@ const Upcoming = () => {
                 className="home-upcoming-nav home-upcoming-nav--prev"
                 aria-label="Phim sắp chiếu trước"
               >
-                <ChevronLeft size={36} />
+                <ChevronLeft size={44} />
               </button>
               <button
                 type="button"
@@ -229,7 +230,7 @@ const Upcoming = () => {
                 className="home-upcoming-nav home-upcoming-nav--next"
                 aria-label="Phim sắp chiếu tiếp theo"
               >
-                <ChevronRight size={36} />
+                <ChevronRight size={44} />
               </button>
             </>
           )}
@@ -284,22 +285,6 @@ const Upcoming = () => {
               </div>
             )}
 
-            {upcomingMovies.length > 1 && (
-              <div className="flex items-center gap-2">
-                {upcomingMovies.map((m, idx) => (
-                  <button
-                    key={m.uuid}
-                    type="button"
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      idx === currentIndex ? 'w-6 bg-red-500' : 'w-1.5 bg-white/30 hover:bg-white/50'
-                    }`}
-                    aria-label={`Xem phim ${m.title}`}
-                  />
-                ))}
-              </div>
-            )}
-
             <div className="home-upcoming-actions">
               <button
                 type="button"
@@ -330,6 +315,22 @@ const Upcoming = () => {
             </div>
           </div>
         </motion.div>
+
+        {upcomingMovies.length > 1 && (
+          <div className="home-movie-carousel__dots mt-6 flex items-center justify-center gap-3">
+            {upcomingMovies.map((movie, index) => (
+              <button
+                key={movie.uuid}
+                type="button"
+                onClick={() => setCurrentIndex(index)}
+                className={`home-movie-carousel__dot h-2 rounded-full transition-all duration-300 ${
+                  index === currentIndex ? 'is-active w-5 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'
+                }`}
+                aria-label={`Xem phim ${movie.title}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="home-upcoming-radar-bar">

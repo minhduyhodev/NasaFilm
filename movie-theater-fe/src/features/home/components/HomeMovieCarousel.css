@@ -51,6 +51,9 @@
 
 .home-movie-carousel__item {
   overflow: visible;
+  flex: 0 0 calc((100% - 4.5rem) / 4);
+  min-width: 190px;
+  max-width: 300px;
 }
 
 .home-movie-carousel__dot {
