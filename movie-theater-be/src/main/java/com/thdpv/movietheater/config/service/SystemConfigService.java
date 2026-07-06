@@ -212,39 +212,42 @@ public class SystemConfigService {
 
     private Map<String, Object> defaultNasaBotConfig() {
         Map<String, Object> bot = new LinkedHashMap<>();
-        bot.put("title", "NASA Bot");
-        bot.put("mode", "Single Agent (LLM Mode)");
-        bot.put("billingEnabled", true);
-        bot.put("model", "gpt-4o-mini");
-        bot.put("provider", "OpenAI");
-        bot.put("temperature", 0.2);
-        bot.put("topP", 1.0);
-        bot.put("contextRounds", 8);
-        bot.put("responseMaxLength", 1024);
-        bot.put("personaPrompt", "Bạn là NASA BOT, trợ lý hỗ trợ khách hàng cho hệ thống rạp phim NASAFilm.");
-        bot.put("pluginsEnabled", false);
-        bot.put("workflowsEnabled", false);
-        bot.put("knowledgeAutoCall", true);
-        bot.put("knowledgeTextSummary", "Chính sách hỗ trợ, FAQ, ticket, thanh toán, hội viên.");
-        bot.put("knowledgeTableSummary", "Bảng danh mục ticket, trạng thái, shortcut và opening questions.");
-        bot.put("knowledgeImageSummary", "Ảnh nền, avatar và visual minh họa cho chatbox.");
-        bot.put("memoryVariablesSummary", "current_user, selected_category, current_ticket_code, live_support_state");
-        bot.put("memoryDatabaseSummary", "Lưu cấu hình shortcut, opening questions, prompt và ghi chú vận hành.");
+        bot.put("personaPrompt", """
+                Bạn là NASA BOT, trợ lý hỗ trợ khách hàng của NASAFilm.
+
+                Nhiệm vụ:
+                - Trả lời ngắn gọn, thân thiện.
+                - Tự phân loại yêu cầu thành các nhóm: ticket, payment, account, promo, membership, other.
+                - Nếu người dùng chọn shortcut hoặc nhập nội dung tương ứng, hiểu ngay nhóm vấn đề đó.
+                - Không hỏi email hoặc số điện thoại vì hệ thống đã biết tài khoản đăng nhập.
+                - Nếu thiếu thông tin, chỉ hỏi thêm 1 câu ngắn mỗi lượt.
+                - Nếu cần admin xử lý, hướng người dùng mô tả ngắn để tạo ticket.
+
+                Gợi ý phân loại:
+                - Vé, mã đơn, suất chiếu, ghế, đổi/hoàn vé -> ticket
+                - Thanh toán, giao dịch lỗi, bị trừ tiền, hoàn tiền -> payment
+                - Đăng nhập, OTP, mật khẩu, lỗi tài khoản -> account
+                - Voucher, combo, khuyến mãi -> promo
+                - Điểm thưởng, hạng thành viên, quyền lợi -> membership
+                - Còn lại -> other
+
+                Phong cách:
+                - Ngắn, rõ, giống nhân viên CSKH chat.
+                - Không bịa dữ liệu hệ thống.
+                - Không nói quá dài.
+                """);
         bot.put("openingQuestions", List.of(
                 "Tạo ticket hỗ trợ",
                 "Thanh toán bị lỗi",
                 "Không đăng nhập được",
                 "Xem tình trạng ticket"));
-        bot.put("autoSuggestionEnabled", true);
-        bot.put("autoSuggestionPrompt", "Sau mỗi phản hồi, gợi ý 3 câu hỏi tiếp theo phù hợp với ngữ cảnh hội thoại hiện tại.");
         bot.put("shortcuts", List.of(
-                shortcutEntry("ticket", "Vé / suất chiếu", "Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé"),
-                shortcutEntry("payment", "Thanh toán", "Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền"),
-                shortcutEntry("account", "Tài khoản", "Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản"),
-                shortcutEntry("promo", "Khuyến mãi", "Hỗ trợ voucher, combo, ưu đãi, mã giảm giá"),
-                shortcutEntry("membership", "Hội viên", "Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên"),
-                shortcutEntry("other", "Mô tả vấn đề khác", "Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn")));
-        bot.put("backgroundImageUrl", "");
+                shortcutEntry("Vé / suất chiếu", "ticket_support", "Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé", "Tôi cần hỗ trợ về vé hoặc suất chiếu."),
+                shortcutEntry("Thanh toán", "payment_support", "Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền", "Tôi cần hỗ trợ về thanh toán."),
+                shortcutEntry("Tài khoản", "account_support", "Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản", "Tôi không đăng nhập được và cần hỗ trợ tài khoản."),
+                shortcutEntry("Khuyến mãi", "promo_support", "Hỗ trợ voucher, combo, ưu đãi, mã giảm giá", "Tôi cần hỗ trợ về voucher hoặc khuyến mãi."),
+                shortcutEntry("Hội viên", "membership_support", "Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên", "Tôi cần hỗ trợ về hội viên và điểm thưởng."),
+                shortcutEntry("Mô tả vấn đề khác", "other_support", "Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn", "Tôi có một vấn đề khác và cần được hỗ trợ.")));
         return bot;
     }
 
@@ -335,11 +338,12 @@ public class SystemConfigService {
         return entry;
     }
 
-    private Map<String, Object> shortcutEntry(String id, String label, String description) {
+    private Map<String, Object> shortcutEntry(String buttonName, String shortcutName, String description, String queryContent) {
         Map<String, Object> entry = new LinkedHashMap<>();
-        entry.put("id", id);
-        entry.put("label", label);
+        entry.put("buttonName", buttonName);
+        entry.put("shortcutName", shortcutName);
         entry.put("description", description);
+        entry.put("queryContent", queryContent);
         return entry;
     }
 

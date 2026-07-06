@@ -18,6 +18,12 @@ public class SupportTicketResponse {
     private String adminNote;
     private String lastMessage;
     private String lastMessageSender;
+    private boolean liveRequested;
+    private boolean liveConnected;
+    private String assignedStaffEmail;
+    private String assignedStaffName;
+    private Integer satisfactionRating;
+    private String satisfactionLabel;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -123,6 +129,54 @@ public class SupportTicketResponse {
 
     public void setLastMessageSender(String lastMessageSender) {
         this.lastMessageSender = lastMessageSender;
+    }
+
+    public boolean isLiveRequested() {
+        return liveRequested;
+    }
+
+    public void setLiveRequested(boolean liveRequested) {
+        this.liveRequested = liveRequested;
+    }
+
+    public boolean isLiveConnected() {
+        return liveConnected;
+    }
+
+    public void setLiveConnected(boolean liveConnected) {
+        this.liveConnected = liveConnected;
+    }
+
+    public String getAssignedStaffEmail() {
+        return assignedStaffEmail;
+    }
+
+    public void setAssignedStaffEmail(String assignedStaffEmail) {
+        this.assignedStaffEmail = assignedStaffEmail;
+    }
+
+    public String getAssignedStaffName() {
+        return assignedStaffName;
+    }
+
+    public void setAssignedStaffName(String assignedStaffName) {
+        this.assignedStaffName = assignedStaffName;
+    }
+
+    public Integer getSatisfactionRating() {
+        return satisfactionRating;
+    }
+
+    public void setSatisfactionRating(Integer satisfactionRating) {
+        this.satisfactionRating = satisfactionRating;
+    }
+
+    public String getSatisfactionLabel() {
+        return satisfactionLabel;
+    }
+
+    public void setSatisfactionLabel(String satisfactionLabel) {
+        this.satisfactionLabel = satisfactionLabel;
     }
 
     public OffsetDateTime getCreatedAt() {

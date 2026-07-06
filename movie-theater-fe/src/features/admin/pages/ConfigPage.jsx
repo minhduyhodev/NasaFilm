@@ -3,6 +3,7 @@ import {
   RotateCcw,
   Plus,
   Trash2,
+  Bot,
   Clock,
   Banknote,
   Shield,
@@ -31,6 +32,7 @@ const TABS = [
   { id: 'online', label: 'Phim online', icon: MonitorPlay },
   { id: 'cinema', label: 'Rạp & phòng', icon: Building2 },
   { id: 'operations', label: 'Vận hành', icon: Lock },
+  { id: 'nasabot', label: 'NASA Bot', icon: Bot },
 ];
 
 const emptyTypeEntry = () => ({ value: '', label: '', enabled: true });
@@ -153,6 +155,114 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
   );
 };
 
+const NasaBotShortcutList = ({ items = [], onChange }) => {
+  const updateItem = (index, field, value) => {
+    onChange(items.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+  };
+
+  const addItem = () => {
+    onChange([
+      ...items,
+      {
+        buttonName: 'Shortcut mới',
+        shortcutName: `custom_${items.length + 1}`,
+        description: 'Mô tả ngắn cho shortcut mới',
+        queryContent: 'Tôi cần được hỗ trợ.',
+      },
+    ]);
+  };
+
+  const removeItem = (index) => {
+    onChange(items.filter((_, idx) => idx !== index));
+  };
+
+  return (
+    <ConfigSection title="Shortcut nhanh" description="Bắt chước giao diện Coze: mỗi shortcut có nhãn và mô tả ngắn hiển thị trong chatbox.">
+      <div className="sys-config__bot-list">
+        {items.map((item, index) => (
+          <div key={`${item.shortcutName}-${index}`} className="sys-config__bot-card">
+            <div className="sys-config__bot-card-head">
+              <span className="sys-config__bot-card-id">{item.shortcutName}</span>
+              <button type="button" className="sys-config__table-del" onClick={() => removeItem(index)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="sys-config__fields">
+              <ConfigField label="Button name">
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.buttonName}
+                  onChange={(e) => updateItem(index, 'buttonName', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Shortcut name">
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.shortcutName}
+                  onChange={(e) => updateItem(index, 'shortcutName', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Mô tả shortcut">
+                <textarea
+                  className="sys-config__input sys-config__input--textarea"
+                  value={item.description}
+                  onChange={(e) => updateItem(index, 'description', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Query content">
+                <textarea
+                  className="sys-config__input sys-config__input--textarea"
+                  value={item.queryContent}
+                  onChange={(e) => updateItem(index, 'queryContent', e.target.value)}
+                />
+              </ConfigField>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="sys-config__link-btn" onClick={addItem}>
+        <Plus className="w-3.5 h-3.5" />
+        Thêm shortcut
+      </button>
+    </ConfigSection>
+  );
+};
+
+const NasaBotQuestionList = ({ items = [], onChange }) => {
+  const updateItem = (index, value) => {
+    onChange(items.map((item, idx) => (idx === index ? value : item)));
+  };
+
+  const addItem = () => onChange([...items, 'Câu hỏi mở mới']);
+  const removeItem = (index) => onChange(items.filter((_, idx) => idx !== index));
+
+  return (
+    <ConfigSection title="Opening questions" description="Các câu hỏi mở đầu hiển thị ngay khi user mở chatbot, giống mục Opening questions của Coze.">
+      <div className="sys-config__bot-list">
+        {items.map((item, index) => (
+          <div key={`${item}-${index}`} className="sys-config__bot-inline">
+            <input
+              type="text"
+              className="sys-config__input"
+              value={item}
+              onChange={(e) => updateItem(index, e.target.value)}
+            />
+            <button type="button" className="sys-config__table-del" onClick={() => removeItem(index)}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="sys-config__link-btn" onClick={addItem}>
+        <Plus className="w-3.5 h-3.5" />
+        Thêm opening question
+      </button>
+    </ConfigSection>
+  );
+};
+
 const ConfigPage = () => {
   const confirm = useConfirm();
   const [config, setConfig] = useState(DEFAULT_SYSTEM_CONFIG);
@@ -208,6 +318,16 @@ const ConfigPage = () => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateNasaBotField = (field, value) => {
+    setConfig((prev) => ({
+      ...prev,
+      nasaBot: {
+        ...(prev.nasaBot || {}),
+        [field]: value,
+      },
+    }));
+  };
+
   const lockPreviewMinutes = (multiplier) => {
     const m = Number(multiplier) || 2;
     return `Phim 120 phút → khóa xem ${Math.round(120 * m)} phút (~${(120 * m / 60).toFixed(1)} giờ)`;
@@ -219,6 +339,8 @@ const ConfigPage = () => {
     { label: 'Giữ ghế', value: `${config.seatLockMinutes} phút` },
     { label: 'Tối đa / đặt', value: `${config.maxSeatsPerBooking} ghế` },
   ]), [config]);
+
+  const nasaBot = config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot;
 
   if (isLoading) {
     return (
@@ -441,6 +563,75 @@ const ConfigPage = () => {
                 </ConfigField>
               </div>
             </ConfigSection>
+          </div>
+        )}
+
+        {activeTab === 'nasabot' && (
+          <div className="sys-config__split">
+            <div className="sys-config__bot-stack">
+            <ConfigSection title="Persona & Prompt" description="Prompt ngắn gọn để khớp shortcut và opening questions, đúng bộ cấu hình NASA Bot đã chốt.">
+                <ConfigField label="Prompt hệ thống">
+                  <textarea
+                    className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
+                    value={nasaBot.personaPrompt || ''}
+                    onChange={(e) => updateNasaBotField('personaPrompt', e.target.value)}
+                  />
+                </ConfigField>
+              </ConfigSection>
+
+              <ConfigSection title="Opening questions & Shortcuts" description="Chỉ giữ đúng các mục bạn chốt: Opening questions, Shortcuts, không có plugin/workflow/components.">
+                <NasaBotQuestionList
+                  items={nasaBot.openingQuestions || []}
+                  onChange={(openingQuestions) => updateNasaBotField('openingQuestions', openingQuestions)}
+                />
+                <ConfigSection title="Quy ước popup Coze" description="Cấu hình này cố tình bắt chước đúng popup shortcut của Coze.">
+                  <div className="sys-config__switches">
+                    <ConfigSwitch checked={false} onChange={() => {}}>
+                      Use plugin or workflow directly: để tắt
+                    </ConfigSwitch>
+                    <ConfigSwitch checked={false} onChange={() => {}}>
+                      Components: để trống
+                    </ConfigSwitch>
+                  </div>
+                </ConfigSection>
+                <NasaBotShortcutList
+                  items={nasaBot.shortcuts || []}
+                  onChange={(shortcuts) => updateNasaBotField('shortcuts', shortcuts)}
+                />
+              </ConfigSection>
+            </div>
+
+            <div className="sys-config__bot-stack">
+              <ConfigSection title="Preview & Debug" description="Preview nhanh theo đúng bộ opening questions, shortcut và prompt bạn đã chốt.">
+                <div className="sys-config__bot-preview">
+                  <div className="sys-config__bot-preview-head">
+                    <span className="sys-config__bot-preview-avatar" />
+                    <div>
+                      <strong>NASA Bot</strong>
+                      <span>Single Agent (LLM Mode)</span>
+                    </div>
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    {(nasaBot.openingQuestions || []).slice(0, 4).map((question, index) => (
+                      <div key={`${question}-${index}`}>{index + 1}. {question}</div>
+                    ))}
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--user">
+                    Tôi cần hỗ trợ về vé hoặc suất chiếu.
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    {(nasaBot.personaPrompt || '').split('\n')[0] || 'Bạn vui lòng cho mình biết mô tả ngắn để mình hỗ trợ nhé.'}
+                  </div>
+                  <div className="sys-config__bot-preview-shortcuts">
+                    {(nasaBot.shortcuts || []).slice(0, 4).map((shortcut) => (
+                      <span key={shortcut.shortcutName} className="sys-config__bot-preview-chip">
+                        {shortcut.buttonName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </ConfigSection>
+            </div>
           </div>
         )}
         </div>

@@ -125,7 +125,7 @@ public class SupportTicketService {
         return map(supportTicketRepository.save(ticket));
     }
 
-    private void saveMessage(UUID ticketUuid, String senderRole, String senderName, String message) {
+    void saveMessage(UUID ticketUuid, String senderRole, String senderName, String message) {
         SupportTicketMessage ticketMessage = new SupportTicketMessage();
         ticketMessage.setTicketUuid(ticketUuid);
         ticketMessage.setSenderRole(senderRole);
@@ -135,7 +135,7 @@ public class SupportTicketService {
         eventPublisher.publishEvent(new SupportTicketEvent(getTicketCodeByUuid(ticketUuid), senderRole));
     }
 
-    private SupportTicketResponse map(SupportTicket ticket) {
+    SupportTicketResponse map(SupportTicket ticket) {
         SupportTicketResponse response = new SupportTicketResponse();
         response.setUuid(ticket.getUuid());
         response.setTicketCode(ticket.getTicketCode());
@@ -150,6 +150,12 @@ public class SupportTicketService {
         response.setAdminNote(ticket.getAdminNote());
         response.setLastMessage(ticket.getLastMessage());
         response.setLastMessageSender(ticket.getLastMessageSender());
+        response.setLiveRequested(ticket.isLiveRequested());
+        response.setLiveConnected(ticket.isLiveConnected());
+        response.setAssignedStaffEmail(ticket.getAssignedStaffEmail());
+        response.setAssignedStaffName(ticket.getAssignedStaffName());
+        response.setSatisfactionRating(ticket.getSatisfactionRating());
+        response.setSatisfactionLabel(ticket.getSatisfactionLabel());
         response.setCreatedAt(ticket.getCreatedAt());
         response.setUpdatedAt(ticket.getUpdatedAt());
         return response;
@@ -166,7 +172,7 @@ public class SupportTicketService {
         return response;
     }
 
-    private String generateTicketCode() {
+    String generateTicketCode() {
         String code;
         do {
             code = "SR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();

@@ -47,7 +47,6 @@ const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
 const MissionsPage = lazy(() => import("../pages/MissionsPage"));
 const SupportInboxPage = lazy(() => import("../pages/SupportInboxPage"));
-const NasaBotConfigPage = lazy(() => import("../pages/NasaBotConfigPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -93,7 +92,6 @@ export const AdminRoutes = () => {
           <Route path="bookings" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><BookingsPage /></PermissionRoute>} />
           <Route path="refunds" element={<PermissionRoute permission={PERMISSIONS.COUNTER_REFUND_PROCESS}><RefundsPage /></PermissionRoute>} />
           <Route path="support" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><SupportInboxPage /></PermissionRoute>} />
-          <Route path="nasa-bot" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><NasaBotConfigPage /></PermissionRoute>} />
           <Route path="feedback-reviews" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><FeedbackReviewsPage /></PermissionRoute>} />
           <Route path="showtimes" element={<PermissionRoute permission={PERMISSIONS.SHOWTIME_WRITE}><ShowtimesPage /></PermissionRoute>} />
           <Route path="cinemas" element={<PermissionRoute permission={PERMISSIONS.SHOWTIME_WRITE}><CinemasPage /></PermissionRoute>} />

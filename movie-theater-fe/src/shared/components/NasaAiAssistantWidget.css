@@ -1,15 +1,23 @@
 .nasa-assistant-fab-shell {
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
+  right: 1.25rem;
+  bottom: 1.25rem;
   z-index: 120;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.45rem;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.nasa-assistant-fab-shell--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
 }
 
 .nasa-assistant-fab {
+  position: relative;
   width: 4.85rem;
   height: 4.85rem;
   border: 0;
@@ -17,6 +25,12 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.nasa-assistant-fab:hover {
+  transform: translateY(-4px) scale(1.02);
+  filter: saturate(1.05);
 }
 
 .nasa-assistant-fab-avatar,
@@ -58,6 +72,12 @@
   letter-spacing: 0.01em;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
   user-select: none;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.nasa-assistant-fab-shell:hover .nasa-assistant-fab-label {
+  transform: translateY(-2px);
+  background: rgba(10, 12, 18, 0.94);
 }
 
 .nasa-assistant-overlay {
@@ -65,13 +85,15 @@
   inset: 0;
   z-index: 150;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.25rem;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 1.25rem 6.9rem 0;
   animation: nasaFadeIn 180ms ease-out;
+  pointer-events: none;
 }
 
 .nasa-assistant-backdrop {
+  display: none;
   position: absolute;
   inset: 0;
   border: 0;
@@ -81,13 +103,14 @@
 
 .nasa-assistant-panel {
   position: relative;
-  width: min(94vw, 74rem);
-  height: min(86vh, 54rem);
-  max-height: calc(100vh - 2.5rem);
+  pointer-events: auto;
+  width: min(26rem, calc(100vw - 2rem));
+  height: min(42rem, calc(100vh - 8.5rem));
+  max-height: calc(100vh - 8.5rem);
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1.2rem;
+  border-radius: 1.35rem;
   background:
     radial-gradient(circle at top right, rgba(185, 28, 28, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(9, 10, 14, 0.99), rgba(15, 18, 25, 0.99));
@@ -158,6 +181,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  min-height: 0;
 }
 
 .nasa-assistant-home-grid {
@@ -481,6 +505,7 @@
 .nasa-assistant-thread {
   display: grid;
   gap: 0.62rem;
+  align-content: start;
 }
 
 .nasa-assistant-hero {
@@ -673,6 +698,27 @@
   padding: 0.9rem;
   display: grid;
   gap: 0.52rem;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+button.nasa-assistant-card:hover,
+.nasa-assistant-chip:hover,
+.nasa-assistant-pill:hover,
+.nasa-assistant-mini-btn:hover,
+.nasa-assistant-send:hover,
+.nasa-assistant-input-icon:hover,
+.nasa-assistant-icon-btn:hover,
+.nasa-assistant-shortcut:hover,
+.nasa-assistant-recent__item:hover {
+  transform: translateY(-2px);
+}
+
+button.nasa-assistant-card:hover,
+.nasa-assistant-chip:hover,
+.nasa-assistant-pill:hover,
+.nasa-assistant-mini-btn:hover,
+.nasa-assistant-shortcut:hover {
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .nasa-assistant-promo-card--combo {
@@ -732,6 +778,37 @@
   align-items: center;
 }
 
+.nasa-assistant-live-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.nasa-assistant-live-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.nasa-assistant-live-badge--online {
+  border-color: rgba(16, 185, 129, 0.22);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.nasa-assistant-live-badge--offline {
+  border-color: rgba(251, 191, 36, 0.16);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fcd34d;
+}
+
 .nasa-assistant-mini-btn {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
@@ -742,6 +819,7 @@
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .nasa-assistant-mini-btn--primary {
@@ -768,6 +846,7 @@
   gap: 0.5rem;
   text-align: left;
   min-height: 4.2rem;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .nasa-assistant-chip__label {
@@ -789,6 +868,25 @@
   gap: 0.5rem;
 }
 
+.nasa-assistant-actions--rating-inline {
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.nasa-assistant-pill--rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.66rem;
+}
+
+.nasa-assistant-pill--rating svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
 .nasa-assistant-pill {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -799,6 +897,7 @@
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .nasa-assistant-inputbar {
@@ -819,6 +918,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: transform 180ms ease, background 180ms ease;
 }
 
 .nasa-assistant-inputshell {
@@ -830,6 +930,13 @@
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.05);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.nasa-assistant-inputshell:focus-within {
+  border-color: rgba(239, 68, 68, 0.38);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
 .nasa-assistant-inputshell input {
@@ -857,6 +964,12 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 10px 22px rgba(185, 28, 28, 0.32);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.nasa-assistant-send:hover {
+  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.38);
+  filter: brightness(1.05);
 }
 
 @keyframes nasaFadeIn {
@@ -916,9 +1029,19 @@
 }
 
 @media (max-width: 640px) {
+  .nasa-assistant-fab-shell {
+    right: 0.85rem;
+    bottom: 0.85rem;
+  }
+
+  .nasa-assistant-overlay {
+    padding: 0 0.85rem 6.15rem 0;
+  }
+
   .nasa-assistant-panel {
-    width: 100%;
-    height: min(88vh, 50rem);
+    width: min(calc(100vw - 1rem), 26rem);
+    height: min(78vh, 42rem);
+    max-height: calc(100vh - 6.5rem);
   }
 
   .nasa-assistant-home-grid {
@@ -952,7 +1075,7 @@
 
 @media (max-width: 1400px) {
   .nasa-assistant-panel {
-    width: min(96vw, 68rem);
+    width: min(26rem, calc(100vw - 2rem));
   }
 
   .nasa-assistant-home-grid {

@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, ChevronRight, MessageCircle, Mic, Send, Sparkles, Ticket, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bot, ChevronRight, Headset, MessageCircle, Mic, Send, Sparkles, Star, Ticket, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import { notificationService } from '../services/notificationService';
 import { supportService } from '../services/supportService';
+import { systemConfigService } from '../services/systemConfigService';
+import { REALTIME_TOPICS } from '../constants/realtimeTopics';
+import { useRealtimeTopic } from '../hooks/useRealtimeTopic';
 import tokenService from '../../features/auth/utils/tokenService';
 import nasaLogo from '../assets/NASAFILM.jpg';
-import nasaAssistantSide from '../assets/nasa-assistant-hero.png';
 import nasaAssistantFabAvatar from '../assets/nasa-assistant-avatar-head.jpg';
 import './NasaAiAssistantWidget.css';
 
@@ -56,22 +58,7 @@ const CATEGORIES = [
   },
 ];
 
-const QUICK_ACTIONS = [
-  'Tạo ticket',
-  'Xem ticket của tôi',
-  'Thanh toán bị lỗi',
-  'Không đăng nhập được',
-];
-
-const COMBO_PROMO_STORAGE_KEY = 'nasafilm.promo.combo';
-const MOVIE_PROMO_STORAGE_KEY = 'nasafilm.promo.movie';
-
-const HOME_SHORTCUTS = [
-  { label: 'Combo bắp nước', icon: '🍿' },
-  { label: 'Đặt vé nhanh', icon: '🎟️' },
-  { label: 'Phim hot', icon: '🔥' },
-  { label: 'Hỗ trợ kỹ thuật', icon: '🛠️' },
-];
+const QUICK_ACTIONS = ['Tạo ticket', 'Xem ticket của tôi'];
 
 const formatTime = (value = new Date()) =>
   new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(value);
@@ -115,51 +102,35 @@ const hasAdminAccess = (user) => {
   const roles = (user?.roles || []).map((role) => `${role}`.toLowerCase());
   return roles.includes('admin') || roles.includes('staff');
 };
-const RECENT_CINEMAS = [
-  { label: 'Rạp Landmark 81', href: '/cinemas' },
-  { label: 'Rạp City Center', href: '/cinemas' },
+
+const DEFAULT_NASA_BOT_RUNTIME = {
+  openingQuestions: [
+    'Tạo ticket hỗ trợ',
+    'Thanh toán bị lỗi',
+    'Không đăng nhập được',
+    'Xem tình trạng ticket',
+  ],
+  shortcuts: [
+    { buttonName: 'Vé / suất chiếu', description: 'Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé', queryContent: 'Tôi cần hỗ trợ về vé hoặc suất chiếu.' },
+    { buttonName: 'Thanh toán', description: 'Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền', queryContent: 'Tôi cần hỗ trợ về thanh toán.' },
+    { buttonName: 'Tài khoản', description: 'Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản', queryContent: 'Tôi không đăng nhập được và cần hỗ trợ tài khoản.' },
+    { buttonName: 'Khuyến mãi', description: 'Hỗ trợ voucher, combo, ưu đãi, mã giảm giá', queryContent: 'Tôi cần hỗ trợ về voucher hoặc khuyến mãi.' },
+    { buttonName: 'Hội viên', description: 'Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên', queryContent: 'Tôi cần hỗ trợ về hội viên và điểm thưởng.' },
+    { buttonName: 'Mô tả vấn đề khác', description: 'Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn', queryContent: 'Tôi có một vấn đề khác và cần được hỗ trợ.' },
+  ],
+};
+
+const SATISFACTION_OPTIONS = [
+  { value: 1, label: 'Rat te' },
+  { value: 2, label: 'Chua hai long' },
+  { value: 3, label: 'Binh thuong' },
+  { value: 4, label: 'Hai long' },
+  { value: 5, label: 'Rat hai long' },
 ];
-
-const getStoredPromo = (storageKey, fallback) => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.title && !parsed?.description) return fallback;
-    return {
-      title: parsed.title || fallback.title,
-      description: parsed.description || fallback.description,
-      ctaLabel: parsed.ctaLabel || fallback.ctaLabel,
-      href: parsed.href || fallback.href,
-      tone: parsed.tone || fallback.tone,
-      badge: parsed.badge || fallback.badge,
-    };
-  } catch {
-    return fallback;
-  }
-};
-
-const COMBO_PROMO_DEFAULT = {
-  title: 'Combo bắp nước hôm nay',
-  description: 'Ưu đãi combo bắp nước, nước ngọt và snack đang mở bán trong khung giờ này.',
-  ctaLabel: 'Xem combo',
-  href: '/offers',
-  tone: 'combo',
-  badge: 'Bắp nước',
-};
-
-const MOVIE_PROMO_DEFAULT = {
-  title: 'Phim hot sắp chiếu',
-  description: 'Bài đăng từ admin về phim nổi bật, suất chiếu sớm và các tin đáng chú ý cho người xem.',
-  ctaLabel: 'Xem phim hot',
-  href: '/movies',
-  tone: 'movie',
-  badge: 'Phim hot',
-};
 
 const NasaAiAssistantWidget = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthContext();
   const scrollRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -173,14 +144,31 @@ const NasaAiAssistantWidget = () => {
   const [myTickets, setMyTickets] = useState([]);
   const [activeTicketCode, setActiveTicketCode] = useState('');
   const [ticketMessages, setTicketMessages] = useState([]);
-  const [mode, setMode] = useState('home');
+  const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
+  const [mode, setMode] = useState('chat');
   const [createStep, setCreateStep] = useState('category');
-  const [comboPromo, setComboPromo] = useState(() => getStoredPromo(COMBO_PROMO_STORAGE_KEY, COMBO_PROMO_DEFAULT));
-  const [moviePromo, setMoviePromo] = useState(() => getStoredPromo(MOVIE_PROMO_STORAGE_KEY, MOVIE_PROMO_DEFAULT));
+  const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
+  const [showSatisfactionPrompt, setShowSatisfactionPrompt] = useState(false);
   const closeHoverTimerRef = useRef(null);
 
   const ownerLabel = useMemo(() => getOwnerLabel(user || tokenService.getUser()), [user]);
   const isAdminUser = useMemo(() => hasAdminAccess(user || tokenService.getUser()), [user]);
+  const activeTicket = useMemo(
+    () => myTickets.find((item) => item.ticketCode === activeTicketCode) || ticket || null,
+    [activeTicketCode, myTickets, ticket],
+  );
+  const shouldHideOnRoute = useMemo(() => {
+    const pathname = location.pathname || '';
+    return (
+      pathname.startsWith('/login')
+      || pathname.startsWith('/register')
+      || pathname.startsWith('/forgot-password')
+      || pathname.startsWith('/reset-password')
+      || pathname.startsWith('/activate-account')
+      || pathname.startsWith('/unauthorized')
+      || pathname.startsWith('/admin')
+    );
+  }, [location.pathname]);
   const supportStatus = useMemo(() => {
     if (typing) return 'Đang xử lý...';
     if (mode === 'create') {
@@ -189,11 +177,15 @@ const NasaAiAssistantWidget = () => {
       if (createStep === 'confirm') return 'Chốt ticket trước khi gửi';
       if (createStep === 'sending') return 'Đang gửi ticket';
     }
-    if (mode === 'ticket') return 'Đang chat với admin';
+    if (mode === 'ticket') {
+      if (activeTicket?.liveRequested && !activeTicket?.liveConnected) return 'Đang chờ staff nhận hỗ trợ';
+      if (activeTicket?.liveConnected) return `Đang chat với ${activeTicket?.assignedStaffName || 'staff'}`;
+      return 'Đang chat với admin';
+    }
     if (mode === 'tickets') return 'Đang xem ticket của bạn';
     if (ticket?.status) return `Ticket ${ticket.status}`;
     return 'Sẵn sàng hỗ trợ';
-  }, [createStep, mode, ticket?.status, typing]);
+  }, [activeTicket?.assignedStaffName, activeTicket?.liveConnected, activeTicket?.liveRequested, createStep, mode, ticket?.status, typing]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -202,24 +194,57 @@ const NasaAiAssistantWidget = () => {
   }, [messages, typing, open]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const syncComboPromo = () => setComboPromo(getStoredPromo(COMBO_PROMO_STORAGE_KEY, COMBO_PROMO_DEFAULT));
-    const syncMoviePromo = () => setMoviePromo(getStoredPromo(MOVIE_PROMO_STORAGE_KEY, MOVIE_PROMO_DEFAULT));
-    const onStorage = (event) => {
-      if (event.key === COMBO_PROMO_STORAGE_KEY) syncComboPromo();
-      if (event.key === MOVIE_PROMO_STORAGE_KEY) syncMoviePromo();
-    };
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('nasafilm-combo-promo', syncComboPromo);
-    window.addEventListener('nasafilm-movie-promo', syncMoviePromo);
-    syncComboPromo();
-    syncMoviePromo();
+    let timerId = null;
+    if (mode === 'ticket' && activeTicket?.status === 'DONE' && !activeTicket?.satisfactionRating) {
+      timerId = window.setTimeout(() => {
+        setShowSatisfactionPrompt(true);
+      }, 1400);
+    } else {
+      setShowSatisfactionPrompt(false);
+    }
+
     return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('nasafilm-combo-promo', syncComboPromo);
-      window.removeEventListener('nasafilm-movie-promo', syncMoviePromo);
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, [activeTicket?.satisfactionRating, activeTicket?.status, mode]);
+
+  useEffect(() => {
+    if (!open) return;
+    supportService.getLiveSupportAvailability()
+      .then((data) => setLiveAvailability(data || { anyOnline: false, agents: [] }))
+      .catch(() => setLiveAvailability({ anyOnline: false, agents: [] }));
+  }, [open]);
+
+  useEffect(() => {
+    let active = true;
+    systemConfigService.getConfig()
+      .then((data) => {
+        if (!active) return;
+        const nasaBot = data?.nasaBot || {};
+        setNasaBotRuntime({
+          openingQuestions: Array.isArray(nasaBot.openingQuestions) && nasaBot.openingQuestions.length > 0
+            ? nasaBot.openingQuestions
+            : DEFAULT_NASA_BOT_RUNTIME.openingQuestions,
+          shortcuts: Array.isArray(nasaBot.shortcuts) && nasaBot.shortcuts.length > 0
+            ? nasaBot.shortcuts
+            : DEFAULT_NASA_BOT_RUNTIME.shortcuts,
+        });
+      })
+      .catch(() => {
+        if (active) setNasaBotRuntime(DEFAULT_NASA_BOT_RUNTIME);
+      });
+    return () => {
+      active = false;
     };
   }, []);
+
+  useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
+    supportService.getLiveSupportAvailability()
+      .then((data) => setLiveAvailability(data || { anyOnline: false, agents: [] }))
+      .catch(() => setLiveAvailability({ anyOnline: false, agents: [] }));
+  });
 
   const pushMessage = (message) => {
     setMessages((prev) => [...prev, { id: `${Date.now()}-${prev.length}`, ...message, time: formatTime() }]);
@@ -254,43 +279,42 @@ const NasaAiAssistantWidget = () => {
     setMyTickets([]);
     setActiveTicketCode('');
     setTicketMessages([]);
-    setMode('home');
+    setMode('chat');
     setCreateStep('category');
   };
 
-  const openWidget = () => {
+  const clearHoverTimer = () => {
     if (closeHoverTimerRef.current) {
       window.clearTimeout(closeHoverTimerRef.current);
       closeHoverTimerRef.current = null;
     }
+  };
+
+  const openWidget = () => {
+    clearHoverTimer();
     setOpen(true);
     reset();
   };
 
   const closeWidget = () => {
-    if (closeHoverTimerRef.current) {
-      window.clearTimeout(closeHoverTimerRef.current);
-      closeHoverTimerRef.current = null;
-    }
+    clearHoverTimer();
     setOpen(false);
-  };
-
-  const scheduleCloseWidget = () => {
-    if (closeHoverTimerRef.current) {
-      window.clearTimeout(closeHoverTimerRef.current);
-    }
-    closeHoverTimerRef.current = window.setTimeout(() => {
-      setOpen(false);
-    }, 60);
   };
 
   const startCategoryFlow = async (key) => {
     const category = CATEGORIES.find((item) => item.key === key) || CATEGORIES.at(-1);
     setSelectedCategory(category);
+    setMode('create');
+    setCreateStep('description');
     pushUser(category.label);
     await botDelay(category.question);
-    setStage('followup');
-    await botDelay(category.followUps[0]);
+    setStage('describe');
+  };
+
+  const handleRuntimeShortcut = async (shortcut) => {
+    const key = `${shortcut?.shortcutName || ''}`.replace('_support', '').trim();
+    const mapped = CATEGORIES.find((item) => item.key === key)?.key || detectCategory(shortcut?.queryContent || shortcut?.buttonName || '');
+    await startCategoryFlow(mapped);
   };
 
   const createFakeTicket = () => `SR-${Date.now().toString().slice(-7)}`;
@@ -340,12 +364,34 @@ const NasaAiAssistantWidget = () => {
     setActiveTicketCode(ticketCode);
     setMode('ticket');
     try {
-      const list = await supportService.getSupportMessages(ticketCode);
+      const [detail, list] = await Promise.all([
+        supportService.getSupportRequest(ticketCode),
+        supportService.getSupportMessages(ticketCode),
+      ]);
+      setTicket(detail || null);
       setTicketMessages(Array.isArray(list) ? list : []);
     } catch {
       setTicketMessages([]);
     }
   };
+
+  useRealtimeTopic(
+    activeTicketCode ? REALTIME_TOPICS.supportTicket(activeTicketCode) : null,
+    async () => {
+      if (!activeTicketCode) return;
+      try {
+        const [detail, list] = await Promise.all([
+          supportService.getSupportRequest(activeTicketCode),
+          supportService.getSupportMessages(activeTicketCode),
+        ]);
+        setTicket(detail || null);
+        setTicketMessages(Array.isArray(list) ? list : []);
+        await loadMyTickets();
+      } catch {
+        // ignore realtime refresh errors
+      }
+    },
+  );
 
   const sendTicketReply = async () => {
     const value = draft.trim();
@@ -358,6 +404,47 @@ const NasaAiAssistantWidget = () => {
       await openTicketThread(activeTicketCode);
     } finally {
       setTyping(false);
+    }
+  };
+
+  const requestLiveSupport = async () => {
+    const description = draft.trim() || 'Khách hàng cần hỗ trợ trực tiếp với admin hoặc staff.';
+    const category = selectedCategory?.key || detectCategory(description);
+    if (!liveAvailability?.anyOnline) {
+      notificationService.info('Hiện chưa có admin hoặc staff online để hỗ trợ trực tiếp.');
+      return;
+    }
+    setTyping(true);
+    try {
+      const response = await supportService.requestLiveSupport({ category, description });
+      setDraft('');
+      setTicket(response);
+      setMyTickets((prev) => [response, ...prev.filter((item) => item.ticketCode !== response.ticketCode)]);
+      setActiveTicketCode(response.ticketCode);
+      setMode('ticket');
+      pushMessage({
+        role: 'bot',
+        type: 'card',
+        title: 'Đã gửi yêu cầu hỗ trợ trực tiếp',
+        text: 'Yêu cầu của bạn đã được chuyển đến admin hoặc staff online. Cuộc trò chuyện realtime sẽ chỉ mở khi có người nhận hỗ trợ.',
+      });
+      await openTicketThread(response.ticketCode);
+    } catch (error) {
+      notificationService.error(error?.response?.data?.message || 'Không thể gửi yêu cầu hỗ trợ trực tiếp.');
+    } finally {
+      setTyping(false);
+    }
+  };
+
+  const submitSatisfaction = async (rating) => {
+    if (!activeTicketCode) return;
+    try {
+      const updated = await supportService.submitSatisfaction(activeTicketCode, { rating });
+      setTicket(updated || null);
+      await loadMyTickets();
+      notificationService.success('Cảm ơn bạn đã đánh giá hỗ trợ.');
+    } catch (error) {
+      notificationService.error(error?.response?.data?.message || 'Không gửi được đánh giá lúc này.');
     }
   };
 
@@ -437,20 +524,21 @@ const NasaAiAssistantWidget = () => {
       return;
     }
     if (action === 'Quay lại') {
-      closeWidget();
-      setMode('home');
+      setMode('chat');
       return;
     }
     if (action === 'Thanh toán bị lỗi') {
-      closeWidget();
-      setStage('category');
-      await startCategoryFlow('payment');
+      setOpen(true);
+      setMode('create');
+      setSelectedCategory(CATEGORIES.find((item) => item.key === 'payment'));
+      setCreateStep('description');
       return;
     }
     if (action === 'Không đăng nhập được') {
-      closeWidget();
-      setStage('category');
-      await startCategoryFlow('account');
+      setOpen(true);
+      setMode('create');
+      setSelectedCategory(CATEGORIES.find((item) => item.key === 'account'));
+      setCreateStep('description');
       return;
     }
     if (action === 'Hỗ trợ kỹ thuật') {
@@ -478,14 +566,12 @@ const NasaAiAssistantWidget = () => {
   };
 
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
-  if (isAdminUser || !portalTarget) return null;
+  if (isAdminUser || shouldHideOnRoute || !portalTarget) return null;
 
   return createPortal(
       <>
         <div
-          className="nasa-assistant-fab-shell"
-          onMouseEnter={openWidget}
-          onMouseLeave={scheduleCloseWidget}
+          className={`nasa-assistant-fab-shell ${open ? 'nasa-assistant-fab-shell--hidden' : ''}`}
         >
           <button
             type="button"
@@ -500,29 +586,13 @@ const NasaAiAssistantWidget = () => {
         </div>
 
         {open && (
-          <div
-            className="nasa-assistant-overlay"
-            onMouseEnter={() => {
-              if (closeHoverTimerRef.current) {
-                window.clearTimeout(closeHoverTimerRef.current);
-                closeHoverTimerRef.current = null;
-              }
-            }}
-            onMouseLeave={scheduleCloseWidget}
-          >
+          <div className="nasa-assistant-overlay">
             <button type="button" className="nasa-assistant-backdrop" aria-label="Đóng" onClick={closeWidget} />
             <section
               className="nasa-assistant-panel"
               role="dialog"
               aria-modal="true"
               aria-label="NASA BOT"
-              onMouseEnter={() => {
-                if (closeHoverTimerRef.current) {
-                  window.clearTimeout(closeHoverTimerRef.current);
-                  closeHoverTimerRef.current = null;
-                }
-              }}
-              onMouseLeave={scheduleCloseWidget}
             >
               <header className="nasa-assistant-header">
                 <div className="nasa-assistant-brand">
@@ -545,148 +615,13 @@ const NasaAiAssistantWidget = () => {
               </header>
 
               <div className="nasa-assistant-body" ref={scrollRef}>
-                {mode === 'home' ? (
-                  <div className="nasa-assistant-home-grid">
-                    <aside className="nasa-assistant-sidebar nasa-assistant-slide nasa-assistant-slide--1">
-                      <div className="nasa-assistant-sidebar__hero nasa-assistant-card">
-                        <div className="nasa-assistant-sidebar__title">Trợ Lý Thông Minh</div>
-                        <div className="nasa-assistant-sidebar__text">
-                          Tôi có thể giúp bạn đặt vé, tìm kiếm phim hot nhất hoặc giải đáp các thắc mắc về rạp chiếu NASAFilm.
-                        </div>
-                      </div>
-
-                      <div className="nasa-assistant-promo-stack">
-                        <button
-                          type="button"
-                          className="nasa-assistant-card nasa-assistant-promo-card nasa-assistant-promo-card--combo nasa-assistant-slide nasa-assistant-slide--2"
-                          onClick={() => {
-                            closeWidget();
-                            if (comboPromo?.href) {
-                              navigate(comboPromo.href);
-                            }
-                          }}
-                        >
-                          <div className="nasa-assistant-promo-card__badge">{comboPromo?.badge || 'Bắp nước'}</div>
-                          <div className="nasa-assistant-card__title nasa-assistant-promo-card__title">{comboPromo?.title}</div>
-                          <div className="nasa-assistant-card__text nasa-assistant-promo-card__text">{comboPromo?.description}</div>
-                          <div className="nasa-assistant-card__actions">
-                            <span className="nasa-assistant-mini-btn nasa-assistant-mini-btn--primary">{comboPromo?.ctaLabel || 'Xem combo'}</span>
-                          </div>
-                        </button>
-
-                        <div className="nasa-assistant-shortcut-grid nasa-assistant-slide nasa-assistant-slide--3">
-                          {HOME_SHORTCUTS.map((item) => (
-                            <button
-                              key={item.label}
-                              type="button"
-                              className="nasa-assistant-shortcut"
-                              onClick={() => {
-                                if (item.label === 'Đặt vé nhanh') {
-                                  navigate('/');
-                                  return;
-                                }
-                                if (item.label === 'Phim hot') {
-                                  navigate('/movies');
-                                  return;
-                                }
-                                if (item.label === 'Combo bắp nước') {
-                                  navigate('/offers');
-                                  return;
-                                }
-                                handleQuickAction(item.label);
-                              }}
-                            >
-                              <span className="nasa-assistant-shortcut__icon">{item.icon}</span>
-                              <span className="nasa-assistant-shortcut__label">{item.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </aside>
-
-                    <section className="nasa-assistant-center-hero nasa-assistant-slide nasa-assistant-slide--2">
-                      <div className="nasa-assistant-robot-frame nasa-assistant-robot-frame--hero">
-                        <img src={nasaAssistantSide} alt="NASA BOT" />
-                      </div>
-                    </section>
-
-                    <section className="nasa-assistant-chat-shell nasa-assistant-slide nasa-assistant-slide--3">
-                      <div className="nasa-assistant-chat-head">
-                        <div className="nasa-assistant-chat-head__brand">
-                          <div className="nasa-assistant-chat-head__avatar">
-                            <img src={nasaLogo} alt="NASA BOT" />
-                          </div>
-                          <div>
-                            <div className="nasa-assistant-chat-head__title">NASA BOT</div>
-                            <div className="nasa-assistant-chat-head__status">{supportStatus}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="nasa-assistant-chat-preview">
-                        <div className="nasa-assistant-summary nasa-assistant-summary--compact nasa-assistant-slide nasa-assistant-slide--4">
-                          <Sparkles className="h-4 w-4" />
-                          <span>Chọn nhanh để đặt vé hoặc tạo ticket. Nếu cần, mình sẽ hỏi tiếp từng bước.</span>
-                        </div>
-                        {moviePromo && (
-                          <button
-                            type="button"
-                            className="nasa-assistant-card nasa-assistant-promo-card nasa-assistant-slide nasa-assistant-slide--5"
-                            onClick={() => {
-                              closeWidget();
-                              if (moviePromo.href) {
-                                navigate(moviePromo.href);
-                              }
-                            }}
-                          >
-                            <div className="nasa-assistant-promo-card__badge">{moviePromo?.badge || 'Phim hot'}</div>
-                            <div className="nasa-assistant-card__title nasa-assistant-promo-card__title">{moviePromo.title}</div>
-                            <div className="nasa-assistant-card__text nasa-assistant-promo-card__text">{moviePromo.description}</div>
-                            <div className="nasa-assistant-card__actions">
-                              <span className="nasa-assistant-mini-btn nasa-assistant-mini-btn--primary">{moviePromo.ctaLabel}</span>
-                            </div>
-                          </button>
-                        )}
-                        <div className="nasa-assistant-card nasa-assistant-slide nasa-assistant-slide--6">
-                          <div className="nasa-assistant-card__actions">
-                            <button type="button" className="nasa-assistant-mini-btn nasa-assistant-mini-btn--primary" onClick={() => handleQuickAction('Tạo ticket')}>
-                              Tạo ticket
-                            </button>
-                            <button type="button" className="nasa-assistant-mini-btn" onClick={() => handleQuickAction('Xem ticket của tôi')}>
-                              Xem ticket của tôi
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="nasa-assistant-recent-card nasa-assistant-slide nasa-assistant-slide--7">
-                          <div className="nasa-assistant-recent-card__title">ĐỀ XUẤT RẠP GẦN ĐÂY</div>
-                          <div className="nasa-assistant-recent">
-                            {RECENT_CINEMAS.map((item) => (
-                              <button
-                                key={item.label}
-                                type="button"
-                                className="nasa-assistant-recent__item"
-                                onClick={() => {
-                                  closeWidget();
-                                  navigate(item.href);
-                                }}
-                              >
-                                <span className="nasa-assistant-recent__dot">◦</span>
-                                <span>{item.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                ) : mode === 'tickets' ? (
+                {mode === 'tickets' ? (
                   <div className="nasa-assistant-thread">
                     <div className="nasa-assistant-card">
                       <div className="nasa-assistant-card__title">Ticket của tôi</div>
                       <div className="nasa-assistant-card__text">Chọn ticket để xem cuộc trò chuyện với admin ngay trong popup này.</div>
                       <div className="nasa-assistant-card__actions">
-                        <button type="button" className="nasa-assistant-mini-btn" onClick={() => setMode('home')}>Quay lại</button>
+                        <button type="button" className="nasa-assistant-mini-btn" onClick={() => setMode('chat')}>Quay lại</button>
                       </div>
                     </div>
                     {myTickets.map((item) => (
@@ -701,6 +636,55 @@ const NasaAiAssistantWidget = () => {
                         <div className="nasa-assistant-card__text">{item.lastMessage || item.description}</div>
                       </button>
                     ))}
+                  </div>
+                ) : mode === 'chat' ? (
+                  <div className="nasa-assistant-thread">
+                    <div className="nasa-assistant-card">
+                      <div className="nasa-assistant-card__title">NASA Bot hỗ trợ nhanh</div>
+                      <div className="nasa-assistant-card__text">
+                        {(nasaBotRuntime.openingQuestions || DEFAULT_NASA_BOT_RUNTIME.openingQuestions).join(' · ')}
+                      </div>
+                    </div>
+                    <div className="nasa-assistant-chip-grid">
+                      {(nasaBotRuntime.shortcuts || DEFAULT_NASA_BOT_RUNTIME.shortcuts).map((shortcut) => (
+                        <button
+                          key={shortcut.shortcutName}
+                          type="button"
+                          className="nasa-assistant-chip"
+                          onClick={() => handleRuntimeShortcut(shortcut)}
+                        >
+                          <div>
+                            <div className="nasa-assistant-chip__label">{shortcut.buttonName}</div>
+                            <div className="nasa-assistant-chip__hint">{shortcut.description}</div>
+                          </div>
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="nasa-assistant-card">
+                      <div className="nasa-assistant-card__title">Chat trực tiếp với staff/admin</div>
+                      <div className="nasa-assistant-card__text">
+                        {liveAvailability?.anyOnline
+                          ? `Hiện có ${liveAvailability.agents?.length || 0} staff/admin online. Bạn có thể gửi yêu cầu chat trực tiếp, nhưng khung chat realtime chỉ mở khi có người nhận hỗ trợ.`
+                          : 'Hiện chưa có staff/admin online. Bạn vẫn có thể tạo ticket để được phản hồi sau.'}
+                      </div>
+                      <div className="nasa-assistant-live-badges">
+                        <span className={`nasa-assistant-live-badge ${liveAvailability?.anyOnline ? 'nasa-assistant-live-badge--online' : 'nasa-assistant-live-badge--offline'}`}>
+                          {liveAvailability?.anyOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                      <div className="nasa-assistant-card__actions">
+                        <button
+                          type="button"
+                          className="nasa-assistant-mini-btn nasa-assistant-mini-btn--primary"
+                          onClick={requestLiveSupport}
+                          disabled={!liveAvailability?.anyOnline}
+                        >
+                          <Headset className="h-4 w-4" />
+                          Chat với staff/admin
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ) : mode === 'create' ? (
                   <div className="nasa-assistant-thread">
@@ -809,6 +793,22 @@ const NasaAiAssistantWidget = () => {
                     <button type="button" className="nasa-assistant-pill w-fit" onClick={() => setMode('tickets')}>
                       ← Quay lại danh sách ticket
                     </button>
+                    {activeTicket?.liveConnected && (
+                      <div className="nasa-assistant-card">
+                        <div className="nasa-assistant-card__title">Đang hỗ trợ bởi staff/admin</div>
+                        <div className="nasa-assistant-card__text">
+                          {activeTicket.assignedStaffName || activeTicket.assignedStaffEmail || 'Nhân viên hỗ trợ'} đang trao đổi trực tiếp với bạn.
+                        </div>
+                      </div>
+                    )}
+                    {activeTicket?.liveRequested && !activeTicket?.liveConnected && (
+                      <div className="nasa-assistant-card">
+                        <div className="nasa-assistant-card__title">Đang chờ staff/admin nhận hỗ trợ</div>
+                        <div className="nasa-assistant-card__text">
+                          Bạn đã gửi yêu cầu chat trực tiếp. Khi một staff/admin online bấm nhận hỗ trợ, cuộc trò chuyện realtime sẽ mở tại đây.
+                        </div>
+                      </div>
+                    )}
                     {ticketMessages.map((item) => (
                       <div
                         key={item.uuid}
@@ -920,7 +920,16 @@ const NasaAiAssistantWidget = () => {
                     <input
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
-                      placeholder={mode === 'ticket' ? 'Nhắn với admin...' : mode === 'create' ? 'Nhập mô tả ngắn...' : 'Nhập yêu cầu của bạn...'}
+                      placeholder={
+                        mode === 'ticket'
+                          ? (activeTicket?.liveRequested && !activeTicket?.liveConnected
+                            ? 'Đang chờ staff/admin nhận hỗ trợ...'
+                            : 'Nhắn với admin...')
+                          : mode === 'create'
+                            ? 'Nhập mô tả ngắn...'
+                            : 'Nhập yêu cầu của bạn...'
+                      }
+                      disabled={mode === 'ticket' && activeTicket?.liveRequested && !activeTicket?.liveConnected}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -944,6 +953,7 @@ const NasaAiAssistantWidget = () => {
                     <button
                       type="button"
                       className="nasa-assistant-send"
+                      disabled={mode === 'ticket' && activeTicket?.liveRequested && !activeTicket?.liveConnected}
                       onClick={
                         mode === 'ticket'
                           ? sendTicketReply
@@ -971,6 +981,21 @@ const NasaAiAssistantWidget = () => {
                       <Send className="h-4 w-4" />
                     </button>
                   </div>
+                  {mode === 'ticket' && showSatisfactionPrompt && (
+                    <div className="nasa-assistant-actions nasa-assistant-actions--rating-inline">
+                      {SATISFACTION_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className="nasa-assistant-pill nasa-assistant-pill--rating"
+                          onClick={() => submitSatisfaction(option.value)}
+                        >
+                          <Star className="h-4 w-4" />
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </footer>
             </section>

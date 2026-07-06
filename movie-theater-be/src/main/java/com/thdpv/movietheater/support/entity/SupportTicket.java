@@ -55,6 +55,24 @@ public class SupportTicket {
     @Column(name = "read_by_admin", nullable = false)
     private boolean readByAdmin = false;
 
+    @Column(name = "live_requested", nullable = false)
+    private boolean liveRequested = false;
+
+    @Column(name = "live_connected", nullable = false)
+    private boolean liveConnected = false;
+
+    @Column(name = "assigned_staff_email", length = 255)
+    private String assignedStaffEmail;
+
+    @Column(name = "assigned_staff_name", length = 255)
+    private String assignedStaffName;
+
+    @Column(name = "satisfaction_rating")
+    private Integer satisfactionRating;
+
+    @Column(name = "satisfaction_label", length = 64)
+    private String satisfactionLabel;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -157,6 +175,54 @@ public class SupportTicket {
 
     public void setReadByAdmin(boolean readByAdmin) {
         this.readByAdmin = readByAdmin;
+    }
+
+    public boolean isLiveRequested() {
+        return liveRequested;
+    }
+
+    public void setLiveRequested(boolean liveRequested) {
+        this.liveRequested = liveRequested;
+    }
+
+    public boolean isLiveConnected() {
+        return liveConnected;
+    }
+
+    public void setLiveConnected(boolean liveConnected) {
+        this.liveConnected = liveConnected;
+    }
+
+    public String getAssignedStaffEmail() {
+        return assignedStaffEmail;
+    }
+
+    public void setAssignedStaffEmail(String assignedStaffEmail) {
+        this.assignedStaffEmail = assignedStaffEmail;
+    }
+
+    public String getAssignedStaffName() {
+        return assignedStaffName;
+    }
+
+    public void setAssignedStaffName(String assignedStaffName) {
+        this.assignedStaffName = assignedStaffName;
+    }
+
+    public Integer getSatisfactionRating() {
+        return satisfactionRating;
+    }
+
+    public void setSatisfactionRating(Integer satisfactionRating) {
+        this.satisfactionRating = satisfactionRating;
+    }
+
+    public String getSatisfactionLabel() {
+        return satisfactionLabel;
+    }
+
+    public void setSatisfactionLabel(String satisfactionLabel) {
+        this.satisfactionLabel = satisfactionLabel;
     }
 
     public OffsetDateTime getCreatedAt() {

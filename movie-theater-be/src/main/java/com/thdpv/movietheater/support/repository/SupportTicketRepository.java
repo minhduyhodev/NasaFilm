@@ -14,6 +14,8 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, UU
 
     List<SupportTicket> findByOwnerEmailOrderByCreatedAtDesc(String ownerEmail);
 
+    List<SupportTicket> findByLiveRequestedTrueOrderByCreatedAtAsc();
+
     Optional<SupportTicket> findByTicketCode(String ticketCode);
 
     boolean existsByTicketCode(String ticketCode);

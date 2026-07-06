@@ -69,6 +69,9 @@ const SupportInboxPage = () => {
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingTickets, setLoadingTickets] = useState(true);
+  const [liveQueue, setLiveQueue] = useState([]);
+  const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
+  const [processingLiveTicket, setProcessingLiveTicket] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const messagesEndRef = useRef(null);
@@ -130,13 +133,31 @@ const SupportInboxPage = () => {
     }
   };
 
+  const loadLiveQueue = async () => {
+    try {
+      const list = await supportService.getPendingLiveSupportRequests();
+      setLiveQueue(Array.isArray(list) ? list : []);
+    } catch {
+      setLiveQueue([]);
+    }
+  };
+
+  const loadLiveAvailability = async () => {
+    try {
+      const data = await supportService.getLiveSupportAvailability();
+      setLiveAvailability(data || { anyOnline: false, agents: [] });
+    } catch {
+      setLiveAvailability({ anyOnline: false, agents: [] });
+    }
+  };
+
   const loadMessages = async (ticketCode = selectedTicketCode) => {
     if (!ticketCode) {
       setMessages([]);
       return;
     }
     try {
-      const list = await supportService.getSupportMessages(ticketCode);
+      const list = await supportService.getAdminSupportMessages(ticketCode);
       setMessages(Array.isArray(list) ? list : []);
     } catch {
       setMessages([]);
@@ -145,6 +166,8 @@ const SupportInboxPage = () => {
 
   useEffect(() => {
     loadTickets();
+    loadLiveQueue();
+    loadLiveAvailability();
   }, []);
 
   useEffect(() => {
@@ -156,10 +179,75 @@ const SupportInboxPage = () => {
   }, [messages, selectedTicketCode]);
 
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_SUPPORT, loadTickets);
+  useRealtimeTopic(REALTIME_TOPICS.ADMIN_SUPPORT_LIVE, () => {
+    loadTickets();
+    loadLiveQueue();
+    loadLiveAvailability();
+  });
+  useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
+    loadLiveAvailability();
+  });
   useRealtimeTopic(
     selectedTicketCode ? REALTIME_TOPICS.supportTicket(selectedTicketCode) : null,
     () => loadMessages(selectedTicketCode),
   );
+
+  const handleAcceptLiveSupport = async (ticketCode) => {
+    setProcessingLiveTicket(ticketCode);
+    try {
+      await supportService.acceptLiveSupport(ticketCode);
+      await Promise.all([loadTickets(), loadLiveQueue(), loadMessages(ticketCode)]);
+      setSelectedTicketCode(ticketCode);
+      notificationService.success('Đã nhận hỗ trợ trực tiếp cho khách hàng.');
+    } catch (err) {
+      notificationService.error(err?.response?.data?.message || 'Không thể nhận hỗ trợ.');
+    } finally {
+      setProcessingLiveTicket('');
+    }
+  };
+
+  const handleRejectLiveSupport = async (ticketCode) => {
+    setProcessingLiveTicket(ticketCode);
+    try {
+      await supportService.rejectLiveSupport(ticketCode);
+      await Promise.all([loadTickets(), loadLiveQueue()]);
+      notificationService.info('Đã từ chối yêu cầu hỗ trợ này.');
+    } catch (err) {
+      notificationService.error(err?.response?.data?.message || 'Không thể từ chối yêu cầu.');
+    } finally {
+      setProcessingLiveTicket('');
+    }
+  };
+
+  const handleDeleteTicket = async () => {
+    if (!selectedTicketCode) return;
+    setLoading(true);
+    try {
+      await supportService.deleteSupportTicket(selectedTicketCode);
+      await Promise.all([loadTickets(), loadLiveQueue()]);
+      setSelectedTicketCode('');
+      setMessages([]);
+      notificationService.success('Đã xóa ticket đã hoàn tất.');
+    } catch (err) {
+      notificationService.error(err?.response?.data?.message || 'Không thể xóa ticket này.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinishSupport = async () => {
+    if (!selectedTicketCode) return;
+    setLoading(true);
+    try {
+      await supportService.updateAdminSupportStatus(selectedTicketCode, { status: 'DONE' });
+      await Promise.all([loadTickets(), loadMessages(selectedTicketCode)]);
+      notificationService.success('Đã kết thúc hỗ trợ. Chờ khách hàng đánh giá mức độ hài lòng.');
+    } catch (err) {
+      notificationService.error(err?.response?.data?.message || 'Không thể kết thúc hỗ trợ.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleReply = async () => {
     const value = draft.trim();
@@ -217,6 +305,72 @@ const SupportInboxPage = () => {
         <div className="support-kpi-card">
           <div className="support-kpi-label">Đã đóng</div>
           <div className="support-kpi-value support-kpi-value--success">{ticketStats.resolved}</div>
+        </div>
+      </div>
+
+      <div className="support-kpi-grid" style={{ marginTop: '-0.25rem' }}>
+        <div className="support-kpi-card">
+          <div className="support-kpi-label">Staff online</div>
+          <div className="support-kpi-value support-kpi-value--success">
+            {liveAvailability.agents?.length || 0}
+          </div>
+        </div>
+        <div className="support-kpi-card">
+          <div className="support-kpi-label">Yêu cầu live chờ nhận</div>
+          <div className="support-kpi-value support-kpi-value--warn">
+            {liveQueue.length}
+          </div>
+        </div>
+      </div>
+
+      <div className="support-list-panel" style={{ marginBottom: '1rem', minHeight: 'auto', maxHeight: 'none' }}>
+        <div className="support-list-head">
+          <div className="support-list-title">
+            <Headphones className="w-4 h-4" />
+            Hàng chờ chat trực tiếp
+          </div>
+          <p className="support-list-desc">
+            {liveAvailability.anyOnline
+              ? `${liveAvailability.agents?.length || 0} staff/admin đang online`
+              : 'Hiện chưa có staff/admin online'}
+          </p>
+        </div>
+        <div className="support-ticket-list">
+          {liveQueue.length === 0 ? (
+            <div className="support-list-empty">
+              Chưa có yêu cầu chat trực tiếp nào đang chờ nhận.
+            </div>
+          ) : (
+            liveQueue.map((ticket) => (
+              <div key={ticket.ticketCode} className="support-ticket-card support-ticket-card--active">
+                <div className="support-ticket-card-top">
+                  <strong className="support-ticket-code">{ticket.ticketCode}</strong>
+                  <span className="support-status support-status--progress">Live request</span>
+                </div>
+                <p className="support-ticket-preview">{ticket.description}</p>
+                <div className="support-ticket-meta">
+                  <span className="support-ticket-owner">{ticket.ownerEmail}</span>
+                  <div className="flex gap-2">
+                    <PrimaryButton
+                      type="button"
+                      loading={processingLiveTicket === ticket.ticketCode}
+                      onClick={() => handleAcceptLiveSupport(ticket.ticketCode)}
+                    >
+                      Nhận
+                    </PrimaryButton>
+                    <button
+                      type="button"
+                      className="support-filter-tab"
+                      disabled={processingLiveTicket === ticket.ticketCode}
+                      onClick={() => handleRejectLiveSupport(ticket.ticketCode)}
+                    >
+                      Từ chối
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -287,6 +441,13 @@ const SupportInboxPage = () => {
                       <span className={statusMeta.className}>{statusMeta.label}</span>
                     </div>
                     <p className="support-ticket-preview">{preview}</p>
+                    {ticket.liveRequested && (
+                      <p className="support-ticket-preview">
+                        {ticket.liveConnected
+                          ? `Live support: ${ticket.assignedStaffName || ticket.assignedStaffEmail || 'Đã có người nhận'}`
+                          : 'Live support: Đang chờ staff/admin nhận'}
+                      </p>
+                    )}
                     <div className="support-ticket-meta">
                       <span className="support-ticket-owner">{ticket.ownerEmail}</span>
                       <span>{formatListTime(ticket.updatedAt || ticket.createdAt)}</span>
@@ -322,6 +483,26 @@ const SupportInboxPage = () => {
                   {getStatusMeta(selectedTicket.status).label}
                 </span>
               </header>
+
+              {selectedTicket.status === 'DONE' && (
+                <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
+                  <p className="support-state-title">
+                    {selectedTicket.satisfactionRating
+                      ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
+                      : 'Hỗ trợ đã kết thúc'}
+                  </p>
+                  <p className="support-state-desc">
+                    {selectedTicket.satisfactionRating
+                      ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
+                      : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
+                  </p>
+                  <div className="support-compose-footer" style={{ justifyContent: 'flex-end' }}>
+                    <button type="button" className="support-filter-tab" onClick={handleDeleteTicket}>
+                      Xóa ticket
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="support-messages custom-scrollbar">
                 {messages.length === 0 ? (
@@ -369,15 +550,22 @@ const SupportInboxPage = () => {
                 />
                 <div className="support-compose-footer">
                   <span className="support-compose-hint">Realtime · Enter gửi nhanh</span>
-                  <PrimaryButton
-                    type="button"
-                    disabled={!draft.trim()}
-                    loading={loading}
-                    onClick={handleReply}
-                  >
-                    <Send className="h-4 w-4" />
-                    Gửi phản hồi
-                  </PrimaryButton>
+                  <div className="flex gap-2 items-center">
+                    {selectedTicket.liveRequested && selectedTicket.liveConnected && !selectedTicket.satisfactionRating && selectedTicket.status !== 'DONE' && (
+                      <button type="button" className="support-filter-tab support-filter-tab--active" onClick={handleFinishSupport}>
+                        Kết thúc hỗ trợ
+                      </button>
+                    )}
+                    <PrimaryButton
+                      type="button"
+                      disabled={!draft.trim()}
+                      loading={loading}
+                      onClick={handleReply}
+                    >
+                      <Send className="h-4 w-4" />
+                      Gửi phản hồi
+                    </PrimaryButton>
+                  </div>
                 </div>
               </div>
             </>

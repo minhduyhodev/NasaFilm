@@ -39,6 +39,12 @@ public class StompTopicAuthorizationService {
                 && hasAnyRole(authentication, "ROLE_ADMIN");
     }
 
+    public boolean hasStaffOrAdminRole(Authentication authentication) {
+        return authentication != null
+                && authentication.isAuthenticated()
+                && hasAnyRole(authentication, "ROLE_ADMIN", "ROLE_STAFF");
+    }
+
     private void assertAuthenticated(Authentication authentication, String message) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AccessDeniedException(message);
