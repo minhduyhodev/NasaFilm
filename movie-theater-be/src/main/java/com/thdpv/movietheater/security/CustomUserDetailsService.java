@@ -55,8 +55,14 @@ public class CustomUserDetailsService implements UserDetailsService {
                 }
 
                 if (!roleIds.isEmpty()) {
-                        List<String> permissions = rolePermissionRepository.findPermissionNamesByRoleIds(List.copyOf(roleIds));
-                        permissions.forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
+                        List<UUID> adminRoleIds = userRoles.stream()
+                                .filter(ur -> ur.getRole().getName() == com.thdpv.movietheater.user.enums.RoleName.ADMIN)
+                                .map(ur -> ur.getRole().getId())
+                                .toList();
+                        if (!adminRoleIds.isEmpty()) {
+                                List<String> permissions = rolePermissionRepository.findPermissionNamesByRoleIds(adminRoleIds);
+                                permissions.forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
+                        }
                 }
 
                 List<String> userPermissions = userPermissionRepository.findPermissionNamesByUserId(user.getId());

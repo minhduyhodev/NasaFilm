@@ -227,15 +227,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
-        boolean isAdminOrStaff = userRoles.stream()
-                .map(ur -> ur.getRole().getName())
-                .anyMatch(role -> role == RoleName.ADMIN || role == RoleName.STAFF);
-
-        if (isAdminOrStaff) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Không thể cập nhật trạng thái cho tài khoản Admin hoặc Staff");
-        }
-
+        // Allow updating status for any user (except self, which is handled in frontend/controller)
         user.setStatus(status);
         userRepository.save(user);
     }

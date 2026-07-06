@@ -52,17 +52,26 @@ export const LoginPage = () => {
     const storedUser = tokenService.getUser();
     const roles = storedUser?.roles || [];
 
+    const permissions = storedUser?.permissions || [];
     const isAdminOrStaff = roles.some((r) => {
       if (!r) return false;
       const roleLower = r.toLowerCase();
       return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
     });
 
+    const isCounterOnly = permissions.some(p => p.startsWith('COUNTER_') || p === 'TICKET_CHECKIN') && 
+                          !permissions.some(p => p.endsWith('_WRITE') || p === 'USER_VIEW' || p === 'SUPPORT_MANAGE');
+
     if (isAdminOrStaff) {
-      const targetPath = (from && from.startsWith('/admin')) ? from : '/admin';
-      navigate(targetPath, { replace: true });
+      if (isCounterOnly) {
+        const targetPath = (from && from.startsWith('/counter')) ? from : '/counter/pos';
+        navigate(targetPath, { replace: true });
+      } else {
+        const targetPath = (from && (from.startsWith('/admin') || from.startsWith('/counter'))) ? from : '/admin';
+        navigate(targetPath, { replace: true });
+      }
     } else {
-      const targetPath = (from && !from.startsWith('/admin') && from !== '/unauthorized') ? from : '/';
+      const targetPath = (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized') ? from : '/';
       navigate(targetPath, { replace: true });
     }
   };

@@ -98,7 +98,7 @@ export default function CounterLayout() {
     }).then((result) => {
       if (result.isConfirmed) {
         logout();
-        navigate('/counter/login');
+        navigate('/login');
       }
     });
   };

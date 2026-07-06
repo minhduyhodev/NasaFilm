@@ -14,8 +14,9 @@ public interface UserPermissionRepository extends JpaRepository<UserPermission, 
 
     List<UserPermission> findByUserId(UUID userId);
 
-    @Modifying
-    void deleteByUserId(UUID userId);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM UserPermission up WHERE up.userId = :userId")
+    void deleteByUserId(@Param("userId") UUID userId);
 
     @Query(value = """
             select distinct p.name

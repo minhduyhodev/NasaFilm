@@ -76,17 +76,17 @@ export const AdminRoutes = () => {
             element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieFormPage /></PermissionRoute>}
           />
           <Route path="movies/:movieUuid" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieDetailPage /></PermissionRoute>} />
-          <Route path="media" element={<MediaCatalogPage />} />
+          <Route path="media" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><MediaCatalogPage /></PermissionRoute>} />
           <Route path="actors" element={<Navigate to="/admin/media" replace />} />
           <Route path="actors/new" element={<Navigate to="/admin/media" replace />} />
           <Route path="actors/:actorUuid/edit" element={<Navigate to="/admin/media" replace />} />
           <Route path="actors/:actorUuid" element={<Navigate to="/admin/media" replace />} />
-          <Route path="bookings" element={<BookingsPage />} />
-          <Route path="refunds" element={<RefundsPage />} />
+          <Route path="bookings" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><BookingsPage /></PermissionRoute>} />
+          <Route path="refunds" element={<PermissionRoute permission={PERMISSIONS.COUNTER_REFUND_PROCESS}><RefundsPage /></PermissionRoute>} />
           <Route path="support" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><SupportInboxPage /></PermissionRoute>} />
-          <Route path="feedback-reviews" element={<FeedbackReviewsPage />} />
+          <Route path="feedback-reviews" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><FeedbackReviewsPage /></PermissionRoute>} />
           <Route path="showtimes" element={<PermissionRoute permission={PERMISSIONS.SHOWTIME_WRITE}><ShowtimesPage /></PermissionRoute>} />
-          <Route path="cinemas" element={<CinemasPage />} />
+          <Route path="cinemas" element={<PermissionRoute permission={PERMISSIONS.SHOWTIME_WRITE}><CinemasPage /></PermissionRoute>} />
           <Route path="cinemas/new" element={<Navigate to="/admin/cinemas" replace />} />
           <Route path="cinemas/:cinemaUuid/edit" element={<Navigate to="/admin/cinemas" replace />} />
           <Route path="cinemas/:cinemaUuid/rooms/new" element={<CinemaRoomsNewRedirect />} />
@@ -104,21 +104,21 @@ export const AdminRoutes = () => {
           />
           <Route path="users" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><UsersPage /></PermissionRoute>} />
           <Route path="vouchers" element={<PermissionRoute permission={PERMISSIONS.PROMOTION_WRITE}><VouchersPage /></PermissionRoute>} />
-          <Route path="missions" element={<MissionsPage />} />
+          <Route path="missions" element={<PermissionRoute permission={PERMISSIONS.SUPPORT_MANAGE}><MissionsPage /></PermissionRoute>} />
           <Route path="vouchers/new" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId/edit" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="vouchers/:voucherId" element={<Navigate to="/admin/vouchers" replace />} />
           <Route path="combos" element={<PermissionRoute permission={PERMISSIONS.COMBO_WRITE}><AdminCombosPage /></PermissionRoute>} />
-          <Route path="combos/revenue" element={<AdminComboRevenuePage />} />
+          <Route path="combos/revenue" element={<PermissionRoute permission={PERMISSIONS.COMBO_WRITE}><AdminComboRevenuePage /></PermissionRoute>} />
           <Route path="combos/new" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid/edit" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid" element={<Navigate to="/admin/combos" replace />} />
-          <Route path="staff" element={<StaffPage />} />
+          <Route path="staff" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><StaffPage /></PermissionRoute>} />
           <Route path="staff-control" element={<PermissionRoute permission={PERMISSIONS.TICKET_CHECKIN}><StaffMissionControlPage /></PermissionRoute>} />
-          <Route path="matchmaker-analytics" element={<MatchmakerAnalyticsPage />} />
+          <Route path="matchmaker-analytics" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><MatchmakerAnalyticsPage /></PermissionRoute>} />
           <Route path="staff_control" element={<Navigate to="/admin/staff-control" replace />} />
-          <Route path="config" element={<ConfigPage />} />
-          <Route path="email-templates" element={<EmailTemplatesPage />} />
+          <Route path="config" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><ConfigPage /></PermissionRoute>} />
+          <Route path="email-templates" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><EmailTemplatesPage /></PermissionRoute>} />
         </Route>
       </Routes>
     </Suspense>
