@@ -95,45 +95,51 @@ public class EmailTemplateService {
         seedIfMissing(CODE_VOD_TICKET, "Vé xem phim online (VOD)",
                 "Gửi mã vé kích hoạt xem phim trực tuyến sau khi mua vé online",
                 "NASA FILM - Mã vé xem phim online {{MOVIE_TITLE}}",
-                EmailTemplateDefaults.vodTicketHtml());
+                EmailTemplateBlockPresets.vodTicketBlocks());
         seedIfMissing(CODE_THEATER_TICKET, "Vé xem phim tại rạp",
                 "Gửi mã vé và thông tin suất chiếu sau khi đặt vé rạp thành công",
                 "NASA FILM - Vé rạp {{MOVIE_TITLE}} - {{SHOWTIME}}",
-                EmailTemplateDefaults.theaterTicketHtml());
+                EmailTemplateBlockPresets.theaterTicketBlocks());
         seedIfMissing(CODE_OTP_REGISTER, "OTP đăng ký tài khoản",
                 "Gửi mã OTP khi người dùng đăng ký tài khoản mới",
                 "NASA FILM - Mã xác thực đăng ký tài khoản",
-                EmailTemplateDefaults.otpRegisterHtml());
+                EmailTemplateBlockPresets.otpRegisterBlocks());
         seedIfMissing(CODE_PASSWORD_RESET, "Đặt lại mật khẩu",
                 "Gửi liên kết đặt lại mật khẩu khi người dùng quên mật khẩu",
                 "NASA FILM - Yêu cầu đặt lại mật khẩu",
-                EmailTemplateDefaults.passwordResetHtml());
-        upgradeTheaterTicketTemplateIfNeeded();
+                EmailTemplateBlockPresets.passwordResetBlocks());
+        backfillContentBlocksIfMissing();
     }
 
-    private void upgradeTheaterTicketTemplateIfNeeded() {
-        emailTemplateRepository.findByCodeIgnoreCase(CODE_THEATER_TICKET).ifPresent(template -> {
-            String body = template.getHtmlBody();
-            if (body == null || body.contains("{{QR_CHECKIN_SECTION}}")) {
+    private void backfillContentBlocksIfMissing() {
+        emailTemplateRepository.findAllByOrderByCodeAsc().forEach(template -> {
+            if (template.getContentBlocks() != null && !template.getContentBlocks().isBlank()) {
                 return;
             }
-            String marker = "<p>Mã vé của bạn (xuất trình tại quầy hoặc cửa soát vé):</p>";
-            if (body.contains(marker)) {
-                template.setHtmlBody(body.replace(marker, "{{QR_CHECKIN_SECTION}}\n" + marker));
+            String preset = presetBlocksForCode(template.getCode());
+            if (preset == null) {
+                return;
             }
-            String profileLink = "<a href=\"{{PROFILE_URL}}\"";
-            if (template.getHtmlBody().contains(profileLink)
-                    && !template.getHtmlBody().contains("{{BOARDING_URL}}")) {
-                template.setHtmlBody(template.getHtmlBody().replace(
-                        profileLink,
-                        "<a href=\"{{BOARDING_URL}}\" style=\"display:inline-block;background:linear-gradient(135deg,#334155,#1e293b);color:#fff;padding:12px 28px;text-decoration:none;border-radius:8px;font-weight:700;margin-right:8px;\">Thẻ lên máy bay</a>\n"
-                                + profileLink));
-            }
+            template.setContentBlocks(preset);
+            template.setHtmlBody(EmailTemplateBlockCompiler.compile(preset, template.getCode()));
             emailTemplateRepository.save(template);
         });
     }
 
-    private void seedIfMissing(String code, String name, String purpose, String subject, String htmlBody) {
+    private String presetBlocksForCode(String code) {
+        if (code == null) {
+            return null;
+        }
+        return switch (code.toUpperCase()) {
+            case CODE_VOD_TICKET -> EmailTemplateBlockPresets.vodTicketBlocks();
+            case CODE_THEATER_TICKET -> EmailTemplateBlockPresets.theaterTicketBlocks();
+            case CODE_OTP_REGISTER -> EmailTemplateBlockPresets.otpRegisterBlocks();
+            case CODE_PASSWORD_RESET -> EmailTemplateBlockPresets.passwordResetBlocks();
+            default -> null;
+        };
+    }
+
+    private void seedIfMissing(String code, String name, String purpose, String subject, String contentBlocks) {
         if (emailTemplateRepository.findByCodeIgnoreCase(code).isPresent()) {
             return;
         }
@@ -142,7 +148,8 @@ public class EmailTemplateService {
         template.setName(name);
         template.setPurpose(purpose);
         template.setSubject(subject);
-        template.setHtmlBody(htmlBody);
+        template.setContentBlocks(contentBlocks);
+        template.setHtmlBody(EmailTemplateBlockCompiler.compile(contentBlocks, code));
         template.setActive(true);
         emailTemplateRepository.save(template);
     }
@@ -152,8 +159,19 @@ public class EmailTemplateService {
         template.setName(request.getName().trim());
         template.setPurpose(request.getPurpose() != null ? request.getPurpose().trim() : null);
         template.setSubject(request.getSubject().trim());
-        template.setHtmlBody(request.getHtmlBody());
         template.setActive(request.isActive());
+
+        String contentBlocks = request.getContentBlocks();
+        if (contentBlocks != null && !contentBlocks.isBlank()) {
+            template.setContentBlocks(contentBlocks);
+            template.setHtmlBody(EmailTemplateBlockCompiler.compile(contentBlocks, code));
+            return;
+        }
+
+        if (request.getHtmlBody() == null || request.getHtmlBody().isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng cung cấp nội dung mẫu email");
+        }
+        template.setHtmlBody(request.getHtmlBody());
     }
 
     private String normalizeCode(String code) {

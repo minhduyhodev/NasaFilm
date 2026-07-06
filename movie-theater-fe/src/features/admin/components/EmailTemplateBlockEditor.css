@@ -1,0 +1,240 @@
+.etb-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.etb-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.etb-editor__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.etb-editor__add-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.etb-add-btn,
+.etb-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.etb-add-btn:hover,
+.etb-mini-btn:hover {
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.etb-empty {
+  margin: 0;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.etb-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.etb-block {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(8, 12, 22, 0.72);
+  overflow: hidden;
+}
+
+.etb-block__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.etb-block__grip {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.etb-block__title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.etb-block__index {
+  display: inline-flex;
+  margin-right: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.etb-block__title {
+  font-size: 0.8rem;
+  color: #f8fafc;
+}
+
+.etb-block__subtitle {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.etb-block__actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.etb-block__body {
+  padding: 0.75rem;
+}
+
+.etb-input,
+.etb-select,
+.etb-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+  font-size: 0.82rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.etb-textarea {
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.etb-parts,
+.etb-table-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.etb-part,
+.etb-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.etb-table-row {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) auto;
+}
+
+.etb-part-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.etb-field-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #fecaca;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.etb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.etb-icon-btn:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.etb-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.etb-icon-btn--danger:hover:not(:disabled) {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.etb-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.etb-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.etb-subject-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.etb-subject-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.etb-subject-chip:hover {
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.35);
+}

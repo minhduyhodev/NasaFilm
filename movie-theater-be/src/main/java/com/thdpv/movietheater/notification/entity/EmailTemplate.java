@@ -32,6 +32,9 @@ public class EmailTemplate {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String htmlBody;
 
+    @Column(name = "content_blocks", columnDefinition = "TEXT")
+    private String contentBlocks;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -102,6 +105,14 @@ public class EmailTemplate {
 
     public void setHtmlBody(String htmlBody) {
         this.htmlBody = htmlBody;
+    }
+
+    public String getContentBlocks() {
+        return contentBlocks;
+    }
+
+    public void setContentBlocks(String contentBlocks) {
+        this.contentBlocks = contentBlocks;
     }
 
     public boolean isActive() {

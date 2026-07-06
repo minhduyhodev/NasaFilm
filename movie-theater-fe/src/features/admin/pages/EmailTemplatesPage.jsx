@@ -3,14 +3,19 @@ import { Loader2, Mail, Plus, Trash2, Eye } from 'lucide-react';
 import { adminEmailTemplateService } from '../api/adminEmailTemplateService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { AdminPage } from '../components';
+import EmailTemplateBlockEditor from '../components/EmailTemplateBlockEditor';
 import {
+  BLOCK_PRESETS,
   SYSTEM_TEMPLATE_CODES,
-  TEMPLATE_PRESETS,
   applyTemplateVariables,
-  buildEmailHtml,
-  getVariableList,
-  htmlToEditableText,
+  createContentDocument,
+  getFieldOptions,
+  getPresetBlocks,
   isSystemTemplate,
+  normalizeBlocks,
+  previewBlocks,
+  resolveTemplateBlocks,
+  serializeContentDocument,
 } from '../utils/emailTemplateUtils';
 import './EmailTemplatesPage.css';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -20,14 +25,14 @@ const emptyForm = {
   name: '',
   purpose: '',
   subject: '',
-  textBody: '',
+  blocks: [],
   active: true,
 };
 
 const CODE_OPTIONS = [
   ...SYSTEM_TEMPLATE_CODES.map((code) => ({
     value: code,
-    label: TEMPLATE_PRESETS[code]?.name || code,
+    label: BLOCK_PRESETS[code]?.name || code,
   })),
   { value: '__CUSTOM__', label: 'Mẫu tùy chỉnh (nhập mã riêng)' },
 ];
@@ -42,7 +47,7 @@ const EmailTemplatesPage = () => {
   const [codeMode, setCodeMode] = useState('VOD_TICKET');
   const [customCode, setCustomCode] = useState('');
   const [showPreview, setShowPreview] = useState(true);
-  const textBodyRef = useRef(null);
+  const subjectRef = useRef(null);
 
   const resolvedCode = codeMode === '__CUSTOM__'
     ? customCode.trim().toUpperCase()
@@ -76,7 +81,7 @@ const EmailTemplatesPage = () => {
   }, [templates]);
 
   const applyPreset = (code) => {
-    const preset = TEMPLATE_PRESETS[code];
+    const preset = BLOCK_PRESETS[code];
     if (!preset) return;
     setForm((prev) => ({
       ...prev,
@@ -84,7 +89,7 @@ const EmailTemplatesPage = () => {
       name: preset.name,
       purpose: preset.purpose,
       subject: preset.subject,
-      textBody: preset.textBody,
+      blocks: getPresetBlocks(code),
     }));
   };
 
@@ -111,7 +116,7 @@ const EmailTemplatesPage = () => {
       name: template.name || '',
       purpose: template.purpose || '',
       subject: template.subject || '',
-      textBody: htmlToEditableText(template.htmlBody || ''),
+      blocks: resolveTemplateBlocks(template, code),
       active: template.active !== false,
     });
   };
@@ -134,17 +139,17 @@ const EmailTemplatesPage = () => {
     }
   };
 
-  const insertVariable = (varName) => {
-    const token = `{{${varName}}}`;
-    const el = textBodyRef.current;
+  const insertSubjectField = (fieldKey) => {
+    const token = `{{${fieldKey}}}`;
+    const el = subjectRef.current;
     if (!el) {
-      setForm((prev) => ({ ...prev, textBody: `${prev.textBody}${prev.textBody ? '\n' : ''}${token}` }));
+      setForm((prev) => ({ ...prev, subject: `${prev.subject}${token}` }));
       return;
     }
     const start = el.selectionStart ?? el.value.length;
     const end = el.selectionEnd ?? el.value.length;
-    const next = `${form.textBody.slice(0, start)}${token}${form.textBody.slice(end)}`;
-    setForm((prev) => ({ ...prev, textBody: next }));
+    const next = `${form.subject.slice(0, start)}${token}${form.subject.slice(end)}`;
+    setForm((prev) => ({ ...prev, subject: next }));
     requestAnimationFrame(() => {
       el.focus();
       const pos = start + token.length;
@@ -154,8 +159,8 @@ const EmailTemplatesPage = () => {
 
   const handleSave = async () => {
     const code = resolvedCode;
-    if (!code || !form.name.trim() || !form.subject.trim() || !form.textBody.trim()) {
-      notificationService.error('Vui lòng điền đủ loại mẫu, tên, tiêu đề và nội dung email');
+    if (!code || !form.name.trim() || !form.subject.trim() || !form.blocks.length) {
+      notificationService.error('Vui lòng điền đủ loại mẫu, tên, tiêu đề và ít nhất một khối nội dung');
       return;
     }
 
@@ -171,7 +176,7 @@ const EmailTemplatesPage = () => {
         name: form.name.trim(),
         purpose: form.purpose.trim(),
         subject: form.subject.trim(),
-        htmlBody: buildEmailHtml(form.textBody, code),
+        contentBlocks: serializeContentDocument(createContentDocument(form.blocks)),
         active: form.active,
       };
 
@@ -213,9 +218,9 @@ const EmailTemplatesPage = () => {
     }
   };
 
-  const variableList = getVariableList(resolvedCode);
+  const subjectFieldOptions = getFieldOptions(resolvedCode);
   const previewSubject = useMemo(() => applyTemplateVariables(form.subject), [form.subject]);
-  const previewBody = useMemo(() => applyTemplateVariables(form.textBody), [form.textBody]);
+  const previewBody = useMemo(() => previewBlocks(form.blocks), [form.blocks]);
 
   return (
     <AdminPage className="et-page">
@@ -225,7 +230,7 @@ const EmailTemplatesPage = () => {
             <p className="et-page__eyebrow">Cấu hình hệ thống</p>
             <h1 className="et-page__title">Cấu hình mẫu email</h1>
             <p className="et-page__desc">
-              Soạn nội dung email dạng văn bản với biến {'{{TÊN_BIẾN}}'}. Hệ thống tự bọc khung HTML NASA FILM khi gửi.
+              Soạn nội dung bằng đoạn văn và chọn trường dữ liệu có sẵn. Hệ thống tự bọc khung HTML NASA FILM khi gửi.
             </p>
           </div>
           <button type="button" className="et-page__action" onClick={startCreate}>
@@ -406,40 +411,32 @@ const EmailTemplatesPage = () => {
                     <label className="et-label" htmlFor="template-subject">Tiêu đề email</label>
                     <input
                       id="template-subject"
+                      ref={subjectRef}
                       className="et-input"
                       value={form.subject}
                       onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
-                      placeholder="NASA FILM - Mã vé {{MOVIE_TITLE}}"
+                      placeholder="NASA FILM - Mã vé phim"
                     />
-                    <p className="et-hint">Dùng biến trong tiêu đề, ví dụ: {'{{MOVIE_TITLE}}'}</p>
-                  </div>
-
-                  <div className="et-field">
-                    <label className="et-label" htmlFor="template-body">Nội dung email (định dạng text)</label>
-                    <textarea
-                      id="template-body"
-                      ref={textBodyRef}
-                      className="et-textarea"
-                      value={form.textBody}
-                      onChange={(e) => setForm((prev) => ({ ...prev, textBody: e.target.value }))}
-                      placeholder={'Xin chào {{CUSTOMER_NAME}},\n\nNội dung email...\n\n{{TICKET_CODE}}'}
-                    />
-                    <p className="et-hint">
-                      Mỗi đoạn cách nhau một dòng trống. Dòng chỉ chứa biến (vd: {'{{OTP_CODE}}'}) sẽ hiển thị nổi bật trong email.
-                    </p>
-                    <div className="et-vars">
-                      {variableList.map((varName) => (
+                    <p className="et-hint">Chèn trường dữ liệu vào tiêu đề bằng nút bên dưới.</p>
+                    <div className="etb-subject-fields">
+                      {subjectFieldOptions.map((field) => (
                         <button
-                          key={varName}
+                          key={field.key}
                           type="button"
-                          className="et-var-chip"
-                          onClick={() => insertVariable(varName)}
+                          className="etb-subject-chip"
+                          onClick={() => insertSubjectField(field.key)}
                         >
-                          {`{{${varName}}}`}
+                          + {field.label}
                         </button>
                       ))}
                     </div>
                   </div>
+
+                  <EmailTemplateBlockEditor
+                    templateCode={resolvedCode}
+                    blocks={form.blocks}
+                    onChange={(blocks) => setForm((prev) => ({ ...prev, blocks: normalizeBlocks(blocks) }))}
+                  />
 
                   {showPreview && (
                     <div className="et-preview">
