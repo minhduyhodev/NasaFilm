@@ -29,6 +29,14 @@ public class SupportRealtimeBroadcaster {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onSupportTicketDeletedEvent(SupportTicketService.SupportTicketDeletedEvent event) {
+        messagingTemplate.convertAndSend(ADMIN_TOPIC, event);
+        if (event.ticketCode() != null && !event.ticketCode().isBlank()) {
+            messagingTemplate.convertAndSend(USER_TOPIC_PREFIX + event.ticketCode(), event);
+        }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onSupportLiveEvent(SupportLiveSupportService.SupportLiveEvent event) {
         messagingTemplate.convertAndSend(ADMIN_LIVE_TOPIC, event);
         messagingTemplate.convertAndSend(STAFF_AGENT_TOPIC, event);

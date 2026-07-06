@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.support.service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,6 +19,8 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 
 @Service
 public class SupportTicketService {
+
+    private static final Set<String> CLOSED_STATUSES = Set.of("DONE", "RESOLVED", "CLOSED");
 
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketMessageRepository supportTicketMessageRepository;
@@ -37,6 +40,7 @@ public class SupportTicketService {
 
     @Transactional
     public SupportTicketResponse create(String ownerEmail, SupportTicketCreateRequest request) {
+        assertNoActiveSupport(ownerEmail);
         SupportTicket ticket = new SupportTicket();
         ticket.setTicketCode(generateTicketCode());
         ticket.setOwnerEmail(ownerEmail);
@@ -51,6 +55,16 @@ public class SupportTicketService {
         SupportTicket saved = supportTicketRepository.save(ticket);
         saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), request.getDescription().trim());
         return map(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public void assertNoActiveSupport(String ownerEmail) {
+      boolean hasActive = supportTicketRepository.findByOwnerEmailOrderByCreatedAtDesc(ownerEmail).stream()
+              .anyMatch(ticket -> ticket != null && ticket.getStatus() != null
+                      && !CLOSED_STATUSES.contains(ticket.getStatus().trim().toUpperCase()));
+      if (hasActive) {
+          throw new IllegalArgumentException("Bạn đang có một ticket hoặc phiên hỗ trợ đang hoạt động. Vui lòng hoàn tất trước khi tạo yêu cầu mới.");
+      }
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +139,15 @@ public class SupportTicketService {
         return map(supportTicketRepository.save(ticket));
     }
 
+    @Transactional
+    public void delete(String ticketCode) {
+        SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
+        supportTicketMessageRepository.deleteByTicketUuid(ticket.getUuid());
+        supportTicketRepository.delete(ticket);
+        eventPublisher.publishEvent(new SupportTicketDeletedEvent(ticketCode));
+    }
+
     void saveMessage(UUID ticketUuid, String senderRole, String senderName, String message) {
         SupportTicketMessage ticketMessage = new SupportTicketMessage();
         ticketMessage.setTicketUuid(ticketUuid);
@@ -185,4 +208,6 @@ public class SupportTicketService {
     }
 
     public record SupportTicketEvent(String ticketCode, String senderRole) {}
+
+    public record SupportTicketDeletedEvent(String ticketCode) {}
 }

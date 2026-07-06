@@ -50,13 +50,13 @@ function formatListTime(value) {
 
 function getStatusMeta(status) {
   const normalized = (status || '').toUpperCase();
-  if (normalized === 'OPEN' || normalized === 'NEW') {
+  if (normalized === 'OPEN' || normalized === 'NEW' || normalized === 'PENDING' || normalized === 'LIVE_REQUESTED') {
     return { label: 'Mới', className: 'support-status support-status--open', bucket: 'open' };
   }
   if (normalized === 'IN_PROGRESS') {
     return { label: 'Đang xử lý', className: 'support-status support-status--progress', bucket: 'progress' };
   }
-  if (normalized === 'RESOLVED' || normalized === 'CLOSED') {
+  if (normalized === 'RESOLVED' || normalized === 'CLOSED' || normalized === 'DONE') {
     return { label: 'Đã đóng', className: 'support-status support-status--resolved', bucket: 'resolved' };
   }
   return { label: status || '—', className: 'support-status support-status--default', bucket: 'all' };
@@ -551,6 +551,11 @@ const SupportInboxPage = () => {
                 <div className="support-compose-footer">
                   <span className="support-compose-hint">Realtime · Enter gửi nhanh</span>
                   <div className="flex gap-2 items-center">
+                    {selectedTicket.status !== 'DONE' && (
+                      <button type="button" className="support-filter-tab" onClick={handleDeleteTicket} disabled={loading}>
+                        Xóa ticket
+                      </button>
+                    )}
                     {selectedTicket.liveRequested && selectedTicket.liveConnected && !selectedTicket.satisfactionRating && selectedTicket.status !== 'DONE' && (
                       <button type="button" className="support-filter-tab support-filter-tab--active" onClick={handleFinishSupport}>
                         Kết thúc hỗ trợ

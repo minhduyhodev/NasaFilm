@@ -45,6 +45,7 @@ public class SupportLiveSupportService {
 
     @Transactional
     public SupportTicketResponse requestLiveSupport(String ownerEmail, SupportLiveRequestCreateRequest request) {
+        supportTicketService.assertNoActiveSupport(ownerEmail);
         if (!supportAgentPresenceService.hasOnlineAgents()) {
             throw new IllegalArgumentException("Hiện chưa có admin hoặc staff online để hỗ trợ trực tiếp.");
         }
@@ -131,13 +132,8 @@ public class SupportLiveSupportService {
 
     @Transactional
     public void deleteTicket(String ticketCode) {
-        SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
-        if (ticket.getSatisfactionRating() == null && !"DONE".equalsIgnoreCase(ticket.getStatus())) {
-            throw new IllegalArgumentException("Chỉ được xóa ticket đã hoàn tất hỗ trợ.");
-        }
-        supportTicketRepository.delete(ticket);
-        eventPublisher.publishEvent(new SupportLiveEvent("TICKET_DELETED", ticketCode, ticket.getAssignedStaffEmail(), ticket.getAssignedStaffName()));
+        supportTicketService.delete(ticketCode);
+        eventPublisher.publishEvent(new SupportLiveEvent("TICKET_DELETED", ticketCode, null, null));
     }
 
     public void publishPresenceChanged(String eventType, String agentEmail, String agentName) {

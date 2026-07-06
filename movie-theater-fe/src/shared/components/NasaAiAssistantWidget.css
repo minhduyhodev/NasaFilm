@@ -87,7 +87,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  padding: 0 1.25rem 6.9rem 0;
+  padding: 0 1rem 1rem 0;
   animation: nasaFadeIn 180ms ease-out;
   pointer-events: none;
 }
@@ -105,8 +105,8 @@
   position: relative;
   pointer-events: auto;
   width: min(26rem, calc(100vw - 2rem));
-  height: min(42rem, calc(100vh - 8.5rem));
-  max-height: calc(100vh - 8.5rem);
+  height: min(42rem, calc(100vh - 2rem));
+  max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1035,13 +1035,13 @@ button.nasa-assistant-card:hover,
   }
 
   .nasa-assistant-overlay {
-    padding: 0 0.85rem 6.15rem 0;
+    padding: 0.5rem;
   }
 
   .nasa-assistant-panel {
     width: min(calc(100vw - 1rem), 26rem);
-    height: min(78vh, 42rem);
-    max-height: calc(100vh - 6.5rem);
+    height: min(calc(100vh - 1rem), 42rem);
+    max-height: calc(100vh - 1rem);
   }
 
   .nasa-assistant-home-grid {

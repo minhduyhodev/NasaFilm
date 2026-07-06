@@ -9,4 +9,6 @@ import com.thdpv.movietheater.support.entity.SupportTicketMessage;
 
 public interface SupportTicketMessageRepository extends JpaRepository<SupportTicketMessage, UUID> {
     List<SupportTicketMessage> findByTicketUuidOrderByCreatedAtAsc(UUID ticketUuid);
+
+    void deleteByTicketUuid(UUID ticketUuid);
 }

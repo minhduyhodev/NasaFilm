@@ -77,7 +77,7 @@ export const supportService = {
   },
 
   async deleteSupportTicket(ticketCode) {
-    const response = await authService.api.delete(`/api/admin/support-live/${ticketCode}`);
+    const response = await authService.api.delete(`/api/admin/support/${ticketCode}`);
     return response.data.data ?? response.data;
   },
 
