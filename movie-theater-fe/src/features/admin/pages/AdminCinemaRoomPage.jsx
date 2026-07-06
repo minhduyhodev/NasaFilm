@@ -55,18 +55,20 @@ const deriveLayoutDimensions = (seats) => {
     return { rows: 8, cols: 12, activeCount: 0 };
   }
 
-  const activeSeats = seats.filter((s) => s.status !== 'DISABLED');
-  const rowNames = [...new Set(activeSeats.map((s) => s.rowName))].sort();
+  // Use all seats (including DISABLED/AISLE ones) to determine grid dimensions
+  const rowNames = [...new Set(seats.map((s) => s.rowName))].filter(Boolean).sort();
   const rowCount = rowNames.length || 8;
-  const maxPerRow = Math.max(
-    ...rowNames.map((row) => activeSeats.filter((s) => s.rowName === row).length),
-    1,
-  );
+  const maxCol = Math.max(...seats.map((s) => s.seatNumber || 0), 1);
+
+  // Active seats for booking (excluding aisles and physically disabled seats)
+  const activeCount = seats.filter(
+    (s) => s.status !== 'DISABLED' && s.customTypeName !== 'AISLE'
+  ).length;
 
   return {
     rows: rowCount,
-    cols: maxPerRow,
-    activeCount: activeSeats.length,
+    cols: maxCol,
+    activeCount,
   };
 };
 
