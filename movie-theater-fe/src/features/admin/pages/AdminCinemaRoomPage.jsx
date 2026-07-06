@@ -3,7 +3,7 @@ import {
   X, Tv, Activity, Grid, Loader2, RefreshCw, Download, Upload,
   Eye, Sliders, MousePointer, AlertTriangle, ChevronLeft,
 } from 'lucide-react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
 import {
@@ -49,6 +49,8 @@ import {
 } from '../../../shared/utils/seatMapDisplay';
 import '../../../shared/components/seatmap/SeatMapGrid.css';
 import '../../../shared/components/aisle/AisleMapStyles.css';
+import AdminModal from '../components/AdminModal';
+import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 
 const deriveLayoutDimensions = (seats) => {
   if (!seats?.length) {
@@ -74,10 +76,12 @@ const AdminCinemaRoomPage = () => {
   const { cinemaUuid, roomUuid } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const confirm = useConfirm();
 
   const [cinema, setCinema] = useState(null);
   const [room, setRoom] = useState(null);
+  const [editRoomModalOpen, setEditRoomModalOpen] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [selectedRoomSeats, setSelectedRoomSeats] = useState([]);
   const [originalSeats, setOriginalSeats] = useState([]); // Compare layout modifications
@@ -207,6 +211,15 @@ const AdminCinemaRoomPage = () => {
   }, [cinemaUuid, roomUuid, location.key]);
 
   useEffect(() => {
+    if (searchParams.get('edit') === '1' && room && !isLoadingPage) {
+      setEditRoomModalOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('edit');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, room, isLoadingPage, setSearchParams]);
+
+  useEffect(() => {
     if (!room?.uuid) {
       setSelectedRoomSeats([]);
       setOriginalSeats([]);
@@ -305,7 +318,12 @@ const AdminCinemaRoomPage = () => {
   // ---------- HANDLERS & ACTIONS ----------
 
   const handleEditRoomClick = () => {
-    navigate(`/admin/cinemas/${cinemaUuid}/rooms/${roomUuid}/edit`);
+    setEditRoomModalOpen(true);
+  };
+
+  const handleEditRoomSaved = async () => {
+    setEditRoomModalOpen(false);
+    await refreshRoomMeta();
   };
 
   const handleBackToCinemas = () => {
@@ -1523,6 +1541,23 @@ const AdminCinemaRoomPage = () => {
           </div>
         </div>
       )}
+      <AdminModal
+        open={editRoomModalOpen}
+        onClose={() => setEditRoomModalOpen(false)}
+        title="Chỉnh sửa phòng chiếu"
+        subtitle={cinema?.name}
+        size="lg"
+      >
+        {room && (
+          <CinemaRoomFormPanel
+            cinemaUuid={cinemaUuid}
+            cinemaName={cinema?.name}
+            room={room}
+            onSuccess={handleEditRoomSaved}
+            onCancel={() => setEditRoomModalOpen(false)}
+          />
+        )}
+      </AdminModal>
     </>
   );
 };

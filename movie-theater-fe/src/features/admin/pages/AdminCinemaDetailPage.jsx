@@ -11,6 +11,8 @@ import {
   PrimaryButton,
   GhostButton,
 } from '../components';
+import AdminModal from '../components/AdminModal';
+import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const AdminCinemaDetailPage = () => {
@@ -20,6 +22,23 @@ const AdminCinemaDetailPage = () => {
   const [cinema, setCinema] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [roomModal, setRoomModal] = useState({ open: false, room: null });
+
+  const closeRoomModal = () => setRoomModal({ open: false, room: null });
+
+  const openCreateRoomModal = () => setRoomModal({ open: true, room: null });
+
+  const openEditRoomModal = (room) => setRoomModal({ open: true, room });
+
+  const handleRoomSaved = async () => {
+    closeRoomModal();
+    try {
+      const roomList = await cinemaService.getRoomsByCinema(cinemaUuid);
+      setRooms(roomList || []);
+    } catch {
+      notificationService.error('Không thể tải lại danh sách phòng');
+    }
+  };
 
   const handleDeleteRoom = async (room) => {
     const ok = await confirm({
@@ -111,7 +130,7 @@ const AdminCinemaDetailPage = () => {
             title="Phong chieu"
             description={`${rooms.length} phong`}
             action={
-              <GhostButton type="button" onClick={() => navigate(`/admin/cinemas/${cinemaUuid}/rooms/new`)}>
+              <GhostButton type="button" onClick={openCreateRoomModal}>
                 <Plus className="w-3.5 h-3.5" />
                 Them phong
               </GhostButton>
@@ -138,7 +157,7 @@ const AdminCinemaDetailPage = () => {
                       >
                         So do ghe
                       </Link>
-                      <GhostButton type="button" className="px-2 py-1 text-xs" onClick={() => navigate(`/admin/cinemas/${cinemaUuid}/rooms/${room.uuid}/edit`)}>
+                      <GhostButton type="button" className="px-2 py-1 text-xs" onClick={() => openEditRoomModal(room)}>
                         Sua
                       </GhostButton>
                       <GhostButton type="button" className="px-2 py-1 text-xs text-rose-400 hover:text-rose-300" onClick={() => handleDeleteRoom(room)}>
@@ -152,6 +171,22 @@ const AdminCinemaDetailPage = () => {
           </Section>
         </div>
       </div>
+
+      <AdminModal
+        open={roomModal.open}
+        onClose={closeRoomModal}
+        title={roomModal.room ? 'Chỉnh sửa phòng chiếu' : 'Thêm phòng chiếu mới'}
+        subtitle={cinema.name}
+        size="lg"
+      >
+        <CinemaRoomFormPanel
+          cinemaUuid={cinemaUuid}
+          cinemaName={cinema.name}
+          room={roomModal.room}
+          onSuccess={handleRoomSaved}
+          onCancel={closeRoomModal}
+        />
+      </AdminModal>
     </AdminPage>
   );
 };

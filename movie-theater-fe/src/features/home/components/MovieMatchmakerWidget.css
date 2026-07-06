@@ -398,21 +398,39 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nsf-matchmaker-cta__orbit-track--ring-1 {
+    animation: nsf-orbit-spin-cw 90s linear infinite;
+  }
+
+  .nsf-matchmaker-cta__orbit-track--ring-2 {
+    animation: nsf-orbit-spin-ccw 120s linear infinite;
+  }
+
+  .nsf-matchmaker-cta__orbit-track--ring-3 {
+    animation: nsf-orbit-spin-cw 100s linear infinite;
+  }
+
+  .nsf-matchmaker-cta__orbit-node-upright--ring-1 {
+    animation: nsf-orbit-spin-ccw 90s linear infinite;
+  }
+
+  .nsf-matchmaker-cta__orbit-node-upright--ring-2 {
+    animation: nsf-orbit-spin-cw 120s linear infinite;
+  }
+
+  .nsf-matchmaker-cta__orbit-node-upright--ring-3 {
+    animation: nsf-orbit-spin-ccw 100s linear infinite;
+  }
+
   .nsf-matchmaker-cta__orbit-ring--outer,
   .nsf-matchmaker-cta__orbit-ring--mid,
-  .nsf-matchmaker-cta__orbit-ring--inner,
-  .nsf-matchmaker-cta__orbit-track--ring-1,
-  .nsf-matchmaker-cta__orbit-track--ring-2,
-  .nsf-matchmaker-cta__orbit-track--ring-3,
-  .nsf-matchmaker-cta__orbit-node-upright--ring-1,
-  .nsf-matchmaker-cta__orbit-node-upright--ring-2,
-  .nsf-matchmaker-cta__orbit-node-upright--ring-3 {
-    animation: none;
+  .nsf-matchmaker-cta__orbit-ring--inner {
+    animation-duration: 90s;
   }
 
   .nsf-matchmaker-cta__orbit-core-nucleus,
   .nsf-matchmaker-cta__orbit-core-halo {
-    animation: none;
+    animation-duration: 6s;
   }
 }
 
