@@ -47,12 +47,14 @@ public class AdminComboController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COMBO_WRITE')")
     public ResponseEntity<ApiResponse<Combo>> createCombo(@Valid @RequestBody ComboRequest request) {
         Combo combo = comboService.createCombo(request);
         return ResponseEntity.ok(ApiResponse.success(combo));
     }
 
     @PutMapping("/{uuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COMBO_WRITE')")
     public ResponseEntity<ApiResponse<Combo>> updateCombo(
             @PathVariable UUID uuid,
             @Valid @RequestBody ComboRequest request) {
@@ -61,12 +63,14 @@ public class AdminComboController {
     }
 
     @DeleteMapping("/{uuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COMBO_WRITE')")
     public ResponseEntity<ApiResponse<String>> deleteCombo(@PathVariable UUID uuid) {
         comboService.deleteCombo(uuid);
         return ResponseEntity.ok(ApiResponse.success("Xóa combo thành công"));
     }
 
     @PostMapping("/upload")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COMBO_WRITE')")
     public ResponseEntity<ApiResponse<String>> uploadImage(@RequestParam("file") MultipartFile file) {
         String imageUrl = comboService.uploadImage(file);
         return ResponseEntity.ok(ApiResponse.success(imageUrl));

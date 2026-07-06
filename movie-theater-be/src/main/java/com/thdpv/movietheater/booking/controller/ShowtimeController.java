@@ -35,7 +35,7 @@ public class ShowtimeController {
     private final ShowtimeService showtimeService;
 
     @PostMapping("/api/admin/showtimes")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> createShowtime(
             @Valid @RequestBody ShowtimeRequest request) {
         ShowtimeResponse response = showtimeService.createShowtime(request);
@@ -43,7 +43,7 @@ public class ShowtimeController {
     }
 
     @PutMapping("/api/admin/showtimes/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowtimeStatus(
             @PathVariable("id") UUID id,
             @RequestParam("status") ShowtimeStatus status) {
@@ -52,7 +52,7 @@ public class ShowtimeController {
     }
 
     @GetMapping("/api/admin/showtimes")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getAdminShowtimes() {
         List<ShowtimeResponse> response = showtimeService.getAdminShowtimes();
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -67,7 +67,7 @@ public class ShowtimeController {
     }
 
     @PostMapping("/api/admin/showtimes/auto-generate/preview")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<List<AutoShowtimePreviewResponse>>> getAutoShowtimesPreview(
             @Valid @RequestBody AutoShowtimeRequest request) {
         List<AutoShowtimePreviewResponse> response = showtimeService.getAutoShowtimesPreview(request);
@@ -75,7 +75,7 @@ public class ShowtimeController {
     }
 
     @PostMapping("/api/admin/showtimes/auto-generate/save")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> saveAutoShowtimes(
             @Valid @RequestBody List<ShowtimeRequest> requests) {
         List<ShowtimeResponse> response = showtimeService.saveAutoShowtimes(requests);

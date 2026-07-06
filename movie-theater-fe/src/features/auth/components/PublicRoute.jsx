@@ -24,14 +24,22 @@ export const PublicRoute = ({ children }) => {
       return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
     });
 
-    const defaultTarget = isAdminOrStaff ? '/admin' : '/';
+    const permissions = user?.permissions || [];
+    const isCounterOnly = permissions.some(p => p.startsWith('COUNTER_') || p === 'TICKET_CHECKIN') && 
+                          !permissions.some(p => p.endsWith('_WRITE') || p === 'USER_VIEW' || p === 'SUPPORT_MANAGE');
+
     let to = (location.state)?.from?.pathname;
+    
     if (isAdminOrStaff) {
-      if (!to || !to.startsWith('/admin')) {
-        to = '/admin';
+      if (isCounterOnly) {
+        to = (!to || !to.startsWith('/counter')) ? '/counter/pos' : to;
+      } else {
+        if (!to || (!to.startsWith('/admin') && !to.startsWith('/counter'))) {
+          to = '/admin';
+        }
       }
     } else {
-      if (!to || to.startsWith('/admin') || to === '/unauthorized') {
+      if (!to || to.startsWith('/admin') || to.startsWith('/counter') || to === '/unauthorized') {
         to = '/';
       }
     }

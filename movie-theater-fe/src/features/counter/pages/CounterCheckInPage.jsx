@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Scan, QrCode, ClipboardList, ShieldCheck, ShieldAlert, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { counterService } from '../api/counterService';
@@ -71,6 +73,8 @@ const speakText = (text, enabled) => {
 };
 
 export default function CounterCheckInPage() {
+  const { user } = useAuthContext();
+  const canCheckIn = hasPermission(user, PERMISSIONS.TICKET_CHECKIN);
   const [ticketCode, setTicketCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastScanResult, setLastScanResult] = useState(null);
@@ -132,6 +136,10 @@ export default function CounterCheckInPage() {
 
   // Perform ticket check-in
   const handleCheckIn = async (codeToSubmit) => {
+    if (!canCheckIn) {
+      notificationService.error('Bạn không có quyền soát vé');
+      return;
+    }
     const code = (codeToSubmit || ticketCode).trim();
     if (!code) {
       notificationService.error('Vui lòng nhập hoặc quét mã vé');
@@ -202,6 +210,10 @@ export default function CounterCheckInPage() {
 
   // Start QR camera scanning
   const startScanning = () => {
+    if (!canCheckIn) {
+      notificationService.error('Bạn không có quyền soát vé');
+      return;
+    }
     setIsScanning(true);
     setLastScanResult(null);
 
@@ -304,14 +316,14 @@ export default function CounterCheckInPage() {
               <div
                 role="button"
                 tabIndex={0}
-                onClick={startScanning}
-                onKeyDown={(e) => e.key === 'Enter' && startScanning()}
+                onClick={canCheckIn ? startScanning : undefined}
+                onKeyDown={(e) => e.key === 'Enter' && canCheckIn && startScanning()}
                 className="counter-checkin__scan-placeholder"
               >
                 <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 mb-3">
                   <QrCode className="w-6 h-6" />
                 </div>
-                <p className="text-xs font-bold text-slate-300">Nhấp để kích hoạt camera</p>
+                <p className="text-xs font-bold text-slate-300">{canCheckIn ? 'Nhấp để kích hoạt camera' : 'Bạn không có quyền soát vé'}</p>
                 <p className="text-[0.65rem] text-slate-500 mt-1">Yêu cầu cấp quyền truy cập camera</p>
               </div>
             )}
@@ -330,7 +342,7 @@ export default function CounterCheckInPage() {
               <button
                 type="button"
                 onClick={() => handleCheckIn()}
-                disabled={loading || !ticketCode.trim()}
+                disabled={!canCheckIn || loading || !ticketCode.trim()}
                 className="staff-control__btn staff-control__btn--primary w-full"
               >
                 {loading ? 'Đang kiểm tra...' : 'Kiểm tra & Soát vé'}

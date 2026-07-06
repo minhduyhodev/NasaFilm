@@ -15,6 +15,7 @@ import { AdminPage, PageHeader, AdminKpiGrid } from '../components';
 const StaffPage = () => {
   const { user: currentUser } = useAuthContext();
   const [usersList, setUsersList] = useState([]);
+  const [availablePermissions, setAvailablePermissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -29,6 +30,7 @@ const StaffPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleForm, setRoleForm] = useState('');
   const [statusForm, setStatusForm] = useState('');
+  const [permissionForm, setPermissionForm] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Staff modal
@@ -49,6 +51,12 @@ const StaffPage = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  useEffect(() => {
+    adminUserService.getPermissions()
+      .then((data) => setAvailablePermissions(Array.isArray(data) ? data : []))
+      .catch(() => setAvailablePermissions([]));
+  }, []);
 
   const handleStatusChange = async (userId, userEmail, newStatus) => {
     if (userId === currentUser?.id && newStatus === 'SUSPENDED') {
@@ -71,6 +79,7 @@ const StaffPage = () => {
     setSelectedUser(user);
     setRoleForm(user.roles?.[0] || 'STAFF');
     setStatusForm(user.status || 'ACTIVE');
+    setPermissionForm(user.permissions || []);
     setIsDetailModalOpen(true);
   };
 
@@ -78,6 +87,10 @@ const StaffPage = () => {
     if (!selectedUser) return;
     if (selectedUser.id === currentUser?.id && roleForm !== 'ADMIN') {
       notificationService.warning('Bạn không thể tự hạ quyền ADMIN của chính mình!');
+      return;
+    }
+    if (selectedUser.id === currentUser?.id && roleForm === 'STAFF' && !currentUser?.roles?.includes('admin')) {
+      notificationService.warning('Chỉ quản trị viên mới được chỉnh quyền chi tiết');
       return;
     }
     setIsSubmitting(true);
@@ -95,6 +108,15 @@ const StaffPage = () => {
       if (statusForm !== selectedUser.status) {
         promises.push(adminUserService.updateUserStatus(selectedUser.id, statusForm));
         hasChanges = true;
+      }
+
+      if (roleForm === 'STAFF') {
+        const originalPermissions = [...(selectedUser.permissions || [])].sort().join('|');
+        const nextPermissions = [...permissionForm].sort().join('|');
+        if (originalPermissions !== nextPermissions) {
+          promises.push(adminUserService.updateUserPermissions(selectedUser.id, permissionForm));
+          hasChanges = true;
+        }
       }
 
       if (hasChanges) {
@@ -166,6 +188,22 @@ const StaffPage = () => {
     const date = new Date(createdAt);
     return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
   };
+
+  const togglePermission = (permissionName) => {
+    setPermissionForm((prev) => {
+      const next = new Set(prev);
+      if (next.has(permissionName)) next.delete(permissionName);
+      else next.add(permissionName);
+      return Array.from(next);
+    });
+  };
+
+  const permissionGroups = availablePermissions.reduce((acc, permission) => {
+    const group = permission.group || 'Khác';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(permission);
+    return acc;
+  }, {});
 
   return (
     <AdminPage>
@@ -314,9 +352,14 @@ const StaffPage = () => {
                             ADMINISTRATOR
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 border-indigo-500/20 text-indigo-400 font-mono">
-                            STAFF MEMBER
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 border-indigo-500/20 text-indigo-400 font-mono">
+                              STAFF MEMBER
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-mono">
+                              {(row.permissions || []).length} quyền chi tiết
+                            </span>
+                          </div>
                         )}
                       </td>
 
@@ -472,6 +515,35 @@ const StaffPage = () => {
                 </select>
               </div>
 
+              {roleForm === 'STAFF' && (
+                <div className="rounded-lg border border-[#1A2238] bg-[#0B0F19] p-3 max-h-72 overflow-y-auto">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 font-mono">Quyền chi tiết</label>
+                  <div className="space-y-3">
+                    {Object.entries(permissionGroups).map(([group, permissions]) => (
+                      <div key={group}>
+                        <p className="text-[9px] text-gray-500 font-black uppercase tracking-wider mb-1.5 font-mono">{group}</p>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {permissions.map((permission) => (
+                            <label key={permission.name} className="flex items-start gap-2 rounded-md border border-white/10 bg-white/[0.02] px-2.5 py-2 text-[11px] text-gray-300 cursor-pointer hover:border-white/20">
+                              <input
+                                type="checkbox"
+                                checked={permissionForm.includes(permission.name)}
+                                onChange={() => togglePermission(permission.name)}
+                                className="mt-0.5"
+                              />
+                              <span>
+                                <span className="block font-bold text-white">{permission.description}</span>
+                                <span className="block text-[9px] font-mono text-gray-500">{permission.name}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-[#1A2238]/60 flex gap-2 justify-end">
                 <button
                   type="button"
@@ -504,6 +576,7 @@ const StaffPage = () => {
       >
         <AdminUserFormPanel
           mode="STAFF"
+          initialPermissions={availablePermissions}
           onSuccess={() => {
             setIsStaffModalOpen(false);
             fetchUsers();

@@ -24,6 +24,7 @@ import com.thdpv.movietheater.user.entity.RolePermission;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
 import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.PermissionName;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -333,7 +334,20 @@ public class DataSeeder implements CommandLineRunner {
                             CONSTRAINT uk_role_permissions_role_permission UNIQUE (role_id, permission_id)
                         )
                     """);
-            logger.info("Created permissions and role_permissions tables.");
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS user_permissions (
+                            uuid UUID PRIMARY KEY,
+                            user_id UUID NOT NULL,
+                            permission_id UUID NOT NULL,
+                            created_at TIMESTAMPTZ,
+                            CONSTRAINT uk_user_permissions_user_permission UNIQUE (user_id, permission_id)
+                        )
+                    """);
+            jdbcTemplate
+                    .execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions (user_id)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions (permission_id)");
+            logger.info("Created permissions, role_permissions and user_permissions tables.");
         } catch (Exception e) {
             logger.error("Failed to create permissions tables", e);
         }
@@ -341,31 +355,34 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedPermissions() {
         String[][] permissionDefs = {
-                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", "TICKET_CHECKIN", "Soát vé" },
-                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_BOOKING_CREATE", "Bán vé tại quầy" },
-                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_COMBO_CREATE", "Bán combo tại quầy" },
-                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_VOUCHER_APPLY", "Áp voucher tại quầy" },
-                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_REFUND_PROCESS", "Hoàn tiền tại quầy" },
-                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", "COUNTER_CUSTOMER_CREATE", "Tạo tài khoản nhanh" }
+                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.TICKET_CHECKIN.name() },
+                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_BOOKING_CREATE.name() },
+                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_COMBO_CREATE.name() },
+                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_VOUCHER_APPLY.name() },
+                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_REFUND_PROCESS.name() },
+                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_CUSTOMER_CREATE.name() },
+                { "aaaaaaaa-0007-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.MOVIE_WRITE.name() },
+                { "aaaaaaaa-0008-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SHOWTIME_WRITE.name() },
+                { "aaaaaaaa-0009-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COMBO_WRITE.name() },
+                { "aaaaaaaa-0010-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.PROMOTION_WRITE.name() },
+                { "aaaaaaaa-0011-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.USER_VIEW.name() },
+                { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() }
         };
 
         for (String[] def : permissionDefs) {
             String name = def[1];
-            UUID permissionId = UUID.fromString(def[0]);
-            Integer existing = jdbcTemplate.queryForObject(
-                    "SELECT count(1) FROM permissions WHERE uuid = ? OR name = ?",
-                    Integer.class,
-                    permissionId,
-                    name);
-            if (existing != null && existing > 0) {
-                continue;
+            PermissionName permissionName = PermissionName.valueOf(name);
+            Permission permission = permissionRepository.findByName(name).orElse(null);
+            if (permission == null) {
+                jdbcTemplate.update(
+                        "INSERT INTO permissions (uuid, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                        UUID.fromString(def[0]), name, permissionName.getDescription());
+                logger.info("Seeded new permission: {}", name);
+            } else {
+                permission.setDescription(permissionName.getDescription());
+                permissionRepository.save(permission);
+                logger.info("Updated existing permission: {}", name);
             }
-            jdbcTemplate.update(
-                    "INSERT INTO permissions (uuid, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
-                    permissionId,
-                    name,
-                    def[2]);
-            logger.info("Seeded permission: {}", name);
         }
     }
 
@@ -381,11 +398,11 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         for (Permission permission : allPermissions) {
-            if (staffRole != null) {
-                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
-            }
             if (adminRole != null) {
                 seedRolePermissionIfNotExists(adminRole.getId(), permission.getId());
+            }
+            if (staffRole != null) {
+                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
             }
         }
     }
@@ -498,7 +515,8 @@ public class DataSeeder implements CommandLineRunner {
                     """);
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
 
             jdbcTemplate.update("""
                     UPDATE promotions
@@ -893,6 +911,7 @@ public class DataSeeder implements CommandLineRunner {
         if (user == null || user.getId() == null) {
             throw new IllegalStateException("Cannot assign role without persisted user id");
         }
+
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
@@ -1426,7 +1445,8 @@ public class DataSeeder implements CommandLineRunner {
                             cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber,
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude);
                     logger.info("Seeded cinema from JSON: {}", cinemaData.name);
-                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null || cinemaData.longitude != null) {
+                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null
+                        || cinemaData.longitude != null) {
                     jdbcTemplate.update(
                             "UPDATE cinema SET entrance_note = COALESCE(?, entrance_note), latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude) WHERE uuid = ?",
                             cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude, cinemaUuid);

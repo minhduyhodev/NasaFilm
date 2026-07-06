@@ -25,7 +25,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/support")
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('SUPPORT_MANAGE')")
 public class AdminSupportController {
 
     private final SupportTicketService supportTicketService;

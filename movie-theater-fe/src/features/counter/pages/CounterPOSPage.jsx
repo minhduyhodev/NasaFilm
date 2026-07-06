@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
   Ticket, Popcorn, User, Search, UserPlus, Loader2,
   CreditCard, Banknote, QrCode, Check, ShoppingCart, Printer,
@@ -18,6 +20,10 @@ import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
 
 export default function CounterPOSPage() {
+  const { user } = useAuthContext();
+  const canCreateBooking = hasPermission(user, PERMISSIONS.COUNTER_BOOKING_CREATE);
+  const canAddCombos = hasPermission(user, PERMISSIONS.COUNTER_COMBO_CREATE);
+  const canCreateCustomer = hasPermission(user, PERMISSIONS.COUNTER_CUSTOMER_CREATE);
   const currentCinemaUuid = localStorage.getItem('counter_cinema_uuid');
 
   // Core POS selections
@@ -325,6 +331,10 @@ export default function CounterPOSPage() {
 
   // Booking confirm submit
   const handleConfirmPOSBooking = async () => {
+    if (!canCreateBooking) {
+      notificationService.error('Bạn không có quyền bán vé tại quầy');
+      return;
+    }
     if (!selectedShowtime) {
       notificationService.error('Vui lòng chọn suất chiếu');
       return;
@@ -517,9 +527,9 @@ export default function CounterPOSPage() {
                       </div>
                     </div>
                     <div className="staff-control__qty-controls">
-                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, -1)} disabled={!(selectedCombos[combo.uuid] > 0)}>−</button>
+                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, -1)} disabled={!canAddCombos || !(selectedCombos[combo.uuid] > 0)}>−</button>
                       <span>{selectedCombos[combo.uuid] || 0}</span>
-                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, 1)}>+</button>
+                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, 1)} disabled={!canAddCombos}>+</button>
                     </div>
                   </div>
                 );
@@ -585,12 +595,14 @@ export default function CounterPOSPage() {
                   </div>
                 )}
 
-                <button type="button" className="staff-control__link-btn" onClick={() => setShowQuickAddCustomer(!showQuickAddCustomer)}>
-                  <UserPlus className="w-3.5 h-3.5" />
-                  Đăng ký nhanh hội viên mới
-                </button>
+                {canCreateCustomer && (
+                  <button type="button" className="staff-control__link-btn" onClick={() => setShowQuickAddCustomer(!showQuickAddCustomer)}>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Đăng ký nhanh hội viên mới
+                  </button>
+                )}
 
-                {showQuickAddCustomer && (
+                {canCreateCustomer && showQuickAddCustomer && (
                   <div className="staff-control__quick-form">
                     <input className="staff-control__input" placeholder="Họ và tên..." value={newCustomer.fullName} onChange={(e) => setNewCustomer((p) => ({ ...p, fullName: e.target.value }))} />
                     <input className="staff-control__input" placeholder="Email..." value={newCustomer.email} onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))} />
@@ -652,7 +664,7 @@ export default function CounterPOSPage() {
             <button
               type="button"
               onClick={handleConfirmPOSBooking}
-              disabled={isSubmitting || selectedSeats.length === 0 || hasGapViolation}
+              disabled={!canCreateBooking || isSubmitting || selectedSeats.length === 0 || hasGapViolation}
               className="staff-control__btn staff-control__btn--primary counter-pos__cta w-full"
             >
               {isSubmitting ? (

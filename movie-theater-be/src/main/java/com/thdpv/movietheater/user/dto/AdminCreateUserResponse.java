@@ -13,6 +13,7 @@ public class AdminCreateUserResponse {
     private String fullName;
     private UserStatus status;
     private List<String> roles;
+    private List<String> permissions;
     private String message;
     private boolean activationEmailSent;
 
@@ -21,12 +22,18 @@ public class AdminCreateUserResponse {
 
     public AdminCreateUserResponse(UUID id, String email, String username, String fullName, UserStatus status,
             List<String> roles, String message, boolean activationEmailSent) {
+        this(id, email, username, fullName, status, roles, List.of(), message, activationEmailSent);
+    }
+
+    public AdminCreateUserResponse(UUID id, String email, String username, String fullName, UserStatus status,
+            List<String> roles, List<String> permissions, String message, boolean activationEmailSent) {
         this.id = id;
         this.email = email;
         this.username = username;
         this.fullName = fullName;
         this.status = status;
         this.roles = roles;
+        this.permissions = permissions;
         this.message = message;
         this.activationEmailSent = activationEmailSent;
     }
@@ -77,6 +84,14 @@ public class AdminCreateUserResponse {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
     }
 
     public String getMessage() {
