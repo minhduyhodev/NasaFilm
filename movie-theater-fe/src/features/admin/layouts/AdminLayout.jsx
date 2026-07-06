@@ -7,8 +7,10 @@ import {
 import { Menu } from "lucide-react";
 import nasaLogo from "../../../shared/assets/NASAFILM.jpg";
 import PageTransition from "../../../shared/components/PageTransition";
+import { isCounterOpsPath } from "../../../shared/utils/adminNavigation";
 import "./AdminLayout.css";
 import "../styles/admin-theme.css";
+import "../../counter/styles/counter-staff-theme.css";
 
 const AdminSidebar = lazy(() => import("./AdminSidebar"));
 
@@ -16,7 +18,8 @@ const AdminLayout = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
   const mainRef = useRef(null);
-
+  const isOpsPage = isCounterOpsPath(location.pathname);
+  const isWidePage = isOpsPage;
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -92,7 +95,7 @@ const AdminLayout = ({ children }) => {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-7xl flex-col px-8 py-8">
+        <div className={`mx-auto flex w-full flex-col px-4 py-6 md:px-8 md:py-8 ${isWidePage ? 'max-w-none' : 'max-w-7xl'}`}>
           <PageTransition scrollTarget='[data-scroll-container="admin-main"]'>
             {children ?? <Outlet />}
           </PageTransition>

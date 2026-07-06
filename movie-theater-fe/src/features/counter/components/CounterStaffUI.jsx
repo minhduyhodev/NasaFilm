@@ -8,7 +8,7 @@ export const CounterPageHeader = ({ eyebrow, title, description, actions }) => (
       <h1 className="adm-title">{title}</h1>
       {description && <p className="adm-desc">{description}</p>}
     </div>
-    {actions && <div className="adm-page-actions">{actions}</div>}
+    {actions && <div className="adm-page-actions adm-page-actions--wrap">{actions}</div>}
   </header>
 );
 

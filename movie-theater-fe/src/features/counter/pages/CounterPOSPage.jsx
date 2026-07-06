@@ -3,7 +3,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
   Ticket, Popcorn, User, Search, UserPlus, Loader2,
-  CreditCard, Banknote, QrCode, Check, ShoppingCart, Printer,
+  CreditCard, Banknote, QrCode, Check, ShoppingCart, Printer, X,
 } from 'lucide-react';
 import { counterService } from '../api/counterService';
 import { comboService } from '../../../shared/services/comboService';
@@ -14,8 +14,9 @@ import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
 import { CounterPageHeader, PrintTicketModal } from '../components/CounterStaffUI';
-import { CounterSelectDropdown } from '../components/CounterSelectDropdown';
+import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
+import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
 
@@ -24,14 +25,21 @@ export default function CounterPOSPage() {
   const canCreateBooking = hasPermission(user, PERMISSIONS.COUNTER_BOOKING_CREATE);
   const canAddCombos = hasPermission(user, PERMISSIONS.COUNTER_COMBO_CREATE);
   const canCreateCustomer = hasPermission(user, PERMISSIONS.COUNTER_CUSTOMER_CREATE);
-  const currentCinemaUuid = localStorage.getItem('counter_cinema_uuid');
+
+  const [locationVersion, setLocationVersion] = useState(0);
+  const currentCinemaUuid = useMemo(
+    () => localStorage.getItem('counter_cinema_uuid'),
+    [locationVersion],
+  );
+  const currentRoomUuid = useMemo(
+    () => localStorage.getItem('counter_room_uuid') || '',
+    [locationVersion],
+  );
 
   // Core POS selections
   const [movies, setMovies] = useState([]);
-  const [selectedMovieUuid, setSelectedMovieUuid] = useState('');
-  const [showtimeDates, setShowtimeDates] = useState([]);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [showtimes, setShowtimes] = useState([]);
+  const [allShowtimes, setAllShowtimes] = useState([]);
+  const [filters, setFilters] = useState({ date: '', timeSlot: '', movieUuid: '' });
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
   const [combos, setCombos] = useState([]);
@@ -111,55 +119,69 @@ export default function CounterPOSPage() {
       .catch(() => {});
   }, []);
 
-  // Sync Showtimes when cinema or movie changes
+  // Load showtimes when cinema changes
   useEffect(() => {
     if (!currentCinemaUuid) return;
 
+    let cancelled = false;
     async function loadShowtimes() {
       try {
         const data = await counterService.getShowtimes({ cinemaUuid: currentCinemaUuid });
-
-        // Group showtimes by movie and extract available dates
-        const filtered = data.filter(st => !selectedMovieUuid || st.movieUuid === selectedMovieUuid);
-
-        // Extract unique show dates
-        const dates = [...new Set(filtered.map(st => {
-          const dateObj = new Date(st.startTime);
-          return dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-        }))].sort();
-
-        setShowtimeDates(dates);
-        setShowtimes(filtered);
-
-        // Reset showtime selection when movie or date changes
-        setSelectedShowtime(null);
+        if (!cancelled) {
+          setAllShowtimes(data || []);
+          setSelectedShowtime(null);
+        }
       } catch (err) {
         console.error('Failed to load showtimes:', err);
       }
     }
     loadShowtimes();
-  }, [currentCinemaUuid, selectedMovieUuid]);
+    return () => { cancelled = true; };
+  }, [currentCinemaUuid]);
 
-  // Listen to counter location changes in layout
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'date') {
+        next.timeSlot = '';
+        next.movieUuid = '';
+      } else if (key === 'timeSlot') {
+        next.movieUuid = '';
+      }
+      return next;
+    });
+    setSelectedShowtime(null);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({ date: '', timeSlot: '', movieUuid: '' });
+    setSelectedShowtime(null);
+  }, []);
+
+  const hasActiveFilters = Boolean(filters.date || filters.timeSlot || filters.movieUuid);
+
+  // Listen to counter location changes
   useEffect(() => {
     const handleLocationChange = () => {
-      setSelectedMovieUuid('');
+      setLocationVersion((v) => v + 1);
+      setFilters({ date: '', timeSlot: '', movieUuid: '' });
       setSelectedShowtime(null);
     };
     window.addEventListener('counter-location-changed', handleLocationChange);
     return () => window.removeEventListener('counter-location-changed', handleLocationChange);
   }, []);
 
-  const filteredShowtimesForDate = useMemo(() => {
-    if (!selectedDate) return [];
-    return showtimes.filter((st) => {
-      const stDate = new Date(st.startTime).toLocaleDateString('en-CA');
-      return stDate === selectedDate;
-    });
-  }, [showtimes, selectedDate]);
+  const matchingShowtimes = useMemo(
+    () => applyShowtimeFilters(
+      allShowtimes,
+      { roomUuid: currentRoomUuid, ...filters },
+      ['room', 'date', 'timeSlot', 'movieUuid'],
+    ),
+    [allShowtimes, currentRoomUuid, filters],
+  );
 
   const movieOptions = useMemo(() => [
-    { value: '', label: '— Tất cả phim đang chiếu —' },
+    { value: '', label: 'Tất cả phim' },
     ...movies.map((movie) => {
       const rawPoster = movie.primaryMediaUrl || movie.posterUrl || movie.poster || '';
       return {
@@ -169,18 +191,6 @@ export default function CounterPOSPage() {
       };
     }),
   ], [movies]);
-
-  const dateOptions = useMemo(() => [
-    { value: '', label: '— Chọn ngày chiếu —' },
-    ...showtimeDates.map((d) => ({
-      value: d,
-      label: new Date(d).toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'numeric',
-      }),
-    })),
-  ], [showtimeDates]);
 
   const handleCoupleClick = useCallback(async (seats) => {
     if (!showtimeUuid) return;
@@ -410,51 +420,45 @@ export default function CounterPOSPage() {
       />
 
       <section className="staff-control__panel staff-control__panel--showtimes-picker">
-        <h2 className="staff-control__panel-title">Chọn suất chiếu</h2>
-        <div className="staff-control__selection-grid">
-          <CounterSelectDropdown
-            id="counter-pos-movie"
-            label="Chọn phim"
-            value={selectedMovieUuid}
-            options={movieOptions}
-            placeholder="— Tất cả phim đang chiếu —"
-            onChange={(next) => {
-              setSelectedMovieUuid(next);
-              setSelectedDate('');
-            }}
-          />
+        <div className="staff-control__panel-head">
+          <h2 className="staff-control__panel-title">Chọn suất chiếu</h2>
+          {hasActiveFilters && (
+            <button type="button" className="staff-control__filter-clear" onClick={handleClearFilters}>
+              <X className="w-3 h-3" />
+              Xóa lọc
+            </button>
+          )}
+        </div>
 
-          <CounterSelectDropdown
-            id="counter-pos-date"
-            label="Ngày chiếu"
-            value={selectedDate}
-            options={dateOptions}
-            placeholder="— Chọn ngày chiếu —"
-            disabled={!selectedMovieUuid && showtimeDates.length === 0}
-            emptyMessage="Chưa có ngày chiếu"
-            onChange={setSelectedDate}
-          />
+        <CounterPosShowtimeFilters
+          showtimes={allShowtimes}
+          filters={filters}
+          roomUuid={currentRoomUuid}
+          onFilterChange={handleFilterChange}
+          movieOptions={movieOptions}
+        />
 
-          <div className="staff-control__field staff-control__field--wide">
-            <label className="staff-control__field-label">Suất chiếu</label>
-            <div className="staff-control__showtime-pills">
-              {filteredShowtimesForDate.length === 0 ? (
-                <span className="staff-control__empty-inline">Chọn phim và ngày chiếu</span>
-              ) : (
-                filteredShowtimesForDate.map((st, index) => (
-                  <button
-                    key={st.uuid}
-                    type="button"
-                    style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
-                    onClick={() => setSelectedShowtime(st)}
-                    className={`staff-control__pill counter-pos__pill ${selectedShowtime?.uuid === st.uuid ? 'staff-control__pill--active counter-pos__pill--active' : ''}`}
-                  >
-                    {new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    <span className="staff-control__pill-room">{st.cinemaRoomName}</span>
-                  </button>
-                ))
-              )}
-            </div>
+        <div className="staff-control__field staff-control__field--wide">
+          <label className="staff-control__field-label">Xác nhận suất chiếu</label>
+          <div className="staff-control__showtime-pills">
+            {!filters.date ? (
+              <span className="staff-control__empty-inline">Chọn ngày chiếu để xem suất</span>
+            ) : matchingShowtimes.length === 0 ? (
+              <span className="staff-control__empty-inline">Không có suất phù hợp với bộ lọc</span>
+            ) : (
+              matchingShowtimes.map((st, index) => (
+                <button
+                  key={st.uuid}
+                  type="button"
+                  style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
+                  onClick={() => setSelectedShowtime(st)}
+                  className={`staff-control__pill counter-pos__pill ${selectedShowtime?.uuid === st.uuid ? 'staff-control__pill--active counter-pos__pill--active' : ''}`}
+                >
+                  {new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  <span className="staff-control__pill-room">{st.movieTitle}</span>
+                </button>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -487,7 +491,7 @@ export default function CounterPOSPage() {
             <div className="staff-control__empty">
               <Ticket className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p>Chưa chọn suất chiếu</p>
-              <p className="text-[0.7rem] mt-1">Chọn phim và suất chiếu ở bảng trên để kích hoạt sơ đồ ghế</p>
+              <p className="text-[0.7rem] mt-1">Chọn rạp, ngày, suất và phim ở bảng trên để kích hoạt sơ đồ ghế</p>
             </div>
           )}
         </section>

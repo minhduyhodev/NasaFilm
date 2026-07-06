@@ -12,6 +12,7 @@ import { SocialLoginButtons } from '../components/SocialLoginButtons';
 import { loginSchema } from '../utils/validation';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
+import { getDefaultAdminPath, remapLegacyCounterPath } from '../../../shared/utils/adminNavigation';
 import './LoginPage.css';
 
 export const LoginPage = () => {
@@ -52,28 +53,26 @@ export const LoginPage = () => {
     const storedUser = tokenService.getUser();
     const roles = storedUser?.roles || [];
 
-    const permissions = storedUser?.permissions || [];
     const isAdminOrStaff = roles.some((r) => {
       if (!r) return false;
       const roleLower = r.toLowerCase();
       return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
     });
 
-    const isCounterOnly = permissions.some(p => p.startsWith('COUNTER_') || p === 'TICKET_CHECKIN') && 
-                          !permissions.some(p => p.endsWith('_WRITE') || p === 'USER_VIEW' || p === 'SUPPORT_MANAGE');
-
     if (isAdminOrStaff) {
-      if (isCounterOnly) {
-        const targetPath = (from && from.startsWith('/counter')) ? from : '/counter/pos';
-        navigate(targetPath, { replace: true });
-      } else {
-        const targetPath = (from && (from.startsWith('/admin') || from.startsWith('/counter'))) ? from : '/admin';
-        navigate(targetPath, { replace: true });
+      let targetPath = from;
+      if (targetPath?.startsWith('/counter')) {
+        targetPath = remapLegacyCounterPath(targetPath);
       }
-    } else {
-      const targetPath = (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized') ? from : '/';
+      if (!targetPath || (!targetPath.startsWith('/admin') && targetPath !== '/unauthorized')) {
+        targetPath = getDefaultAdminPath(storedUser);
+      }
       navigate(targetPath, { replace: true });
+      return;
     }
+
+    const targetPath = (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized') ? from : '/';
+    navigate(targetPath, { replace: true });
   };
 
   useEffect(() => {

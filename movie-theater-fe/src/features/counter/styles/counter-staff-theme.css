@@ -1,3 +1,66 @@
+/* Counter location toolbar in unified admin layout */
+.counter-location-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.counter-location-toolbar--inline {
+  justify-content: flex-end;
+}
+
+@media (max-width: 639px) {
+  .counter-location-toolbar--inline {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.counter-location-toolbar--in-grid {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.staff-control__filter-step--location .counter-location-toolbar--in-grid {
+  grid-column: unset;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.staff-control__filter-step--location .counter-location-toolbar--in-grid .counter-pos__field-select {
+  max-width: none;
+}
+
+.staff-control__filters--pos .staff-control__filter-step--location {
+  grid-column: span 2;
+}
+
+.counter-location-toolbar--in-grid .counter-pos__field-select {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+@media (max-width: 639px) {
+  .counter-location-toolbar--in-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .counter-location-toolbar--in-grid .counter-pos__field-select {
+    max-width: none;
+  }
+}
+
+.adm-page-actions .counter-location-toolbar {
+  gap: 0.5rem;
+}
+
 /* Counter pages — visual sync with admin/staff-control (UI only) */
 @import '../../admin/styles/admin-theme.css';
 @import '../../admin/pages/StaffMissionControlPage.css';

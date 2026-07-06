@@ -19,7 +19,6 @@ const CinemaRoomEditRedirect = () => {
   );
 };
 
-const DashboardPage = lazy(() => import("../pages/DashboardPage"));
 const MoviesPage = lazy(() => import("../pages/MoviesPage"));
 const AdminMovieFormPage = lazy(() => import("../pages/AdminMovieFormPage"));
 const AdminMovieDetailPage = lazy(
@@ -41,6 +40,8 @@ const ConfigPage = lazy(() => import("../pages/ConfigPage"));
 const EmailTemplatesPage = lazy(() => import("../pages/EmailTemplatesPage"));
 const StaffPage = lazy(() => import("../pages/StaffPage"));
 const StaffMissionControlPage = lazy(() => import("../pages/StaffMissionControlPage"));
+const CounterPOSPage = lazy(() => import("../../counter/pages/CounterPOSPage"));
+const AdminHomeRoute = lazy(() => import("../components/AdminHomeRoute"));
 const MatchmakerAnalyticsPage = lazy(() => import("../pages/MatchmakerAnalyticsPage"));
 const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
@@ -75,7 +76,7 @@ export const AdminRoutes = () => {
     <Suspense fallback={<AdminPageLoader />}>
       <Routes>
         <Route element={<AdminLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<AdminHomeRoute />} />
           <Route path="movies" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><MoviesPage /></PermissionRoute>} />
           <Route path="movies/new" element={<PermissionRoute permission={PERMISSIONS.MOVIE_WRITE}><AdminMovieFormPage /></PermissionRoute>} />
           <Route
@@ -121,6 +122,7 @@ export const AdminRoutes = () => {
           <Route path="combos/:comboUuid/edit" element={<Navigate to="/admin/combos" replace />} />
           <Route path="combos/:comboUuid" element={<Navigate to="/admin/combos" replace />} />
           <Route path="staff" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><StaffPage /></PermissionRoute>} />
+          <Route path="pos" element={<PermissionRoute permission={PERMISSIONS.COUNTER_BOOKING_CREATE}><CounterPOSPage /></PermissionRoute>} />
           <Route path="staff-control" element={<PermissionRoute permission={PERMISSIONS.TICKET_CHECKIN}><StaffMissionControlPage /></PermissionRoute>} />
           <Route path="matchmaker-analytics" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><MatchmakerAnalyticsPage /></PermissionRoute>} />
           <Route path="staff_control" element={<Navigate to="/admin/staff-control" replace />} />

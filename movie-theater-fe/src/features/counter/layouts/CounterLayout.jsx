@@ -212,7 +212,7 @@ export default function CounterLayout() {
               }
             >
               <QrCode className="w-4 h-4 text-red-400 shrink-0" />
-              {isSidebarOpen && <span>Soát vé QR</span>}
+              {isSidebarOpen && <span>Soát vé & giám sát</span>}
             </NavLink>
           </nav>
 
