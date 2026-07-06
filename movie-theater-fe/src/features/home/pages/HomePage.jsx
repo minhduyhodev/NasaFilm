@@ -39,7 +39,7 @@ const HomePage = () => {
 
 					<div className="home-space-zone__content">
 						<section className="mt-12 px-4 md:px-8 lg:px-20 home-section">
-							<div className="max-w-6xl mx-auto">
+							<div className="max-w-7xl mx-auto">
 								<NowShowing />
 							</div>
 						</section>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, Film, Loader2, MapPin, Sparkles, Ticket } from 'lucide-react';
 import PosterImage from '../../../shared/components/PosterImage';
+import useDragScroll from '../../../shared/hooks/useDragScroll';
 
 const formatShowtime = (value) => {
   if (!value) return '—';
@@ -19,11 +20,14 @@ const formatShowtime = (value) => {
 
 const RadarSuggestionCard = ({ item, variant }) => {
   const poster = item.moviePosterUrl || item.posterUrl || '';
+  const isStrip = variant === 'strip';
 
   return (
     <Link
       to={`/movie/${item.movieUuid}#select-showtimes`}
       className={`radar-suggestions__card radar-suggestions__card--${variant}`}
+      draggable={false}
+      onDragStart={isStrip ? (event) => event.preventDefault() : undefined}
     >
       <div className="radar-suggestions__poster">
         {poster ? (
@@ -32,6 +36,7 @@ const RadarSuggestionCard = ({ item, variant }) => {
             alt={item.movieTitle}
             width={240}
             className="radar-suggestions__poster-img"
+            draggable={false}
           />
         ) : (
           <div className="radar-suggestions__poster-fallback" aria-hidden>
@@ -85,6 +90,9 @@ const ShowtimeRadarSuggestionsList = ({
   maxItems = 5,
   variant = 'strip',
 }) => {
+  const { ref: dragScrollRef, dragScrollProps } = useDragScroll();
+  const isStrip = variant === 'strip';
+
   if (loading) {
     return (
       <div className={`radar-suggestions radar-suggestions--${variant} radar-suggestions--loading`}>
@@ -103,7 +111,11 @@ const ShowtimeRadarSuggestionsList = ({
   }
 
   return (
-    <div className={`radar-suggestions radar-suggestions--${variant}`}>
+    <div
+      ref={isStrip ? dragScrollRef : undefined}
+      className={`radar-suggestions radar-suggestions--${variant}${isStrip ? ' radar-suggestions--drag-scroll' : ''}`}
+      {...(isStrip ? dragScrollProps : {})}
+    >
       <AnimatePresence mode="popLayout">
         {suggestions.slice(0, maxItems).map((item, index) => (
           <motion.div

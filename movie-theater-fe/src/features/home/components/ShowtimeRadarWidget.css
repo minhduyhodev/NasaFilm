@@ -47,19 +47,21 @@
 .home-upcoming-root {
   position: relative;
   padding-left: 2.75rem;
-  padding-right: 0.25rem;
+  padding-right: 2.75rem;
   overflow: visible;
 }
 
 @media (min-width: 768px) {
   .home-upcoming-root {
     padding-left: 3.5rem;
+    padding-right: 3.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .home-upcoming-root {
     padding-left: 3.75rem;
+    padding-right: 3.75rem;
   }
 }
 
@@ -77,19 +79,27 @@
   position: absolute;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
   border: none;
   padding: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   z-index: 20;
+  top: 50%;
+  transform: translateY(-50%);
+  outline: none;
+  box-shadow: none;
   transition: color 0.2s ease;
 }
 
 .home-upcoming-nav:hover {
   color: #fff;
+  background: transparent;
+}
+
+.home-upcoming-nav:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 @media (min-width: 768px) {
@@ -99,16 +109,11 @@
 
   .home-upcoming-nav--prev {
     left: -2.75rem;
-    top: 42%;
-    transform: translateY(-50%);
   }
 
-  /* Mép phải poster (60%) — không dính Radar */
   .home-upcoming-nav--next {
-    left: calc(60% - 1.25rem);
-    right: auto;
-    top: 42%;
-    transform: translateY(-50%);
+    right: -2.75rem;
+    left: auto;
   }
 }
 
@@ -118,7 +123,7 @@
   }
 
   .home-upcoming-nav--next {
-    left: calc(60% - 1.5rem);
+    right: -3rem;
   }
 }
 
@@ -276,6 +281,46 @@
 
 .showtime-radar-widget--bar {
   padding: 1.25rem 1.35rem 1.35rem;
+}
+
+/* Home: Radar bar — no container chrome, hidden horizontal scrollbar */
+.home-upcoming-radar-bar .showtime-radar-widget--bar {
+  padding: 1.25rem 0 0;
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.home-upcoming-radar-bar .showtime-radar-widget__glow {
+  display: none;
+}
+
+.home-upcoming-radar-bar .radar-suggestions--strip {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 0;
+}
+
+.home-upcoming-radar-bar .radar-suggestions--strip::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.radar-suggestions--drag-scroll {
+  cursor: grab;
+  touch-action: pan-x;
+  user-select: none;
+  overscroll-behavior-x: contain;
+}
+
+.radar-suggestions--drag-scroll.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
+
+.radar-suggestions--drag-scroll.is-dragging .radar-suggestions__card {
+  pointer-events: none;
 }
 
 .showtime-radar-widget__bar-head {
