@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { RotateCcw, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  RotateCcw,
+  Plus,
+  Trash2,
+  Clock,
+  Banknote,
+  Shield,
+  MonitorPlay,
+  Building2,
+  Lock,
+  Loader2,
+} from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import {
@@ -8,30 +19,65 @@ import {
   DEFAULT_SCREENING_FORMATS,
 } from '../../../shared/constants/systemConfig';
 import { writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
-import {
-  AdminPage,
-  PageHeader,
-  Section,
-  GhostButton,
-  PrimaryButton,
-} from '../components';
+import { AdminPage } from '../components';
+import ActionMenu from '../components/ActionMenu';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import './ConfigPage.css';
 
 const TABS = [
-  { id: 'showtime', label: 'Suất chiếu tự động' },
-  { id: 'pricing', label: 'Định giá vé' },
-  { id: 'limits', label: 'Giới hạn' },
-  { id: 'online', label: 'Phim online' },
-  { id: 'cinema', label: 'Rạp & phòng' },
-  { id: 'operations', label: 'Vận hành & bảo mật' },
+  { id: 'showtime', label: 'Suất chiếu', icon: Clock },
+  { id: 'pricing', label: 'Định giá', icon: Banknote },
+  { id: 'limits', label: 'Giới hạn', icon: Shield },
+  { id: 'online', label: 'Phim online', icon: MonitorPlay },
+  { id: 'cinema', label: 'Rạp & phòng', icon: Building2 },
+  { id: 'operations', label: 'Vận hành', icon: Lock },
 ];
 
-const fieldClass =
-  'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/20 transition';
-const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
-const hintClass = 'text-xs text-gray-600 mt-1';
-
 const emptyTypeEntry = () => ({ value: '', label: '', enabled: true });
+
+const formatVnd = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+
+const ConfigSection = ({ title, description, children }) => (
+  <section className="sys-config__section">
+    <h2 className="sys-config__section-title">{title}</h2>
+    {description && <p className="sys-config__section-desc">{description}</p>}
+    {children}
+  </section>
+);
+
+const ConfigField = ({ label, hint, children }) => (
+  <div className="sys-config__field">
+    <label className="sys-config__label">{label}</label>
+    {children}
+    {hint && <p className="sys-config__hint">{hint}</p>}
+  </div>
+);
+
+const ConfigSlider = ({ label, value, min, max, step, suffix = 'x', onChange }) => (
+  <div className="sys-config__slider">
+    <div className="sys-config__slider-head">
+      <span className="sys-config__slider-label">{label}</span>
+      <span className="sys-config__slider-value">{value}{suffix}</span>
+    </div>
+    <input
+      type="range"
+      className="sys-config__range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(parseFloat(e.target.value))}
+    />
+  </div>
+);
+
+const ConfigSwitch = ({ checked, onChange, children }) => (
+  <label className="sys-config__switch">
+    <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <span className="sys-config__switch-track" aria-hidden="true" />
+    <span className="sys-config__switch-text">{children}</span>
+  </label>
+);
 
 const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder, labelPlaceholder }) => {
   const updateItem = (index, field, value) => {
@@ -42,59 +88,68 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
   const removeItem = (index) => onChange(items.filter((_, i) => i !== index));
 
   return (
-    <Section title={title} divided>
-      {description && <p className={hintClass + ' mb-4'}>{description}</p>}
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <div
-            key={`${item.value}-${index}`}
-            className="grid grid-cols-1 md:grid-cols-[1fr_1.5fr_auto_auto] gap-3 items-end p-3 rounded-lg bg-white/[0.02] border border-white/5"
-          >
-            <div>
-              <label className={labelClass}>Mã</label>
-              <input
-                type="text"
-                className={fieldClass}
-                value={item.value}
-                placeholder={valuePlaceholder}
-                onChange={(e) => updateItem(index, 'value', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Nhãn hiển thị</label>
-              <input
-                type="text"
-                className={fieldClass}
-                value={item.label}
-                placeholder={labelPlaceholder}
-                onChange={(e) => updateItem(index, 'label', e.target.value)}
-              />
-            </div>
-            <label className="flex items-center gap-2 text-xs text-gray-400 pb-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={item.enabled !== false}
-                onChange={(e) => updateItem(index, 'enabled', e.target.checked)}
-                className="rounded border-white/20 bg-white/5"
-              />
-              Kích hoạt
-            </label>
-            <GhostButton
-              type="button"
-              onClick={() => removeItem(index)}
-              className="text-red-400 hover:text-red-300 pb-2"
-              disabled={items.length <= 1}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </GhostButton>
-          </div>
-        ))}
+    <ConfigSection title={title} description={description}>
+      <div className="sys-config__table-wrap">
+        <table className="sys-config__table">
+        <thead>
+          <tr>
+            <th>Mã</th>
+            <th>Nhãn hiển thị</th>
+            <th>Trạng thái</th>
+            <th aria-label="Xóa" />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={`${item.value}-${index}`}>
+              <td className="sys-config__table-code">
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.value}
+                  placeholder={valuePlaceholder}
+                  onChange={(e) => updateItem(index, 'value', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.label}
+                  placeholder={labelPlaceholder}
+                  onChange={(e) => updateItem(index, 'label', e.target.value)}
+                />
+              </td>
+              <td>
+                <button
+                  type="button"
+                  className={`sys-config__table-enable${item.enabled !== false ? ' is-on' : ''}`}
+                  onClick={() => updateItem(index, 'enabled', item.enabled === false)}
+                >
+                  {item.enabled !== false ? 'Bật' : 'Tắt'}
+                </button>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  className="sys-config__table-del"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length <= 1}
+                  aria-label="Xóa mục"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       </div>
-      <PrimaryButton type="button" onClick={addItem} className="mt-4 text-xs">
-        <Plus className="w-3.5 h-3.5 mr-1.5" />
+      <button type="button" className="sys-config__link-btn" onClick={addItem}>
+        <Plus className="w-3.5 h-3.5" />
         Thêm mục
-      </PrimaryButton>
-    </Section>
+      </button>
+    </ConfigSection>
   );
 };
 
@@ -158,336 +213,238 @@ const ConfigPage = () => {
     return `Phim 120 phút → khóa xem ${Math.round(120 * m)} phút (~${(120 * m / 60).toFixed(1)} giờ)`;
   };
 
+  const stats = useMemo(() => ([
+    { label: 'Khung giờ', value: `${config.startTime} – ${config.endTime}` },
+    { label: 'Vé thường', value: formatVnd(config.basePrice) },
+    { label: 'Giữ ghế', value: `${config.seatLockMinutes} phút` },
+    { label: 'Tối đa / đặt', value: `${config.maxSeatsPerBooking} ghế` },
+  ]), [config]);
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[320px] text-gray-500 text-sm">
-        Đang tải cấu hình...
+      <div className="sys-config__loading">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        Đang tải…
       </div>
     );
   }
 
   return (
-    <AdminPage>
-      <PageHeader
-        title="Cấu hình hệ thống"
-        description="Tham số vận hành, giới hạn đặt vé, phim online và kiểu phòng chiếu."
-        primaryAction={{
-          label: 'Lưu cấu hình',
-          onClick: handleSave,
-          loading: isSaving,
-          disabled: isSaving,
-        }}
-        menuItems={[
-          {
-            label: 'Khôi phục mặc định',
-            icon: <RotateCcw className="w-3.5 h-3.5" />,
-            onClick: handleReset,
-            destructive: true,
-            disabled: isSaving,
-          },
-        ]}
-      />
-
-      <nav className="flex flex-wrap gap-1">
-        {TABS.map((tab) => (
-          <GhostButton
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? 'text-white bg-white/[0.06]' : ''}
-          >
-            {tab.label}
-          </GhostButton>
-        ))}
-      </nav>
-
-      {activeTab === 'showtime' && (
-        <>
-          <Section title="Khung giờ suất chiếu">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Giờ mở cửa</label>
-                <input type="time" className={fieldClass} value={config.startTime} onChange={(e) => updateField('startTime', e.target.value)} />
-                <p className={hintClass}>Khung giờ sớm nhất thuật toán có thể phân bổ suất.</p>
-              </div>
-              <div>
-                <label className={labelClass}>Giờ đóng cửa</label>
-                <input type="time" className={fieldClass} value={config.endTime} onChange={(e) => updateField('endTime', e.target.value)} />
-                <p className={hintClass}>Thời gian muộn nhất suất phải kết thúc.</p>
-              </div>
-              <div>
-                <label className={labelClass}>Thời gian dọn dẹp (phút)</label>
-                <input type="number" min="0" max="120" className={fieldClass} value={config.intervalMinutes} onChange={(e) => updateField('intervalMinutes', parseInt(e.target.value) || 0)} />
-              </div>
-              <div>
-                <label className={labelClass}>Trailer buffer (phút)</label>
-                <input type="number" min="0" max="60" className={fieldClass} value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value) || 0)} />
-              </div>
-            </div>
-          </Section>
-
-          <Section title="Trọng số ưu tiên" divided>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { key: 'goldenHourWeight', label: 'Giờ vàng' },
-                { key: 'weekendWeight', label: 'Cuối tuần' },
-                { key: 'ratingWeight', label: 'Đánh giá phim' },
-                { key: 'genreWeight', label: 'Độ hot thể loại' },
-              ].map(({ key, label }) => (
-                <div key={key} className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">{label}</span>
-                    <span className="text-gray-300">{config[key]}x</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="3"
-                    step="0.1"
-                    className="w-full accent-white cursor-pointer"
-                    value={config[key]}
-                    onChange={(e) => updateField(key, parseFloat(e.target.value))}
-                  />
-                </div>
-              ))}
-            </div>
-          </Section>
-        </>
-      )}
-
-      {activeTab === 'pricing' && (
-        <Section title="Giá vé rạp">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>Vé thường (VND)</label>
-              <input type="number" min="0" step="5000" className={fieldClass} value={config.basePrice} onChange={(e) => updateField('basePrice', parseInt(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className={labelClass}>Vé VIP (VND)</label>
-              <input type="number" min="0" step="5000" className={fieldClass} value={config.vipPrice} onChange={(e) => updateField('vipPrice', parseInt(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className={labelClass}>Vé đôi (VND)</label>
-              <input type="number" min="0" step="5000" className={fieldClass} value={config.couplePrice} onChange={(e) => updateField('couplePrice', parseInt(e.target.value) || 0)} />
-            </div>
-          </div>
-          <p className={hintClass}>Giá gợi ý khi tạo suất chiếu tự động hoặc thủ công.</p>
-        </Section>
-      )}
-
-      {activeTab === 'limits' && (
-        <Section title="Giới hạn đặt vé">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Số ghế tối đa / lần đặt</label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                className={fieldClass}
-                value={config.maxSeatsPerBooking}
-                onChange={(e) => updateField('maxSeatsPerBooking', parseInt(e.target.value) || 1)}
-              />
-              <p className={hintClass}>Áp dụng khi khách chọn ghế và xác nhận đặt vé trực tuyến.</p>
-            </div>
-            <div>
-              <label className={labelClass}>Thời gian giữ ghế (phút)</label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                className={fieldClass}
-                value={config.seatLockMinutes}
-                onChange={(e) => updateField('seatLockMinutes', parseInt(e.target.value) || 1)}
-              />
-              <p className={hintClass}>Thời gian đếm ngược trên trang chọn ghế trước khi ghế được giải phóng.</p>
-            </div>
-          </div>
-        </Section>
-      )}
-
-      {activeTab === 'online' && (
-        <>
-          <Section title="Giá vé streaming (VOD)">
-            <div className="max-w-sm">
-              <label className={labelClass}>Giá mặc định (VND)</label>
-              <input
-                type="number"
-                min="0"
-                step="1000"
-                className={fieldClass}
-                value={config.onlineStreamingPrice}
-                onChange={(e) => updateField('onlineStreamingPrice', parseInt(e.target.value) || 0)}
-              />
-              <p className={hintClass}>
-                Áp dụng khi phim chưa có giá VOD riêng. Hiện tại:{' '}
-                {Number(config.onlineStreamingPrice || 0).toLocaleString('vi-VN')}đ / vé.
-              </p>
-            </div>
-          </Section>
-
-          <Section title="Đồng hồ thời gian đếm ngược" divided>
-            <div className="max-w-md space-y-4">
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.onlineCountdownEnabled !== false}
-                  onChange={(e) => updateField('onlineCountdownEnabled', e.target.checked)}
-                  className="rounded border-white/20 bg-white/5"
-                />
-                Hiển thị đồng hồ đếm ngược trên trang xem phim trực tuyến
-              </label>
-
-              <div>
-                <label className={labelClass}>Thời lượng xem (× thời lượng phim)</label>
-                <input
-                  type="number"
-                  min="0.5"
-                  max="10"
-                  step="0.5"
-                  className={fieldClass}
-                  value={config.onlineWatchLockMultiplier}
-                  onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value) || 2)}
-                />
-                <p className={hintClass}>
-                  Sau khi bấm phát, đồng hồ đếm ngược = thời lượng phim × hệ số.
-                  {' '}{lockPreviewMinutes(config.onlineWatchLockMultiplier)}
-                </p>
-              </div>
-
-              <div>
-                <label className={labelClass}>Cảnh báo sắp hết hạn (phút)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  className={fieldClass}
-                  value={config.onlineCountdownWarningMinutes ?? 10}
-                  onChange={(e) => updateField('onlineCountdownWarningMinutes', parseInt(e.target.value) || 10)}
-                />
-                <p className={hintClass}>
-                  Khi thời gian còn lại dưới ngưỡng này, đồng hồ chuyển sang trạng thái cảnh báo.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Hệ số thời lượng</span>
-                  <span className="text-gray-300">{config.onlineWatchLockMultiplier}x</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="10"
-                  step="0.5"
-                  className="w-full accent-white cursor-pointer"
-                  value={config.onlineWatchLockMultiplier}
-                  onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value))}
-                />
-              </div>
-            </div>
-          </Section>
-        </>
-      )}
-
-      {activeTab === 'cinema' && (
-        <>
-          <ConfigTypeList
-            title="Kiểu phòng chiếu"
-            description="Danh sách kiểu phòng hiển thị khi tạo phòng mới. Mã phải khớp enum backend (STANDARD, IMAX, VIP, ...)."
-            items={config.roomTypes || DEFAULT_ROOM_TYPES}
-            onChange={(roomTypes) => updateField('roomTypes', roomTypes)}
-            valuePlaceholder="STANDARD"
-            labelPlaceholder="Standard 2D/3D"
-          />
-          <ConfigTypeList
-            title="Kiểu rạp chiếu / định dạng"
-            description="Định dạng chiếu phim (2D, 3D, IMAX...) dùng cho hiển thị và quản lý suất chiếu."
-            items={config.screeningFormats || DEFAULT_SCREENING_FORMATS}
-            onChange={(screeningFormats) => updateField('screeningFormats', screeningFormats)}
-            valuePlaceholder="2D"
-            labelPlaceholder="2D Phụ đề"
-          />
-        </>
-      )}
-
-      {activeTab === 'operations' && (
-        <>
-          <Section title="Hủy vé & hoàn tiền">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Chặn hủy trước giờ chiếu (phút)</label>
-                <input
-                  type="number"
-                  min="0"
-                  className={fieldClass}
-                  value={config.cancellationCutoffMinutes}
-                  onChange={(e) => updateField('cancellationCutoffMinutes', parseInt(e.target.value) || 0)}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Phí hủy vé (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  className={fieldClass}
-                  value={config.cancellationFeePercent}
-                  onChange={(e) => updateField('cancellationFeePercent', parseInt(e.target.value) || 0)}
-                />
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.customerRefundEnabled !== false}
-                  onChange={(e) => updateField('customerRefundEnabled', e.target.checked)}
-                  className="rounded border-white/20 bg-white/5"
-                />
-                Cho phép hoàn tiền khi khách hủy vé
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.fullRefundOnShowtimeCancel !== false}
-                  onChange={(e) => updateField('fullRefundOnShowtimeCancel', e.target.checked)}
-                  className="rounded border-white/20 bg-white/5"
-                />
-                Hoàn 100% khi suất chiếu bị hủy
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.refundManualApprovalRequired !== false}
-                  onChange={(e) => updateField('refundManualApprovalRequired', e.target.checked)}
-                  className="rounded border-white/20 bg-white/5"
-                />
-                Bắt buộc admin duyệt hoàn tiền (hiển thị tại trang Duyệt hoàn tiền)
-              </label>
-            </div>
-            <p className={hintClass + ' mt-3'}>
-              Khi bật duyệt thủ công: khách hủy vé → đơn chờ hoàn tiền → admin duyệt tại /admin/refunds → tiền về ví hoặc Mock Gateway.
+    <AdminPage className="sys-config">
+      <header className="sys-config__top">
+        <div className="sys-config__top-row">
+          <div>
+            <p className="sys-config__eyebrow">Cấu hình hệ thống</p>
+            <h1 className="sys-config__title">Trung tâm điều khiển vận hành</h1>
+            <p className="sys-config__desc">
+              Tham số suất chiếu, giá vé, giới hạn đặt chỗ và streaming — mọi thay đổi áp dụng toàn hệ thống.
             </p>
-          </Section>
-          <Section title="Vận hành & bảo mật" divided>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Session timeout (giờ)</label>
-              <input type="number" min="1" className={fieldClass} value={config.sessionTimeoutHours} onChange={(e) => updateField('sessionTimeoutHours', parseInt(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className={labelClass}>Tỷ lệ tích điểm (%)</label>
-              <input type="number" min="0" max="100" className={fieldClass} value={config.pointsEarningRatio} onChange={(e) => updateField('pointsEarningRatio', parseInt(e.target.value) || 0)} />
-            </div>
-            <div>
-              <label className={labelClass}>Giá trị 1 điểm (VND)</label>
-              <input type="number" min="0" step="100" className={fieldClass} value={config.pointsToCashValue} onChange={(e) => updateField('pointsToCashValue', parseInt(e.target.value) || 0)} />
-            </div>
           </div>
-        </Section>
-        </>
-      )}
+          <div className="sys-config__actions">
+            <ActionMenu
+              items={[
+                {
+                  label: 'Khôi phục mặc định',
+                  icon: <RotateCcw className="w-3.5 h-3.5" />,
+                  onClick: handleReset,
+                  destructive: true,
+                  disabled: isSaving,
+                },
+              ]}
+            />
+            <button
+              type="button"
+              className="sys-config__save"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Đang lưu…' : 'Lưu cấu hình'}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="sys-config__workspace">
+        <div className="sys-config__workspace-stats">
+          {stats.map((item) => (
+            <div key={item.label} className="sys-config__stat">
+              <span className="sys-config__stat-label">{item.label}</span>
+              <span className="sys-config__stat-value">{item.value}</span>
+            </div>
+          ))}
+        </div>
+
+        <nav className="sys-config__tabs" aria-label="Nhóm cấu hình">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`sys-config__tab${isActive ? ' is-active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <Icon />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="sys-config__body" key={activeTab}>
+        {activeTab === 'showtime' && (
+          <div className="sys-config__split">
+            <ConfigSection title="Khung giờ suất chiếu">
+              <div className="sys-config__fields sys-config__fields--2">
+                <ConfigField label="Giờ mở cửa" hint="Khung giờ sớm nhất thuật toán có thể phân bổ suất.">
+                  <input type="time" className="sys-config__input" value={config.startTime} onChange={(e) => updateField('startTime', e.target.value)} />
+                </ConfigField>
+                <ConfigField label="Giờ đóng cửa" hint="Thời gian muộn nhất suất phải kết thúc.">
+                  <input type="time" className="sys-config__input" value={config.endTime} onChange={(e) => updateField('endTime', e.target.value)} />
+                </ConfigField>
+                <ConfigField label="Thời gian dọn dẹp (phút)">
+                  <input type="number" min="0" max="120" className="sys-config__input" value={config.intervalMinutes} onChange={(e) => updateField('intervalMinutes', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Trailer buffer (phút)">
+                  <input type="number" min="0" max="60" className="sys-config__input" value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+              </div>
+            </ConfigSection>
+
+            <ConfigSection title="Trọng số ưu tiên">
+              <div className="sys-config__fields sys-config__fields--2">
+                <ConfigSlider label="Giờ vàng" value={config.goldenHourWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('goldenHourWeight', v)} />
+                <ConfigSlider label="Cuối tuần" value={config.weekendWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('weekendWeight', v)} />
+                <ConfigSlider label="Đánh giá phim" value={config.ratingWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('ratingWeight', v)} />
+                <ConfigSlider label="Độ hot thể loại" value={config.genreWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('genreWeight', v)} />
+              </div>
+            </ConfigSection>
+          </div>
+        )}
+
+        {activeTab === 'pricing' && (
+          <ConfigSection title="Giá vé rạp" description="Giá gợi ý khi tạo suất chiếu tự động hoặc thủ công.">
+            <div className="sys-config__fields sys-config__fields--3">
+              <ConfigField label="Vé thường (VND)">
+                <input type="number" min="0" step="5000" className="sys-config__input" value={config.basePrice} onChange={(e) => updateField('basePrice', parseInt(e.target.value, 10) || 0)} />
+              </ConfigField>
+              <ConfigField label="Vé VIP (VND)">
+                <input type="number" min="0" step="5000" className="sys-config__input" value={config.vipPrice} onChange={(e) => updateField('vipPrice', parseInt(e.target.value, 10) || 0)} />
+              </ConfigField>
+              <ConfigField label="Vé đôi (VND)">
+                <input type="number" min="0" step="5000" className="sys-config__input" value={config.couplePrice} onChange={(e) => updateField('couplePrice', parseInt(e.target.value, 10) || 0)} />
+              </ConfigField>
+            </div>
+          </ConfigSection>
+        )}
+
+        {activeTab === 'limits' && (
+          <ConfigSection title="Giới hạn đặt vé">
+            <div className="sys-config__fields sys-config__fields--2">
+              <ConfigField label="Số ghế tối đa / lần đặt" hint="Áp dụng khi khách chọn ghế và xác nhận đặt vé trực tuyến.">
+                <input type="number" min="1" max="20" className="sys-config__input" value={config.maxSeatsPerBooking} onChange={(e) => updateField('maxSeatsPerBooking', parseInt(e.target.value, 10) || 1)} />
+              </ConfigField>
+              <ConfigField label="Thời gian giữ ghế (phút)" hint="Đếm ngược trên trang chọn ghế trước khi ghế được giải phóng.">
+                <input type="number" min="1" max="30" className="sys-config__input" value={config.seatLockMinutes} onChange={(e) => updateField('seatLockMinutes', parseInt(e.target.value, 10) || 1)} />
+              </ConfigField>
+            </div>
+          </ConfigSection>
+        )}
+
+        {activeTab === 'online' && (
+          <div className="sys-config__split">
+            <ConfigSection title="Giá vé streaming (VOD)">
+              <ConfigField label="Giá mặc định (VND)" hint={`Hiện tại: ${formatVnd(config.onlineStreamingPrice)} / vé.`}>
+                <input type="number" min="0" step="1000" className="sys-config__input" value={config.onlineStreamingPrice} onChange={(e) => updateField('onlineStreamingPrice', parseInt(e.target.value, 10) || 0)} />
+              </ConfigField>
+            </ConfigSection>
+
+            <ConfigSection title="Đồng hồ đếm ngược">
+              <div className="sys-config__switches">
+                <ConfigSwitch checked={config.onlineCountdownEnabled !== false} onChange={(v) => updateField('onlineCountdownEnabled', v)}>
+                  Hiển thị đồng hồ đếm ngược trên trang xem phim trực tuyến
+                </ConfigSwitch>
+              </div>
+              <div className="sys-config__fields sys-config__fields--2" style={{ marginTop: '1rem' }}>
+                <ConfigField label="Thời lượng xem (× thời lượng phim)" hint={lockPreviewMinutes(config.onlineWatchLockMultiplier)}>
+                  <input type="number" min="0.5" max="10" step="0.5" className="sys-config__input" value={config.onlineWatchLockMultiplier} onChange={(e) => updateField('onlineWatchLockMultiplier', parseFloat(e.target.value) || 2)} />
+                </ConfigField>
+                <ConfigField label="Cảnh báo sắp hết hạn (phút)" hint="Đồng hồ chuyển sang trạng thái cảnh báo khi dưới ngưỡng này.">
+                  <input type="number" min="1" max="120" className="sys-config__input" value={config.onlineCountdownWarningMinutes ?? 10} onChange={(e) => updateField('onlineCountdownWarningMinutes', parseInt(e.target.value, 10) || 10)} />
+                </ConfigField>
+                <ConfigSlider label="Hệ số thời lượng" value={config.onlineWatchLockMultiplier} min={0.5} max={10} step={0.5} onChange={(v) => updateField('onlineWatchLockMultiplier', v)} />
+              </div>
+            </ConfigSection>
+          </div>
+        )}
+
+        {activeTab === 'cinema' && (
+          <div className="sys-config__split">
+            <ConfigTypeList
+              title="Kiểu phòng chiếu"
+              description="Mã phải khớp enum backend (STANDARD, IMAX, VIP, …)."
+              items={config.roomTypes || DEFAULT_ROOM_TYPES}
+              onChange={(roomTypes) => updateField('roomTypes', roomTypes)}
+              valuePlaceholder="STANDARD"
+              labelPlaceholder="Standard 2D/3D"
+            />
+            <ConfigTypeList
+              title="Định dạng chiếu"
+              description="2D, 3D, IMAX… dùng cho hiển thị và quản lý suất chiếu."
+              items={config.screeningFormats || DEFAULT_SCREENING_FORMATS}
+              onChange={(screeningFormats) => updateField('screeningFormats', screeningFormats)}
+              valuePlaceholder="2D"
+              labelPlaceholder="2D Phụ đề"
+            />
+          </div>
+        )}
+
+        {activeTab === 'operations' && (
+          <div className="sys-config__split">
+            <ConfigSection title="Hủy vé & hoàn tiền">
+              <div className="sys-config__fields sys-config__fields--2">
+                <ConfigField label="Chặn hủy trước giờ chiếu (phút)">
+                  <input type="number" min="0" className="sys-config__input" value={config.cancellationCutoffMinutes} onChange={(e) => updateField('cancellationCutoffMinutes', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Phí hủy vé (%)">
+                  <input type="number" min="0" max="100" className="sys-config__input" value={config.cancellationFeePercent} onChange={(e) => updateField('cancellationFeePercent', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+              </div>
+              <div className="sys-config__switches" style={{ marginTop: '0.75rem' }}>
+                <ConfigSwitch checked={config.customerRefundEnabled !== false} onChange={(v) => updateField('customerRefundEnabled', v)}>
+                  Cho phép hoàn tiền khi khách hủy vé
+                </ConfigSwitch>
+                <ConfigSwitch checked={config.fullRefundOnShowtimeCancel !== false} onChange={(v) => updateField('fullRefundOnShowtimeCancel', v)}>
+                  Hoàn 100% khi suất chiếu bị hủy
+                </ConfigSwitch>
+                <ConfigSwitch checked={config.refundManualApprovalRequired !== false} onChange={(v) => updateField('refundManualApprovalRequired', v)}>
+                  Bắt buộc admin duyệt hoàn tiền
+                </ConfigSwitch>
+              </div>
+              <p className="sys-config__hint" style={{ marginTop: '0.5rem' }}>
+                Khi bật duyệt thủ công: khách hủy vé → đơn chờ hoàn tiền → admin duyệt tại /admin/refunds.
+              </p>
+            </ConfigSection>
+
+            <ConfigSection title="Vận hành & bảo mật">
+              <div className="sys-config__fields sys-config__fields--3">
+                <ConfigField label="Session timeout (giờ)">
+                  <input type="number" min="1" className="sys-config__input" value={config.sessionTimeoutHours} onChange={(e) => updateField('sessionTimeoutHours', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Tỷ lệ tích điểm (%)">
+                  <input type="number" min="0" max="100" className="sys-config__input" value={config.pointsEarningRatio} onChange={(e) => updateField('pointsEarningRatio', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Giá trị 1 điểm (VND)">
+                  <input type="number" min="0" step="100" className="sys-config__input" value={config.pointsToCashValue} onChange={(e) => updateField('pointsToCashValue', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+              </div>
+            </ConfigSection>
+          </div>
+        )}
+        </div>
+      </div>
     </AdminPage>
   );
 };

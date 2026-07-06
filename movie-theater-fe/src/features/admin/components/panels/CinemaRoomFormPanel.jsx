@@ -5,6 +5,7 @@ import { systemConfigService } from '../../../../shared/services/systemConfigSer
 import { getEnabledRoomTypes } from '../../../../shared/utils/systemConfig';
 import { PrimaryButton, GhostButton } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
+
 const ROOM_STATUSES = [
   { value: 'ACTIVE', label: 'Hoạt động' },
   { value: 'MAINTENANCE', label: 'Bảo trì' },
@@ -19,7 +20,8 @@ const emptyForm = {
   status: 'ACTIVE',
 };
 
-const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) => {
+const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, room, onSuccess, onCancel }) => {
+  const isEditing = Boolean(room?.uuid);
   const [isSaving, setIsSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState(() => getEnabledRoomTypes());
   const [form, setForm] = useState(emptyForm);
@@ -36,6 +38,20 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (room) {
+      setForm({
+        roomCode: room.roomCode || '',
+        name: room.name || '',
+        roomType: room.roomType || 'STANDARD',
+        capacity: room.capacity || 0,
+        status: room.status || 'ACTIVE',
+      });
+    } else {
+      setForm(emptyForm);
+    }
+  }, [room]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.roomCode.trim() || !form.name.trim()) {
@@ -44,14 +60,20 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
     }
     setIsSaving(true);
     try {
-      await cinemaService.createRoom(cinemaUuid, {
+      const payload = {
         roomCode: form.roomCode.trim(),
         name: form.name.trim(),
         roomType: form.roomType,
-        capacity: Number(form.capacity) || 0,
         status: form.status,
-      });
-      notificationService.success('Tạo phòng chiếu thành công');
+      };
+      if (!isEditing) {
+        payload.capacity = Number(form.capacity) || 0;
+        await cinemaService.createRoom(cinemaUuid, payload);
+        notificationService.success('Tạo phòng chiếu thành công');
+      } else {
+        await cinemaService.updateRoom(room.uuid, payload);
+        notificationService.success('Cập nhật phòng thành công');
+      }
       onSuccess?.();
     } catch (err) {
       notificationService.error(err.message || 'Lưu thất bại');
@@ -62,7 +84,7 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {cinemaName && (
+      {!isEditing && cinemaName && (
         <p className="text-xs text-gray-500">
           Chi nhánh: <span className="text-gray-300 font-semibold">{cinemaName}</span>
         </p>
@@ -102,33 +124,55 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, onSuccess, onCancel }) =>
             ))}
           </select>
         </div>
-        <div>
-          <label className={adminLabelClass}>Sức chứa (ghế)</label>
-          <input
-            type="number"
-            min="1"
-            className={adminInputClass}
-            value={form.capacity}
-            onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className={adminLabelClass}>Trạng thái *</label>
-          <select
-            className={adminSelectClass}
-            value={form.status}
-            onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
-          >
-            {ROOM_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-        </div>
+        {!isEditing ? (
+          <div>
+            <label className={adminLabelClass}>Sức chứa (ghế)</label>
+            <input
+              type="number"
+              min="1"
+              className={adminInputClass}
+              value={form.capacity}
+              onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))}
+            />
+          </div>
+        ) : (
+          <div>
+            <label className={adminLabelClass}>Trạng thái *</label>
+            <select
+              className={adminSelectClass}
+              value={form.status}
+              onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+            >
+              {ROOM_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {!isEditing && (
+          <div className="sm:col-span-2">
+            <label className={adminLabelClass}>Trạng thái *</label>
+            <select
+              className={adminSelectClass}
+              value={form.status}
+              onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+            >
+              {ROOM_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
+      {isEditing && (form.status === 'DISABLED' || form.status === 'MAINTENANCE') && (
+        <p className="text-xs text-amber-400/90 leading-relaxed">
+          Các suất chiếu tương lai của phòng sẽ tự động bị hủy khi lưu trạng thái này.
+        </p>
+      )}
       <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
         <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
         <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
-          Tạo phòng
+          {isEditing ? 'Cập nhật' : 'Tạo phòng'}
         </PrimaryButton>
       </div>
     </form>
