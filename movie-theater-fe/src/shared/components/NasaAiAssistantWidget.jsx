@@ -120,6 +120,9 @@ const DEFAULT_NASA_BOT_RUNTIME = {
   ],
 };
 
+const resolveSupportErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
 const SATISFACTION_OPTIONS = [
   { value: 1, label: 'Rat te' },
   { value: 2, label: 'Chua hai long' },
@@ -219,6 +222,36 @@ const NasaAiAssistantWidget = () => {
 
   useEffect(() => {
     let active = true;
+
+    const loadRuntimeConfig = async () => {
+      try {
+        const data = await systemConfigService.getConfig();
+        if (!active) return;
+        const nasaBot = data?.nasaBot || {};
+        setNasaBotRuntime({
+          openingQuestions: Array.isArray(nasaBot.openingQuestions) && nasaBot.openingQuestions.length > 0
+            ? nasaBot.openingQuestions
+            : DEFAULT_NASA_BOT_RUNTIME.openingQuestions,
+          shortcuts: Array.isArray(nasaBot.shortcuts) && nasaBot.shortcuts.length > 0
+            ? nasaBot.shortcuts
+            : DEFAULT_NASA_BOT_RUNTIME.shortcuts,
+        });
+      } catch {
+        if (active) setNasaBotRuntime(DEFAULT_NASA_BOT_RUNTIME);
+      }
+    };
+
+    loadRuntimeConfig();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let active = true;
     systemConfigService.getConfig()
       .then((data) => {
         if (!active) return;
@@ -235,10 +268,11 @@ const NasaAiAssistantWidget = () => {
       .catch(() => {
         if (active) setNasaBotRuntime(DEFAULT_NASA_BOT_RUNTIME);
       });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [open]);
 
   useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
     supportService.getLiveSupportAvailability()
@@ -344,8 +378,9 @@ const NasaAiAssistantWidget = () => {
       setMode('tickets');
       await loadMyTickets();
     } catch (error) {
-      notificationService.error(error?.response?.data?.message || 'Tạo ticket thất bại.');
-      pushBot('Mình chưa tạo được ticket lúc này, bạn thử lại giúp mình nhé.');
+      const message = resolveSupportErrorMessage(error, 'Tạo ticket thất bại.');
+      notificationService.error(message);
+      pushBot(message);
     } finally {
       setTyping(false);
     }
@@ -430,7 +465,9 @@ const NasaAiAssistantWidget = () => {
       });
       await openTicketThread(response.ticketCode);
     } catch (error) {
-      notificationService.error(error?.response?.data?.message || 'Không thể gửi yêu cầu hỗ trợ trực tiếp.');
+      const message = resolveSupportErrorMessage(error, 'Không thể gửi yêu cầu hỗ trợ trực tiếp.');
+      notificationService.error(message);
+      pushBot(message);
     } finally {
       setTyping(false);
     }
@@ -444,7 +481,7 @@ const NasaAiAssistantWidget = () => {
       await loadMyTickets();
       notificationService.success('Cảm ơn bạn đã đánh giá hỗ trợ.');
     } catch (error) {
-      notificationService.error(error?.response?.data?.message || 'Không gửi được đánh giá lúc này.');
+      notificationService.error(resolveSupportErrorMessage(error, 'Không gửi được đánh giá lúc này.'));
     }
   };
 

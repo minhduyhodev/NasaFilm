@@ -8,6 +8,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.support.dto.request.SupportTicketCreateRequest;
 import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
@@ -21,6 +23,8 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 public class SupportTicketService {
 
     private static final Set<String> CLOSED_STATUSES = Set.of("DONE", "RESOLVED", "CLOSED");
+    private static final String ACTIVE_TICKET_MESSAGE =
+            "Khách hàng chỉ được gửi 1 ticket 1 lần cho đến khi hoàn thành.";
 
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketMessageRepository supportTicketMessageRepository;
@@ -59,12 +63,12 @@ public class SupportTicketService {
 
     @Transactional(readOnly = true)
     public void assertNoActiveSupport(String ownerEmail) {
-      boolean hasActive = supportTicketRepository.findByOwnerEmailOrderByCreatedAtDesc(ownerEmail).stream()
-              .anyMatch(ticket -> ticket != null && ticket.getStatus() != null
-                      && !CLOSED_STATUSES.contains(ticket.getStatus().trim().toUpperCase()));
-      if (hasActive) {
-          throw new IllegalArgumentException("Bạn đang có một ticket hoặc phiên hỗ trợ đang hoạt động. Vui lòng hoàn tất trước khi tạo yêu cầu mới.");
-      }
+        boolean hasActive = supportTicketRepository.findByOwnerEmailOrderByCreatedAtDesc(ownerEmail).stream()
+                .anyMatch(ticket -> ticket != null && ticket.getStatus() != null
+                        && !CLOSED_STATUSES.contains(ticket.getStatus().trim().toUpperCase()));
+        if (hasActive) {
+            throw new AppException(ErrorCode.BAD_REQUEST, ACTIVE_TICKET_MESSAGE);
+        }
     }
 
     @Transactional(readOnly = true)

@@ -1,26 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Bot,
-  BrainCircuit,
-  Database,
-  Image as ImageIcon,
-  Lightbulb,
-  MessageCircleMore,
-  Plus,
-  Save,
-  Settings2,
-  Sparkles,
-  Table2,
-  Trash2,
-  Variable,
-} from 'lucide-react';
+import { Bot, MessageCircleMore, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
 import { AdminPage } from '../components';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { DEFAULT_NASA_BOT_CONFIG } from '../../../shared/constants/systemConfig';
+import { normalizeNasaBotConfig, normalizeNasaBotShortcut } from '../../../shared/utils/systemConfig';
 import './NasaBotConfigPage.css';
 
-const cloneBotConfig = (config) => JSON.parse(JSON.stringify(config || DEFAULT_NASA_BOT_CONFIG));
+const cloneBotConfig = (config) => JSON.parse(JSON.stringify(normalizeNasaBotConfig(config || DEFAULT_NASA_BOT_CONFIG)));
+
+const createShortcut = (index) => ({
+  buttonName: `Shortcut ${index + 1}`,
+  shortcutName: `custom_${index + 1}_support`,
+  description: 'Mô tả ngắn cho shortcut này',
+  queryContent: 'Tôi cần hỗ trợ thêm về vấn đề này.',
+});
 
 const NasaBotConfigPage = () => {
   const [fullConfig, setFullConfig] = useState(null);
@@ -30,11 +24,12 @@ const NasaBotConfigPage = () => {
 
   useEffect(() => {
     let active = true;
+
     systemConfigService.getConfig()
       .then((data) => {
         if (!active) return;
         setFullConfig(data);
-        setBotConfig(cloneBotConfig(data?.nasaBot || DEFAULT_NASA_BOT_CONFIG));
+        setBotConfig(cloneBotConfig(data?.nasaBot));
       })
       .catch(() => {
         if (!active) return;
@@ -44,6 +39,7 @@ const NasaBotConfigPage = () => {
       .finally(() => {
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
@@ -51,30 +47,6 @@ const NasaBotConfigPage = () => {
 
   const updateField = (field, value) => {
     setBotConfig((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const updateShortcut = (index, field, value) => {
-    setBotConfig((prev) => ({
-      ...prev,
-      shortcuts: prev.shortcuts.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
-    }));
-  };
-
-  const addShortcut = () => {
-    setBotConfig((prev) => ({
-      ...prev,
-      shortcuts: [
-        ...prev.shortcuts,
-        { id: `custom_${prev.shortcuts.length + 1}`, label: 'Shortcut mới', description: 'Mô tả ngắn cho shortcut mới' },
-      ],
-    }));
-  };
-
-  const removeShortcut = (index) => {
-    setBotConfig((prev) => ({
-      ...prev,
-      shortcuts: prev.shortcuts.filter((_, idx) => idx !== index),
-    }));
   };
 
   const updateOpeningQuestion = (index, value) => {
@@ -98,17 +70,39 @@ const NasaBotConfigPage = () => {
     }));
   };
 
+  const updateShortcut = (index, field, value) => {
+    setBotConfig((prev) => ({
+      ...prev,
+      shortcuts: prev.shortcuts.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
+    }));
+  };
+
+  const addShortcut = () => {
+    setBotConfig((prev) => ({
+      ...prev,
+      shortcuts: [...prev.shortcuts, createShortcut(prev.shortcuts.length)],
+    }));
+  };
+
+  const removeShortcut = (index) => {
+    setBotConfig((prev) => ({
+      ...prev,
+      shortcuts: prev.shortcuts.filter((_, idx) => idx !== index),
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
+      const normalizedBotConfig = normalizeNasaBotConfig(botConfig);
       const payload = {
         ...(fullConfig || {}),
-        nasaBot: botConfig,
+        nasaBot: normalizedBotConfig,
       };
       const saved = await systemConfigService.saveConfig(payload);
       setFullConfig(saved);
-      setBotConfig(cloneBotConfig(saved?.nasaBot || botConfig));
-      notificationService.success('Đã lưu cấu hình NASA Bot.');
+      setBotConfig(cloneBotConfig(saved?.nasaBot));
+      notificationService.success('Đã lưu cấu hình NASA Bot đang được áp dụng thực tế.');
     } catch (error) {
       notificationService.error(error?.message || 'Không thể lưu cấu hình NASA Bot.');
     } finally {
@@ -117,8 +111,16 @@ const NasaBotConfigPage = () => {
   };
 
   const previewOpening = useMemo(
-    () => botConfig.openingQuestions.filter(Boolean).slice(0, 4),
+    () => botConfig.openingQuestions.map((item) => `${item || ''}`.trim()).filter(Boolean).slice(0, 4),
     [botConfig.openingQuestions],
+  );
+
+  const previewShortcuts = useMemo(
+    () => botConfig.shortcuts
+      .map((item) => normalizeNasaBotShortcut(item))
+      .filter((item) => item?.buttonName)
+      .slice(0, 4),
+    [botConfig.shortcuts],
   );
 
   if (loading) {
@@ -134,9 +136,10 @@ const NasaBotConfigPage = () => {
       <header className="nasabot-config__top">
         <div>
           <p className="nasabot-config__eyebrow">AI Agent · NASA Bot</p>
-          <h1 className="nasabot-config__title">Trung tâm cấu hình trợ lý hỗ trợ</h1>
+          <h1 className="nasabot-config__title">Cấu hình đang áp dụng cho NASA Bot</h1>
           <p className="nasabot-config__desc">
-            Bố cục mô phỏng Coze: chỉnh prompt, opening questions, auto-suggestion, shortcuts và vùng preview ngay trong admin.
+            Trang này chỉ giữ lại các mục đang được dùng thật trong widget và luồng chat AI:
+            prompt, câu mở đầu và shortcut hỗ trợ.
           </p>
         </div>
         <button type="button" className="nasabot-config__save" onClick={handleSave} disabled={saving}>
@@ -149,14 +152,11 @@ const NasaBotConfigPage = () => {
         <section className="nasabot-config__panel nasabot-config__panel--prompt">
           <div className="nasabot-config__panel-title">
             <Bot className="w-4 h-4" />
-            Persona & Prompt
+            Prompt đang dùng cho AI
           </div>
-          <input
-            className="nasabot-config__input"
-            value={botConfig.title}
-            onChange={(e) => updateField('title', e.target.value)}
-            placeholder="Tên bot"
-          />
+          <p className="nasabot-config__desc">
+            Prompt này được backend dùng cho `/api/support-ai/chat`.
+          </p>
           <textarea
             className="nasabot-config__textarea nasabot-config__textarea--prompt"
             value={botConfig.personaPrompt}
@@ -167,173 +167,90 @@ const NasaBotConfigPage = () => {
 
         <section className="nasabot-config__panel nasabot-config__panel--arrangement">
           <div className="nasabot-config__panel-title">
-            <Settings2 className="w-4 h-4" />
-            Arrangement
+            <MessageCircleMore className="w-4 h-4" />
+            Trải nghiệm trong widget
           </div>
 
-          <div className="nasabot-config__group">
-            <div className="nasabot-config__group-title">
-              <BrainCircuit className="w-4 h-4" />
-              Model settings
+          <div className="nasabot-config__subgroup">
+            <div className="nasabot-config__subgroup-head">
+              <span>Opening questions</span>
+              <button type="button" className="nasabot-config__icon-btn" onClick={addOpeningQuestion}>
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
-            <div className="nasabot-config__grid nasabot-config__grid--2">
-              <label className="nasabot-config__field">
-                <span>Provider</span>
-                <input className="nasabot-config__input" value={botConfig.provider} onChange={(e) => updateField('provider', e.target.value)} />
-              </label>
-              <label className="nasabot-config__field">
-                <span>Model</span>
-                <input className="nasabot-config__input" value={botConfig.model} onChange={(e) => updateField('model', e.target.value)} />
-              </label>
-              <label className="nasabot-config__field">
-                <span>Temperature</span>
-                <input type="number" step="0.1" className="nasabot-config__input" value={botConfig.temperature} onChange={(e) => updateField('temperature', Number(e.target.value) || 0)} />
-              </label>
-              <label className="nasabot-config__field">
-                <span>Top P</span>
-                <input type="number" step="0.1" className="nasabot-config__input" value={botConfig.topP} onChange={(e) => updateField('topP', Number(e.target.value) || 0)} />
-              </label>
-              <label className="nasabot-config__field">
-                <span>Context rounds</span>
-                <input type="number" className="nasabot-config__input" value={botConfig.contextRounds} onChange={(e) => updateField('contextRounds', Number(e.target.value) || 0)} />
-              </label>
-              <label className="nasabot-config__field">
-                <span>Response max length</span>
-                <input type="number" className="nasabot-config__input" value={botConfig.responseMaxLength} onChange={(e) => updateField('responseMaxLength', Number(e.target.value) || 0)} />
-              </label>
+            <div className="nasabot-config__list">
+              {botConfig.openingQuestions.map((question, index) => (
+                <div key={`opening-${index}`} className="nasabot-config__list-item">
+                  <input
+                    className="nasabot-config__input"
+                    value={question}
+                    onChange={(e) => updateOpeningQuestion(index, e.target.value)}
+                    placeholder="Ví dụ: Thanh toán bị lỗi"
+                  />
+                  <button type="button" className="nasabot-config__icon-btn" onClick={() => removeOpeningQuestion(index)}>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="nasabot-config__group">
-            <div className="nasabot-config__group-title">Skills</div>
-            <div className="nasabot-config__switches">
-              <label className="nasabot-config__toggle">
-                <input type="checkbox" checked={botConfig.pluginsEnabled} onChange={(e) => updateField('pluginsEnabled', e.target.checked)} />
-                <span>Plugins</span>
-              </label>
-              <label className="nasabot-config__toggle">
-                <input type="checkbox" checked={botConfig.workflowsEnabled} onChange={(e) => updateField('workflowsEnabled', e.target.checked)} />
-                <span>Workflows</span>
-              </label>
+          <div className="nasabot-config__subgroup">
+            <div className="nasabot-config__subgroup-head">
+              <span>Shortcuts</span>
+              <button type="button" className="nasabot-config__icon-btn" onClick={addShortcut}>
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-
-          <div className="nasabot-config__group">
-            <div className="nasabot-config__group-title">
-              <Database className="w-4 h-4" />
-              Knowledge
-            </div>
-            <label className="nasabot-config__field">
-              <span>Text</span>
-              <textarea className="nasabot-config__textarea" value={botConfig.knowledgeTextSummary} onChange={(e) => updateField('knowledgeTextSummary', e.target.value)} />
-            </label>
-            <label className="nasabot-config__field">
-              <span>Table</span>
-              <textarea className="nasabot-config__textarea" value={botConfig.knowledgeTableSummary} onChange={(e) => updateField('knowledgeTableSummary', e.target.value)} />
-            </label>
-            <label className="nasabot-config__field">
-              <span>Images</span>
-              <textarea className="nasabot-config__textarea" value={botConfig.knowledgeImageSummary} onChange={(e) => updateField('knowledgeImageSummary', e.target.value)} />
-            </label>
-          </div>
-
-          <div className="nasabot-config__group">
-            <div className="nasabot-config__group-title">
-              <Variable className="w-4 h-4" />
-              Memory
-            </div>
-            <label className="nasabot-config__field">
-              <span>Variables</span>
-              <input className="nasabot-config__input" value={botConfig.memoryVariablesSummary} onChange={(e) => updateField('memoryVariablesSummary', e.target.value)} />
-            </label>
-            <label className="nasabot-config__field">
-              <span>Database</span>
-              <input className="nasabot-config__input" value={botConfig.memoryDatabaseSummary} onChange={(e) => updateField('memoryDatabaseSummary', e.target.value)} />
-            </label>
-          </div>
-
-          <div className="nasabot-config__group">
-            <div className="nasabot-config__group-title">
-              <MessageCircleMore className="w-4 h-4" />
-              Chat experience
-            </div>
-            <div className="nasabot-config__subgroup">
-              <div className="nasabot-config__subgroup-head">
-                <span>Opening questions</span>
-                <button type="button" className="nasabot-config__icon-btn" onClick={addOpeningQuestion}>
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="nasabot-config__list">
-                {botConfig.openingQuestions.map((question, index) => (
-                  <div key={`${question}-${index}`} className="nasabot-config__list-item">
+            <div className="nasabot-config__list">
+              {botConfig.shortcuts.map((shortcut, index) => (
+                <div key={`${shortcut.shortcutName || 'shortcut'}-${index}`} className="nasabot-config__shortcut-card">
+                  <label className="nasabot-config__field">
+                    <span>Nhãn hiển thị</span>
                     <input
                       className="nasabot-config__input"
-                      value={question}
-                      onChange={(e) => updateOpeningQuestion(index, e.target.value)}
+                      value={shortcut.buttonName}
+                      onChange={(e) => updateShortcut(index, 'buttonName', e.target.value)}
+                      placeholder="Ví dụ: Thanh toán"
                     />
-                    <button type="button" className="nasabot-config__icon-btn" onClick={() => removeOpeningQuestion(index)}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="nasabot-config__subgroup">
-              <div className="nasabot-config__subgroup-head">
-                <span>Auto-suggestion</span>
-              </div>
-              <label className="nasabot-config__toggle">
-                <input type="checkbox" checked={botConfig.autoSuggestionEnabled} onChange={(e) => updateField('autoSuggestionEnabled', e.target.checked)} />
-                <span>Bật gợi ý tự động</span>
-              </label>
-              <textarea
-                className="nasabot-config__textarea"
-                value={botConfig.autoSuggestionPrompt}
-                onChange={(e) => updateField('autoSuggestionPrompt', e.target.value)}
-              />
-            </div>
-
-            <div className="nasabot-config__subgroup">
-              <div className="nasabot-config__subgroup-head">
-                <span>Shortcuts</span>
-                <button type="button" className="nasabot-config__icon-btn" onClick={addShortcut}>
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="nasabot-config__list">
-                {botConfig.shortcuts.map((shortcut, index) => (
-                  <div key={`${shortcut.id}-${index}`} className="nasabot-config__shortcut-card">
-                    <input
-                      className="nasabot-config__input"
-                      value={shortcut.label}
-                      onChange={(e) => updateShortcut(index, 'label', e.target.value)}
-                    />
+                  </label>
+                  <label className="nasabot-config__field">
+                    <span>Mô tả ngắn</span>
                     <textarea
                       className="nasabot-config__textarea nasabot-config__textarea--compact"
                       value={shortcut.description}
                       onChange={(e) => updateShortcut(index, 'description', e.target.value)}
+                      placeholder="Hiển thị dưới nút shortcut"
                     />
-                    <div className="nasabot-config__shortcut-foot">
-                      <span className="nasabot-config__shortcut-id">{shortcut.id}</span>
-                      <button type="button" className="nasabot-config__icon-btn" onClick={() => removeShortcut(index)}>
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                  </label>
+                  <label className="nasabot-config__field">
+                    <span>Nội dung bot hiểu khi bấm shortcut</span>
+                    <textarea
+                      className="nasabot-config__textarea nasabot-config__textarea--compact"
+                      value={shortcut.queryContent}
+                      onChange={(e) => updateShortcut(index, 'queryContent', e.target.value)}
+                      placeholder="Ví dụ: Tôi cần hỗ trợ về thanh toán."
+                    />
+                  </label>
+                  <label className="nasabot-config__field">
+                    <span>Khóa nội bộ</span>
+                    <input
+                      className="nasabot-config__input"
+                      value={shortcut.shortcutName}
+                      onChange={(e) => updateShortcut(index, 'shortcutName', e.target.value)}
+                      placeholder="payment_support"
+                    />
+                  </label>
+                  <div className="nasabot-config__shortcut-foot">
+                    <span className="nasabot-config__shortcut-id">
+                      Áp dụng trực tiếp vào widget sau khi lưu
+                    </span>
+                    <button type="button" className="nasabot-config__icon-btn" onClick={() => removeShortcut(index)}>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="nasabot-config__subgroup">
-              <div className="nasabot-config__subgroup-head">
-                <span>Background image</span>
-              </div>
-              <label className="nasabot-config__field">
-                <span>Image URL</span>
-                <input className="nasabot-config__input" value={botConfig.backgroundImageUrl} onChange={(e) => updateField('backgroundImageUrl', e.target.value)} placeholder="https://..." />
-              </label>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -341,43 +258,37 @@ const NasaBotConfigPage = () => {
         <section className="nasabot-config__panel nasabot-config__panel--preview">
           <div className="nasabot-config__panel-title">
             <Sparkles className="w-4 h-4" />
-            Preview & Debug
+            Preview nhanh
           </div>
           <div className="nasabot-preview">
             <div className="nasabot-preview__header">
-              <img src="" alt="" />
               <div>
-                <div className="nasabot-preview__title">{botConfig.title}</div>
-                <div className="nasabot-preview__mode">{botConfig.mode}</div>
+                <div className="nasabot-preview__title">NASA BOT</div>
+                <div className="nasabot-preview__mode">Widget + Support AI</div>
               </div>
             </div>
 
             <div className="nasabot-preview__bubble nasabot-preview__bubble--bot">
               {previewOpening.map((question, index) => (
-                <div key={`${question}-${index}`}>{index + 1}. {question}</div>
+                <div key={`preview-opening-${index}`}>{index + 1}. {question}</div>
               ))}
             </div>
 
             <div className="nasabot-preview__bubble nasabot-preview__bubble--user">
-              Tôi cần hỗ trợ về vé hoặc suất chiếu.
+              Tôi cần hỗ trợ về thanh toán.
             </div>
 
             <div className="nasabot-preview__bubble nasabot-preview__bubble--bot">
-              {botConfig.personaPrompt.split('\n')[0]}
+              {botConfig.personaPrompt.split('\n').find((line) => line.trim()) || 'NASA BOT đang sẵn sàng hỗ trợ.'}
             </div>
 
             <div className="nasabot-preview__shortcuts">
-              {botConfig.shortcuts.slice(0, 4).map((shortcut) => (
-                <div key={shortcut.id} className="nasabot-preview__shortcut">
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  <span>{shortcut.label}</span>
+              {previewShortcuts.map((shortcut) => (
+                <div key={shortcut.shortcutName} className="nasabot-preview__shortcut">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{shortcut.buttonName}</span>
                 </div>
               ))}
-            </div>
-
-            <div className="nasabot-preview__meta">
-              <span><Table2 className="w-3.5 h-3.5" /> {botConfig.knowledgeAutoCall ? 'Knowledge auto-call On' : 'Knowledge auto-call Off'}</span>
-              <span><ImageIcon className="w-3.5 h-3.5" /> {botConfig.backgroundImageUrl ? 'Có background' : 'Chưa có background'}</span>
             </div>
           </div>
         </section>
