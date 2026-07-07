@@ -30,7 +30,6 @@ class SystemConfigService {
       const response = await authService.api.put('/api/admin/system-config', config);
       const data = mergeSystemConfig(response.data.data ?? response.data);
       writeCachedSystemConfig(data);
-      window.dispatchEvent(new CustomEvent('system-config-updated', { detail: data }));
       return data;
     } catch (error) {
       throw authService.handleError(error);
