@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -63,5 +64,11 @@ public class AdminSupportController {
             @PathVariable String ticketCode,
             @RequestBody SupportTicketStatusRequest request) {
         return ResponseEntity.ok(ApiResponse.success(supportTicketService.updateStatus(ticketCode, request.getStatus())));
+    }
+
+    @DeleteMapping("/{ticketCode}")
+    public ResponseEntity<ApiResponse<String>> delete(@PathVariable String ticketCode) {
+        supportTicketService.delete(ticketCode);
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa ticket hỗ trợ."));
     }
 }

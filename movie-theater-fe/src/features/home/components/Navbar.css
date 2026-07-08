@@ -115,7 +115,7 @@
 }
 
 .navbar-cta-btn {
-  @apply relative hidden h-11 shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-3 text-[11px] font-extrabold uppercase tracking-wide text-white no-underline shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 hover:scale-[1.02] hover:from-red-700 hover:to-red-600 active:scale-95 md:inline-flex lg:px-3.5 xl:gap-2 xl:px-4 xl:text-xs xl:tracking-wider;
+  @apply relative hidden h-11 shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-3 text-[11px] font-extrabold uppercase tracking-wide text-white no-underline shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 active:scale-95 md:inline-flex lg:px-3.5 xl:gap-2 xl:px-4 xl:text-xs xl:tracking-wider;
 }
 
 .navbar-cta-btn span {
@@ -131,7 +131,7 @@
 }
 
 .navbar-btn-notif {
-  @apply hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-600 text-white transition hover:bg-red-700 md:flex;
+  @apply hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-600 text-white transition-colors duration-200 md:flex;
 }
 
 .navbar-btn-menu {

@@ -1,12 +1,15 @@
 package com.thdpv.movietheater.support.service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.support.dto.request.SupportTicketCreateRequest;
 import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
@@ -18,6 +21,10 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 
 @Service
 public class SupportTicketService {
+
+    private static final Set<String> CLOSED_STATUSES = Set.of("DONE", "RESOLVED", "CLOSED");
+    private static final String ACTIVE_TICKET_MESSAGE =
+            "Khách hàng chỉ được gửi 1 ticket 1 lần cho đến khi hoàn thành.";
 
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketMessageRepository supportTicketMessageRepository;
@@ -37,6 +44,7 @@ public class SupportTicketService {
 
     @Transactional
     public SupportTicketResponse create(String ownerEmail, SupportTicketCreateRequest request) {
+        assertNoActiveSupport(ownerEmail);
         SupportTicket ticket = new SupportTicket();
         ticket.setTicketCode(generateTicketCode());
         ticket.setOwnerEmail(ownerEmail);
@@ -51,6 +59,16 @@ public class SupportTicketService {
         SupportTicket saved = supportTicketRepository.save(ticket);
         saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), request.getDescription().trim());
         return map(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public void assertNoActiveSupport(String ownerEmail) {
+        boolean hasActive = supportTicketRepository.findByOwnerEmailOrderByCreatedAtDesc(ownerEmail).stream()
+                .anyMatch(ticket -> ticket != null && ticket.getStatus() != null
+                        && !CLOSED_STATUSES.contains(ticket.getStatus().trim().toUpperCase()));
+        if (hasActive) {
+            throw new AppException(ErrorCode.BAD_REQUEST, ACTIVE_TICKET_MESSAGE);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -125,7 +143,16 @@ public class SupportTicketService {
         return map(supportTicketRepository.save(ticket));
     }
 
-    private void saveMessage(UUID ticketUuid, String senderRole, String senderName, String message) {
+    @Transactional
+    public void delete(String ticketCode) {
+        SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
+        supportTicketMessageRepository.deleteByTicketUuid(ticket.getUuid());
+        supportTicketRepository.delete(ticket);
+        eventPublisher.publishEvent(new SupportTicketDeletedEvent(ticketCode));
+    }
+
+    void saveMessage(UUID ticketUuid, String senderRole, String senderName, String message) {
         SupportTicketMessage ticketMessage = new SupportTicketMessage();
         ticketMessage.setTicketUuid(ticketUuid);
         ticketMessage.setSenderRole(senderRole);
@@ -135,7 +162,7 @@ public class SupportTicketService {
         eventPublisher.publishEvent(new SupportTicketEvent(getTicketCodeByUuid(ticketUuid), senderRole));
     }
 
-    private SupportTicketResponse map(SupportTicket ticket) {
+    SupportTicketResponse map(SupportTicket ticket) {
         SupportTicketResponse response = new SupportTicketResponse();
         response.setUuid(ticket.getUuid());
         response.setTicketCode(ticket.getTicketCode());
@@ -150,6 +177,12 @@ public class SupportTicketService {
         response.setAdminNote(ticket.getAdminNote());
         response.setLastMessage(ticket.getLastMessage());
         response.setLastMessageSender(ticket.getLastMessageSender());
+        response.setLiveRequested(ticket.isLiveRequested());
+        response.setLiveConnected(ticket.isLiveConnected());
+        response.setAssignedStaffEmail(ticket.getAssignedStaffEmail());
+        response.setAssignedStaffName(ticket.getAssignedStaffName());
+        response.setSatisfactionRating(ticket.getSatisfactionRating());
+        response.setSatisfactionLabel(ticket.getSatisfactionLabel());
         response.setCreatedAt(ticket.getCreatedAt());
         response.setUpdatedAt(ticket.getUpdatedAt());
         return response;
@@ -166,7 +199,7 @@ public class SupportTicketService {
         return response;
     }
 
-    private String generateTicketCode() {
+    String generateTicketCode() {
         String code;
         do {
             code = "SR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -179,4 +212,6 @@ public class SupportTicketService {
     }
 
     public record SupportTicketEvent(String ticketCode, String senderRole) {}
+
+    public record SupportTicketDeletedEvent(String ticketCode) {}
 }

@@ -1,9 +1,43 @@
 import {
+  DEFAULT_NASA_BOT_CONFIG,
+  DEFAULT_NASA_BOT_SHORTCUTS,
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_ROOM_TYPES,
   DEFAULT_SCREENING_FORMATS,
   SYSTEM_CONFIG_STORAGE_KEY,
 } from '../constants/systemConfig';
+
+export function normalizeNasaBotShortcut(shortcut = {}, fallback = {}) {
+  const buttonName = `${shortcut.buttonName || shortcut.label || fallback.buttonName || ''}`.trim();
+  const shortcutName = `${shortcut.shortcutName || shortcut.id || fallback.shortcutName || ''}`.trim();
+  const description = `${shortcut.description || fallback.description || ''}`.trim();
+  const queryContent = `${shortcut.queryContent || shortcut.buttonName || shortcut.label || fallback.queryContent || ''}`.trim();
+
+  return {
+    buttonName: buttonName || fallback.buttonName || '',
+    shortcutName: shortcutName || fallback.shortcutName || '',
+    description: description || fallback.description || '',
+    queryContent: queryContent || fallback.queryContent || buttonName || '',
+  };
+}
+
+export function normalizeNasaBotConfig(config = {}) {
+  const shortcuts = Array.isArray(config.shortcuts)
+    ? config.shortcuts
+      .map((shortcut, index) => normalizeNasaBotShortcut(shortcut, DEFAULT_NASA_BOT_SHORTCUTS[index] || {}))
+      .filter((shortcut) => shortcut.buttonName && shortcut.shortcutName)
+    : [];
+
+  return {
+    ...DEFAULT_NASA_BOT_CONFIG,
+    ...(config || {}),
+    personaPrompt: `${config?.personaPrompt || DEFAULT_NASA_BOT_CONFIG.personaPrompt}`.trim(),
+    openingQuestions: Array.isArray(config?.openingQuestions)
+      ? config.openingQuestions.map((item) => `${item || ''}`.trim()).filter(Boolean)
+      : DEFAULT_NASA_BOT_CONFIG.openingQuestions,
+    shortcuts: shortcuts.length > 0 ? shortcuts : DEFAULT_NASA_BOT_CONFIG.shortcuts,
+  };
+}
 
 export function mergeSystemConfig(saved) {
   const merged = { ...DEFAULT_SYSTEM_CONFIG, ...(saved || {}) };
@@ -13,6 +47,7 @@ export function mergeSystemConfig(saved) {
   if (!Array.isArray(merged.screeningFormats) || merged.screeningFormats.length === 0) {
     merged.screeningFormats = DEFAULT_SCREENING_FORMATS;
   }
+  merged.nasaBot = normalizeNasaBotConfig(merged.nasaBot);
   return merged;
 }
 

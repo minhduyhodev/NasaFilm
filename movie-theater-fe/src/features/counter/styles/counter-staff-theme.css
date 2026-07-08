@@ -1,3 +1,6 @@
+@import '../../admin/styles/admin-theme.css';
+@import '../../admin/pages/StaffMissionControlPage.css';
+
 /* Counter location toolbar in unified admin layout */
 .counter-location-toolbar {
   display: flex;
@@ -60,10 +63,6 @@
 .adm-page-actions .counter-location-toolbar {
   gap: 0.5rem;
 }
-
-/* Counter pages — visual sync with admin/staff-control (UI only) */
-@import '../../admin/styles/admin-theme.css';
-@import '../../admin/pages/StaffMissionControlPage.css';
 
 .staff-control__selection-grid {
   display: grid;
