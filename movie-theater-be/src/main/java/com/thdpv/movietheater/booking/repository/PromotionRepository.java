@@ -38,4 +38,8 @@ public interface PromotionRepository extends JpaRepository<Promotion, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Promotion p where lower(p.code) = lower(:code) and p.deletedAt is null")
     Optional<Promotion> findByCodeIgnoreCaseForUpdate(@Param("code") String code);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Promotion p where p.id = :id and p.deletedAt is null")
+    Optional<Promotion> findByIdForUpdate(@Param("id") UUID id);
 }

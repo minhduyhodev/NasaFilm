@@ -54,19 +54,25 @@
 /* Global animations */
 @layer components {
   .btn-primary {
-    @apply py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg shadow-red-600/20;
+    @apply py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-red-600/10 hover:shadow-red-600/20 hover:-translate-y-[1px] active:translate-y-0;
   }
 
   .btn-secondary {
-    @apply py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200;
+    @apply py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/[0.06] hover:border-white/10 text-white font-medium rounded-lg transition-all duration-300;
   }
 
   .glass-effect {
-    @apply bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl;
+    @apply bg-black/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl transition-all duration-300;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  .glass-effect:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 40px 0 rgba(220, 38, 38, 0.03), 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   }
 
   .input-auth {
-    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/30 focus:bg-white/[0.08] transition-all duration-300;
   }
 }
 

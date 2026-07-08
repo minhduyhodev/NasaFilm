@@ -78,8 +78,12 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
                 WHERE s.status = 'SCHEDULED'
                   AND s.start_time > :now
             ) upcoming ON upcoming.movie_uuid = m.uuid
-            WHERE m.status NOT IN ('DELETED', 'INACTIVE')
-              AND (m.status = 'COMING_SOON' OR upcoming.movie_uuid IS NOT NULL)
+            WHERE m.status = 'COMING_SOON'
+              AND NOT EXISTS (
+                  SELECT 1 FROM showtime s
+                  WHERE s.movie_uuid = m.uuid
+                    AND s.status IN ('OPEN_FOR_BOOKING', 'SOLD_OUT')
+              )
             """, nativeQuery = true)
     long countUpcomingMovies(@Param("now") java.time.OffsetDateTime now);
 
@@ -93,8 +97,12 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
                   AND s.start_time > :now
                 GROUP BY s.movie_uuid
             ) upcoming ON upcoming.movie_uuid = m.uuid
-            WHERE m.status NOT IN ('DELETED', 'INACTIVE')
-              AND (m.status = 'COMING_SOON' OR upcoming.movie_uuid IS NOT NULL)
+            WHERE m.status = 'COMING_SOON'
+              AND NOT EXISTS (
+                  SELECT 1 FROM showtime s
+                  WHERE s.movie_uuid = m.uuid
+                    AND s.status IN ('OPEN_FOR_BOOKING', 'SOLD_OUT')
+              )
             ORDER BY
               CASE WHEN upcoming.next_start IS NULL THEN 1 ELSE 0 END,
               upcoming.next_start ASC NULLS LAST,

@@ -559,26 +559,38 @@ const ShowtimesPage = () => {
     scrollAdminMainToTop();
   }, [scrollAdminMainToTop]);
 
-  // Group current page for grid views
+  // Group all filtered showtimes, then slice within each group for clean pagination
   const pageStatusGroups = useMemo(() => {
     const groups = {};
-    STATUS_ORDER.forEach(s => { groups[s] = []; });
-    paginatedShowtimes.forEach(st => {
-      if (groups[st.status]) groups[st.status].push(st);
-      else groups[st.status] = [st];
+    filteredShowtimes.forEach(st => {
+      if (!groups[st.status]) groups[st.status] = [];
+      groups[st.status].push(st);
     });
+
     const ordered = STATUS_ORDER
-      .map(s => ({ status: s, items: groups[s] || [] }))
+      .map(s => {
+        const items = groups[s] || [];
+        const start = (currentPage - 1) * itemsPerPage;
+        const slicedItems = items.slice(start, start + itemsPerPage);
+        return { status: s, items: slicedItems };
+      })
       .filter(g => g.items.length > 0);
+
     const extras = Object.keys(groups)
       .filter((s) => !STATUS_ORDER.includes(s) && groups[s]?.length > 0)
-      .map((s) => ({ status: s, items: groups[s] }));
+      .map((s) => {
+        const items = groups[s] || [];
+        const start = (currentPage - 1) * itemsPerPage;
+        const slicedItems = items.slice(start, start + itemsPerPage);
+        return { status: s, items: slicedItems };
+      });
+
     return [...ordered, ...extras];
-  }, [paginatedShowtimes]);
+  }, [filteredShowtimes, currentPage, itemsPerPage]);
 
   const pageCinemaGroups = useMemo(() => {
     const map = {};
-    paginatedShowtimes.forEach(st => {
+    filteredShowtimes.forEach(st => {
       const cinema = st.cinemaName || 'Không rõ rạp';
       const room = st.cinemaRoomName || 'Không rõ phòng';
       if (!map[cinema]) map[cinema] = {};
@@ -587,8 +599,31 @@ const ShowtimesPage = () => {
       if (!map[cinema][room][movie]) map[cinema][room][movie] = [];
       map[cinema][room][movie].push(st);
     });
-    return map;
-  }, [paginatedShowtimes]);
+
+    // Now slice within each movie group so each movie displays its paginated list
+    const slicedMap = {};
+    Object.entries(map).forEach(([cinemaName, rooms]) => {
+      slicedMap[cinemaName] = {};
+      Object.entries(rooms).forEach(([roomName, movieMap]) => {
+        slicedMap[cinemaName][roomName] = {};
+        Object.entries(movieMap).forEach(([movieTitle, sts]) => {
+          const start = (currentPage - 1) * itemsPerPage;
+          const slicedSts = sts.slice(start, start + itemsPerPage);
+          if (slicedSts.length > 0) {
+            slicedMap[cinemaName][roomName][movieTitle] = slicedSts;
+          }
+        });
+        if (Object.keys(slicedMap[cinemaName][roomName]).length === 0) {
+          delete slicedMap[cinemaName][roomName];
+        }
+      });
+      if (Object.keys(slicedMap[cinemaName]).length === 0) {
+        delete slicedMap[cinemaName];
+      }
+    });
+
+    return slicedMap;
+  }, [filteredShowtimes, currentPage, itemsPerPage]);
 
   // All filtered items grouped by status (across ALL pages) — used for select-all
   const statusFullGroups = useMemo(() => {
@@ -1096,7 +1131,11 @@ const ShowtimesPage = () => {
             <div className="mt-6">
               <Pagination
                 currentPage={currentPage}
-                totalItems={filteredShowtimes.length}
+                totalItems={
+                  viewMode === 'grid' && groupBy === 'status'
+                    ? Math.max(...Object.values(statusTotals), 0)
+                    : filteredShowtimes.length
+                }
                 itemsPerPage={itemsPerPage}
                 onPageChange={handleShowtimesPageChange}
                 onItemsPerPageChange={setItemsPerPage}
