@@ -6,6 +6,11 @@ export const supportService = {
     return response.data.data ?? response.data;
   },
 
+  async getSupportAiStatus() {
+    const response = await authService.api.get('/api/support-ai/status');
+    return response.data.data ?? response.data;
+  },
+
   async createSupportRequest(payload) {
     const response = await authService.api.post('/api/support-requests', payload);
     return response.data.data ?? response.data;
