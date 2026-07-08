@@ -45,6 +45,12 @@ public class SupportController {
         return ResponseEntity.ok(ApiResponse.success(new SupportAiResponse(result.reply(), result.suggestedCategory())));
     }
 
+    @GetMapping("/support-ai/status")
+    public ResponseEntity<ApiResponse<SupportAiStatusResponse>> getSupportAiStatus() {
+        return ResponseEntity.ok(ApiResponse.success(
+                new SupportAiStatusResponse(supportAiService.isConfigured(), supportAiService.getRuntimeMode())));
+    }
+
     @PostMapping("/support-requests")
     public ResponseEntity<ApiResponse<SupportTicketResponse>> create(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -95,4 +101,6 @@ public class SupportController {
     public record SupportAiMessageRequest(String role, String content) {}
 
     public record SupportAiResponse(String reply, String suggestedCategory) {}
+
+    public record SupportAiStatusResponse(boolean configured, String mode) {}
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 @Service
 public class SupportAiService {
@@ -22,6 +23,7 @@ public class SupportAiService {
             .connectTimeout(Duration.ofSeconds(12))
             .build();
     private final ObjectMapper objectMapper;
+    private final SystemConfigService systemConfigService;
 
     @Value("${app.openai.api-key:}")
     private String apiKey;
@@ -29,20 +31,20 @@ public class SupportAiService {
     @Value("${app.openai.model:gpt-4o-mini}")
     private String model;
 
-    public SupportAiService(ObjectMapper objectMapper) {
+    public SupportAiService(ObjectMapper objectMapper, SystemConfigService systemConfigService) {
         this.objectMapper = objectMapper;
+        this.systemConfigService = systemConfigService;
     }
 
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
         String detectedCategory = detectCategory(message);
-        if (apiKey == null || apiKey.isBlank()) {
+        if (!isConfigured()) {
             return fallback(message, detectedCategory);
         }
 
         try {
             List<SupportAiMessage> messages = new ArrayList<>();
-            messages.add(new SupportAiMessage("system",
-                    "Bạn là NASA AI Assistant cho hệ thống rạp phim. Trả lời ngắn gọn, thân thiện, giống chat hỗ trợ khách hàng. Nếu cần ticket thì hỏi từng bước, ưu tiên rõ ràng, không hỏi email/SĐT vì hệ thống đã tự gắn tài khoản."));
+            messages.add(new SupportAiMessage("system", resolvePersonaPrompt()));
             if (history != null) {
                 messages.addAll(history.stream()
                         .filter(item -> item != null && item.role() != null && item.content() != null)
@@ -113,6 +115,30 @@ public class SupportAiService {
         return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase();
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolvePersonaPrompt() {
+        try {
+            Object nasaBot = systemConfigService.getConfig().get("nasaBot");
+            if (nasaBot instanceof java.util.Map<?, ?> botMap) {
+                Object prompt = ((java.util.Map<String, Object>) botMap).get("personaPrompt");
+                if (prompt instanceof String text && !text.isBlank()) {
+                    return text.trim();
+                }
+            }
+        } catch (Exception ignored) {
+            // fallback below
+        }
+        return "Bạn là NASA AI Assistant cho hệ thống rạp phim. Trả lời ngắn gọn, thân thiện, giống chat hỗ trợ khách hàng. Nếu cần ticket thì hỏi từng bước, ưu tiên rõ ràng, không hỏi email/SĐT vì hệ thống đã tự gắn tài khoản.";
+    }
+
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    public String getRuntimeMode() {
+        return isConfigured() ? "OPENAI" : "FALLBACK";
     }
 
     public record SupportAiMessage(String role, String content) {}

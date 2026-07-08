@@ -1,0 +1,53 @@
+package com.thdpv.movietheater.support.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.support.dto.request.SupportLiveRequestCreateRequest;
+import com.thdpv.movietheater.support.dto.request.SupportSatisfactionRequest;
+import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
+import com.thdpv.movietheater.support.service.SupportLiveSupportService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/api/support-live")
+public class SupportLiveController {
+
+    private final SupportLiveSupportService supportLiveSupportService;
+
+    public SupportLiveController(SupportLiveSupportService supportLiveSupportService) {
+        this.supportLiveSupportService = supportLiveSupportService;
+    }
+
+    @GetMapping("/availability")
+    public ResponseEntity<ApiResponse<SupportLiveSupportService.SupportLiveAvailability>> getAvailability() {
+        return ResponseEntity.ok(ApiResponse.success(supportLiveSupportService.getAvailability()));
+    }
+
+    @PostMapping("/request")
+    public ResponseEntity<ApiResponse<SupportTicketResponse>> requestLiveSupport(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody SupportLiveRequestCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created(supportLiveSupportService.requestLiveSupport(userDetails.getUsername(), request)));
+    }
+
+    @PostMapping("/{ticketCode}/satisfaction")
+    public ResponseEntity<ApiResponse<SupportTicketResponse>> submitSatisfaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String ticketCode,
+            @Valid @RequestBody SupportSatisfactionRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                supportLiveSupportService.rateSatisfaction(ticketCode, userDetails.getUsername(), request.getRating())));
+    }
+}

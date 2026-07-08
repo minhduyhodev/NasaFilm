@@ -102,7 +102,6 @@ const Navbar = () => {
   const [openCatalog, setOpenCatalog] = useState(null);
   const [showBookingDropdown, setShowBookingDropdown] = useState(false);
   const closeCatalogTimerRef = useRef(null);
-  const closeBookingTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
@@ -112,9 +111,6 @@ const Navbar = () => {
   useEffect(() => () => {
     if (closeCatalogTimerRef.current) {
       window.clearTimeout(closeCatalogTimerRef.current);
-    }
-    if (closeBookingTimerRef.current) {
-      window.clearTimeout(closeBookingTimerRef.current);
     }
   }, []);
 
@@ -132,22 +128,6 @@ const Navbar = () => {
     closeCatalogTimerRef.current = window.setTimeout(() => {
       setOpenCatalog(null);
     }, 120);
-  };
-
-  const openBookingDropdown = () => {
-    if (closeBookingTimerRef.current) {
-      window.clearTimeout(closeBookingTimerRef.current);
-    }
-    setShowBookingDropdown(true);
-  };
-
-  const scheduleCloseBookingDropdown = () => {
-    if (closeBookingTimerRef.current) {
-      window.clearTimeout(closeBookingTimerRef.current);
-    }
-    closeBookingTimerRef.current = window.setTimeout(() => {
-      setShowBookingDropdown(false);
-    }, 140);
   };
 
   const handleBookingClick = () => {
@@ -215,11 +195,7 @@ const Navbar = () => {
         </div>
 
         <div className="navbar-actions">
-          <div
-            className="relative"
-            onMouseEnter={openBookingDropdown}
-            onMouseLeave={scheduleCloseBookingDropdown}
-          >
+          <div className="relative">
             <button
               type="button"
               onClick={() => setShowBookingDropdown((prev) => !prev)}
@@ -232,11 +208,14 @@ const Navbar = () => {
 
             {showBookingDropdown && (
               <>
-                {/* Dropdown list */}
+                <button
+                  type="button"
+                  className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  aria-label="Đóng menu mua vé"
+                  onClick={() => setShowBookingDropdown(false)}
+                />
                 <div
-                  className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl bg-[#0f0f0f]/95 border border-white/10 p-2 shadow-2xl backdrop-blur-xl z-50"
-                  onMouseEnter={openBookingDropdown}
-                  onMouseLeave={scheduleCloseBookingDropdown}
+                  className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-white/10 bg-[#0f0f0f]/95 p-2 shadow-2xl backdrop-blur-xl"
                 >
                   <button
                     type="button"
@@ -306,7 +285,6 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
   const anchorRef = useRef(null);
-  const closeTimerRef = useRef(null);
   const { notifications, markAllAsRead, clearAll } = useNotification();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -342,31 +320,6 @@ const NotificationBell = () => {
       window.removeEventListener('scroll', updatePanelPosition, true);
     };
   }, [isOpen, updatePanelPosition, notifications.length]);
-
-  useEffect(() => () => {
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current);
-    }
-  }, []);
-
-  const openPanel = () => {
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current);
-    }
-    setIsOpen(true);
-    if (unreadCount > 0) {
-      markAllAsRead();
-    }
-  };
-
-  const scheduleClosePanel = () => {
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current);
-    }
-    closeTimerRef.current = window.setTimeout(() => {
-      setIsOpen(false);
-    }, 80);
-  };
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -412,8 +365,6 @@ const NotificationBell = () => {
     <div
       className="notif-bell-wrapper"
       ref={anchorRef}
-      onMouseEnter={openPanel}
-      onMouseLeave={scheduleClosePanel}
     >
       <button
         type="button"
@@ -438,8 +389,6 @@ const NotificationBell = () => {
             style={panelStyle}
             role="dialog"
             aria-label="Thông báo"
-            onMouseEnter={openPanel}
-            onMouseLeave={scheduleClosePanel}
           >
             <div className="notif-dropdown-header">
               <h3>Thông báo</h3>

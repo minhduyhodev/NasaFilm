@@ -17,6 +17,77 @@ export const DEFAULT_SCREENING_FORMATS = [
   { value: 'SCREENX', label: 'ScreenX', enabled: true },
 ];
 
+export const DEFAULT_NASA_BOT_SHORTCUTS = [
+  {
+    buttonName: 'Vé / suất chiếu',
+    shortcutName: 'ticket_support',
+    description: 'Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé',
+    queryContent: 'Tôi cần hỗ trợ về vé hoặc suất chiếu.',
+  },
+  {
+    buttonName: 'Thanh toán',
+    shortcutName: 'payment_support',
+    description: 'Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền',
+    queryContent: 'Tôi cần hỗ trợ về thanh toán.',
+  },
+  {
+    buttonName: 'Tài khoản',
+    shortcutName: 'account_support',
+    description: 'Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản',
+    queryContent: 'Tôi không đăng nhập được và cần hỗ trợ tài khoản.',
+  },
+  {
+    buttonName: 'Khuyến mãi',
+    shortcutName: 'promo_support',
+    description: 'Hỗ trợ voucher, combo, ưu đãi, mã giảm giá',
+    queryContent: 'Tôi cần hỗ trợ về voucher hoặc khuyến mãi.',
+  },
+  {
+    buttonName: 'Hội viên',
+    shortcutName: 'membership_support',
+    description: 'Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên',
+    queryContent: 'Tôi cần hỗ trợ về hội viên và điểm thưởng.',
+  },
+  {
+    buttonName: 'Mô tả vấn đề khác',
+    shortcutName: 'other_support',
+    description: 'Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn',
+    queryContent: 'Tôi có một vấn đề khác và cần được hỗ trợ.',
+  },
+];
+
+export const DEFAULT_NASA_BOT_CONFIG = {
+  personaPrompt: `Bạn là NASA BOT, trợ lý hỗ trợ khách hàng của NASAFilm.
+
+Nhiệm vụ:
+- Trả lời ngắn gọn, thân thiện.
+- Tự phân loại yêu cầu thành các nhóm: ticket, payment, account, promo, membership, other.
+- Nếu người dùng chọn shortcut hoặc nhập nội dung tương ứng, hiểu ngay nhóm vấn đề đó.
+- Không hỏi email hoặc số điện thoại vì hệ thống đã biết tài khoản đăng nhập.
+- Nếu thiếu thông tin, chỉ hỏi thêm 1 câu ngắn mỗi lượt.
+- Nếu cần admin xử lý, hướng người dùng mô tả ngắn để tạo ticket.
+
+Gợi ý phân loại:
+- Vé, mã đơn, suất chiếu, ghế, đổi/hoàn vé -> ticket
+- Thanh toán, giao dịch lỗi, bị trừ tiền, hoàn tiền -> payment
+- Đăng nhập, OTP, mật khẩu, lỗi tài khoản -> account
+- Voucher, combo, khuyến mãi -> promo
+- Điểm thưởng, hạng thành viên, quyền lợi -> membership
+- Còn lại -> other
+
+Phong cách:
+- Ngắn, rõ, giống nhân viên CSKH chat.
+- Không bịa dữ liệu hệ thống.
+- Không nói quá dài.`,
+  openingQuestions: [
+    'Tạo ticket hỗ trợ',
+    'Thanh toán bị lỗi',
+    'Không đăng nhập được',
+    'Xem tình trạng ticket',
+  ],
+  shortcuts: DEFAULT_NASA_BOT_SHORTCUTS,
+};
+
 export const DEFAULT_SYSTEM_CONFIG = {
   startTime: '08:00',
   endTime: '23:30',
@@ -70,4 +141,5 @@ export const DEFAULT_SYSTEM_CONFIG = {
   roomTypes: DEFAULT_ROOM_TYPES,
   screeningFormats: DEFAULT_SCREENING_FORMATS,
   reviewBannedWords: [],
+  nasaBot: DEFAULT_NASA_BOT_CONFIG,
 };

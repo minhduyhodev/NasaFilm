@@ -3,6 +3,7 @@ import {
   RotateCcw,
   Plus,
   Trash2,
+  Bot,
   Clock,
   Banknote,
   Shield,
@@ -18,10 +19,11 @@ import {
   DEFAULT_ROOM_TYPES,
   DEFAULT_SCREENING_FORMATS,
 } from '../../../shared/constants/systemConfig';
-import { writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
+import { normalizeNasaBotConfig, writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
 import { AdminPage } from '../components';
 import ActionMenu from '../components/ActionMenu';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { supportService } from '../../../shared/services/supportService';
 import './ConfigPage.css';
 
 const TABS = [
@@ -31,6 +33,7 @@ const TABS = [
   { id: 'online', label: 'Phim online', icon: MonitorPlay },
   { id: 'cinema', label: 'Rạp & phòng', icon: Building2 },
   { id: 'operations', label: 'Vận hành', icon: Lock },
+  { id: 'nasabot', label: 'NASA Bot', icon: Bot },
 ];
 
 const emptyTypeEntry = () => ({ value: '', label: '', enabled: true });
@@ -153,12 +156,121 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
   );
 };
 
+const NasaBotShortcutList = ({ items = [], onChange }) => {
+  const updateItem = (index, field, value) => {
+    onChange(items.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+  };
+
+  const addItem = () => {
+    onChange([
+      ...items,
+      {
+        buttonName: 'Shortcut mới',
+        shortcutName: `custom_${items.length + 1}`,
+        description: 'Mô tả ngắn cho shortcut mới',
+        queryContent: 'Tôi cần được hỗ trợ.',
+      },
+    ]);
+  };
+
+  const removeItem = (index) => {
+    onChange(items.filter((_, idx) => idx !== index));
+  };
+
+  return (
+    <ConfigSection title="Shortcut nhanh" description="Mỗi shortcut có nhãn và mô tả ngắn hiển thị trong chatbox.">
+      <div className="sys-config__bot-list">
+        {items.map((item, index) => (
+          <div key={`${item.shortcutName}-${index}`} className="sys-config__bot-card">
+            <div className="sys-config__bot-card-head">
+              <span className="sys-config__bot-card-id">{item.shortcutName}</span>
+              <button type="button" className="sys-config__table-del" onClick={() => removeItem(index)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="sys-config__fields">
+              <ConfigField label="Button name">
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.buttonName}
+                  onChange={(e) => updateItem(index, 'buttonName', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Shortcut name">
+                <input
+                  type="text"
+                  className="sys-config__input"
+                  value={item.shortcutName}
+                  onChange={(e) => updateItem(index, 'shortcutName', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Mô tả shortcut">
+                <textarea
+                  className="sys-config__input sys-config__input--textarea"
+                  value={item.description}
+                  onChange={(e) => updateItem(index, 'description', e.target.value)}
+                />
+              </ConfigField>
+              <ConfigField label="Query content">
+                <textarea
+                  className="sys-config__input sys-config__input--textarea"
+                  value={item.queryContent}
+                  onChange={(e) => updateItem(index, 'queryContent', e.target.value)}
+                />
+              </ConfigField>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="sys-config__link-btn" onClick={addItem}>
+        <Plus className="w-3.5 h-3.5" />
+        Thêm shortcut
+      </button>
+    </ConfigSection>
+  );
+};
+
+const NasaBotQuestionList = ({ items = [], onChange }) => {
+  const updateItem = (index, value) => {
+    onChange(items.map((item, idx) => (idx === index ? value : item)));
+  };
+
+  const addItem = () => onChange([...items, 'Câu hỏi mở mới']);
+  const removeItem = (index) => onChange(items.filter((_, idx) => idx !== index));
+
+  return (
+    <ConfigSection title="Opening questions" description="Các câu hỏi mở đầu hiển thị ngay khi user mở chatbot.">
+      <div className="sys-config__bot-list">
+        {items.map((item, index) => (
+          <div key={`${item}-${index}`} className="sys-config__bot-inline">
+            <input
+              type="text"
+              className="sys-config__input"
+              value={item}
+              onChange={(e) => updateItem(index, e.target.value)}
+            />
+            <button type="button" className="sys-config__table-del" onClick={() => removeItem(index)}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="sys-config__link-btn" onClick={addItem}>
+        <Plus className="w-3.5 h-3.5" />
+        Thêm opening question
+      </button>
+    </ConfigSection>
+  );
+};
+
 const ConfigPage = () => {
   const confirm = useConfirm();
   const [config, setConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [activeTab, setActiveTab] = useState('showtime');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [supportAiStatus, setSupportAiStatus] = useState({ configured: false, mode: 'FALLBACK' });
 
   useEffect(() => {
     let isMounted = true;
@@ -166,6 +278,22 @@ const ConfigPage = () => {
       .then((data) => { if (isMounted) setConfig(data); })
       .catch((error) => console.error('Failed to load system configuration', error))
       .finally(() => { if (isMounted) setIsLoading(false); });
+
+    supportService.getSupportAiStatus()
+      .then((data) => {
+        if (isMounted) {
+          setSupportAiStatus({
+            configured: Boolean(data?.configured),
+            mode: data?.mode || 'FALLBACK',
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSupportAiStatus({ configured: false, mode: 'FALLBACK' });
+        }
+      });
+
     return () => { isMounted = false; };
   }, []);
 
@@ -208,6 +336,16 @@ const ConfigPage = () => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateNasaBotField = (field, value) => {
+    setConfig((prev) => ({
+      ...prev,
+      nasaBot: {
+        ...(prev.nasaBot || {}),
+        [field]: value,
+      },
+    }));
+  };
+
   const lockPreviewMinutes = (multiplier) => {
     const m = Number(multiplier) || 2;
     return `Phim 120 phút → khóa xem ${Math.round(120 * m)} phút (~${(120 * m / 60).toFixed(1)} giờ)`;
@@ -219,6 +357,16 @@ const ConfigPage = () => {
     { label: 'Giữ ghế', value: `${config.seatLockMinutes} phút` },
     { label: 'Tối đa / đặt', value: `${config.maxSeatsPerBooking} ghế` },
   ]), [config]);
+
+  const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
+  const nasaBotPreviewQuestions = (nasaBot.openingQuestions || []).slice(0, 4);
+  const nasaBotPreviewShortcuts = (nasaBot.shortcuts || []).slice(0, 4);
+  const supportAiModeLabel = supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+    ? 'OPENAI'
+    : 'FALLBACK';
+  const supportAiModeDescription = supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+    ? 'Persona prompt đang tác động vào câu trả lời của /api/support-ai/chat.'
+    : 'Backend đang chạy fallback nội bộ, nên persona prompt chưa tác động vào câu trả lời thực tế.';
 
   if (isLoading) {
     return (
@@ -483,6 +631,84 @@ const ConfigPage = () => {
                 </ConfigField>
               </div>
             </ConfigSection>
+          </div>
+        )}
+
+        {activeTab === 'nasabot' && (
+          <div className="sys-config__split">
+            <div className="sys-config__bot-stack">
+              <ConfigSection title="Persona & Prompt" description="Prompt này chỉ áp dụng cho /api/support-ai/chat. Opening questions và shortcuts áp dụng vào widget phía người dùng.">
+                <ConfigField label="Prompt hệ thống">
+                  <textarea
+                    className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
+                    value={nasaBot.personaPrompt || ''}
+                    onChange={(e) => updateNasaBotField('personaPrompt', e.target.value)}
+                  />
+                </ConfigField>
+                <p className="sys-config__hint" style={{ marginTop: '0.5rem' }}>
+                  Runtime hiện tại: <strong>{supportAiModeLabel}</strong>. {supportAiModeDescription}
+                </p>
+              </ConfigSection>
+
+              <ConfigSection title="Opening questions & Shortcuts" description="Chỉ giữ đúng các mục đang dùng: Opening questions và shortcuts hỗ trợ.">
+                <NasaBotQuestionList
+                  items={nasaBot.openingQuestions || []}
+                  onChange={(openingQuestions) => updateNasaBotField('openingQuestions', openingQuestions)}
+                />
+                <NasaBotShortcutList
+                  items={nasaBot.shortcuts || []}
+                  onChange={(shortcuts) => updateNasaBotField('shortcuts', shortcuts)}
+                />
+              </ConfigSection>
+
+              <div className="sys-config__bot-save-row">
+                <button
+                  type="button"
+                  className="sys-config__save"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
+                </button>
+              </div>
+            </div>
+
+            <div className="sys-config__bot-stack">
+              <ConfigSection title="Preview & Debug" description="Preview này mô phỏng logic widget thật. Nó không lấy raw personaPrompt để giả làm một câu trả lời chat.">
+                <div className="sys-config__bot-preview">
+                  <div className="sys-config__bot-preview-head">
+                    <span className="sys-config__bot-preview-avatar" />
+                    <div>
+                      <strong>NASA Bot</strong>
+                      <span>{supportAiModeLabel} · Widget + Support AI</span>
+                    </div>
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    Chào bạn, mình là NASA BOT.
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    {nasaBotPreviewQuestions.map((question, index) => (
+                      <div key={`${question}-${index}`}>{index + 1}. {question}</div>
+                    ))}
+                  </div>
+                  <div className="sys-config__bot-preview-shortcuts">
+                    {nasaBotPreviewShortcuts.map((shortcut) => (
+                      <span key={shortcut.shortcutName} className="sys-config__bot-preview-chip">
+                        {shortcut.buttonName}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--user">
+                    Tôi cần hỗ trợ về vé hoặc suất chiếu.
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    {supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+                      ? 'Khi người dùng chat thật, câu trả lời AI sẽ đi qua persona prompt bạn cấu hình ở trên.'
+                      : 'Ở môi trường hiện tại, bot sẽ trả lời theo fallback cứng theo nhóm ticket/payment/account... chứ chưa bám theo persona prompt.'}
+                  </div>
+                </div>
+              </ConfigSection>
+            </div>
           </div>
         )}
         </div>
