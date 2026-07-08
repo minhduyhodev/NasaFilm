@@ -38,7 +38,7 @@ public class SupportAiService {
 
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
         String detectedCategory = detectCategory(message);
-        if (apiKey == null || apiKey.isBlank()) {
+        if (!isConfigured()) {
             return fallback(message, detectedCategory);
         }
 
@@ -131,6 +131,14 @@ public class SupportAiService {
             // fallback below
         }
         return "Bạn là NASA AI Assistant cho hệ thống rạp phim. Trả lời ngắn gọn, thân thiện, giống chat hỗ trợ khách hàng. Nếu cần ticket thì hỏi từng bước, ưu tiên rõ ràng, không hỏi email/SĐT vì hệ thống đã tự gắn tài khoản.";
+    }
+
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    public String getRuntimeMode() {
+        return isConfigured() ? "OPENAI" : "FALLBACK";
     }
 
     public record SupportAiMessage(String role, String content) {}

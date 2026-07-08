@@ -19,10 +19,11 @@ import {
   DEFAULT_ROOM_TYPES,
   DEFAULT_SCREENING_FORMATS,
 } from '../../../shared/constants/systemConfig';
-import { writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
+import { normalizeNasaBotConfig, writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
 import { AdminPage } from '../components';
 import ActionMenu from '../components/ActionMenu';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { supportService } from '../../../shared/services/supportService';
 import './ConfigPage.css';
 
 const TABS = [
@@ -177,7 +178,7 @@ const NasaBotShortcutList = ({ items = [], onChange }) => {
   };
 
   return (
-    <ConfigSection title="Shortcut nhanh" description="Bắt chước giao diện Coze: mỗi shortcut có nhãn và mô tả ngắn hiển thị trong chatbox.">
+    <ConfigSection title="Shortcut nhanh" description="Mỗi shortcut có nhãn và mô tả ngắn hiển thị trong chatbox.">
       <div className="sys-config__bot-list">
         {items.map((item, index) => (
           <div key={`${item.shortcutName}-${index}`} className="sys-config__bot-card">
@@ -239,7 +240,7 @@ const NasaBotQuestionList = ({ items = [], onChange }) => {
   const removeItem = (index) => onChange(items.filter((_, idx) => idx !== index));
 
   return (
-    <ConfigSection title="Opening questions" description="Các câu hỏi mở đầu hiển thị ngay khi user mở chatbot, giống mục Opening questions của Coze.">
+    <ConfigSection title="Opening questions" description="Các câu hỏi mở đầu hiển thị ngay khi user mở chatbot.">
       <div className="sys-config__bot-list">
         {items.map((item, index) => (
           <div key={`${item}-${index}`} className="sys-config__bot-inline">
@@ -269,6 +270,7 @@ const ConfigPage = () => {
   const [activeTab, setActiveTab] = useState('showtime');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [supportAiStatus, setSupportAiStatus] = useState({ configured: false, mode: 'FALLBACK' });
 
   useEffect(() => {
     let isMounted = true;
@@ -276,6 +278,22 @@ const ConfigPage = () => {
       .then((data) => { if (isMounted) setConfig(data); })
       .catch((error) => console.error('Failed to load system configuration', error))
       .finally(() => { if (isMounted) setIsLoading(false); });
+
+    supportService.getSupportAiStatus()
+      .then((data) => {
+        if (isMounted) {
+          setSupportAiStatus({
+            configured: Boolean(data?.configured),
+            mode: data?.mode || 'FALLBACK',
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSupportAiStatus({ configured: false, mode: 'FALLBACK' });
+        }
+      });
+
     return () => { isMounted = false; };
   }, []);
 
@@ -340,7 +358,15 @@ const ConfigPage = () => {
     { label: 'Tối đa / đặt', value: `${config.maxSeatsPerBooking} ghế` },
   ]), [config]);
 
-  const nasaBot = config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot;
+  const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
+  const nasaBotPreviewQuestions = (nasaBot.openingQuestions || []).slice(0, 4);
+  const nasaBotPreviewShortcuts = (nasaBot.shortcuts || []).slice(0, 4);
+  const supportAiModeLabel = supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+    ? 'OPENAI'
+    : 'FALLBACK';
+  const supportAiModeDescription = supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+    ? 'Persona prompt đang tác động vào câu trả lời của /api/support-ai/chat.'
+    : 'Backend đang chạy fallback nội bộ, nên persona prompt chưa tác động vào câu trả lời thực tế.';
 
   if (isLoading) {
     return (
@@ -569,7 +595,7 @@ const ConfigPage = () => {
         {activeTab === 'nasabot' && (
           <div className="sys-config__split">
             <div className="sys-config__bot-stack">
-            <ConfigSection title="Persona & Prompt" description="Prompt ngắn gọn để khớp shortcut và opening questions, đúng bộ cấu hình NASA Bot đã chốt.">
+              <ConfigSection title="Persona & Prompt" description="Prompt này chỉ áp dụng cho /api/support-ai/chat. Opening questions và shortcuts áp dụng vào widget phía người dùng.">
                 <ConfigField label="Prompt hệ thống">
                   <textarea
                     className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
@@ -577,57 +603,66 @@ const ConfigPage = () => {
                     onChange={(e) => updateNasaBotField('personaPrompt', e.target.value)}
                   />
                 </ConfigField>
+                <p className="sys-config__hint" style={{ marginTop: '0.5rem' }}>
+                  Runtime hiện tại: <strong>{supportAiModeLabel}</strong>. {supportAiModeDescription}
+                </p>
               </ConfigSection>
 
-              <ConfigSection title="Opening questions & Shortcuts" description="Chỉ giữ đúng các mục bạn chốt: Opening questions, Shortcuts, không có plugin/workflow/components.">
+              <ConfigSection title="Opening questions & Shortcuts" description="Chỉ giữ đúng các mục đang dùng: Opening questions và shortcuts hỗ trợ.">
                 <NasaBotQuestionList
                   items={nasaBot.openingQuestions || []}
                   onChange={(openingQuestions) => updateNasaBotField('openingQuestions', openingQuestions)}
                 />
-                <ConfigSection title="Quy ước popup Coze" description="Cấu hình này cố tình bắt chước đúng popup shortcut của Coze.">
-                  <div className="sys-config__switches">
-                    <ConfigSwitch checked={false} onChange={() => {}}>
-                      Use plugin or workflow directly: để tắt
-                    </ConfigSwitch>
-                    <ConfigSwitch checked={false} onChange={() => {}}>
-                      Components: để trống
-                    </ConfigSwitch>
-                  </div>
-                </ConfigSection>
                 <NasaBotShortcutList
                   items={nasaBot.shortcuts || []}
                   onChange={(shortcuts) => updateNasaBotField('shortcuts', shortcuts)}
                 />
               </ConfigSection>
+
+              <div className="sys-config__bot-save-row">
+                <button
+                  type="button"
+                  className="sys-config__save"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
+                </button>
+              </div>
             </div>
 
             <div className="sys-config__bot-stack">
-              <ConfigSection title="Preview & Debug" description="Preview nhanh theo đúng bộ opening questions, shortcut và prompt bạn đã chốt.">
+              <ConfigSection title="Preview & Debug" description="Preview này mô phỏng logic widget thật. Nó không lấy raw personaPrompt để giả làm một câu trả lời chat.">
                 <div className="sys-config__bot-preview">
                   <div className="sys-config__bot-preview-head">
                     <span className="sys-config__bot-preview-avatar" />
                     <div>
                       <strong>NASA Bot</strong>
-                      <span>Single Agent (LLM Mode)</span>
+                      <span>{supportAiModeLabel} · Widget + Support AI</span>
                     </div>
                   </div>
                   <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
-                    {(nasaBot.openingQuestions || []).slice(0, 4).map((question, index) => (
+                    Chào bạn, mình là NASA BOT.
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    {nasaBotPreviewQuestions.map((question, index) => (
                       <div key={`${question}-${index}`}>{index + 1}. {question}</div>
+                    ))}
+                  </div>
+                  <div className="sys-config__bot-preview-shortcuts">
+                    {nasaBotPreviewShortcuts.map((shortcut) => (
+                      <span key={shortcut.shortcutName} className="sys-config__bot-preview-chip">
+                        {shortcut.buttonName}
+                      </span>
                     ))}
                   </div>
                   <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--user">
                     Tôi cần hỗ trợ về vé hoặc suất chiếu.
                   </div>
                   <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
-                    {(nasaBot.personaPrompt || '').split('\n')[0] || 'Bạn vui lòng cho mình biết mô tả ngắn để mình hỗ trợ nhé.'}
-                  </div>
-                  <div className="sys-config__bot-preview-shortcuts">
-                    {(nasaBot.shortcuts || []).slice(0, 4).map((shortcut) => (
-                      <span key={shortcut.shortcutName} className="sys-config__bot-preview-chip">
-                        {shortcut.buttonName}
-                      </span>
-                    ))}
+                    {supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
+                      ? 'Khi người dùng chat thật, câu trả lời AI sẽ đi qua persona prompt bạn cấu hình ở trên.'
+                      : 'Ở môi trường hiện tại, bot sẽ trả lời theo fallback cứng theo nhóm ticket/payment/account... chứ chưa bám theo persona prompt.'}
                   </div>
                 </div>
               </ConfigSection>
