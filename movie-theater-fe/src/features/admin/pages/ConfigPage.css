@@ -606,6 +606,11 @@
   gap: 1.25rem;
 }
 
+.sys-config__bot-save-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .sys-config__bot-list {
   display: grid;
   gap: 0.75rem;

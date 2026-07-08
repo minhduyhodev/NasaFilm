@@ -595,7 +595,7 @@ const ConfigPage = () => {
         {activeTab === 'nasabot' && (
           <div className="sys-config__split">
             <div className="sys-config__bot-stack">
-            <ConfigSection title="Persona & Prompt" description="Prompt này chỉ áp dụng cho /api/support-ai/chat. Opening questions và shortcuts áp dụng vào widget phía người dùng.">
+              <ConfigSection title="Persona & Prompt" description="Prompt này chỉ áp dụng cho /api/support-ai/chat. Opening questions và shortcuts áp dụng vào widget phía người dùng.">
                 <ConfigField label="Prompt hệ thống">
                   <textarea
                     className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
@@ -618,6 +618,17 @@ const ConfigPage = () => {
                   onChange={(shortcuts) => updateNasaBotField('shortcuts', shortcuts)}
                 />
               </ConfigSection>
+
+              <div className="sys-config__bot-save-row">
+                <button
+                  type="button"
+                  className="sys-config__save"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
+                </button>
+              </div>
             </div>
 
             <div className="sys-config__bot-stack">
