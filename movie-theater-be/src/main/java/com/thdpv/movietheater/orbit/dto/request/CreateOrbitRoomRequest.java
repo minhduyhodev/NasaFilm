@@ -11,8 +11,8 @@ public class CreateOrbitRoomRequest {
     @NotNull(message = "Suất chiếu không được để trống")
     private UUID showtimeUuid;
 
-    @Min(value = 2, message = "Phòng Orbit cần ít nhất 2 thành viên")
-    @Max(value = 8, message = "Phòng Orbit tối đa 8 thành viên")
+    @Min(value = 2, message = "Phòng nhóm cần ít nhất 2 thành viên")
+    @Max(value = 8, message = "Phòng nhóm tối đa 8 thành viên")
     private int maxMembers = 8;
 
     public UUID getShowtimeUuid() {

@@ -309,7 +309,7 @@ const MovieDetailPage = () => {
   const handleCreateOrbitRoom = async () => {
     if (!selectedShowtime) return;
     if (!isAuthenticated) {
-      notificationService.info("Vui lòng đăng nhập để tạo phòng Orbit Seat.");
+      notificationService.info("Vui lòng đăng nhập để tạo phòng nhóm.");
       navigate("/login", { state: { from: `/movie/${id}` } });
       return;
     }
@@ -336,18 +336,18 @@ const MovieDetailPage = () => {
     try {
       const room = await orbitService.createRoom(selectedShowtime.uuid, ORBIT_DEFAULT_MAX_MEMBERS);
       rememberOrbitRoom(room, movieExtras);
-      notificationService.success("Đã tạo phòng Orbit — mời bạn bè qua link chia sẻ.");
+      notificationService.success("Đã tạo phòng nhóm — mời bạn bè qua link chia sẻ.");
       navigate(`/booking/orbit/${room.uuid}`, { state: movieExtras });
     } catch (err) {
       const msg = err.message || "";
-      if (msg.includes("phòng Orbit đang hoạt động")) {
+      if (msg.includes("đang hoạt động")) {
         try {
           await refreshOrbitRooms();
           const rooms = await orbitService.getActiveRooms();
           const existing = rooms.find((r) => r.host) || rooms[0];
           if (existing) {
             rememberOrbitRoom(existing, movieExtras);
-            notificationService.info("Bạn đã có phòng Orbit đang mở — chuyển vào phòng hiện tại.");
+            notificationService.info("Bạn đã có phòng nhóm đang mở — chuyển vào phòng hiện tại.");
             handleEnterOrbitRoom(existing, movieExtras);
             return;
           }
@@ -355,7 +355,7 @@ const MovieDetailPage = () => {
           /* fall through */
         }
       }
-      notificationService.error(msg || "Không thể tạo phòng Orbit.");
+      notificationService.error(msg || "Không thể tạo phòng nhóm.");
     } finally {
       setIsCreatingOrbit(false);
     }
@@ -638,13 +638,8 @@ const MovieDetailPage = () => {
                 {movie.description}
               </p>
 
-              <div className="flex flex-wrap items-center gap-4 pt-4">
-                {dbMovie?.uuid && (
-                  <>
-                    <FavoriteButton movieUuid={dbMovie.uuid} />
-                    <ShareButton title={movie.title} text={movie.description} />
-                  </>
-                )}
+              <div className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-wrap items-center gap-4">
                 {/* 1. Mua vé xem tại rạp */}
                 {!isFromOnline &&
                   (dbMovie.screeningMode === "THEATER_ONLY" ||
@@ -698,6 +693,14 @@ const MovieDetailPage = () => {
                   <Play className="h-4 w-4 fill-current text-red-500" /> Xem
                   Trailer
                 </button>
+                </div>
+
+                {dbMovie?.uuid && (
+                  <div className="flex flex-wrap items-center gap-4">
+                    <FavoriteButton movieUuid={dbMovie.uuid} />
+                    <ShareButton title={movie.title} text={movie.description} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -906,8 +909,8 @@ const MovieDetailPage = () => {
                       >
                         <Users className="w-4 h-4" />
                         {orbitForSelectedShowtime.source === "recent"
-                          ? "Vào lại phòng Orbit"
-                          : (orbitForSelectedShowtime.room.isHost || orbitForSelectedShowtime.room.host ? "Vào phòng Orbit của bạn" : "Vào phòng Orbit")}
+                          ? "Vào lại phòng nhóm"
+                          : (orbitForSelectedShowtime.room.isHost || orbitForSelectedShowtime.room.host ? "Vào phòng nhóm của bạn" : "Vào phòng nhóm")}
                       </button>
                     )}
                     {!orbitForSelectedShowtime && (
@@ -918,7 +921,7 @@ const MovieDetailPage = () => {
                       className="border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-100 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <Users className="w-4 h-4" />
-                      {isCreatingOrbit ? "Đang tạo..." : "Tạo phòng Orbit"}
+                      {isCreatingOrbit ? "Đang tạo..." : "Tạo phòng nhóm"}
                     </button>
                     )}
                     {hostActiveOtherRoom && !orbitForSelectedShowtime && (
@@ -930,7 +933,7 @@ const MovieDetailPage = () => {
                         })}
                         className="border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-100 px-4 py-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                       >
-                        Vào phòng Orbit đang mở
+                        Vào phòng nhóm đang mở
                       </button>
                     )}
                     </>

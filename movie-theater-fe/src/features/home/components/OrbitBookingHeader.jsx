@@ -16,7 +16,7 @@ const OrbitBookingHeader = ({
     <div>
       <span className="orbit-booking__hero-badge mb-3">
         <Rocket className="w-3.5 h-3.5" />
-        Orbit Seat
+        Đặt vé nhóm
       </span>
       <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white mt-2">
         {displayMovie}

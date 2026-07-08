@@ -315,6 +315,12 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.sys-config__inline-triple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
 @media (max-width: 720px) {
   .sys-config__fields--2,
   .sys-config__fields--3,

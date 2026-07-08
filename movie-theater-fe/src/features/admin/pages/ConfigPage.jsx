@@ -461,6 +461,48 @@ const ConfigPage = () => {
               </div>
             </ConfigSection>
 
+            <ConfigSection title="Thuật toán phân bổ" description="Các hằng số điều khiển cách sinh suất chiếu tự động.">
+              <div className="sys-config__fields sys-config__fields--2">
+                <ConfigField label="Bước nhảy slot (phút)" hint="Khoảng cách giữa các khung giờ thử khi sinh suất.">
+                  <input type="number" min="15" max="120" className="sys-config__input" value={config.slotStepMinutes} onChange={(e) => updateField('slotStepMinutes', parseInt(e.target.value, 10) || 30)} />
+                </ConfigField>
+                <ConfigField label="Căn lưới giờ (phút)">
+                  <input type="number" min="5" max="60" className="sys-config__input" value={config.gridAlignMinutes} onChange={(e) => updateField('gridAlignMinutes', parseInt(e.target.value, 10) || 15)} />
+                </ConfigField>
+                <ConfigField label="Phạt công bằng phim">
+                  <input type="number" min="0" max="100" step="1" className="sys-config__input" value={config.fairnessPenalty} onChange={(e) => updateField('fairnessPenalty', parseInt(e.target.value, 10) || 25)} />
+                </ConfigField>
+                <ConfigField label="Khoảng cách cùng phim (phút)">
+                  <input type="number" min="0" max="180" className="sys-config__input" value={config.sameMovieGapMinutes} onChange={(e) => updateField('sameMovieGapMinutes', parseInt(e.target.value, 10) || 30)} />
+                </ConfigField>
+                <ConfigField label="Điểm cuối tuần">
+                  <input type="number" min="0" max="20" className="sys-config__input" value={config.weekendScore} onChange={(e) => updateField('weekendScore', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Điểm ngày thường">
+                  <input type="number" min="0" max="20" className="sys-config__input" value={config.weekdayScore} onChange={(e) => updateField('weekdayScore', parseInt(e.target.value, 10) || 0)} />
+                </ConfigField>
+                <ConfigField label="Giờ vàng (bắt đầu)">
+                  <input type="time" className="sys-config__input" value={config.goldenHourPeakStart} onChange={(e) => updateField('goldenHourPeakStart', e.target.value)} />
+                </ConfigField>
+                <ConfigField label="Giờ vàng (kết thúc)">
+                  <input type="time" className="sys-config__input" value={config.goldenHourPeakEnd} onChange={(e) => updateField('goldenHourPeakEnd', e.target.value)} />
+                </ConfigField>
+                <ConfigField label="Điểm giờ vàng">
+                  <input type="number" min="0" max="30" className="sys-config__input" value={config.goldenHourPeakScore} onChange={(e) => updateField('goldenHourPeakScore', parseInt(e.target.value, 10) || 15)} />
+                </ConfigField>
+                <ConfigField label="Điểm genre hot / mid / base">
+                  <div className="sys-config__inline-triple">
+                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierHot} onChange={(e) => updateField('genreTierHot', parseInt(e.target.value, 10) || 10)} />
+                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierMid} onChange={(e) => updateField('genreTierMid', parseInt(e.target.value, 10) || 7)} />
+                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierBase} onChange={(e) => updateField('genreTierBase', parseInt(e.target.value, 10) || 4)} />
+                  </div>
+                </ConfigField>
+                <ConfigSwitch checked={config.includeFridayAsWeekend} onChange={(v) => updateField('includeFridayAsWeekend', v)}>
+                  Tính thứ Sáu là cuối tuần
+                </ConfigSwitch>
+              </div>
+            </ConfigSection>
+
             <ConfigSection title="Trọng số ưu tiên">
               <div className="sys-config__fields sys-config__fields--2">
                 <ConfigSlider label="Giờ vàng" value={config.goldenHourWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('goldenHourWeight', v)} />

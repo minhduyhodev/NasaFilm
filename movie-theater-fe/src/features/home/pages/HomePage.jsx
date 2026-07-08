@@ -8,7 +8,6 @@ import LazySection from '../../../shared/components/LazySection';
 import '../components/HomeSpaceBackdrop.css';
 
 const HomeSpaceBackdrop = lazy(() => import('../components/HomeSpaceBackdrop'));
-const GuestAuthPromoBanner = lazy(() => import('../components/GuestAuthPromo'));
 const ComingSoon = lazy(() => import('../components/ComingSoon'));
 const Upcoming = lazy(() => import('../components/Upcoming'));
 const MovieMatchmakerWidget = lazy(() => import('../components/MovieMatchmakerWidget'));
@@ -49,18 +48,6 @@ const HomePage = () => {
 								<NowShowing />
 							</div>
 						</section>
-
-						<LazySection
-							as="section"
-							className="mt-8 px-4 md:px-8 lg:px-20 home-section"
-							fallback={<SectionPlaceholder minHeight="8rem" />}
-						>
-							<div className="max-w-7xl mx-auto">
-								<Suspense fallback={<SectionPlaceholder minHeight="8rem" />}>
-									<GuestAuthPromoBanner />
-								</Suspense>
-							</div>
-						</LazySection>
 
 						<LazySection
 							as="section"

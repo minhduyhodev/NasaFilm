@@ -427,19 +427,19 @@ const CheckoutPage = () => {
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
           <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
-            {isVod ? 'Quay lại chi tiết phim' : 'Quay lại chọn ghế'}
+            {isVod ? 'Quay lại chi tiết phim' : isOrbit ? 'Quay lại phòng nhóm' : 'Quay lại chọn ghế'}
           </span>
         </div>
 
         {isOrbit && (
           <section className="mb-6 p-4 rounded-xl border border-red-500/25 bg-red-500/5">
-            <p className="text-sm font-black text-white uppercase tracking-wide">Thanh toán nhóm Orbit Seat</p>
-            <p className="text-xs text-zinc-400 mt-1">Host trả toàn bộ vé nhóm · {selectedSeats.length} ghế · {orbitMembers.length || 'nhiều'} thành viên</p>
+            <p className="text-sm font-black text-white uppercase tracking-wide">Thanh toán nhóm</p>
+            <p className="text-xs text-zinc-400 mt-1">Chủ phòng trả toàn bộ vé nhóm · {selectedSeats.length} ghế · {orbitMembers.length || 'nhiều'} thành viên</p>
             {orbitMembers.length > 0 && (
               <ul className="mt-3 space-y-1 text-xs text-zinc-300">
                 {orbitMembers.map((m) => (
                   <li key={m.userUuid}>
-                    {m.displayName}{m.host ? ' (Host)' : ''}: {(m.seatUuids?.length || 0)} ghế
+                    {m.displayName}{m.host ? ' (Chủ phòng)' : ''}: {(m.seatUuids?.length || 0)} ghế
                   </li>
                 ))}
               </ul>
@@ -806,7 +806,7 @@ const CheckoutPage = () => {
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
               {isOrbit
-                ? `Đã hết thời gian giữ ghế (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm Orbit). Ghế đã được giải phóng. Vui lòng quay lại phòng Orbit để chọn lại.`
+                ? `Đã hết thời gian giữ ghế (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm). Ghế đã được giải phóng. Vui lòng quay lại phòng nhóm để chọn lại.`
                 : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button

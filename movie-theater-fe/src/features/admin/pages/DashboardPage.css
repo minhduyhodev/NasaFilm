@@ -35,15 +35,17 @@
 
 .dashboard-kpi-card {
   background: rgba(11, 15, 25, 0.7);
-  border: 1px solid var(--adm-border, #1a2238);
-  border-radius: 12px;
-  padding: 18px 20px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 20px 22px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
 }
 
 .dashboard-kpi-card:hover {
   border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-kpi-card--featured {
@@ -162,10 +164,17 @@
 }
 
 .dashboard-chart-panel {
-  background: rgba(18, 22, 36, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 20px 24px;
+  background: rgba(12, 16, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  padding: 24px 26px;
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.dashboard-chart-panel:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-chart-panel:first-child {

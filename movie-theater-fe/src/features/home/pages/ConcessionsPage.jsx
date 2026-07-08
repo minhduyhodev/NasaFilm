@@ -116,7 +116,7 @@ const ConcessionsPage = () => {
     if (timeLeft === 0) {
       if (isOrbitBooking && orbitRoomUuid) {
         notificationService.error(
-          `Hết thời gian thanh toán nhóm Orbit (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút). Vui lòng quay lại phòng.`,
+          `Hết thời gian thanh toán nhóm (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút). Vui lòng quay lại phòng.`,
         );
         navigate(`/booking/orbit/${orbitRoomUuid}`);
         return;

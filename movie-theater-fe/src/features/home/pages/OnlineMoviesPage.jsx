@@ -195,7 +195,7 @@ const OnlineMoviesPage = () => {
             <>
               <VirtualGrid
                 items={catalogMovies}
-                threshold={12}
+                threshold={100}
                 gridClassName="online-catalog-grid"
                 maxHeight="none"
                 className=""

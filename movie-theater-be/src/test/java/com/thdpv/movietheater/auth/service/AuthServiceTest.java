@@ -87,6 +87,9 @@ class AuthServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
     private AuthService authService;
 
     @BeforeEach
@@ -102,7 +105,8 @@ class AuthServiceTest {
                 googleIdTokenVerifier,
                 passwordEncoder,
                 emailService,
-                roleRepository);
+                roleRepository,
+                redisTemplate);
 
         ReflectionTestUtils.setField(authService, "refreshTokenExpirationMs", 86400000L);
         ReflectionTestUtils.setField(authService, "googleClientId", "google-client-id");
