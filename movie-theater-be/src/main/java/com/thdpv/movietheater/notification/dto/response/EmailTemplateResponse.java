@@ -13,6 +13,7 @@ public class EmailTemplateResponse {
     private String purpose;
     private String subject;
     private String htmlBody;
+    private String contentBlocks;
     private boolean active;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -25,6 +26,7 @@ public class EmailTemplateResponse {
         response.purpose = template.getPurpose();
         response.subject = template.getSubject();
         response.htmlBody = template.getHtmlBody();
+        response.contentBlocks = template.getContentBlocks();
         response.active = template.isActive();
         response.createdAt = template.getCreatedAt();
         response.updatedAt = template.getUpdatedAt();
@@ -53,6 +55,10 @@ public class EmailTemplateResponse {
 
     public String getHtmlBody() {
         return htmlBody;
+    }
+
+    public String getContentBlocks() {
+        return contentBlocks;
     }
 
     public boolean isActive() {

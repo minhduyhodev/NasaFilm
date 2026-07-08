@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, TrendingUp, Ticket, DollarSign, Percent, Film, Building2, Tags } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
+import { adminMissionService } from '../api/adminMissionService';
+import { TopMissionsPanel } from '../components';
 import TabTransition from '../../../shared/components/TabTransition';
 import PosterImage from '../../../shared/components/PosterImage';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -399,13 +401,18 @@ const TopMoviesRevenuePanel = ({ movies, formatRevenueFull }) => {
 
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
+  const [missionAnalytics, setMissionAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cinemas');
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await adminDashboardService.getDashboardStats();
+      const [data, missionData] = await Promise.all([
+        adminDashboardService.getDashboardStats(),
+        adminMissionService.getAnalytics().catch(() => null),
+      ]);
       setStats(data);
+      setMissionAnalytics(missionData);
     } catch (error) {
       console.error('Failed to fetch dashboard stats', error);
     } finally {
@@ -574,13 +581,6 @@ const DashboardPage = () => {
           <h1 className="dashboard-page-title">Bảng điều khiển</h1>
           <p className="dashboard-page-desc">Tổng quan vận hành và phân tích hệ thống rạp chiếu phim</p>
         </div>
-        <div className="dashboard-page-header-kpi">
-          <span className="dashboard-header-stat-label">Doanh thu tháng</span>
-          <strong className="dashboard-header-stat-value">{revenueVal}đ</strong>
-          <span className={`dashboard-header-stat-change ${isGrowthPositive ? 'is-positive' : 'is-negative'}`}>
-            {growthLabel} so với tháng trước
-          </span>
-        </div>
       </header>
 
       <div className="dashboard-kpi-grid">
@@ -610,6 +610,8 @@ const DashboardPage = () => {
           </div>
         ))}
       </div>
+
+      <TopMissionsPanel topTemplates={missionAnalytics?.topTemplates || []} />
 
       <DashboardSpotlightSection
         stats={stats}
