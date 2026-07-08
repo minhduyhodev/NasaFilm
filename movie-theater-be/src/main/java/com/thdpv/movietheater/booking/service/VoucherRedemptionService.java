@@ -45,7 +45,7 @@ public class VoucherRedemptionService {
 
     @Transactional
     public UserVoucher redeemPromotion(UUID userUuid, UUID promotionId) {
-        Promotion promotion = promotionRepository.findByIdAndDeletedAtIsNull(promotionId)
+        Promotion promotion = promotionRepository.findByIdForUpdate(promotionId)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy voucher"));
 
         User user = userRepository.findById(userUuid)

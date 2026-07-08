@@ -69,6 +69,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
     private final ConcurrentHashMap<String, LocalDateTime> otpRequestCooldown = new ConcurrentHashMap<>();
 
     @Value("${app.jwt.refresh-token-expiration}")
@@ -88,7 +90,8 @@ public class AuthService {
             GoogleIdTokenVerifier googleIdTokenVerifier,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userSessionRepository = userSessionRepository;
@@ -100,6 +103,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.roleRepository = roleRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -420,10 +424,32 @@ public class AuthService {
             }
         }
 
-        LocalDateTime lastRequest = otpRequestCooldown.get(email);
-        if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(LocalDateTime.now())) {
-            long secondsLeft = Duration.between(LocalDateTime.now(), lastRequest.plusSeconds(60))
-                    .toSeconds();
+        long secondsLeft = 0;
+        boolean redisWorked = false;
+        try {
+            String redisKey = "otp:cooldown:register:" + email;
+            String ttlVal = redisTemplate.opsForValue().get(redisKey);
+            if (ttlVal != null) {
+                long expiredTimestamp = Long.parseLong(ttlVal);
+                long currentTimestamp = System.currentTimeMillis();
+                if (expiredTimestamp > currentTimestamp) {
+                    secondsLeft = (expiredTimestamp - currentTimestamp) / 1000;
+                    if (secondsLeft <= 0) secondsLeft = 1;
+                }
+            }
+            redisWorked = true;
+        } catch (Exception ex) {
+            logger.warn("Redis is offline, falling back to local memory for OTP cooldown check: {}", ex.getMessage());
+        }
+
+        if (!redisWorked) {
+            LocalDateTime lastRequest = otpRequestCooldown.get(email);
+            if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(LocalDateTime.now())) {
+                secondsLeft = Duration.between(LocalDateTime.now(), lastRequest.plusSeconds(60)).toSeconds();
+            }
+        }
+
+        if (secondsLeft > 0) {
             throw new AppException(ErrorCode.BAD_REQUEST,
                     "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
         }
@@ -462,7 +488,20 @@ public class AuthService {
         user.setVerificationLockTime(null);
 
         userRepository.save(user);
-        otpRequestCooldown.put(email, LocalDateTime.now());
+
+        boolean redisSaved = false;
+        try {
+            String redisKey = "otp:cooldown:register:" + email;
+            long expireAt = System.currentTimeMillis() + 60000;
+            redisTemplate.opsForValue().set(redisKey, String.valueOf(expireAt), java.time.Duration.ofSeconds(60));
+            redisSaved = true;
+        } catch (Exception ex) {
+            logger.warn("Redis is offline, falling back to local memory to save OTP cooldown: {}", ex.getMessage());
+        }
+
+        if (!redisSaved) {
+            otpRequestCooldown.put(email, LocalDateTime.now());
+        }
 
         emailService.sendOtpEmail(user.getEmail(), otpCode);
     }
