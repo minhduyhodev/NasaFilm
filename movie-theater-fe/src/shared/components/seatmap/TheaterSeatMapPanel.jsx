@@ -42,66 +42,6 @@ const TheaterSeatMapPanel = ({
   className = '',
   footerNote = null,
 }) => {
-  const [scale, setScale] = useState(1);
-  const containerRef = useRef(null);
-  const [dragState, setDragState] = useState({ isDragging: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
-
-  const onMouseDown = (e) => {
-    if (e.target.closest('.seat') || e.target.closest('button')) return;
-    const container = containerRef.current;
-    if (!container) return;
-    setDragState({
-      isDragging: true,
-      startX: e.pageX - container.offsetLeft,
-      startY: e.pageY - container.offsetTop,
-      scrollLeft: container.scrollLeft,
-      scrollTop: container.scrollTop
-    });
-  };
-
-  const onMouseMove = (e) => {
-    if (!dragState.isDragging) return;
-    e.preventDefault();
-    const container = containerRef.current;
-    if (!container) return;
-    const x = e.pageX - container.offsetLeft;
-    const y = e.pageY - container.offsetTop;
-    const walkX = (x - dragState.startX) * 1.5;
-    const walkY = (y - dragState.startY) * 1.5;
-    container.scrollLeft = dragState.scrollLeft - walkX;
-    container.scrollTop = dragState.scrollTop - walkY;
-  };
-
-  const onMouseUpOrLeave = () => {
-    setDragState(prev => ({ ...prev, isDragging: false }));
-  };
-
-  const onTouchStart = (e) => {
-    if (e.target.closest('.seat') || e.target.closest('button') || e.touches.length !== 1) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const touch = e.touches[0];
-    setDragState({
-      isDragging: true,
-      startX: touch.pageX - container.offsetLeft,
-      startY: touch.pageY - container.offsetTop,
-      scrollLeft: container.scrollLeft,
-      scrollTop: container.scrollTop
-    });
-  };
-
-  const onTouchMove = (e) => {
-    if (!dragState.isDragging || e.touches.length !== 1) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const touch = e.touches[0];
-    const x = touch.pageX - container.offsetLeft;
-    const y = touch.pageY - container.offsetTop;
-    const walkX = (x - dragState.startX) * 1.5;
-    const walkY = (y - dragState.startY) * 1.5;
-    container.scrollLeft = dragState.scrollLeft - walkX;
-    container.scrollTop = dragState.scrollTop - walkY;
-  };
 
   const resolveOrbitOwner = (seatUuid) => {
     if (!orbitSeatOwners || !seatUuid) return null;
@@ -288,72 +228,37 @@ const TheaterSeatMapPanel = ({
 
   return (
     <div className={`flex flex-col items-center w-full ${className}`}>
-      
-      {/* Thanh điều khiển Zoom */}
-      <div className="w-full flex justify-between items-center mb-4 px-2 shrink-0 select-none">
-        <div className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest">
-          Sơ đồ phòng chiếu
-        </div>
-        <div className="flex items-center gap-1.5 bg-[#1f2937]/60 border border-white/5 p-1 rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => setScale((prev) => Math.max(0.4, prev - 0.1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-            title="Thu nhỏ"
-          >
-            -
-          </button>
-          <span className="text-[10px] font-black text-zinc-300 w-10 text-center">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={() => setScale((prev) => Math.min(1.5, prev + 0.1))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-            title="Phóng to"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={() => setScale(1)}
-            className="px-2 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-[9px] font-black text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
-            title="Mặc định"
-          >
-            ĐẶT LẠI
-          </button>
-        </div>
-      </div>
-
-      {/* Viewport cố định kích cỡ, hỗ trợ kéo chuột/vuốt */}
+      {/* Viewport container sử dụng Container Query để tự động co giãn ghế */}
       <div
-        ref={containerRef}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUpOrLeave}
-        onMouseLeave={onMouseUpOrLeave}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onMouseUpOrLeave}
-        className="w-full h-[360px] overflow-auto border border-white/5 bg-[#0b0f19]/40 rounded-2xl relative select-none cursor-grab active:cursor-grabbing custom-scrollbar"
-        style={{ scrollBehavior: 'auto' }}
+        className="w-full border border-white/5 bg-[#0b0f19]/40 rounded-2xl p-4 md:p-6 relative select-none custom-scrollbar"
+        style={{ containerType: 'inline-size' }}
       >
         <div 
-          className="flex flex-col gap-2.5 items-center min-w-max py-8 px-12 origin-top transition-transform duration-100 ease-out"
-          style={{ transform: `scale(${scale})` }}
+          className="flex flex-col gap-2 w-full"
+          style={{
+            '--seat-slot-gap': '0.7cqw',
+            '--seat-slot-w': 'calc((100cqw - 4rem - (var(--seat-map-cols) - 1) * var(--seat-slot-gap)) / var(--seat-map-cols))',
+            '--seat-slot-h': 'calc(var(--seat-slot-w) * 0.7)',
+            '--seat-font-size': 'calc(var(--seat-slot-w) * 0.3)',
+            '--seat-couple-font-size': 'calc(var(--seat-slot-w) * 0.28)',
+          }}
         >
-          {/* Màn hình curved ở bên trong view để di chuyển cùng sơ đồ ghế */}
-          <div className="w-full mb-12 text-center shrink-0">
-            <div className={`screen-curve relative mx-auto w-[65%] h-2 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
-            <p className="text-[9px] font-bold text-gray-500 mt-3 tracking-widest uppercase">{screenLabel}</p>
+          {/* Màn hình curved */}
+          <div className="w-full mb-6 text-center shrink-0">
+            <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
+            <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
           </div>
         {bookingRowNames.map((row) => {
           const seatsList = bookingSeatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
-            <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
-              <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+            <div key={row} className="flex items-center gap-2 mb-1 justify-center w-full">
+              <div 
+                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
+              >
+                {row}
+              </div>
 
               {isFullHorizontalAisle ? (
                 <div
@@ -502,7 +407,11 @@ const TheaterSeatMapPanel = ({
                 </div>
               )}
 
-              <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+              <div 
+                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
+              >
+                {row}
+              </div>
             </div>
           );
         })}

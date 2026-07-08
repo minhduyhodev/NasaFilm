@@ -33,7 +33,7 @@
   height: 100%;
   min-width: 0;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: var(--seat-font-size, 11px);
   border: 2px solid rgba(255, 255, 255, 0.25);
   background: transparent;
   color: #a1a1aa;
@@ -50,7 +50,7 @@
   height: 100%;
   min-width: 0;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: var(--seat-font-size, 11px);
   border: 2px solid rgba(251, 191, 36, 0.35);
   background: transparent;
   color: #fbbf24;
@@ -67,7 +67,7 @@
   min-width: 0;
   height: 100%;
   border-radius: 10px;
-  font-size: 10px;
+  font-size: var(--seat-couple-font-size, 10px);
   letter-spacing: 0.05em;
   border: 2px solid rgba(217, 70, 239, 0.45);
   background: rgba(217, 70, 239, 0.06);

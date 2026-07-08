@@ -28,6 +28,15 @@ public interface OrbitRoomRepository extends JpaRepository<OrbitRoom, UUID> {
 
     Optional<OrbitRoom> findByBookingUuid(UUID bookingUuid);
 
+    @Query("""
+            select r from OrbitRoom r
+            where r.status in (
+                com.thdpv.movietheater.orbit.enums.OrbitRoomStatus.OPEN,
+                com.thdpv.movietheater.orbit.enums.OrbitRoomStatus.CHECKOUT)
+              and r.expiresAt > :now
+            """)
+    List<OrbitRoom> findAllActiveRooms(@Param("now") OffsetDateTime now);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from OrbitRoom r where r.uuid = :uuid")
     Optional<OrbitRoom> findByIdForUpdate(@Param("uuid") UUID uuid);

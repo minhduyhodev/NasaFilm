@@ -12,7 +12,10 @@ const OrbitChatBox = ({ roomUuid }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [typingUser, setTypingUser] = useState(null);
   const messagesContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   // Fetch chat history
   useEffect(() => {
@@ -35,6 +38,15 @@ const OrbitChatBox = ({ roomUuid }) => {
     };
   }, [roomUuid]);
 
+  // Clean up typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Subscribe to real-time chat updates (instant delivery, debounceMs = 0)
   useRealtimeTopic(REALTIME_TOPICS.orbitRoomChat(roomUuid), (newMessage) => {
     if (newMessage && newMessage.uuid) {
@@ -46,12 +58,47 @@ const OrbitChatBox = ({ roomUuid }) => {
     }
   }, 0);
 
+  // Subscribe to real-time typing updates
+  useRealtimeTopic(REALTIME_TOPICS.orbitRoomTyping(roomUuid), (typingData) => {
+    if (typingData && typingData.senderUserUuid) {
+      if (typingData.senderUserUuid === currentUserUuid) return;
+
+      if (typingData.typing) {
+        setTypingUser(typingData.displayName);
+      } else {
+        setTypingUser((current) => current === typingData.displayName ? null : current);
+      }
+    }
+  }, 0);
+
   // Scroll to bottom on new messages inside the container
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, typingUser]);
+
+  const sendTypingStatus = async (typing) => {
+    if (isTypingRef.current === typing) return;
+    isTypingRef.current = typing;
+    try {
+      await orbitService.sendTypingStatus(roomUuid, typing);
+    } catch (err) {
+      console.error('Failed to send typing status:', err);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setInputText(e.target.value);
+    sendTypingStatus(true);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingStatus(false);
+    }, 1500);
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -59,6 +106,11 @@ const OrbitChatBox = ({ roomUuid }) => {
     if (!text) return;
 
     setInputText('');
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    sendTypingStatus(false);
+
     try {
       await orbitService.sendChatMessage(roomUuid, text);
     } catch (err) {
@@ -68,9 +120,15 @@ const OrbitChatBox = ({ roomUuid }) => {
   };
 
   return (
-    <div className="flex flex-col bg-[#111827]/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl h-[400px]">
+    <div 
+      className="flex flex-col rounded-2xl overflow-hidden shadow-2xl h-[400px]"
+      style={{ backgroundColor: 'rgba(14, 18, 30, 0.65)', border: '1px solid rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(16px)' }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-[#0b0f19]/80 border-b border-white/5 shrink-0">
+      <div 
+        className="flex items-center gap-2 px-4 py-3 border-b shrink-0"
+        style={{ backgroundColor: 'rgba(11, 15, 25, 0.8)', borderColor: 'rgba(255, 255, 255, 0.04)' }}
+      >
         <MessageSquare className="w-4 h-4 text-red-500" />
         <span className="text-xs font-bold text-white uppercase tracking-wider">Trò chuyện nhóm</span>
       </div>
@@ -91,7 +149,10 @@ const OrbitChatBox = ({ roomUuid }) => {
             if (msg.system) {
               return (
                 <div key={msg.uuid} className="flex justify-center my-2">
-                  <span className="bg-white/5 border border-white/5 text-[10px] text-zinc-400 font-semibold px-3 py-1 rounded-full text-center max-w-[80%]">
+                  <span 
+                    className="text-[10px] text-zinc-400 font-semibold px-3 py-1 rounded-full text-center max-w-[80%] border"
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)', borderColor: 'rgba(255, 255, 255, 0.04)' }}
+                  >
                     {msg.message}
                   </span>
                 </div>
@@ -109,11 +170,12 @@ const OrbitChatBox = ({ roomUuid }) => {
                   </span>
                 )}
                 <div
-                  className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-md ${
+                  className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-md border ${
                     isMe
-                      ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-tr-none'
-                      : 'bg-white/5 border border-white/5 text-zinc-100 rounded-tl-none'
+                      ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-tr-none border-transparent'
+                      : 'text-zinc-100 rounded-tl-none bg-white/[0.03]'
                   }`}
+                  style={isMe ? undefined : { borderColor: 'rgba(255, 255, 255, 0.04)' }}
                 >
                   {msg.message}
                 </div>
@@ -121,19 +183,26 @@ const OrbitChatBox = ({ roomUuid }) => {
             );
           })
         )}
+        {typingUser && (
+          <div className="flex items-center gap-1.5 ml-1 text-[10px] text-zinc-400 font-medium italic animate-pulse">
+            <span className="font-bold">{typingUser}</span> đang nhập...
+          </div>
+        )}
       </div>
 
       {/* Input Form */}
       <form
         onSubmit={handleSend}
-        className="p-3 bg-[#0b0f19]/40 border-t border-white/5 flex gap-2 shrink-0"
+        className="p-3 border-t flex gap-2 shrink-0"
+        style={{ backgroundColor: 'rgba(11, 15, 25, 0.4)', borderColor: 'rgba(255, 255, 255, 0.04)' }}
       >
         <input
           type="text"
           placeholder="Nhập nội dung..."
           value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          className="flex-grow bg-white/5 border border-white/5 hover:border-white/10 focus:border-red-500/50 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 outline-none transition-colors"
+          onChange={handleInputChange}
+          className="flex-grow bg-white/[0.03] border hover:border-white/10 focus:border-red-500/50 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 outline-none transition-colors"
+          style={{ borderColor: 'rgba(255, 255, 255, 0.04)' }}
         />
         <button
           type="submit"

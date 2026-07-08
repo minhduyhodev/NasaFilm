@@ -1,26 +1,44 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Link } from 'lucide-react';
+import { ArrowRight, Link, Loader2 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
+import { orbitService } from '../../../shared/services/orbitService';
 
 const OrbitJoinInput = () => {
   const [linkInput, setLinkInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleJoin = (e) => {
+  const handleJoin = async (e) => {
     e.preventDefault();
     const input = linkInput.trim();
     if (!input) return;
 
-    // Match UUID v4
-    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-    const match = input.match(uuidRegex);
+    setLoading(true);
+    try {
+      let code = input;
+      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const match = input.match(uuidRegex);
+      if (match) {
+        code = match[0];
+      } else {
+        const parts = input.split('/');
+        const lastPart = parts[parts.length - 1]?.trim();
+        if (lastPart) {
+          code = lastPart;
+        }
+      }
 
-    if (match) {
-      const roomUuid = match[0];
-      navigate(`/booking/orbit/${roomUuid}`);
-    } else {
-      notificationService.error('Mã phòng hoặc đường dẫn Orbit không hợp lệ.');
+      const res = await orbitService.resolveRoomCode(code);
+      if (res && res.roomUuid) {
+        navigate(`/booking/orbit/${res.roomUuid}`);
+      } else {
+        notificationService.error('Không tìm thấy phòng Orbit.');
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Mã phòng hoặc đường dẫn Orbit không hợp lệ hoặc đã hết hạn.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,17 +49,25 @@ const OrbitJoinInput = () => {
       </div>
       <input
         type="text"
-        placeholder="Nhập mã hoặc dán link phòng Orbit để tham gia..."
+        placeholder="Nhập mã (8 ký tự) hoặc dán link phòng để tham gia..."
         value={linkInput}
         onChange={(e) => setLinkInput(e.target.value)}
-        className="flex-grow bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
+        disabled={loading}
+        className="flex-grow bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none disabled:opacity-50"
       />
       <button
         type="submit"
-        className="bg-red-600 hover:bg-red-700 active:scale-95 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+        disabled={loading}
+        className="bg-red-600 hover:bg-red-700 active:scale-95 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
       >
-        <span>Tham gia</span>
-        <ArrowRight className="w-3.5 h-3.5" />
+        {loading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <>
+            <span>Tham gia</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </>
+        )}
       </button>
     </form>
   );

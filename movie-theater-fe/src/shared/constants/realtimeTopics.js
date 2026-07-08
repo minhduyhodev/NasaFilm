@@ -10,4 +10,5 @@ export const REALTIME_TOPICS = {
   showtimeSeats: (showtimeUuid) => `/topic/showtimes/${showtimeUuid}/seats`,
   orbitRoom: (roomUuid) => `/topic/orbit/${roomUuid}`,
   orbitRoomChat: (roomUuid) => `/topic/orbit/${roomUuid}/chat`,
+  orbitRoomTyping: (roomUuid) => `/topic/orbit/${roomUuid}/typing`,
 };

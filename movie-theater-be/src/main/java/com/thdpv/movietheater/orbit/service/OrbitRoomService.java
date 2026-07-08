@@ -881,6 +881,15 @@ public class OrbitRoomService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public void broadcastTypingStatus(String currentUserEmail, UUID roomUuid, boolean isTyping) {
+        assertOrbitEnabled();
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này"));
+        orbitRoomBroadcaster.broadcastTypingStatus(roomUuid, userUuid, member.getDisplayName(), isTyping);
+    }
+
     private void saveAndBroadcastSystemMessage(UUID roomUuid, String messageText, OffsetDateTime now) {
         OrbitRoomMessage msg = new OrbitRoomMessage();
         msg.setUuid(UUID.randomUUID());
@@ -900,5 +909,28 @@ public class OrbitRoomService {
                 .createdAt(msg.getCreatedAt())
                 .build();
         orbitRoomBroadcaster.broadcastChatMessage(roomUuid, response);
+    }
+
+    @Transactional(readOnly = true)
+    public UUID resolveRoomCode(String code) {
+        assertOrbitEnabled();
+        String cleanCode = code.trim().toLowerCase();
+        OffsetDateTime now = OffsetDateTime.now();
+        List<OrbitRoom> activeRooms = orbitRoomRepository.findAllActiveRooms(now);
+        for (OrbitRoom room : activeRooms) {
+            String prefix = room.getUuid().toString().substring(0, 8).toLowerCase();
+            if (prefix.equals(cleanCode)) {
+                return room.getUuid();
+            }
+        }
+        try {
+            UUID uuid = UUID.fromString(cleanCode);
+            if (orbitRoomRepository.existsById(uuid)) {
+                return uuid;
+            }
+        } catch (IllegalArgumentException e) {
+            // ignore
+        }
+        throw new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit với mã: " + code);
     }
 }

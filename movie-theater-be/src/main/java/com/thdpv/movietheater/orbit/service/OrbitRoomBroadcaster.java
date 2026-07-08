@@ -43,4 +43,9 @@ public class OrbitRoomBroadcaster {
     public void broadcastChatMessage(UUID roomUuid, OrbitRoomMessageResponse message) {
         messagingTemplate.convertAndSend(TOPIC_PREFIX + roomUuid + "/chat", message);
     }
+
+    public void broadcastTypingStatus(UUID roomUuid, UUID senderUserUuid, String displayName, boolean isTyping) {
+        messagingTemplate.convertAndSend(TOPIC_PREFIX + roomUuid + "/typing",
+                java.util.Map.of("senderUserUuid", senderUserUuid, "displayName", displayName, "typing", isTyping));
+    }
 }

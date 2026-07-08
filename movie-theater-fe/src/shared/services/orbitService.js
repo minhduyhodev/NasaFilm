@@ -115,12 +115,30 @@ class OrbitService {
     }
   }
 
+  async sendTypingStatus(roomUuid, typing) {
+    try {
+      const response = await authService.api.post(`/api/orbit-rooms/${roomUuid}/typing`, { typing });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async updateMemberCombos(roomUuid, combos, completed) {
     try {
       const response = await authService.api.put(`/api/orbit-rooms/${roomUuid}/member-combos`, {
         combos,
         completed,
       });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async resolveRoomCode(code) {
+    try {
+      const response = await authService.api.get(`/api/orbit-rooms/resolve-code/${code}`);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

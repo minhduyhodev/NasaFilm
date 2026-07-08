@@ -126,6 +126,16 @@ public class OrbitRoomController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(msg));
     }
 
+    @PostMapping("/{roomUuid}/typing")
+    public ResponseEntity<ApiResponse<Void>> sendTypingStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID roomUuid,
+            @RequestBody java.util.Map<String, Boolean> request) {
+        boolean isTyping = Boolean.TRUE.equals(request.get("typing"));
+        orbitRoomService.broadcastTypingStatus(userDetails.getUsername(), roomUuid, isTyping);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
     @GetMapping("/{roomUuid}/messages")
     public ResponseEntity<ApiResponse<List<OrbitRoomMessageResponse>>> getChatMessages(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -143,5 +153,12 @@ public class OrbitRoomController {
         OrbitRoomResponse room = orbitRoomService.updateMemberCombos(
                 userDetails.getUsername(), roomUuid, request.getCombos(), request.isCompleted());
         return ResponseEntity.ok(ApiResponse.success(room));
+    }
+
+    @GetMapping("/resolve-code/{code}")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> resolveRoomCode(
+            @PathVariable String code) {
+        UUID uuid = orbitRoomService.resolveRoomCode(code);
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("roomUuid", uuid.toString())));
     }
 }
