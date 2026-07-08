@@ -11,6 +11,7 @@ import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
+import { buildAutoFormFromConfig } from './showtimes/showtimesAutoUtils';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader } from '../components';
@@ -93,32 +94,19 @@ const ShowtimesPage = () => {
   const [isMovieDropdownOpen, setIsMovieDropdownOpen] = useState(false);
   const [searchMovieKeyword, setSearchMovieKeyword] = useState('');
   const [formData, setFormData] = useState({
-    movieUuid: '', cinemaUuid: '', cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
+    movieUuid: '', cinemaUuid: '', cinemaRoomUuid: '', startTime: '',
+    basePrice: DEFAULT_SYSTEM_CONFIG.basePrice,
+    vipPrice: DEFAULT_SYSTEM_CONFIG.vipPrice,
+    couplePrice: DEFAULT_SYSTEM_CONFIG.couplePrice,
   });
 
   // Auto-scheduling modal
   const [isAutoModalOpen, setIsAutoModalOpen] = useState(false);
-  const [isAutoPreviewOpen, setIsAutoPreviewOpen] = useState(false);
+  const [autoStep, setAutoStep] = useState(0);
+  const [systemConfig, setSystemConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [previewGenerated, setPreviewGenerated] = useState([]);
   const [selectedPreviewUuids, setSelectedPreviewUuids] = useState(new Set());
-  const [autoFormData, setAutoFormData] = useState({
-    startDate: '',
-    endDate: '',
-    cinemaUuid: '',
-    roomUuids: [],
-    movieUuids: [],
-    startTime: '08:00',
-    endTime: '23:30',
-    basePrice: 85000,
-    vipPrice: 120000,
-    couplePrice: 160000,
-    intervalMinutes: 15,
-    trailerBuffer: 10,
-    goldenHourWeight: 1.0,
-    weekendWeight: 1.0,
-    ratingWeight: 1.0,
-    genreWeight: 1.0,
-  });
+  const [autoFormData, setAutoFormData] = useState(() => buildAutoFormFromConfig(DEFAULT_SYSTEM_CONFIG));
   const [isAutoLoading, setIsAutoLoading] = useState(false);
   const [isSavingAuto, setIsSavingAuto] = useState(false);
 
@@ -154,7 +142,7 @@ const ShowtimesPage = () => {
   const fetchMovies = async () => {
     setIsLoadingMovies(true);
     try {
-      const data = await movieService.getMovies({ size: 100 });
+      const data = await movieService.getMovies({ size: 500 });
       if (data && data.content) {
         setMovies(data.content);
       }
@@ -238,46 +226,23 @@ const ShowtimesPage = () => {
   }, []);
 
   const handleAutoClick = async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
     let config = DEFAULT_SYSTEM_CONFIG;
     try {
       config = await systemConfigService.getConfig();
     } catch {
-      // fallback to defaults
+      // fallback
     }
-
-    setAutoFormData({
-      startDate: todayStr,
-      endDate: tomorrowStr,
-      cinemaUuid: cinemas[0]?.uuid || '',
-      roomUuids: [],
-      movieUuids: [],
-      startTime: config.startTime ?? DEFAULT_SYSTEM_CONFIG.startTime,
-      endTime: config.endTime ?? DEFAULT_SYSTEM_CONFIG.endTime,
-      basePrice: config.basePrice ?? DEFAULT_SYSTEM_CONFIG.basePrice,
-      vipPrice: config.vipPrice ?? DEFAULT_SYSTEM_CONFIG.vipPrice,
-      couplePrice: config.couplePrice ?? DEFAULT_SYSTEM_CONFIG.couplePrice,
-      intervalMinutes: config.intervalMinutes ?? DEFAULT_SYSTEM_CONFIG.intervalMinutes,
-      trailerBuffer: config.trailerBuffer ?? DEFAULT_SYSTEM_CONFIG.trailerBuffer,
-      goldenHourWeight: config.goldenHourWeight ?? DEFAULT_SYSTEM_CONFIG.goldenHourWeight,
-      weekendWeight: config.weekendWeight ?? DEFAULT_SYSTEM_CONFIG.weekendWeight,
-      ratingWeight: config.ratingWeight ?? DEFAULT_SYSTEM_CONFIG.ratingWeight,
-      genreWeight: config.genreWeight ?? DEFAULT_SYSTEM_CONFIG.genreWeight,
-    });
+    setSystemConfig(config);
+    setAutoFormData(buildAutoFormFromConfig(config, cinemas));
     setAutoRooms([]);
     setPreviewGenerated([]);
     setSelectedPreviewUuids(new Set());
-    setIsAutoPreviewOpen(false);
+    setAutoStep(0);
     setIsAutoModalOpen(true);
     scrollAdminMainToTop();
   };
 
-  const handleAutoSubmit = async (e) => {
-    e.preventDefault();
+  const handleAutoAnalyze = async () => {
     if (autoFormData.roomUuids.length === 0) {
       notificationService.warning('Vui lòng chọn ít nhất một phòng chiếu');
       return;
@@ -286,15 +251,18 @@ const ShowtimesPage = () => {
       notificationService.warning('Vui lòng chọn ít nhất một bộ phim');
       return;
     }
+    if (autoFormData.startDate > autoFormData.endDate) {
+      notificationService.warning('Ngày kết thúc phải sau ngày bắt đầu');
+      return;
+    }
 
     setIsAutoLoading(true);
     try {
       const data = await showtimeService.getAutoShowtimesPreview(autoFormData);
       setPreviewGenerated(data || []);
-      const uuids = new Set((data || []).map((_, idx) => idx));
-      setSelectedPreviewUuids(uuids);
-      setIsAutoPreviewOpen(true);
-      notificationService.success('Phân tích lịch chiếu tối ưu hoàn tất!');
+      setSelectedPreviewUuids(new Set((data || []).map((_, idx) => idx)));
+      setAutoStep(2);
+      notificationService.success(`Đã gợi ý ${(data || []).length} suất chiếu tối ưu`);
     } catch (err) {
       notificationService.error(err.message || 'Lỗi khi phân tích lịch chiếu');
     } finally {
@@ -321,11 +289,16 @@ const ShowtimesPage = () => {
           couplePrice: p.couplePrice,
         }));
 
-      await showtimeService.saveAutoShowtimes(selectedRequests);
+      await showtimeService.saveAutoShowtimes(selectedRequests, autoFormData.publishStatus || 'DRAFT');
       setIsAutoModalOpen(false);
-      setIsAutoPreviewOpen(false);
+      setAutoStep(0);
       fetchShowtimes();
-      notificationService.success('Đã lưu lịch chiếu tự động thành công!');
+      const publishLabel = {
+        DRAFT: 'nháp',
+        SCHEDULED: 'sắp chiếu',
+        OPEN_FOR_BOOKING: 'mở bán',
+      }[autoFormData.publishStatus || 'DRAFT'];
+      notificationService.success(`Đã lưu ${selectedRequests.length} suất chiếu (${publishLabel})!`);
     } catch (err) {
       notificationService.error(err.message || 'Lỗi khi lưu lịch chiếu');
     } finally {
@@ -350,10 +323,21 @@ const ShowtimesPage = () => {
     setAutoFormData(prev => ({ ...prev, cinemaUuid, roomUuids: [] }));
   };
 
-  const handleAddClick = () => {
+  const handleAddClick = async () => {
+    let config = DEFAULT_SYSTEM_CONFIG;
+    try {
+      config = await systemConfigService.getConfig();
+    } catch {
+      // fallback
+    }
     setFormData({
-      movieUuid: movies[0]?.uuid || '', cinemaUuid: cinemas[0]?.uuid || '',
-      cinemaRoomUuid: '', startTime: '', basePrice: 85000, vipPrice: 120000, couplePrice: 160000,
+      movieUuid: movies[0]?.uuid || '',
+      cinemaUuid: cinemas[0]?.uuid || '',
+      cinemaRoomUuid: '',
+      startTime: '',
+      basePrice: config.basePrice ?? DEFAULT_SYSTEM_CONFIG.basePrice,
+      vipPrice: config.vipPrice ?? DEFAULT_SYSTEM_CONFIG.vipPrice,
+      couplePrice: config.couplePrice ?? DEFAULT_SYSTEM_CONFIG.couplePrice,
     });
     setIsMovieDropdownOpen(false);
     setSearchMovieKeyword('');
@@ -606,6 +590,15 @@ const ShowtimesPage = () => {
     return map;
   }, [paginatedShowtimes]);
 
+  // All filtered items grouped by status (across ALL pages) — used for select-all
+  const statusFullGroups = useMemo(() => {
+    const map = {};
+    filteredShowtimes.forEach((st) => {
+      (map[st.status] ||= []).push(st);
+    });
+    return map;
+  }, [filteredShowtimes]);
+
   // Totals per status on full filtered set (for section header hints)
   const statusTotals = useMemo(() => {
     const totals = {};
@@ -629,7 +622,12 @@ const ShowtimesPage = () => {
       <div className="space-y-2 view-fade-enter">
         {pageStatusGroups.map(({ status, items }) => {
           const isCollapsed = collapsedSections[status];
+          const fullItems = statusFullGroups[status] || items;
           const totalInStatus = statusTotals[status] || items.length;
+          const selectedInStatus = fullItems.reduce(
+            (acc, s) => (selectedIds.has(s.uuid) ? acc + 1 : acc),
+            0,
+          );
           return (
             <div key={status} className="st-status-group">
               <SectionHeader
@@ -638,8 +636,9 @@ const ShowtimesPage = () => {
                 pageCount={items.length}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleSection(status)}
-                onSelectAll={() => toggleSelectAllInGroup(items)}
-                allSelected={items.length > 0 && items.every((s) => selectedIds.has(s.uuid))}
+                onSelectAll={() => toggleSelectAllInGroup(fullItems)}
+                allSelected={fullItems.length > 0 && selectedInStatus === fullItems.length}
+                selectedCount={selectedInStatus}
               />
               <div
                 className={`section-collapsible ${isCollapsed ? 'collapsed' : 'expanded'}`}
@@ -1111,16 +1110,19 @@ const ShowtimesPage = () => {
       {isAutoModalOpen && (
         <Suspense fallback={null}>
           <ShowtimesAutoModal
-            onClose={() => { setIsAutoModalOpen(false); setIsAutoPreviewOpen(false); }}
-            isAutoPreviewOpen={isAutoPreviewOpen}
+            onClose={() => { setIsAutoModalOpen(false); setAutoStep(0); }}
+            autoStep={autoStep}
+            setAutoStep={setAutoStep}
             autoFormData={autoFormData}
             setAutoFormData={setAutoFormData}
+            systemConfig={systemConfig}
             cinemas={cinemas}
             rooms={autoRooms}
             isLoadingRooms={isLoadingAutoRooms}
             onCinemaChange={handleAutoCinemaChange}
             movies={movies}
-            handleAutoSubmit={handleAutoSubmit}
+            isLoadingMovies={isLoadingMovies}
+            handleAutoAnalyze={handleAutoAnalyze}
             previewGenerated={previewGenerated}
             selectedPreviewUuids={selectedPreviewUuids}
             setSelectedPreviewUuids={setSelectedPreviewUuids}
@@ -1128,7 +1130,6 @@ const ShowtimesPage = () => {
             handleSaveAuto={handleSaveAuto}
             isAutoLoading={isAutoLoading}
             isSavingAuto={isSavingAuto}
-            setIsAutoPreviewOpen={setIsAutoPreviewOpen}
           />
         </Suspense>
       )}

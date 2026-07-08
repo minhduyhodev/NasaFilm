@@ -126,17 +126,17 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private void authorizeOrbitTopic(UsernamePasswordAuthenticationToken authentication, String destination) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Yêu cầu đăng nhập để theo dõi phòng Orbit");
+            throw new AccessDeniedException("Yêu cầu đăng nhập để theo dõi phòng nhóm");
         }
 
         UUID roomUuid = orbitTopicAccessService.parseRoomUuid(destination);
         if (roomUuid == null) {
-            throw new AccessDeniedException("Topic Orbit không hợp lệ");
+            throw new AccessDeniedException("Topic phòng nhóm không hợp lệ");
         }
 
         String email = authentication.getName();
         if (!orbitTopicAccessService.canSubscribe(email, roomUuid)) {
-            throw new AccessDeniedException("Không có quyền theo dõi phòng Orbit này");
+            throw new AccessDeniedException("Không có quyền theo dõi phòng nhóm này");
         }
     }
 

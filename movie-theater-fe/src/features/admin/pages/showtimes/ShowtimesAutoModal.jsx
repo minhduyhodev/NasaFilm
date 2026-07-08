@@ -1,23 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CalendarDays, Clock, Film } from 'lucide-react';
+import {
+  X, CalendarDays, Clock, Film, Settings2, Sparkles, ChevronRight, ChevronLeft,
+  CheckCircle2, Building2, Ticket,
+} from 'lucide-react';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
-import { formatTimeOnly, formatDateShort, formatWeekday } from './showtimesConstants';
+import { formatDateShort, formatWeekday } from './showtimesConstants';
+import {
+  PUBLISH_MODES,
+  getPreviewScoreClass,
+  groupPreviewByDate,
+  summarizePreview,
+  formatPreviewSlot,
+} from './showtimesAutoUtils';
+import ShowtimesAutoMoviePicker from './ShowtimesAutoMoviePicker';
+
+const STEPS = [
+  { id: 'scope', label: 'Phạm vi', icon: Building2 },
+  { id: 'params', label: 'Giờ & giá', icon: Clock },
+  { id: 'preview', label: 'Xem trước', icon: Sparkles },
+];
 
 const getPosterSrc = (rawUrl, width = 120) =>
   rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
 
 const ShowtimesAutoModal = ({
   onClose,
-  isAutoPreviewOpen,
+  autoStep,
+  setAutoStep,
   autoFormData,
   setAutoFormData,
+  systemConfig,
   cinemas,
   rooms,
   isLoadingRooms,
   onCinemaChange,
   movies,
-  handleAutoSubmit,
+  isLoadingMovies,
+  handleAutoAnalyze,
   previewGenerated,
   selectedPreviewUuids,
   setSelectedPreviewUuids,
@@ -25,8 +45,9 @@ const ShowtimesAutoModal = ({
   handleSaveAuto,
   isAutoLoading,
   isSavingAuto,
-  setIsAutoPreviewOpen,
 }) => {
+  const [showWeights, setShowWeights] = useState(false);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -35,349 +56,423 @@ const ShowtimesAutoModal = ({
     };
   }, []);
 
-  return createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl p-6 text-left relative max-h-[95vh] overflow-y-auto custom-scrollbar flex flex-col">
-            <button
-              className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </button>
+  const summary = useMemo(
+    () => summarizePreview(previewGenerated, selectedPreviewUuids),
+    [previewGenerated, selectedPreviewUuids],
+  );
 
-            <div className="flex items-center gap-2 mb-4 shrink-0">
-              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <CalendarDays className="w-4 h-4 text-amber-400" />
+  const groupedPreview = useMemo(
+    () => groupPreviewByDate(previewGenerated),
+    [previewGenerated],
+  );
+
+  const canGoParams = autoFormData.roomUuids.length > 0 && autoFormData.movieUuids.length > 0
+    && autoFormData.startDate && autoFormData.endDate;
+  const canAnalyze = canGoParams && autoFormData.startTime && autoFormData.endTime;
+
+  const handleMovieSelectionChange = (movieUuids) => {
+    setAutoFormData((prev) => ({ ...prev, movieUuids }));
+  };
+
+  const selectAllRooms = () => {
+    setAutoFormData((prev) => ({
+      ...prev,
+      roomUuids: rooms.map((r) => r.uuid),
+    }));
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="st-auto-modal w-full max-w-3xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl text-left relative max-h-[95vh] overflow-hidden flex flex-col">
+        <button
+          type="button"
+          className="absolute right-4 top-4 z-10 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+          onClick={onClose}
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <header className="px-6 pt-6 pb-4 border-b border-[#1a2238] shrink-0">
+          <div className="flex items-center gap-2 mb-4 pr-8">
+            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <CalendarDays className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Lập lịch suất chiếu thông minh</h2>
+              <p className="text-[10px] text-gray-500">Thuật toán ưu tiên theo cấu hình hệ thống — xem trước trước khi xuất vé</p>
+            </div>
+          </div>
+
+          <div className="st-auto-steps">
+            {STEPS.map((step, idx) => {
+              const Icon = step.icon;
+              const active = autoStep === idx;
+              const done = autoStep > idx;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={`st-auto-step ${active ? 'is-active' : ''} ${done ? 'is-done' : ''}`}
+                  onClick={() => {
+                    if (idx === 1 && !canGoParams) return;
+                    if (idx === 2 && previewGenerated.length === 0) return;
+                    setAutoStep(idx);
+                  }}
+                >
+                  <span className="st-auto-step__icon">
+                    {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
+                  </span>
+                  <span>{step.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+          {autoStep === 0 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="st-auto-label">Ngày bắt đầu *</label>
+                  <input
+                    type="date"
+                    className="st-auto-input"
+                    value={autoFormData.startDate}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, startDate: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="st-auto-label">Ngày kết thúc *</label>
+                  <input
+                    type="date"
+                    className="st-auto-input"
+                    value={autoFormData.endDate}
+                    min={autoFormData.startDate}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, endDate: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
+
               <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Tự Động Tạo Suất Chiếu Tối Ưu</h2>
-                <p className="text-[10px] text-gray-500">Trọng số thuật toán lấy từ Cấu hình hệ thống</p>
+                <label className="st-auto-label">Rạp chiếu *</label>
+                <select
+                  className="st-auto-input"
+                  value={autoFormData.cinemaUuid}
+                  onChange={(e) => onCinemaChange(e.target.value)}
+                  required
+                >
+                  <option value="">-- Chọn rạp --</option>
+                  {cinemas.map((c) => (
+                    <option key={c.uuid} value={c.uuid}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="st-auto-label mb-0">Phòng chiếu *</label>
+                  {rooms.length > 0 && (
+                    <button type="button" className="st-auto-link" onClick={selectAllRooms}>
+                      Chọn tất cả ({rooms.length})
+                    </button>
+                  )}
+                </div>
+                <div className="st-auto-check-grid">
+                  {isLoadingRooms ? (
+                    <span className="text-[10px] text-gray-500 col-span-2">Đang tải phòng...</span>
+                  ) : rooms.length === 0 ? (
+                    <span className="text-[10px] text-gray-500 col-span-2">Chọn rạp để hiển thị phòng</span>
+                  ) : (
+                    rooms.map((room) => (
+                      <label key={room.uuid} className="st-auto-check">
+                        <input
+                          type="checkbox"
+                          checked={autoFormData.roomUuids.includes(room.uuid)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setAutoFormData((prev) => ({
+                              ...prev,
+                              roomUuids: checked
+                                ? [...prev.roomUuids, room.uuid]
+                                : prev.roomUuids.filter((id) => id !== room.uuid),
+                            }));
+                          }}
+                          className="st-checkbox"
+                        />
+                        <span>{room.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <ShowtimesAutoMoviePicker
+                movies={movies}
+                selectedUuids={autoFormData.movieUuids}
+                onChange={handleMovieSelectionChange}
+                isLoading={isLoadingMovies}
+              />
+            </div>
+          )}
+
+          {autoStep === 1 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="st-auto-label">Giờ mở cửa</label>
+                  <input type="time" className="st-auto-input" value={autoFormData.startTime}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, startTime: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="st-auto-label">Giờ đóng cửa</label>
+                  <input type="time" className="st-auto-input" value={autoFormData.endTime}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, endTime: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="st-auto-label">Dọn dẹp (phút)</label>
+                  <input type="number" min="0" max="120" className="st-auto-input" value={autoFormData.intervalMinutes}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, intervalMinutes: parseInt(e.target.value, 10) || 15 }))} />
+                </div>
+                <div>
+                  <label className="st-auto-label">Trailer buffer (phút)</label>
+                  <input type="number" min="0" max="60" className="st-auto-input" value={autoFormData.trailerBuffer}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, trailerBuffer: parseInt(e.target.value, 10) || 10 }))} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="st-auto-label">Vé thường (đ)</label>
+                  <input type="number" step="5000" className="st-auto-input font-mono" value={autoFormData.basePrice}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, basePrice: parseInt(e.target.value, 10) || prev.basePrice }))} />
+                </div>
+                <div>
+                  <label className="st-auto-label">Vé VIP (đ)</label>
+                  <input type="number" step="5000" className="st-auto-input font-mono" value={autoFormData.vipPrice}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, vipPrice: parseInt(e.target.value, 10) || prev.vipPrice }))} />
+                </div>
+                <div>
+                  <label className="st-auto-label">Vé đôi (đ)</label>
+                  <input type="number" step="5000" className="st-auto-input font-mono" value={autoFormData.couplePrice}
+                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, couplePrice: parseInt(e.target.value, 10) || prev.couplePrice }))} />
+                </div>
+              </div>
+
+              <div className="st-auto-config-panel">
+                <button
+                  type="button"
+                  className="st-auto-config-toggle"
+                  onClick={() => setShowWeights((v) => !v)}
+                >
+                  <Settings2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Trọng số thuật toán (từ Cấu hình hệ thống)</span>
+                  <ChevronRight className={`w-3.5 h-3.5 ml-auto transition-transform ${showWeights ? 'rotate-90' : ''}`} />
+                </button>
+                {showWeights && (
+                  <div className="st-auto-config-grid">
+                    <span>Giờ vàng <strong>{autoFormData.goldenHourWeight}x</strong></span>
+                    <span>Cuối tuần <strong>{autoFormData.weekendWeight}x</strong></span>
+                    <span>Đánh giá <strong>{autoFormData.ratingWeight}x</strong></span>
+                    <span>Thể loại <strong>{autoFormData.genreWeight}x</strong></span>
+                    <span>Bước slot <strong>{systemConfig?.slotStepMinutes ?? 30} phút</strong></span>
+                    <span>Lưới giờ <strong>{systemConfig?.gridAlignMinutes ?? 15} phút</strong></span>
+                    <span>Giờ vàng <strong>{systemConfig?.goldenHourPeakStart}–{systemConfig?.goldenHourPeakEnd}</strong></span>
+                    <span className="text-gray-500 text-[10px] col-span-2">Chỉnh trong Admin → Cấu hình → Suất chiếu</span>
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            {!isAutoPreviewOpen ? (
-              <form onSubmit={handleAutoSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Bắt Đầu *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.startDate}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Ngày Kết Thúc *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.endDate}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
+          {autoStep === 2 && (
+            <div className="space-y-4">
+              <div className="st-auto-summary">
+                <div><span className="text-gray-500">Gợi ý</span><strong>{summary.total}</strong></div>
+                <div><span className="text-gray-500">Đã chọn</span><strong className="text-amber-400">{summary.selectedCount}</strong></div>
+                <div><span className="text-gray-500">Phim</span><strong>{summary.movieCount}</strong></div>
+                <div><span className="text-gray-500">Phòng</span><strong>{summary.roomCount}</strong></div>
+                <div><span className="text-gray-500">Ngày</span><strong>{summary.dayCount}</strong></div>
+                <div><span className="text-gray-500">Điểm TB</span><strong>{summary.avgScore}</strong></div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Rạp Chiếu *</label>
-                      <select
-                        className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                        value={autoFormData.cinemaUuid}
-                        onChange={(e) => onCinemaChange(e.target.value)}
-                        required
-                      >
-                        <option value="">-- Chọn Rạp --</option>
-                        {cinemas.map(c => (
-                          <option key={c.uuid} value={c.uuid}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="st-checkbox"
+                    checked={previewGenerated.length > 0 && selectedPreviewUuids.size === previewGenerated.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPreviewUuids(new Set(previewGenerated.map((_, idx) => idx)));
+                      } else {
+                        setSelectedPreviewUuids(new Set());
+                      }
+                    }}
+                  />
+                  Chọn tất cả
+                </label>
+              </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phòng Chiếu *</label>
-                      <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
-                        {isLoadingRooms ? (
-                          <span className="text-[10px] text-gray-500 col-span-2">Đang tải phòng chiếu...</span>
-                        ) : rooms.length === 0 ? (
-                          <span className="text-[10px] text-gray-500 col-span-2">Vui lòng chọn rạp chiếu trước</span>
-                        ) : null}
-                        {!isLoadingRooms && rooms.map(room => (
-                          <label key={room.uuid} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white">
+              <div className="space-y-4 max-h-[38vh] overflow-y-auto pr-1 custom-scrollbar">
+                {groupedPreview.map(([dateLabel, items]) => (
+                  <div key={dateLabel}>
+                    <h3 className="st-auto-date-head">{dateLabel}</h3>
+                    <div className="space-y-2">
+                      {items.map((p) => {
+                        const idx = p._index;
+                        const isSelected = selectedPreviewUuids.has(idx);
+                        const pillColor = getPreviewScoreClass(p.priorityScore, systemConfig);
+                        const genreBase = systemConfig?.genreTierBase ?? 4;
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`st-auto-preview-card ${isSelected ? 'is-selected' : ''}`}
+                          >
                             <input
                               type="checkbox"
-                              checked={autoFormData.roomUuids.includes(room.uuid)}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setAutoFormData(prev => {
-                                  const nextRooms = checked 
-                                    ? [...prev.roomUuids, room.uuid]
-                                    : prev.roomUuids.filter(id => id !== room.uuid);
-                                  return { ...prev, roomUuids: nextRooms };
-                                });
-                              }}
-                              className="st-checkbox"
+                              checked={isSelected}
+                              onChange={() => togglePreviewSelection(idx)}
+                              className="st-checkbox cursor-pointer mt-1"
                             />
-                            <span>{room.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1.5">Chọn Phim Chiếu *</label>
-                      <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto p-2 bg-[#0F1322] rounded-lg border border-[#1a2238] custom-scrollbar">
-                        {movies.map(movie => (
-                          <label key={movie.uuid} className="flex items-center justify-between cursor-pointer text-xs text-gray-300 hover:text-white p-1 hover:bg-white/5 rounded transition-colors">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={autoFormData.movieUuids.includes(movie.uuid)}
-                                onChange={(e) => {
-                                  const checked = e.target.checked;
-                                  setAutoFormData(prev => {
-                                    const nextMovies = checked 
-                                      ? [...prev.movieUuids, movie.uuid]
-                                      : prev.movieUuids.filter(id => id !== movie.uuid);
-                                    return { ...prev, movieUuids: nextMovies };
-                                  });
-                                }}
-                                className="st-checkbox"
+                            <div className="w-9 h-12 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
+                              <img
+                                src={getPosterSrc(p.moviePosterUrl, 80)}
+                                alt=""
+                                loading="lazy"
+                                className="w-full h-full object-cover"
+                                onError={handlePosterError}
                               />
-                              <span className="font-bold truncate max-w-[150px]">{movie.title}</span>
                             </div>
-                            <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-black shrink-0 font-mono">
-                              ★ {movie.rating != null ? Number(movie.rating).toFixed(1) : '—'}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <h4 className="font-black text-white text-xs truncate">{p.movieTitle}</h4>
+                                  <p className="text-[10px] text-gray-500 mt-0.5">
+                                    {p.cinemaRoomName} · {formatPreviewSlot(p)} · {formatWeekday(new Date(p.startTime))}
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded border text-[10px] font-black font-mono shrink-0 ${pillColor}`}>
+                                  {p.priorityScore.toFixed(1)}
+                                </span>
+                              </div>
+                              <div className="flex gap-2 mt-1 text-[8px] font-black uppercase text-gray-500">
+                                {(p.scoreBreakdown?.weekendScore ?? 0) > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
+                                {(p.scoreBreakdown?.goldenHourScore ?? 0) > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
+                                {(p.scoreBreakdown?.genreScore ?? 0) > genreBase && <span className="text-blue-500/80">Genre hot</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
 
-                <div className="grid grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ mở cửa *</label>
-                    <input
-                      type="time"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.startTime}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giờ đóng cửa *</label>
-                    <input
-                      type="time"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.endTime}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Dọn dẹp (phút) *</label>
-                    <input
-                      type="number"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50"
-                      value={autoFormData.intervalMinutes}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) || 15 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.basePrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.vipPrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
-                    <input
-                      type="number"
-                      step="5000"
-                      className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
-                      value={autoFormData.couplePrice}
-                      onChange={(e) => setAutoFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-3 border-t border-[#1a2238] shrink-0">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isAutoLoading}
-                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
-                  >
-                    {isAutoLoading ? (
-                      <>
-                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-                        Đang phân tích...
-                      </>
-                    ) : (
-                      <>Phân tích & Gợi ý</>
-                    )}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="mb-3 shrink-0 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400">
-                    Tìm thấy <span className="text-amber-400">{previewGenerated.length}</span> suất chiếu tối ưu.
-                  </span>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="st-checkbox"
-                      checked={previewGenerated.length > 0 && selectedPreviewUuids.size === previewGenerated.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPreviewUuids(new Set(previewGenerated.map((_, idx) => idx)));
-                        } else {
-                          setSelectedPreviewUuids(new Set());
-                        }
-                      }}
-                    />
-                    <span>Chọn tất cả</span>
-                  </label>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[50vh] custom-scrollbar">
-                  {previewGenerated.map((p, idx) => {
-                    const isSelected = selectedPreviewUuids.has(idx);
-                    const pillColor = p.priorityScore >= 25 
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                      : p.priorityScore >= 15 
-                      ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                      : 'bg-zinc-500/10 border-zinc-500/30 text-zinc-400';
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex gap-3 p-3 rounded-lg border bg-[#0B0F19]/90 transition-all ${isSelected ? 'border-amber-500/40 bg-amber-500/[0.02]' : 'border-[#1a2238] hover:border-gray-700'}`}
-                      >
-                        <div className="flex items-center shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => togglePreviewSelection(idx)}
-                            className="st-checkbox cursor-pointer"
-                          />
-                        </div>
-
-                        <div className="w-10 h-14 rounded overflow-hidden bg-[#0F1322] border border-[#1a2238] shrink-0">
-                          <img
-                            src={getPosterSrc(p.moviePosterUrl, 80)}
-                            data-original-url={p.moviePosterUrl || ''}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                            onError={handlePosterError}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h4 className="font-black text-white text-xs truncate" title={p.movieTitle}>{p.movieTitle}</h4>
-                              <span className={`px-2 py-0.5 rounded border text-[10px] font-black font-mono shrink-0 ${pillColor}`}>
-                                Điểm: {p.priorityScore.toFixed(1)}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
-                              <span className="text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 rounded text-[9px] uppercase">{p.cinemaRoomName}</span>
-                              <span>•</span>
-                              <span>{p.durationMinutes} phút</span>
-                              <span>•</span>
-                              <span className="font-mono font-bold text-amber-400" title={`Thường: ${p.basePrice.toLocaleString('vi-VN')}đ\nVIP: ${p.vipPrice?.toLocaleString('vi-VN')}đ\nĐôi: ${p.couplePrice?.toLocaleString('vi-VN')}đ`}>
-                                {p.basePrice.toLocaleString('vi-VN')}đ
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-[#1a2238]/50">
-                            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
-                              <Clock className="w-3 h-3 text-gray-500" />
-                              <span className="text-white font-bold">{formatTimeOnly(p.startTime)}</span>
-                              <span>→</span>
-                              <span className="text-gray-400">{formatTimeOnly(p.endTime)}</span>
-                              <span className="ml-1 text-gray-600">({formatDateShort(new Date(p.startTime))} {formatWeekday(new Date(p.startTime))})</span>
-                            </div>
-                            <div className="flex gap-1.5 text-[8px] font-black uppercase text-gray-500">
-                              {(p.scoreBreakdown?.weekendScore ?? 0) > 0 && <span className="text-emerald-500/80">Cuối tuần</span>}
-                              {(p.scoreBreakdown?.goldenHourScore ?? 0) > 0 && <span className="text-purple-500/80">Giờ vàng</span>}
-                              {(p.scoreBreakdown?.genreScore ?? 0) > 4.0 && <span className="text-blue-500/80">HOT Genre</span>}
-                            </div>
-                          </div>
-                        </div>
+              <div className="st-auto-publish">
+                <p className="st-auto-label mb-2">Sau khi lưu</p>
+                <div className="space-y-2">
+                  {PUBLISH_MODES.map((mode) => (
+                    <label key={mode.value} className={`st-auto-publish-option ${autoFormData.publishStatus === mode.value ? 'is-active' : ''}`}>
+                      <input
+                        type="radio"
+                        name="publishStatus"
+                        value={mode.value}
+                        checked={autoFormData.publishStatus === mode.value}
+                        onChange={() => setAutoFormData((prev) => ({ ...prev, publishStatus: mode.value }))}
+                      />
+                      <div>
+                        <span className="font-bold text-white text-xs">{mode.label}</span>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{mode.hint}</p>
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-between items-center pt-3 border-t border-[#1a2238] mt-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsAutoPreviewOpen(false)}
-                    className="rounded-lg bg-white/5 hover:bg-white/10 px-4 py-2 text-xs text-gray-300 font-bold cursor-pointer transition-colors"
-                  >
-                    Quay lại
-                  </button>
-                  <button
-                    onClick={handleSaveAuto}
-                    disabled={isSavingAuto || selectedPreviewUuids.size === 0}
-                    className="rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2 text-xs text-white font-bold cursor-pointer transition-colors shadow-md shadow-amber-600/10 flex items-center gap-1.5"
-                  >
-                    {isSavingAuto ? (
-                      <>
-                        <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      <>Lưu {selectedPreviewUuids.size} Suất Chiếu</>
-                    )}
-                  </button>
+                    </label>
+                  ))}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        <footer className="px-6 py-4 border-t border-[#1a2238] flex items-center justify-between gap-3 shrink-0 bg-[#090D1A]">
+          <button type="button" onClick={onClose} className="st-auto-btn st-auto-btn--ghost">
+            Hủy
+          </button>
+
+          <div className="flex items-center gap-2">
+            {autoStep > 0 && (
+              <button
+                type="button"
+                className="st-auto-btn st-auto-btn--ghost"
+                onClick={() => setAutoStep((s) => s - 1)}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Quay lại
+              </button>
+            )}
+
+            {autoStep < 2 && (
+              <button
+                type="button"
+                disabled={autoStep === 0 ? !canGoParams : !canAnalyze}
+                className="st-auto-btn st-auto-btn--primary"
+                onClick={() => {
+                  if (autoStep === 1) {
+                    handleAutoAnalyze();
+                  } else {
+                    setAutoStep((s) => s + 1);
+                  }
+                }}
+              >
+                {autoStep === 1 ? (
+                  isAutoLoading ? (
+                    <>
+                      <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                      Đang phân tích...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Phân tích & xem trước
+                    </>
+                  )
+                ) : (
+                  <>
+                    Tiếp theo
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            )}
+
+            {autoStep === 2 && (
+              <button
+                type="button"
+                disabled={isSavingAuto || selectedPreviewUuids.size === 0}
+                className="st-auto-btn st-auto-btn--primary"
+                onClick={handleSaveAuto}
+              >
+                {isSavingAuto ? (
+                  <>
+                    <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Ticket className="w-3.5 h-3.5" />
+                    Lưu {selectedPreviewUuids.size} suất
+                    {autoFormData.publishStatus === 'OPEN_FOR_BOOKING' ? ' & mở bán' : ''}
+                  </>
+                )}
+              </button>
             )}
           </div>
-        </div>,
+        </footer>
+      </div>
+    </div>,
     document.body,
   );
 };

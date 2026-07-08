@@ -112,7 +112,7 @@ export function mergeOrbitRoomEntries(apiRooms = [], recentEntries = []) {
       uuid: roomUuid,
       showtimeUuid: room.showtimeUuid,
       movieUuid: room.movieUuid,
-      movieTitle: room.movieTitle || 'Phòng Orbit',
+      movieTitle: room.movieTitle || 'Phòng nhóm',
       theater: room.theater || '',
       showtimeStartTime: room.showtimeStartTime,
       expiresAt: room.expiresAt,

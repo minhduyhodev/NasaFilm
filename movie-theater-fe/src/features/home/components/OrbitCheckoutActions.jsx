@@ -58,7 +58,7 @@ const OrbitCheckoutActions = ({
 
     {!isHostUser && isCheckout && (
       <p className="text-sm text-zinc-400 text-center px-2">
-        Host đang thanh toán nhóm. Vui lòng chờ xác nhận vé.
+        Chủ phòng đang thanh toán nhóm. Vui lòng chờ xác nhận vé.
       </p>
     )}
 
@@ -80,7 +80,7 @@ const OrbitCheckoutActions = ({
         className="orbit-booking__cta-cancel w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
       >
         <Trash2 className="w-4 h-4" />
-        Hủy phòng Orbit
+        Hủy phòng nhóm
       </button>
     )}
   </>

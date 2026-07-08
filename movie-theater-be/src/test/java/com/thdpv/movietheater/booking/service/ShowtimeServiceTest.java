@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
 import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.request.ShowtimeRequest;
@@ -43,12 +46,15 @@ import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.booking.service.scheduling.ShowtimeSchedulingEngine;
 import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ShowtimeServiceTest {
 
     @Mock
@@ -70,7 +76,11 @@ public class ShowtimeServiceTest {
     @Mock
     private CancellationRefundService cancellationRefundService;
     @Mock
+    private SystemConfigService systemConfigService;
+    @Mock
     private EntityManager entityManager;
+
+    private final ShowtimeSchedulingEngine showtimeSchedulingEngine = new ShowtimeSchedulingEngine();
 
     @InjectMocks
     private ShowtimeService showtimeService;
@@ -84,6 +94,8 @@ public class ShowtimeServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(showtimeService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(showtimeService, "showtimeSchedulingEngine", showtimeSchedulingEngine);
+        when(systemConfigService.getConfig()).thenReturn(Map.of());
 
         movieUuid = UUID.randomUUID();
         roomUuid = UUID.randomUUID();

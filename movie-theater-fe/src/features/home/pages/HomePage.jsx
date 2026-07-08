@@ -7,7 +7,6 @@ import LazySection from '../../../shared/components/LazySection';
 import '../components/HomeSpaceBackdrop.css';
 
 const HomeSpaceBackdrop = lazy(() => import('../components/HomeSpaceBackdrop'));
-const GuestAuthPromoBanner = lazy(() => import('../components/GuestAuthPromo'));
 const ComingSoon = lazy(() => import('../components/ComingSoon'));
 const Upcoming = lazy(() => import('../components/Upcoming'));
 const MovieMatchmakerWidget = lazy(() => import('../components/MovieMatchmakerWidget'));
@@ -26,7 +25,7 @@ const HomePage = () => {
 				<section id="quick-booking" className="-mt-16 md:-mt-24 relative z-20 px-4 md:px-8 lg:px-20">
 					<div className="max-w-6xl mx-auto space-y-4">
 						<TicketFilters />
-						<OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+						<OrbitActiveRoomsPanel title="Phòng nhóm của bạn" />
 					</div>
 				</section>
 
@@ -43,18 +42,6 @@ const HomePage = () => {
 								<NowShowing />
 							</div>
 						</section>
-
-						<LazySection
-							as="section"
-							className="mt-8 px-4 md:px-8 lg:px-20 home-section"
-							fallback={<SectionPlaceholder minHeight="8rem" />}
-						>
-							<div className="max-w-7xl mx-auto">
-								<Suspense fallback={<SectionPlaceholder minHeight="8rem" />}>
-									<GuestAuthPromoBanner />
-								</Suspense>
-							</div>
-						</LazySection>
 
 						<LazySection
 							as="section"

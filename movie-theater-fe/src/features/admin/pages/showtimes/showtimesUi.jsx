@@ -44,12 +44,27 @@ export const EmptyState = ({ icon: Icon, title, subtitle }) => (
   </div>
 );
 
-export const SectionHeader = ({ status, count, pageCount, isCollapsed, onToggle, onSelectAll, allSelected }) => {
+export const SectionHeader = ({
+  status,
+  count,
+  pageCount,
+  isCollapsed,
+  onToggle,
+  onSelectAll,
+  allSelected,
+  selectedCount = 0,
+}) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
   const Icon = cfg.icon;
   const countLabel = pageCount != null && pageCount !== count
     ? `${pageCount} / ${count} suất chiếu`
     : `${count} suất chiếu`;
+  const isPartial = selectedCount > 0 && !allSelected;
+  const selectLabel = allSelected
+    ? 'Bỏ chọn'
+    : isPartial
+      ? `Chọn cả ${count}`
+      : `Chọn tất cả (${count})`;
   return (
     <div className="st-section-header">
       <button
@@ -70,6 +85,14 @@ export const SectionHeader = ({ status, count, pageCount, isCollapsed, onToggle,
           </span>
         </div>
         <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0">{countLabel}</span>
+        {selectedCount > 0 && (
+          <span
+            className="st-section-header__badge shrink-0"
+            style={{ color: cfg.accent, background: cfg.accentBg, borderColor: `${cfg.accent}40` }}
+          >
+            Đã chọn {selectedCount}
+          </span>
+        )}
         <div className="flex-1 h-px bg-[#1a2238] group-hover:bg-[#2a3450] transition-colors min-w-[12px]" />
       </button>
       {onSelectAll && count > 0 && (
@@ -79,9 +102,9 @@ export const SectionHeader = ({ status, count, pageCount, isCollapsed, onToggle,
             e.stopPropagation();
             onSelectAll();
           }}
-          className="st-section-header__select"
+          className={`st-section-header__select ${isPartial ? 'is-partial' : ''} ${allSelected ? 'is-active' : ''}`}
         >
-          {allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
+          {selectLabel}
         </button>
       )}
     </div>

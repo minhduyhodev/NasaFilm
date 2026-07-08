@@ -15,7 +15,7 @@ const OrbitSeatMapSection = ({
   onCoupleClick,
 }) => {
   const footerNote = !canEditSeats
-    ? (isCheckout ? 'Host đang thanh toán — ghế đã khóa cho nhóm.' : 'Phòng đã đóng.')
+    ? (isCheckout ? 'Chủ phòng đang thanh toán — ghế đã khóa cho nhóm.' : 'Phòng đã đóng.')
     : null;
 
   return (
