@@ -144,7 +144,7 @@ const OrbitBookingPage = () => {
     if (ORBIT_TERMINAL_STATUSES.includes(payload.status)) {
       removeOrbitRoom(payload.uuid);
       clearAllBookingSessions();
-      notificationService.info('Phòng Orbit đã kết thúc.');
+      notificationService.info('Phòng nhóm đã kết thúc.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
       return;
     }
@@ -170,7 +170,7 @@ const OrbitBookingPage = () => {
     const data = await orbitService.getRoom(roomUuid);
     if (ORBIT_TERMINAL_STATUSES.includes(data.status)) {
       clearAllBookingSessions();
-      notificationService.info('Phòng Orbit đã kết thúc.');
+      notificationService.info('Phòng nhóm đã kết thúc.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
       return null;
     }
@@ -181,7 +181,7 @@ const OrbitBookingPage = () => {
 
   useEffect(() => {
     if (!isValidUuid(roomUuid)) {
-      notificationService.error('Phòng Orbit không hợp lệ.');
+      notificationService.error('Phòng nhóm không hợp lệ.');
       navigate('/movies', { replace: true });
     }
   }, [roomUuid, navigate]);
@@ -209,7 +209,7 @@ const OrbitBookingPage = () => {
       if (!resolveMembership(data)) {
         try {
           data = await orbitService.joinRoom(roomUuid);
-          notificationService.success('Bạn đã tham gia phòng Orbit.');
+          notificationService.success('Bạn đã tham gia phòng nhóm.');
         } catch (joinErr) {
           const retry = await orbitService.getRoom(roomUuid);
           if (resolveMembership(retry)) {
@@ -238,7 +238,7 @@ const OrbitBookingPage = () => {
         markRoomSynced();
       } catch (err) {
         if (cancelled) return;
-        notificationService.error(resolveOrbitErrorMessage(err, 'Không thể mở phòng Orbit.'));
+        notificationService.error(resolveOrbitErrorMessage(err, 'Không thể mở phòng nhóm.'));
         navigate('/movies', { replace: true });
       } finally {
         if (!cancelled) setIsPageLoading(false);
@@ -332,7 +332,7 @@ const OrbitBookingPage = () => {
         nextMyCount,
         maxSeatsPerBooking,
       )) {
-        notificationService.error(`Phòng Orbit tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
+        notificationService.error(`Phòng nhóm tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
         return;
       }
     }
@@ -360,7 +360,7 @@ const OrbitBookingPage = () => {
       nextMyCount,
       maxSeatsPerBooking,
     )) {
-      notificationService.error(`Phòng Orbit tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
+      notificationService.error(`Phòng nhóm tối đa ${maxSeatsPerBooking} ghế cho cả nhóm.`);
       return;
     }
     const nextUuids = isSelected
@@ -405,7 +405,7 @@ const OrbitBookingPage = () => {
   }, [isHostUser, canEditSeats, room?.members, allMembersReady, isGroupSeatLimitOk, hasGapViolation, maxSeatsPerBooking]);
 
   const handleLeave = async () => {
-    if (!window.confirm('Bạn có chắc muốn rời phòng Orbit?')) return;
+    if (!window.confirm('Bạn có chắc muốn rời phòng nhóm?')) return;
     try {
       await orbitService.leaveRoom(roomUuid);
       if (room) {
@@ -413,7 +413,7 @@ const OrbitBookingPage = () => {
       }
       markOrbitRoomLeft(roomUuid);
       clearAllBookingSessions();
-      notificationService.info('Bạn đã rời phòng Orbit. Có thể vào lại từ trang phim hoặc link mời.');
+      notificationService.info('Bạn đã rời phòng nhóm. Có thể vào lại từ trang phim hoặc link mời.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');
     } catch (err) {
       notificationService.error(err.message || 'Không thể rời phòng.');
@@ -421,12 +421,12 @@ const OrbitBookingPage = () => {
   };
 
   const handleCancelRoom = async () => {
-    if (!window.confirm('Hủy phòng Orbit? Mọi ghế đang giữ sẽ được giải phóng.')) return;
+    if (!window.confirm('Hủy phòng nhóm? Mọi ghế đang giữ sẽ được giải phóng.')) return;
     try {
       await orbitService.cancelRoom(roomUuid);
       removeOrbitRoom(roomUuid);
       clearAllBookingSessions();
-      notificationService.info('Đã hủy phòng Orbit.');
+      notificationService.info('Đã hủy phòng nhóm.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies');
     } catch (err) {
       notificationService.error(err.message || 'Không thể hủy phòng.');

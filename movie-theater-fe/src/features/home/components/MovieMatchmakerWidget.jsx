@@ -694,6 +694,10 @@ const MovieMatchmakerWidget = () => {
     );
   };
 
+  if (!authLoading && !isAuthenticated) {
+    return null;
+  }
+
   return (
     <motion.section
       ref={sectionRef}

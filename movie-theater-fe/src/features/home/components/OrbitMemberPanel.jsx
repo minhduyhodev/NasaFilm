@@ -29,7 +29,7 @@ const OrbitMemberPanel = ({
         {' '}
         {Math.max(0, 2 - members.length)}
         {' '}
-        thành viên để host có thể thanh toán nhóm.
+        thành viên để chủ phòng có thể thanh toán nhóm.
       </p>
     )}
     <ul className="space-y-2">
@@ -73,7 +73,7 @@ const OrbitMemberPanel = ({
       /
       {maxSeatsPerBooking}
       {' '}
-      ghế nhóm · Host trả toàn bộ vé
+      ghế nhóm · Chủ phòng trả toàn bộ vé
     </p>
     {!isGroupSeatLimitOk && canEditSeats && (
       <p className="text-xs text-amber-400 mt-2 font-semibold">

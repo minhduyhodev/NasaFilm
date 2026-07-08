@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thdpv.movietheater.booking.dto.request.AutoShowtimeSaveRequest;
 import com.thdpv.movietheater.booking.dto.request.ShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.response.ShowtimeResponse;
@@ -77,8 +78,8 @@ public class ShowtimeController {
     @PostMapping("/api/admin/showtimes/auto-generate/save")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> saveAutoShowtimes(
-            @Valid @RequestBody List<ShowtimeRequest> requests) {
-        List<ShowtimeResponse> response = showtimeService.saveAutoShowtimes(requests);
+            @Valid @RequestBody AutoShowtimeSaveRequest request) {
+        List<ShowtimeResponse> response = showtimeService.saveAutoShowtimes(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

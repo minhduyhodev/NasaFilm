@@ -13,7 +13,7 @@ import './OrbitActiveRoomsPanel.css';
 
 const OrbitActiveRoomsPanel = ({
   filterMovieUuid = null,
-  title = 'Phòng Orbit đang chờ',
+  title = 'Phòng nhóm đang chờ',
   className = '',
   compact = false,
   enabled = true,
@@ -77,7 +77,7 @@ const OrbitActiveRoomsPanel = ({
                     {room.isHost && (
                       <span className="orbit-active-rooms__badge orbit-active-rooms__badge--host">
                         <Crown className="w-3 h-3" aria-hidden />
-                        Host
+                        Chủ phòng
                       </span>
                     )}
                     {room.leftAt && (

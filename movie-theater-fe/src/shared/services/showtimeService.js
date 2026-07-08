@@ -51,9 +51,12 @@ class ShowtimeService {
     }
   }
 
-  async saveAutoShowtimes(requests) {
+  async saveAutoShowtimes(showtimes, publishStatus = 'DRAFT') {
     try {
-      const response = await authService.api.post('/api/admin/showtimes/auto-generate/save', requests);
+      const response = await authService.api.post('/api/admin/showtimes/auto-generate/save', {
+        showtimes,
+        publishStatus: publishStatus === 'DRAFT' ? null : publishStatus,
+      });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

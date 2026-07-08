@@ -206,7 +206,7 @@ const ShowtimesCreateModal = ({
                     required
                     className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
                     value={formData.basePrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 85000 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value, 10) || prev.basePrice }))}
                   />
                 </div>
                 {/* VIP Price */}
@@ -219,7 +219,7 @@ const ShowtimesCreateModal = ({
                     required
                     className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
                     value={formData.vipPrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value) || 120000 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vipPrice: parseInt(e.target.value, 10) || prev.vipPrice }))}
                   />
                 </div>
                 {/* Couple Price */}
@@ -232,7 +232,7 @@ const ShowtimesCreateModal = ({
                     required
                     className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50 font-mono"
                     value={formData.couplePrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value) || 160000 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, couplePrice: parseInt(e.target.value, 10) || prev.couplePrice }))}
                   />
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Bell, BellRing, Radar, LogIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Bell, BellRing } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { useUpcomingMovies } from '../hooks/useHomeQueries';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -333,8 +333,8 @@ const Upcoming = () => {
         )}
       </section>
 
-      <div className="home-upcoming-radar-bar">
-        {isAuthenticated ? (
+      {isAuthenticated && (
+        <div className="home-upcoming-radar-bar">
           <Suspense
             fallback={(
               <aside className="showtime-radar-widget showtime-radar-widget--bar showtime-radar-widget--loading">
@@ -345,37 +345,8 @@ const Upcoming = () => {
           >
             <ShowtimeRadarWidget layout="bar" />
           </Suspense>
-        ) : (
-          <motion.aside
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.55 }}
-            className="showtime-radar-widget showtime-radar-widget--bar showtime-radar-widget--guest"
-          >
-            <div className="showtime-radar-widget__glow" aria-hidden />
-            <div className="showtime-radar-widget__bar-head">
-              <div className="showtime-radar-widget__header">
-                <div className="showtime-radar-widget__title-row">
-                  <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-                  <span className="showtime-radar-widget__kicker">Radar Suất Chiếu</span>
-                </div>
-                <p className="showtime-radar-widget__subtitle">
-                  Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="showtime-radar-widget__login-btn"
-            >
-              <LogIn className="h-4 w-4" />
-              Đăng nhập để xem Radar
-            </button>
-          </motion.aside>
-        )}
-      </div>
+        </div>
+      )}
       </div>
 
       <TrailerModal

@@ -88,7 +88,7 @@ export function buildOrbitSeatOwnerMap(members, currentUserUuid) {
 }
 
 /** Backend already returns Vietnamese messages; use as-is with a safe fallback. */
-export function resolveOrbitErrorMessage(err, fallback = 'Không thể thực hiện thao tác Orbit.') {
+export function resolveOrbitErrorMessage(err, fallback = 'Không thể thực hiện thao tác đặt vé nhóm.') {
   const msg = err?.message?.trim();
   return msg || fallback;
 }
