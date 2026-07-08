@@ -9,4 +9,5 @@ export const REALTIME_TOPICS = {
   supportTicket: (ticketCode) => `/topic/support/${ticketCode}`,
   showtimeSeats: (showtimeUuid) => `/topic/showtimes/${showtimeUuid}/seats`,
   orbitRoom: (roomUuid) => `/topic/orbit/${roomUuid}`,
+  orbitRoomChat: (roomUuid) => `/topic/orbit/${roomUuid}/chat`,
 };

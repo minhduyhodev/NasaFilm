@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
@@ -11,6 +11,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { promotionService } from '../../../shared/services/promotionService';
 import { walletService } from '../../../shared/services/walletService';
+import { comboService } from '../../../shared/services/comboService';
 import PosterImage from '../../../shared/components/PosterImage';
 
 import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
@@ -49,6 +50,11 @@ const CheckoutPage = () => {
   const isOrbit = checkoutState?.isOrbit ?? Boolean(orbitRoomUuid);
   const orbitMembers = checkoutState?.orbitMembers ?? [];
 
+  const hasUncompletedMembers = useMemo(() => {
+    if (!isOrbit || !orbitMembers.length) return false;
+    return orbitMembers.filter(m => !m.host).some(m => !m.completed);
+  }, [isOrbit, orbitMembers]);
+
   const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [paymentMethod, setPaymentMethod] = useState('wallet');
@@ -64,6 +70,42 @@ const CheckoutPage = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+
+  const [activeCombos, setActiveCombos] = useState([]);
+  useEffect(() => {
+    if (isOrbit && orbitRoomUuid) {
+      comboService.getActiveCombos()
+        .then(setActiveCombos)
+        .catch(err => console.error('Failed to load active combos in CheckoutPage:', err));
+    }
+  }, [isOrbit, orbitRoomUuid]);
+
+  const resolvedOtherMembersCombos = useMemo(() => {
+    if (!isOrbit || !orbitMembers.length || !activeCombos.length) return [];
+    return orbitMembers
+      .filter((m) => !m.host)
+      .flatMap((m) => {
+        try {
+          const list = JSON.parse(m.combosJson || '[]');
+          return list.map((c) => {
+            const detail = activeCombos.find((item) => item.uuid === c.comboUuid);
+            return {
+              memberDisplayName: m.displayName,
+              comboUuid: c.comboUuid,
+              quantity: c.quantity,
+              name: detail?.name || 'Combo bắp nước',
+              price: detail?.price || 0,
+            };
+          });
+        } catch {
+          return [];
+        }
+      });
+  }, [isOrbit, orbitMembers, activeCombos]);
+
+  const otherMembersCombosTotal = useMemo(() => {
+    return resolvedOtherMembersCombos.reduce((sum, c) => sum + c.price * c.quantity, 0);
+  }, [resolvedOtherMembersCombos]);
 
   useEffect(() => {
     if (!isStateValid) {
@@ -178,10 +220,10 @@ const CheckoutPage = () => {
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
   const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
-  const hasCombo = checkoutCombos.length > 0;
+  const hasCombo = checkoutCombos.length > 0 || resolvedOtherMembersCombos.length > 0;
   
   const ticketSum = isVod ? totalAmount : selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + comboPrice;
+  const subtotal = ticketSum + comboPrice + otherMembersCombosTotal;
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -250,6 +292,10 @@ const CheckoutPage = () => {
   };
 
   const handlePay = async () => {
+    if (hasUncompletedMembers) {
+      notificationService.error("Vui lòng đợi tất cả thành viên khác hoàn tất chọn bắp nước!");
+      return;
+    }
     if (!isVod && isExpired) {
       notificationService.error("Thời gian giữ ghế đã hết hạn!");
       return;
@@ -259,12 +305,26 @@ const CheckoutPage = () => {
       navigate('/wallet');
       return;
     }
+
+    // Consolidated combos for Orbit group bookings
+    const hostCombos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+    const memberCombos = resolvedOtherMembersCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+    const mergedMap = {};
+    [...hostCombos, ...memberCombos].forEach(c => {
+      mergedMap[c.comboUuid] = (mergedMap[c.comboUuid] || 0) + c.quantity;
+    });
+    const consolidatedCombos = Object.entries(mergedMap).map(([comboUuid, quantity]) => ({
+      comboUuid,
+      quantity
+    }));
+
     if (paymentMethod === 'card') {
       navigate('/payment', {
         state: {
           amount: finalTotal,
           checkoutState: {
             ...checkoutState,
+            selectedCombos: consolidatedCombos,
             voucherCode: discount > 0 ? voucherInput.trim() : null,
           },
         },
@@ -279,11 +339,10 @@ const CheckoutPage = () => {
         response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null, paymentMethod);
       } else {
         const seatUuids = selectedSeats.map(s => s.seatUuid);
-        const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
         response = await bookingService.confirmBooking(
           showtimeUuid,
           seatUuids,
-          combos,
+          consolidatedCombos,
           discount > 0 ? voucherInput.trim() : null,
           paymentMethod,
           orbitRoomUuid,
@@ -340,6 +399,19 @@ const CheckoutPage = () => {
     }
   };
 
+  const handleBackToBooking = async () => {
+    if (isOrbit && orbitRoomUuid) {
+      try {
+        await orbitService.abortCheckout(orbitRoomUuid);
+      } catch (err) {
+        console.error('Failed to abort checkout on back navigation:', err);
+      }
+      navigate(`/booking/orbit/${orbitRoomUuid}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
   if (!isStateValid) {
     return null;
   }
@@ -351,17 +423,11 @@ const CheckoutPage = () => {
         {/* Navigation Breadcrumb / Back Action */}
         <div 
           className="mb-8 flex items-center gap-2 group cursor-pointer w-fit" 
-          onClick={() => {
-            if (isOrbit && orbitRoomUuid) {
-              navigate(`/booking/orbit/${orbitRoomUuid}`);
-              return;
-            }
-            navigate(-1);
-          }}
+          onClick={handleBackToBooking}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
           <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
-            {isVod ? 'Quay lại chi tiết phim' : isOrbit ? 'Quay lại phòng Orbit' : 'Quay lại chọn ghế'}
+            {isVod ? 'Quay lại chi tiết phim' : 'Quay lại chọn ghế'}
           </span>
         </div>
 
@@ -450,20 +516,31 @@ const CheckoutPage = () => {
                 {!isVod && (
                   <div className="pt-4 border-t border-white/5 space-y-3">
                     <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
-                    {checkoutCombos.length === 0 ? (
+                    {checkoutCombos.length === 0 && resolvedOtherMembersCombos.length === 0 ? (
                       <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
                         Không mua kèm bắp nước.
                       </div>
                     ) : (
-                      checkoutCombos.map(combo => (
-                        <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
-                          <div>
-                            <span className="text-xs font-bold text-white block">{combo.name}</span>
-                            <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
+                      <>
+                        {checkoutCombos.map(combo => (
+                          <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                            <div>
+                              <span className="text-xs font-bold text-white block">{combo.name}</span>
+                              <span className="text-[10px] font-semibold text-gray-400">Bạn (Host) · Số lượng: {combo.quantity}</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
                           </div>
-                          <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
-                        </div>
-                      ))
+                        ))}
+                        {resolvedOtherMembersCombos.map((combo, idx) => (
+                          <div key={`member-combo-${idx}`} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                            <div>
+                              <span className="text-xs font-bold text-white block">{combo.name}</span>
+                              <span className="text-[10px] font-semibold text-gray-400">{combo.memberDisplayName} · Số lượng: {combo.quantity}</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                 )}
@@ -686,17 +763,33 @@ const CheckoutPage = () => {
                   </div>
                 </div>
                 
+                {hasUncompletedMembers && (
+                  <div className="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 text-[10px] font-black text-center mb-3">
+                    Đang chờ tất cả thành viên khác hoàn tất chọn bắp nước trước khi thanh toán.
+                  </div>
+                )}
+
                 <button 
                   onClick={handlePay}
-                  disabled={isPaying || isExpired}
+                  disabled={isPaying || isExpired || hasUncompletedMembers}
                   className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
-                    isPaying || isExpired
+                    isPaying || isExpired || hasUncompletedMembers
                       ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5 shadow-none' 
                       : 'bg-[#E61E2A] text-white neon-glow-red hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-[0_0_20px_rgba(230,30,42,0.35)]'
                   }`}
                 >
-                  {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : 'Xác nhận & Thanh toán'}
+                  {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : (hasUncompletedMembers ? 'Chờ thành viên chọn bắp nước' : (isOrbit ? 'Xác nhận nhóm & Thanh toán' : 'Xác nhận & Thanh toán'))}
                 </button>
+
+                {isOrbit && (
+                  <button
+                    type="button"
+                    onClick={handleBackToBooking}
+                    className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-3 flex items-center justify-center transition-colors"
+                  >
+                    Quay lại chọn ghế
+                  </button>
+                )}
                 <p className="text-center text-[10px] font-medium text-gray-500 mt-4 leading-relaxed">
                   Bằng cách nhấn xác nhận, bạn đồng ý với các Điều khoản Sử dụng và Chính sách Bảo mật của THDPV CINEMA.
                 </p>
@@ -717,13 +810,7 @@ const CheckoutPage = () => {
                 : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button
-              onClick={() => {
-                if (isOrbit && orbitRoomUuid) {
-                  navigate(`/booking/orbit/${orbitRoomUuid}`);
-                  return;
-                }
-                navigate(-1);
-              }}
+              onClick={handleBackToBooking}
               className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
             >
               Quay lại chọn ghế

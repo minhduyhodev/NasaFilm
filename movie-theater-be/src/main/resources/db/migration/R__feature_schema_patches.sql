@@ -114,3 +114,22 @@ CREATE INDEX IF NOT EXISTS idx_orbit_member_room
 -- ── Review ───────────────────────────────────────────────────────────────────
 
 ALTER TABLE movie_review DROP CONSTRAINT IF EXISTS uk_movie_review_movie_user;
+
+-- ── Orbit Chat & Concessions ──────────────────────────────────────────────────
+
+ALTER TABLE orbit_member ADD COLUMN IF NOT EXISTS combos_json text NOT NULL DEFAULT '[]';
+ALTER TABLE orbit_member ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS orbit_room_message (
+    uuid uuid PRIMARY KEY,
+    room_uuid uuid NOT NULL,
+    sender_user_uuid uuid,
+    sender_display_name varchar(120) NOT NULL,
+    message text NOT NULL,
+    is_system boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orbit_room_message_room
+    ON orbit_room_message (room_uuid, created_at);
+

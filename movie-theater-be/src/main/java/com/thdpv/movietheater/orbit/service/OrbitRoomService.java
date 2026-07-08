@@ -43,9 +43,15 @@ import com.thdpv.movietheater.orbit.entity.OrbitRoom;
 import com.thdpv.movietheater.orbit.enums.OrbitRoomStatus;
 import com.thdpv.movietheater.orbit.repository.OrbitMemberRepository;
 import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
+import com.thdpv.movietheater.orbit.repository.OrbitRoomMessageRepository;
+import com.thdpv.movietheater.orbit.entity.OrbitRoomMessage;
+import com.thdpv.movietheater.orbit.dto.response.OrbitRoomMessageResponse;
+import com.thdpv.movietheater.orbit.dto.OrbitComboItem;
 import com.thdpv.movietheater.orbit.util.OrbitSeatJson;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import lombok.RequiredArgsConstructor;
 
@@ -71,6 +77,8 @@ public class OrbitRoomService {
     private final OrbitRoomMissionHelper orbitRoomMissionHelper;
     private final OrbitRoomResponseMapper orbitRoomResponseMapper;
     private final OrbitRoomExpiryService orbitRoomExpiryService;
+    private final OrbitRoomMessageRepository orbitRoomMessageRepository;
+
 
     @Value("${app.orbit.enabled:true}")
     private boolean orbitEnabled;
@@ -118,6 +126,7 @@ public class OrbitRoomService {
         User host = userRepository.findById(hostUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         OrbitMember hostMember = buildMember(room.getUuid(), host, now);
         orbitMemberRepository.save(hostMember);
+        saveAndBroadcastSystemMessage(room.getUuid(), hostMember.getDisplayName() + " đã tạo và tham gia phòng", now);
 
         missionService.handleOrbitRoomJoined(hostUuid, room.getUuid(), now);
         OrbitRoomResponse response = toRoomResponse(room, hostUuid);
@@ -161,6 +170,8 @@ public class OrbitRoomService {
             return toRoomResponse(existingRoom, userUuid);
         }
 
+        saveAndBroadcastSystemMessage(roomUuid, member.getDisplayName() + " đã tham gia phòng", now);
+
         missionService.handleOrbitRoomJoined(userUuid, roomUuid, now);
         touchRoom(room, now);
         OrbitRoomResponse response = toRoomResponse(room, userUuid);
@@ -193,6 +204,7 @@ public class OrbitRoomService {
         }
 
         missionService.rollbackSourceProgress(userUuid, roomUuid.toString(), now);
+        saveAndBroadcastSystemMessage(roomUuid, member.getDisplayName() + " đã rời phòng", now);
         orbitMemberRepository.delete(member);
         touchRoom(room, now);
         OrbitRoomResponse response = toRoomResponse(room, userUuid);
@@ -304,6 +316,12 @@ public class OrbitRoomService {
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
         if (members.size() < 2) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit cần ít nhất 2 thành viên");
+        }
+
+        for (OrbitMember member : members) {
+            if (!member.getUserUuid().equals(hostUuid) && !member.isCompleted()) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Tất cả thành viên khác phải hoàn tất đặt vé và nước trước.");
+            }
         }
 
         List<UUID> allSeats = new ArrayList<>();
@@ -767,8 +785,120 @@ public class OrbitRoomService {
             item.setHost(hostUserUuid.equals(member.getUserUuid()));
             item.setSeatUuids(OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson()));
             item.setJoinedAt(member.getJoinedAt());
+            item.setCombosJson(member.getCombosJson());
+            item.setCompleted(member.isCompleted());
             responses.add(item);
         }
         return responses;
+    }
+
+    @Transactional
+    public OrbitRoomMessageResponse sendChatMessage(String currentUserEmail, UUID roomUuid, String messageText) {
+        assertOrbitEnabled();
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này"));
+
+        OrbitRoomMessage msg = new OrbitRoomMessage();
+        msg.setUuid(UUID.randomUUID());
+        msg.setRoomUuid(roomUuid);
+        msg.setSenderUserUuid(userUuid);
+        msg.setSenderDisplayName(member.getDisplayName());
+        msg.setMessage(messageText.trim());
+        msg.setSystem(false);
+        msg.setCreatedAt(OffsetDateTime.now());
+
+        OrbitRoomMessage saved = orbitRoomMessageRepository.save(msg);
+
+        OrbitRoomMessageResponse response = OrbitRoomMessageResponse.builder()
+                .uuid(saved.getUuid())
+                .roomUuid(saved.getRoomUuid())
+                .senderUserUuid(saved.getSenderUserUuid())
+                .senderDisplayName(saved.getSenderDisplayName())
+                .message(saved.getMessage())
+                .system(saved.isSystem())
+                .createdAt(saved.getCreatedAt())
+                .build();
+
+        orbitRoomBroadcaster.broadcastChatMessage(roomUuid, response);
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrbitRoomMessageResponse> getChatMessages(String currentUserEmail, UUID roomUuid) {
+        assertOrbitEnabled();
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này"));
+
+        return orbitRoomMessageRepository
+                .findByRoomUuidAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(roomUuid, member.getJoinedAt())
+                .stream()
+                .map(msg -> OrbitRoomMessageResponse.builder()
+                        .uuid(msg.getUuid())
+                        .roomUuid(msg.getRoomUuid())
+                        .senderUserUuid(msg.getSenderUserUuid())
+                        .senderDisplayName(msg.getSenderDisplayName())
+                        .message(msg.getMessage())
+                        .system(msg.isSystem())
+                        .createdAt(msg.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public OrbitRoomResponse updateMemberCombos(
+            String currentUserEmail,
+            UUID roomUuid,
+            List<OrbitComboItem> combos,
+            boolean completed) {
+        assertOrbitEnabled();
+        UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
+        OffsetDateTime now = OffsetDateTime.now();
+        OrbitRoom room = orbitRoomRepository.findByIdForUpdate(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
+
+        if (room.getStatus() != OrbitRoomStatus.OPEN) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit không còn cho phép chỉnh sửa");
+        }
+
+        OrbitMember member = orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Bạn chưa tham gia phòng Orbit này"));
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            member.setCombosJson(mapper.writeValueAsString(combos != null ? combos : List.of()));
+        } catch (Exception ex) {
+            member.setCombosJson("[]");
+        }
+        member.setCompleted(completed);
+        member.setUpdatedAt(now);
+        orbitMemberRepository.save(member);
+
+        touchRoom(room, now);
+        OrbitRoomResponse response = toRoomResponse(room, userUuid);
+        broadcastRoom(response);
+        return response;
+    }
+
+    private void saveAndBroadcastSystemMessage(UUID roomUuid, String messageText, OffsetDateTime now) {
+        OrbitRoomMessage msg = new OrbitRoomMessage();
+        msg.setUuid(UUID.randomUUID());
+        msg.setRoomUuid(roomUuid);
+        msg.setSenderDisplayName("Hệ thống");
+        msg.setMessage(messageText);
+        msg.setSystem(true);
+        msg.setCreatedAt(now);
+        orbitRoomMessageRepository.save(msg);
+
+        OrbitRoomMessageResponse response = OrbitRoomMessageResponse.builder()
+                .uuid(msg.getUuid())
+                .roomUuid(msg.getRoomUuid())
+                .senderDisplayName(msg.getSenderDisplayName())
+                .message(msg.getMessage())
+                .system(msg.isSystem())
+                .createdAt(msg.getCreatedAt())
+                .build();
+        orbitRoomBroadcaster.broadcastChatMessage(roomUuid, response);
     }
 }

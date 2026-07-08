@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import Hero from '../components/Hero';
 import TicketFilters from '../components/TicketFilters';
+import OrbitJoinInput from '../components/OrbitJoinInput';
 import OrbitActiveRoomsPanel from '../components/OrbitActiveRoomsPanel';
 import NowShowing from '../components/NowShowing';
 import LazySection from '../../../shared/components/LazySection';
@@ -24,9 +25,14 @@ const HomePage = () => {
 				<Hero />
 
 				<section id="quick-booking" className="-mt-16 md:-mt-24 relative z-20 px-4 md:px-8 lg:px-20">
-					<div className="max-w-6xl mx-auto space-y-4">
-						<TicketFilters />
-						<OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+					<div className="max-w-6xl mx-auto space-y-4 flex flex-col items-center">
+						<div className="w-full">
+							<TicketFilters />
+						</div>
+						<OrbitJoinInput />
+						<div className="w-full">
+							<OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+						</div>
 					</div>
 				</section>
 

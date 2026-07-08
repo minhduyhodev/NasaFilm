@@ -22,6 +22,7 @@ const FaqPage = lazy(() => import('../pages/FaqPage'));
 const MovieDetailPage = lazy(() => import('../pages/MovieDetailPage'));
 const BookingPage = lazy(() => import('../pages/BookingPage'));
 const OrbitBookingPage = lazy(() => import('../pages/OrbitBookingPage'));
+const OrbitWaitingPage = lazy(() => import('../pages/OrbitWaitingPage'));
 const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
@@ -94,6 +95,14 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <OrbitBookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="booking/orbit/:roomUuid/waiting"
+            element={
+              <ProtectedRoute>
+                <OrbitWaitingPage />
               </ProtectedRoute>
             }
           />

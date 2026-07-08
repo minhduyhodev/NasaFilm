@@ -33,6 +33,12 @@ public class OrbitMember {
     @Column(name = "seat_uuids_json", columnDefinition = "text")
     private String seatUuidsJson = "[]";
 
+    @Column(name = "combos_json", columnDefinition = "text")
+    private String combosJson = "[]";
+
+    @Column(name = "completed", nullable = false)
+    private boolean completed = false;
+
     @Column(name = "joined_at", nullable = false)
     private OffsetDateTime joinedAt;
 
@@ -77,6 +83,22 @@ public class OrbitMember {
 
     public void setSeatUuidsJson(String seatUuidsJson) {
         this.seatUuidsJson = seatUuidsJson;
+    }
+
+    public String getCombosJson() {
+        return combosJson;
+    }
+
+    public void setCombosJson(String combosJson) {
+        this.combosJson = combosJson;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
     }
 
     public OffsetDateTime getJoinedAt() {

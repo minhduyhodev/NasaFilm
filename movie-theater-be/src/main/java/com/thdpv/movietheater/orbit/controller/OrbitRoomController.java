@@ -20,8 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.orbit.dto.request.CreateOrbitRoomRequest;
 import com.thdpv.movietheater.orbit.dto.request.UpdateOrbitMemberSeatsRequest;
+import com.thdpv.movietheater.orbit.dto.request.SendOrbitMessageRequest;
+import com.thdpv.movietheater.orbit.dto.request.UpdateOrbitMemberCombosRequest;
 import com.thdpv.movietheater.orbit.dto.response.OrbitCheckoutPrepareResponse;
 import com.thdpv.movietheater.orbit.dto.response.OrbitRoomResponse;
+import com.thdpv.movietheater.orbit.dto.response.OrbitRoomMessageResponse;
 import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 import jakarta.validation.Valid;
@@ -110,6 +113,35 @@ public class OrbitRoomController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID roomUuid) {
         OrbitRoomResponse room = orbitRoomService.abortCheckout(userDetails.getUsername(), roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(room));
+    }
+
+    @PostMapping("/{roomUuid}/messages")
+    public ResponseEntity<ApiResponse<OrbitRoomMessageResponse>> sendChatMessage(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID roomUuid,
+            @Valid @RequestBody SendOrbitMessageRequest request) {
+        OrbitRoomMessageResponse msg = orbitRoomService.sendChatMessage(
+                userDetails.getUsername(), roomUuid, request.getMessage());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(msg));
+    }
+
+    @GetMapping("/{roomUuid}/messages")
+    public ResponseEntity<ApiResponse<List<OrbitRoomMessageResponse>>> getChatMessages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID roomUuid) {
+        List<OrbitRoomMessageResponse> messages = orbitRoomService.getChatMessages(
+                userDetails.getUsername(), roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(messages));
+    }
+
+    @PutMapping("/{roomUuid}/member-combos")
+    public ResponseEntity<ApiResponse<OrbitRoomResponse>> updateMemberCombos(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID roomUuid,
+            @RequestBody UpdateOrbitMemberCombosRequest request) {
+        OrbitRoomResponse room = orbitRoomService.updateMemberCombos(
+                userDetails.getUsername(), roomUuid, request.getCombos(), request.isCompleted());
         return ResponseEntity.ok(ApiResponse.success(room));
     }
 }

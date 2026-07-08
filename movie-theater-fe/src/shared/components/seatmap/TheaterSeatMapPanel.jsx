@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { X, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
 import {
   buildRowPlacedItems,
   getCoupleLabel,
@@ -42,6 +42,67 @@ const TheaterSeatMapPanel = ({
   className = '',
   footerNote = null,
 }) => {
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef(null);
+  const [dragState, setDragState] = useState({ isDragging: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+
+  const onMouseDown = (e) => {
+    if (e.target.closest('.seat') || e.target.closest('button')) return;
+    const container = containerRef.current;
+    if (!container) return;
+    setDragState({
+      isDragging: true,
+      startX: e.pageX - container.offsetLeft,
+      startY: e.pageY - container.offsetTop,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop
+    });
+  };
+
+  const onMouseMove = (e) => {
+    if (!dragState.isDragging) return;
+    e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const x = e.pageX - container.offsetLeft;
+    const y = e.pageY - container.offsetTop;
+    const walkX = (x - dragState.startX) * 1.5;
+    const walkY = (y - dragState.startY) * 1.5;
+    container.scrollLeft = dragState.scrollLeft - walkX;
+    container.scrollTop = dragState.scrollTop - walkY;
+  };
+
+  const onMouseUpOrLeave = () => {
+    setDragState(prev => ({ ...prev, isDragging: false }));
+  };
+
+  const onTouchStart = (e) => {
+    if (e.target.closest('.seat') || e.target.closest('button') || e.touches.length !== 1) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const touch = e.touches[0];
+    setDragState({
+      isDragging: true,
+      startX: touch.pageX - container.offsetLeft,
+      startY: touch.pageY - container.offsetTop,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop
+    });
+  };
+
+  const onTouchMove = (e) => {
+    if (!dragState.isDragging || e.touches.length !== 1) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const touch = e.touches[0];
+    const x = touch.pageX - container.offsetLeft;
+    const y = touch.pageY - container.offsetTop;
+    const walkX = (x - dragState.startX) * 1.5;
+    const walkY = (y - dragState.startY) * 1.5;
+    container.scrollLeft = dragState.scrollLeft - walkX;
+    container.scrollTop = dragState.scrollTop - walkY;
+  };
+
   const resolveOrbitOwner = (seatUuid) => {
     if (!orbitSeatOwners || !seatUuid) return null;
     const key = normalizeUuid(seatUuid);
@@ -227,12 +288,65 @@ const TheaterSeatMapPanel = ({
 
   return (
     <div className={`flex flex-col items-center w-full ${className}`}>
-      <div className="w-full mb-16 text-center">
-        <div className={`screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
-        <p className="text-[10px] md:text-xs font-bold text-gray-400 mt-4 tracking-widest uppercase">{screenLabel}</p>
+      
+      {/* Thanh điều khiển Zoom */}
+      <div className="w-full flex justify-between items-center mb-4 px-2 shrink-0 select-none">
+        <div className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest">
+          Sơ đồ phòng chiếu
+        </div>
+        <div className="flex items-center gap-1.5 bg-[#1f2937]/60 border border-white/5 p-1 rounded-xl shrink-0">
+          <button
+            type="button"
+            onClick={() => setScale((prev) => Math.max(0.4, prev - 0.1))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+            title="Thu nhỏ"
+          >
+            -
+          </button>
+          <span className="text-[10px] font-black text-zinc-300 w-10 text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setScale((prev) => Math.min(1.5, prev + 0.1))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+            title="Phóng to"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => setScale(1)}
+            className="px-2 h-7 flex items-center justify-center rounded-lg bg-[#0b0f19]/80 border border-white/5 text-[9px] font-black text-zinc-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+            title="Mặc định"
+          >
+            ĐẶT LẠI
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 overflow-x-auto overflow-y-visible w-full items-center pb-4 py-6 scrollbar-hide select-none">
+      {/* Viewport cố định kích cỡ, hỗ trợ kéo chuột/vuốt */}
+      <div
+        ref={containerRef}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUpOrLeave}
+        onMouseLeave={onMouseUpOrLeave}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onMouseUpOrLeave}
+        className="w-full h-[360px] overflow-auto border border-white/5 bg-[#0b0f19]/40 rounded-2xl relative select-none cursor-grab active:cursor-grabbing custom-scrollbar"
+        style={{ scrollBehavior: 'auto' }}
+      >
+        <div 
+          className="flex flex-col gap-2.5 items-center min-w-max py-8 px-12 origin-top transition-transform duration-100 ease-out"
+          style={{ transform: `scale(${scale})` }}
+        >
+          {/* Màn hình curved ở bên trong view để di chuyển cùng sơ đồ ghế */}
+          <div className="w-full mb-12 text-center shrink-0">
+            <div className={`screen-curve relative mx-auto w-[65%] h-2 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
+            <p className="text-[9px] font-bold text-gray-500 mt-3 tracking-widest uppercase">{screenLabel}</p>
+          </div>
         {bookingRowNames.map((row) => {
           const seatsList = bookingSeatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
@@ -392,6 +506,7 @@ const TheaterSeatMapPanel = ({
             </div>
           );
         })}
+        </div>
       </div>
 
       {hasGapViolation && (

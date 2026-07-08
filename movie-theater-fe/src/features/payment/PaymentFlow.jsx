@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { bookingService } from '../../shared/services/bookingService';
 import { vodService } from '../../shared/services/vodService';
 import { notificationService } from '../../shared/services/notificationService';
+import { orbitService } from '../../shared/services/orbitService';
 import { showMissionCompletionToasts } from '../../shared/services/missionService';
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
 
@@ -74,6 +76,19 @@ export default function PaymentFlow() {
   const [amount, setAmount] = useState(location.state?.amount || 150000);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleBack = async () => {
+    if (checkoutState.isOrbit && checkoutState.orbitRoomUuid) {
+      try {
+        await orbitService.abortCheckout(checkoutState.orbitRoomUuid);
+      } catch (err) {
+        console.error('Failed to abort checkout on back navigation:', err);
+      }
+      navigate(`/booking/orbit/${checkoutState.orbitRoomUuid}`);
+    } else {
+      navigate(-1);
+    }
+  };
 
   useEffect(() => {
     if (location.state?.amount && !clientSecret && !isInitializing) {
@@ -187,6 +202,14 @@ export default function PaymentFlow() {
         
         {/* LEFT COLUMN: Order Details */}
         <div className="w-full md:w-5/12 bg-[#0b0f19]/90 p-8 flex flex-col border-r border-white/5">
+          <div 
+            className="mb-6 flex items-center gap-2 group cursor-pointer w-fit text-slate-400 hover:text-white transition-colors" 
+            onClick={handleBack}
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-xs font-semibold">Quay lại chọn ghế</span>
+          </div>
+
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
               <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,23 +314,34 @@ export default function PaymentFlow() {
                   />
                 </Elements>
                 
-                <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-6 opacity-100">
-                  {/* Visa SVG */}
-                  <svg className="h-4" viewBox="0 0 320 100" fill="currentColor">
-                    <path d="M141.22 2.768L121.36 97.432h-31.52l19.86-94.664h31.52zm87.42 91.136c-5.74 2.656-15.7 5.28-27.12 5.28-30.82 0-52.54-16.104-52.74-39.184-.24-12.456 11.02-19.4 19.5-23.472 8.68-4.176 11.62-6.84 11.6-10.584-.04-5.736-6.98-8.28-13.44-8.28-11.24 0-17.84 3.016-23.76 5.76l-4.14-19.344c6-2.736 17.18-5.184 28.84-5.28 32.54 0 53.94 15.792 54.18 40.248.1 10.968-7.78 18.264-18.72 23.448-7.8 3.792-12.58 6.312-12.54 10.152.06 3.696 4.34 7.608 13.06 7.608 8.92-.072 15.54-2.016 21-4.584l4.28 18.216zm89.5-88.752c-6.14 0-10.74 3.336-13.38 9.384l-45.74 81.336H293l6.5-17.76h39.72l3.8 17.76H375l-33.02-90.72h-33.84zm11.3 24.36l9.64 45.432h-27l17.36-45.432zM102.3 2.768L72.2 67.24 64.96 15.528C63.64 6.792 56.5 2.768 47.96 2.768H.66L0 5.864c9.74 2.016 20.8 5.376 27.68 8.952 4.18 2.184 5.34 4.08 6.46 8.52l20.48 74.096h33.22L135.96 2.768h-33.66z" fill="#1434CB"/>
-                  </svg>
-                  
-                  {/* Mastercard SVG */}
-                  <svg className="h-6" viewBox="0 0 256 158" fill="currentColor">
-                    <path d="M157.067 79a78.89 78.89 0 01-29.067 61 79.06 79.06 0 000-122 78.89 78.89 0 0129.067 61z" fill="#FF5F00"/>
-                    <path d="M103.067 140A79.056 79.056 0 0124 79 79.056 79.056 0 01103.067 18a78.89 78.89 0 00-29.067 61 78.89 78.89 0 0029.067 61z" fill="#EB001B"/>
-                    <path d="M256 79a79.056 79.056 0 01-79.067 61A78.89 78.89 0 01147.866 79a78.89 78.89 0 0129.067-61A79.056 79.056 0 01256 79z" fill="#F79E1B"/>
-                  </svg>
-                  
-                  {/* Stripe SVG */}
-                  <svg className="h-5" viewBox="0 0 321 133" fill="currentColor">
-                    <path d="M138.83 58.74c0-6.73-5.2-11.23-14-11.23-14.85 0-24.8 10.15-24.8 24.36 0 14.85 10 24.5 24.96 24.5 10.74 0 18.57-4.6 22.86-12l-10-6.1c-2.43 3.65-6.55 6.4-12.7 6.4-7.04 0-11.4-4-12.06-10.42h35.25c.3-2.1.45-5.22.45-7.65zm-14-22.1c6.56 0 10.6 3.68 11.24 9.7h-23.75c1-6.1 5.68-9.7 12.5-9.7zm57.26-9.56c-6.87 0-12.56 3.37-15.65 9.04V28.7H154.5v65.65h11.9v-25.1c3.1 5.67 8.8 9.04 15.65 9.04 12.7 0 22.1-10.6 22.1-25.56s-9.4-25.66-22.1-25.66zm-4.3 40.16c-8.25 0-14.53-6.4-14.53-14.5s6.3-14.5 14.54-14.5c8.24 0 14.52 6.4 14.52 14.5s-6.3 14.5-14.53 14.5zm49.9-10.3h10v-10h-10v-15.5l-11.9 2.5v13h-6.72v10h6.73v14c0 7.8 3.5 11.75 11.4 11.75 3.38 0 5.66-.46 6.87-.77v-10c-.76.3-2.28.3-3.67.3-3.06 0-4.58-1.5-4.58-4.4v-10.9zm13.1-28.8h11.92v65.65H240.8V28.1zm12.35-15l-12.35 2.6v9.38l12.35-2.6V13.1zm67.84 57.56c0-6.73-5.2-11.23-14-11.23-14.85 0-24.8 10.15-24.8 24.36 0 14.85 10 24.5 24.96 24.5 10.74 0 18.57-4.6 22.86-12l-10-6.1c-2.43 3.65-6.55 6.4-12.7 6.4-7.04 0-11.4-4-12.06-10.42h35.25c.3-2.1.45-5.22.45-7.65zm-14-22.1c6.56 0 10.6 3.68 11.24 9.7h-23.75c1-6.1 5.68-9.7 12.5-9.7zm-27.18 10.74v-11H268v49.25h11.9V64.6c0-7.8 4.75-12.87 11.9-12.87 1.83 0 3.37.3 4.28.75v-10.9c-1.37-.6-3.2-.9-4.88-.9-6.4 0-10.14 3.05-11.44 8.7zM69.05 48.7c-3.2-1.7-5.5-2.9-5.5-5.83 0-2.9 2.6-4.9 6.74-4.9 4.3 0 7.8 1.4 10.74 3.23l4.3-10.14C81.8 28.6 76 27 70.45 27c-11.8 0-19.48 6.6-19.48 16.4 0 11.5 10 15.1 17.5 18.7 3.66 1.83 5.35 3.37 5.35 6 0 2.9-2.9 5.2-7.5 5.2-5.36 0-9.8-2.16-12.87-4.14l-4.44 10.3c3.8 2.3 9.34 3.8 14.7 3.8 12.4 0 20.35-6.27 20.35-17.15 0-9.37-7.2-13.8-15-17.42z" fill="#635BFF"/>
-                  </svg>
+                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center justify-center gap-4 opacity-100">
+                  <div className="flex items-center gap-6">
+                    {/* Visa SVG */}
+                    <svg className="h-4" viewBox="0 0 320 100" fill="currentColor">
+                      <path d="M141.22 2.768L121.36 97.432h-31.52l19.86-94.664h31.52zm87.42 91.136c-5.74 2.656-15.7 5.28-27.12 5.28-30.82 0-52.54-16.104-52.74-39.184-.24-12.456 11.02-19.4 19.5-23.472 8.68-4.176 11.62-6.84 11.6-10.584-.04-5.736-6.98-8.28-13.44-8.28-11.24 0-17.84 3.016-23.76 5.76l-4.14-19.344c6-2.736 17.18-5.184 28.84-5.28 32.54 0 53.94 15.792 54.18 40.248.1 10.968-7.78 18.264-18.72 23.448-7.8 3.792-12.58 6.312-12.54 10.152.06 3.696 4.34 7.608 13.06 7.608 8.92-.072 15.54-2.016 21-4.584l4.28 18.216zm89.5-88.752c-6.14 0-10.74 3.336-13.38 9.384l-45.74 81.336H293l6.5-17.76h39.72l3.8 17.76H375l-33.02-90.72h-33.84zm11.3 24.36l9.64 45.432h-27l17.36-45.432zM102.3 2.768L72.2 67.24 64.96 15.528C63.64 6.792 56.5 2.768 47.96 2.768H.66L0 5.864c9.74 2.016 20.8 5.376 27.68 8.952 4.18 2.184 5.34 4.08 6.46 8.52l20.48 74.096h33.22L135.96 2.768h-33.66z" fill="#1434CB"/>
+                    </svg>
+                    
+                    {/* Mastercard SVG */}
+                    <svg className="h-6" viewBox="0 0 256 158" fill="currentColor">
+                      <path d="M157.067 79a78.89 78.89 0 01-29.067 61 79.06 79.06 0 000-122 78.89 78.89 0 0129.067 61z" fill="#FF5F00"/>
+                      <path d="M103.067 140A79.056 79.056 0 0124 79 79.056 79.056 0 01103.067 18a78.89 78.89 0 00-29.067 61 78.89 78.89 0 0029.067 61z" fill="#EB001B"/>
+                      <path d="M256 79a79.056 79.056 0 01-79.067 61A78.89 78.89 0 01147.866 79a78.89 78.89 0 0129.067-61A79.056 79.056 0 01256 79z" fill="#F79E1B"/>
+                    </svg>
+                    
+                    {/* Stripe SVG */}
+                    <svg className="h-5" viewBox="0 0 321 133" fill="currentColor">
+                      <path d="M138.83 58.74c0-6.73-5.2-11.23-14-11.23-14.85 0-24.8 10.15-24.8 24.36 0 14.85 10 24.5 24.96 24.5 10.74 0 18.57-4.6 22.86-12l-10-6.1c-2.43 3.65-6.55 6.4-12.7 6.4-7.04 0-11.4-4-12.06-10.42h35.25c.3-2.1.45-5.22.45-7.65zm-14-22.1c6.56 0 10.6 3.68 11.24 9.7h-23.75c1-6.1 5.68-9.7 12.5-9.7zm57.26-9.56c-6.87 0-12.56 3.37-15.65 9.04V28.7H154.5v65.65h11.9v-25.1c3.1 5.67 8.8 9.04 15.65 9.04 12.7 0 22.1-10.6 22.1-25.56s-9.4-25.66-22.1-25.66zm-4.3 40.16c-8.25 0-14.53-6.4-14.53-14.5s6.3-14.5 14.54-14.5c8.24 0 14.52 6.4 14.52 14.5s-6.3 14.5-14.53 14.5zm49.9-10.3h10v-10h-10v-15.5l-11.9 2.5v13h-6.72v10h6.73v14c0 7.8 3.5 11.75 11.4 11.75 3.38 0 5.66-.46 6.87-.77v-10c-.76.3-2.28.3-3.67.3-3.06 0-4.58-1.5-4.58-4.4v-10.9zm13.1-28.8h11.92v65.65H240.8V28.1zm12.35-15l-12.35 2.6v9.38l12.35-2.6V13.1zm67.84 57.56c0-6.73-5.2-11.23-14-11.23-14.85 0-24.8 10.15-24.8 24.36 0 14.85 10 24.5 24.96 24.5 10.74 0 18.57-4.6 22.86-12l-10-6.1c-2.43 3.65-6.55 6.4-12.7 6.4-7.04 0-11.4-4-12.06-10.42h35.25c.3-2.1.45-5.22.45-7.65zm-14-22.1c6.56 0 10.6 3.68 11.24 9.7h-23.75c1-6.1 5.68-9.7 12.5-9.7zm-27.18 10.74v-11H268v49.25h11.9V64.6c0-7.8 4.75-12.87 11.9-12.87 1.83 0 3.37.3 4.28.75v-10.9c-1.37-.6-3.2-.9-4.88-.9-6.4 0-10.14 3.05-11.44 8.7zM69.05 48.7c-3.2-1.7-5.5-2.9-5.5-5.83 0-2.9 2.6-4.9 6.74-4.9 4.3 0 7.8 1.4 10.74 3.23l4.3-10.14C81.8 28.6 76 27 70.45 27c-11.8 0-19.48 6.6-19.48 16.4 0 11.5 10 15.1 17.5 18.7 3.66 1.83 5.35 3.37 5.35 6 0 2.9-2.9 5.2-7.5 5.2-5.36 0-9.8-2.16-12.87-4.14l-4.44 10.3c3.8 2.3 9.34 3.8 14.7 3.8 12.4 0 20.35-6.27 20.35-17.15 0-9.37-7.2-13.8-15-17.42z" fill="#635BFF"/>
+                    </svg>
+                  </div>
+                  {checkoutState.isOrbit && (
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      Quay lại chọn ghế
+                    </button>
+                  )}
                 </div>
               </div>
             )}
