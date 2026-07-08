@@ -7,6 +7,7 @@ import AdminModal from '../components/AdminModal';
 import AdminKpiGrid from '../components/AdminKpiGrid';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
+import './CinemasPage.css';
 
 const CinemasPage = () => {
   const navigate = useNavigate();
@@ -263,9 +264,9 @@ const CinemasPage = () => {
                   tabIndex={0}
                   onClick={() => handleSelectCinema(cinema)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSelectCinema(cinema)}
-                  className={`p-4 border transition-all cursor-pointer rounded-lg text-left w-full ${
+                  className={`p-4 border transition-all cursor-pointer rounded-lg text-left w-full cinema-card ${
                     isSelected
-                      ? 'bg-[#1e293b]/30 border-red-500/50 shadow-md shadow-red-500/5'
+                      ? 'bg-[#1e293b]/30 border-red-500/50 shadow-md shadow-red-500/5 cinema-card--selected'
                       : 'bg-[#0B0F19]/60 border-[#1A2238] hover:bg-[#1a2238]/30 hover:border-[#2C3B5E]'
                   }`}
                 >

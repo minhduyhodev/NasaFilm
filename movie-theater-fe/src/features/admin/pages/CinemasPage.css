@@ -1,1 +1,17 @@
-/* Cinemas page styling - migrated to inline Tailwind CSS utility classes */
+/* CinemasPage specific styling overrides */
+.cinema-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.cinema-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  box-shadow: 0 12px 40px rgba(239, 68, 68, 0.08) !important;
+}
+
+.cinema-card--selected {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.12) !important;
+}

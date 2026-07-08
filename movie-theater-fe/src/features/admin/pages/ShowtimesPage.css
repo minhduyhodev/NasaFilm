@@ -533,14 +533,16 @@
 
 /* ---- Toolbar ---- */
 .st-toolbar {
-  background: rgba(11, 15, 25, 0.75);
-  border: 1px solid #1a2238;
-  border-radius: 14px;
-  padding: 12px 14px;
+  background: rgba(14, 18, 30, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  padding: 16px 20px;
   margin-bottom: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.25);
 }
 
 .st-toolbar__row {
@@ -551,8 +553,8 @@
 }
 
 .st-toolbar__row--actions {
-  padding-top: 10px;
-  border-top: 1px solid rgba(26, 34, 56, 0.85);
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
   justify-content: flex-end;
 }
 
@@ -565,7 +567,7 @@
 
 .st-toolbar__search-icon {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   width: 14px;
@@ -575,23 +577,23 @@
 }
 
 .st-control {
-  border-radius: 10px;
-  background: #0f1322;
-  border: 1px solid #1a2238;
+  border-radius: 12px;
+  background: rgba(9, 11, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: #e2e8f0;
   font-size: 12px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .st-control:focus {
   outline: none;
-  border-color: rgba(239, 68, 68, 0.45);
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
 }
 
 .st-control--search {
   width: 100%;
-  padding: 8px 12px 8px 32px;
+  padding: 8px 12px 8px 34px;
 }
 
 .st-control--select {
@@ -605,20 +607,21 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #1a2238;
-  background: #0f1322;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(9, 11, 20, 0.85);
   color: #94a3b8;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .st-chip:hover {
   color: #fff;
-  border-color: #334155;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .st-chip--active.st-chip--danger {
@@ -646,7 +649,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid #1a2238;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 10px;
   font-weight: 700;
   color: #64748b;
@@ -660,6 +663,7 @@
   font-weight: 800;
   cursor: pointer;
   padding: 0;
+  transition: color 0.2s ease;
 }
 
 .st-toolbar__clear:hover {
@@ -677,21 +681,21 @@
   align-items: center;
   gap: 5px;
   padding: 7px 11px;
-  border-radius: 10px;
-  border: 1px solid #1a2238;
-  background: #0f1322;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(9, 11, 20, 0.85);
   color: #cbd5e1;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .st-btn-ghost:hover {
   color: #fff;
-  border-color: #334155;
-  background: #121826;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .st-segment {

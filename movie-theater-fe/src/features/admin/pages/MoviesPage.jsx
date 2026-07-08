@@ -383,7 +383,7 @@ const MoviesPage = () => {
           <>
             <VirtualGrid
               items={movies}
-              threshold={12}
+              threshold={100}
               getItemKey={(movie) => movie.uuid}
               renderItem={(movie) => (
                 <button
