@@ -670,43 +670,14 @@ const NasaAiAssistantWidget = () => {
       setTyping(false);
     }
 
-    if (shouldOpenTicketListFromText(value)) {
-      await loadMyTickets();
-      setPanelView(SUPPORT_VIEWS.TICKETS);
-      if (!hasAiReply) {
-        pushBot('Mình đã mở danh sách ticket của bạn trong trung tâm hỗ trợ.');
-      }
-      return;
-    }
-
-    if (shouldStartTicketFlowFromText(value)) {
-      const detected = matchedCategory || CATEGORIES.find((item) => item.key === detectCategory(value)) || CATEGORIES.at(-1);
-      setSelectedCategory(detected);
-      setTicketDraft(value);
-      setPanelView(SUPPORT_VIEWS.CREATE);
-      pushBot(`Mình đã mở form ticket trong trung tâm hỗ trợ${detected?.label ? ` cho mục "${detected.label}"` : ''}. Bạn chỉ cần chỉnh lại mô tả rồi gửi.`);
-      return;
-    }
-
-    if (matchedCategory && !hasAiReply) {
-      pushMessage({
-        role: 'bot',
-        type: 'card',
-        title: 'Nếu cần người xử lý trực tiếp',
-        text: `Mình đoán vấn đề này thuộc nhóm "${matchedCategory.label}". Bạn có thể mở ticket ngay trong trung tâm hỗ trợ.`,
-      });
-      return;
-    }
-
     if (!hasAiReply) {
-      pushBot('Mình đã nhận nội dung của bạn. Bạn cứ chat tiếp với bot, hoặc mở trung tâm hỗ trợ nếu cần admin/staff xử lý.');
+      pushBot('Mình đã nhận nội dung của bạn. Nếu cần admin xử lý, hãy dùng nút phía trên hoặc mở ticket.');
     }
   };
 
   const handleRuntimeShortcut = (shortcut) => {
-    const categoryKey = CATEGORIES.find((item) => item.key === `${shortcut?.shortcutName || ''}`.replace('_support', '').trim())?.key
-      || detectCategory(shortcut?.queryContent || shortcut?.buttonName || '');
-    openCreatePanel(categoryKey, shortcut?.queryContent || '');
+    const queryText = shortcut?.queryContent || shortcut?.buttonName || '';
+    submitBotMessage(queryText);
   };
 
   const handleQuickAction = async (actionId) => {

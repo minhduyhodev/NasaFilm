@@ -214,8 +214,12 @@ public class SupportAiService {
             return new SupportAiResult("Không có gì bạn! Nếu cần thêm hỗ trợ thì cứ nhắn mình nhé. Chúc bạn xem phim vui vẻ! 🍿", "other");
         }
 
-        // For "other" category, no structured flow
+        // If current message doesn't match a category, look at conversation history
         if ("other".equals(category)) {
+            String historyCategory = detectCategoryFromHistory(history);
+            if (historyCategory != null && !"other".equals(historyCategory)) {
+                return guidedFlowReply(message, normalized, historyCategory, history);
+            }
             return new SupportAiResult(
                 "Mình chưa xác định rõ danh mục vấn đề của bạn. Bạn có thể chọn một trong các mục sau để mình hỗ trợ theo luồng nhé:\n"
                 + "🎫 **Vé / Suất chiếu** — vấn đề về mã vé, ghế, suất chiếu, đổi/hủy/hoàn vé\n"
@@ -229,6 +233,27 @@ public class SupportAiService {
         }
 
         return guidedFlowReply(message, normalized, category, history);
+    }
+
+    /** Detect category from conversation history (look at last bot message or first user message). */
+    private String detectCategoryFromHistory(List<SupportAiMessage> history) {
+        if (history == null) return null;
+        // Check last bot message for category context
+        for (int i = history.size() - 1; i >= 0; i--) {
+            SupportAiMessage m = history.get(i);
+            if ("assistant".equals(m.role()) || "bot".equals(m.role())) {
+                String cat = detectCategory(m.content());
+                if (!"other".equals(cat)) return cat;
+            }
+        }
+        // Fallback: check first user message in history
+        for (SupportAiMessage m : history) {
+            if ("user".equals(m.role())) {
+                String cat = detectCategory(m.content());
+                if (!"other".equals(cat)) return cat;
+            }
+        }
+        return null;
     }
 
     private SupportAiResult guidedFlowReply(String message, String normalized, String category, List<SupportAiMessage> history) {
