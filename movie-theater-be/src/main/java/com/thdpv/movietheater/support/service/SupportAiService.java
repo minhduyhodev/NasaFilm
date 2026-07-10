@@ -741,7 +741,7 @@ public class SupportAiService {
                 .anyMatch(keyword -> normalized.matches(".*\\b" + java.util.regex.Pattern.quote(keyword) + "\\b.*"));
     }
     private SupportAiResult greetingReply() {
-        return new SupportAiResult("Xin chào bạn! 👋 Mình là NASA BOT, trợ lý ảo của NASAFilm. Bạn cần mình hỗ trợ gì hôm nay ạ?", "other");
+        return new SupportAiResult("👋 Chào bạn! Mình có thể giúp gì cho bạn hôm nay?", "other");
     }
 
     private SupportAiResult inappropriateReply() {

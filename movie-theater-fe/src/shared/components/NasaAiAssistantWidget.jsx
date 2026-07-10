@@ -188,7 +188,7 @@ const initialMessages = () => ([
     id: 'welcome',
     role: 'bot',
     type: 'text',
-    text: `${getGreeting()}, mình là NASA BOT.`,
+    text: `👋 ${getGreeting()}! Mình có thể giúp gì cho bạn?`,
     time: formatTime(),
   },
 ]);
@@ -975,16 +975,14 @@ const NasaAiAssistantWidget = () => {
                 <button
                   key={shortcut.shortcutName || shortcut.buttonName}
                   type="button"
-                  className="nasa-assistant-shortcut"
+                  className={`nasa-assistant-shortcut nasa-assistant-shortcut--${shortcut.shortcutName || 'other'}`}
                   onClick={() => handleRuntimeShortcut(shortcut)}
+                  title={shortcut.description}
                 >
                   <span className="nasa-assistant-shortcut__icon">
                     <Sparkles className="h-4 w-4" />
                   </span>
-                  <span className="nasa-assistant-shortcut__content">
-                    <span className="nasa-assistant-shortcut__label">{shortcut.buttonName}</span>
-                    <span className="nasa-assistant-shortcut__desc">{shortcut.description}</span>
-                  </span>
+                  <span className="nasa-assistant-shortcut__label">{shortcut.buttonName}</span>
                   <ChevronRight className="h-4 w-4 nasa-assistant-shortcut__arrow" />
                 </button>
               ))}

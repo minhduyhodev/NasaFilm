@@ -599,49 +599,87 @@
 
 .nasa-assistant-shortcut {
   width: 100%;
-  min-height: 4.55rem;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.045);
   color: #fff;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.55rem;
+  display: flex;
   align-items: center;
+  gap: 0.55rem;
   padding: 0.72rem 0.8rem;
   text-align: left;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  cursor: pointer;
+  transition: all 220ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Category-specific accent colors on hover */
+.nasa-assistant-shortcut--ticket_support:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.18);
+}
+.nasa-assistant-shortcut--payment_support:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.18);
+}
+.nasa-assistant-shortcut--account_support:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 4px 18px rgba(59, 130, 246, 0.18);
+}
+.nasa-assistant-shortcut--promo_support:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.18);
+}
+.nasa-assistant-shortcut--membership_support:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.18);
+}
+.nasa-assistant-shortcut--other_support:hover {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 4px 18px rgba(148, 163, 184, 0.18);
+}
+
+.nasa-assistant-shortcut:hover {
+  transform: translateY(-2px);
 }
 
 .nasa-assistant-shortcut__icon {
-  width: 1.9rem;
-  height: 1.9rem;
+  min-width: 2rem;
+  height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 0.55rem;
   background: rgba(239, 68, 68, 0.16);
+  transition: background 220ms ease, transform 220ms ease;
 }
 
-.nasa-assistant-shortcut__content {
-  display: grid;
-  gap: 0.16rem;
+.nasa-assistant-shortcut:hover .nasa-assistant-shortcut__icon {
+  transform: scale(1.08);
 }
 
 .nasa-assistant-shortcut__label {
-  font-size: 0.74rem;
-  font-weight: 800;
-  line-height: 1.08;
-}
-
-.nasa-assistant-shortcut__desc {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.66rem;
-  line-height: 1.35;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.2;
+  flex: 1;
 }
 
 .nasa-assistant-shortcut__arrow {
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.35);
+  transition: transform 220ms ease, color 220ms ease;
+}
+
+.nasa-assistant-shortcut:hover .nasa-assistant-shortcut__arrow {
+  transform: translateX(3px);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .nasa-assistant-support-actions,
