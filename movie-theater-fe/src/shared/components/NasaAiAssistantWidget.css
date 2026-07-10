@@ -953,3 +953,35 @@ button.nasa-assistant-card:hover,
     width: 100%;
   }
 }
+
+/* ── Choice buttons (quick reply) ── */
+.nasa-assistant-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.nasa-assistant-choice-btn {
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+  border-radius: 1rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.nasa-assistant-choice-btn:hover {
+  background: rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.55);
+  color: #fecaca;
+}
+
+.nasa-assistant-choice-btn:active {
+  background: rgba(220, 38, 38, 0.35);
+  transform: scale(0.97);
+}

@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.support.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,11 +60,12 @@ public class SupportController {
             }
         }
 
-        return ResponseEntity.ok(ApiResponse.success(new SupportAiResponse(
+        return ResponseEntity.ok(ApiResponse.success(SupportAiResponse.of(
                 result.reply(),
                 result.suggestedCategory(),
                 createdTicket != null ? createdTicket.getTicketCode() : null,
-                createdTicket)));
+                createdTicket,
+                result.choices())));
     }
 
     @GetMapping("/support-ai/status")
@@ -120,9 +123,16 @@ public class SupportController {
 
     public record SupportAiMessageRequest(String role, String content) {}
 
-    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket) {
-        public SupportAiResponse(String reply, String suggestedCategory) {
-            this(reply, suggestedCategory, null, null);
+    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices) {
+        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons) {
+            List<Map<String, String>> choiceList = null;
+            if (choiceButtons != null) {
+                choiceList = new ArrayList<>();
+                for (var c : choiceButtons) {
+                    choiceList.add(Map.of("text", c.text(), "value", c.value()));
+                }
+            }
+            return new SupportAiResponse(reply, suggestedCategory, autoTicketCode, autoTicket, choiceList);
         }
     }
 

@@ -75,6 +75,13 @@ public class SupportAiService {
             return fallback(message, history);
         }
 
+        // ── Ticket-related categories → always use guided flow ──
+        // Categories that need structured Q&A form → guided (no AI)
+        if (isGuidedCategory(detectedCategory)) {
+            return fallback(message, history);
+        }
+
+        // ── General questions (other) → AI ──
         try {
             List<SupportAiMessage> messages = buildMessages(message, history);
 
@@ -94,16 +101,20 @@ public class SupportAiService {
             }
 
             if (aiResult != null) {
-                // Post-process: detect if this is a ticket finalization by the AI
-                return postProcessAiResult(aiResult, message, history);
+                return aiResult;
             }
 
-            // 4. All AI providers failed — use rule-based fallback
+            // 4. All AI providers failed
             return fallback(message, history);
         } catch (Exception error) {
             log.error("Unexpected error in AI chat flow", error);
             return fallback(message, history);
         }
+    }
+
+    /** Categories that use guided form flow instead of AI. */
+    private boolean isGuidedCategory(String category) {
+        return !"other".equals(category);
     }
 
     /**
@@ -240,29 +251,32 @@ public class SupportAiService {
 
         // ── State: User just confirmed ──
         if (wasConfirming) {
-            if (containsAnyToken(normalized, CONFIRM_EDIT)) {
+            if (containsAnyToken(normalized, CONFIRM_EDIT) || (lastBotMsg != null && (normalized.contains("chinh sua") || normalized.contains("chỉnh sửa")))) {
                 // User wants to edit → restart the flow from field 1
                 return new SupportAiResult(
                     "✅ Mình hiểu, bạn muốn chỉnh sửa thông tin. Mình sẽ hỏi lại từ đầu nhé.\n\n" + prompts[0],
-                    category, "collecting"
+                    category, "collecting", null
                 );
             }
             if (containsAnyToken(normalized, CONFIRM_YES)) {
                 // User confirmed → finalize with auto ticket creation
                 String summary = buildSummary(category, message, history);
                 String description = buildDescription(category, message, history);
+                String ticketInfo = "📋 **Tóm tắt ticket:**\n" + summary;
                 return new SupportAiResult(
-                    "✅ Đã ghi nhận thắc mắc của bạn! Mình đang tạo ticket gửi admin...\n📋 **Tóm tắt ticket:**\n" + summary
+                    "✅ Đã ghi nhận thắc mắc của bạn! Mình đang tạo ticket gửi admin...\n" + ticketInfo
                     + "\n\n⏳ Admin sẽ phản hồi bạn trong thời gian sớm nhất.",
                     category, "finalizing"
                 ).withTicketAction(new TicketAction(category, description, summary));
             }
-            // Ambiguous response — ask again clearly
+            // Ambiguous response — ask again with choice buttons
             return new SupportAiResult(
-                "Mình chưa rõ ý bạn. Bạn chọn giúp mình nhé:\n"
-                + "✏️ Gõ **\"sửa\"** để chỉnh sửa lại thông tin\n"
-                + "✅ Gõ **\"ok\"** hoặc **\"gửi\"** để chốt ticket gửi admin",
-                category, "confirming"
+                "Mình chưa rõ ý bạn. Bạn chọn giúp mình nhé:",
+                category, "confirming",
+                List.of(
+                    new ChoiceButton("✏️ Chỉnh sửa", "edit"),
+                    new ChoiceButton("✅ OK — Gửi ticket", "ok")
+                )
             );
         }
 
@@ -271,10 +285,12 @@ public class SupportAiService {
             String summary = buildSummary(category, message, history);
             return new SupportAiResult(
                 "📋 Mình đã tổng hợp thông tin ticket của bạn như sau:\n\n" + summary
-                + "\n\n---\n"
-                + "✏️ Bạn có muốn **chỉnh sửa** thông tin nào không?\n"
-                + "✅ Nếu thông tin đã đúng, gõ **\"ok\"** hoặc **\"gửi\"** để mình chốt ticket nhé.",
-                category, "confirming"
+                + "\n\nBạn kiểm tra lại thông tin rồi chọn bên dưới nhé:",
+                category, "confirming",
+                List.of(
+                    new ChoiceButton("✏️ Chỉnh sửa", "edit"),
+                    new ChoiceButton("✅ OK — Gửi ticket", "ok")
+                )
             );
         }
 
@@ -294,7 +310,62 @@ public class SupportAiService {
             sb.append("\n\n💡 *Sau bước này mình sẽ tổng hợp lại thông tin để bạn kiểm tra trước khi gửi admin.*");
         }
 
-        return new SupportAiResult(sb.toString(), category, "collecting");
+        // Add choice buttons for the 2nd field (issueType) for each category
+        List<ChoiceButton> choices = getChoicesForField(category, nextFieldIndex);
+
+        return new SupportAiResult(sb.toString(), category, "collecting", choices);
+    }
+
+    /** Return quick-reply choice buttons for the given category and field index. */
+    private List<ChoiceButton> getChoicesForField(String category, int fieldIndex) {
+        if (fieldIndex == 1) { // second question = issue type
+            return switch (category) {
+                case "ticket" -> List.of(
+                    new ChoiceButton("🎫 Sai ghế / suất / phim", "Sai ghế/suất/phim"),
+                    new ChoiceButton("📭 Chưa nhận được vé", "Chưa nhận vé"),
+                    new ChoiceButton("🔄 Cần đổi / hủy / hoàn vé", "Đổi/hủy vé"),
+                    new ChoiceButton("📱 Lỗi quét mã QR", "Lỗi QR"),
+                    new ChoiceButton("📝 Khác", "Khác")
+                );
+                case "payment" -> List.of(
+                    new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
+                    new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
+                    new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
+                    new ChoiceButton("📝 Khác", "Khác")
+                );
+                case "account" -> List.of(
+                    new ChoiceButton("🔑 Không đăng nhập được", "Không đăng nhập được"),
+                    new ChoiceButton("📱 Không nhận được OTP", "Không nhận OTP"),
+                    new ChoiceButton("🔒 Quên mật khẩu", "Quên mật khẩu"),
+                    new ChoiceButton("🚫 Tài khoản bị khóa", "Tài khoản bị khóa"),
+                    new ChoiceButton("✏️ Cập nhật thông tin", "Cập nhật thông tin"),
+                    new ChoiceButton("📝 Khác", "Khác")
+                );
+                case "promo" -> List.of(
+                    new ChoiceButton("❌ Không áp dụng được", "Không áp dụng được"),
+                    new ChoiceButton("⏰ Mã đã hết hạn", "Mã hết hạn"),
+                    new ChoiceButton("📋 Không đúng điều kiện", "Không đúng điều kiện"),
+                    new ChoiceButton("📝 Khác", "Khác")
+                );
+                case "membership" -> List.of(
+                    new ChoiceButton("⭐ Điểm thưởng bị sai", "Điểm thưởng sai"),
+                    new ChoiceButton("👑 Hạng thành viên không đúng", "Hạng thành viên sai"),
+                    new ChoiceButton("🎁 Quyền lợi không được áp dụng", "Quyền lợi không áp dụng"),
+                    new ChoiceButton("📝 Khác", "Khác")
+                );
+                default -> null;
+            };
+        }
+        // Payment step 2 (paymentMethod) — show payment method choices
+        if ("payment".equals(category) && fieldIndex == 1) {
+            return List.of(
+                new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
+                new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
+                new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+        }
+        return null;
     }
 
     /** Count how many fields have been collected from the conversation so far. */
@@ -693,167 +764,46 @@ public class SupportAiService {
             // fallback below
         }
         return """
-                Bạn là NASA BOT, trợ lý hỗ trợ khách hàng chính thức của website NASAFilm — \
-                nền tảng đặt vé xem phim trực tuyến hiện đại.\n\n\
-                NGUYÊN TẮC PHẠM VI:\n\
-                - Chỉ hỗ trợ các nội dung liên quan trực tiếp đến website NASAFilm, rạp phim và luồng nghiệp vụ trong dự án.\n\
-                - Nếu khách hỏi ngoài lề dự án (kiến thức đời sống, học tập, lập trình, chính trị, y tế, pháp luật, tài chính cá nhân, giải trí ngoài NASAFilm, v.v.), \
-                trả lời đúng một câu: "Câu hỏi không thuộc phạm vi hỗ trợ của Nasa."\n\
-                - Không cố trả lời ngoài phạm vi, không giải thích dài, không chuyển chủ đề.\n\n\
-                ═══════════════════════════════════════════\n\
-                CÁC KỊCH BẢN TRONG PHẠM VI HỖ TRỢ:\n\
-                ═══════════════════════════════════════════\n\n\
-                【PHIM & DANH MỤC】\n\
-                - Tìm phim, danh sách phim, phim đang chiếu, phim sắp chiếu.\n\
-                - Chi tiết phim: thể loại, quốc gia, đạo diễn, diễn viên, độ tuổi giới hạn, thời lượng, ngày khởi chiếu.\n\
-                - Trailer, poster, đánh giá phim (review + vibe tag), rating điểm.\n\
-                - Duyệt phim theo thể loại (hành động, viễn tưởng, hoạt hình, kinh dị, tình cảm, hài...).\n\
-                - Duyệt phim theo quốc gia sản xuất.\n\
-                - Tìm kiếm phim theo tên, từ khóa.\n\
-                - Movie Matchmaker: quiz gợi ý phim theo sở thích cá nhân trên trang chủ.\n\n\
-                【SUẤT CHIẾU & RẠP】\n\
-                - Lịch chiếu theo ngày, theo phim, theo rạp/cụm rạp.\n\
-                - Định dạng chiếu: 2D (Phụ đề / Lồng tiếng), 3D, IMAX Laser, 4DX Motion, Dolby Atmos, ScreenX.\n\
-                - Loại phòng chiếu: Standard, VIP Gold Class, IMAX.\n\
-                - Sơ đồ ghế: ghế thường, ghế VIP, ghế couple, ghế đã đặt, ghế đang giữ.\n\
-                - Giá vé theo loại ghế: vé thường, vé VIP, vé couple.\n\
-                - Thời lượng phim + buffer trailer (10 phút).\n\n\
-                【ĐẶT VÉ & CHỌN GHẾ】\n\
-                - Quy trình đặt vé: chọn phim → chọn suất → chọn ghế → chọn combo → thanh toán → nhận vé QR.\n\
-                - Giữ ghế tạm thời 5 phút khi nhấn "Tiến hành thanh toán", đồng hồ đếm ngược hiển thị trên giao diện.\n\
-                - Mã vé, mã đơn hàng: định dạng TK-..., VE-..., OD-..., ORDER-..., TICKET-...\n\
-                - QR vé: nhận qua email sau khi thanh toán thành công.\n\
-                - Kích hoạt vé, vé không hiển thị, sai ghế, sai suất, sai phim, vé hết hạn.\n\
-                - Đổi vé, hủy vé (xem thêm chính sách hủy bên dưới).\n\
-                - Số ghế tối đa mỗi lần đặt: 8 ghế.\n\
-                - PreShow Boarding: xem thông tin vé, đếm ngược đến giờ chiếu trước khi vào rạp.\n\n\
-                【CHÍNH SÁCH HỦY VÉ & HOÀN TIỀN】\n\
-                - Chỉ được hủy vé trước giờ chiếu tối thiểu 60 phút.\n\
-                - Vé thuộc suất chiếu đã/sắp diễn ra trong vòng 60 phút → không thể hoàn hủy.\n\
-                - Phí hủy vé: 10% giá trị vé (có cấu hình).\n\
-                - Hoàn tiền: hệ thống hoàn điểm thưởng đã dùng, thu hồi điểm tích lũy của đơn, chuyển trạng thái đơn thành REFUNDED.\n\
-                - Trường hợp rạp hủy suất chiếu: hoàn tiền 100%, không mất phí.\n\
-                - Yêu cầu admin xác nhận thủ công đối với refund.\n\
-                - Khách có thể yêu cầu hủy vé tại quầy counter với staff.\n\n\
-                【THANH TOÁN】\n\
-                - Phương thức: Ví điện tử (Momo, VNPay, ZaloPay), thẻ ngân hàng nội địa/quốc tế.\n\
-                - Lỗi thanh toán, giao dịch pending, giao dịch thất bại.\n\
-                - Bị trừ tiền nhưng chưa nhận vé → cần kiểm tra giao dịch và mã đơn.\n\
-                - Đối soát giao dịch, yêu cầu hoàn tiền.\n\
-                - Redirect về trang Payment Success / Payment Flow.\n\n\
-                【TÀI KHOẢN】\n\
-                - Đăng ký: email, họ tên, số điện thoại, mật khẩu (ít nhất 8 ký tự, có chữ hoa/thường/số/ký tự đặc biệt).\n\
-                - Đăng nhập bằng email + mật khẩu, có "Ghi nhớ tài khoản".\n\
-                - Đăng nhập Google OAuth.\n\
-                - OTP xác thực tài khoản, kích hoạt tài khoản qua email.\n\
-                - Quên mật khẩu → gửi mã khôi phục qua email → đặt lại mật khẩu.\n\
-                - Đổi mật khẩu, cập nhật hồ sơ (họ tên, số điện thoại).\n\
-                - Tài khoản bị khóa, tài khoản chưa xác thực.\n\
-                - Xem điểm tích lũy, lịch sử đặt vé, lịch sử giao dịch.\n\n\
-                【HỘI VIÊN & ĐIỂM THƯỞNG】\n\
-                - 3 hạng thành viên dựa trên lifetime score:\n\
-                  • NASA Member: hạng cơ bản, mặc định khi đăng ký.\n\
-                  • NASA Friend (NASA'FRIEND): hạng trung cấp, nhiều ưu đãi hơn.\n\
-                  • NASA VIP: hạng cao nhất, quyền lợi tối đa.\n\
-                - Tỉ lệ tích điểm: 5% giá trị vé → quy đổi điểm (mặc định: mỗi 1,000đ chi tiêu = 1 điểm).\n\
-                - Đổi điểm: 1 điểm = 1,000đ khi thanh toán.\n\
-                - Điểm không được âm, điểm dùng tối đa bằng giá trị đơn hàng.\n\
-                - Khi hủy vé: hoàn lại điểm đã dùng, thu hồi điểm dự kiến tích lũy.\n\
-                - Xem lịch sử điểm, tiến độ lên hạng (còn bao nhiêu điểm để lên hạng tiếp theo).\n\n\
-                【NHIỆM VỤ (MISSIONS) & BADGE】\n\
-                - Hệ thống nhiệm vụ giúp người dùng khám phá và nhận thưởng:\n\
-                  • EXPLORER: Đặt vé rạp hoặc VOD lần đầu để khám phá thể loại phim mới.\n\
-                  • PREMIERE: Chọn phim vừa khởi chiếu và đặt vé trong 3 ngày đầu.\n\
-                  • HYBRID_PILOT: Xem cùng một phim ở rạp VÀ mua thêm bản VOD.\n\
-                  • SOCIAL_ORBIT: Tạo/tham gia phòng đặt vé nhóm (Orbit Room) qua trang chi tiết phim.\n\
-                  • REVIEWER: Viết đánh giá có gắn vibe tag trên trang chi tiết phim.\n\
-                  • MATCHMAKER_EXPLORER: Hoàn thành Movie Matchmaker quiz trên trang chủ.\n\
-                - Mỗi nhiệm vụ có thể lặp lại: ONCE (1 lần), WEEKLY (hàng tuần), MONTHLY (hàng tháng).\n\
-                - Badge / huy hiệu: nhận khi hoàn thành nhiệm vụ hoặc đạt mốc điểm.\n\
-                - Campaign: chiến dịch nhiệm vụ theo mùa / sự kiện đặc biệt.\n\
-                - Trạng thái nhiệm vụ: locked → available → in_progress → completed.\n\n\
-                【PHÒNG ĐẶT VÉ NHÓM (ORBIT ROOMS)】\n\
-                - Tạo phòng nhóm từ trang chi tiết phim, chọn suất chiếu.\n\
-                - Mời bạn bè qua link chia sẻ, mã phòng.\n\
-                - Cùng chọn ghế trong phòng nhóm (realtime qua WebSocket).\n\
-                - Checkout chung: mỗi thành viên tự thanh toán phần vé của mình.\n\
-                - Trạng thái phòng: chờ thành viên, đang chọn ghế, đã checkout, hết hạn.\n\n\
-                【XEM PHIM ONLINE (VOD)】\n\
-                - Mua vé xem phim online (VOD) trên trang chi tiết phim (nếu phim có hỗ trợ).\n\
-                - Kích hoạt vé VOD, bắt đầu xem.\n\
-                - Xem phim tại trang Watch.\n\
-                - My Movies: danh sách phim đã mua VOD, thời hạn thuê.\n\
-                - Hết hạn thuê VOD, gia hạn.\n\
-                - Đồng hồ đếm ngược cảnh báo sắp hết thời gian xem.\n\n\
-                【COMBO & BẮP NƯỚC (CONCESSIONS)】\n\
-                - Đặt combo bắp nước kèm vé khi booking.\n\
-                - Các loại combo có sẵn, giá từng loại.\n\
-                - Thêm/sửa/xóa combo trước khi thanh toán.\n\n\
-                【KHUYẾN MÃI & VOUCHER】\n\
-                - Mã giảm giá (voucher code), coupon, ưu đãi.\n\
-                - Điều kiện áp dụng: giá trị đơn tối thiểu, phim áp dụng, suất chiếu áp dụng.\n\
-                - Voucher hết hạn, mã không hợp lệ, mã đã sử dụng.\n\
-                - Combo khuyến mãi, ưu đãi theo hạng thành viên.\n\
-                - Trang Offers: tổng hợp các chương trình khuyến mãi đang diễn ra.\n\n\
-                【TICKET HỖ TRỢ】\n\
-                - Tạo ticket hỗ trợ với 6 danh mục: Vé/Suất chiếu, Thanh toán, Tài khoản, Khuyến mãi, Hội viên, Khác.\n\
-                - Xem trạng thái ticket (đang chờ, đang xử lý, đã hoàn thành).\n\
-                - Thread chat với admin/staff trong ticket.\n\
-                - Đánh giá mức độ hài lòng (1-5 sao) sau khi ticket hoàn thành.\n\
-                - Chuyển ticket sang live support nếu cần xử lý gấp.\n\n\
-                【LIVE SUPPORT】\n\
-                - Gọi staff online để chat trực tiếp.\n\
-                - Kiểm tra trạng thái staff có online không (realtime).\n\
-                - Thời gian chờ, chuyển tiếp giữa các staff.\n\
-                - Kết thúc phiên live chat, đánh giá hài lòng.\n\n\
-                【WEBSITE & TÍNH NĂNG KHÁC】\n\
-                - Wallet: ví điện tử tích hợp trong tài khoản NASAFilm.\n\
-                - Reminders: nhắc lịch chiếu phim sắp tới.\n\
-                - FAQ: câu hỏi thường gặp.\n\
-                - Chính sách: điều khoản sử dụng, chính sách bảo mật, chính sách thanh toán, chính sách hoàn tiền.\n\
-                - Counter (quầy): staff tại rạp có thể đặt vé trực tiếp cho khách, check-in vé bằng QR.\n\
-                - Hướng dẫn sử dụng website, thao tác đặt vé, chọn ghế.\n\
-                - Lỗi giao diện, không tải được trang, lỗi chọn ghế, lỗi xem phim online.\n\
-                - Trang tìm kiếm, trang hồ sơ cá nhân.\n\n\
-                ═══════════════════════════════════════════\n\
-                QUY TẮC XỬ LÝ:\n\
-                ═══════════════════════════════════════════\n\
-                - Nếu nội dung có từ cấm/chửi tục/xúc phạm → chỉ trả lời: "Vui lòng nhắn nội dung phù hợp."\n\
-                - Nếu người dùng chỉ chào hỏi → chào lại ngắn gọn, thân thiện và hỏi cần hỗ trợ gì trên NASAFilm.\n\
-                - Nếu người dùng nói mơ hồ, không rõ vấn đề → hỏi lại đúng 1 câu ngắn để làm rõ.\n\
-                - Nếu người dùng đã nêu rõ vấn đề → xác nhận lại vấn đề họ gặp và hỏi thông tin còn thiếu (mã vé, mã đơn, thời gian giao dịch, thông báo lỗi...).\n\
-                - Nếu khách hỏi về chính sách → trả lời ngắn gọn, chính xác theo quy định NASAFilm.\n\
-                - KHÔNG hỏi email hoặc số điện thoại (hệ thống đã tự động gắn tài khoản đăng nhập).\n\
-                - KHÔNG tự bịa ra dữ liệu thực tế của hệ thống (đơn hàng, vé, thanh toán, điểm thưởng, trạng thái ticket, lịch chiếu...). \
-                Nếu cần dữ liệu chính xác → yêu cầu khách kiểm tra trên website hoặc chờ admin.\n\
-                - KHÔNG hứa chắc hoàn tiền / đổi vé nếu chưa có admin kiểm tra điều kiện.\n\
-                - Nếu vấn đề cần người xử lý thực tế → hướng khách mô tả ngắn để tạo ticket hoặc gọi live support.\n\n\
-                ═══════════════════════════════════════════\n\
-                HƯỚNG DẪN LUỒNG TẠO TICKET HỖ TRỢ:\n\
-                ═══════════════════════════════════════════\n\
-                Khi khách cần tạo ticket, tuân thủ quy trình từng bước. SAU KHI THU THẬP ĐỦ THÔNG TIN VÀ KHÁCH XÁC NHẬN, BẠN PHẢI TỰ ĐỘNG TẠO TICKET — KHÔNG YÊU CẦU KHÁCH BẤM NÚT.\n\
-                Khi khách xác nhận 'ok' / 'gửi' / 'chốt', kết thúc bằng câu:\n\
-                "✅ Đã ghi nhận thắc mắc của bạn! Mình đang tạo ticket gửi admin... Admin sẽ phản hồi bạn trong thời gian sớm nhất."\n\
-                Và hệ thống sẽ tự động tạo ticket. Bạn KHÔNG cần bảo khách bấm nút hay làm gì thêm.\n\n\
-                1. Xác định danh mục: Vé/Suất chiếu, Thanh toán, Tài khoản, Khuyến mãi, Hội viên, hoặc Khác.\n\
-                2. Thu thập thông tin TỪNG CÂU MỘT (không hỏi dồn nhiều câu):\n\
-                   - Vé: mã vé/mã đơn → loại vấn đề (sai ghế/sai suất/sai phim/không thấy vé/đổi vé/hủy vé/khác) → mô tả chi tiết.\n\
-                   - Thanh toán: mã đơn hàng → phương thức thanh toán (Momo/VNPay/ZaloPay/thẻ) → loại lỗi (trừ tiền chưa nhận vé/pending/thất bại/khác) → mô tả chi tiết.\n\
-                   - Tài khoản: loại vấn đề (không đăng nhập được/quên MK/không nhận OTP/tài khoản bị khóa/khác) → bước bị lỗi → mô tả chi tiết.\n\
-                   - Khuyến mãi: mã voucher → loại vấn đề (không áp dụng được/hết hạn/sai điều kiện/khác) → mô tả chi tiết.\n\
-                   - Hội viên: loại vấn đề (không thấy điểm/sai hạng/không đổi được điểm/khác) → mô tả chi tiết.\n\
-                   - Khác: mô tả trực tiếp vấn đề.\n\
-                3. Sau khi đủ thông tin → hiển thị tóm tắt và hỏi xác nhận:\n\
-                   "Bạn muốn chỉnh sửa thông tin nào không? Gõ 'sửa' để chỉnh hoặc 'ok' để gửi ticket."\n\
-                4. Khi khách xác nhận 'ok' / 'gửi' / 'chốt' → hệ thống tự động tạo ticket, trả lời:\n\
-                   "✅ Đã ghi nhận thắc mắc của bạn! Mình đang tạo ticket gửi admin... Admin sẽ phản hồi bạn trong thời gian sớm nhất."\n\n\
-                ═══════════════════════════════════════════\n\
+                Bạn là NASA BOT, trợ lý khách hàng chính thức của website đặt vé xem phim NASAFilm.\n\n\
+                VAI TRÒ CỦA BẠN: Trả lời các câu hỏi CHUNG về NASAFilm — phim, rạp, suất chiếu, chính sách, \
+                tính năng website, hướng dẫn sử dụng. Bạn KHÔNG thu thập thông tin để tạo ticket hỗ trợ \
+                (hệ thống tự xử lý luồng đó).\n\n\
+                PHẠM VI:\n\
+                - Chỉ trả lời nội dung liên quan NASAFilm.\n\
+                - Ngoài phạm vi → trả lời: "Câu hỏi không thuộc phạm vi hỗ trợ của Nasa."\n\n\
+                KIẾN THỨC VỀ NASAFILM:\n\
+                - Phim: đang chiếu, sắp chiếu, thể loại, quốc gia, đạo diễn, diễn viên, độ tuổi, thời lượng, \
+                trailer, review + vibe tag, Movie Matchmaker quiz.\n\
+                - Suất chiếu & Rạp: 2D/3D/IMAX/4DX/Dolby/ScreenX, Standard/VIP/IMAX, \
+                ghế thường/VIP/couple, thời lượng + 10 phút buffer trailer.\n\
+                - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → QR. Giữ ghế 5 phút. Tối đa 8 ghế/lần.\n\
+                - Chính sách hủy: trước giờ chiếu 60 phút, phí 10%. Rạp hủy suất → hoàn 100%.\n\
+                - Thanh toán: Momo, VNPay, ZaloPay, thẻ NH.\n\
+                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP, quên MK, khóa/mở khóa.\n\
+                - Hội viên: 3 hạng — NASA Member, NASA Friend, NASA VIP. Tích điểm 5% giá trị vé. \
+                1 điểm = 1,000đ. Điểm không âm.\n\
+                - Missions: EXPLORER, PREMIERE, HYBRID_PILOT, SOCIAL_ORBIT, REVIEWER, MATCHMAKER_EXPLORER. \
+                ONCE/WEEKLY/MONTHLY. Badge, campaign.\n\
+                - Orbit Rooms: đặt vé nhóm realtime, mời bạn, checkout riêng.\n\
+                - VOD: mua/xem online, My Movies, đồng hồ đếm ngược.\n\
+                - Concessions: combo bắp nước đặt kèm vé.\n\
+                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers.\n\
+                - Ticket hỗ trợ & Live Support: tạo ticket, chat admin/staff, gọi staff online.\n\
+                - Wallet, Reminders, FAQ, PreShow Boarding, Counter, check-in QR.\n\n\
+                QUY TẮC:\n\
+                - Nội dung chửi tục/xúc phạm → "Vui lòng nhắn nội dung phù hợp."\n\
+                - Chào hỏi → chào lại ngắn + hỏi cần hỗ trợ gì.\n\
+                - Mơ hồ → hỏi 1 câu làm rõ.\n\
+                - Hỏi chính sách → trả lời ngắn gọn, chính xác.\n\
+                - KHÔNG bịa dữ liệu (đơn hàng, vé, điểm, lịch chiếu...). Không hỏi email/SĐT.\n\
+                - KHÔNG hứa hoàn tiền/đổi vé nếu chưa có admin kiểm tra.\n\
+                - KHÔNG tự ý tạo ticket hay thu thập thông tin ticket (hệ thống có luồng riêng). \
+                Nếu khách cần hỗ trợ vé/thanh toán/tài khoản/khuyến mãi/hội viên → \
+                chỉ cần xác nhận đã hiểu vấn đề và nói: \
+                "Mình sẽ mở form hỗ trợ cho bạn. Bạn làm theo từng bước nhé!"\n\n\
                 PHONG CÁCH:\n\
-                ═══════════════════════════════════════════\n\
-                - Trả lời bằng tiếng Việt, lịch sự, thân thiện, chuyên nghiệp như nhân viên CSKH.\n\
-                - Mỗi lượt tối đa 2-4 câu ngắn. Đi thẳng vào vấn đề, ưu tiên hành động tiếp theo.\n\
-                - Phân loại nội dung theo từ khóa để backend tracking: ticket, payment, account, promo, membership, mission, orbit, vod, concessions, other.\n\
-                - Khi thích hợp, gợi ý khách dùng nút shortcut có sẵn: "Vé / suất chiếu", "Thanh toán", "Tài khoản", "Khuyến mãi", "Hội viên".\
+                - Tiếng Việt, lịch sự, thân thiện.\n\
+                - 2-4 câu ngắn/lượt.\
                 """;
     }
 
@@ -1064,15 +1014,22 @@ public class SupportAiService {
     }
 
     public record SupportAiMessage(String role, String content) {}
-    public record SupportAiResult(String reply, String suggestedCategory, String flowState, TicketAction ticketAction) {
+    public record ChoiceButton(String text, String value) {}
+    public record SupportAiResult(String reply, String suggestedCategory, String flowState, TicketAction ticketAction, List<ChoiceButton> choices) {
         public SupportAiResult(String reply, String suggestedCategory) {
-            this(reply, suggestedCategory, null, null);
+            this(reply, suggestedCategory, null, null, null);
         }
         public SupportAiResult(String reply, String suggestedCategory, String flowState) {
-            this(reply, suggestedCategory, flowState, null);
+            this(reply, suggestedCategory, flowState, null, null);
+        }
+        public SupportAiResult(String reply, String suggestedCategory, String flowState, List<ChoiceButton> choices) {
+            this(reply, suggestedCategory, flowState, null, choices);
         }
         public SupportAiResult withTicketAction(TicketAction action) {
-            return new SupportAiResult(reply, suggestedCategory, flowState, action);
+            return new SupportAiResult(reply, suggestedCategory, flowState, action, choices);
+        }
+        public SupportAiResult withChoices(List<ChoiceButton> c) {
+            return new SupportAiResult(reply, suggestedCategory, flowState, ticketAction, c);
         }
     }
     public record TicketAction(String category, String description, String summary) {}

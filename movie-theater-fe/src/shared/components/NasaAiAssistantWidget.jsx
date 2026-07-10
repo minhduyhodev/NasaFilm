@@ -641,7 +641,7 @@ const NasaAiAssistantWidget = () => {
       });
 
       if (ai?.reply) {
-        pushBot(ai.reply);
+        pushBot(ai.reply, ai?.choices || null);
         hasAiReply = true;
       }
 
@@ -786,6 +786,20 @@ const NasaAiAssistantWidget = () => {
         )}
         <div className={`nasa-assistant-bubble ${message.role === 'user' ? 'nasa-assistant-bubble--user' : 'nasa-assistant-bubble--bot'}`}>
           {message.text}
+          {message.choices?.length > 0 && (
+            <div className="nasa-assistant-choices">
+              {message.choices.map((choice, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="nasa-assistant-choice-btn"
+                  onClick={() => submitBotMessage(choice.value)}
+                >
+                  {choice.text}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="nasa-assistant-time">{message.time}</div>
       </div>
