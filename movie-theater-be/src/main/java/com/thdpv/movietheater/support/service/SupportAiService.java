@@ -176,17 +176,17 @@ public class SupportAiService {
         },
         "account", new String[]{
             "👤 Bạn gặp vấn đề gì về tài khoản?\n• Không đăng nhập được\n• Không nhận được mã OTP\n• Quên mật khẩu\n• Tài khoản bị khóa\n• Cần cập nhật thông tin\n• Khác (mô tả thêm)",
-            "🔄 Bạn đang bị lỗi ở bước nào? (Ví dụ: nhập OTP, nhập mật khẩu, xác thực email...)",
-            "📝 Bạn mô tả thêm chi tiết và thông báo lỗi (nếu có) để kỹ thuật kiểm tra nhé."
+            "🔄 Bạn đang bị lỗi ở bước nào? (Ví dụ: nhập OTP, nhập mật khẩu, xác thực email, đăng nhập Google...)",
+            "📝 Ghi email đăng ký, thông báo lỗi trên màn hình và thời gian phát sinh để admin kiểm tra."
         },
         "promo", new String[]{
             "🎁 Bạn vui lòng nhập **mã voucher** hoặc tên **chương trình khuyến mãi** gặp lỗi giúp mình.",
-            "⚠️ Vấn đề bạn gặp với mã này là gì?\n• Không áp dụng được khi thanh toán\n• Mã đã hết hạn\n• Không đúng điều kiện áp dụng\n• Khác (mô tả thêm)",
-            "📝 Bạn mô tả thêm chi tiết (thông báo lỗi, thời điểm áp dụng) để admin kiểm tra nhé."
+            "⚠️ Vấn đề bạn gặp với mã này là gì?\n• Không áp dụng được khi thanh toán\n• Mã đã hết hạn\n• Không đúng điều kiện áp dụng\n• Combo bắp nước không giảm giá\n• Khác (mô tả thêm)",
+            "📝 Ghi mã đơn liên quan, thông báo lỗi và thời điểm áp dụng để admin kiểm tra."
         },
         "membership", new String[]{
             "👑 Bạn gặp vấn đề gì về hội viên?\n• Điểm thưởng chưa được cộng / bị sai\n• Hạng thành viên không đúng\n• Quyền lợi hội viên không được áp dụng\n• Khác (mô tả thêm)",
-            "📝 Bạn mô tả thêm chi tiết (mã đơn liên quan, thời điểm phát sinh) để admin kiểm tra nhé."
+            "📝 Ghi mã đơn liên quan, số điểm/hạng hiện tại và thời điểm phát sinh để admin kiểm tra."
         }
     );
 
@@ -804,17 +804,33 @@ public class SupportAiService {
                 - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → QR. Giữ ghế 5 phút. Tối đa 8 ghế/lần.\n\
                 - Chính sách hủy: trước giờ chiếu 60 phút, phí 10%. Rạp hủy suất → hoàn 100%.\n\
                 - Thanh toán: Momo, VNPay, ZaloPay, thẻ NH.\n\
-                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP, quên MK, khóa/mở khóa.\n\
-                - Hội viên: 3 hạng — NASA Member, NASA Friend, NASA VIP. Tích điểm 5% giá trị vé. \
-                1 điểm = 1,000đ. Điểm không âm.\n\
+                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email 6 số, quên MK, kích hoạt tài khoản, khóa/mở khóa.\n\
+                - Hội viên: NASA Member (0), NASA Friend (≥5.000 lifetime), NASA VIP (≥10.000 lifetime). \
+                Tích điểm floor(tổng tiền thực trả/10.000đ). 1 điểm = 1,000đ. Giảm combo Friend 10%, VIP 15%.\n\
                 - Missions: EXPLORER, PREMIERE, HYBRID_PILOT, SOCIAL_ORBIT, REVIEWER, MATCHMAKER_EXPLORER. \
                 ONCE/WEEKLY/MONTHLY. Badge, campaign.\n\
                 - Orbit Rooms: đặt vé nhóm realtime, mời bạn, checkout riêng.\n\
                 - VOD: mua/xem online, My Movies, đồng hồ đếm ngược.\n\
                 - Concessions: combo bắp nước đặt kèm vé.\n\
-                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers.\n\
+                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers, voucher đổi điểm.\n\
                 - Ticket hỗ trợ & Live Support: tạo ticket, chat admin/staff, gọi staff online.\n\
                 - Wallet, Reminders, FAQ, PreShow Boarding, Counter, check-in QR.\n\n\
+                FAQ HỖ TRỢ THEO DANH MỤC (trả lời ngắn, chính xác):\n\n\
+                👤 TÀI KHOẢN — đăng nhập, OTP, mật khẩu:\n\
+                - Quên MK: trang Quên mật khẩu → email → link reset (kiểm tra spam).\n\
+                - OTP đăng ký: gửi qua email, có cooldown, sai nhiều lần có thể khóa tạm.\n\
+                - Đăng nhập: email + MK hoặc Google OAuth; cần kích hoạt tài khoản.\n\
+                - Profile: cập nhật họ tên, SĐT; MK tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt).\n\n\
+                🎁 KHUYẾN MÃI — voucher, combo, mã giảm giá:\n\
+                - Nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước.\n\
+                - Lỗi thường gặp: hết hạn, chưa đủ hạng, hết lượt, chưa đổi điểm kích hoạt.\n\
+                - Combo: Friend giảm 10%, VIP giảm 15% (theo lifetimeScore).\n\n\
+                👑 HỘI VIÊN — điểm, hạng, quyền lợi:\n\
+                - Tích điểm: floor(tổng tiền thực trả / 10.000đ) sau thanh toán thành công.\n\
+                - Hạng (lifetimeScore): Member 0 · Friend ≥5.000 · VIP ≥10.000.\n\
+                - Quy đổi: 1 điểm = 1.000đ; hoàn/hủy vé điều chỉnh điểm tương ứng.\n\n\
+                Khi FAQ không giải quyết được → hướng khách chọn danh mục phù hợp trên widget và mô tả chi tiết \
+                (email, mã đơn, thông báo lỗi, thời gian).\n\n\
                 QUY TẮC:\n\
                 - Nội dung chửi tục/xúc phạm → "Vui lòng nhắn nội dung phù hợp."\n\
                 - Chào hỏi → chào lại ngắn + hỏi cần hỗ trợ gì.\n\

@@ -3,7 +3,7 @@ import { Bot, MessageCircleMore, Plus, Save, Sparkles, Trash2 } from 'lucide-rea
 import { AdminPage } from '../components';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
-import { DEFAULT_NASA_BOT_CONFIG } from '../../../shared/constants/systemConfig';
+import { DEFAULT_NASA_BOT_CONFIG, DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../../../shared/constants/systemConfig';
 import { normalizeNasaBotConfig, normalizeNasaBotShortcut } from '../../../shared/utils/systemConfig';
 import './NasaBotConfigPage.css';
 
@@ -227,6 +227,36 @@ const NasaBotConfigPage = () => {
             </p>
           </div>
         </section>
+
+        <section className="nasabot-config__panel nasabot-config__panel--faq">
+          <div className="nasabot-config__panel-title">
+            <MessageCircleMore className="w-4 h-4" />
+            FAQ tham chiếu (Tài khoản · Khuyến mãi · Hội viên)
+          </div>
+          <p className="nasabot-config__desc">
+            Nội dung mặc định đã gắn vào personaPrompt. Admin có thể chỉnh trong ô Prompt phía trên.
+            Kịch bản chi tiết cho staff: <code>docs/05_SUPPORT_SCRIPTS.md</code>
+          </p>
+          <div className="nasabot-faq-list">
+            {DEFAULT_NASA_BOT_SUPPORT_FAQS.map((group) => (
+              <article key={group.key} className="nasabot-faq-card">
+                <header className="nasabot-faq-card__head">
+                  <strong>{group.label}</strong>
+                  <span>{group.summary}</span>
+                </header>
+                <ul className="nasabot-faq-card__items">
+                  {group.items.map((item) => (
+                    <li key={item.q}>
+                      <strong>{item.q}</strong>
+                      <p>{item.a}</p>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="nasabot-config__panel nasabot-config__panel--preview">
           <div className="nasabot-config__panel-title">
             <Sparkles className="w-4 h-4" />

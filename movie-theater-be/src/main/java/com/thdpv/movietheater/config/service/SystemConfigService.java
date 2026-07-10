@@ -255,17 +255,38 @@ public class SystemConfigService {
                 - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → QR. Giữ ghế 5 phút. Tối đa 8 ghế/lần.
                 - Chính sách hủy: trước giờ chiếu 60 phút, phí 10%. Rạp hủy suất → hoàn 100%.
                 - Thanh toán: Momo, VNPay, ZaloPay, thẻ NH.
-                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP, quên MK, khóa/mở khóa.
-                - Hội viên: 3 hạng — NASA Member, NASA Friend, NASA VIP. Tích điểm 5% giá trị vé. \
-                1 điểm = 1,000đ. Điểm không âm.
+                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email 6 số, quên MK, kích hoạt tài khoản, khóa/mở khóa.
+                - Hội viên: NASA Member (0), NASA Friend (≥5.000 lifetime), NASA VIP (≥10.000 lifetime). \
+                Tích điểm floor(tổng tiền thực trả/10.000đ). 1 điểm = 1.000đ. Giảm combo Friend 10%, VIP 15%.
                 - Missions: EXPLORER, PREMIERE, HYBRID_PILOT, SOCIAL_ORBIT, REVIEWER, MATCHMAKER_EXPLORER. \
                 ONCE/WEEKLY/MONTHLY. Badge, campaign.
                 - Orbit Rooms: đặt vé nhóm realtime, mời bạn, checkout riêng.
                 - VOD: mua/xem online, My Movies, đồng hồ đếm ngược.
                 - Concessions: combo bắp nước đặt kèm vé.
-                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers.
+                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers, voucher đổi điểm.
                 - Ticket hỗ trợ & Live Support: tạo ticket, chat admin/staff, gọi staff online.
                 - Wallet, Reminders, FAQ, PreShow Boarding, Counter, check-in QR.
+
+                FAQ HỖ TRỢ THEO DANH MỤC (trả lời ngắn, chính xác):
+
+                👤 TÀI KHOẢN — đăng nhập, OTP, mật khẩu:
+                - Quên MK: trang Quên mật khẩu → email → link reset (kiểm tra spam).
+                - OTP đăng ký: gửi qua email, có cooldown, sai nhiều lần có thể khóa tạm.
+                - Đăng nhập: email + MK hoặc Google OAuth; cần kích hoạt tài khoản.
+                - Profile: cập nhật họ tên, SĐT; MK tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt).
+
+                🎁 KHUYẾN MÃI — voucher, combo, mã giảm giá:
+                - Nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước.
+                - Lỗi thường gặp: hết hạn, chưa đủ hạng, hết lượt, chưa đổi điểm kích hoạt.
+                - Combo: Friend giảm 10%, VIP giảm 15% (theo lifetimeScore).
+
+                👑 HỘI VIÊN — điểm, hạng, quyền lợi:
+                - Tích điểm: floor(tổng tiền thực trả / 10.000đ) sau thanh toán thành công.
+                - Hạng (lifetimeScore): Member 0 · Friend ≥5.000 · VIP ≥10.000.
+                - Quy đổi: 1 điểm = 1.000đ; hoàn/hủy vé điều chỉnh điểm tương ứng.
+
+                Khi FAQ không giải quyết được → hướng khách chọn danh mục phù hợp trên widget và mô tả chi tiết \
+                (email, mã đơn, thông báo lỗi, thời gian).
 
                 QUY TẮC:
                 - Nội dung chửi tục/xúc phạm → "Vui lòng nhắn nội dung phù hợp."
@@ -291,9 +312,9 @@ public class SystemConfigService {
         bot.put("shortcuts", List.of(
                 shortcutEntry("Vé / suất chiếu", "ticket_support", "Hỗ trợ mã vé, mã đơn, suất chiếu, ghế, đổi hoặc hoàn vé", "Tôi cần hỗ trợ về vé hoặc suất chiếu."),
                 shortcutEntry("Thanh toán", "payment_support", "Hỗ trợ giao dịch lỗi, bị trừ tiền, chưa nhận vé, hoàn tiền", "Tôi cần hỗ trợ về thanh toán."),
-                shortcutEntry("Tài khoản", "account_support", "Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản", "Tôi không đăng nhập được và cần hỗ trợ tài khoản."),
-                shortcutEntry("Khuyến mãi", "promo_support", "Hỗ trợ voucher, combo, ưu đãi, mã giảm giá", "Tôi cần hỗ trợ về voucher hoặc khuyến mãi."),
-                shortcutEntry("Hội viên", "membership_support", "Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên", "Tôi cần hỗ trợ về hội viên và điểm thưởng."),
+                shortcutEntry("Tài khoản", "account_support", "Đăng nhập, OTP email, quên mật khẩu, Google OAuth, khóa tài khoản", "Tôi không đăng nhập được và cần hỗ trợ tài khoản."),
+                shortcutEntry("Khuyến mãi", "promo_support", "Voucher, combo bắp nước, mã giảm giá, trang Offers", "Tôi cần hỗ trợ về voucher hoặc khuyến mãi."),
+                shortcutEntry("Hội viên", "membership_support", "Điểm thưởng, hạng NASA Member/Friend/VIP, quyền lợi combo", "Tôi cần hỗ trợ về hội viên và điểm thưởng."),
                 shortcutEntry("Mô tả vấn đề khác", "other_support", "Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn", "Tôi có một vấn đề khác và cần được hỗ trợ.")));
         bot.put("categoryKeywords", Map.of(
                 "ticket", List.of("ve", "ticket", "dat ve", "ma ve", "ma don", "suat chieu", "lich chieu", "ghe", "doi ve", "hoan ve", "huy ve", "phong chieu"),

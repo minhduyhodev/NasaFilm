@@ -36,6 +36,11 @@ export const supportService = {
     return response.data.data ?? response.data;
   },
 
+  async fallbackLiveSupport(ticketCode) {
+    const response = await authService.api.post(`/api/support-live/${ticketCode}/fallback`);
+    return response.data.data ?? response.data;
+  },
+
   async getSupportRequest(ticketCode) {
     const response = await authService.api.get(`/api/support-requests/${ticketCode}`);
     return response.data.data ?? response.data;

@@ -120,18 +120,25 @@ public class SupportTicketService {
     }
 
     @Transactional
-    public SupportTicketResponse addAdminMessage(String ticketCode, String adminName, String message, String status) {
+    public SupportTicketResponse addAdminMessage(String ticketCode, String adminEmail, String message, String status) {
         SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
-        ticket.setLastMessage(message.trim());
+        String adminDisplayName = resolveUserDisplayName(adminEmail);
+        String trimmedMessage = message.trim();
+        String lastMessagePreview = resolveLastMessagePreview(trimmedMessage);
+        ticket.setLastMessage(lastMessagePreview);
         ticket.setLastMessageSender("ADMIN");
         ticket.setReadByAdmin(true);
         if (status != null && !status.isBlank()) {
             ticket.setStatus(status.trim().toUpperCase());
         }
-        ticket.setAnswer(message.trim());
+        ticket.setAnswer(lastMessagePreview);
+        if (ticket.getAssignedStaffName() == null || ticket.getAssignedStaffName().isBlank()) {
+            ticket.setAssignedStaffEmail(adminEmail != null ? adminEmail.trim().toLowerCase() : null);
+            ticket.setAssignedStaffName(adminDisplayName);
+        }
         SupportTicket saved = supportTicketRepository.save(ticket);
-        saveMessage(saved.getUuid(), "ADMIN", adminName, message.trim());
+        saveMessage(saved.getUuid(), "ADMIN", adminDisplayName, trimmedMessage);
         return map(saved);
     }
 
@@ -209,6 +216,29 @@ public class SupportTicketService {
 
     private String getTicketCodeByUuid(UUID uuid) {
         return supportTicketRepository.findById(uuid).map(SupportTicket::getTicketCode).orElse(null);
+    }
+
+    private String resolveUserDisplayName(String email) {
+        if (email == null || email.isBlank()) {
+            return "Staff";
+        }
+        String normalizedEmail = email.trim();
+        return userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .map(user -> {
+                    String fullName = user.getFullName();
+                    if (fullName != null && !fullName.isBlank()) {
+                        return fullName.trim();
+                    }
+                    return normalizedEmail;
+                })
+                .orElse(normalizedEmail);
+    }
+
+    private String resolveLastMessagePreview(String message) {
+        if (message != null && message.matches("\\[\\[sticker:[a-z0-9-]+\\]\\]")) {
+            return "Nhãn cảm ơn từ staff";
+        }
+        return message;
     }
 
     public record SupportTicketEvent(String ticketCode, String senderRole) {}

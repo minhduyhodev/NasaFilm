@@ -33,19 +33,19 @@ export const DEFAULT_NASA_BOT_SHORTCUTS = [
   {
     buttonName: 'Tài khoản',
     shortcutName: 'account_support',
-    description: 'Hỗ trợ đăng nhập, OTP, mật khẩu, lỗi tài khoản',
+    description: 'Đăng nhập, OTP email, quên mật khẩu, Google OAuth, khóa tài khoản',
     queryContent: 'Tôi không đăng nhập được và cần hỗ trợ tài khoản.',
   },
   {
     buttonName: 'Khuyến mãi',
     shortcutName: 'promo_support',
-    description: 'Hỗ trợ voucher, combo, ưu đãi, mã giảm giá',
+    description: 'Voucher, combo bắp nước, mã giảm giá, trang Offers',
     queryContent: 'Tôi cần hỗ trợ về voucher hoặc khuyến mãi.',
   },
   {
     buttonName: 'Hội viên',
     shortcutName: 'membership_support',
-    description: 'Hỗ trợ điểm thưởng, hạng thành viên, quyền lợi hội viên',
+    description: 'Điểm thưởng, hạng NASA Member/Friend/VIP, quyền lợi combo',
     queryContent: 'Tôi cần hỗ trợ về hội viên và điểm thưởng.',
   },
   {
@@ -66,6 +66,100 @@ export const DEFAULT_NASA_BOT_CATEGORY_KEYWORDS = {
 };
 
 export const DEFAULT_NASA_BOT_BANNED_WORDS = ['dm', 'dmm', 'dit', 'dit me', 'du ma', 'duma', 'clm', 'cc', 'lon', 'cac', 'cai lon', 'chui', 'fuck', 'shit', 'bitch'];
+
+/** FAQ tham chiếu cho admin + block gắn vào personaPrompt mặc định */
+export const DEFAULT_NASA_BOT_SUPPORT_FAQS = [
+  {
+    key: 'account',
+    label: 'Tài khoản',
+    summary: 'Đăng nhập, OTP, mật khẩu',
+    items: [
+      {
+        q: 'Quên mật khẩu?',
+        a: 'Vào Quên mật khẩu trên trang đăng nhập, nhập email đã đăng ký, kiểm tra hộp thư (kể cả spam) để lấy link đặt lại mật khẩu.',
+      },
+      {
+        q: 'Không nhận OTP đăng ký?',
+        a: 'OTP 6 số gửi qua email đăng ký. Có thời gian chờ giữa các lần gửi; nhập sai nhiều lần có thể bị khóa tạm. Kiểm tra spam và đợi vài phút trước khi gửi lại.',
+      },
+      {
+        q: 'Không đăng nhập được?',
+        a: 'Kiểm tra email/mật khẩu, Caps Lock, tài khoản đã kích hoạt chưa. Có thể thử Google OAuth nếu đã liên kết. Vẫn lỗi → chọn danh mục Tài khoản và mô tả thông báo lỗi trên màn hình.',
+      },
+      {
+        q: 'Cập nhật thông tin cá nhân?',
+        a: 'Vào Profile để sửa họ tên, số điện thoại. Mật khẩu tối thiểu 8 ký tự, có hoa + thường + số + ký tự đặc biệt.',
+      },
+    ],
+  },
+  {
+    key: 'promo',
+    label: 'Khuyến mãi',
+    summary: 'Voucher, combo, mã giảm giá',
+    items: [
+      {
+        q: 'Mã voucher không áp dụng được?',
+        a: 'Kiểm tra mã đúng chính tả, còn hạn, đủ điều kiện (hạng hội viên, đơn tối thiểu). Voucher đổi điểm phải đổi trong Offers/ví voucher trước khi thanh toán.',
+      },
+      {
+        q: 'Combo bắp nước không giảm giá?',
+        a: 'Giảm combo theo lifetimeScore: NASA Friend (≥5.000 điểm) giảm 10%, NASA VIP (≥10.000) giảm 15%. NASA Member chưa có giảm combo.',
+      },
+      {
+        q: 'Voucher hết hạn hoặc hết lượt?',
+        a: 'Mỗi chương trình có thời gian hiệu lực và giới hạn lượt dùng. Xem voucher đang active tại trang Offers.',
+      },
+      {
+        q: 'Báo chưa đủ hạng để đổi voucher?',
+        a: 'Một số voucher yêu cầu NASA Friend (≥5.000 lifetime) hoặc NASA VIP (≥10.000). Kiểm tra hạng tại Profile/Missions.',
+      },
+    ],
+  },
+  {
+    key: 'membership',
+    label: 'Hội viên',
+    summary: 'Điểm thưởng, hạng thành viên, quyền lợi',
+    items: [
+      {
+        q: 'Sao chưa cộng điểm sau mua vé?',
+        a: 'Điểm chỉ cộng khi thanh toán thành công: mỗi 10.000đ thực trả = 1 điểm (làm tròn xuống). Kiểm tra Profile sau vài phút.',
+      },
+      {
+        q: 'Hạng thành viên tính thế nào?',
+        a: 'Theo lifetimeScore (điểm tích lũy): NASA Member (0), NASA Friend (≥5.000), NASA VIP (≥10.000). Khác với điểm đang có thể tiêu.',
+      },
+      {
+        q: 'Dùng điểm thanh toán?',
+        a: '1 điểm = 1.000đ, không âm, không vượt giá đơn. Hủy/hoàn vé → hoàn điểm đã dùng và trừ điểm đã tích của đơn đó.',
+      },
+      {
+        q: 'Quyền lợi hội viên?',
+        a: 'Giảm combo bắp nước (Friend 10%, VIP 15%), đổi voucher theo hạng, nhiệm vụ Missions cộng thêm điểm.',
+      },
+    ],
+  },
+];
+
+export const DEFAULT_NASA_BOT_FAQ_PROMPT = `FAQ HỖ TRỢ THEO DANH MỤC (trả lời ngắn, chính xác):
+
+👤 TÀI KHOẢN — đăng nhập, OTP, mật khẩu:
+- Quên MK: trang Quên mật khẩu → email → link reset (kiểm tra spam).
+- OTP đăng ký: gửi qua email, có cooldown, sai nhiều lần có thể khóa tạm.
+- Đăng nhập: email + MK hoặc Google OAuth; cần kích hoạt tài khoản.
+- Profile: cập nhật họ tên, SĐT; MK tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt).
+
+🎁 KHUYẾN MÃI — voucher, combo, mã giảm giá:
+- Nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước.
+- Lỗi thường gặp: hết hạn, chưa đủ hạng, hết lượt, chưa đổi điểm kích hoạt.
+- Combo: Friend giảm 10%, VIP giảm 15% (theo lifetimeScore).
+
+👑 HỘI VIÊN — điểm, hạng, quyền lợi:
+- Tích điểm: floor(tổng tiền thực trả / 10.000đ) sau thanh toán thành công.
+- Hạng (lifetimeScore): Member 0 · Friend ≥5.000 · VIP ≥10.000.
+- Quy đổi: 1 điểm = 1.000đ; hoàn/hủy vé điều chỉnh điểm tương ứng.
+
+Khi FAQ không giải quyết được → hướng khách chọn danh mục phù hợp trên widget và mô tả chi tiết (email, mã đơn, thông báo lỗi, thời gian).`;
+
 export const DEFAULT_NASA_BOT_CONFIG = {
   personaPrompt: `Bạn là NASA BOT, trợ lý khách hàng chính thức của website đặt vé xem phim NASAFilm.
 
@@ -85,17 +179,19 @@ ghế thường/VIP/couple, thời lượng + 10 phút buffer trailer.
 - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → QR. Giữ ghế 5 phút. Tối đa 8 ghế/lần.
 - Chính sách hủy: trước giờ chiếu 60 phút, phí 10%. Rạp hủy suất → hoàn 100%.
 - Thanh toán: Momo, VNPay, ZaloPay, thẻ NH.
-- Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP, quên MK, khóa/mở khóa.
-- Hội viên: 3 hạng — NASA Member, NASA Friend, NASA VIP. Tích điểm 5% giá trị vé. \
-1 điểm = 1,000đ. Điểm không âm.
+- Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email 6 số, quên MK, kích hoạt tài khoản, khóa/mở khóa.
+- Hội viên: NASA Member (0), NASA Friend (≥5.000 lifetime), NASA VIP (≥10.000 lifetime). \
+Tích điểm floor(tổng tiền thực trả/10.000đ). 1 điểm = 1.000đ. Giảm combo Friend 10%, VIP 15%.
 - Missions: EXPLORER, PREMIERE, HYBRID_PILOT, SOCIAL_ORBIT, REVIEWER, MATCHMAKER_EXPLORER. \
 ONCE/WEEKLY/MONTHLY. Badge, campaign.
 - Orbit Rooms: đặt vé nhóm realtime, mời bạn, checkout riêng.
 - VOD: mua/xem online, My Movies, đồng hồ đếm ngược.
 - Concessions: combo bắp nước đặt kèm vé.
-- Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers.
+- Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers, voucher đổi điểm.
 - Ticket hỗ trợ & Live Support: tạo ticket, chat admin/staff, gọi staff online.
 - Wallet, Reminders, FAQ, PreShow Boarding, Counter, check-in QR.
+
+${DEFAULT_NASA_BOT_FAQ_PROMPT}
 
 QUY TẮC:
 - Nội dung chửi tục/xúc phạm → "Vui lòng nhắn nội dung phù hợp."
