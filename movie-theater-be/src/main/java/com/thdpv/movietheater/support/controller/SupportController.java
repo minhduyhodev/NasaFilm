@@ -37,12 +37,32 @@ public class SupportController {
     }
 
     @PostMapping("/support-ai/chat")
-    public ResponseEntity<ApiResponse<SupportAiResponse>> chat(@RequestBody SupportAiRequest request) {
+    public ResponseEntity<ApiResponse<SupportAiResponse>> chat(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody SupportAiRequest request) {
         var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
                 .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
                 .toList();
         var result = supportAiService.chat(request.message(), history);
-        return ResponseEntity.ok(ApiResponse.success(new SupportAiResponse(result.reply(), result.suggestedCategory())));
+
+        // Auto-create ticket if AI produced a ticketAction
+        SupportTicketResponse createdTicket = null;
+        if (result.ticketAction() != null && userDetails != null) {
+            var ticketReq = new SupportTicketCreateRequest();
+            ticketReq.setCategory(result.ticketAction().category());
+            ticketReq.setDescription(result.ticketAction().description());
+            try {
+                createdTicket = supportTicketService.create(userDetails.getUsername(), ticketReq);
+            } catch (Exception e) {
+                // If user already has an active ticket, just ignore auto-create
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(new SupportAiResponse(
+                result.reply(),
+                result.suggestedCategory(),
+                createdTicket != null ? createdTicket.getTicketCode() : null,
+                createdTicket)));
     }
 
     @GetMapping("/support-ai/status")
@@ -100,7 +120,11 @@ public class SupportController {
 
     public record SupportAiMessageRequest(String role, String content) {}
 
-    public record SupportAiResponse(String reply, String suggestedCategory) {}
+    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket) {
+        public SupportAiResponse(String reply, String suggestedCategory) {
+            this(reply, suggestedCategory, null, null);
+        }
+    }
 
     public record SupportAiStatusResponse(boolean configured, String mode) {}
 }

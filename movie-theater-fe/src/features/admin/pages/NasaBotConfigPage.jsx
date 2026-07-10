@@ -9,6 +9,13 @@ import './NasaBotConfigPage.css';
 
 const cloneBotConfig = (config) => JSON.parse(JSON.stringify(normalizeNasaBotConfig(config || DEFAULT_NASA_BOT_CONFIG)));
 
+const CATEGORY_KEYWORD_LABELS = {
+  ticket: 'Vé / suất chiếu',
+  payment: 'Thanh toán',
+  account: 'Tài khoản',
+  promo: 'Khuyến mãi',
+  membership: 'Hội viên',
+};
 const createShortcut = (index) => ({
   buttonName: `Shortcut ${index + 1}`,
   shortcutName: `custom_${index + 1}_support`,
@@ -84,6 +91,23 @@ const NasaBotConfigPage = () => {
     }));
   };
 
+
+  const updateCategoryKeywords = (category, value) => {
+    setBotConfig((prev) => ({
+      ...prev,
+      categoryKeywords: {
+        ...(prev.categoryKeywords || {}),
+        [category]: value.split(',').map((keyword) => keyword.trim()).filter(Boolean),
+      },
+    }));
+  };
+
+  const updateBannedWords = (value) => {
+    setBotConfig((prev) => ({
+      ...prev,
+      bannedWords: value.split(',').map((word) => word.trim()).filter(Boolean),
+    }));
+  };
   const removeShortcut = (index) => {
     setBotConfig((prev) => ({
       ...prev,
@@ -167,94 +191,42 @@ const NasaBotConfigPage = () => {
 
         <section className="nasabot-config__panel nasabot-config__panel--arrangement">
           <div className="nasabot-config__panel-title">
-            <MessageCircleMore className="w-4 h-4" />
-            Trải nghiệm trong widget
+            <Bot className="w-4 h-4" />
+            NASA Bot Keyword
+          </div>
+          <p className="nasabot-config__desc">
+            Keyword nối thẳng tới backend để bot hiểu nhóm hỗ trợ. Nhập các keyword cách nhau bằng dấu phẩy.
+          </p>
+
+          <div className="nasabot-config__list">
+            {Object.entries(CATEGORY_KEYWORD_LABELS).map(([category, label]) => (
+              <label key={category} className="nasabot-config__field">
+                <span>{label}</span>
+                <textarea
+                  className="nasabot-config__textarea nasabot-config__textarea--compact"
+                  value={(botConfig.categoryKeywords?.[category] || []).join(', ')}
+                  onChange={(e) => updateCategoryKeywords(category, e.target.value)}
+                  placeholder="Ví dụ: vé, đặt vé, mã vé"
+                />
+              </label>
+            ))}
           </div>
 
           <div className="nasabot-config__subgroup">
             <div className="nasabot-config__subgroup-head">
-              <span>Opening questions</span>
-              <button type="button" className="nasabot-config__icon-btn" onClick={addOpeningQuestion}>
-                <Plus className="w-4 h-4" />
-              </button>
+              <span>Keyword từ cấm / chửi tục</span>
             </div>
-            <div className="nasabot-config__list">
-              {botConfig.openingQuestions.map((question, index) => (
-                <div key={`opening-${index}`} className="nasabot-config__list-item">
-                  <input
-                    className="nasabot-config__input"
-                    value={question}
-                    onChange={(e) => updateOpeningQuestion(index, e.target.value)}
-                    placeholder="Ví dụ: Thanh toán bị lỗi"
-                  />
-                  <button type="button" className="nasabot-config__icon-btn" onClick={() => removeOpeningQuestion(index)}>
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="nasabot-config__subgroup">
-            <div className="nasabot-config__subgroup-head">
-              <span>Shortcuts</span>
-              <button type="button" className="nasabot-config__icon-btn" onClick={addShortcut}>
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="nasabot-config__list">
-              {botConfig.shortcuts.map((shortcut, index) => (
-                <div key={`${shortcut.shortcutName || 'shortcut'}-${index}`} className="nasabot-config__shortcut-card">
-                  <label className="nasabot-config__field">
-                    <span>Nhãn hiển thị</span>
-                    <input
-                      className="nasabot-config__input"
-                      value={shortcut.buttonName}
-                      onChange={(e) => updateShortcut(index, 'buttonName', e.target.value)}
-                      placeholder="Ví dụ: Thanh toán"
-                    />
-                  </label>
-                  <label className="nasabot-config__field">
-                    <span>Mô tả ngắn</span>
-                    <textarea
-                      className="nasabot-config__textarea nasabot-config__textarea--compact"
-                      value={shortcut.description}
-                      onChange={(e) => updateShortcut(index, 'description', e.target.value)}
-                      placeholder="Hiển thị dưới nút shortcut"
-                    />
-                  </label>
-                  <label className="nasabot-config__field">
-                    <span>Nội dung bot hiểu khi bấm shortcut</span>
-                    <textarea
-                      className="nasabot-config__textarea nasabot-config__textarea--compact"
-                      value={shortcut.queryContent}
-                      onChange={(e) => updateShortcut(index, 'queryContent', e.target.value)}
-                      placeholder="Ví dụ: Tôi cần hỗ trợ về thanh toán."
-                    />
-                  </label>
-                  <label className="nasabot-config__field">
-                    <span>Khóa nội bộ</span>
-                    <input
-                      className="nasabot-config__input"
-                      value={shortcut.shortcutName}
-                      onChange={(e) => updateShortcut(index, 'shortcutName', e.target.value)}
-                      placeholder="payment_support"
-                    />
-                  </label>
-                  <div className="nasabot-config__shortcut-foot">
-                    <span className="nasabot-config__shortcut-id">
-                      Áp dụng trực tiếp vào widget sau khi lưu
-                    </span>
-                    <button type="button" className="nasabot-config__icon-btn" onClick={() => removeShortcut(index)}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <textarea
+              className="nasabot-config__textarea nasabot-config__textarea--compact"
+              value={(botConfig.bannedWords || []).join(', ')}
+              onChange={(e) => updateBannedWords(e.target.value)}
+              placeholder="Ví dụ: từ tục 1, từ tục 2"
+            />
+            <p className="nasabot-config__desc">
+              Nếu khách nhắn chứa từ trong danh sách này, bot trả về: Vui lòng nhắn nội dung phù hợp.
+            </p>
           </div>
         </section>
-
         <section className="nasabot-config__panel nasabot-config__panel--preview">
           <div className="nasabot-config__panel-title">
             <Sparkles className="w-4 h-4" />

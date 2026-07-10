@@ -38,6 +38,13 @@ const TABS = [
 
 const emptyTypeEntry = () => ({ value: '', label: '', enabled: true });
 
+const NASA_BOT_CATEGORY_LABELS = {
+  ticket: 'Vé / suất chiếu',
+  payment: 'Thanh toán',
+  account: 'Tài khoản',
+  promo: 'Khuyến mãi',
+  membership: 'Hội viên',
+};
 const formatVnd = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 
 const ConfigSection = ({ title, description, children }) => (
@@ -346,6 +353,17 @@ const ConfigPage = () => {
     }));
   };
 
+
+  const updateNasaBotCategoryKeywords = (category, value) => {
+    updateNasaBotField('categoryKeywords', {
+      ...(nasaBot.categoryKeywords || {}),
+      [category]: value.split(',').map((keyword) => keyword.trim()).filter(Boolean),
+    });
+  };
+
+  const updateNasaBotBannedWords = (value) => {
+    updateNasaBotField('bannedWords', value.split(',').map((word) => word.trim()).filter(Boolean));
+  };
   const lockPreviewMinutes = (multiplier) => {
     const m = Number(multiplier) || 2;
     return `Phim 120 phút → khóa xem ${Math.round(120 * m)} phút (~${(120 * m / 60).toFixed(1)} giờ)`;
@@ -359,8 +377,6 @@ const ConfigPage = () => {
   ]), [config]);
 
   const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
-  const nasaBotPreviewQuestions = (nasaBot.openingQuestions || []).slice(0, 4);
-  const nasaBotPreviewShortcuts = (nasaBot.shortcuts || []).slice(0, 4);
   const supportAiModeLabel = supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
     ? 'OPENAI'
     : 'FALLBACK';
@@ -637,7 +653,7 @@ const ConfigPage = () => {
         {activeTab === 'nasabot' && (
           <div className="sys-config__split">
             <div className="sys-config__bot-stack">
-              <ConfigSection title="Persona & Prompt" description="Prompt này chỉ áp dụng cho /api/support-ai/chat. Opening questions và shortcuts áp dụng vào widget phía người dùng.">
+              <ConfigSection title="Setting Prompt" description="Prompt hệ thống nối thẳng tới NASA Bot khi người dùng chat thật qua /api/support-ai/chat.">
                 <ConfigField label="Prompt hệ thống">
                   <textarea
                     className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
@@ -650,15 +666,53 @@ const ConfigPage = () => {
                 </p>
               </ConfigSection>
 
-              <ConfigSection title="Opening questions & Shortcuts" description="Chỉ giữ đúng các mục đang dùng: Opening questions và shortcuts hỗ trợ.">
-                <NasaBotQuestionList
-                  items={nasaBot.openingQuestions || []}
-                  onChange={(openingQuestions) => updateNasaBotField('openingQuestions', openingQuestions)}
-                />
-                <NasaBotShortcutList
-                  items={nasaBot.shortcuts || []}
-                  onChange={(shortcuts) => updateNasaBotField('shortcuts', shortcuts)}
-                />
+              <ConfigSection title="NASA Bot Keyword" description="Nhập keyword cách nhau bằng dấu phẩy. Khi khách nhắn trúng keyword, bot tự hiểu nhóm cần hỗ trợ.">
+                <div className="sys-config__fields">
+                  {Object.entries(NASA_BOT_CATEGORY_LABELS).map(([category, label]) => (
+                    <ConfigField key={category} label={label}>
+                      <textarea
+                        className="sys-config__input sys-config__input--textarea"
+                        value={(nasaBot.categoryKeywords?.[category] || []).join(', ')}
+                        onChange={(e) => updateNasaBotCategoryKeywords(category, e.target.value)}
+                        placeholder="Ví dụ: vé, đặt vé, mã vé"
+                      />
+                    </ConfigField>
+                  ))}
+                </div>
+              </ConfigSection>
+            </div>
+
+            <div className="sys-config__bot-stack">
+              <ConfigSection title="Keyword từ cấm" description="Nếu khách nhắn chứa từ trong danh sách này, NASA Bot trả về: Vui lòng nhắn nội dung phù hợp.">
+                <ConfigField label="Từ cấm / chửi tục">
+                  <textarea
+                    className="sys-config__input sys-config__input--textarea sys-config__input--textarea-lg"
+                    value={(nasaBot.bannedWords || []).join(', ')}
+                    onChange={(e) => updateNasaBotBannedWords(e.target.value)}
+                    placeholder="Ví dụ: từ tục 1, từ tục 2"
+                  />
+                </ConfigField>
+              </ConfigSection>
+
+              <ConfigSection title="Kịch bản phản hồi" description="Các hành vi chính đang được backend áp dụng.">
+                <div className="sys-config__bot-preview">
+                  <div className="sys-config__bot-preview-head">
+                    <span className="sys-config__bot-preview-avatar" />
+                    <div>
+                      <strong>NASA Bot</strong>
+                      <span>{supportAiModeLabel} · Prompt + Keyword + Từ cấm</span>
+                    </div>
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    Trong phạm vi website: hỗ trợ vé, thanh toán, tài khoản, khuyến mãi, hội viên và ticket.
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    Ngoài phạm vi: Xin lỗi bạn, mình không hỗ trợ câu hỏi ngoài website
+                  </div>
+                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
+                    Có từ cấm: Vui lòng nhắn nội dung phù hợp
+                  </div>
+                </div>
               </ConfigSection>
 
               <div className="sys-config__bot-save-row">
@@ -671,43 +725,6 @@ const ConfigPage = () => {
                   {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
                 </button>
               </div>
-            </div>
-
-            <div className="sys-config__bot-stack">
-              <ConfigSection title="Preview & Debug" description="Preview này mô phỏng logic widget thật. Nó không lấy raw personaPrompt để giả làm một câu trả lời chat.">
-                <div className="sys-config__bot-preview">
-                  <div className="sys-config__bot-preview-head">
-                    <span className="sys-config__bot-preview-avatar" />
-                    <div>
-                      <strong>NASA Bot</strong>
-                      <span>{supportAiModeLabel} · Widget + Support AI</span>
-                    </div>
-                  </div>
-                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
-                    Chào bạn, mình là NASA BOT.
-                  </div>
-                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
-                    {nasaBotPreviewQuestions.map((question, index) => (
-                      <div key={`${question}-${index}`}>{index + 1}. {question}</div>
-                    ))}
-                  </div>
-                  <div className="sys-config__bot-preview-shortcuts">
-                    {nasaBotPreviewShortcuts.map((shortcut) => (
-                      <span key={shortcut.shortcutName} className="sys-config__bot-preview-chip">
-                        {shortcut.buttonName}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--user">
-                    Tôi cần hỗ trợ về vé hoặc suất chiếu.
-                  </div>
-                  <div className="sys-config__bot-preview-bubble sys-config__bot-preview-bubble--bot">
-                    {supportAiStatus.configured && supportAiStatus.mode === 'OPENAI'
-                      ? 'Khi người dùng chat thật, câu trả lời AI sẽ đi qua persona prompt bạn cấu hình ở trên.'
-                      : 'Ở môi trường hiện tại, bot sẽ trả lời theo fallback cứng theo nhóm ticket/payment/account... chứ chưa bám theo persona prompt.'}
-                  </div>
-                </div>
-              </ConfigSection>
             </div>
           </div>
         )}

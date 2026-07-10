@@ -651,6 +651,19 @@ const NasaAiAssistantWidget = () => {
           setSelectedCategory(matchedCategory);
         }
       }
+
+      // Handle auto-created ticket from backend
+      if (ai?.autoTicketCode) {
+        const ticketData = ai?.autoTicket || { ticketCode: ai.autoTicketCode, status: 'PENDING' };
+        setTicket(ticketData);
+        setActiveTicketCode(ai.autoTicketCode);
+        await loadMyTickets();
+        setPanelView(SUPPORT_VIEWS.THREAD);
+        if (ai.autoTicketCode) {
+          await refreshTicketThread(ai.autoTicketCode);
+        }
+        return; // Ticket created, skip local routing
+      }
     } catch {
       // Fall back to local routing below.
     } finally {
