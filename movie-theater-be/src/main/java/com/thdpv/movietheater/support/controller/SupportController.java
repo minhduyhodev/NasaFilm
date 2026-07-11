@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.support.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,12 +39,33 @@ public class SupportController {
     }
 
     @PostMapping("/support-ai/chat")
-    public ResponseEntity<ApiResponse<SupportAiResponse>> chat(@RequestBody SupportAiRequest request) {
+    public ResponseEntity<ApiResponse<SupportAiResponse>> chat(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody SupportAiRequest request) {
         var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
                 .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
                 .toList();
         var result = supportAiService.chat(request.message(), history);
-        return ResponseEntity.ok(ApiResponse.success(new SupportAiResponse(result.reply(), result.suggestedCategory())));
+
+        // Auto-create ticket if AI produced a ticketAction
+        SupportTicketResponse createdTicket = null;
+        if (result.ticketAction() != null && userDetails != null) {
+            var ticketReq = new SupportTicketCreateRequest();
+            ticketReq.setCategory(result.ticketAction().category());
+            ticketReq.setDescription(result.ticketAction().description());
+            try {
+                createdTicket = supportTicketService.create(userDetails.getUsername(), ticketReq);
+            } catch (Exception e) {
+                // If user already has an active ticket, just ignore auto-create
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(SupportAiResponse.of(
+                result.reply(),
+                result.suggestedCategory(),
+                createdTicket != null ? createdTicket.getTicketCode() : null,
+                createdTicket,
+                result.choices())));
     }
 
     @GetMapping("/support-ai/status")
@@ -100,7 +123,18 @@ public class SupportController {
 
     public record SupportAiMessageRequest(String role, String content) {}
 
-    public record SupportAiResponse(String reply, String suggestedCategory) {}
+    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices) {
+        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons) {
+            List<Map<String, String>> choiceList = null;
+            if (choiceButtons != null) {
+                choiceList = new ArrayList<>();
+                for (var c : choiceButtons) {
+                    choiceList.add(Map.of("text", c.text(), "value", c.value()));
+                }
+            }
+            return new SupportAiResponse(reply, suggestedCategory, autoTicketCode, autoTicket, choiceList);
+        }
+    }
 
     public record SupportAiStatusResponse(boolean configured, String mode) {}
 }

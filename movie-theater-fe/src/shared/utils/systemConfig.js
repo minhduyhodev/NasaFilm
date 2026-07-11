@@ -1,6 +1,8 @@
 import {
   DEFAULT_NASA_BOT_CONFIG,
   DEFAULT_NASA_BOT_SHORTCUTS,
+  DEFAULT_NASA_BOT_CATEGORY_KEYWORDS,
+  DEFAULT_NASA_BOT_BANNED_WORDS,
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_ROOM_TYPES,
   DEFAULT_SCREENING_FORMATS,
@@ -21,6 +23,26 @@ export function normalizeNasaBotShortcut(shortcut = {}, fallback = {}) {
   };
 }
 
+
+function normalizeNasaBotCategoryKeywords(categoryKeywords = {}) {
+  return Object.fromEntries(
+    Object.entries(DEFAULT_NASA_BOT_CATEGORY_KEYWORDS).map(([category, fallbackKeywords]) => {
+      const keywords = Array.isArray(categoryKeywords?.[category])
+        ? categoryKeywords[category]
+        : fallbackKeywords;
+
+      return [
+        category,
+        keywords.map((keyword) => `${keyword || ''}`.trim()).filter(Boolean),
+      ];
+    }),
+  );
+}
+
+function normalizeNasaBotWords(words = [], fallbackWords = []) {
+  const source = Array.isArray(words) ? words : fallbackWords;
+  return [...new Set(source.map((word) => `${word || ''}`.trim()).filter(Boolean))];
+}
 export function normalizeNasaBotConfig(config = {}) {
   const shortcuts = Array.isArray(config.shortcuts)
     ? config.shortcuts
@@ -36,6 +58,8 @@ export function normalizeNasaBotConfig(config = {}) {
       ? config.openingQuestions.map((item) => `${item || ''}`.trim()).filter(Boolean)
       : DEFAULT_NASA_BOT_CONFIG.openingQuestions,
     shortcuts: shortcuts.length > 0 ? shortcuts : DEFAULT_NASA_BOT_CONFIG.shortcuts,
+    categoryKeywords: normalizeNasaBotCategoryKeywords(config?.categoryKeywords),
+    bannedWords: normalizeNasaBotWords(config?.bannedWords, DEFAULT_NASA_BOT_BANNED_WORDS),
   };
 }
 

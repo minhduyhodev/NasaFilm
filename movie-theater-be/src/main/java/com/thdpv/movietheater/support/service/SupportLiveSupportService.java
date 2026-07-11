@@ -108,8 +108,34 @@ public class SupportLiveSupportService {
             throw new IllegalArgumentException("Yêu cầu này không còn ở trạng thái chờ nhận.");
         }
         String staffName = userRepository.findByEmailIgnoreCase(staffEmail).map(u -> u.getFullName()).orElse(staffEmail);
-        supportTicketService.saveMessage(ticket.getUuid(), "SYSTEM", "NASA BOT", staffName + " đã từ chối yêu cầu hỗ trợ này.");
+        ticket.setLiveRequested(false);
+        ticket.setLiveConnected(false);
+        ticket.setStatus("PENDING");
+        supportTicketRepository.save(ticket);
+        supportTicketService.saveMessage(ticket.getUuid(), "SYSTEM", "NASA BOT", staffName + " đã từ chối yêu cầu chat trực tiếp.");
+        supportTicketService.saveMessage(ticket.getUuid(), "SYSTEM", "NASA BOT",
+                "Ticket đã chuyển sang chờ admin xử lý. Bạn có thể tiếp tục nhắn tại đây.");
         eventPublisher.publishEvent(new SupportLiveEvent("LIVE_REJECTED", ticket.getTicketCode(), staffEmail, staffName));
+        return supportTicketService.getByCode(ticketCode);
+    }
+
+    @Transactional
+    public SupportTicketResponse fallbackLiveToTicket(String ticketCode, String ownerEmail) {
+        SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
+        if (!ticket.getOwnerEmail().equalsIgnoreCase(ownerEmail)) {
+            throw new IllegalArgumentException("Bạn không có quyền thao tác ticket này.");
+        }
+        if (!ticket.isLiveRequested() || ticket.isLiveConnected()) {
+            return supportTicketService.getByCode(ticketCode);
+        }
+        ticket.setLiveRequested(false);
+        ticket.setLiveConnected(false);
+        ticket.setStatus("PENDING");
+        supportTicketRepository.save(ticket);
+        supportTicketService.saveMessage(ticket.getUuid(), "SYSTEM", "NASA BOT",
+                "Không có nhân viên nhận chat trong thời gian chờ. Ticket đã chuyển sang chờ admin xử lý.");
+        eventPublisher.publishEvent(new SupportLiveEvent("LIVE_FALLBACK", ticket.getTicketCode(), null, null));
         return supportTicketService.getByCode(ticketCode);
     }
 
