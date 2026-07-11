@@ -41,7 +41,7 @@ export const buildAutoFormFromConfig = (config = {}, cinemas = []) => {
     weekendWeight: config.weekendWeight ?? 1.5,
     ratingWeight: config.ratingWeight ?? 1.0,
     genreWeight: config.genreWeight ?? 1.1,
-    publishStatus: 'SCHEDULED',
+    publishStatus: 'OPEN_FOR_BOOKING',
   };
 };
 

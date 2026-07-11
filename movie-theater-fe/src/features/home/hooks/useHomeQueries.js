@@ -13,6 +13,7 @@ export async function fetchNowShowingMovies() {
   return movieService.getMovies({
     status: 'NOW_SHOWING',
     requireBookableShowtime: true,
+    requireAwsStreaming: true,
     page: 0,
     size: 50,
   });

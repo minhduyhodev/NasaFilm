@@ -42,6 +42,10 @@ const MoviesPage = () => {
     };
     if (activeTab === 'now-showing') {
       queryParams.requireBookableShowtime = true;
+      queryParams.requireAwsStreaming = true;
+    }
+    if (activeTab === 'coming-soon') {
+      queryParams.requireAwsStreaming = true;
     }
     return queryParams;
   }, [activeTab, currentPage, appliedQueryParams]);

@@ -37,7 +37,13 @@ const ExclusiveCollection = ({ onlineOnly = false, movies: moviesProp, getOnline
     const load = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 30 });
+        const data = await movieService.getMovies({
+          status: 'NOW_SHOWING',
+          onlineOnly: true,
+          requireAwsStreaming: true,
+          page: 0,
+          size: 30,
+        });
         let list = filterOnlineMovies(mapApiMovies(data?.content || []));
         const onlineOnlyList = list.filter((m) => m.screeningMode === 'ONLINE_ONLY');
         const bothList = list.filter((m) => m.screeningMode === 'BOTH');

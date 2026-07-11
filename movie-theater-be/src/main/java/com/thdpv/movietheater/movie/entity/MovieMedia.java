@@ -34,7 +34,7 @@ public class MovieMedia {
     @JoinColumn(name = "movie_uuid", nullable = false)
     private Movie movie;
 
-    @Column(name = "media_url", nullable = false)
+    @Column(name = "media_url", nullable = false, length = 2048)
     private String mediaUrl;
 
     @Column(name = "media_type")

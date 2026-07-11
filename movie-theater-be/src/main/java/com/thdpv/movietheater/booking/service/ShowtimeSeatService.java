@@ -58,6 +58,7 @@ public class ShowtimeSeatService {
     private final SeatMapEventPublisher seatMapEventPublisher;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final SeatMapWatchRegistry seatMapWatchRegistry;
+    private final ShowtimeOverlapSupport showtimeOverlapSupport;
 
     public void registerSeatMapWatch(UUID showtimeUuid) {
         bookingRepository.ensureShowtimeExists(showtimeUuid);
@@ -291,21 +292,8 @@ public class ShowtimeSeatService {
             return;
         }
         Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-        if (showtime == null) {
-            return;
-        }
-        OffsetDateTime startTime = showtime.getStartTime();
-        OffsetDateTime endTime = showtime.getEndTime();
-        if (startTime.isBefore(now)) {
-            long daysToAdd = 0;
-            OffsetDateTime temp = startTime;
-            while (temp.isBefore(now)) {
-                temp = temp.plusDays(1);
-                daysToAdd++;
-            }
-            OffsetDateTime newStart = startTime.plusDays(daysToAdd);
-            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
-        }
+        showtimeOverlapSupport.planSlideIfPast(showtime, now).ifPresent(plan ->
+                bookingRepository.slideShowtime(showtimeUuid, plan.newStart(), plan.daysToAdd()));
     }
 
     private void cleanupExpiredLocks(UUID showtimeUuid, OffsetDateTime now) {
