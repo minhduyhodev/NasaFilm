@@ -59,6 +59,13 @@ public class ShowtimeController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/api/admin/showtimes/cleanup-drafts")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
+    public ResponseEntity<ApiResponse<Integer>> cleanupDraftShowtimes() {
+        int cancelled = showtimeService.cancelAllDraftShowtimes();
+        return ResponseEntity.ok(ApiResponse.success(cancelled, "Da huy " + cancelled + " suat chieu nhap (DRAFT)"));
+    }
+
     @GetMapping("/api/showtimes")
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getPublicShowtimes(
             @RequestParam(required = false) UUID cinemaUuid,

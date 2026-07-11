@@ -79,6 +79,8 @@ public class ShowtimeServiceTest {
     private SystemConfigService systemConfigService;
     @Mock
     private EntityManager entityManager;
+    @Mock
+    private ShowtimeOverlapSupport showtimeOverlapSupport;
 
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine = new ShowtimeSchedulingEngine();
 
@@ -96,6 +98,8 @@ public class ShowtimeServiceTest {
         ReflectionTestUtils.setField(showtimeService, "entityManager", entityManager);
         ReflectionTestUtils.setField(showtimeService, "showtimeSchedulingEngine", showtimeSchedulingEngine);
         when(systemConfigService.getConfig()).thenReturn(Map.of());
+        when(showtimeOverlapSupport.findOverlaps(any(), any(), any(), any(), anyInt()))
+                .thenReturn(Collections.emptyList());
 
         movieUuid = UUID.randomUUID();
         roomUuid = UUID.randomUUID();
@@ -121,7 +125,6 @@ public class ShowtimeServiceTest {
         
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(mockMovie));
         when(cinemaRoomRepository.findById(roomUuid)).thenReturn(Optional.of(mockRoom));
-        when(showtimeRepository.findOverlappingShowtimes(any(), any(), any(), any())).thenReturn(Collections.emptyList());
         when(showtimeRepository.save(any(Showtime.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ShowtimeResponse response = showtimeService.createShowtime(request);
@@ -140,9 +143,15 @@ public class ShowtimeServiceTest {
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(mockMovie));
         when(cinemaRoomRepository.findById(roomUuid)).thenReturn(Optional.of(mockRoom));
         
-        // Return an existing showtime to trigger overlapping check conflict
         Showtime existingShowtime = new Showtime();
-        when(showtimeRepository.findOverlappingShowtimes(any(), any(), any(), any())).thenReturn(Collections.singletonList(existingShowtime));
+        existingShowtime.setMovieUuid(movieUuid);
+        existingShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        existingShowtime.setStartTime(OffsetDateTime.now().plusDays(1));
+        existingShowtime.setEndTime(OffsetDateTime.now().plusDays(1).plusHours(2));
+        when(showtimeOverlapSupport.findOverlaps(any(), any(), any(), any(), anyInt()))
+                .thenReturn(Collections.singletonList(existingShowtime));
+        when(showtimeOverlapSupport.buildConflictMessage(any()))
+                .thenReturn("Lich chieu bi trung lap");
 
         assertThrows(AppException.class, () -> showtimeService.createShowtime(request));
     }
@@ -191,7 +200,7 @@ public class ShowtimeServiceTest {
 
         when(movieRepository.findAllById(any())).thenReturn(List.of(hotMovie, lowMovie));
         when(cinemaRoomRepository.findAllById(any())).thenReturn(List.of(mockRoom));
-        when(showtimeRepository.findActiveShowtimesInRooms(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(showtimeRepository.findActiveShowtimesInRooms(any(), any(), any(), any())).thenReturn(Collections.emptyList());
 
         AutoShowtimeRequest request = new AutoShowtimeRequest();
         request.setStartDate(LocalDate.now().plusDays(1));

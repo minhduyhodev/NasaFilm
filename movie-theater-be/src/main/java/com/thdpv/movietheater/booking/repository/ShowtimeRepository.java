@@ -30,7 +30,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                 s.status,
                 stt.uuid,
                 stt.name,
-                CASE 
+                CASE
                     WHEN UPPER(stt.name) = 'STANDARD' THEN st.basePrice
                     WHEN UPPER(stt.name) = 'VIP' THEN COALESCE(st.vipPrice, stt.basePrice)
                     WHEN UPPER(stt.name) = 'COUPLE' THEN COALESCE(st.couplePrice, stt.basePrice)
@@ -80,12 +80,24 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             """)
     List<Showtime> findFutureActiveShowtimesByRoom(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
 
-    @Query("SELECT s FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.uuid <> :excludeUuid AND s.status <> com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED AND s.startTime < :endTimeWithBuffer AND s.endTime > :startTimeWithBuffer")
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.cinemaRoomUuid = :roomUuid
+              AND s.uuid <> :excludeUuid
+              AND s.status NOT IN (
+                    com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED,
+                    com.thdpv.movietheater.booking.enums.ShowtimeStatus.FINISHED
+              )
+              AND s.endTime > :now
+              AND s.startTime < :endTimeWithBuffer
+              AND s.endTime > :startTimeWithBuffer
+            """)
     List<Showtime> findOverlappingShowtimes(
         @Param("roomUuid") UUID roomUuid,
         @Param("excludeUuid") UUID excludeUuid,
         @Param("startTimeWithBuffer") OffsetDateTime startTimeWithBuffer,
-        @Param("endTimeWithBuffer") OffsetDateTime endTimeWithBuffer
+        @Param("endTimeWithBuffer") OffsetDateTime endTimeWithBuffer,
+        @Param("now") OffsetDateTime now
     );
 
     @Query("""
@@ -101,12 +113,34 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     @Query("select count(s) from Showtime st join Seat s on s.cinemaRoom.uuid = st.cinemaRoomUuid where st.uuid = :showtimeUuid and s.uuid in :seatUuids")
     long countSeatsBelongingToShowtime(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
 
-    @Query("SELECT s FROM Showtime s WHERE s.cinemaRoomUuid IN :roomUuids AND s.startTime >= :startRange AND s.startTime < :endRange AND s.status <> com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED")
+    @Query("""
+            SELECT s FROM Showtime s
+            WHERE s.cinemaRoomUuid IN :roomUuids
+              AND s.startTime >= :startRange
+              AND s.startTime < :endRange
+              AND s.status NOT IN (
+                    com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED,
+                    com.thdpv.movietheater.booking.enums.ShowtimeStatus.FINISHED
+              )
+              AND s.endTime > :now
+            """)
     List<Showtime> findActiveShowtimesInRooms(
         @Param("roomUuids") Collection<UUID> roomUuids,
         @Param("startRange") OffsetDateTime startRange,
-        @Param("endRange") OffsetDateTime endRange
+        @Param("endRange") OffsetDateTime endRange,
+        @Param("now") OffsetDateTime now
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Showtime s SET s.status = :cancelled
+            WHERE s.status = :draft
+              AND s.endTime <= :now
+            """)
+    int cancelExpiredDrafts(
+            @Param("now") OffsetDateTime now,
+            @Param("draft") ShowtimeStatus draft,
+            @Param("cancelled") ShowtimeStatus cancelled);
 
     @Query("""
             SELECT MIN(s.startTime) FROM Showtime s

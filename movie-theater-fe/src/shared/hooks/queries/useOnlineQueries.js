@@ -9,6 +9,7 @@ async function fetchOnlineSpotlight() {
     page: 0,
     size: 50,
     onlineOnly: true,
+    requireAwsStreaming: true,
   });
   const onlineMovies = mapApiMovies(data?.content || []);
   const first = onlineMovies[0];
@@ -32,6 +33,7 @@ export function useOnlineCatalog(params, enabled = true) {
       movieService.getMovies({
         status: 'NOW_SHOWING',
         onlineOnly: true,
+        requireAwsStreaming: true,
         keyword: params.keyword || undefined,
         genreUuids: params.genreUuids,
         countryUuid: params.countryUuid || undefined,

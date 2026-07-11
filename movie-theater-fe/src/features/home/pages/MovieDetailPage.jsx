@@ -571,7 +571,7 @@ const MovieDetailPage = () => {
               )}
               <PosterImage
                 alt="High-res Movie Poster"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 src={movie.posterRaw}
                 width={500}
               />

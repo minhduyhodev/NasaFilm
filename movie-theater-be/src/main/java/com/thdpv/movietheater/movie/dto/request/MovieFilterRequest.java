@@ -19,11 +19,17 @@ public class MovieFilterRequest {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate showtimeDate;
 
-    /** Chỉ lấy phim có suất chiếu rạp sắp tới (SCHEDULED / OPEN_FOR_BOOKING / SOLD_OUT, startTime > now). */
+    /** Chỉ lấy phim có suất OPEN_FOR_BOOKING / SOLD_OUT sắp tới (startTime > now). */
     private Boolean requireBookableShowtime;
 
     /** Chỉ lấy phim có thể xem trực tuyến (screeningMode ONLINE_ONLY hoặc BOTH). */
     private Boolean onlineOnly;
+
+    /**
+     * Chỉ lấy phim có file chiếu trên AWS S3 ({@code .../movie/...}).
+     * Khi {@code onlineOnly=true} BE cũng ép điều kiện này.
+     */
+    private Boolean requireAwsStreaming;
 
     public MovieFilterRequest() {
     }
@@ -120,6 +126,14 @@ public class MovieFilterRequest {
         this.onlineOnly = onlineOnly;
     }
 
+    public Boolean getRequireAwsStreaming() {
+        return requireAwsStreaming;
+    }
+
+    public void setRequireAwsStreaming(Boolean requireAwsStreaming) {
+        this.requireAwsStreaming = requireAwsStreaming;
+    }
+
     /** Stable cache key for {@code @Cacheable} on filtered movie lists. */
     public String toCacheKey() {
         String genres = genreUuids == null || genreUuids.isEmpty()
@@ -135,7 +149,8 @@ public class MovieFilterRequest {
                 cinemaUuid == null ? "" : cinemaUuid.toString(),
                 showtimeDate == null ? "" : showtimeDate.toString(),
                 Boolean.TRUE.equals(requireBookableShowtime) ? "1" : "0",
-                Boolean.TRUE.equals(onlineOnly) ? "1" : "0");
+                Boolean.TRUE.equals(onlineOnly) ? "1" : "0",
+                Boolean.TRUE.equals(requireAwsStreaming) ? "1" : "0");
     }
 
     private static String nullToEmpty(String value) {

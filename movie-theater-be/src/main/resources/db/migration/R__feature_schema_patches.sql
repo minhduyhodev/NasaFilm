@@ -113,6 +113,9 @@ CREATE INDEX IF NOT EXISTS idx_orbit_member_room
 
 -- ── Review ───────────────────────────────────────────────────────────────────
 
+ALTER TABLE movie_media ALTER COLUMN media_url TYPE VARCHAR(2048);
+ALTER TABLE movie ALTER COLUMN streaming_url TYPE VARCHAR(2048);
+
 ALTER TABLE movie_review DROP CONSTRAINT IF EXISTS uk_movie_review_movie_user;
 
 -- ── Orbit Chat & Concessions ──────────────────────────────────────────────────

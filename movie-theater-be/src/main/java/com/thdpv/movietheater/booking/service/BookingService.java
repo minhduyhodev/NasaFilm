@@ -55,6 +55,7 @@ import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
@@ -103,6 +104,7 @@ public class BookingService {
     private final MissionService missionService;
     private final OrbitRoomService orbitRoomService;
     private final SeatGapValidationService seatGapValidationService;
+    private final ShowtimeOverlapSupport showtimeOverlapSupport;
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -753,17 +755,9 @@ public class BookingService {
         if (bookingRepository.hasConfirmedBookings(showtimeUuid)) {
             return;
         }
-        OffsetDateTime startTime = bookingRepository.getShowtimeStartTime(showtimeUuid);
-        if (startTime != null && startTime.isBefore(now)) {
-            long daysToAdd = 0;
-            OffsetDateTime temp = startTime;
-            while (temp.isBefore(now)) {
-                temp = temp.plusDays(1);
-                daysToAdd++;
-            }
-            OffsetDateTime newStart = startTime.plusDays(daysToAdd);
-            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
-        }
+        Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
+        showtimeOverlapSupport.planSlideIfPast(showtime, now).ifPresent(plan ->
+                bookingRepository.slideShowtime(showtimeUuid, plan.newStart(), plan.daysToAdd()));
     }
 
     private void ensureNoBookedSeats(UUID showtimeUuid, List<UUID> seatUuids) {
@@ -1367,7 +1361,7 @@ public class BookingService {
                 playbackState = "EXPIRED";
             } else {
                 playbackState = "STREAMING";
-                streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
+                streamingUrl = S3MediaBorderUtils.toBorderUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
             }
         }
 
@@ -1484,7 +1478,7 @@ public class BookingService {
             }
             booking.setStreamToken(streamToken);
             bookingJpaRepository.save(booking);
-            return new VodPlayResponse(streamToken, streamingUrl, booking.getExpiresAt());
+            return new VodPlayResponse(streamToken, S3MediaBorderUtils.toBorderUrl(streamingUrl), booking.getExpiresAt());
         }
 
         int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
@@ -1503,7 +1497,7 @@ public class BookingService {
                     userUuid, booking.getUuid(), movieUuid, now));
         }
 
-        VodPlayResponse response = new VodPlayResponse(streamToken, streamingUrl, expiresAt);
+        VodPlayResponse response = new VodPlayResponse(streamToken, S3MediaBorderUtils.toBorderUrl(streamingUrl), expiresAt);
         response.setMissionCompletions(missionCompletions);
         return response;
     }

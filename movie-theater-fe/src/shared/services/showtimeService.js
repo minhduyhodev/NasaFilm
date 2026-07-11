@@ -62,6 +62,15 @@ class ShowtimeService {
       throw authService.handleError(error);
     }
   }
+
+  async cleanupDraftShowtimes() {
+    try {
+      const response = await authService.api.post('/api/admin/showtimes/cleanup-drafts');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const showtimeService = new ShowtimeService();

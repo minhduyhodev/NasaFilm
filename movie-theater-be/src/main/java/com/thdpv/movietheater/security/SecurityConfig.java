@@ -65,6 +65,7 @@ public class SecurityConfig {
             "/api/showtimes/*/seat-map/watch",
             "/api/system-config",
             "/api/media/proxy",
+            "/api/media/border",
             "/api/media/tmdb-status",
             "/api/payments/webhook",
             "/api/payments/config",

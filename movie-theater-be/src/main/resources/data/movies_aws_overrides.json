@@ -1,0 +1,64 @@
+[
+  {
+    "matchTitle": "Mortal Kombat 2",
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/MortalKombat2_FIlm.mp4"
+  },
+  {
+    "matchTitle": "Zootopia 2",
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/zootopia-2.jpg",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TRAILER-zootopia-2.mp4",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/zootopia-2.mp4",
+    "status": "NOW_SHOWING"
+  },
+  {
+    "matchTitle": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/kimetsu-no-yaiba.jpg",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TRAILER-kimetsu-no-yaiba.mp4",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/kimetsu-no-yai-001.mp4",
+    "status": "NOW_SHOWING"
+  },
+  {
+    "matchTitle": "Avatar 2009",
+    "createIfMissing": true,
+    "description": "Người lính Jake Sully tham gia chương trình Avatar trên hành tinh Pandora và bị kẹt giữa nhiệm vụ quân sự với việc bảo vệ thế giới Na'vi.",
+    "durationMinutes": 162,
+    "releaseDate": "2009-12-18",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": ["Hành động", "Khoa học viễn tưởng", "Phiêu lưu"],
+    "countries": ["Mỹ"],
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/Avatar2009.jpg",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/trailerAvatar2009.mkv",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/avatar2009.mp4"
+  },
+  {
+    "matchTitle": "The Matrix",
+    "createIfMissing": true,
+    "description": "Hacker Neo khám phá thế giới thực chỉ là mô phỏng máy tính và gia nhập cuộc chiến giải phóng nhân loại khỏi máy móc.",
+    "durationMinutes": 136,
+    "releaseDate": "1999-03-31",
+    "status": "NOW_SHOWING",
+    "ageRating": "T16",
+    "genres": ["Hành động", "Khoa học viễn tưởng"],
+    "countries": ["Mỹ"],
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TheMatrix.png",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/TheMatrix.mp4"
+  },
+  {
+    "matchTitle": "Lời thì thầm của Trái tim",
+    "createIfMissing": true,
+    "description": "Nữ sinh Shizuku khao khát trở thành nhà văn, gặp cậu bạn Seiji và bước vào chuyến phiêu lưu giữa thế giới thực với trí tưởng tượng — câu chuyện Ghibli về tuổi trẻ và ước mơ.",
+    "durationMinutes": 111,
+    "releaseDate": "2025-01-10",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": ["Hoạt hình", "Tình cảm", "Gia đình"],
+    "countries": ["Nhật Bản"],
+    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/Whisper-of-the-Heart-Poster.jpg",
+    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/Whisper-of-the-Heart.mp4"
+  }
+]

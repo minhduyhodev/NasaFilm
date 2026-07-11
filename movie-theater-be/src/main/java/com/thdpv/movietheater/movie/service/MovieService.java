@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.common.time.AppTimeZones;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -67,6 +68,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -243,10 +245,8 @@ public class MovieService {
                 }
 
                 if (showtimeDate != null) {
-                    OffsetDateTime startOfDay = showtimeDate.atStartOfDay()
-                            .atOffset(OffsetDateTime.now().getOffset());
-                    OffsetDateTime endOfDay = showtimeDate.plusDays(1).atStartOfDay()
-                            .atOffset(OffsetDateTime.now().getOffset());
+                    OffsetDateTime startOfDay = AppTimeZones.dayStart(showtimeDate);
+                    OffsetDateTime endOfDay = AppTimeZones.dayStart(showtimeDate.plusDays(1));
                     subPredicates.add(cb.greaterThanOrEqualTo(stRoot.get("startTime"), startOfDay));
                     subPredicates.add(cb.lessThan(stRoot.get("startTime"), endOfDay));
                 }
@@ -263,7 +263,6 @@ public class MovieService {
                 bookableSubquery.where(
                         cb.greaterThan(bookableRoot.get("startTime"), now),
                         bookableRoot.get("status").in(
-                                ShowtimeStatus.SCHEDULED,
                                 ShowtimeStatus.OPEN_FOR_BOOKING,
                                 ShowtimeStatus.SOLD_OUT));
                 predicates.add(root.get("uuid").in(bookableSubquery));
@@ -277,6 +276,18 @@ public class MovieService {
                 predicates.add(cb.or(
                         cb.equal(root.get("screeningMode"), ScreeningMode.ONLINE_ONLY),
                         cb.equal(root.get("screeningMode"), ScreeningMode.BOTH)));
+            }
+
+            boolean requireAws = Boolean.TRUE.equals(filter.getRequireAwsStreaming())
+                    || Boolean.TRUE.equals(filter.getOnlineOnly())
+                    || Boolean.TRUE.equals(filter.getRequireBookableShowtime());
+            if (requireAws) {
+                // streaming_url must be mentor S3 object under movie/
+                jakarta.persistence.criteria.Expression<String> streamingLower =
+                        cb.lower(root.get("streamingUrl"));
+                predicates.add(cb.isNotNull(root.get("streamingUrl")));
+                predicates.add(cb.like(streamingLower, "%" + S3MediaBorderUtils.DEFAULT_BUCKET_HOST.toLowerCase() + "%"));
+                predicates.add(cb.like(streamingLower, "%/movie/%"));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -777,14 +788,14 @@ public class MovieService {
                 movie.getReleaseDate(),
                 movie.getStatus(),
                 movie.getAgeRestriction(),
-                resolvePrimaryMediaUrl(movie),
+                toBorderMediaUrl(resolvePrimaryMediaUrl(movie)),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
                         .toList(),
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
-                MovieStreamingUtils.resolveStreamingUrl(movie),
+                toBorderMediaUrl(MovieStreamingUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
@@ -817,7 +828,7 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
-                MovieStreamingUtils.resolveStreamingUrl(movie),
+                toBorderMediaUrl(MovieStreamingUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
@@ -859,13 +870,17 @@ public class MovieService {
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
         return new MovieMediaResponse(
                 movieMedia.getUuid(),
-                movieMedia.getMediaUrl(),
+                toBorderMediaUrl(movieMedia.getMediaUrl()),
                 movieMedia.getMediaType(),
                 movieMedia.getTitle(),
                 movieMedia.getIsPrimary(),
                 movieMedia.getSortOrder(),
                 movieMedia.getCreatedAt(),
                 movieMedia.getUpdatedAt());
+    }
+
+    private String toBorderMediaUrl(String mediaUrl) {
+        return S3MediaBorderUtils.toBorderUrl(mediaUrl);
     }
 
     private String resolvePrimaryMediaUrl(Movie movie) {
@@ -944,8 +959,8 @@ public class MovieService {
                 .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
 
         String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
-        if (streamingUrl == null) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
+        if (!S3MediaBorderUtils.isAwsMovieStreamingUrl(streamingUrl)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phim chi ho tro xem qua link AWS S3 (movie/)");
         }
 
         boolean isVip = user.getScore() != null && user.getScore() >= 10000;
@@ -955,7 +970,7 @@ public class MovieService {
             throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
         }
 
-        return streamingUrl;
+        return toBorderMediaUrl(streamingUrl);
     }
 
     private void applyStreamingUrl(Movie movie, String streamingUrl, List<MovieMediaRequest> medias) {
@@ -963,11 +978,18 @@ public class MovieService {
         if (resolved == null) {
             resolved = MovieStreamingUtils.resolveFromMediaRequests(medias);
         }
+        if (resolved != null && !S3MediaBorderUtils.isAwsMovieStreamingUrl(resolved)) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "streamingUrl chi chap nhan Object URL AWS S3 thu muc movie/ (java-06.s3.ap-southeast-1.amazonaws.com)");
+        }
         movie.setStreamingUrl(resolved);
     }
 
     private void syncStreamingUrlFromMediasIfMissing(Movie movie) {
         if (trimToNull(movie.getStreamingUrl()) != null) {
+            if (!S3MediaBorderUtils.isAwsMovieStreamingUrl(movie.getStreamingUrl())) {
+                movie.setStreamingUrl(null);
+            }
             return;
         }
         movie.setStreamingUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
