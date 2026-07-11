@@ -12,7 +12,10 @@ const OrbitJoinInput = () => {
   const handleJoin = async (e) => {
     e.preventDefault();
     const input = linkInput.trim();
-    if (!input) return;
+    if (!input) {
+      notificationService.error('Vui lòng nhập mã phòng hoặc dán link Orbit để tham gia.');
+      return;
+    }
 
     setLoading(true);
     try {

@@ -118,6 +118,33 @@
   @apply relative hidden h-11 shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-3 text-[11px] font-extrabold uppercase tracking-wide text-white no-underline shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 active:scale-95 md:inline-flex lg:px-3.5 xl:gap-2 xl:px-4 xl:text-xs xl:tracking-wider;
 }
 
+.navbar-booking-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.navbar-booking-option {
+  @apply flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-white/80 no-underline transition-all duration-200;
+}
+
+.navbar-booking-option:hover,
+.navbar-booking-option:focus-visible {
+  @apply bg-white/5 text-white outline-none;
+}
+
+.navbar-booking-option--active {
+  @apply bg-white/10 text-white;
+}
+
+.navbar-booking-option__icon {
+  @apply h-4 w-4 shrink-0 text-red-500;
+}
+
+.navbar-booking-option__icon--fill {
+  @apply fill-red-500;
+}
+
 .navbar-cta-btn span {
   @apply whitespace-nowrap;
 }

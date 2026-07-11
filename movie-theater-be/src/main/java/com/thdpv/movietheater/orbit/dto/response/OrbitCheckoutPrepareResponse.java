@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.orbit.dto.response;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -10,6 +11,7 @@ public class OrbitCheckoutPrepareResponse {
     private UUID showtimeUuid;
     private List<UUID> seatUuids = new ArrayList<>();
     private List<OrbitMemberResponse> members = new ArrayList<>();
+    private OffsetDateTime checkoutExpiresAt;
 
     public UUID getOrbitRoomUuid() {
         return orbitRoomUuid;
@@ -41,5 +43,13 @@ public class OrbitCheckoutPrepareResponse {
 
     public void setMembers(List<OrbitMemberResponse> members) {
         this.members = members;
+    }
+
+    public OffsetDateTime getCheckoutExpiresAt() {
+        return checkoutExpiresAt;
+    }
+
+    public void setCheckoutExpiresAt(OffsetDateTime checkoutExpiresAt) {
+        this.checkoutExpiresAt = checkoutExpiresAt;
     }
 }

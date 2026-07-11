@@ -79,6 +79,11 @@ public class ShowtimeService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
         }
 
+        OffsetDateTime now = OffsetDateTime.now();
+        if (request.getStartTime() == null || !request.getStartTime().isAfter(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ được tạo suất chiếu cho thời gian sắp tới");
+        }
+
         // Calculate end time from movie duration + trailer buffer (system config)
         ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.fromConfig(systemConfigService.getConfig());
         int duration = movie.getDurationMinutes() != null
@@ -122,6 +127,14 @@ public class ShowtimeService {
         ShowtimeStatus current = showtime.getStatus();
         if (current == ShowtimeStatus.CANCELLED || current == ShowtimeStatus.FINISHED) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da ket thuc hoac bi huy, khong the thay doi trang thai.");
+        }
+
+        if (newStatus == ShowtimeStatus.SCHEDULED || newStatus == ShowtimeStatus.OPEN_FOR_BOOKING) {
+            CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
+            if (room.getStatus() != CinemaRoomStatus.ACTIVE) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+            }
         }
 
         // Validate state machine transitions

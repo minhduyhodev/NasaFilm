@@ -3,7 +3,7 @@ import jsQR from 'jsqr';
 import { ImageUp } from 'lucide-react';
 import './StaffQrScanner.css';
 
-const SCAN_COOLDOWN_MS = 1200;
+const SCAN_COOLDOWN_MS = 3500;
 const SCAN_INTERVAL_MS = 45;
 const DECODE_MAX_WIDTH = 800;
 

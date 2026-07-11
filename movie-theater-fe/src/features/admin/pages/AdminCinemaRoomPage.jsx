@@ -17,11 +17,14 @@ import {
   parseLayoutConfig,
   serializeLayoutConfig,
   buildDefaultLayout,
+  expandColsForDefaultAisles,
+  buildLayoutFromAisleCols,
   slotKey,
   hasAisleSlot,
   addAisleSlots,
   removeAisleSlots,
   applyAisleSlotsToSeats,
+  countBookableSeats,
   getAisleLabelAnchors,
   getCompleteVerticalCols,
   getCompleteHorizontalRows,
@@ -186,14 +189,16 @@ const AdminCinemaRoomPage = () => {
         };
       });
 
-      const { rows, cols } = deriveLayoutDimensions(processedSeats);
-      setBuilderRows(rows);
-      setBuilderCols(cols);
-
-      const rowNames = [...new Set(processedSeats.map((s) => s.rowName))].filter(Boolean).sort();
+      const { rows, cols: gridCols } = deriveLayoutDimensions(processedSeats);
+      // Only apply stored layout; never invent default aisles on reload (would wipe MAINTENANCE).
       const layout = layoutConfigFromRoom
         ? parseLayoutConfig(layoutConfigFromRoom)
-        : buildDefaultLayout(cols, rowNames);
+        : EMPTY_AISLE_LAYOUT();
+      const aisleColCount = new Set(
+        (layout.slots || []).map((k) => Number(String(k).split(':')[1])).filter((n) => !Number.isNaN(n)),
+      ).size;
+      setBuilderRows(rows);
+      setBuilderCols(Math.max(1, gridCols - aisleColCount));
       const seatsWithAisles = applyAisleSlotsToSeats(processedSeats, layout);
       setSelectedRoomSeats(seatsWithAisles);
       setOriginalSeats(JSON.parse(JSON.stringify(seatsWithAisles)));
@@ -253,7 +258,7 @@ const AdminCinemaRoomPage = () => {
   }, [cinemaUuid, roomUuid]);
 
   const activeSeatCount = useMemo(
-    () => selectedRoomSeats.filter((s) => s.status === 'ACTIVE').length,
+    () => countBookableSeats(selectedRoomSeats),
     [selectedRoomSeats],
   );
 
@@ -262,6 +267,7 @@ const AdminCinemaRoomPage = () => {
   const expectedSeatCount = useMemo(() => {
     const rows = Number(builderRows) || 0;
     const cols = Number(builderCols) || 0;
+    // builderCols = bookable seats per row (aisles are inserted as extra grid columns)
     return rows > 0 && cols > 0 ? rows * cols : 0;
   }, [builderRows, builderCols]);
 
@@ -533,22 +539,33 @@ const AdminCinemaRoomPage = () => {
         }
       }
 
-      if (modifiedSeats.length === 0) {
-        notificationService.info('Không có thay đổi nào trong sơ đồ ghế cần lưu.');
-        setIsSavingSeats(false);
-        return;
+      if (modifiedSeats.length > 0) {
+        const promises = modifiedSeats.map(seat =>
+          cinemaService.updateSeat(seat.uuid, {
+            seatTypeUuid: seat.seatTypeUuid,
+            status: seat.status
+          })
+        );
+        await Promise.all(promises);
       }
 
-      // Execute updates sequentially or concurrently depending on server limits
-      const promises = modifiedSeats.map(seat => 
-        cinemaService.updateSeat(seat.uuid, {
-          seatTypeUuid: seat.seatTypeUuid,
-          status: seat.status
-        })
-      );
-      await Promise.all(promises);
+      // Always persist aisle layout + bookable capacity with seat saves.
+      await cinemaService.updateRoom(room.uuid, {
+        roomCode: room.roomCode,
+        name: room.name,
+        roomType: room.roomType,
+        capacity: countBookableSeats(selectedRoomSeats) || room.capacity,
+        status: room.status,
+        layoutConfig: serializeLayoutConfig(aisleLayout),
+      });
 
-      notificationService.success(`Đã cập nhật sơ đồ thực tế: ${modifiedSeats.length} vị trí ghế đã lưu.`);
+      setOriginalAisleLayout(JSON.parse(JSON.stringify(aisleLayout)));
+      notificationService.success(
+        modifiedSeats.length > 0
+          ? `Đã cập nhật sơ đồ: ${modifiedSeats.length} ghế và cấu hình lối đi.`
+          : 'Đã lưu cấu hình lối đi / sức chứa phòng.',
+      );
+      await refreshRoomMeta();
       fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
       console.error('Failed to save layout:', error);
@@ -580,19 +597,23 @@ const AdminCinemaRoomPage = () => {
 
     setIsLoadingSeats(true);
     try {
-      await cinemaService.generateSeats(room.uuid, finalRows, finalCols);
-      
+      const { gridCols, aisleCols } = expandColsForDefaultAisles(finalCols);
+      await cinemaService.generateSeats(room.uuid, finalRows, gridCols);
+
       const tempRowNames = Array.from({ length: finalRows }, (_, i) =>
         String.fromCharCode(65 + i)
       );
-      const newLayout = buildDefaultLayout(finalCols, tempRowNames);
+      const newLayout = aisleCols.length
+        ? buildLayoutFromAisleCols(aisleCols, tempRowNames)
+        : EMPTY_AISLE_LAYOUT();
       const layoutJson = serializeLayoutConfig(newLayout);
-      
+      const bookableCapacity = finalRows * finalCols;
+
       await cinemaService.updateRoom(room.uuid, {
         roomCode: room.roomCode,
         name: room.name,
         roomType: room.roomType,
-        capacity: finalRows * finalCols,
+        capacity: bookableCapacity,
         status: room.status,
         layoutConfig: layoutJson,
       });
@@ -601,7 +622,11 @@ const AdminCinemaRoomPage = () => {
       setOriginalAisleLayout(newLayout);
 
       await refreshRoomMeta();
-      notificationService.success(`Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng x ${finalCols} ghế (${finalRows * finalCols} ghế).`);
+      notificationService.success(
+        aisleCols.length
+          ? `Đã khởi tạo ${finalRows} hàng × ${finalCols} ghế bán được (+${aisleCols.length} cột lối đi).`
+          : `Đã khởi tạo sơ đồ cơ sở ${finalRows} hàng × ${finalCols} ghế.`,
+      );
       fetchSeats(room.uuid, layoutJson);
     } catch (error) {
       notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
@@ -610,7 +635,7 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
-  const applyLayoutDimensions = useCallback(async (rows, cols, presetLayout) => {
+  const applyLayoutDimensions = useCallback(async (rows, cols, presetLayout, presetId) => {
     if (!room) return false;
 
     const finalRows = parseInt(rows, 10) || 0;
@@ -629,8 +654,14 @@ const AdminCinemaRoomPage = () => {
 
     setIsLoadingSeats(true);
     try {
-      await cinemaService.generateSeats(room.uuid, finalRows, finalCols);
-      const layoutJson = serializeLayoutConfig(presetLayout ?? aisleLayout);
+      const { gridCols, aisleCols } = expandColsForDefaultAisles(finalCols, presetId);
+      await cinemaService.generateSeats(room.uuid, finalRows, gridCols);
+      const tempRowNames = Array.from({ length: finalRows }, (_, i) =>
+        String.fromCharCode(65 + i),
+      );
+      const nextLayout = presetLayout
+        ?? (aisleCols.length ? buildLayoutFromAisleCols(aisleCols, tempRowNames) : EMPTY_AISLE_LAYOUT());
+      const layoutJson = serializeLayoutConfig(nextLayout);
       await cinemaService.updateRoom(room.uuid, {
         roomCode: room.roomCode,
         name: room.name,
@@ -639,8 +670,10 @@ const AdminCinemaRoomPage = () => {
         status: room.status,
         layoutConfig: layoutJson,
       });
+      setAisleLayout(nextLayout);
+      setOriginalAisleLayout(nextLayout);
       await refreshRoomMeta();
-      notificationService.success(`Đã khởi tạo sơ đồ ${finalRows} hàng × ${finalCols} cột (${finalRows * finalCols} ghế).`);
+      notificationService.success(`Đã khởi tạo sơ đồ ${finalRows} hàng × ${finalCols} ghế bán được.`);
       await fetchSeats(room.uuid, layoutJson);
       return true;
     } catch (error) {
@@ -649,18 +682,21 @@ const AdminCinemaRoomPage = () => {
     } finally {
       setIsLoadingSeats(false);
     }
-  }, [room, refreshRoomMeta, fetchSeats, aisleLayout]);
+  }, [room, refreshRoomMeta, fetchSeats]);
 
   // Preset layout: sync rows/cols/aisles and regenerate seats
   const handleApplyPresetTemplate = async (preset) => {
+    const { aisleCols } = expandColsForDefaultAisles(preset.cols, preset.id);
     const tempRowNames = Array.from({ length: preset.rows }, (_, i) =>
       String.fromCharCode(65 + i),
     );
-    const presetLayout = buildDefaultLayout(preset.cols, tempRowNames, preset.id);
+    const presetLayout = aisleCols.length
+      ? buildLayoutFromAisleCols(aisleCols, tempRowNames)
+      : EMPTY_AISLE_LAYOUT();
 
     const confirmApply = await confirm({
       title: `Áp dụng ${preset.name}`,
-      message: `Thiết lập ${preset.rows} hàng × ${preset.cols} cột (${preset.rows * preset.cols} ghế) và khởi tạo lại sơ đồ? Sơ đồ hiện tại sẽ bị thay thế.`,
+      message: `Thiết lập ${preset.rows} hàng × ${preset.cols} ghế bán được và khởi tạo lại sơ đồ? Sơ đồ hiện tại sẽ bị thay thế.`,
       confirmLabel: 'Áp dụng',
       variant: 'warning',
     });
@@ -672,7 +708,7 @@ const AdminCinemaRoomPage = () => {
       return;
     }
 
-    await applyLayoutDimensions(preset.rows, preset.cols, presetLayout);
+    await applyLayoutDimensions(preset.rows, preset.cols, presetLayout, preset.id);
   };
 
   // Clone layout from another room
@@ -1047,7 +1083,7 @@ const AdminCinemaRoomPage = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1 font-mono">Số cột ghế</label>
+                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1 font-mono">Ghế bán / hàng</label>
                         <input
                           type="number"
                           min="1"
@@ -1070,7 +1106,8 @@ const AdminCinemaRoomPage = () => {
 
                       {expectedSeatCount > 0 && (
                         <p className="text-[10px] text-gray-500 font-mono w-full">
-                          Dự kiến: {builderRows}×{builderCols} = <strong className="text-white">{expectedSeatCount}</strong> ghế
+                          Dự kiến: {builderRows}×{builderCols} = <strong className="text-white">{expectedSeatCount}</strong> ghế bán được
+                          <span className="text-gray-500"> (lối đi thêm cột riêng)</span>
                           {activeSeatCount > 0 && activeSeatCount !== expectedSeatCount && (
                             <span className="text-amber-400 ml-1">· Hiện tại: {activeSeatCount} ghế</span>
                           )}

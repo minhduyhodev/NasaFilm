@@ -90,6 +90,12 @@ public class ShowtimeSeatService {
         OffsetDateTime startTime = rows.get(0).getStartTime();
         OffsetDateTime endTime = rows.get(0).getEndTime();
 
+        CinemaRoom room = cinemaRoomRepository.findById(cinemaRoomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
+        if (room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
+
         Map<String, List<ShowtimeSeatMapResponse.SeatItem>> seatRows = new LinkedHashMap<>();
         for (SeatViewDto row : rows) {
             ShowtimeSeatMapResponse.SeatItem seatItem = mapSeatRow(row, currentUserUuid, selectedSet);
@@ -105,9 +111,7 @@ public class ShowtimeSeatService {
         }
 
         int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
-        String layoutConfig = cinemaRoomRepository.findById(cinemaRoomUuid)
-                .map(CinemaRoom::getLayoutConfig)
-                .orElse(null);
+        String layoutConfig = room.getLayoutConfig();
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,

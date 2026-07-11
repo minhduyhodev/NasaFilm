@@ -14,8 +14,9 @@ import { walletService } from '../../../shared/services/walletService';
 import { comboService } from '../../../shared/services/comboService';
 import PosterImage from '../../../shared/components/PosterImage';
 
-import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
 import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
+import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
+import { orbitService } from '../../../shared/services/orbitService';
 
 const CheckoutPage = () => {
   const location = useLocation();
@@ -364,6 +365,9 @@ const CheckoutPage = () => {
       }.`);
       showMissionCompletionToasts(response?.missionCompletions);
       clearAllBookingSessions();
+      if (orbitRoomUuid) {
+        removeOrbitRoom(orbitRoomUuid);
+      }
       
       if (isVod) {
         navigate('/booking-confirmed', {
@@ -806,7 +810,7 @@ const CheckoutPage = () => {
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
               {isOrbit
-                ? `Đã hết thời gian giữ ghế (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút cho nhóm). Ghế đã được giải phóng. Vui lòng quay lại phòng nhóm để chọn lại.`
+                ? 'Đã hết thời gian giữ ghế/phòng thanh toán nhóm. Ghế đã được giải phóng. Vui lòng quay lại phòng nhóm để chọn lại.'
                 : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button

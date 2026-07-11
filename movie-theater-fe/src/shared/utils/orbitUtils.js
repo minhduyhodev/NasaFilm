@@ -18,6 +18,13 @@ export const ORBIT_TERMINAL_STATUSES = ['EXPIRED', 'CANCELLED', 'CLOSED'];
 
 export const ORBIT_CHECKOUT_TTL_MINUTES = 15;
 
+/** Prefer live system config when available; fallback to default checkout TTL. */
+export function resolveOrbitCheckoutTtlMinutes(systemConfig) {
+  const seatLock = Number(systemConfig?.seatLockMinutes) || 5;
+  const checkout = Number(systemConfig?.orbitCheckoutTtlMinutes) || ORBIT_CHECKOUT_TTL_MINUTES;
+  return Math.max(checkout, seatLock);
+}
+
 export const ORBIT_DEFAULT_MAX_MEMBERS = 8;
 
 export function normalizeUuid(value) {

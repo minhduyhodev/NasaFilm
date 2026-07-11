@@ -234,10 +234,13 @@ public class CinemaService {
         // Check if there are future active showtimes or confirmed bookings for this room, but only if the room already has active seats
         boolean hasActiveSeats = existingSeats.stream().anyMatch(Seat::isActive);
         if (hasActiveSeats) {
-            boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(roomUuid, OffsetDateTime.now());
-            boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(roomUuid);
-            if (hasFutureShowtimes || hasConfirmedBookings) {
-                throw new AppException(ErrorCode.CONFLICT, "Không thể thiết lập lại sơ đồ ghế vì phòng chiếu đang có lịch chiếu sắp tới hoặc vé đã đặt.");
+            boolean hasFutureShowtimes = showtimeRepository.existsFutureBookableShowtime(
+                    roomUuid, OffsetDateTime.now());
+            boolean hasFutureConfirmedBookings = showtimeRepository.existsFutureConfirmedBookingForRoom(
+                    roomUuid, OffsetDateTime.now());
+            if (hasFutureShowtimes || hasFutureConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể thay đổi kích thước sơ đồ: phòng còn suất chiếu tương lai hoặc vé đã đặt cho suất chưa chiếu.");
             }
         }
 
@@ -319,8 +322,10 @@ public class CinemaService {
 
         seatRepository.saveAll(seatsToSave);
 
-        // Update capacity of room to reflect the actual ACTIVE generated count
-        int activeCapacity = (int) seatsToSave.stream().filter(Seat::isActive).count();
+        // Update capacity to bookable ACTIVE seats only (exclude DISABLED / MAINTENANCE).
+        int activeCapacity = (int) seatsToSave.stream()
+                .filter(s -> s.isActive() && s.getStatus() == SeatStatus.ACTIVE)
+                .count();
         room.setCapacity(activeCapacity);
         cinemaRoomRepository.save(room);
     }
@@ -341,7 +346,20 @@ public class CinemaService {
         }
 
         Seat updatedSeat = seatRepository.save(seat);
+        refreshRoomBookableCapacity(updatedSeat.getCinemaRoom());
         return toSeatResponse(updatedSeat);
+    }
+
+    private void refreshRoomBookableCapacity(CinemaRoom room) {
+        if (room == null || room.getUuid() == null) {
+            return;
+        }
+        List<Seat> seats = seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(room.getUuid());
+        int capacity = (int) seats.stream()
+                .filter(s -> s.isActive() && s.getStatus() == SeatStatus.ACTIVE)
+                .count();
+        room.setCapacity(capacity);
+        cinemaRoomRepository.save(room);
     }
 
     @Transactional(readOnly = true)

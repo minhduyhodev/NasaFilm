@@ -88,6 +88,16 @@ public class SystemConfigService {
         return getSeatLockMinutes() * 60;
     }
 
+    public int getOrbitRoomTtlMinutes() {
+        return readInt(self.getConfig().get("orbitRoomTtlMinutes"), 30, 5, 120);
+    }
+
+    public int getOrbitCheckoutTtlMinutes() {
+        // Checkout hold must not be shorter than solo seat lock.
+        int configured = readInt(self.getConfig().get("orbitCheckoutTtlMinutes"), 15, 5, 60);
+        return Math.max(configured, getSeatLockMinutes());
+    }
+
     public int getMaxSeatsPerBooking() {
         return readInt(self.getConfig().get("maxSeatsPerBooking"), 8, 1, 20);
     }
@@ -215,6 +225,8 @@ public class SystemConfigService {
         defaults.put("couplePrice", 120000);
         defaults.put("onlineStreamingPrice", fallbackOnlinePrice.longValue());
         defaults.put("seatLockMinutes", 5);
+        defaults.put("orbitRoomTtlMinutes", 30);
+        defaults.put("orbitCheckoutTtlMinutes", 15);
         defaults.put("maxSeatsPerBooking", 8);
         defaults.put("onlineWatchLockMultiplier", 2.0);
         defaults.put("onlineCountdownEnabled", true);

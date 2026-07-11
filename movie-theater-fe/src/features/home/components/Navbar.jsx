@@ -261,33 +261,38 @@ const Navbar = () => {
                   onClick={() => setShowBookingDropdown(false)}
                 />
                 <div
-                  className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-white/10 bg-[#0f0f0f]/95 p-2 shadow-2xl backdrop-blur-xl"
+                  className="navbar-booking-menu absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-white/10 bg-[#0f0f0f]/95 p-1.5 shadow-2xl backdrop-blur-xl"
+                  role="menu"
+                  aria-label="Tùy chọn mua vé"
                 >
                   <button
                     type="button"
+                    role="menuitem"
                     onClick={() => {
                       setShowBookingDropdown(false);
                       handleBookingClick();
                     }}
-                    className="flex items-center gap-3 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition-all duration-200 text-left"
+                    className="navbar-booking-option"
                   >
-                    <Film className="h-4 w-4 text-red-500" />
+                    <Film className="navbar-booking-option__icon" aria-hidden />
                     <span>Mua vé tại rạp</span>
                   </button>
 
                   <Link
                     to="/online"
+                    role="menuitem"
                     onClick={(e) => {
+                      setShowBookingDropdown(false);
                       handleOnlineNav(e);
                       handleLinkClick(e, '/online');
                     }}
                     onMouseEnter={prefetchOnlinePage}
                     onFocus={prefetchOnlinePage}
                     onTouchStart={prefetchOnlinePage}
-                    className={`navbar-cta-btn ${isLinkActive('/online') ? 'navbar-cta-btn--active' : ''}`}
+                    className={`navbar-booking-option${isLinkActive('/online') ? ' navbar-booking-option--active' : ''}`}
                   >
-                    <Play className="h-4 w-4 fill-white text-white" />
-                    <span>TRỰC TUYẾN</span>
+                    <Play className="navbar-booking-option__icon navbar-booking-option__icon--fill" aria-hidden />
+                    <span>Trực tuyến</span>
                   </Link>
                 </div>
               </>

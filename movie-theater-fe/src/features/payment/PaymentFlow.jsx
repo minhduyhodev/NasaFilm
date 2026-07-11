@@ -10,6 +10,7 @@ import { notificationService } from '../../shared/services/notificationService';
 import { orbitService } from '../../shared/services/orbitService';
 import { showMissionCompletionToasts } from '../../shared/services/missionService';
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
+import { removeOrbitRoom } from '../../shared/utils/orbitRecentStorage';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -151,6 +152,9 @@ export default function PaymentFlow() {
       notificationService.success(`Đặt vé thành công! Đã thanh toán ${amount.toLocaleString('vi-VN')} đ qua Thẻ Visa/Mastercard.`);
       showMissionCompletionToasts(response?.missionCompletions);
       clearAllBookingSessions();
+      if (orbitRoomUuid) {
+        removeOrbitRoom(orbitRoomUuid);
+      }
 
       if (isVod) {
         navigate('/booking-confirmed', {

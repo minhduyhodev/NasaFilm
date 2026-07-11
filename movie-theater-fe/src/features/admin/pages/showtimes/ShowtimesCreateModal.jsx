@@ -189,6 +189,7 @@ const ShowtimesCreateModal = ({
                     type="datetime-local"
                     className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50"
                     value={formData.startTime}
+                    min={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16)}
                     onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
                     required
                   />

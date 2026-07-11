@@ -456,6 +456,15 @@ public class BookingService {
                     comboLines,
                     ticketLines,
                     totalPrice);
+            if (isOrbitCheckout && orbitRoomUuid != null) {
+                sendOrbitMemberTicketEmails(
+                        orbitRoomUuid,
+                        userUuid,
+                        bookingUuid,
+                        request.getShowtimeUuid(),
+                        seatLines,
+                        ticketLines);
+            }
         } catch (Exception ex) {
             // Không chặn đặt vé nếu gửi email thất bại
         }
@@ -832,6 +841,107 @@ public class BookingService {
     private String generateTicketCode() {
         return "TK" + OffsetDateTime.now(ZoneOffset.UTC).toInstant().toEpochMilli()
                 + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private void sendOrbitMemberTicketEmails(
+            UUID orbitRoomUuid,
+            UUID hostUserUuid,
+            UUID bookingUuid,
+            UUID showtimeUuid,
+            List<BookingResponse.SeatLine> seatLines,
+            List<BookingResponse.TicketLine> ticketLines) {
+        Map<UUID, Integer> seatIndexByUuid = new LinkedHashMap<>();
+        for (int i = 0; i < seatLines.size(); i++) {
+            seatIndexByUuid.put(seatLines.get(i).getSeatUuid(), i);
+        }
+
+        for (com.thdpv.movietheater.orbit.entity.OrbitMember member : orbitRoomService.listMembers(orbitRoomUuid)) {
+            if (member.getUserUuid() == null || member.getUserUuid().equals(hostUserUuid)) {
+                continue;
+            }
+            List<UUID> memberSeatUuids = com.thdpv.movietheater.orbit.util.OrbitSeatJson
+                    .readSeatUuids(member.getSeatUuidsJson());
+            if (memberSeatUuids.isEmpty()) {
+                continue;
+            }
+
+            List<BookingResponse.SeatLine> memberSeats = new ArrayList<>();
+            List<BookingResponse.TicketLine> memberTickets = new ArrayList<>();
+            BigDecimal memberTotal = BigDecimal.ZERO;
+            for (UUID seatUuid : memberSeatUuids) {
+                Integer idx = seatIndexByUuid.get(seatUuid);
+                if (idx == null) {
+                    continue;
+                }
+                BookingResponse.SeatLine seatLine = seatLines.get(idx);
+                memberSeats.add(seatLine);
+                memberTotal = memberTotal.add(seatLine.getPrice() != null ? seatLine.getPrice() : BigDecimal.ZERO);
+                if (idx < ticketLines.size()) {
+                    memberTickets.add(ticketLines.get(idx));
+                }
+            }
+            if (memberSeats.isEmpty()) {
+                continue;
+            }
+
+            List<BookingResponse.ComboLine> memberCombos = resolveMemberComboLines(member.getCombosJson());
+            for (BookingResponse.ComboLine combo : memberCombos) {
+                if (combo.getPrice() != null) {
+                    memberTotal = memberTotal.add(combo.getPrice());
+                }
+            }
+            try {
+                sendTheaterTicketEmailNotification(
+                        member.getUserUuid(),
+                        bookingUuid,
+                        showtimeUuid,
+                        memberSeats,
+                        memberCombos,
+                        memberTickets,
+                        memberTotal);
+            } catch (Exception ignored) {
+                // Keep booking flow non-blocking for individual member email failures.
+            }
+        }
+    }
+
+    private List<BookingResponse.ComboLine> resolveMemberComboLines(String combosJson) {
+        List<BookingResponse.ComboLine> lines = new ArrayList<>();
+        if (combosJson == null || combosJson.isBlank() || "[]".equals(combosJson.trim())) {
+            return lines;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<com.thdpv.movietheater.orbit.dto.OrbitComboItem> items = mapper.readValue(
+                    combosJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<List<com.thdpv.movietheater.orbit.dto.OrbitComboItem>>() {});
+            if (items == null || items.isEmpty()) {
+                return lines;
+            }
+            Map<UUID, Integer> quantities = new LinkedHashMap<>();
+            for (com.thdpv.movietheater.orbit.dto.OrbitComboItem item : items) {
+                if (item == null || item.getComboUuid() == null || item.getQuantity() <= 0) {
+                    continue;
+                }
+                quantities.merge(item.getComboUuid(), item.getQuantity(), Integer::sum);
+            }
+            if (quantities.isEmpty()) {
+                return lines;
+            }
+            List<ComboPrice> comboPrices = bookingRepository.loadCombos(quantities.keySet());
+            for (ComboPrice comboPrice : comboPrices) {
+                int quantity = quantities.getOrDefault(comboPrice.comboUuid(), 0);
+                if (quantity <= 0) {
+                    continue;
+                }
+                BigDecimal lineTotal = comboPrice.unitPrice().multiply(BigDecimal.valueOf(quantity));
+                lines.add(new BookingResponse.ComboLine(
+                        comboPrice.comboUuid(), comboPrice.name(), quantity, lineTotal));
+            }
+        } catch (Exception ignored) {
+            return lines;
+        }
+        return lines;
     }
 
     private void sendTheaterTicketEmailNotification(

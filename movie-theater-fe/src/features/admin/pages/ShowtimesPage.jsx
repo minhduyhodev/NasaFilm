@@ -371,8 +371,13 @@ const ShowtimesPage = () => {
       notificationService.warning('Vui lòng chọn phòng chiếu');
       return;
     }
+    const startAt = new Date(formData.startTime);
+    if (!formData.startTime || Number.isNaN(startAt.getTime()) || startAt.getTime() <= Date.now()) {
+      notificationService.warning('Chỉ được tạo suất chiếu cho thời gian sắp tới');
+      return;
+    }
     try {
-      const isoStartTime = new Date(formData.startTime).toISOString();
+      const isoStartTime = startAt.toISOString();
       await showtimeService.createShowtime({
         movieUuid: formData.movieUuid,
         cinemaRoomUuid: formData.cinemaRoomUuid,

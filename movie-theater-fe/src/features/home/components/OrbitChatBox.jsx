@@ -170,12 +170,11 @@ const OrbitChatBox = ({ roomUuid }) => {
                   </span>
                 )}
                 <div
-                  className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-md border ${
+                  className={`max-w-[75%] min-w-0 px-3.5 py-2.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-md border break-words [overflow-wrap:anywhere] ${
                     isMe
                       ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-tr-none border-transparent'
-                      : 'text-zinc-100 rounded-tl-none bg-white/[0.03]'
+                      : 'text-zinc-100 rounded-tl-none bg-zinc-800/80 border-white/10'
                   }`}
-                  style={isMe ? undefined : { borderColor: 'rgba(255, 255, 255, 0.04)' }}
                 >
                   {msg.message}
                 </div>

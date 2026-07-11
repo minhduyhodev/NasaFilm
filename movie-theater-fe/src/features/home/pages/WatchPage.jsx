@@ -311,8 +311,14 @@ const WatchPage = () => {
   }, [streamData, id, navigate]);
 
   useEffect(() => {
+    if (!isPlaying) {
+      setRemainingTimeText('');
+      setCountdownWarning(false);
+      return undefined;
+    }
+
     let expiresAt = streamData?.expiresAt || vodExpiresAt;
-    if (!expiresAt && isPlaying && streamData?.streamToken && movie) {
+    if (!expiresAt && streamData?.streamToken && movie) {
       expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
       setVodExpiresAt(expiresAt);
       setStreamData((prev) => (prev ? { ...prev, expiresAt } : prev));
@@ -320,7 +326,7 @@ const WatchPage = () => {
     if (!expiresAt || !countdownSettings.enabled) {
       setRemainingTimeText('');
       setCountdownWarning(false);
-      return;
+      return undefined;
     }
 
     const warningMs = countdownSettings.warningMinutes * 60 * 1000;

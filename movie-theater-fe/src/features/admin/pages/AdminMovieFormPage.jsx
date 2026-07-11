@@ -100,26 +100,26 @@ const AdminMovieFormPage = () => {
   }, [formData.posterUrl]);
 
   const ageRestrictionOptions = [
-    { value: 'P', label: 'P - Moi lua tuoi' },
-    { value: 'K', label: 'K - Duoi 13 tuoi (can co nguoi giam ho)' },
-    { value: 'T13', label: 'T13 - Tu 13 tuoi tro len' },
-    { value: 'T16', label: 'T16 - Tu 16 tuoi tro len' },
-    { value: 'T18', label: 'T18 - Tu 18 tuoi tro len' }
+    { value: 'P', label: 'P - Mọi lứa tuổi' },
+    { value: 'K', label: 'K - Dưới 13 tuổi (cần có người giám hộ)' },
+    { value: 'T13', label: 'T13 - Từ 13 tuổi trở lên' },
+    { value: 'T16', label: 'T16 - Từ 16 tuổi trở lên' },
+    { value: 'T18', label: 'T18 - Từ 18 tuổi trở lên' }
   ];
 
   const statusOptions = [
-    { value: 'NOW_SHOWING', label: 'Dang chieu', icon: <Play className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/10" /> },
-    { value: 'COMING_SOON', label: 'Sap chieu', icon: <Calendar className="w-3.5 h-3.5 text-blue-500" /> },
-    { value: 'DRAFT', label: 'Ban nhap', icon: <FileText className="w-3.5 h-3.5 text-gray-500" /> },
-    { value: 'ENDED', label: 'Da ket thuc', icon: <Archive className="w-3.5 h-3.5 text-red-500" /> },
-    { value: 'INACTIVE', label: 'Tam ngung', icon: <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" /> }
+    { value: 'NOW_SHOWING', label: 'Đang chiếu', icon: <Play className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/10" /> },
+    { value: 'COMING_SOON', label: 'Sắp chiếu', icon: <Calendar className="w-3.5 h-3.5 text-blue-500" /> },
+    { value: 'DRAFT', label: 'Bản nháp', icon: <FileText className="w-3.5 h-3.5 text-gray-500" /> },
+    { value: 'ENDED', label: 'Đã kết thúc', icon: <Archive className="w-3.5 h-3.5 text-red-500" /> },
+    { value: 'INACTIVE', label: 'Tạm ngưng', icon: <Pause className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" /> }
   ];
 
   const screeningModeOptions = [
-    { value: 'BOTH', label: 'Ca rap & Xem Online' },
-    { value: 'THEATER_ONLY', label: 'Chi chieu rap' },
-    { value: 'ONLINE_ONLY', label: 'Chi xem Online (VOD)' },
-    { value: 'NONE', label: 'Ngung chieu hoan toan' },
+    { value: 'BOTH', label: 'Cả rạp & Xem Online' },
+    { value: 'THEATER_ONLY', label: 'Chỉ chiếu rạp' },
+    { value: 'ONLINE_ONLY', label: 'Chỉ xem Online (VOD)' },
+    { value: 'NONE', label: 'Ngừng chiếu hoàn toàn' },
   ];
 
   useEffect(() => {
@@ -139,7 +139,7 @@ const AdminMovieFormPage = () => {
         }
       } catch (err) {
         console.error('Failed to load metadata in admin movie form:', err);
-        notificationService.error('Khong the tai du lieu phan loai phim');
+        notificationService.error('Không thể tải dữ liệu phân loại phim');
       }
     };
     fetchMetadata();
@@ -182,7 +182,7 @@ const AdminMovieFormPage = () => {
     const loadMovie = async () => {
       setIsLoading(true);
       try {
-        notificationService.info('Dang lay chi tiet phim de chinh sua...');
+        notificationService.info('Đang lấy chi tiết phim để chỉnh sửa...');
         const detail = await movieService.getMovieDetail(movieUuid);
         if (!isMounted) return;
         setEditingMovie(detail);
@@ -191,7 +191,7 @@ const AdminMovieFormPage = () => {
         setInitialFormData(mapped);
       } catch (err) {
         console.error('Failed to load movie for edit:', err);
-        notificationService.error('Khong the lay thong tin chi tiet phim de chinh sua');
+        notificationService.error('Không thể lấy thông tin chi tiết phim để chỉnh sửa');
         navigate('/admin/movies');
       } finally {
         if (isMounted) setIsLoading(false);
@@ -324,11 +324,11 @@ const AdminMovieFormPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
-      notificationService.error('Ten phim khong duoc de trong');
+      notificationService.error('Tên phim không được để trống');
       return;
     }
     if (!formData.releaseDate) {
-      notificationService.error('Ngay khoi chieu khong duoc de trong');
+      notificationService.error('Ngày khởi chiếu không được để trống');
       return;
     }
 
@@ -337,13 +337,13 @@ const AdminMovieFormPage = () => {
     let streamingUrl = unwrapMediaUrl(formData.streamingUrl.trim()) || null;
     if (streamingUrl && !isAwsMovieStreamingUrl(streamingUrl)) {
       notificationService.error(
-        'Link phim chi chap nhan Object URL AWS S3 thu muc movie/ (java-06.s3.ap-southeast-1.amazonaws.com/movie/...)'
+        'Link phim chỉ chấp nhận Object URL AWS S3 thư mục movie/ (java-06.s3.ap-southeast-1.amazonaws.com/movie/...)'
       );
       return;
     }
     if (supportsOnline && !streamingUrl) {
       notificationService.error(
-        'Phim xem online can Link phim AWS S3 (movie/...mp4), khong dung YouTube/opstream'
+        'Phim xem online cần Link phim AWS S3 (movie/...mp4), không dùng YouTube/opstream'
       );
       return;
     }
@@ -399,7 +399,7 @@ const AdminMovieFormPage = () => {
       }
     } catch (err) {
       console.error('Failed to save movie:', err);
-      notificationService.error(err.message || 'Luu phim that bai');
+      notificationService.error(err.message || 'Lưu phim thất bại');
     } finally {
       setIsSaving(false);
     }
@@ -412,7 +412,7 @@ const AdminMovieFormPage = () => {
     return (
       <div className="flex items-center justify-center min-h-[320px] text-gray-400 text-sm">
         <Loader2 className="w-5 h-5 animate-spin mr-2 text-red-500" />
-        Dang tai thong tin phim...
+        Đang tải thông tin phim...
       </div>
     );
   }
@@ -420,13 +420,13 @@ const AdminMovieFormPage = () => {
   return (
     <AdminPage>
       <PageHeader
-        title={isEditing ? 'Chinh sua phim' : 'Them phim moi'}
-        description={isEditing && editingMovie ? editingMovie.title : 'Nhap thong tin phim va luu vao he thong.'}
+        title={isEditing ? 'Chỉnh sửa phim' : 'Thêm phim mới'}
+        description={isEditing && editingMovie ? editingMovie.title : 'Nhập thông tin phim và lưu vào hệ thống.'}
         backTo={isEditing ? `/admin/movies/${movieUuid}` : '/admin/movies'}
       />
 
       <form onSubmit={handleSubmit} className="space-y-8">
-          <Section title="Poster & thong tin phim">
+          <Section title="Poster & thông tin phim">
             <div className="grid grid-cols-1 md:grid-cols-[148px_1fr] gap-6">
               <div className="shrink-0">
                 <div className="aspect-[2/3] w-full max-w-[148px] rounded-lg overflow-hidden bg-white/[0.03] flex items-center justify-center">
@@ -442,7 +442,7 @@ const AdminMovieFormPage = () => {
                     <div className="flex flex-col items-center gap-2 text-gray-600 px-3 text-center">
                       <Film className="w-8 h-8" />
                       <span className="text-[10px] leading-snug">
-                        {formData.posterUrl?.trim() ? 'Khong tai duoc anh' : 'Chua co poster'}
+                        {formData.posterUrl?.trim() ? 'Không tải được ảnh' : 'Chưa có poster'}
                       </span>
                     </div>
                   )}
@@ -451,11 +451,11 @@ const AdminMovieFormPage = () => {
 
               <div className="space-y-4 min-w-0">
                 <div>
-                  <label className={labelClass}>Ten phim *</label>
+                  <label className={labelClass}>Tên phim *</label>
                   <input
                     type="text"
                     className={inputClass}
-                    placeholder="Nhap ten phim..."
+                    placeholder="Nhập tên phim..."
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     required
@@ -474,10 +474,10 @@ const AdminMovieFormPage = () => {
                   <p className="text-xs text-gray-600 mt-1">Anh xem truoc cap nhat khi ban nhap URL.</p>
                 </div>
                 <div>
-                  <label className={labelClass}>Mo ta phim</label>
+                  <label className={labelClass}>Mô tả phim</label>
                   <textarea
                     className={`${inputClass} h-24 resize-y`}
-                    placeholder="Nhap mo ta chi tiet..."
+                    placeholder="Nhập mô tả chi tiết..."
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   />
@@ -489,25 +489,25 @@ const AdminMovieFormPage = () => {
           <Section title="Phat hanh & trang thai" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Thoi luong (phut) *</label>
+                <label className={labelClass}>Thời lượng (phút) *</label>
                 <input
                   type="number"
                   className={`${inputClass} h-[38px]`}
-                  placeholder="Vi du: 120"
+                  placeholder="Ví dụ: 120"
                   value={formData.durationMinutes}
                   onChange={(e) => setFormData(prev => ({ ...prev, durationMinutes: e.target.value }))}
                   required
                 />
               </div>
               <div className="relative">
-                <label className={labelClass}>Ngay khoi chieu *</label>
+                <label className={labelClass}>Ngày khởi chiếu *</label>
                 <button
                   type="button"
                   onClick={handleOpenDatePicker}
                   className={`${inputClass} flex items-center justify-between text-left cursor-pointer h-[38px]`}
                 >
                   <span className={`truncate whitespace-nowrap ${formData.releaseDate ? 'text-white' : 'text-gray-500'}`}>
-                    {formData.releaseDate ? formatDateDisplay(formData.releaseDate) : 'Chon ngay...'}
+                    {formData.releaseDate ? formatDateDisplay(formData.releaseDate) : 'Chọn ngày...'}
                   </span>
                   <Calendar className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                 </button>
@@ -560,7 +560,7 @@ const AdminMovieFormPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <AdminSelectDropdown
-                label="Trang thai phim *"
+                label="Trạng thái phim *"
                 labelClassName={labelClass}
                 size="sm"
                 value={formData.status}
@@ -597,13 +597,13 @@ const AdminMovieFormPage = () => {
               />
 
               <div>
-                <label className={labelClass}>Gia ve xem Online (VND)</label>
+                <label className={labelClass}>Giá vé xem Online (VND)</label>
                 <input
                   type="number"
                   min="0"
                   disabled={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE'}
                   className={`${inputClass} h-[38px] disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE' ? 'Khong ap dung' : `Mac dinh: ${defaultOnlinePrice.toLocaleString('vi-VN')} VND`}
+                  placeholder={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE' ? 'Không áp dụng' : `Mặc định: ${defaultOnlinePrice.toLocaleString('vi-VN')} VND`}
                   value={formData.onlinePrice}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -619,7 +619,7 @@ const AdminMovieFormPage = () => {
           <Section title="Phan loai & phuong tien" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>The loai phim *</label>
+                <label className={labelClass}>Thể loại phim *</label>
                 <div className="rounded-md bg-white/[0.02] p-3 max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
                   {genresList.map(genre => (
                     <label key={genre.uuid} className="flex items-center gap-2 cursor-pointer select-none">
@@ -630,7 +630,7 @@ const AdminMovieFormPage = () => {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Quoc gia san xuat *</label>
+                <label className={labelClass}>Quốc gia sản xuất *</label>
                 <div className="rounded-md bg-white/[0.02] p-3 max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
                   {countriesList.map(country => (
                     <label key={country.uuid} className="flex items-center gap-2 cursor-pointer select-none">
@@ -649,13 +649,13 @@ const AdminMovieFormPage = () => {
               <div>
                 <label className={labelClass}>Link phim (Streaming URL)</label>
                 <input type="url" className={inputClass} placeholder="https://java-06.s3.ap-southeast-1.amazonaws.com/movie/TenPhim.mp4" value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
-                <p className="mt-1 text-[10px] text-gray-500">Google Drive: mo file video → Chia se → Sao chep lien ket file (dang /file/d/ID/view). Khong dung link thu muc /folders/</p>
+                <p className="mt-1 text-[10px] text-gray-500">Google Drive: mở file video → Chia sẻ → Sao chép liên kết file (dạng /file/d/ID/view). Không dùng link thư mục /folders/</p>
               </div>
             </div>
           </Section>
 
           <Section
-            title="Dan dien vien"
+            title="Dàn diễn viên"
             divided
             action={
               <GhostButton type="button" onClick={handleAddActorToCast}>
@@ -665,7 +665,7 @@ const AdminMovieFormPage = () => {
           >
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
               {formData.actors.length === 0 ? (
-                <p className="text-center text-gray-500 italic py-4">Chua co vai dien nao duoc thiet lap.</p>
+                <p className="text-center text-gray-500 italic py-4">Chưa có vai diễn nào được thiết lập.</p>
               ) : (
                 formData.actors.map((cast, index) => {
                   const matchingActorObj = actorsList.find(a => a.uuid === cast.actorUuid);
@@ -673,17 +673,17 @@ const AdminMovieFormPage = () => {
                     <div key={index} className="flex items-center gap-2.5 py-2 border-b border-white/[0.04] last:border-0">
                       <div className="w-1/3">
                         <button type="button" onClick={() => handleOpenActorSelector(index)} className="w-full text-left px-2 py-1.5 bg-[#0B0F19] border border-[#1A2238] rounded text-gray-200 hover:bg-white/[0.04] transition truncate cursor-pointer font-bold">
-                          {matchingActorObj ? matchingActorObj.fullName : 'Chon dien vien...'}
+                          {matchingActorObj ? matchingActorObj.fullName : 'Chọn diễn viên...'}
                         </button>
                       </div>
                       <div className="flex-1">
-                        <input type="text" placeholder="Ten vai dien..." className="w-full px-2 py-1.5 bg-[#0B0F19] border border-[#1A2238] rounded text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50" value={cast.characterName} onChange={(e) => handleCastFieldChange(index, 'characterName', e.target.value)} />
+                        <input type="text" placeholder="Tên vai diễn..." className="w-full px-2 py-1.5 bg-[#0B0F19] border border-[#1A2238] rounded text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50" value={cast.characterName} onChange={(e) => handleCastFieldChange(index, 'characterName', e.target.value)} />
                       </div>
                       <label className="flex items-center gap-1 cursor-pointer select-none">
                         <input type="checkbox" className="rounded text-red-600 focus:ring-red-500 cursor-pointer" checked={cast.isMain} onChange={(e) => handleCastFieldChange(index, 'isMain', e.target.checked)} />
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Chinh</span>
                       </label>
-                      <button type="button" onClick={() => handleRemoveActorFromCast(index)} className="p-1 hover:bg-red-500/10 hover:text-red-400 rounded text-gray-500 transition cursor-pointer" title="Xoa vai dien">
+                      <button type="button" onClick={() => handleRemoveActorFromCast(index)} className="p-1 hover:bg-red-500/10 hover:text-red-400 rounded text-gray-500 transition cursor-pointer" title="Xóa vai diễn">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -698,7 +698,7 @@ const AdminMovieFormPage = () => {
               Huy
             </GhostButton>
             <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
-              Luu phim
+              Lưu phim
             </PrimaryButton>
           </div>
         </form>
@@ -709,7 +709,7 @@ const AdminMovieFormPage = () => {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsActorSelectorOpen(false)} />
           <div className="relative w-full max-w-md bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-5 text-left flex flex-col max-h-[75vh]">
             <div className="flex justify-between items-center mb-4 border-b border-[#1A2238] pb-2.5">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Chon dien vien</h3>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Chọn diễn viên</h3>
               <button type="button" onClick={() => setIsActorSelectorOpen(false)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -719,7 +719,7 @@ const AdminMovieFormPage = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
                 <input
                   type="text"
-                  placeholder="Tim dien vien..."
+                  placeholder="Tìm diễn viên..."
                   value={actorSearchTerm}
                   onChange={(e) => setActorSearchTerm(e.target.value)}
                   className="w-full bg-[#0B0F19] border border-[#1A2238] rounded-lg pl-8 pr-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50"
@@ -728,9 +728,9 @@ const AdminMovieFormPage = () => {
               <AdminSelectDropdown
                 size="sm"
                 value={actorCountryFilter}
-                placeholder="Tat ca quoc tich"
+                placeholder="Tất cả quốc tịch"
                 options={[
-                  { value: '', label: 'Tat ca quoc tich' },
+                  { value: '', label: 'Tất cả quốc tịch' },
                   ...countriesList.map((c) => ({
                     value: c.uuid,
                     label: `${c.name} (${c.code})`,
@@ -742,7 +742,7 @@ const AdminMovieFormPage = () => {
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1 min-h-[200px]">
               {filteredActorsForSelector.length === 0 ? (
-                <p className="text-center text-xs text-gray-500 py-8 italic">Khong tim thay dien vien nao phu hop.</p>
+                <p className="text-center text-xs text-gray-500 py-8 italic">Không tìm thấy diễn viên nào phù hợp.</p>
               ) : (
                 filteredActorsForSelector.map((a) => {
                   const isAlreadySelected = formData.actors.some(
@@ -764,7 +764,7 @@ const AdminMovieFormPage = () => {
                         </div>
                         <div>
                           <p className="text-white font-bold text-xs">{a.fullName}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">{a.countryName || 'Khong xac dinh'}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">{a.countryName || 'Không xác định'}</p>
                         </div>
                       </div>
                       {isAlreadySelected ? (

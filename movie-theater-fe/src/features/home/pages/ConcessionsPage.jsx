@@ -12,7 +12,6 @@ import {
   writeBookingSession,
 } from '../../../shared/utils/bookingSessionStorage';
 import { orbitService } from '../../../shared/services/orbitService';
-import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
 import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
 
 function getComboImageUrl(combo) {
@@ -113,18 +112,47 @@ const ConcessionsPage = () => {
 
   // Điều hướng khi hết hạn giữ ghế
   useEffect(() => {
-    if (timeLeft === 0) {
+    if (timeLeft !== 0) return undefined;
+
+    let cancelled = false;
+    const redirectOnExpire = async () => {
       if (isOrbitBooking && orbitRoomUuid) {
         notificationService.error(
-          `Hết thời gian thanh toán nhóm (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút). Vui lòng quay lại phòng.`,
+          'Hết thời gian thanh toán nhóm. Vui lòng quay lại phòng.',
         );
-        navigate(`/booking/orbit/${orbitRoomUuid}`);
+        if (isHost) {
+          try {
+            await orbitService.abortCheckout(orbitRoomUuid);
+          } catch (err) {
+            console.error('Failed to abort checkout on expiry:', err);
+          }
+        }
+        if (!cancelled) navigate(`/booking/orbit/${orbitRoomUuid}`);
         return;
       }
       notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại.');
-      navigate(-1);
+      if (!cancelled) navigate(-1);
+    };
+    redirectOnExpire();
+    return () => {
+      cancelled = true;
+    };
+  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid, isHost]);
+
+  const handleBackToSeats = async () => {
+    if (isOrbitBooking && orbitRoomUuid) {
+      if (isHost) {
+        try {
+          await orbitService.abortCheckout(orbitRoomUuid);
+        } catch (err) {
+          console.error('Failed to abort checkout on back navigation:', err);
+        }
+      }
+      navigate(`/booking/orbit/${orbitRoomUuid}`);
+      return;
     }
-  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid]);
+    navigate(-1);
+  };
 
   // Lấy danh sách Combo hoạt động từ Backend API
   useEffect(() => {
@@ -233,13 +261,7 @@ const ConcessionsPage = () => {
         <div className="lg:col-span-8 flex flex-col">
           {/* Nút quay lại chọn ghế */}
           <button 
-            onClick={() => {
-              if (isOrbitBooking && orbitRoomUuid) {
-                navigate(`/booking/orbit/${orbitRoomUuid}`);
-                return;
-              }
-              navigate(-1);
-            }}
+            onClick={handleBackToSeats}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group cursor-pointer w-fit"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
@@ -446,7 +468,7 @@ const ConcessionsPage = () => {
               {isOrbitBooking && (
                 <button
                   type="button"
-                  onClick={() => navigate(`/booking/orbit/${orbitRoomUuid}`)}
+                  onClick={handleBackToSeats}
                   className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-2 flex items-center justify-center transition-colors"
                 >
                   Quay lại đặt ghế

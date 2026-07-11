@@ -502,7 +502,10 @@ const OrbitBookingPage = () => {
       const prepared = await orbitService.prepareCheckout(roomUuid);
       setRoom((prev) => (prev ? { ...prev, status: 'CHECKOUT' } : prev));
       const mapData = await bookingService.getSeatMap(showtimeUuid, prepared.seatUuids);
-      await navigateToConcessions(prepared.seatUuids, resolveLockExpiresAt(mapData));
+      const checkoutExpiresAtMs = prepared.checkoutExpiresAt
+        ? new Date(prepared.checkoutExpiresAt).getTime()
+        : resolveLockExpiresAt(mapData);
+      await navigateToConcessions(prepared.seatUuids, checkoutExpiresAtMs);
     } catch (err) {
       notificationService.error(err.message || 'Không thể chuẩn bị thanh toán nhóm.');
     } finally {
@@ -517,7 +520,10 @@ const OrbitBookingPage = () => {
       const data = await orbitService.getRoom(roomUuid);
       const allSeatUuids = (data.members || []).flatMap((m) => m.seatUuids || []);
       const mapData = await bookingService.getSeatMap(showtimeUuid, allSeatUuids);
-      await navigateToConcessions(allSeatUuids, resolveLockExpiresAt(mapData));
+      const checkoutExpiresAtMs = data.expiresAt
+        ? new Date(data.expiresAt).getTime()
+        : resolveLockExpiresAt(mapData);
+      await navigateToConcessions(allSeatUuids, checkoutExpiresAtMs);
     } catch (err) {
       notificationService.error(err.message || 'Không thể tiếp tục thanh toán.');
     } finally {

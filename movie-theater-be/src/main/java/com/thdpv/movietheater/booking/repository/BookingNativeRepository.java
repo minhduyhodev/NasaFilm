@@ -233,7 +233,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     @Modifying
     @Query(value = """
             update seat_locked
-            set user_uuid = :targetUserUuid
+            set user_uuid = :targetUserUuid,
+                locked_at = :now,
+                expired_at = :newExpiresAt
             where showtime_uuid = :showtimeUuid
               and user_uuid = :sourceUserUuid
               and seat_uuid in (:seatUuids)
@@ -244,7 +246,29 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             @Param("sourceUserUuid") UUID sourceUserUuid,
             @Param("targetUserUuid") UUID targetUserUuid,
             @Param("seatUuids") Collection<UUID> seatUuids,
-            @Param("now") OffsetDateTime now);
+            @Param("now") OffsetDateTime now,
+            @Param("newExpiresAt") OffsetDateTime newExpiresAt);
+
+    /**
+     * Transfer locks even if already expired (used when aborting checkout after seat TTL lapsed).
+     */
+    @Modifying
+    @Query(value = """
+            update seat_locked
+            set user_uuid = :targetUserUuid,
+                locked_at = :now,
+                expired_at = :newExpiresAt
+            where showtime_uuid = :showtimeUuid
+              and user_uuid = :sourceUserUuid
+              and seat_uuid in (:seatUuids)
+            """, nativeQuery = true)
+    int forceTransferSeatLocksFromUserToUser(
+            @Param("showtimeUuid") UUID showtimeUuid,
+            @Param("sourceUserUuid") UUID sourceUserUuid,
+            @Param("targetUserUuid") UUID targetUserUuid,
+            @Param("seatUuids") Collection<UUID> seatUuids,
+            @Param("now") OffsetDateTime now,
+            @Param("newExpiresAt") OffsetDateTime newExpiresAt);
 
     @Query(value = """
             select sl.seat_uuid

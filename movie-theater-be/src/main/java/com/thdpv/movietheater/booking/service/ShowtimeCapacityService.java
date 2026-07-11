@@ -50,8 +50,12 @@ public class ShowtimeCapacityService {
         }
 
         CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
-        if (room == null || room.getCapacity() == null || room.getCapacity() <= 0) {
-            return;
+        if (room == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong ton tai");
+        }
+        Integer cap = room.getCapacity();
+        if (cap == null || cap <= 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu chua cau hinh suc chua hop le");
         }
 
         OffsetDateTime effectiveNow = now != null ? now : OffsetDateTime.now();
@@ -62,8 +66,8 @@ public class ShowtimeCapacityService {
                 : seatLockedRepository.countDistinctActiveLocks(showtimeUuid, effectiveNow);
 
         long occupied = bookedSeats + activeLocks + requestedSeatCount;
-        if (occupied > room.getCapacity()) {
-            long remaining = Math.max(0, room.getCapacity() - bookedSeats - activeLocks);
+        if (occupied > cap) {
+            long remaining = Math.max(0, cap - bookedSeats - activeLocks);
             throw new AppException(ErrorCode.CONFLICT,
                     "Phong chieu chi con " + remaining + " cho trong");
         }

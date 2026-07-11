@@ -84,10 +84,26 @@ public class OrbitRoomService {
     private boolean orbitEnabled;
 
     @Value("${app.orbit.room.ttl-minutes:30}")
-    private int roomTtlMinutes;
+    private int roomTtlMinutesFallback;
 
     @Value("${app.orbit.checkout.ttl-minutes:15}")
-    private int checkoutTtlMinutes;
+    private int checkoutTtlMinutesFallback;
+
+    private int resolveRoomTtlMinutes() {
+        try {
+            return systemConfigService.getOrbitRoomTtlMinutes();
+        } catch (Exception ignored) {
+            return roomTtlMinutesFallback;
+        }
+    }
+
+    private int resolveCheckoutTtlMinutes() {
+        try {
+            return systemConfigService.getOrbitCheckoutTtlMinutes();
+        } catch (Exception ignored) {
+            return Math.max(checkoutTtlMinutesFallback, systemConfigService.getSeatLockMinutes());
+        }
+    }
 
     @Transactional
     public OrbitRoomResponse createRoom(String currentUserEmail, CreateOrbitRoomRequest request) {
@@ -110,7 +126,7 @@ public class OrbitRoomService {
         Showtime showtime = loadOpenShowtime(request.getShowtimeUuid(), now);
 
         int maxMembers = clampMaxMembers(request.getMaxMembers());
-        OffsetDateTime expiresAt = now.plusMinutes(roomTtlMinutes);
+        OffsetDateTime expiresAt = now.plusMinutes(resolveRoomTtlMinutes());
 
         OrbitRoom room = new OrbitRoom();
         room.setUuid(UUID.randomUUID());
@@ -346,17 +362,18 @@ public class OrbitRoomService {
 
         validateMemberSeatLocks(room.getShowtimeUuid(), members, now);
         seatGapValidationService.validateNoSingleSeatGap(room.getShowtimeUuid(), allSeats, now);
+        OffsetDateTime checkoutExpiresAt = now.plusMinutes(resolveCheckoutTtlMinutes());
         for (OrbitMember member : members) {
             List<UUID> memberSeats = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
             int transferred = bookingNativeRepository.transferSeatLocksFromUserToUser(
-                    room.getShowtimeUuid(), member.getUserUuid(), hostUuid, memberSeats, now);
+                    room.getShowtimeUuid(), member.getUserUuid(), hostUuid, memberSeats, now, checkoutExpiresAt);
             if (transferred != memberSeats.size()) {
                 throw new AppException(ErrorCode.CONFLICT, "Có ghế chưa được giữ hoặc đã hết hạn");
             }
         }
 
         room.setStatus(OrbitRoomStatus.CHECKOUT);
-        room.setExpiresAt(now.plusMinutes(checkoutTtlMinutes));
+        room.setExpiresAt(checkoutExpiresAt);
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
         seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
@@ -367,6 +384,7 @@ public class OrbitRoomService {
         response.setShowtimeUuid(room.getShowtimeUuid());
         response.setSeatUuids(allSeats);
         response.setMembers(toMemberResponses(members, room.getHostUserUuid()));
+        response.setCheckoutExpiresAt(checkoutExpiresAt);
         return response;
     }
 
@@ -386,20 +404,27 @@ public class OrbitRoomService {
         }
 
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
+        OffsetDateTime renewExpiresAt = now.plusMinutes(resolveRoomTtlMinutes());
         for (OrbitMember member : members) {
             List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
             if (seatUuids.isEmpty()) {
                 continue;
             }
             int transferred = bookingNativeRepository.transferSeatLocksFromUserToUser(
-                    room.getShowtimeUuid(), hostUuid, member.getUserUuid(), seatUuids, now);
+                    room.getShowtimeUuid(), hostUuid, member.getUserUuid(), seatUuids, now, renewExpiresAt);
             if (transferred != seatUuids.size()) {
-                throw new AppException(ErrorCode.CONFLICT, "Không thể trả lại khóa ghế cho thành viên");
+                // Seat TTL may have already lapsed during checkout — force reassign + renew.
+                transferred = bookingNativeRepository.forceTransferSeatLocksFromUserToUser(
+                        room.getShowtimeUuid(), hostUuid, member.getUserUuid(), seatUuids, now, renewExpiresAt);
+            }
+            if (transferred != seatUuids.size()) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể trả lại khóa ghế. Vui lòng chọn lại ghế trong phòng Orbit.");
             }
         }
 
         room.setStatus(OrbitRoomStatus.OPEN);
-        room.setExpiresAt(now.plusMinutes(roomTtlMinutes));
+        room.setExpiresAt(renewExpiresAt);
         room.setUpdatedAt(now);
         orbitRoomRepository.save(room);
         seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
@@ -494,6 +519,11 @@ public class OrbitRoomService {
         broadcastRoom(toRoomResponse(room, hostUserUuid));
 
         return new OrbitBookingCompletionResult(hostScoreAdded, missionCompletions);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrbitMember> listMembers(UUID orbitRoomUuid) {
+        return orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(orbitRoomUuid);
     }
 
     /**

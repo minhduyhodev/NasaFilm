@@ -175,7 +175,7 @@ const UsersPage = () => {
   const getStatusLabel = (status) => {
     if (status === "ACTIVE") return "Hoạt động";
     if (status === "SUSPENDED") return "Bị khóa";
-    if (status === "INACTIVE") return "Chưa kích hoạt";
+    if (status === "INACTIVE") return "Không hoạt động";
     if (status === "PENDING_VERIFICATION") return "Chờ xác thực";
     return status;
   };
@@ -315,7 +315,7 @@ const UsersPage = () => {
             <option value="all">Tất cả Trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
             <option value="PENDING_VERIFICATION">Chờ xác thực</option>
-            <option value="INACTIVE">Chưa kích hoạt</option>
+            <option value="INACTIVE">Không hoạt động</option>
             <option value="SUSPENDED">Bị khóa</option>
           </select>
         </div>
@@ -482,7 +482,7 @@ const UsersPage = () => {
                                   },
                                   {
                                     value: "INACTIVE",
-                                    label: "Chưa kích hoạt",
+                                    label: "Không hoạt động",
                                     dot: "bg-zinc-400",
                                     cls: "text-zinc-400 hover:bg-zinc-500/10",
                                   },
@@ -633,7 +633,7 @@ const UsersPage = () => {
                   <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                   <option value="PENDING_VERIFICATION">Chờ xác thực (PENDING)</option>
                   <option value="SUSPENDED">Khóa tài khoản (SUSPENDED)</option>
-                  <option value="INACTIVE">Chưa kích hoạt (INACTIVE)</option>
+                  <option value="INACTIVE">Không hoạt động (INACTIVE)</option>
                 </select>
               </div>
 

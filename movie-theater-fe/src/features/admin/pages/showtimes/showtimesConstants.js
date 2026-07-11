@@ -72,22 +72,47 @@ export const isShowtimePlayingNow = (st, now = new Date()) => {
     && (st.status === 'OPEN_FOR_BOOKING' || st.status === 'SOLD_OUT' || st.status === 'SCHEDULED');
 };
 
+export const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
 export const formatTimeOnly = (s) => {
   if (!s) return '--:--';
-  return new Date(s).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return new Date(s).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: VN_TIME_ZONE,
+  });
 };
 
-export const formatDateShort = (d) => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+export const formatDateShort = (d) => {
+  const date = d instanceof Date ? d : new Date(d);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: VN_TIME_ZONE,
+  });
+};
 
 export const formatWeekday = (d) => {
+  const date = d instanceof Date ? d : new Date(d);
   const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  return days[d.getDay()];
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: VN_TIME_ZONE,
+    weekday: 'short',
+  }).format(date);
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return days[map[weekday] ?? date.getDay()];
 };
 
-export const isSameDay = (d1, d2) =>
-  d1.getFullYear() === d2.getFullYear()
-  && d1.getMonth() === d2.getMonth()
-  && d1.getDate() === d2.getDate();
+export const isSameDay = (d1, d2) => {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: VN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(d1 instanceof Date ? d1 : new Date(d1))
+    === fmt.format(d2 instanceof Date ? d2 : new Date(d2));
+};
 
 export const getValidTransitions = (status) => {
   switch (status) {

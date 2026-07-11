@@ -72,16 +72,46 @@ export const computeDefaultAisleCol = (cols) => {
   return Math.floor(cols / 2) + 1;
 };
 
-export const buildDefaultLayout = (cols, rowNames, presetId) => {
-  const layout = EMPTY_AISLE_LAYOUT();
-  const colsList = presetId === 'imax' && cols > 8
-    ? [Math.floor(cols / 3) + 1, Math.floor((cols * 2) / 3) + 1]
-    : [computeDefaultAisleCol(cols)].filter(Boolean);
+/**
+ * Treat builder "cols" as bookable seats per row.
+ * Insert aisle column(s) into the grid so aisles do not reduce bookable count.
+ */
+export const expandColsForDefaultAisles = (bookableCols, presetId) => {
+  const cols = Number(bookableCols) || 0;
+  if (cols <= 8) {
+    return { gridCols: cols, aisleCols: [] };
+  }
+  if (presetId === 'imax') {
+    const gridCols = cols + 2;
+    return {
+      gridCols,
+      aisleCols: [Math.floor(gridCols / 3) + 1, Math.floor((gridCols * 2) / 3) + 1],
+    };
+  }
+  const gridCols = cols + 1;
+  return { gridCols, aisleCols: [Math.floor(gridCols / 2) + 1] };
+};
 
-  colsList.forEach((col) => {
+export const buildLayoutFromAisleCols = (aisleCols, rowNames) => {
+  const layout = EMPTY_AISLE_LAYOUT();
+  (aisleCols || []).forEach((col) => {
     rowNames.forEach((row) => layout.slots.push(slotKey(row, col)));
   });
   return layout;
+};
+
+export const buildDefaultLayout = (cols, rowNames, presetId) => {
+  const { aisleCols } = expandColsForDefaultAisles(cols, presetId);
+  // When cols is already grid size (legacy), fall back to marking mid columns inside cols.
+  if (!aisleCols.length) {
+    const layout = EMPTY_AISLE_LAYOUT();
+    const legacy = [computeDefaultAisleCol(cols)].filter(Boolean);
+    legacy.forEach((col) => {
+      rowNames.forEach((row) => layout.slots.push(slotKey(row, col)));
+    });
+    return layout;
+  }
+  return buildLayoutFromAisleCols(aisleCols, rowNames);
 };
 
 export const hasAisleSlot = (layout, rowName, col) =>
@@ -121,12 +151,23 @@ export const applyAisleSlotsToSeats = (seats, layout) => {
     if (slotSet.has(key)) {
       return { ...seat, customTypeName: 'AISLE', status: 'DISABLED' };
     }
+    // Seat left the aisle overlay — restore to a sellable default, but keep MAINTENANCE.
     if (seat.customTypeName === 'AISLE') {
+      if (seat.status === 'MAINTENANCE') {
+        return { ...seat, customTypeName: 'BROKEN', status: 'MAINTENANCE' };
+      }
       return { ...seat, customTypeName: 'STANDARD', status: 'ACTIVE' };
     }
+    // Never mutate non-aisle statuses (esp. MAINTENANCE / BROKEN).
     return seat;
   });
 };
+
+/** Count seats that can actually be sold (exclude aisle + maintenance + disabled). */
+export const countBookableSeats = (seats = []) =>
+  seats.filter(
+    (s) => s.status === 'ACTIVE' && s.customTypeName !== 'AISLE',
+  ).length;
 
 export const getRowIndex = (rowName, rowNames) => rowNames.indexOf(rowName);
 
