@@ -2,6 +2,7 @@ package com.thdpv.movietheater.cinema.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 public class CinemaRequest {
 
@@ -22,8 +23,11 @@ public class CinemaRequest {
 
     private Double longitude;
 
+    private CinemaStatus status;
+
     public CinemaRequest() {
     }
+
 
     public CinemaRequest(String name, String address, String phoneNumber) {
         this.name = name;
@@ -77,5 +81,13 @@ public class CinemaRequest {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public CinemaStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(CinemaStatus status) {
+        this.status = status;
     }
 }

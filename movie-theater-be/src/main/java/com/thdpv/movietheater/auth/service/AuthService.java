@@ -12,15 +12,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
@@ -28,12 +29,16 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
+import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
+import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
 import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
-import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.auth.repository.UserSessionRepository;
+import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
+import com.thdpv.movietheater.auth.support.AuthActionRateLimiter;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.repository.RoleRepository;
@@ -45,10 +50,6 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
-import com.thdpv.movietheater.auth.dto.RegisterRequest;
-import com.thdpv.movietheater.auth.dto.VerifyRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -68,6 +69,7 @@ public class AuthService {
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AuthActionRateLimiter authActionRateLimiter;
 
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
@@ -91,6 +93,7 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             EmailService emailService,
             RoleRepository roleRepository,
+            AuthActionRateLimiter authActionRateLimiter,
             org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
@@ -103,15 +106,17 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.roleRepository = roleRepository;
+        this.authActionRateLimiter = authActionRateLimiter;
         this.redisTemplate = redisTemplate;
     }
 
     @Transactional
     public JwtResponse login(LoginRequest loginRequest, HttpServletRequest httpServletRequest) {
+        String email = loginRequest.getEmail() != null ? loginRequest.getEmail().trim() : "";
+        authActionRateLimiter.assertLoginAllowed(clientKey(httpServletRequest, email));
+
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail().trim(),
-                        loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(email, loginRequest.getPassword()));
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
@@ -402,8 +407,9 @@ public class AuthService {
     }
 
     @Transactional
-    public void register(RegisterRequest request) {
+    public void register(RegisterRequest request, HttpServletRequest httpServletRequest) {
         String email = request.getEmail().trim().toLowerCase();
+        authActionRateLimiter.assertRegisterAllowed(clientKey(httpServletRequest, email));
 
         Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
         if (existingUserOpt.isPresent()) {
@@ -482,7 +488,7 @@ public class AuthService {
         }
 
         String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
-        user.setVerificationCode(otpCode);
+        user.setVerificationCode(passwordEncoder.encode(otpCode));
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
         user.setVerificationAttempts(0);
         user.setVerificationLockTime(null);
@@ -507,8 +513,11 @@ public class AuthService {
     }
 
     @Transactional(noRollbackFor = AppException.class)
-    public void verifyRegister(VerifyRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
+    public void verifyRegister(VerifyRequest request, HttpServletRequest httpServletRequest) {
+        String email = request.getEmail().trim();
+        authActionRateLimiter.assertOtpVerifyAllowed(clientKey(httpServletRequest, email));
+
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (user.getStatus() == UserStatus.ACTIVE) {
@@ -530,10 +539,14 @@ public class AuthService {
             }
         }
 
-        if (user.getVerificationCode() == null
-                || !user.getVerificationCode().equals(request.getCode().trim())
-                || user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+        String submittedCode = request.getCode() != null ? request.getCode().trim() : "";
+        String storedCode = user.getVerificationCode();
+        boolean otpValid = storedCode != null
+                && user.getVerificationCodeExpiry() != null
+                && !user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())
+                && matchesVerificationCode(submittedCode, storedCode);
 
+        if (!otpValid) {
             int attempts = (user.getVerificationAttempts() != null ? user.getVerificationAttempts() : 0) + 1;
             final int maxAttempts = 10;
             if (attempts >= maxAttempts) {
@@ -570,6 +583,31 @@ public class AuthService {
             userRole.setRole(role);
             userRoleRepository.save(userRole);
         }
+    }
+
+    private boolean matchesVerificationCode(String submitted, String stored) {
+        if (submitted == null || submitted.isBlank() || stored == null || stored.isBlank()) {
+            return false;
+        }
+        // BCrypt hashes start with $2; allow brief plaintext match for in-flight OTPs after deploy
+        if (stored.startsWith("$2")) {
+            return passwordEncoder.matches(submitted, stored);
+        }
+        return stored.equals(submitted);
+    }
+
+    private String clientKey(HttpServletRequest request, String email) {
+        String ip = "unknown";
+        if (request != null) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                ip = forwarded.split(",")[0].trim();
+            } else if (request.getRemoteAddr() != null) {
+                ip = request.getRemoteAddr();
+            }
+        }
+        String identity = email != null ? email.trim().toLowerCase() : "";
+        return ip + "|" + identity;
     }
 
     @Transactional

@@ -38,6 +38,13 @@
   @apply w-full pl-11 pr-11 py-3.5 text-sm text-white bg-[#11141e]/85 border border-white/10 rounded-2xl placeholder:text-white/30 focus:outline-none focus:border-red-500/45 focus:ring-1 focus:ring-red-500/20 transition-all;
 }
 
+.online-catalog-search-input::-webkit-search-cancel-button,
+.online-catalog-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 .online-catalog-search-clear {
   @apply absolute right-3 p-1.5 text-white/40 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer focus:outline-none;
 }

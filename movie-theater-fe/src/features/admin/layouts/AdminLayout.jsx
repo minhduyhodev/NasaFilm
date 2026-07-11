@@ -74,8 +74,10 @@ const AdminLayout = ({ children }) => {
                 onClick={() => setSidebarOpen((prev) => !prev)}
                 className="inline-flex h-10 w-10 items-center justify-center text-gray-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
                 title="Mở sidebar"
+                aria-label="Mở sidebar"
+                aria-expanded={isSidebarOpen}
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-5 h-5" aria-hidden="true" />
               </button>
 
               <Link

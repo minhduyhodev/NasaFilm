@@ -184,5 +184,191 @@
     "fullName": "Yumiri Hanamori",
     "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/YumiriHanamori_bw0jhx.webp",
     "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "d3bca6c1-75e8-421e-a6ec-c07a663a86f9",
+    "fullName": "Quyền Linh",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "a48c88a4-4acd-4e14-b6e7-05eaff11ba95",
+    "fullName": "Chi Bảo",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "318b6cc3-2d50-467e-85fb-30ff18b1fc6c",
+    "fullName": "Tiến Luật",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "520496aa-70fd-40c1-b0e3-7834b4667e19",
+    "fullName": "Huỳnh Lập",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "f42130a8-6e01-49d8-9daa-15887d1a51f7",
+    "fullName": "Shameik Moore",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "8291a8d6-861a-4d9e-ac61-4a1555c833fa",
+    "fullName": "Hailee Steinfeld",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "c1a713e7-642a-4f22-8d43-7f9a8ef7efa3",
+    "fullName": "Oscar Isaac",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "cd41c913-334e-47f9-a9f0-0d199179c383",
+    "fullName": "Pedro Pascal",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "fd29a022-ccf6-44d5-9046-c6f35ff23a10",
+    "fullName": "Sigourney Weaver",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "43527bcf-c755-46a1-bbbc-d51107e6af92",
+    "fullName": "Hoàng Yến Chibi",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "d411da93-8394-465f-b65b-7f82136b67cc",
+    "fullName": "Quốc Huy",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "b3430ecd-5ee3-4993-8391-6558b497e28f",
+    "fullName": "Chinawut Indracusin",
+    "avatarUrl": "",
+    "countryName": "Thái Lan"
+  },
+  {
+    "uuid": "1bd425ca-1429-46de-8c18-eb0d7d6a35e9",
+    "fullName": "Bhuripat Vejvongsatechawat",
+    "avatarUrl": "",
+    "countryName": "Thái Lan"
+  },
+  {
+    "uuid": "8bd0483d-4b2c-4551-b668-bbc5e499d6dc",
+    "fullName": "Cao Minh Đạt",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "6d11d1b3-0613-4b97-ba56-36bebefe3be8",
+    "fullName": "Oanh Kiều",
+    "avatarUrl": "",
+    "countryName": "Việt Nam"
+  },
+  {
+    "uuid": "4862f57b-3b82-47bf-bf57-cf8178c09c55",
+    "fullName": "Minami Takayama",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "5601fa42-426a-4ccb-9267-e942c762ca91",
+    "fullName": "Wakana Yamazaki",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "4cc4f246-e54a-4fea-8225-82fa8c50e07b",
+    "fullName": "Tomokazu Sugita",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "d086ec6f-9ed0-41f5-a3ba-ab942e77b4f4",
+    "fullName": "Rie Kugimiya",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "c0acc594-a2ae-4387-a771-aa30ee235a22",
+    "fullName": "Tom Hanks",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "a87d8ae9-3d96-472e-ab57-8cbda9c1fbdc",
+    "fullName": "Tim Allen",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "2543a63d-8a63-4368-8f4c-b7b225cf97d1",
+    "fullName": "Ginnifer Goodwin",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "3caabce7-3a77-47fc-9bfb-cc386af8f4c8",
+    "fullName": "Jason Bateman",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "ed708c42-b89b-49df-a2f6-5acd918b4ca7",
+    "fullName": "Mike Myers",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "fa28a41b-ee75-4c93-8f30-baa144beec32",
+    "fullName": "Eddie Murphy",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "7934aa7a-e6ea-4fa8-8911-529965bb3294",
+    "fullName": "Cameron Diaz",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "c841abf2-c227-4cd6-a36e-1d70eb9c852a",
+    "fullName": "David Corenswet",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "a1b74db0-af3f-4469-a7c6-93da5470f38b",
+    "fullName": "Rachel Brosnahan",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "109f6b72-e48f-465c-904b-01c2ff7ee7fe",
+    "fullName": "Nicholas Hoult",
+    "avatarUrl": "",
+    "countryName": "Mỹ"
+  },
+  {
+    "uuid": "fc0bebeb-ab13-4b26-a640-eadd5971d333",
+    "fullName": "Natsuki Hanae",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
+  },
+  {
+    "uuid": "1fcd9ef8-2319-4d91-b901-873d52b40904",
+    "fullName": "Yoshitsugu Matsuoka",
+    "avatarUrl": "",
+    "countryName": "Nhật Bản"
   }
 ]

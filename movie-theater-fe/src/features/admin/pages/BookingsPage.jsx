@@ -245,7 +245,13 @@ const BookingsPage = () => {
   const fetchBookings = useCallback(async (keyword = '') => {
     setIsLoading(true);
     try {
-      const data = await bookingService.getAdminBookings(keyword);
+      const data = await bookingService.getAdminBookings(keyword, {
+        unpaged: true,
+        status: statusFilter,
+        cinema: selectedCinema,
+        startDate,
+        endDate,
+      });
       setBookings(data || []);
     } catch (err) {
       console.error('Failed to load bookings:', err);
@@ -253,7 +259,7 @@ const BookingsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [statusFilter, selectedCinema, startDate, endDate]);
 
   useEffect(() => { fetchAuxiliaryData(); }, []);
 
@@ -344,19 +350,8 @@ const BookingsPage = () => {
   }, [showtimes]);
 
   const filteredBookings = React.useMemo(() => {
+    // keyword/status/cinema/date already applied server-side; only showtime remains client-side
     const list = bookings.filter((b) => {
-      if (statusFilter !== 'ALL' && b.status?.toUpperCase() !== statusFilter) return false;
-      if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
-      if (startDate) {
-        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-        const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
-        if (bDate < sDate) return false;
-      }
-      if (endDate) {
-        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-        const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
-        if (bDate > eDate) return false;
-      }
       if (selectedShowtime) {
         const stTime = getBookingShowtimeTime(b);
         if (stTime !== selectedShowtime) return false;
@@ -371,7 +366,7 @@ const BookingsPage = () => {
       if (ra !== rb) return ra - rb;
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
-  }, [bookings, statusFilter, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
+  }, [bookings, selectedShowtime, showtimes]);
 
   const { active: activeBookings, archived: archivedBookings } = React.useMemo(
     () => partitionAdminBookings(filteredBookings, getBookingShowtime),
@@ -380,17 +375,6 @@ const BookingsPage = () => {
 
   const stats = React.useMemo(() => {
     const baseListForStats = bookings.filter((b) => {
-      if (selectedCinema && !b.cinemaRoomName?.toLowerCase().includes(selectedCinema.toLowerCase())) return false;
-      if (startDate) {
-        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-        const sDate = new Date(startDate); sDate.setHours(0, 0, 0, 0);
-        if (bDate < sDate) return false;
-      }
-      if (endDate) {
-        const bDate = new Date(b.createdAt); bDate.setHours(0, 0, 0, 0);
-        const eDate = new Date(endDate); eDate.setHours(0, 0, 0, 0);
-        if (bDate > eDate) return false;
-      }
       if (selectedShowtime) {
         const stTime = getBookingShowtimeTime(b);
         if (stTime !== selectedShowtime) return false;
@@ -404,7 +388,7 @@ const BookingsPage = () => {
     });
     const avgOrderValue = confirmed > 0 ? Math.round(revenue / confirmed) : 0;
     return { totalRevenue: revenue, confirmedCount: confirmed, cancelledCount: cancelled, totalCount: baseListForStats.length, avgOrderValue };
-  }, [bookings, selectedCinema, startDate, endDate, selectedShowtime, showtimes]);
+  }, [bookings, selectedShowtime, showtimes]);
 
   const paginatedActiveBookings = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;

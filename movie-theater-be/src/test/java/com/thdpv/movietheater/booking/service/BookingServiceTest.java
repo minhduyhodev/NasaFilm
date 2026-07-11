@@ -103,6 +103,12 @@ class BookingServiceTest {
     @Mock
     private OrbitRoomService orbitRoomService;
 
+    @Mock
+    private ShowtimeOverlapSupport showtimeOverlapSupport;
+
+    @Mock
+    private com.thdpv.movietheater.payment.service.PaymentService paymentService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -118,6 +124,7 @@ class BookingServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(bookingService, "autoSlideEnabled", true);
+        lenient().when(showtimeOverlapSupport.planSlideIfPast(any(), any())).thenReturn(Optional.empty());
         lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
         lenient().when(systemConfigService.getOnlineWatchLockMultiplier()).thenReturn(2.0);
         lenient().doNothing().when(showtimeCapacityService)
@@ -311,7 +318,7 @@ class BookingServiceTest {
         Movie movie = new Movie();
         movie.setUuid(movieUuid);
         movie.setDurationMinutes(120);
-        movie.setStreamingUrl("http://example.com/stream.mp4");
+        movie.setStreamingUrl("https://java-06.s3.ap-southeast-1.amazonaws.com/movie/demo-stream.mp4");
 
         when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
@@ -321,7 +328,7 @@ class BookingServiceTest {
         VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
 
         org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
-        assertEquals("http://example.com/stream.mp4", response.getStreamingUrl());
+        assertEquals("/api/media/border?key=movie%2Fdemo-stream.mp4", response.getStreamingUrl());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
     }

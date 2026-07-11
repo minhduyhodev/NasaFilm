@@ -12,6 +12,8 @@ public class OrbitMemberResponse {
     private boolean host;
     private List<UUID> seatUuids = new ArrayList<>();
     private OffsetDateTime joinedAt;
+    private String combosJson = "[]";
+    private boolean completed = false;
 
     public UUID getUserUuid() {
         return userUuid;
@@ -51,5 +53,21 @@ public class OrbitMemberResponse {
 
     public void setJoinedAt(OffsetDateTime joinedAt) {
         this.joinedAt = joinedAt;
+    }
+
+    public String getCombosJson() {
+        return combosJson;
+    }
+
+    public void setCombosJson(String combosJson) {
+        this.combosJson = combosJson;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
     }
 }

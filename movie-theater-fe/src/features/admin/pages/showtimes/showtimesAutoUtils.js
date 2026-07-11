@@ -22,7 +22,16 @@ export const buildAutoFormFromConfig = (config = {}, cinemas = []) => {
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 6);
-  const toInputDate = (d) => d.toISOString().split('T')[0];
+  const toInputDate = (d) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  };
 
   return {
     startDate: toInputDate(today),

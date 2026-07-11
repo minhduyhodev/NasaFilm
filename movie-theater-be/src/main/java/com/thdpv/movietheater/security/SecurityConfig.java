@@ -36,10 +36,14 @@ public class SecurityConfig {
     @Value("${app.frontend-url:*}")
     private String frontendUrl;
 
+    @Value("${app.swagger.enabled:false}")
+    private boolean swaggerEnabled;
+
     private final JwtAuthTokenFilter jwtAuthTokenFilter;
     private final CustomUserDetailsService customUserDetailsService;
     private final ObjectMapper objectMapper;
 
+    /** Catalog and auth endpoints that remain anonymous. Sensitive admin/debug paths are not listed. */
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/login",
             "/api/google",
@@ -62,12 +66,9 @@ public class SecurityConfig {
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
             "/api/showtimes/*/seat-map/watch",
-            "/api/showtimes/*/seat-map/watch",
             "/api/system-config",
             "/api/media/proxy",
             "/api/media/border",
-            "/api/media/tmdb-status",
-            "/api/payments/webhook",
             "/api/payments/config",
             "/api/promotions/public",
             "/api/promotions/validate",
@@ -76,11 +77,16 @@ public class SecurityConfig {
             "/api/review-vibe-tags/**",
             "/ws/**",
             "/stomp/**",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
+            "/actuator/health",
+            "/actuator/health/**",
             "/v1/payments/**",
             "/v1/webhooks/**"
+    };
+
+    private static final String[] SWAGGER_ENDPOINTS = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     public SecurityConfig(
@@ -122,10 +128,14 @@ public class SecurityConfig {
                                 ErrorCode.FORBIDDEN)))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/movies/*/stream").authenticated()
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/api/movies/*/stream").authenticated();
+                    if (swaggerEnabled) {
+                        auth.requestMatchers(SWAGGER_ENDPOINTS).permitAll();
+                    }
+                    auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                            .anyRequest().authenticated();
+                })
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
 

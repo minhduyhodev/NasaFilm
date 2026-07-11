@@ -43,6 +43,11 @@ public class OrbitTopicAccessService {
         if (suffix.isBlank()) {
             return null;
         }
+        if (suffix.endsWith("/chat")) {
+            suffix = suffix.substring(0, suffix.length() - "/chat".length());
+        } else if (suffix.endsWith("/typing")) {
+            suffix = suffix.substring(0, suffix.length() - "/typing".length());
+        }
         try {
             return UUID.fromString(suffix);
         } catch (IllegalArgumentException ex) {

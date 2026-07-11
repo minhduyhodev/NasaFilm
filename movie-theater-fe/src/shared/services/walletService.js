@@ -28,6 +28,24 @@ class WalletService {
     }
   }
 
+  async createTopUpIntent(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/intent', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async confirmTopUp(paymentIntentId) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/confirm', { paymentIntentId });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async withdraw(amount) {
     try {
       const response = await authService.api.post('/api/wallet/withdraw', { amount });

@@ -78,10 +78,18 @@ export const NotificationProvider = ({ children }) => {
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
   }, [user]);
 
-  const clearAll = useCallback(() => {
+  const clearAll = useCallback(async () => {
     notificationService.clearAll();
+    if (user?.email) {
+      try {
+        const { userNotificationApi } = await import('../services/userNotificationApi');
+        await userNotificationApi.deleteAll();
+      } catch {
+        /* ignore */
+      }
+    }
     setNotifications([]);
-  }, []);
+  }, [user]);
 
   const value = {
     notifications,

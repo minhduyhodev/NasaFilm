@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { X, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
 import {
   buildRowPlacedItems,
   getCoupleLabel,
@@ -42,6 +42,7 @@ const TheaterSeatMapPanel = ({
   className = '',
   footerNote = null,
 }) => {
+
   const resolveOrbitOwner = (seatUuid) => {
     if (!orbitSeatOwners || !seatUuid) return null;
     const key = normalizeUuid(seatUuid);
@@ -227,19 +228,37 @@ const TheaterSeatMapPanel = ({
 
   return (
     <div className={`flex flex-col items-center w-full ${className}`}>
-      <div className="w-full mb-16 text-center">
-        <div className={`screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
-        <p className="text-[10px] md:text-xs font-bold text-gray-400 mt-4 tracking-widest uppercase">{screenLabel}</p>
-      </div>
-
-      <div className="flex flex-col gap-2.5 overflow-x-auto overflow-y-visible w-full items-center pb-4 py-6 scrollbar-hide select-none">
+      {/* Viewport container sử dụng Container Query để tự động co giãn ghế */}
+      <div
+        className="w-full border border-white/5 bg-[#0b0f19]/40 rounded-2xl p-4 md:p-6 relative select-none custom-scrollbar"
+        style={{ containerType: 'inline-size' }}
+      >
+        <div 
+          className="flex flex-col gap-2 w-full"
+          style={{
+            '--seat-slot-gap': '0.7cqw',
+            '--seat-slot-w': 'calc((100cqw - 4rem - (var(--seat-map-cols) - 1) * var(--seat-slot-gap)) / var(--seat-map-cols))',
+            '--seat-slot-h': 'calc(var(--seat-slot-w) * 0.7)',
+            '--seat-font-size': 'calc(var(--seat-slot-w) * 0.3)',
+            '--seat-couple-font-size': 'calc(var(--seat-slot-w) * 0.28)',
+          }}
+        >
+          {/* Màn hình curved */}
+          <div className="w-full mb-6 text-center shrink-0">
+            <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
+            <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
+          </div>
         {bookingRowNames.map((row) => {
           const seatsList = bookingSeatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
-            <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
-              <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+            <div key={row} className="flex items-center gap-2 mb-1 justify-center w-full">
+              <div 
+                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
+              >
+                {row}
+              </div>
 
               {isFullHorizontalAisle ? (
                 <div
@@ -388,10 +407,15 @@ const TheaterSeatMapPanel = ({
                 </div>
               )}
 
-              <div className="w-6 text-center text-[10px] md:text-xs font-bold text-gray-500">{row}</div>
+              <div 
+                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
+              >
+                {row}
+              </div>
             </div>
           );
         })}
+        </div>
       </div>
 
       {hasGapViolation && (

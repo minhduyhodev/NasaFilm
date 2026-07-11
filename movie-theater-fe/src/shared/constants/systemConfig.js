@@ -257,6 +257,8 @@ export const DEFAULT_SYSTEM_CONFIG = {
   couplePrice: 120000,
   onlineStreamingPrice: 45000,
   seatLockMinutes: 5,
+  orbitRoomTtlMinutes: 30,
+  orbitCheckoutTtlMinutes: 15,
   maxSeatsPerBooking: 8,
   onlineWatchLockMultiplier: 2,
   onlineCountdownEnabled: true,

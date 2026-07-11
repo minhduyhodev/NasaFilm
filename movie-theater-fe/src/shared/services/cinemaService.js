@@ -86,6 +86,15 @@ class CinemaService {
     }
   }
 
+  async deleteCinema(cinemaUuid) {
+    try {
+      const response = await authService.api.delete(`/api/admin/cinemas/${cinemaUuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async generateSeats(roomUuid, rowCount = 8, seatsPerRow = 12) {
     try {
       const response = await authService.api.post(`/api/admin/rooms/${roomUuid}/seats/generate`, {

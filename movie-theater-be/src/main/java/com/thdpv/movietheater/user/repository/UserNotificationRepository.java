@@ -23,4 +23,8 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
             WHERE n.userUuid = :userUuid AND n.readAt IS NULL
             """)
     int markAllRead(@Param("userUuid") UUID userUuid);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM UserNotification n WHERE n.userUuid = :userUuid")
+    int deleteAllByUserUuid(@Param("userUuid") UUID userUuid);
 }

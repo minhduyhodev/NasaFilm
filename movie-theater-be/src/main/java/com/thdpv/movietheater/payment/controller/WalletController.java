@@ -17,6 +17,8 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.payment.dto.WalletAmountRequest;
 import com.thdpv.movietheater.payment.dto.WalletSummaryResponse;
+import com.thdpv.movietheater.payment.dto.WalletTopUpConfirmRequest;
+import com.thdpv.movietheater.payment.dto.WalletTopUpIntentResponse;
 import com.thdpv.movietheater.payment.dto.WalletTransactionResponse;
 import com.thdpv.movietheater.payment.service.WalletService;
 import com.thdpv.movietheater.user.entity.User;
@@ -54,6 +56,27 @@ public class WalletController {
         UUID userUuid = resolveUserUuid(userDetails);
         WalletSummaryResponse summary = walletService.mockTopUp(userUuid, request.getAmount());
         return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền mô phỏng thành công"));
+    }
+
+    @PostMapping("/top-up/intent")
+    public ResponseEntity<ApiResponse<WalletTopUpIntentResponse>> createTopUpIntent(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody WalletAmountRequest request) {
+        UUID userUuid = resolveUserUuid(userDetails);
+        WalletTopUpIntentResponse intent = walletService.createTopUpIntent(userUuid, request.getAmount());
+        String message = intent.isMockMode()
+                ? "Nạp tiền mô phỏng thành công"
+                : "Đã tạo phiên thanh toán nạp ví";
+        return ResponseEntity.ok(ApiResponse.success(intent, message));
+    }
+
+    @PostMapping("/top-up/confirm")
+    public ResponseEntity<ApiResponse<WalletSummaryResponse>> confirmTopUp(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody WalletTopUpConfirmRequest request) {
+        UUID userUuid = resolveUserUuid(userDetails);
+        WalletSummaryResponse summary = walletService.confirmTopUp(userUuid, request.getPaymentIntentId());
+        return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền thành công"));
     }
 
     @PostMapping("/withdraw")

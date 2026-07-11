@@ -34,8 +34,21 @@
   @apply flex flex-nowrap items-center justify-center gap-3 lg:gap-4 xl:gap-6;
 }
 
+.navbar-logo-text {
+  font-size: clamp(1.15rem, 1.8vw, 1.75rem);
+}
+
 .navbar-nav-link {
   @apply shrink-0 whitespace-nowrap text-sm font-semibold tracking-wide text-white/80 transition-colors hover:text-white;
+}
+
+.navbar-nav-link--active {
+  @apply text-red-500 font-bold !important;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.nav-catalog-chevron--active {
+  @apply text-red-500 !important;
 }
 
 .nav-catalog-trigger {
@@ -103,6 +116,33 @@
 
 .navbar-cta-btn {
   @apply relative hidden h-11 shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl bg-gradient-to-r from-red-600 to-red-500 px-3 text-[11px] font-extrabold uppercase tracking-wide text-white no-underline shadow-[0_4px_15px_rgba(220,38,38,0.3)] transition-all duration-200 active:scale-95 md:inline-flex lg:px-3.5 xl:gap-2 xl:px-4 xl:text-xs xl:tracking-wider;
+}
+
+.navbar-booking-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.navbar-booking-option {
+  @apply flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-white/80 no-underline transition-all duration-200;
+}
+
+.navbar-booking-option:hover,
+.navbar-booking-option:focus-visible {
+  @apply bg-white/5 text-white outline-none;
+}
+
+.navbar-booking-option--active {
+  @apply bg-white/10 text-white;
+}
+
+.navbar-booking-option__icon {
+  @apply h-4 w-4 shrink-0 text-red-500;
+}
+
+.navbar-booking-option__icon--fill {
+  @apply fill-red-500;
 }
 
 .navbar-cta-btn span {
@@ -262,4 +302,56 @@
 
 .notif-item.warning .notif-item-title {
   @apply text-yellow-400;
+}
+
+/* Active CTA button state */
+.navbar-cta-btn--active {
+  @apply from-red-500 to-rose-600 shadow-[0_4px_15px_rgba(239,68,68,0.45)] border border-red-400/20 !important;
+}
+
+/* Intermediate Desktop Screen Support (1024px to 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .navbar-container {
+    @apply px-4 gap-2;
+  }
+  .navbar-logo-link {
+    @apply gap-2;
+  }
+  .navbar-nav {
+    @apply gap-2.5;
+  }
+  .navbar-nav-link {
+    @apply text-[13px] tracking-normal;
+  }
+  .navbar-search.global-search {
+    width: 140px;
+  }
+  .navbar-actions {
+    @apply gap-1.5;
+  }
+  .navbar-cta-btn {
+    @apply px-2.5 text-[10px];
+  }
+  .user-profile-trigger {
+    @apply max-w-[7.5rem] pr-2 pl-1.5;
+  }
+  .user-name {
+    @apply text-[13px];
+  }
+}
+
+/* Intermediate Tablet Screen Support (768px to 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .navbar-container {
+    @apply px-4 gap-2;
+  }
+  .navbar-actions {
+    @apply gap-1.5;
+  }
+  .navbar-cta-btn {
+    @apply px-2.5 text-[10px];
+  }
+  .user-profile-trigger {
+    @apply max-w-[7.5rem] pr-2 pl-1.5;
+  }
 }

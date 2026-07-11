@@ -6,5 +6,8 @@ import com.thdpv.movietheater.payment.stripe.domain.WebhookResult;
 
 public interface StripeGateway {
     PaymentIntentResult createPaymentIntent(PaymentIntentInput input);
+
+    PaymentIntentResult retrievePaymentIntent(String paymentIntentId);
+
     WebhookResult verifyWebhook(String payload, String signature);
 }

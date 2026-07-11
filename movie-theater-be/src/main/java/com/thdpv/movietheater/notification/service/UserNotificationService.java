@@ -64,6 +64,12 @@ public class UserNotificationService {
     }
 
     @Transactional
+    public void deleteAllNotifications(String userEmail) {
+        UUID userUuid = resolveUserUuid(userEmail);
+        userNotificationRepository.deleteAllByUserUuid(userUuid);
+    }
+
+    @Transactional
     public void savePushSubscription(String userEmail, PushSubscriptionRequest request) {
         UUID userUuid = resolveUserUuid(userEmail);
         PushSubscription subscription = pushSubscriptionRepository.findByEndpoint(request.getEndpoint())

@@ -26,7 +26,6 @@ import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
-import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.BookingCombo;
 import com.thdpv.movietheater.booking.entity.BookingSeat;
@@ -193,7 +192,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking();
         booking.setUuid(bookingUuid);
@@ -218,6 +216,9 @@ public class BookingService {
             promotionRepository.save(resolvedPromotion);
             voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
+
+        // Charge after booking rows exist so a seat/DB failure cannot leave a paid orphan charge
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
@@ -364,7 +365,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking(
                 bookingUuid,
@@ -416,6 +416,9 @@ public class BookingService {
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
 
+        // Charge after seats/tickets persist; same @Transactional rolls back booking if charge fails
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
+
         int scoreAdded;
         if (isOrbitCheckout) {
             scoreAdded = 0;
@@ -456,6 +459,15 @@ public class BookingService {
                     comboLines,
                     ticketLines,
                     totalPrice);
+            if (isOrbitCheckout && orbitRoomUuid != null) {
+                sendOrbitMemberTicketEmails(
+                        orbitRoomUuid,
+                        userUuid,
+                        bookingUuid,
+                        request.getShowtimeUuid(),
+                        seatLines,
+                        ticketLines);
+            }
         } catch (Exception ex) {
             // Không chặn đặt vé nếu gửi email thất bại
         }
@@ -601,12 +613,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(
-                bookingUuid,
-                totalPrice,
-                request.getPaymentMethod(),
-                "counter-pay-" + bookingUuid,
-                customerUuid);
 
         Booking booking = new Booking(
                 bookingUuid,
@@ -658,6 +664,13 @@ public class BookingService {
             comboLines.add(new BookingResponse.ComboLine(
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
+
+        paymentService.chargeBooking(
+                bookingUuid,
+                totalPrice,
+                request.getPaymentMethod(),
+                "counter-pay-" + bookingUuid,
+                customerUuid);
 
         int scoreAdded = isSystemAccount ? 0 : calculateScore(totalPrice);
         if (scoreAdded > 0) {
@@ -832,6 +845,107 @@ public class BookingService {
     private String generateTicketCode() {
         return "TK" + OffsetDateTime.now(ZoneOffset.UTC).toInstant().toEpochMilli()
                 + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private void sendOrbitMemberTicketEmails(
+            UUID orbitRoomUuid,
+            UUID hostUserUuid,
+            UUID bookingUuid,
+            UUID showtimeUuid,
+            List<BookingResponse.SeatLine> seatLines,
+            List<BookingResponse.TicketLine> ticketLines) {
+        Map<UUID, Integer> seatIndexByUuid = new LinkedHashMap<>();
+        for (int i = 0; i < seatLines.size(); i++) {
+            seatIndexByUuid.put(seatLines.get(i).getSeatUuid(), i);
+        }
+
+        for (com.thdpv.movietheater.orbit.entity.OrbitMember member : orbitRoomService.listMembers(orbitRoomUuid)) {
+            if (member.getUserUuid() == null || member.getUserUuid().equals(hostUserUuid)) {
+                continue;
+            }
+            List<UUID> memberSeatUuids = com.thdpv.movietheater.orbit.util.OrbitSeatJson
+                    .readSeatUuids(member.getSeatUuidsJson());
+            if (memberSeatUuids.isEmpty()) {
+                continue;
+            }
+
+            List<BookingResponse.SeatLine> memberSeats = new ArrayList<>();
+            List<BookingResponse.TicketLine> memberTickets = new ArrayList<>();
+            BigDecimal memberTotal = BigDecimal.ZERO;
+            for (UUID seatUuid : memberSeatUuids) {
+                Integer idx = seatIndexByUuid.get(seatUuid);
+                if (idx == null) {
+                    continue;
+                }
+                BookingResponse.SeatLine seatLine = seatLines.get(idx);
+                memberSeats.add(seatLine);
+                memberTotal = memberTotal.add(seatLine.getPrice() != null ? seatLine.getPrice() : BigDecimal.ZERO);
+                if (idx < ticketLines.size()) {
+                    memberTickets.add(ticketLines.get(idx));
+                }
+            }
+            if (memberSeats.isEmpty()) {
+                continue;
+            }
+
+            List<BookingResponse.ComboLine> memberCombos = resolveMemberComboLines(member.getCombosJson());
+            for (BookingResponse.ComboLine combo : memberCombos) {
+                if (combo.getPrice() != null) {
+                    memberTotal = memberTotal.add(combo.getPrice());
+                }
+            }
+            try {
+                sendTheaterTicketEmailNotification(
+                        member.getUserUuid(),
+                        bookingUuid,
+                        showtimeUuid,
+                        memberSeats,
+                        memberCombos,
+                        memberTickets,
+                        memberTotal);
+            } catch (Exception ignored) {
+                // Keep booking flow non-blocking for individual member email failures.
+            }
+        }
+    }
+
+    private List<BookingResponse.ComboLine> resolveMemberComboLines(String combosJson) {
+        List<BookingResponse.ComboLine> lines = new ArrayList<>();
+        if (combosJson == null || combosJson.isBlank() || "[]".equals(combosJson.trim())) {
+            return lines;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<com.thdpv.movietheater.orbit.dto.OrbitComboItem> items = mapper.readValue(
+                    combosJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<List<com.thdpv.movietheater.orbit.dto.OrbitComboItem>>() {});
+            if (items == null || items.isEmpty()) {
+                return lines;
+            }
+            Map<UUID, Integer> quantities = new LinkedHashMap<>();
+            for (com.thdpv.movietheater.orbit.dto.OrbitComboItem item : items) {
+                if (item == null || item.getComboUuid() == null || item.getQuantity() <= 0) {
+                    continue;
+                }
+                quantities.merge(item.getComboUuid(), item.getQuantity(), Integer::sum);
+            }
+            if (quantities.isEmpty()) {
+                return lines;
+            }
+            List<ComboPrice> comboPrices = bookingRepository.loadCombos(quantities.keySet());
+            for (ComboPrice comboPrice : comboPrices) {
+                int quantity = quantities.getOrDefault(comboPrice.comboUuid(), 0);
+                if (quantity <= 0) {
+                    continue;
+                }
+                BigDecimal lineTotal = comboPrice.unitPrice().multiply(BigDecimal.valueOf(quantity));
+                lines.add(new BookingResponse.ComboLine(
+                        comboPrice.comboUuid(), comboPrice.name(), quantity, lineTotal));
+            }
+        } catch (Exception ignored) {
+            return lines;
+        }
+        return lines;
     }
 
     private void sendTheaterTicketEmailNotification(
@@ -1111,55 +1225,6 @@ public class BookingService {
             return "Giảm " + discountValue.stripTrailingZeros().toPlainString() + "%";
         }
         return "Giảm " + formatPrice(discountValue);
-    }
-
-
-    @Transactional(readOnly = true)
-    public List<AdminBookingListResponse> getAdminBookings(String keyword) {
-        return getAdminBookings(keyword, null, null);
-    }
-
-    @Transactional(readOnly = true)
-    public List<AdminBookingListResponse> getAdminBookings(String keyword, Integer page, Integer size) {
-        Integer offset = null;
-        Integer limit = null;
-        if (page != null && size != null) {
-            offset = page * size;
-            limit = size;
-        }
-
-        List<Object[]> rows = bookingRepository.loadAdminBookings(keyword, offset, limit);
-        List<AdminBookingListResponse> responses = new ArrayList<>();
-
-        for (Object[] row : rows) {
-            UUID bookingUuid = toUuid(row[0]);
-            String customerName = stringValue(row[1]);
-            String customerEmail = stringValue(row[2]);
-            String movieTitle = stringValue(row[3]);
-            String roomName = stringValue(row[4]);
-            BigDecimal totalPrice = toBigDecimal(row[5]);
-            String status = stringValue(row[6]);
-            OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
-            String customerAvatarUrl = stringValue(row[8]);
-            String seatsStr = stringValue(row[9]);
-            String combosStr = stringValue(row[10]);
-
-            responses.add(new AdminBookingListResponse(
-                    bookingUuid,
-                    customerName,
-                    customerEmail,
-                    movieTitle,
-                    roomName,
-                    seatsStr,
-                    combosStr,
-                    totalPrice,
-                    status,
-                    createdAt,
-                    customerAvatarUrl
-            ));
-        }
-
-        return responses;
     }
 
     private UUID toUuid(Object value) {

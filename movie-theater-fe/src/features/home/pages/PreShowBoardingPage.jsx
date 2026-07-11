@@ -142,6 +142,9 @@ const PreShowBoardingPage = () => {
             Quay lại
           </button>
           <span className="pre-show-page__nav-label">Thẻ lên máy bay</span>
+          <button type="button" className="pre-show-page__close" onClick={handleBack} aria-label="Đóng">
+            <X size={16} />
+          </button>
         </nav>
 
         {justConfirmed && (

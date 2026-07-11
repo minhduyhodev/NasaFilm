@@ -191,7 +191,7 @@ class OrbitRoomServiceTest {
         when(orbitRoomRepository.findByIdForUpdate(roomUuid)).thenReturn(Optional.of(openRoom));
         when(orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)).thenReturn(List.of(hostMember));
         when(bookingNativeRepository.transferSeatLocksFromUserToUser(
-                eq(openRoom.getShowtimeUuid()), eq(hostUuid), eq(hostUuid), any(), any())).thenReturn(1);
+                eq(openRoom.getShowtimeUuid()), eq(hostUuid), eq(hostUuid), any(), any(), any())).thenReturn(1);
         when(orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)).thenReturn(List.of(hostMember));
 
         OrbitRoomResponse response = orbitRoomService.abortCheckout("host@example.com", roomUuid);

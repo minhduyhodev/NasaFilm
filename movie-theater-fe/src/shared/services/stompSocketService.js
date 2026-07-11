@@ -60,10 +60,34 @@ class StompSocketService {
     this.connected = false;
     this.usingSockJs = false;
     this.sockJsClass = null;
+    this.connectionListeners = new Set();
   }
 
   isConnected() {
     return Boolean(this.client?.connected && this.connected);
+  }
+
+  /** @param {(connected: boolean) => void} listener */
+  addConnectionListener(listener) {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+    this.connectionListeners.add(listener);
+    listener(this.isConnected());
+    return () => {
+      this.connectionListeners.delete(listener);
+    };
+  }
+
+  notifyConnectionListeners() {
+    const connected = this.isConnected();
+    this.connectionListeners.forEach((listener) => {
+      try {
+        listener(connected);
+      } catch (error) {
+        console.error('STOMP connection listener failed:', error);
+      }
+    });
   }
 
   async ensureSockJsLoaded() {
@@ -71,6 +95,36 @@ class StompSocketService {
       this.sockJsClass = await loadSockJS();
     }
     return this.sockJsClass;
+  }
+
+  resubscribeActive() {
+    if (!this.client?.connected) {
+      return;
+    }
+    this.activeSubscriptions.forEach((entry) => {
+      if (entry.disposed) {
+        return;
+      }
+      try {
+        entry.stompSub?.unsubscribe();
+      } catch {
+        // ignore stale subscription cleanup errors
+      }
+      entry.stompSub = this.client.subscribe(entry.topic, (message) => {
+        if (!entry.disposed) {
+          let payload = null;
+          try {
+            const body = message?.body;
+            if (body) {
+              payload = JSON.parse(body);
+            }
+          } catch {
+            payload = null;
+          }
+          entry.callback(payload);
+        }
+      });
+    });
   }
 
   createClient(useSockJs, SockJSClass) {
@@ -83,8 +137,6 @@ class StompSocketService {
           httpUrl = appendAccessTokenQuery(httpUrl);
           return new SockJSClass(httpUrl);
         }
-        // If the URL is a SockJS endpoint (e.g. /ws) and we want native WebSocket,
-        // we must append '/websocket'. If it's a raw STOMP endpoint (e.g. /stomp), we don't.
         const needsWebsocketSuffix = httpUrl.includes('/ws') && !httpUrl.endsWith('/websocket');
         const nativeUrl = needsWebsocketSuffix ? `${httpUrl}/websocket` : httpUrl;
         return new WebSocket(toNativeWebSocketUrl(nativeUrl));
@@ -95,6 +147,8 @@ class StompSocketService {
       heartbeatOutgoing: 5000,
       onConnect: () => {
         this.connected = true;
+        this.resubscribeActive();
+        this.notifyConnectionListeners();
       },
       onStompError: (frame) => {
         console.error('WebSocket error:', frame.headers?.message ?? frame.body);
@@ -102,6 +156,7 @@ class StompSocketService {
       onWebSocketClose: () => {
         this.connected = false;
         this.connectPromise = null;
+        this.notifyConnectionListeners();
       },
     });
   }
@@ -132,6 +187,8 @@ class StompSocketService {
         this.client = this.createClient(useSockJs, SockJSClass);
         this.client.onConnect = () => {
           this.connected = true;
+          this.resubscribeActive();
+          this.notifyConnectionListeners();
           settle(resolve);
         };
         this.client.onStompError = (frame) => {
@@ -140,11 +197,13 @@ class StompSocketService {
         };
         this.client.onWebSocketError = () => {
           this.connected = false;
+          this.notifyConnectionListeners();
           settle(reject, new Error('WebSocket connection failed'));
         };
         this.client.onDisconnect = () => {
           this.connected = false;
           this.connectPromise = null;
+          this.notifyConnectionListeners();
         };
 
         try {
@@ -152,6 +211,7 @@ class StompSocketService {
         } catch (error) {
           this.connected = false;
           this.client = null;
+          this.notifyConnectionListeners();
           reject(error);
         }
       });
@@ -225,6 +285,7 @@ class StompSocketService {
       this.connected = false;
       this.connectPromise = null;
       this.usingSockJs = false;
+      this.notifyConnectionListeners();
     }
   }
 }

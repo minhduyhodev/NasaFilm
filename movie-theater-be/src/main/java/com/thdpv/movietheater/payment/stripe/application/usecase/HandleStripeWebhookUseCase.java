@@ -6,6 +6,7 @@ import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
 import com.thdpv.movietheater.payment.stripe.domain.WebhookResult;
 import com.thdpv.movietheater.payment.entity.PaymentTransaction;
 import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
+import com.thdpv.movietheater.payment.service.WalletService;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -15,10 +16,15 @@ public class HandleStripeWebhookUseCase {
 
     private final StripeGateway stripeGateway;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final WalletService walletService;
 
-    public HandleStripeWebhookUseCase(StripeGateway stripeGateway, PaymentTransactionRepository paymentTransactionRepository) {
+    public HandleStripeWebhookUseCase(
+            StripeGateway stripeGateway,
+            PaymentTransactionRepository paymentTransactionRepository,
+            WalletService walletService) {
         this.stripeGateway = stripeGateway;
         this.paymentTransactionRepository = paymentTransactionRepository;
+        this.walletService = walletService;
     }
 
     public WebhookResult execute(String payload, String signature) {
@@ -26,24 +32,32 @@ public class HandleStripeWebhookUseCase {
             throw new IllegalArgumentException("stripe-signature header is required");
         }
         WebhookResult result = stripeGateway.verifyWebhook(payload, signature);
-        
-        // Update database if it's a payment event
-        if (result.getType().startsWith("payment_intent.")) {
-            Optional<PaymentTransaction> txOpt = paymentTransactionRepository.findByGatewayTransactionId(result.getPaymentIntentId());
+
+        if (result.getType().startsWith("payment_intent.") && result.getPaymentIntentId() != null) {
+            Optional<PaymentTransaction> txOpt =
+                    paymentTransactionRepository.findByGatewayTransactionId(result.getPaymentIntentId());
             if (txOpt.isPresent()) {
                 PaymentTransaction tx = txOpt.get();
                 if ("payment_intent.succeeded".equals(result.getType())) {
-                    tx.setStatus("SUCCESS");
+                    if (WalletService.PURPOSE_WALLET_TOP_UP.equals(tx.getPurpose())) {
+                        walletService.creditSuccessfulStripeTopUp(result.getPaymentIntentId());
+                    } else {
+                        tx.setStatus("SUCCESS");
+                        tx.setUpdatedAt(OffsetDateTime.now());
+                        paymentTransactionRepository.save(tx);
+                    }
                 } else if ("payment_intent.payment_failed".equals(result.getType())) {
                     tx.setStatus("FAILED");
+                    tx.setUpdatedAt(OffsetDateTime.now());
+                    paymentTransactionRepository.save(tx);
                 } else if ("payment_intent.canceled".equals(result.getType())) {
-                    tx.setStatus("REFUNDED");
+                    tx.setStatus("CANCELED");
+                    tx.setUpdatedAt(OffsetDateTime.now());
+                    paymentTransactionRepository.save(tx);
                 }
-                tx.setUpdatedAt(OffsetDateTime.now());
-                paymentTransactionRepository.save(tx);
             }
         }
-        
+
         return result;
     }
 }

@@ -22,6 +22,6 @@ public class SystemConfigController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSystemConfig() {
-        return ResponseEntity.ok(ApiResponse.success(systemConfigService.getConfig()));
+        return ResponseEntity.ok(ApiResponse.success(systemConfigService.getPublicConfig()));
     }
 }

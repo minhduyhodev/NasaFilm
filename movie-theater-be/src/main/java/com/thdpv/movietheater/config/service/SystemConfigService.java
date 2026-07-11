@@ -51,6 +51,15 @@ public class SystemConfigService {
                 .orElseGet(this::buildDefaultConfig);
     }
 
+    /** Public subset — excludes moderation wordlists and NasaBot internals. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getPublicConfig() {
+        Map<String, Object> config = new LinkedHashMap<>(self.getConfig());
+        config.remove("nasaBot");
+        config.remove("reviewBannedWords");
+        return config;
+    }
+
     @Transactional
     public Map<String, Object> saveConfig(Map<String, Object> incoming) {
         Map<String, Object> merged = mergeWithDefaults(incoming);
@@ -86,6 +95,16 @@ public class SystemConfigService {
 
     public int getSeatLockTtlSeconds() {
         return getSeatLockMinutes() * 60;
+    }
+
+    public int getOrbitRoomTtlMinutes() {
+        return readInt(self.getConfig().get("orbitRoomTtlMinutes"), 30, 5, 120);
+    }
+
+    public int getOrbitCheckoutTtlMinutes() {
+        // Checkout hold must not be shorter than solo seat lock.
+        int configured = readInt(self.getConfig().get("orbitCheckoutTtlMinutes"), 15, 5, 60);
+        return Math.max(configured, getSeatLockMinutes());
     }
 
     public int getMaxSeatsPerBooking() {
@@ -215,6 +234,8 @@ public class SystemConfigService {
         defaults.put("couplePrice", 120000);
         defaults.put("onlineStreamingPrice", fallbackOnlinePrice.longValue());
         defaults.put("seatLockMinutes", 5);
+        defaults.put("orbitRoomTtlMinutes", 30);
+        defaults.put("orbitCheckoutTtlMinutes", 15);
         defaults.put("maxSeatsPerBooking", 8);
         defaults.put("onlineWatchLockMultiplier", 2.0);
         defaults.put("onlineCountdownEnabled", true);

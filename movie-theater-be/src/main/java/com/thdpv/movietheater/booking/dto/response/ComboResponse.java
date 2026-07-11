@@ -14,13 +14,6 @@ public class ComboResponse {
     public ComboResponse() {
     }
 
-    public ComboResponse(UUID uuid, String name, BigDecimal price, String status) {
-        this.uuid = uuid;
-        this.name = name;
-        this.price = price;
-        this.status = status;
-    }
-
     public ComboResponse(UUID uuid, String name, String description, BigDecimal price, String imageUrl, String status) {
         this.uuid = uuid;
         this.name = name;
@@ -29,6 +22,7 @@ public class ComboResponse {
         this.imageUrl = imageUrl;
         this.status = status;
     }
+
 
     public UUID getUuid() {
         return uuid;

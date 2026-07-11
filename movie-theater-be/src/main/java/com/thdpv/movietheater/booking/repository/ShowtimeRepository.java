@@ -61,8 +61,29 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     @Query("SELECT COUNT(s) > 0 FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.startTime > :now")
     boolean existsFutureShowtime(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
 
+    @Query("""
+            SELECT COUNT(s) > 0 FROM Showtime s
+            WHERE s.cinemaRoomUuid = :roomUuid
+              AND s.startTime > :now
+              AND s.status IN (
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.DRAFT,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.SOLD_OUT
+              )
+            """)
+    boolean existsFutureBookableShowtime(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
+
     @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN Showtime s ON s.uuid = b.showtimeUuid WHERE s.cinemaRoomUuid = :roomUuid AND b.status = 'CONFIRMED'")
     boolean existsConfirmedBookingForRoom(@Param("roomUuid") UUID roomUuid);
+
+    @Query("""
+            SELECT COUNT(b) > 0 FROM Booking b JOIN Showtime s ON s.uuid = b.showtimeUuid
+            WHERE s.cinemaRoomUuid = :roomUuid
+              AND b.status = 'CONFIRMED'
+              AND s.startTime > :now
+            """)
+    boolean existsFutureConfirmedBookingForRoom(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
 
     @Query("SELECT COUNT(s) > 0 FROM Showtime s WHERE s.cinemaRoomUuid = :roomUuid AND s.startTime > :now AND (s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED OR s.status = com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING)")
     boolean existsFutureActiveShowtimes(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
@@ -72,6 +93,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             WHERE s.cinemaRoomUuid = :roomUuid
               AND s.startTime > :now
               AND s.status IN (
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.DRAFT,
                 com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED,
                 com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING,
                 com.thdpv.movietheater.booking.enums.ShowtimeStatus.SOLD_OUT

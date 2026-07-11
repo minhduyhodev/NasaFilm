@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { cinemaService } from '../../../../shared/services/cinemaService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass } from '../adminFormStyles';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
 
 const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
   const isEditing = Boolean(cinema?.uuid);
@@ -14,6 +14,7 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
     entranceNote: '',
     latitude: '',
     longitude: '',
+    status: 'ACTIVE',
   });
 
   useEffect(() => {
@@ -24,6 +25,7 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
       entranceNote: cinema?.entranceNote || '',
       latitude: cinema?.latitude ?? '',
       longitude: cinema?.longitude ?? '',
+      status: cinema?.status || 'ACTIVE',
     });
   }, [cinema]);
 
@@ -42,6 +44,7 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
         entranceNote: form.entranceNote.trim() || null,
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
+        status: form.status,
       };
       if (isEditing) {
         await cinemaService.updateCinema(cinema.uuid, payload);
@@ -99,6 +102,18 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
           onChange={(e) => setForm((p) => ({ ...p, entranceNote: e.target.value }))}
           placeholder="VD: Cổng VIP: tầng B2, thang máy phía Đông Landmark 81"
         />
+      </div>
+      <div>
+        <label className={adminLabelClass}>Trạng thái *</label>
+        <select
+          className={adminSelectClass}
+          value={form.status}
+          onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+        >
+          <option value="ACTIVE">Hoạt động</option>
+          <option value="MAINTENANCE">Bảo trì</option>
+          <option value="DISABLED">Vô hiệu hóa</option>
+        </select>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

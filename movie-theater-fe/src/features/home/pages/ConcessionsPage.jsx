@@ -11,7 +11,7 @@ import {
   readBookingSession,
   writeBookingSession,
 } from '../../../shared/utils/bookingSessionStorage';
-import { ORBIT_CHECKOUT_TTL_MINUTES } from '../../../shared/utils/orbitUtils';
+import { orbitService } from '../../../shared/services/orbitService';
 import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
 
 function getComboImageUrl(combo) {
@@ -51,6 +51,8 @@ const ConcessionsPage = () => {
   } = bookingState;
 
   const isOrbitBooking = isOrbit || Boolean(orbitRoomUuid);
+  const isHost = bookingState.isHost !== false;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
 
@@ -110,18 +112,47 @@ const ConcessionsPage = () => {
 
   // Điều hướng khi hết hạn giữ ghế
   useEffect(() => {
-    if (timeLeft === 0) {
+    if (timeLeft !== 0) return undefined;
+
+    let cancelled = false;
+    const redirectOnExpire = async () => {
       if (isOrbitBooking && orbitRoomUuid) {
         notificationService.error(
-          `Hết thời gian thanh toán nhóm (tối đa ${ORBIT_CHECKOUT_TTL_MINUTES} phút). Vui lòng quay lại phòng.`,
+          'Hết thời gian thanh toán nhóm. Vui lòng quay lại phòng.',
         );
-        navigate(`/booking/orbit/${orbitRoomUuid}`);
+        if (isHost) {
+          try {
+            await orbitService.abortCheckout(orbitRoomUuid);
+          } catch (err) {
+            console.error('Failed to abort checkout on expiry:', err);
+          }
+        }
+        if (!cancelled) navigate(`/booking/orbit/${orbitRoomUuid}`);
         return;
       }
       notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại.');
-      navigate(-1);
+      if (!cancelled) navigate(-1);
+    };
+    redirectOnExpire();
+    return () => {
+      cancelled = true;
+    };
+  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid, isHost]);
+
+  const handleBackToSeats = async () => {
+    if (isOrbitBooking && orbitRoomUuid) {
+      if (isHost) {
+        try {
+          await orbitService.abortCheckout(orbitRoomUuid);
+        } catch (err) {
+          console.error('Failed to abort checkout on back navigation:', err);
+        }
+      }
+      navigate(`/booking/orbit/${orbitRoomUuid}`);
+      return;
     }
-  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid]);
+    navigate(-1);
+  };
 
   // Lấy danh sách Combo hoạt động từ Backend API
   useEffect(() => {
@@ -182,15 +213,34 @@ const ConcessionsPage = () => {
     }));
 
   // Xử lý chuyển tiếp sang trang Checkout
-  const handleContinue = () => {
-    const checkoutPayload = {
-      ...bookingState,
-      selectedCombos: selectedCombosList,
-      totalAmount: overallTotal,
-    };
-    writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, checkoutPayload);
-    writeBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, checkoutPayload);
-    navigate('/checkout', { state: checkoutPayload });
+  // Xử lý chuyển tiếp sang trang Checkout hoặc Hoàn tất cho Member Orbit
+  const handleContinue = async () => {
+    if (isOrbitBooking && !isHost) {
+      setIsSubmitting(true);
+      try {
+        const payloadCombos = selectedCombosList.map((c) => ({
+          comboUuid: c.comboUuid,
+          quantity: c.quantity,
+        }));
+        await orbitService.updateMemberCombos(orbitRoomUuid, payloadCombos, true);
+        notificationService.success('Hoàn tất chọn bắp nước thành công!');
+        navigate(`/booking/orbit/${orbitRoomUuid}/waiting`);
+      } catch (err) {
+        console.error('Failed to submit combos:', err);
+        notificationService.error(err.message || 'Không thể hoàn tất chọn bắp nước. Vui lòng thử lại.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      const checkoutPayload = {
+        ...bookingState,
+        selectedCombos: selectedCombosList,
+        totalAmount: overallTotal,
+      };
+      writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, checkoutPayload);
+      writeBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, checkoutPayload);
+      navigate('/checkout', { state: checkoutPayload });
+    }
   };
 
   if (isLoading) {
@@ -211,13 +261,7 @@ const ConcessionsPage = () => {
         <div className="lg:col-span-8 flex flex-col">
           {/* Nút quay lại chọn ghế */}
           <button 
-            onClick={() => {
-              if (isOrbitBooking && orbitRoomUuid) {
-                navigate(`/booking/orbit/${orbitRoomUuid}`);
-                return;
-              }
-              navigate(-1);
-            }}
+            onClick={handleBackToSeats}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group cursor-pointer w-fit"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
@@ -262,7 +306,6 @@ const ConcessionsPage = () => {
           >
             {combos.map((combo) => {
               const qty = quantities[combo.uuid] || 0;
-
               return (
                 <div 
                   key={combo.uuid} 
@@ -416,10 +459,21 @@ const ConcessionsPage = () => {
               
               <button 
                 onClick={handleContinue}
-                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.35)] active:scale-[0.98]"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.35)] active:scale-[0.98]"
               >
-                Tiếp tục
+                {isSubmitting ? 'Đang xử lý...' : (isOrbitBooking && !isHost ? 'Hoàn tất đặt vé & bắp nước' : 'Tiếp tục')}
               </button>
+
+              {isOrbitBooking && (
+                <button
+                  type="button"
+                  onClick={handleBackToSeats}
+                  className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-2 flex items-center justify-center transition-colors"
+                >
+                  Quay lại đặt ghế
+                </button>
+              )}
             </div>
           </div>
         </aside>
@@ -433,9 +487,10 @@ const ConcessionsPage = () => {
           
           <button
             onClick={handleContinue}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] cursor-pointer"
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] cursor-pointer"
           >
-            Tiếp tục
+            {isSubmitting ? 'Đang xử lý...' : (isOrbitBooking && !isHost ? 'Hoàn tất' : 'Tiếp tục')}
           </button>
         </div>
 

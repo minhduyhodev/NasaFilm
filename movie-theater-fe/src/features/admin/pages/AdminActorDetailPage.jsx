@@ -63,7 +63,7 @@ const AdminActorDetailPage = () => {
       notificationService.success(`Da xoa "${actor.fullName}"`);
       navigate('/admin/media');
     } catch (err) {
-      notificationService.error(err.message || 'Xoa that bai');
+      notificationService.error(err.message || 'Xóa thất bại');
     } finally {
       setIsDeleting(false);
     }

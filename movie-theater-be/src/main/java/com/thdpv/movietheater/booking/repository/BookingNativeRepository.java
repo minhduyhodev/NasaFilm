@@ -85,7 +85,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     long countBookedSeats(@Param("showtimeUuid") UUID showtimeUuid, @Param("seatUuids") Collection<UUID> seatUuids);
 
     @Query(value = """
-            select uuid, name, price, status
+            select uuid, name, description, price, image_url, status
             from combo
             where uuid in (:comboUuids)
             """, nativeQuery = true)
@@ -98,13 +98,20 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         List<Object[]> rows = queryCombos(comboUuids);
         List<ComboPrice> combos = new java.util.ArrayList<>();
         for (Object[] row : rows) {
-            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+            combos.add(new ComboPrice(
+                toUuid(row[0]), 
+                stringValue(row[1]), 
+                stringValue(row[2]), 
+                toBigDecimal(row[3]), 
+                stringValue(row[4]), 
+                stringValue(row[5])
+            ));
         }
         return combos;
     }
 
     @Query(value = """
-            select uuid, name, price, status
+            select uuid, name, description, price, image_url, status
             from combo
             where status = 'ACTIVE'
             """, nativeQuery = true)
@@ -114,7 +121,14 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         List<Object[]> rows = queryActiveCombos();
         List<ComboPrice> combos = new java.util.ArrayList<>();
         for (Object[] row : rows) {
-            combos.add(new ComboPrice(toUuid(row[0]), stringValue(row[1]), toBigDecimal(row[2]), stringValue(row[3])));
+            combos.add(new ComboPrice(
+                toUuid(row[0]), 
+                stringValue(row[1]), 
+                stringValue(row[2]), 
+                toBigDecimal(row[3]), 
+                stringValue(row[4]), 
+                stringValue(row[5])
+            ));
         }
         return combos;
     }
@@ -219,7 +233,9 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     @Modifying
     @Query(value = """
             update seat_locked
-            set user_uuid = :targetUserUuid
+            set user_uuid = :targetUserUuid,
+                locked_at = :now,
+                expired_at = :newExpiresAt
             where showtime_uuid = :showtimeUuid
               and user_uuid = :sourceUserUuid
               and seat_uuid in (:seatUuids)
@@ -230,7 +246,29 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             @Param("sourceUserUuid") UUID sourceUserUuid,
             @Param("targetUserUuid") UUID targetUserUuid,
             @Param("seatUuids") Collection<UUID> seatUuids,
-            @Param("now") OffsetDateTime now);
+            @Param("now") OffsetDateTime now,
+            @Param("newExpiresAt") OffsetDateTime newExpiresAt);
+
+    /**
+     * Transfer locks even if already expired (used when aborting checkout after seat TTL lapsed).
+     */
+    @Modifying
+    @Query(value = """
+            update seat_locked
+            set user_uuid = :targetUserUuid,
+                locked_at = :now,
+                expired_at = :newExpiresAt
+            where showtime_uuid = :showtimeUuid
+              and user_uuid = :sourceUserUuid
+              and seat_uuid in (:seatUuids)
+            """, nativeQuery = true)
+    int forceTransferSeatLocksFromUserToUser(
+            @Param("showtimeUuid") UUID showtimeUuid,
+            @Param("sourceUserUuid") UUID sourceUserUuid,
+            @Param("targetUserUuid") UUID targetUserUuid,
+            @Param("seatUuids") Collection<UUID> seatUuids,
+            @Param("now") OffsetDateTime now,
+            @Param("newExpiresAt") OffsetDateTime newExpiresAt);
 
     @Query(value = """
             select sl.seat_uuid
@@ -370,11 +408,19 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
             order by b.created_at desc
             limit :limit offset :offset
             """, nativeQuery = true)
     List<Object[]> queryAdminBookingsWithPagination(
             @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt,
             @Param("offset") int offset,
             @Param("limit") int limit);
 
@@ -407,22 +453,79 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
             order by b.created_at desc
             """, nativeQuery = true)
     List<Object[]> queryAdminBookingsWithoutPagination(
-            @Param("keyword") String keyword);
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt);
 
     default List<Object[]> loadAdminBookings(String keyword) {
-        String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
-        return queryAdminBookingsWithoutPagination(searchKeyword);
+        return loadAdminBookings(keyword, null, null, null, null, null, null);
     }
 
     default List<Object[]> loadAdminBookings(String keyword, Integer offset, Integer limit) {
-        if (limit == null || offset == null) {
-            return loadAdminBookings(keyword);
-        }
+        return loadAdminBookings(keyword, null, null, null, null, offset, limit);
+    }
+
+    default List<Object[]> loadAdminBookings(
+            String keyword,
+            String status,
+            String cinema,
+            OffsetDateTime startAt,
+            OffsetDateTime endAt,
+            Integer offset,
+            Integer limit) {
         String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
-        return queryAdminBookingsWithPagination(searchKeyword, offset, limit);
+        String statusFilter = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status.trim();
+        String cinemaFilter = (cinema == null || cinema.isBlank()) ? null : "%" + cinema.trim().toUpperCase() + "%";
+        if (limit == null || offset == null) {
+            return queryAdminBookingsWithoutPagination(searchKeyword, statusFilter, cinemaFilter, startAt, endAt);
+        }
+        return queryAdminBookingsWithPagination(
+                searchKeyword, statusFilter, cinemaFilter, startAt, endAt, offset, limit);
+    }
+
+    @Query(value = """
+            select count(*)
+            from booking b
+            join users u on u.id = b.user_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
+            """, nativeQuery = true)
+    long queryAdminBookingsCount(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt);
+
+    default long countAdminBookings(String keyword) {
+        return countAdminBookings(keyword, null, null, null, null);
+    }
+
+    default long countAdminBookings(
+            String keyword,
+            String status,
+            String cinema,
+            OffsetDateTime startAt,
+            OffsetDateTime endAt) {
+        String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
+        String statusFilter = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status.trim();
+        String cinemaFilter = (cinema == null || cinema.isBlank()) ? null : "%" + cinema.trim().toUpperCase() + "%";
+        return queryAdminBookingsCount(searchKeyword, statusFilter, cinemaFilter, startAt, endAt);
     }
 
     @Query(value = """
@@ -623,7 +726,7 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
     record LockedSeat(UUID seatUuid, String rowName, Integer seatNumber, BigDecimal price) {
     }
 
-    record ComboPrice(UUID comboUuid, String name, BigDecimal unitPrice, String status) {
+    record ComboPrice(UUID comboUuid, String name, String description, BigDecimal unitPrice, String imageUrl, String status) {
     }
 
     record SeatGapState(UUID seatUuid, String rowName, Integer seatNumber, String seatStatus,

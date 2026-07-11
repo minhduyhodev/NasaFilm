@@ -34,7 +34,7 @@ const AdminMovieDetailPage = () => {
         if (isMounted) setMovie(detail);
       } catch (err) {
         console.error('Failed to load movie detail:', err);
-        notificationService.error('Khong the lay chi tiet phim');
+        notificationService.error('Không thể lấy chi tiết phim');
         navigate('/admin/movies');
       } finally {
         if (isMounted) setIsLoading(false);
@@ -132,53 +132,53 @@ const AdminMovieDetailPage = () => {
         </div>
 
         <div className="lg:col-span-8 space-y-8">
-          <Section title="Thong tin co ban">
+          <Section title="Thông tin cơ bản">
             <dl className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <MetadataRow label="Trang thai" value={getMovieStatusLabel(movie.status)} />
-              <MetadataRow label="Thoi luong" value={`${movie.durationMinutes} phut`} />
-              <MetadataRow label="Do tuoi" value={movie.ageRestriction || 'P'} />
+              <MetadataRow label="Trạng thái" value={getMovieStatusLabel(movie.status)} />
+              <MetadataRow label="Thời lượng" value={`${movie.durationMinutes} phút`} />
+              <MetadataRow label="Độ tuổi" value={movie.ageRestriction || 'P'} />
               <MetadataRow
-                label="Ngay khoi chieu"
+                label="Ngày khởi chiếu"
                 value={movie.releaseDate ? formatDateDisplay(movie.releaseDate) : '—'}
               />
-              <MetadataRow label="Hinh thuc" value={getScreeningModeLabel(movie.screeningMode)} />
+              <MetadataRow label="Hình thức" value={getScreeningModeLabel(movie.screeningMode)} />
               <MetadataRow
-                label="Gia ve Online"
+                label="Giá vé Online"
                 value={
                   movie.onlinePrice != null
                     ? `${Number(movie.onlinePrice).toLocaleString('vi-VN')} VND`
-                    : 'Gia mac dinh he thong'
+                    : 'Giá mặc định hệ thống'
                 }
               />
               <MetadataRow
                 label="Stream"
-                value={getMovieStreamingUrl(movie) ? 'San sang' : 'Chua tich hop'}
+                value={getMovieStreamingUrl(movie) ? 'Sẵn sàng' : 'Chưa tích hợp'}
               />
             </dl>
           </Section>
 
-          <Section title="Mo ta" divided>
+          <Section title="Mô tả" divided>
             <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">
-              {movie.description || 'Chua co mo ta chi tiet cho phim nay.'}
+              {movie.description || 'Chưa có mô tả chi tiết cho phim này.'}
             </p>
           </Section>
 
-          <Section title="Phan loai" divided>
+          <Section title="Phân loại" divided>
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <MetadataRow
-                label="The loai"
+                label="Thể loại"
                 value={movie.genres?.length ? movie.genres.join(', ') : '—'}
               />
               <MetadataRow
-                label="Quoc gia"
+                label="Quốc gia"
                 value={movie.countries?.length ? movie.countries.join(', ') : '—'}
               />
             </dl>
           </Section>
 
           <Section
-            title="Dan dien vien"
-            description={movie.actors?.length ? `${movie.actors.length} dien vien` : undefined}
+            title="Dàn diễn viên"
+            description={movie.actors?.length ? `${movie.actors.length} diễn viên` : undefined}
             divided
           >
             {movie.actors?.length ? (
@@ -196,7 +196,7 @@ const AdminMovieDetailPage = () => {
                       <p className="text-sm text-gray-200 truncate">
                         {actor.fullName}
                         {actor.isMain && (
-                          <span className="ml-2 text-xs text-gray-500">· Vai chinh</span>
+                          <span className="ml-2 text-xs text-gray-500">· Vai chính</span>
                         )}
                       </p>
                       <p className="text-xs text-gray-500 truncate">vai {actor.characterName || 'N/A'}</p>
@@ -206,7 +206,7 @@ const AdminMovieDetailPage = () => {
               </ul>
             ) : (
               <p className="text-sm text-gray-500">
-                Chua co thong tin dien vien.{' '}
+                Chưa có thông tin diễn viên.{' '}
                 <GhostButton
                   type="button"
                   className="inline px-0 py-0 text-sm text-gray-400 hover:text-white"

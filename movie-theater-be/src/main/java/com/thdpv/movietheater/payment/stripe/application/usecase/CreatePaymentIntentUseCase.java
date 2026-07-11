@@ -40,9 +40,25 @@ public class CreatePaymentIntentUseCase {
         tx.setAmount(BigDecimal.valueOf(input.getAmount()));
         tx.setCurrency(input.getCurrency().toUpperCase());
         tx.setStatus("PENDING");
+        String purpose = input.getMetadata() != null ? input.getMetadata().get("purpose") : null;
+        tx.setPurpose(purpose != null && !purpose.isBlank() ? purpose : "BOOKING");
+        if (input.getMetadata() != null && input.getMetadata().get("userUuid") != null) {
+            try {
+                tx.setUserUuid(UUID.fromString(input.getMetadata().get("userUuid")));
+            } catch (IllegalArgumentException ignored) {
+                // optional metadata
+            }
+        }
+        if (input.getMetadata() != null && input.getMetadata().get("bookingUuid") != null) {
+            try {
+                tx.setBookingUuid(UUID.fromString(input.getMetadata().get("bookingUuid")));
+            } catch (IllegalArgumentException ignored) {
+                // optional metadata
+            }
+        }
         tx.setCreatedAt(OffsetDateTime.now());
         tx.setUpdatedAt(OffsetDateTime.now());
-        
+
         paymentTransactionRepository.save(tx);
         
         return result;

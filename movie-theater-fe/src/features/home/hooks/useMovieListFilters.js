@@ -285,6 +285,19 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (selectedActor && dbActors.length > 0 && !actorQuery) {
+      const name = getActorNameByUuid(selectedActor);
+      if (name) {
+        const timer = setTimeout(() => {
+          setActorQuery(name);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+    return undefined;
+  }, [selectedActor, dbActors, getActorNameByUuid, actorQuery]);
+
   const handleApplyFilters = useCallback(() => {
     setSelectedCountry(tempCountry);
     setSelectedActor(tempActor);
@@ -357,12 +370,11 @@ export function useMovieListFilters({ onPageReset, includeShowtimeFilters = true
     if (actor) {
       setSelectedActor(actor);
       setTempActor(actor);
-      setActorQuery(getActorNameByUuid(actor));
     }
     if (genre || country || actor) {
       resetPage();
     }
-  }, [getActorNameByUuid, resetPage]);
+  }, [resetPage]);
 
   const hiddenSections = includeShowtimeFilters ? [] : ['schedule', 'cinema'];
 

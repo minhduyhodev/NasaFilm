@@ -49,7 +49,7 @@ const AdminVoucherFormPage = () => {
         const voucher = (list || []).find((v) => String(v.id) === String(voucherId));
         if (!isMounted) return;
         if (!voucher) {
-          notificationService.error('Khong tim thay voucher');
+          notificationService.error('Không tìm thấy voucher');
           navigate('/admin/vouchers');
           return;
         }
@@ -93,7 +93,7 @@ const AdminVoucherFormPage = () => {
     e.preventDefault();
     const trimmedCode = form.code.trim().toUpperCase();
     if (!trimmedCode) {
-      notificationService.error('Ma voucher khong duoc de trong');
+      notificationService.error('Mã voucher không được để trống');
       return;
     }
     const discountError = validateVoucherDiscountValue(form.discountType, form.discountValue, pointsToCashValue);
@@ -127,15 +127,15 @@ const AdminVoucherFormPage = () => {
     try {
       if (isEditing) {
         await adminPromotionService.updatePromotion(voucherId, promoData);
-        notificationService.success('Cap nhat voucher thanh cong');
+        notificationService.success('Cập nhật voucher thành công');
         navigate(`/admin/vouchers/${voucherId}`);
       } else {
         const created = await adminPromotionService.createPromotion(promoData);
-        notificationService.success('Tao voucher thanh cong');
+        notificationService.success('Tạo voucher thành công');
         navigate(`/admin/vouchers/${created?.id || ''}`);
       }
     } catch (err) {
-      notificationService.error(err.message || 'Luu that bai');
+      notificationService.error(err.message || 'Lưu thất bại');
     } finally {
       setIsSaving(false);
     }

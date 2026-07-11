@@ -44,6 +44,7 @@ const rankItems = (query, items) => {
 const GlobalSearchBar = ({ className = '' }) => {
   const navigate = useNavigate();
   const wrapRef = useRef(null);
+  const inputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -101,6 +102,7 @@ const GlobalSearchBar = ({ className = '' }) => {
       <div className="global-search-input-wrap">
         <Search className="global-search-icon" />
         <input
+          ref={inputRef}
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -113,12 +115,23 @@ const GlobalSearchBar = ({ className = '' }) => {
           className="global-search-input"
           aria-label="Tìm kiếm toàn cục"
         />
-        {query && (
-          <button type="button" className="global-search-clear" onClick={() => { setQuery(''); setResults(null); }}>
-            <X className="w-3.5 h-3.5" />
-          </button>
+        {isLoading ? (
+          <Loader2 className="global-search-spinner" />
+        ) : (
+          query && (
+            <button
+              type="button"
+              className="global-search-clear"
+              onClick={() => {
+                setQuery('');
+                setResults(null);
+                inputRef.current?.focus();
+              }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )
         )}
-        {isLoading && <Loader2 className="global-search-spinner" />}
       </div>
 
       {isOpen && flatItems.length > 0 && (

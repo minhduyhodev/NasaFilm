@@ -11,6 +11,11 @@ export const userNotificationApi = {
     return response.data.data ?? response.data;
   },
 
+  async deleteAll() {
+    const response = await authService.api.delete('/api/notifications');
+    return response.data.data ?? response.data;
+  },
+
   async subscribePush(subscription) {
     const json = subscription.toJSON();
     const response = await authService.api.post('/api/notifications/push/subscribe', {

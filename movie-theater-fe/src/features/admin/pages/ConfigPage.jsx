@@ -281,7 +281,7 @@ const ConfigPage = () => {
 
   useEffect(() => {
     let isMounted = true;
-    systemConfigService.getConfig()
+    systemConfigService.getAdminConfig()
       .then((data) => { if (isMounted) setConfig(data); })
       .catch((error) => console.error('Failed to load system configuration', error))
       .finally(() => { if (isMounted) setIsLoading(false); });
@@ -373,7 +373,7 @@ const ConfigPage = () => {
     { label: 'Khung giờ', value: `${config.startTime} – ${config.endTime}` },
     { label: 'Vé thường', value: formatVnd(config.basePrice) },
     { label: 'Giữ ghế', value: `${config.seatLockMinutes} phút` },
-    { label: 'Tối đa / đặt', value: `${config.maxSeatsPerBooking} ghế` },
+    { label: 'Orbit checkout', value: `${Math.max(config.orbitCheckoutTtlMinutes || 15, config.seatLockMinutes || 5)} phút` },
   ]), [config]);
 
   const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
@@ -547,13 +547,25 @@ const ConfigPage = () => {
         )}
 
         {activeTab === 'limits' && (
-          <ConfigSection title="Giới hạn đặt vé">
+          <ConfigSection
+            title="Giới hạn đặt vé & Orbit"
+            description="Thời gian giữ ghế solo và giữ phòng Orbit được cấu hình cùng nơi. Khi host vào thanh toán nhóm, khóa ghế được gia hạn bằng thời gian Orbit checkout."
+          >
             <div className="sys-config__fields sys-config__fields--2">
               <ConfigField label="Số ghế tối đa / lần đặt" hint="Áp dụng khi khách chọn ghế và xác nhận đặt vé trực tuyến.">
                 <input type="number" min="1" max="20" className="sys-config__input" value={config.maxSeatsPerBooking} onChange={(e) => updateField('maxSeatsPerBooking', parseInt(e.target.value, 10) || 1)} />
               </ConfigField>
-              <ConfigField label="Thời gian giữ ghế (phút)" hint="Đếm ngược trên trang chọn ghế trước khi ghế được giải phóng.">
+              <ConfigField label="Thời gian giữ ghế (phút)" hint="Đếm ngược trên trang chọn ghế trước khi ghế được giải phóng (đặt vé cá nhân).">
                 <input type="number" min="1" max="30" className="sys-config__input" value={config.seatLockMinutes} onChange={(e) => updateField('seatLockMinutes', parseInt(e.target.value, 10) || 1)} />
+              </ConfigField>
+              <ConfigField label="Giữ phòng Orbit OPEN (phút)" hint="Thời gian phòng nhóm còn mở để chọn ghế trước khi hết hạn.">
+                <input type="number" min="5" max="120" className="sys-config__input" value={config.orbitRoomTtlMinutes ?? 30} onChange={(e) => updateField('orbitRoomTtlMinutes', parseInt(e.target.value, 10) || 30)} />
+              </ConfigField>
+              <ConfigField
+                label="Giữ phòng Orbit checkout (phút)"
+                hint="Khi vào combo/thanh toán nhóm, ghế cũng được gia hạn đúng khoảng này (tối thiểu bằng thời gian giữ ghế)."
+              >
+                <input type="number" min="5" max="60" className="sys-config__input" value={config.orbitCheckoutTtlMinutes ?? 15} onChange={(e) => updateField('orbitCheckoutTtlMinutes', parseInt(e.target.value, 10) || 15)} />
               </ConfigField>
             </div>
           </ConfigSection>

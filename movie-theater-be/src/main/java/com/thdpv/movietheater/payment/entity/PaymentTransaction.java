@@ -47,6 +47,10 @@ public class PaymentTransaction {
     @Column(name = "error_message")
     private String errorMessage;
 
+    /** BOOKING | WALLET_TOP_UP */
+    @Column(name = "purpose", length = 40)
+    private String purpose;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -126,6 +130,14 @@ public class PaymentTransaction {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
     }
 
     public OffsetDateTime getCreatedAt() {

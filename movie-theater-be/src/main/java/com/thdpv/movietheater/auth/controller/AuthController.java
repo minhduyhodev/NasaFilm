@@ -66,14 +66,18 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        authService.register(registerRequest);
+    public ResponseEntity<ApiResponse<Void>> register(
+            @Valid @RequestBody RegisterRequest registerRequest,
+            HttpServletRequest httpServletRequest) {
+        authService.register(registerRequest, httpServletRequest);
         return ResponseEntity.ok(ApiResponse.success(null, "Ma xac thuc da duoc gui qua email"));
     }
 
     @PostMapping("/register/verify")
-    public ResponseEntity<ApiResponse<Void>> verifyRegister(@Valid @RequestBody VerifyRequest verifyRequest) {
-        authService.verifyRegister(verifyRequest);
+    public ResponseEntity<ApiResponse<Void>> verifyRegister(
+            @Valid @RequestBody VerifyRequest verifyRequest,
+            HttpServletRequest httpServletRequest) {
+        authService.verifyRegister(verifyRequest, httpServletRequest);
         return ResponseEntity.ok(ApiResponse.success(null, "Xác thực đăng ký thành công"));
     }
 

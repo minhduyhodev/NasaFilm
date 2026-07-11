@@ -44,7 +44,7 @@ const AdminVoucherDetailPage = () => {
         }
         setVoucher(found);
       } catch (err) {
-        notificationService.error("Khong the tai voucher");
+        notificationService.error("Không thể tải voucher");
         navigate("/admin/vouchers");
       } finally {
         if (isMounted) setIsLoading(false);
@@ -68,10 +68,10 @@ const AdminVoucherDetailPage = () => {
     setIsDeleting(true);
     try {
       await adminPromotionService.deletePromotion(voucher.id);
-      notificationService.success("Da xoa voucher");
+      notificationService.success("Đã xóa voucher");
       navigate("/admin/vouchers");
     } catch (err) {
-      notificationService.error(err.message || "Xoa that bai");
+      notificationService.error(err.message || "Xóa thất bại");
     } finally {
       setIsDeleting(false);
     }

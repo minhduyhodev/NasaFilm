@@ -25,6 +25,18 @@ class SystemConfigService {
     }
   }
 
+  /** Full config including NasaBot / banned words — admin JWT required. */
+  async getAdminConfig() {
+    try {
+      const response = await authService.api.get('/api/admin/system-config');
+      const data = mergeSystemConfig(response.data.data ?? response.data);
+      writeCachedSystemConfig(data);
+      return data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async saveConfig(config) {
     try {
       const response = await authService.api.put('/api/admin/system-config', config);

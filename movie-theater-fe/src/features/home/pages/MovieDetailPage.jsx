@@ -19,6 +19,7 @@ import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { bookingService } from "../../../shared/services/bookingService";
 import { orbitService } from "../../../shared/services/orbitService";
 import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
+import OrbitJoinInput from "../components/OrbitJoinInput";
 import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
 import { useOrbitAccessibleRooms } from "../../../shared/hooks/useOrbitAccessibleRooms";
 import {
@@ -57,7 +58,7 @@ const MovieDetailPage = () => {
   const [searchParams] = useSearchParams();
   const isFromOnline = searchParams.get("from") === "online";
   const { isAuthenticated } = useAuthContext();
-  const [activeDateTab, setActiveDateTab] = useState("today");
+  const [activeDateTab, setActiveDateTab] = useState("day-0");
   const [selectedShowtime, setSelectedShowtime] = useState(null);
   const [isCreatingOrbit, setIsCreatingOrbit] = useState(false);
   const [orbitFeatureEnabled, setOrbitFeatureEnabled] = useState(true);
@@ -180,7 +181,7 @@ const MovieDetailPage = () => {
     ];
     const now = new Date();
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 10; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i);
 
@@ -188,7 +189,7 @@ const MovieDetailPage = () => {
       const dateStr = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
       dates.push({
-        id: i === 0 ? "today" : i === 1 ? "fri" : i === 2 ? "sat" : "sun",
+        id: `day-${i}`,
         label: `${dayName}, ${dateStr}`,
         fullDateText: `${dayName}, ${dateStr}`,
         rawDate: d,
@@ -199,12 +200,10 @@ const MovieDetailPage = () => {
 
   const dynamicDates = getDynamicDates();
 
-  const dateMap = {
-    today: dynamicDates[0].fullDateText,
-    fri: dynamicDates[1].fullDateText,
-    sat: dynamicDates[2].fullDateText,
-    sun: dynamicDates[3].fullDateText,
-  };
+  const dateMap = {};
+  dynamicDates.forEach((d) => {
+    dateMap[d.id] = d.fullDateText;
+  });
 
   const getShowtimesForActiveTab = () => {
     const activeDateObj = dynamicDates.find(
@@ -734,11 +733,17 @@ const MovieDetailPage = () => {
           {!isFromOnline && (
           <div className={`movie-detail-showtimes-col${movie.cast.length === 0 ? ' movie-detail-showtimes-col--full' : ''}`}>
             {orbitFeatureEnabled && (
-              <OrbitActiveRoomsPanel
-                title="Phòng nhóm của bạn"
-                className="mb-5"
-                enabled={orbitFeatureEnabled}
-              />
+              <div className="mb-5 space-y-3 flex flex-col items-center">
+                <div className="w-full">
+                  <OrbitJoinInput />
+                </div>
+                <div className="w-full">
+                  <OrbitActiveRoomsPanel
+                    title="Phòng Orbit của bạn"
+                    enabled={orbitFeatureEnabled}
+                  />
+                </div>
+              </div>
             )}
             <div className="movie-detail-showtimes-head">
               <h3 className="movie-detail-section-title">
@@ -752,15 +757,7 @@ const MovieDetailPage = () => {
                     type="button"
                     onClick={() => {
                       setActiveDateTab(date.id);
-                      if (selectedShowtime) {
-                        const isPast = checkIfTimeInPastForTab(
-                          selectedShowtime.time,
-                          date.id,
-                        );
-                        if (isPast) {
-                          setSelectedShowtime(null);
-                        }
-                      }
+                      setSelectedShowtime(null);
                     }}
                     className={`movie-detail-date-tab${activeDateTab === date.id ? ' is-active' : ''}`}
                   >

@@ -103,6 +103,13 @@ public class CinemaController {
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa phong chieu thanh cong"));
     }
 
+    @DeleteMapping("/admin/cinemas/{cinemaUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteCinema(@PathVariable UUID cinemaUuid) {
+        cinemaService.deleteCinema(cinemaUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa rạp chiếu thành công"));
+    }
+
     @GetMapping("/cinemas/{cinemaUuid}/rooms")
     public ResponseEntity<ApiResponse<List<CinemaRoomResponse>>> getRoomsByCinema(@PathVariable UUID cinemaUuid) {
         List<CinemaRoomResponse> response = cinemaService.getRoomsByCinema(cinemaUuid);

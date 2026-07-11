@@ -32,7 +32,7 @@ const NasaBotConfigPage = () => {
   useEffect(() => {
     let active = true;
 
-    systemConfigService.getConfig()
+    systemConfigService.getAdminConfig()
       .then((data) => {
         if (!active) return;
         setFullConfig(data);

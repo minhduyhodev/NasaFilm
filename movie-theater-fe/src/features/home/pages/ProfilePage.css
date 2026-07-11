@@ -545,6 +545,20 @@
   width: 100%;
 }
 
+.tab-panel-body:has(.ph-panel) {
+  max-height: min(70vh, 820px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-panel-body:has(.ph-panel) .ph-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;

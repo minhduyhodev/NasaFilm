@@ -1,14 +1,12 @@
 package com.thdpv.movietheater.movie.controller;
 
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import com.thdpv.movietheater.movie.entity.Genre;
-import com.thdpv.movietheater.movie.entity.Country;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
@@ -30,14 +27,16 @@ import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
 import com.thdpv.movietheater.movie.dto.request.GenreRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
-import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
-import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
+import com.thdpv.movietheater.movie.entity.Country;
+import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import jakarta.validation.Valid;

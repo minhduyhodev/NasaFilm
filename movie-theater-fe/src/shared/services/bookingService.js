@@ -93,14 +93,34 @@ class BookingService {
     }
   }
 
-  async getAdminBookings(keyword = '') {
+  async getAdminBookings(keyword = '', {
+    page,
+    size,
+    unpaged = true,
+    status,
+    cinema,
+    startDate,
+    endDate,
+  } = {}) {
     try {
-      const params = {};
+      const params = {
+        unpaged: unpaged ? true : undefined,
+        page: unpaged ? undefined : page,
+        size: unpaged ? undefined : size,
+        status: status && status !== 'ALL' ? status : undefined,
+        cinema: cinema || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      };
       if (keyword) {
         params.keyword = keyword;
       }
       const response = await authService.api.get('/api/bookings/admin', { params });
-      return response.data.data ?? response.data;
+      const data = response.data.data ?? response.data;
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return data?.content ?? [];
     } catch (error) {
       throw authService.handleError(error);
     }

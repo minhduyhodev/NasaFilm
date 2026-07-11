@@ -4,6 +4,7 @@ import { Loader2, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
+import { comboFormSchema, firstComboFormError } from '../utils/comboFormSchema';
 
 const inputClass =
   'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
@@ -38,7 +39,7 @@ const AdminComboFormPage = () => {
         const combo = (combos || []).find((c) => c.uuid === comboUuid);
         if (!isMounted) return;
         if (!combo) {
-          notificationService.error('Khong tim thay combo');
+          notificationService.error('Không tìm thấy combo');
           navigate('/admin/combos');
           return;
         }
@@ -51,7 +52,7 @@ const AdminComboFormPage = () => {
         });
         setPreviewUrl(combo.imageUrl || '');
       } catch (err) {
-        notificationService.error('Khong the tai combo');
+        notificationService.error('Không thể tải combo');
         navigate('/admin/combos');
       } finally {
         if (isMounted) setIsLoading(false);
@@ -63,7 +64,7 @@ const AdminComboFormPage = () => {
 
   const handleFileSelection = (file) => {
     if (!file.type.startsWith('image/')) {
-      notificationService.error('Vui long chon tep hinh anh');
+      notificationService.error('Vui lòng chọn tệp hình ảnh');
       return;
     }
     setSelectedFile(file);
@@ -72,18 +73,20 @@ const AdminComboFormPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) {
-      notificationService.error('Ten combo khong duoc de trong');
-      return;
-    }
-    const numPrice = parseFloat(form.price);
-    if (Number.isNaN(numPrice) || numPrice <= 0) {
-      notificationService.error('Gia phai lon hon 0');
+    const parsed = comboFormSchema.safeParse({
+      name: form.name,
+      description: form.description,
+      price: form.price,
+      imageUrl: form.imageUrl,
+      isActive: form.isActive,
+    });
+    if (!parsed.success) {
+      notificationService.error(firstComboFormError(parsed.error));
       return;
     }
 
     setIsSaving(true);
-    let finalImageUrl = form.imageUrl;
+    let finalImageUrl = parsed.data.imageUrl || '';
     try {
       if (selectedFile) {
         setIsUploading(true);
@@ -91,23 +94,23 @@ const AdminComboFormPage = () => {
         setIsUploading(false);
       }
       const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        price: numPrice,
+        name: parsed.data.name,
+        description: (parsed.data.description || '').trim(),
+        price: parsed.data.price,
         imageUrl: finalImageUrl,
-        isActive: form.isActive,
+        isActive: parsed.data.isActive,
       };
       if (isEditing) {
         await comboService.updateCombo(comboUuid, payload);
-        notificationService.success('Cap nhat combo thanh cong');
+        notificationService.success('Cập nhật combo thành công');
         navigate(`/admin/combos/${comboUuid}`);
       } else {
         const created = await comboService.createCombo(payload);
-        notificationService.success('Tao combo thanh cong');
+        notificationService.success('Tạo combo thành công');
         navigate(`/admin/combos/${created?.uuid || ''}`);
       }
     } catch (err) {
-      notificationService.error(err.message || 'Luu that bai');
+      notificationService.error(err.message || 'Lưu thất bại');
     } finally {
       setIsSaving(false);
       setIsUploading(false);

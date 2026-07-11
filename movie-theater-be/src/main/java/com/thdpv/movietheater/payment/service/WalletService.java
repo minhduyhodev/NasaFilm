@@ -2,6 +2,7 @@ package com.thdpv.movietheater.payment.service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,9 +23,15 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.payment.dto.WalletSummaryResponse;
+import com.thdpv.movietheater.payment.dto.WalletTopUpIntentResponse;
 import com.thdpv.movietheater.payment.dto.WalletTransactionResponse;
+import com.thdpv.movietheater.payment.entity.PaymentTransaction;
 import com.thdpv.movietheater.payment.entity.WalletTransaction;
+import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
 import com.thdpv.movietheater.payment.repository.WalletTransactionRepository;
+import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
+import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentInput;
+import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentResult;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -38,21 +45,35 @@ public class WalletService {
     public static final String TYPE_PAYMENT = "PAYMENT";
     public static final String TYPE_REFUND = "REFUND";
 
+    public static final String PURPOSE_WALLET_TOP_UP = "WALLET_TOP_UP";
+    public static final String PURPOSE_BOOKING = "BOOKING";
+
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final RefundRepository refundRepository;
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final MovieRepository movieRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
+    private final StripeGateway stripeGateway;
 
-    @Value("${app.payment.provider:mock}")
-    private String paymentProvider;
+    @Value("${app.wallet.top-up-provider:mock}")
+    private String topUpProvider;
 
     @Value("${app.wallet.default-balance:1000000}")
     private BigDecimal defaultBalance;
 
+    @Value("${app.wallet.seed-demo-balance:false}")
+    private boolean seedDemoBalance;
+
+    @Value("${app.wallet.min-top-up:10000}")
+    private BigDecimal minTopUp;
+
     @Value("${app.wallet.max-top-up:10000000}")
     private BigDecimal maxTopUp;
+
+    @Value("${app.wallet.quick-amounts:100000,200000,500000,1000000}")
+    private String quickAmountsConfig;
 
     public WalletService(
             UserRepository userRepository,
@@ -60,13 +81,21 @@ public class WalletService {
             RefundRepository refundRepository,
             PaymentRepository paymentRepository,
             BookingRepository bookingRepository,
-            MovieRepository movieRepository) {
+            MovieRepository movieRepository,
+            PaymentTransactionRepository paymentTransactionRepository,
+            StripeGateway stripeGateway) {
         this.userRepository = userRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.refundRepository = refundRepository;
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.movieRepository = movieRepository;
+        this.paymentTransactionRepository = paymentTransactionRepository;
+        this.stripeGateway = stripeGateway;
+    }
+
+    public boolean isMockTopUp() {
+        return "mock".equalsIgnoreCase(topUpProvider);
     }
 
     @Transactional(readOnly = true)
@@ -76,8 +105,11 @@ public class WalletService {
 
         WalletSummaryResponse response = new WalletSummaryResponse();
         response.setBalance(user.getWalletBalance());
-        response.setProvider(paymentProvider);
-        response.setMockMode("mock".equalsIgnoreCase(paymentProvider));
+        response.setProvider(topUpProvider);
+        response.setMockMode(isMockTopUp());
+        response.setMinTopUp(minTopUp);
+        response.setMaxTopUp(maxTopUp);
+        response.setQuickAmounts(parseQuickAmounts());
         response.setRecentTransactions(getRecentTransactions(userUuid));
         return response;
     }
@@ -91,6 +123,10 @@ public class WalletService {
 
     @Transactional
     public WalletSummaryResponse mockTopUp(UUID userUuid, BigDecimal amount) {
+        if (!isMockTopUp()) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Chế độ mock đã tắt. Vui lòng nạp qua Stripe (tạo intent rồi xác nhận).");
+        }
         validateAmount(amount);
         ensureWalletInitialized(findUser(userUuid));
         runWalletWriteWithRetry(userUuid, user -> credit(user, amount, null, "Nạp tiền mô phỏng (Mock Gateway)"));
@@ -98,7 +134,127 @@ public class WalletService {
     }
 
     @Transactional
+    public WalletTopUpIntentResponse createTopUpIntent(UUID userUuid, BigDecimal amount) {
+        validateAmount(amount);
+        ensureWalletInitialized(findUser(userUuid));
+
+        if (isMockTopUp()) {
+            mockTopUp(userUuid, amount);
+            return new WalletTopUpIntentResponse(null, null, "succeeded", amount.longValue(), "vnd", true);
+        }
+
+        long amountVnd = amount.longValue();
+        PaymentIntentInput input = new PaymentIntentInput(amountVnd, "vnd");
+        input.putMetadata("purpose", PURPOSE_WALLET_TOP_UP);
+        input.putMetadata("userUuid", userUuid.toString());
+
+        PaymentIntentResult result;
+        try {
+            result = stripeGateway.createPaymentIntent(input);
+        } catch (RuntimeException ex) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Không tạo được phiên thanh toán Stripe. Kiểm tra cấu hình khóa API.");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        PaymentTransaction tx = new PaymentTransaction();
+        tx.setUuid(UUID.randomUUID());
+        tx.setUserUuid(userUuid);
+        tx.setPaymentGateway("STRIPE");
+        tx.setGatewayTransactionId(result.getId());
+        tx.setAmount(amount);
+        tx.setCurrency("VND");
+        tx.setStatus("PENDING");
+        tx.setPurpose(PURPOSE_WALLET_TOP_UP);
+        tx.setCreatedAt(now);
+        tx.setUpdatedAt(now);
+        paymentTransactionRepository.save(tx);
+
+        return new WalletTopUpIntentResponse(
+                result.getId(),
+                result.getClientSecret(),
+                result.getStatus(),
+                amountVnd,
+                "vnd",
+                false);
+    }
+
+    @Transactional
+    public WalletSummaryResponse confirmTopUp(UUID userUuid, String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "paymentIntentId là bắt buộc");
+        }
+        PaymentTransaction tx = paymentTransactionRepository.findByGatewayTransactionId(paymentIntentId.trim())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy giao dịch nạp tiền"));
+
+        if (!PURPOSE_WALLET_TOP_UP.equals(tx.getPurpose())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Giao dịch không phải nạp ví");
+        }
+        if (tx.getUserUuid() == null || !tx.getUserUuid().equals(userUuid)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Giao dịch không thuộc tài khoản của bạn");
+        }
+
+        PaymentIntentResult stripePi;
+        try {
+            stripePi = stripeGateway.retrievePaymentIntent(paymentIntentId.trim());
+        } catch (RuntimeException ex) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Không xác minh được thanh toán Stripe");
+        }
+        if (!"succeeded".equalsIgnoreCase(stripePi.getStatus())) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Thanh toán chưa hoàn tất (status=" + stripePi.getStatus() + ")");
+        }
+
+        applySuccessfulTopUp(tx);
+        return getSummary(userUuid);
+    }
+
+    /**
+     * Idempotent credit after Stripe webhook / confirm. Safe to call multiple times.
+     */
+    @Transactional
+    public void creditSuccessfulStripeTopUp(String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            return;
+        }
+        paymentTransactionRepository.findByGatewayTransactionId(paymentIntentId.trim()).ifPresent(tx -> {
+            if (!PURPOSE_WALLET_TOP_UP.equals(tx.getPurpose())) {
+                return;
+            }
+            applySuccessfulTopUp(tx);
+        });
+    }
+
+    private void applySuccessfulTopUp(PaymentTransaction tx) {
+        if (walletTransactionRepository.existsByReferenceUuid(tx.getUuid())) {
+            if (!"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
+                tx.setStatus("SUCCESS");
+                tx.setUpdatedAt(OffsetDateTime.now());
+                paymentTransactionRepository.save(tx);
+            }
+            return;
+        }
+
+        UUID userUuid = tx.getUserUuid();
+        if (userUuid == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Giao dịch nạp ví thiếu userUuid");
+        }
+        BigDecimal amount = tx.getAmount();
+        ensureWalletInitialized(findUser(userUuid));
+        runWalletWriteWithRetry(userUuid, user ->
+                credit(user, amount, tx.getUuid(), "Nạp tiền qua Stripe · " + tx.getGatewayTransactionId()));
+
+        tx.setStatus("SUCCESS");
+        tx.setUpdatedAt(OffsetDateTime.now());
+        paymentTransactionRepository.save(tx);
+    }
+
+    @Transactional
     public WalletSummaryResponse mockWithdraw(UUID userUuid, BigDecimal amount) {
+        if (!isMockTopUp()) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Rút tiền mô phỏng chỉ khả dụng khi app.wallet.top-up-provider=mock");
+        }
         validateAmount(amount);
         ensureWalletInitialized(findUser(userUuid));
         runWalletWriteWithRetry(userUuid, user -> debit(user, amount, null, "Rút tiền mô phỏng (Mock Gateway)"));
@@ -170,6 +326,9 @@ public class WalletService {
             user.setWalletBalance(BigDecimal.ZERO);
             userRepository.save(user);
         }
+        if (!seedDemoBalance) {
+            return;
+        }
         boolean hasTransactions = !walletTransactionRepository
                 .findTop20ByUserUuidOrderByCreatedAtDesc(user.getId())
                 .isEmpty();
@@ -179,12 +338,25 @@ public class WalletService {
     }
 
     private void validateAmount(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.valueOf(10_000)) < 0) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền tối thiểu là 10.000đ");
+        BigDecimal min = minTopUp != null ? minTopUp : BigDecimal.valueOf(10_000);
+        if (amount == null || amount.compareTo(min) < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Số tiền tối thiểu là " + min.toPlainString() + "đ");
         }
         if (maxTopUp != null && amount.compareTo(maxTopUp) > 0) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền vượt quá giới hạn cho phép");
         }
+    }
+
+    private List<BigDecimal> parseQuickAmounts() {
+        if (quickAmountsConfig == null || quickAmountsConfig.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(quickAmountsConfig.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(BigDecimal::new)
+                .collect(Collectors.toList());
     }
 
     private User findUser(UUID userUuid) {

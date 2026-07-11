@@ -36,6 +36,7 @@ import com.thdpv.movietheater.auth.repository.UserRoleRepository;
 import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
+import com.thdpv.movietheater.auth.support.AuthActionRateLimiter;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.security.JwtUtils;
 import com.thdpv.movietheater.user.entity.Role;
@@ -88,6 +89,9 @@ class AuthServiceTest {
     private EmailService emailService;
 
     @Mock
+    private AuthActionRateLimiter authActionRateLimiter;
+
+    @Mock
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     private AuthService authService;
@@ -106,6 +110,7 @@ class AuthServiceTest {
                 passwordEncoder,
                 emailService,
                 roleRepository,
+                authActionRateLimiter,
                 redisTemplate);
 
         ReflectionTestUtils.setField(authService, "refreshTokenExpirationMs", 86400000L);
@@ -205,7 +210,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AppException exception = assertThrows(AppException.class, () -> {
-            authService.verifyRegister(request);
+            authService.verifyRegister(request, new MockHttpServletRequest());
         });
 
         assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
@@ -230,7 +235,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AppException exception = assertThrows(AppException.class, () -> {
-            authService.verifyRegister(request);
+            authService.verifyRegister(request, new MockHttpServletRequest());
         });
 
         assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
