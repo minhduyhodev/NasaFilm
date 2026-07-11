@@ -26,15 +26,30 @@ public class StripeGatewayImpl implements StripeGateway {
     @Override
     public PaymentIntentResult createPaymentIntent(PaymentIntentInput input) {
         try {
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+            PaymentIntentCreateParams.Builder builder = PaymentIntentCreateParams.builder()
                     .setAmount(input.getAmount())
                     .setCurrency(input.getCurrency())
-                    .build();
-
-            PaymentIntent paymentIntent = PaymentIntent.create(params);
+                    .setAutomaticPaymentMethods(
+                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                    .setEnabled(true)
+                                    .build());
+            if (input.getMetadata() != null) {
+                input.getMetadata().forEach(builder::putMetadata);
+            }
+            PaymentIntent paymentIntent = PaymentIntent.create(builder.build());
             return new PaymentIntentResult(paymentIntent.getId(), paymentIntent.getClientSecret(), paymentIntent.getStatus());
         } catch (StripeException e) {
             throw new RuntimeException("Failed to create Stripe PaymentIntent", e);
+        }
+    }
+
+    @Override
+    public PaymentIntentResult retrievePaymentIntent(String paymentIntentId) {
+        try {
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+            return new PaymentIntentResult(paymentIntent.getId(), paymentIntent.getClientSecret(), paymentIntent.getStatus());
+        } catch (StripeException e) {
+            throw new RuntimeException("Failed to retrieve Stripe PaymentIntent", e);
         }
     }
 

@@ -34,7 +34,7 @@ const AdminActorFormPage = () => {
           const actors = await movieService.getActors();
           const actor = (actors || []).find((a) => a.uuid === actorUuid);
           if (!actor) {
-            notificationService.error('Khong tim thay dien vien');
+            notificationService.error('Không tìm thấy diễn viên');
             navigate('/admin/media');
             return;
           }
@@ -64,7 +64,7 @@ const AdminActorFormPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.fullName.trim()) {
-      notificationService.error('Ten dien vien khong duoc de trong');
+      notificationService.error('Tên diễn viên không được để trống');
       return;
     }
     const payload = {
@@ -85,7 +85,7 @@ const AdminActorFormPage = () => {
         else navigate('/admin/media');
       }
     } catch (err) {
-      notificationService.error(err.message || 'Luu thong tin that bai');
+      notificationService.error(err.message || 'Lưu thông tin thất bại');
     } finally {
       setIsSaving(false);
     }

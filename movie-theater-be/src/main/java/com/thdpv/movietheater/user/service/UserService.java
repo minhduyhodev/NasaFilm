@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,9 +28,11 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.auth.service.EmailService;
 import com.thdpv.movietheater.auth.service.PasswordResetService;
+import com.thdpv.movietheater.security.CustomUserDetailsService;
 import com.thdpv.movietheater.security.JwtUtils;
 import com.thdpv.movietheater.user.dto.AdminCreateUserRequest;
 import com.thdpv.movietheater.user.dto.AdminCreateUserResponse;
+import com.thdpv.movietheater.user.dto.AdminUserStatsResponse;
 import com.thdpv.movietheater.user.dto.CounterCreateCustomerRequest;
 import com.thdpv.movietheater.user.dto.CounterCreateCustomerResponse;
 import com.thdpv.movietheater.user.dto.AdminUserResponse;
@@ -59,6 +63,7 @@ public class UserService {
     private final EmailService emailService;
     private final PasswordResetService passwordResetService;
     private final JwtUtils jwtUtils;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -76,7 +81,8 @@ public class UserService {
             RoleRepository roleRepository,
             EmailService emailService,
             PasswordResetService passwordResetService,
-            JwtUtils jwtUtils) {
+            JwtUtils jwtUtils,
+            CustomUserDetailsService customUserDetailsService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.cloudinary = cloudinary;
@@ -87,6 +93,7 @@ public class UserService {
         this.emailService = emailService;
         this.passwordResetService = passwordResetService;
         this.jwtUtils = jwtUtils;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     public UserProfileResponse getProfile(String email) {
@@ -126,6 +133,7 @@ public class UserService {
                         "Mật khẩu hiện tại không đúng");
             }
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            customUserDetailsService.evictByEmail(user.getEmail());
         }
 
         userRepository.save(user);
@@ -199,27 +207,51 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminUserResponse> getAllUsers(String query) {
-        List<User> users = userRepository.searchUsers(query);
-        return users.stream().map(user -> {
-            List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
-            List<String> roleNames = userRoles.stream()
-                    .map(ur -> ur.getRole().getName().name())
-                    .toList();
-            List<String> permissions = userPermissionRepository.findPermissionNamesByUserId(user.getId());
-            return new AdminUserResponse(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getPhoneNumber(),
-                    user.getAvatarUrl(),
-                    user.getStatus(),
-                    user.getAuthProvider(),
-                    user.getScore(),
-                    roleNames,
-                    permissions,
-                    user.getCreatedAt());
-        }).toList();
+    public Page<AdminUserResponse> getCustomerUsers(String query, UserStatus status, Pageable pageable) {
+        return getAdminUsers(query, status, pageable, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserResponse> getAdminUsers(String query, UserStatus status, Pageable pageable, boolean staffOnly) {
+        String normalizedQuery = query != null ? query.trim() : null;
+        if (normalizedQuery != null && normalizedQuery.isEmpty()) {
+            normalizedQuery = null;
+        }
+        Page<User> page = staffOnly
+                ? userRepository.searchStaffUsers(normalizedQuery, status, pageable)
+                : userRepository.searchCustomerUsers(normalizedQuery, status, pageable);
+        return page.map(this::toAdminUserResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserStatsResponse getCustomerUserStats() {
+        return new AdminUserStatsResponse(
+                userRepository.countCustomers(),
+                userRepository.countCustomersByStatus(UserStatus.ACTIVE),
+                userRepository.countCustomersByStatus(UserStatus.SUSPENDED),
+                userRepository.countCustomersByStatus(UserStatus.PENDING_VERIFICATION),
+                userRepository.countCustomersByStatus(UserStatus.INACTIVE),
+                userRepository.countCustomersWithMinScore(10_000));
+    }
+
+    private AdminUserResponse toAdminUserResponse(User user) {
+        List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+        List<String> roleNames = userRoles.stream()
+                .map(ur -> ur.getRole().getName().name())
+                .toList();
+        List<String> permissions = userPermissionRepository.findPermissionNamesByUserId(user.getId());
+        return new AdminUserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getPhoneNumber(),
+                user.getAvatarUrl(),
+                user.getStatus(),
+                user.getAuthProvider(),
+                user.getScore(),
+                roleNames,
+                permissions,
+                user.getCreatedAt());
     }
 
     @Transactional
@@ -230,6 +262,7 @@ public class UserService {
         // Allow updating status for any user (except self, which is handled in frontend/controller)
         user.setStatus(status);
         userRepository.save(user);
+        customUserDetailsService.evictByEmail(user.getEmail());
     }
 
     @Transactional
@@ -251,6 +284,7 @@ public class UserService {
         if (roleName != RoleName.STAFF) {
             userPermissionRepository.deleteByUserId(userId);
         }
+        customUserDetailsService.evictByEmail(user.getEmail());
     }
 
     @Transactional
@@ -371,7 +405,9 @@ public class UserService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ có thể cập nhật quyền chi tiết cho tài khoản STAFF");
         }
 
-        return assignUserPermissions(user.getId(), null, permissions);
+        List<String> updated = assignUserPermissions(user.getId(), null, permissions);
+        customUserDetailsService.evictByEmail(user.getEmail());
+        return updated;
     }
 
     private List<String> assignUserPermissions(UUID userId, String staffPreset, List<String> requestedPermissions) {

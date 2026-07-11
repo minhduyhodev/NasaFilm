@@ -408,11 +408,19 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
             order by b.created_at desc
             limit :limit offset :offset
             """, nativeQuery = true)
     List<Object[]> queryAdminBookingsWithPagination(
             @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt,
             @Param("offset") int offset,
             @Param("limit") int limit);
 
@@ -445,22 +453,79 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
             where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
             order by b.created_at desc
             """, nativeQuery = true)
     List<Object[]> queryAdminBookingsWithoutPagination(
-            @Param("keyword") String keyword);
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt);
 
     default List<Object[]> loadAdminBookings(String keyword) {
-        String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
-        return queryAdminBookingsWithoutPagination(searchKeyword);
+        return loadAdminBookings(keyword, null, null, null, null, null, null);
     }
 
     default List<Object[]> loadAdminBookings(String keyword, Integer offset, Integer limit) {
-        if (limit == null || offset == null) {
-            return loadAdminBookings(keyword);
-        }
+        return loadAdminBookings(keyword, null, null, null, null, offset, limit);
+    }
+
+    default List<Object[]> loadAdminBookings(
+            String keyword,
+            String status,
+            String cinema,
+            OffsetDateTime startAt,
+            OffsetDateTime endAt,
+            Integer offset,
+            Integer limit) {
         String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
-        return queryAdminBookingsWithPagination(searchKeyword, offset, limit);
+        String statusFilter = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status.trim();
+        String cinemaFilter = (cinema == null || cinema.isBlank()) ? null : "%" + cinema.trim().toUpperCase() + "%";
+        if (limit == null || offset == null) {
+            return queryAdminBookingsWithoutPagination(searchKeyword, statusFilter, cinemaFilter, startAt, endAt);
+        }
+        return queryAdminBookingsWithPagination(
+                searchKeyword, statusFilter, cinemaFilter, startAt, endAt, offset, limit);
+    }
+
+    @Query(value = """
+            select count(*)
+            from booking b
+            join users u on u.id = b.user_uuid
+            left join showtime st on st.uuid = b.showtime_uuid
+            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join cinema_room cr on cr.uuid = st.cinema_room_uuid
+            where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
+              and (:status is null or :status = '' or upper(b.status) = upper(:status))
+              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
+              and (:startAt is null or b.created_at >= :startAt)
+              and (:endAt is null or b.created_at < :endAt)
+            """, nativeQuery = true)
+    long queryAdminBookingsCount(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("cinema") String cinema,
+            @Param("startAt") OffsetDateTime startAt,
+            @Param("endAt") OffsetDateTime endAt);
+
+    default long countAdminBookings(String keyword) {
+        return countAdminBookings(keyword, null, null, null, null);
+    }
+
+    default long countAdminBookings(
+            String keyword,
+            String status,
+            String cinema,
+            OffsetDateTime startAt,
+            OffsetDateTime endAt) {
+        String searchKeyword = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toUpperCase() + "%";
+        String statusFilter = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status.trim();
+        String cinemaFilter = (cinema == null || cinema.isBlank()) ? null : "%" + cinema.trim().toUpperCase() + "%";
+        return queryAdminBookingsCount(searchKeyword, statusFilter, cinemaFilter, startAt, endAt);
     }
 
     @Query(value = """

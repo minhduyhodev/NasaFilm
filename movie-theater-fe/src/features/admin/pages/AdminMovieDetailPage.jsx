@@ -34,7 +34,7 @@ const AdminMovieDetailPage = () => {
         if (isMounted) setMovie(detail);
       } catch (err) {
         console.error('Failed to load movie detail:', err);
-        notificationService.error('Khong the lay chi tiet phim');
+        notificationService.error('Không thể lấy chi tiết phim');
         navigate('/admin/movies');
       } finally {
         if (isMounted) setIsLoading(false);

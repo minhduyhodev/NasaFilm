@@ -10,4 +10,6 @@ import com.thdpv.movietheater.payment.entity.WalletTransaction;
 public interface WalletTransactionRepository extends JpaRepository<WalletTransaction, UUID> {
 
     List<WalletTransaction> findTop20ByUserUuidOrderByCreatedAtDesc(UUID userUuid);
+
+    boolean existsByReferenceUuid(UUID referenceUuid);
 }

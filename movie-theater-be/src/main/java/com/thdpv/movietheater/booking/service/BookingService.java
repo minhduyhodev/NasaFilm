@@ -26,7 +26,6 @@ import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
-import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.BookingCombo;
 import com.thdpv.movietheater.booking.entity.BookingSeat;
@@ -193,7 +192,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking();
         booking.setUuid(bookingUuid);
@@ -218,6 +216,9 @@ public class BookingService {
             promotionRepository.save(resolvedPromotion);
             voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
+
+        // Charge after booking rows exist so a seat/DB failure cannot leave a paid orphan charge
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         int scoreAdded = calculateScore(totalPrice);
         if (scoreAdded > 0) {
@@ -364,7 +365,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         Booking booking = new Booking(
                 bookingUuid,
@@ -415,6 +415,9 @@ public class BookingService {
             comboLines.add(new BookingResponse.ComboLine(
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
+
+        // Charge after seats/tickets persist; same @Transactional rolls back booking if charge fails
+        paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         int scoreAdded;
         if (isOrbitCheckout) {
@@ -610,12 +613,6 @@ public class BookingService {
         }
 
         UUID bookingUuid = UUID.randomUUID();
-        paymentService.chargeBooking(
-                bookingUuid,
-                totalPrice,
-                request.getPaymentMethod(),
-                "counter-pay-" + bookingUuid,
-                customerUuid);
 
         Booking booking = new Booking(
                 bookingUuid,
@@ -667,6 +664,13 @@ public class BookingService {
             comboLines.add(new BookingResponse.ComboLine(
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
         }
+
+        paymentService.chargeBooking(
+                bookingUuid,
+                totalPrice,
+                request.getPaymentMethod(),
+                "counter-pay-" + bookingUuid,
+                customerUuid);
 
         int scoreAdded = isSystemAccount ? 0 : calculateScore(totalPrice);
         if (scoreAdded > 0) {
@@ -1221,55 +1225,6 @@ public class BookingService {
             return "Giảm " + discountValue.stripTrailingZeros().toPlainString() + "%";
         }
         return "Giảm " + formatPrice(discountValue);
-    }
-
-
-    @Transactional(readOnly = true)
-    public List<AdminBookingListResponse> getAdminBookings(String keyword) {
-        return getAdminBookings(keyword, null, null);
-    }
-
-    @Transactional(readOnly = true)
-    public List<AdminBookingListResponse> getAdminBookings(String keyword, Integer page, Integer size) {
-        Integer offset = null;
-        Integer limit = null;
-        if (page != null && size != null) {
-            offset = page * size;
-            limit = size;
-        }
-
-        List<Object[]> rows = bookingRepository.loadAdminBookings(keyword, offset, limit);
-        List<AdminBookingListResponse> responses = new ArrayList<>();
-
-        for (Object[] row : rows) {
-            UUID bookingUuid = toUuid(row[0]);
-            String customerName = stringValue(row[1]);
-            String customerEmail = stringValue(row[2]);
-            String movieTitle = stringValue(row[3]);
-            String roomName = stringValue(row[4]);
-            BigDecimal totalPrice = toBigDecimal(row[5]);
-            String status = stringValue(row[6]);
-            OffsetDateTime createdAt = bookingRepository.toOffsetDateTime(row[7]);
-            String customerAvatarUrl = stringValue(row[8]);
-            String seatsStr = stringValue(row[9]);
-            String combosStr = stringValue(row[10]);
-
-            responses.add(new AdminBookingListResponse(
-                    bookingUuid,
-                    customerName,
-                    customerEmail,
-                    movieTitle,
-                    roomName,
-                    seatsStr,
-                    combosStr,
-                    totalPrice,
-                    status,
-                    createdAt,
-                    customerAvatarUrl
-            ));
-        }
-
-        return responses;
     }
 
     private UUID toUuid(Object value) {

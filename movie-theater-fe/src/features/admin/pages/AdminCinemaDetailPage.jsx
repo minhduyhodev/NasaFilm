@@ -70,7 +70,7 @@ const AdminCinemaDetailPage = () => {
         setCinema(detail);
         setRooms(roomList || []);
       } catch (err) {
-        notificationService.error('Khong the tai chi nhanh');
+        notificationService.error('Không thể tải chi nhánh');
         navigate('/admin/cinemas');
       } finally {
         if (isMounted) setIsLoading(false);

@@ -30,13 +30,13 @@ const AdminComboDetailPage = () => {
         const found = (combos || []).find((c) => c.uuid === comboUuid);
         if (!isMounted) return;
         if (!found) {
-          notificationService.error('Khong tim thay combo');
+          notificationService.error('Không tìm thấy combo');
           navigate('/admin/combos');
           return;
         }
         setCombo(found);
       } catch (err) {
-        notificationService.error('Khong the tai combo');
+        notificationService.error('Không thể tải combo');
         navigate('/admin/combos');
       } finally {
         if (isMounted) setIsLoading(false);
@@ -58,10 +58,10 @@ const AdminComboDetailPage = () => {
     setIsDeleting(true);
     try {
       await comboService.deleteCombo(combo.uuid);
-      notificationService.success('Da xoa combo');
+      notificationService.success('Đã xóa combo');
       navigate('/admin/combos');
     } catch (err) {
-      notificationService.error(err.message || 'Xoa that bai');
+      notificationService.error(err.message || 'Xóa thất bại');
     } finally {
       setIsDeleting(false);
     }

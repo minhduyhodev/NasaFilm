@@ -4,20 +4,39 @@ export const BOOKING_SESSION_KEYS = {
   ORBIT: 'orbit_booking_state',
 };
 
-export function readBookingSession(key, locationState = null) {
-  if (locationState != null && typeof locationState === 'object') {
-    writeBookingSession(key, locationState);
-    return locationState;
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Shallow-merge location.state onto the stored session so partial navigations keep prior fields. */
+function mergeBookingState(existing, incoming) {
+  if (!isPlainObject(incoming)) {
+    return existing ?? incoming ?? null;
   }
+  if (!isPlainObject(existing)) {
+    return { ...incoming };
+  }
+  return { ...existing, ...incoming };
+}
+
+export function readBookingSession(key, locationState = null) {
+  let existing = null;
   try {
     const saved = sessionStorage.getItem(key);
     if (saved) {
-      return JSON.parse(saved);
+      existing = JSON.parse(saved);
     }
   } catch (error) {
     console.error(`Failed to parse session state (${key}):`, error);
   }
-  return null;
+
+  if (locationState != null && typeof locationState === 'object') {
+    const merged = mergeBookingState(existing, locationState);
+    writeBookingSession(key, merged);
+    return merged;
+  }
+
+  return existing;
 }
 
 export function writeBookingSession(key, data) {

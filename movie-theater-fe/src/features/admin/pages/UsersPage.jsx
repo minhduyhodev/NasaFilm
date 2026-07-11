@@ -30,12 +30,23 @@ const UsersPage = () => {
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [visiblePhoneUserIds, setVisiblePhoneUserIds] = useState(new Set());
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [openStatusDropdownId, setOpenStatusDropdownId] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    suspended: 0,
+    pending: 0,
+    inactive: 0,
+    vip: 0,
+  });
 
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -45,11 +56,39 @@ const UsersPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const data = await adminUserService.getUserStats();
+      setStats({
+        total: data?.total ?? 0,
+        active: data?.active ?? 0,
+        suspended: data?.suspended ?? 0,
+        pending: data?.pending ?? 0,
+        inactive: data?.inactive ?? 0,
+        vip: data?.vip ?? 0,
+      });
+    } catch {
+      // Keep previous stats on failure
+    }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await adminUserService.getUsers();
-      if (Array.isArray(data)) setUsersList(data);
+      const data = await adminUserService.getUsers({
+        query: debouncedSearch,
+        status: statusFilter,
+        page: currentPage - 1,
+        size: itemsPerPage,
+      });
+      setUsersList(data.items || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalElements(data.total || 0);
     } catch (error) {
       notificationService.error(
         error.message || "Không thể tải danh sách khách hàng.",
@@ -57,7 +96,11 @@ const UsersPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, statusFilter, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => {
     fetchUsers();
@@ -65,7 +108,11 @@ const UsersPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [debouncedSearch, statusFilter, itemsPerPage]);
+
+  const refreshUsers = useCallback(async () => {
+    await Promise.all([fetchUsers(), fetchStats()]);
+  }, [fetchUsers, fetchStats]);
 
   const handleStatusChange = async (userId, userEmail, newStatus) => {
     setUpdatingUserId(userId);
@@ -74,7 +121,7 @@ const UsersPage = () => {
       notificationService.success(
         `Đã cập nhật trạng thái tài khoản: ${userEmail}`,
       );
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       notificationService.error(
         error.message || "Lỗi khi cập nhật trạng thái.",
@@ -124,7 +171,7 @@ const UsersPage = () => {
         notificationService.success(
           `Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`,
         );
-        fetchUsers();
+        refreshUsers();
       }
       setIsDetailModalOpen(false);
     } catch (error) {
@@ -134,43 +181,7 @@ const UsersPage = () => {
     }
   };
 
-  // Customer accounts: exclude admin/staff; include pending verification (no CUSTOMER role yet)
-  const customersOnly = usersList.filter((u) => {
-    const roles = u.roles || [];
-    return !roles.includes("ADMIN") && !roles.includes("STAFF");
-  });
-
-  const filteredUsers = customersOnly.filter((user) => {
-    const normalizedSearch = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !normalizedSearch ||
-      (user.fullName &&
-        user.fullName.toLowerCase().includes(normalizedSearch)) ||
-      (user.email && user.email.toLowerCase().includes(normalizedSearch)) ||
-      (user.phoneNumber && user.phoneNumber.includes(normalizedSearch));
-    const matchesStatus =
-      statusFilter === "all" || user.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = React.useMemo(
-    () => ({
-      total: customersOnly.length,
-      active: customersOnly.filter((u) => u.status === "ACTIVE").length,
-      suspended: customersOnly.filter((u) => u.status === "SUSPENDED").length,
-      pending: customersOnly.filter((u) => u.status === "PENDING_VERIFICATION").length,
-      inactive: customersOnly.filter((u) => u.status === "INACTIVE").length,
-      vip: customersOnly.filter((u) => (u.score || 0) >= 10000).length,
-    }),
-    [customersOnly],
-  );
-
-  const paginatedUsers = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
+  const paginatedUsers = usersList;
 
   const getStatusLabel = (status) => {
     if (status === "ACTIVE") return "Hoạt động";
@@ -543,7 +554,7 @@ const UsersPage = () => {
       )}
 
       {/* PAGINATION */}
-      {filteredUsers.length > 0 && (
+      {totalElements > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 mt-2 border-t border-[#1A2238]/60 font-sans">
           <span className="text-[13px] text-gray-400 font-medium font-sans">
             Trang {currentPage}/{totalPages}
@@ -671,7 +682,7 @@ const UsersPage = () => {
           mode="CUSTOMER"
           onSuccess={() => {
             setIsCreateModalOpen(false);
-            fetchUsers();
+            refreshUsers();
           }}
           onCancel={() => setIsCreateModalOpen(false)}
         />

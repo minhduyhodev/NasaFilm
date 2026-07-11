@@ -281,7 +281,7 @@ const ConfigPage = () => {
 
   useEffect(() => {
     let isMounted = true;
-    systemConfigService.getConfig()
+    systemConfigService.getAdminConfig()
       .then((data) => { if (isMounted) setConfig(data); })
       .catch((error) => console.error('Failed to load system configuration', error))
       .finally(() => { if (isMounted) setIsLoading(false); });

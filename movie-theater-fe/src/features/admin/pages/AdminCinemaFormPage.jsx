@@ -42,7 +42,7 @@ const AdminCinemaFormPage = () => {
           longitude: detail.longitude ?? '',
         });
       } catch (err) {
-        notificationService.error('Khong the tai chi nhanh');
+        notificationService.error('Không thể tải chi nhánh');
         navigate('/admin/cinemas');
       } finally {
         if (isMounted) setIsLoading(false);
@@ -66,7 +66,7 @@ const AdminCinemaFormPage = () => {
       };
       if (isEditing) {
         await cinemaService.updateCinema(cinemaUuid, payload);
-        notificationService.success('Cap nhat chi nhanh thanh cong');
+        notificationService.success('Cập nhật chi nhánh thành công');
         navigate(`/admin/cinemas/${cinemaUuid}`);
       } else {
         const created = await cinemaService.createCinema(payload);
@@ -74,7 +74,7 @@ const AdminCinemaFormPage = () => {
         navigate(`/admin/cinemas/${created?.uuid || ''}`);
       }
     } catch (err) {
-      notificationService.error(err.message || 'Luu that bai');
+      notificationService.error(err.message || 'Lưu thất bại');
     } finally {
       setIsSaving(false);
     }

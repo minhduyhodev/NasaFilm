@@ -73,6 +73,7 @@ const OrbitBookingPage = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
   const [orbitMeta, setOrbitMeta] = useState(orbitState);
+  const [realtimeConnected, setRealtimeConnected] = useState(() => stompSocketService.isConnected());
 
   const syncQueueRef = useRef(Promise.resolve());
   const seatMapActionsRef = useRef({
@@ -258,7 +259,8 @@ const OrbitBookingPage = () => {
   useEffect(() => {
     if (!roomUuid || authLoading || !currentUserUuid) return undefined;
     stompSocketService.ensureConnected().catch(() => {});
-    return undefined;
+    const unsubscribe = stompSocketService.addConnectionListener(setRealtimeConnected);
+    return unsubscribe;
   }, [roomUuid, authLoading, currentUserUuid]);
 
   useEffect(() => {
@@ -583,6 +585,7 @@ const OrbitBookingPage = () => {
           expiresAt={room?.expiresAt}
           lockTimeLeft={timeLeft}
           showLockTimer={canEditSeats}
+          realtimeConnected={realtimeConnected}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

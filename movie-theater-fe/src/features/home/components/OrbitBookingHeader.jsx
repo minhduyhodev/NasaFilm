@@ -11,6 +11,7 @@ const OrbitBookingHeader = ({
   expiresAt,
   lockTimeLeft,
   showLockTimer,
+  realtimeConnected,
 }) => (
   <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
@@ -24,6 +25,14 @@ const OrbitBookingHeader = ({
       <p className="text-sm text-zinc-400 mt-1">
         {[displayTheater, displayDate, displayShowtime].filter(Boolean).join(' · ')
           || 'Đang tải thông tin suất chiếu…'}
+      </p>
+      <p
+        className={`mt-2 text-[11px] font-semibold tracking-wide ${
+          realtimeConnected ? 'text-emerald-400/90' : 'text-amber-400/90'
+        }`}
+        aria-live="polite"
+      >
+        {realtimeConnected ? 'Realtime đã kết nối' : 'Đang kết nối lại realtime…'}
       </p>
     </div>
     <OrbitBookingTimers

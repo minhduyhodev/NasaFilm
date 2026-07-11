@@ -18,7 +18,10 @@ import org.springframework.web.client.RestClient;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.movie.dto.response.TmdbStatusResponse;
+import com.thdpv.movietheater.movie.support.MediaProxyRateLimiter;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/media")
@@ -35,9 +38,11 @@ public class MediaProxyController {
     private final RestClient probeClient;
     private final String s3PublicBaseUrl;
     private final String s3BucketHost;
+    private final MediaProxyRateLimiter mediaProxyRateLimiter;
 
     public MediaProxyController(
-            @Value("${app.s3.public-base-url:" + S3MediaBorderUtils.DEFAULT_PUBLIC_BASE + "}") String s3PublicBaseUrl) {
+            @Value("${app.s3.public-base-url:" + S3MediaBorderUtils.DEFAULT_PUBLIC_BASE + "}") String s3PublicBaseUrl,
+            MediaProxyRateLimiter mediaProxyRateLimiter) {
         this.restClient = RestClient.builder()
                 .requestFactory(createRequestFactory(8000, 8000))
                 .build();
@@ -45,6 +50,7 @@ public class MediaProxyController {
                 .requestFactory(createRequestFactory(3000, 3000))
                 .build();
         this.s3PublicBaseUrl = s3PublicBaseUrl;
+        this.mediaProxyRateLimiter = mediaProxyRateLimiter;
         String host = S3MediaBorderUtils.DEFAULT_BUCKET_HOST;
         try {
             URI base = URI.create(s3PublicBaseUrl);
@@ -69,7 +75,9 @@ public class MediaProxyController {
     @GetMapping("/border")
     public ResponseEntity<Void> borderRedirect(
             @RequestParam(required = false) String key,
-            @RequestParam(required = false) String url) {
+            @RequestParam(required = false) String url,
+            HttpServletRequest request) {
+        mediaProxyRateLimiter.assertBorderAllowed(request);
         String resolvedKey = key;
         if (resolvedKey == null || resolvedKey.isBlank()) {
             resolvedKey = S3MediaBorderUtils.extractS3Key(url, s3BucketHost);
@@ -88,7 +96,8 @@ public class MediaProxyController {
     }
 
     @GetMapping("/proxy")
-    public ResponseEntity<byte[]> proxyImage(@RequestParam String url) {
+    public ResponseEntity<byte[]> proxyImage(@RequestParam String url, HttpServletRequest request) {
+        mediaProxyRateLimiter.assertProxyAllowed(request);
         URI sourceUri;
         try {
             sourceUri = new URI(url.trim());

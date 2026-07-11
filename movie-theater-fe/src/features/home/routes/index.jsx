@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import HomeAnimatedLayout from '../layouts/HomeAnimatedLayout';
@@ -42,24 +42,14 @@ const PageLoader = () => (
 );
 
 export const HomeRoutes = () => {
-  const { isAuthenticated, loading, user } = useAuthContext();
+  const { loading } = useAuthContext();
 
   if (loading) {
     return <PageLoader />;
   }
 
-  if (isAuthenticated) {
-    const roles = user?.roles || [];
-    const isAdminOrStaff = roles.some((r) => {
-      if (!r) return false;
-      const roleLower = r.toLowerCase();
-      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
-    });
-
-    if (isAdminOrStaff) {
-      return <Navigate to="/admin" replace />;
-    }
-  }
+  // Admin/staff may browse the customer site (e.g. to test booking flows).
+  // Login still lands them on /admin via PublicRoute / LoginPage.
 
   return (
     <Suspense fallback={<PageLoader />}>

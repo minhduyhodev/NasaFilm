@@ -39,8 +39,12 @@ const StaffPage = () => {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await adminUserService.getUsers();
-      if (Array.isArray(data)) setUsersList(data);
+      const data = await adminUserService.getUsers({
+        audience: 'STAFF',
+        page: 0,
+        size: 500,
+      });
+      setUsersList(data.items || []);
     } catch (error) {
       notificationService.error(error.message || 'Không thể tải danh sách nhân sự.');
     } finally {

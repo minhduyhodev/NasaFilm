@@ -83,7 +83,7 @@ public class User {
     @Column(name = "wallet_version", nullable = false, columnDefinition = "bigint not null default 0")
     private Long walletVersion = 0L;
 
-    @Column(name = "verification_code")
+    @Column(name = "verification_code", length = 100)
     private String verificationCode;
 
     @Column(name = "verification_code_expiry")

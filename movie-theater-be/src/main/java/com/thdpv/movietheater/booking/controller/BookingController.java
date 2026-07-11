@@ -2,6 +2,9 @@ package com.thdpv.movietheater.booking.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +27,7 @@ import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.dto.response.CustomerBookingHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.PurchaseHistoryResponse;
 import com.thdpv.movietheater.booking.dto.response.AdminBookingListResponse;
+import com.thdpv.movietheater.booking.service.AdminBookingQueryService;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
@@ -36,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final AdminBookingQueryService adminBookingQueryService;
 
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(
@@ -75,12 +80,41 @@ public class BookingController {
 
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    public ResponseEntity<ApiResponse<List<AdminBookingListResponse>>> getAdminBookings(
+    public ResponseEntity<ApiResponse<Page<AdminBookingListResponse>>> getAdminBookings(
             @RequestParam(value = "keyword", required = false) String keyword,
-            @RequestParam(value = "page", required = false) Integer page,
-            @RequestParam(value = "size", required = false) Integer size) {
-        List<AdminBookingListResponse> response = bookingService.getAdminBookings(keyword, page, size);
-        return ResponseEntity.ok(ApiResponse.success(response));
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "cinema", required = false) String cinema,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "unpaged", required = false, defaultValue = "false") boolean unpaged,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Pageable effective = unpaged ? Pageable.unpaged() : pageable;
+        return ResponseEntity.ok(ApiResponse.success(adminBookingQueryService.getAdminBookings(
+                keyword,
+                status,
+                cinema,
+                parseStartOfDay(startDate),
+                parseEndExclusive(endDate),
+                effective)));
+    }
+
+    private static java.time.OffsetDateTime parseStartOfDay(String date) {
+        if (date == null || date.isBlank()) {
+            return null;
+        }
+        return java.time.LocalDate.parse(date.trim())
+                .atStartOfDay(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .toOffsetDateTime();
+    }
+
+    private static java.time.OffsetDateTime parseEndExclusive(String date) {
+        if (date == null || date.isBlank()) {
+            return null;
+        }
+        return java.time.LocalDate.parse(date.trim())
+                .plusDays(1)
+                .atStartOfDay(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .toOffsetDateTime();
     }
 
     @PutMapping("/tickets/{code}/check-in")

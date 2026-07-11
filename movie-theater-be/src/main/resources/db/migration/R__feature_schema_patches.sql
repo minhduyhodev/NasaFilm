@@ -136,3 +136,8 @@ CREATE TABLE IF NOT EXISTS orbit_room_message (
 CREATE INDEX IF NOT EXISTS idx_orbit_room_message_room
     ON orbit_room_message (room_uuid, created_at);
 
+-- ── Payment transaction purpose (BOOKING | WALLET_TOP_UP) ─────────────────────
+
+ALTER TABLE payment_transaction ADD COLUMN IF NOT EXISTS purpose varchar(40);
+UPDATE payment_transaction SET purpose = 'BOOKING' WHERE purpose IS NULL;
+

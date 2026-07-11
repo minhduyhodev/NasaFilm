@@ -51,6 +51,15 @@ public class SystemConfigService {
                 .orElseGet(this::buildDefaultConfig);
     }
 
+    /** Public subset — excludes moderation wordlists and NasaBot internals. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getPublicConfig() {
+        Map<String, Object> config = new LinkedHashMap<>(self.getConfig());
+        config.remove("nasaBot");
+        config.remove("reviewBannedWords");
+        return config;
+    }
+
     @Transactional
     public Map<String, Object> saveConfig(Map<String, Object> incoming) {
         Map<String, Object> merged = mergeWithDefaults(incoming);
