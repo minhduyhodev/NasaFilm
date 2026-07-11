@@ -50,4 +50,12 @@ public class SupportLiveController {
         return ResponseEntity.ok(ApiResponse.success(
                 supportLiveSupportService.rateSatisfaction(ticketCode, userDetails.getUsername(), request.getRating())));
     }
+
+    @PostMapping("/{ticketCode}/fallback")
+    public ResponseEntity<ApiResponse<SupportTicketResponse>> fallbackToTicket(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String ticketCode) {
+        return ResponseEntity.ok(ApiResponse.success(
+                supportLiveSupportService.fallbackLiveToTicket(ticketCode, userDetails.getUsername())));
+    }
 }
