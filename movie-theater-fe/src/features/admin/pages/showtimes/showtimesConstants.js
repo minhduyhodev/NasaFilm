@@ -58,9 +58,18 @@ export const KPI_STATUS_MAP = {
   'Tổng': '',
   'Đang Mở Bán': 'OPEN_FOR_BOOKING',
   'Sắp Chiếu': 'SCHEDULED',
-  'Đang Chiếu': 'OPEN_FOR_BOOKING',
+  'Đang Chiếu': 'PLAYING_NOW',
   'Đã Kết Thúc': 'FINISHED',
   'Đã Hủy': 'CANCELLED',
+};
+
+/** Suất đang trong khung giờ chiếu (start ≤ now ≤ end). */
+export const isShowtimePlayingNow = (st, now = new Date()) => {
+  if (!st?.startTime || !st?.endTime) return false;
+  const start = new Date(st.startTime);
+  const end = new Date(st.endTime);
+  return start <= now && end >= now
+    && (st.status === 'OPEN_FOR_BOOKING' || st.status === 'SOLD_OUT' || st.status === 'SCHEDULED');
 };
 
 export const formatTimeOnly = (s) => {
@@ -82,7 +91,10 @@ export const isSameDay = (d1, d2) =>
 
 export const getValidTransitions = (status) => {
   switch (status) {
-    case 'DRAFT': return [{ target: 'SCHEDULED', label: 'Sắp Chiếu' }];
+    case 'DRAFT': return [
+      { target: 'SCHEDULED', label: 'Sắp Chiếu' },
+      { target: 'CANCELLED', label: 'Hủy' },
+    ];
     case 'SCHEDULED': return [
       { target: 'OPEN_FOR_BOOKING', label: 'Mở Bán Vé' },
       { target: 'CANCELLED', label: 'Hủy Suất' },

@@ -19,10 +19,11 @@ import {
 } from '../components';
 import { adminInputClass } from '../components/adminFormStyles';
 import PosterImage from '../../../shared/components/PosterImage';
+import { unwrapMediaUrl, isAwsMovieStreamingUrl } from '../../../shared/utils/mediaUrlUtils';
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
-  const poster = detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '';
-  const trailer = detail.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl || '';
+  const poster = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '');
+  const trailer = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl || '');
   const mappedGenreUuids = detail.genres
     ? genresList.filter(g => detail.genres.includes(g.name)).map(g => g.uuid)
     : [];
@@ -39,7 +40,7 @@ const mapDetailToFormData = (detail, genresList, countriesList) => {
     genreUuids: mappedGenreUuids,
     countryUuids: mappedCountryUuids,
     posterUrl: poster,
-    streamingUrl: detail.streamingUrl || '',
+    streamingUrl: unwrapMediaUrl(detail.streamingUrl || ''),
     trailerUrl: trailer,
     actors: detail.actors?.map(a => ({
       actorUuid: a.uuid,
@@ -333,13 +334,16 @@ const AdminMovieFormPage = () => {
 
     const supportsOnline =
       formData.screeningMode === 'BOTH' || formData.screeningMode === 'ONLINE_ONLY';
-    let streamingUrl = formData.streamingUrl.trim() || null;
-    if (!streamingUrl && supportsOnline && formData.trailerUrl.trim()) {
-      streamingUrl = formData.trailerUrl.trim();
+    let streamingUrl = unwrapMediaUrl(formData.streamingUrl.trim()) || null;
+    if (streamingUrl && !isAwsMovieStreamingUrl(streamingUrl)) {
+      notificationService.error(
+        'Link phim chi chap nhan Object URL AWS S3 thu muc movie/ (java-06.s3.ap-southeast-1.amazonaws.com/movie/...)'
+      );
+      return;
     }
     if (supportsOnline && !streamingUrl) {
       notificationService.error(
-        'Phim xem online can Link phim (Streaming URL) hoac Trailer URL de phat video'
+        'Phim xem online can Link phim AWS S3 (movie/...mp4), khong dung YouTube/opstream'
       );
       return;
     }
@@ -347,7 +351,7 @@ const AdminMovieFormPage = () => {
     const medias = [];
     if (formData.posterUrl.trim()) {
       medias.push({
-        mediaUrl: formData.posterUrl.trim(),
+        mediaUrl: unwrapMediaUrl(formData.posterUrl.trim()),
         mediaType: 'POSTER',
         title: `${formData.title.trim()} Poster`,
         isPrimary: true,
@@ -356,7 +360,7 @@ const AdminMovieFormPage = () => {
     }
     if (formData.trailerUrl.trim()) {
       medias.push({
-        mediaUrl: formData.trailerUrl.trim(),
+        mediaUrl: unwrapMediaUrl(formData.trailerUrl.trim()),
         mediaType: 'TRAILER',
         title: `${formData.title.trim()} Trailer`,
         isPrimary: false,
@@ -644,7 +648,7 @@ const AdminMovieFormPage = () => {
               </div>
               <div>
                 <label className={labelClass}>Link phim (Streaming URL)</label>
-                <input type="url" className={inputClass} placeholder="Link FILE video: drive.google.com/file/d/.../view (khong dung link thu muc)" value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
+                <input type="url" className={inputClass} placeholder="https://java-06.s3.ap-southeast-1.amazonaws.com/movie/TenPhim.mp4" value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
                 <p className="mt-1 text-[10px] text-gray-500">Google Drive: mo file video → Chia se → Sao chep lien ket file (dang /file/d/ID/view). Khong dung link thu muc /folders/</p>
               </div>
             </div>

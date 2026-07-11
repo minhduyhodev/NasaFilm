@@ -2,7 +2,6 @@ package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +38,10 @@ import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.common.time.AppTimeZones;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -61,6 +62,7 @@ public class ShowtimeService {
     private final CancellationRefundService cancellationRefundService;
     private final SystemConfigService systemConfigService;
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine;
+    private final ShowtimeOverlapSupport showtimeOverlapSupport;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -87,18 +89,15 @@ public class ShowtimeService {
 
         // Overlap check with cleaning buffer from config
         int cleaningMinutes = settings.getIntervalMinutes();
-        OffsetDateTime startWithBuffer = request.getStartTime().minusMinutes(cleaningMinutes);
-        OffsetDateTime endWithBuffer = endTime.plusMinutes(cleaningMinutes);
-
-        List<Showtime> overlaps = showtimeRepository.findOverlappingShowtimes(
+        List<Showtime> overlaps = showtimeOverlapSupport.findOverlaps(
                 room.getUuid(),
-                UUID.randomUUID(), // Pass random UUID for new entity
-                startWithBuffer,
-                endWithBuffer
-        );
+                UUID.randomUUID(),
+                request.getStartTime(),
+                endTime,
+                cleaningMinutes);
 
         if (!overlaps.isEmpty()) {
-            throw new AppException(ErrorCode.CONFLICT, "Lich chieu bi trung lap voi suat chieu khac trong phong.");
+            throw new AppException(ErrorCode.CONFLICT, showtimeOverlapSupport.buildConflictMessage(overlaps));
         }
 
         Showtime showtime = new Showtime();
@@ -126,8 +125,11 @@ public class ShowtimeService {
         }
 
         // Validate state machine transitions
-        if (current == ShowtimeStatus.DRAFT && newStatus != ShowtimeStatus.SCHEDULED) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai nhap chi co the chuyen sang Da len lich.");
+        if (current == ShowtimeStatus.DRAFT
+                && newStatus != ShowtimeStatus.SCHEDULED
+                && newStatus != ShowtimeStatus.CANCELLED) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Trang thai nhap chi co the chuyen sang Da len lich hoac Huy.");
         }
         if (current == ShowtimeStatus.SCHEDULED && newStatus != ShowtimeStatus.OPEN_FOR_BOOKING && newStatus != ShowtimeStatus.CANCELLED) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai Da len lich chi co the chuyen sang Mo ban ve hoac Huy.");
@@ -175,6 +177,26 @@ public class ShowtimeService {
         return toShowtimeResponse(updatedShowtime, movie, room);
     }
 
+    /**
+     * Hủy hàng loạt suất DRAFT (thường do auto-generate). Không đụng suất đang mở bán.
+     * Dùng UPDATE thay DELETE để tránh lỗi FK.
+     */
+    @Transactional
+    public int cancelAllDraftShowtimes() {
+        entityManager.createNativeQuery("""
+                DELETE FROM seat_locked sl
+                USING showtime st
+                WHERE sl.showtime_uuid = st.uuid
+                  AND st.status = 'DRAFT'
+                """).executeUpdate();
+
+        return entityManager.createNativeQuery("""
+                UPDATE showtime
+                SET status = 'CANCELLED'
+                WHERE status = 'DRAFT'
+                """).executeUpdate();
+    }
+
     @Transactional
     public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
         List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
@@ -203,12 +225,15 @@ public class ShowtimeService {
                 USING showtime st
                 WHERE sl.showtime_uuid = st.uuid
                   AND st.end_time <= :now
-                  AND st.status IN ('SCHEDULED', 'OPEN_FOR_BOOKING', 'SOLD_OUT')
+                  AND st.status IN ('SCHEDULED', 'OPEN_FOR_BOOKING', 'SOLD_OUT', 'DRAFT')
                 """)
                 .setParameter("now", now)
                 .executeUpdate();
 
-        return showtimeRepository.markFinishedIfExpired(now, activeStatuses, ShowtimeStatus.FINISHED);
+        int cancelledDrafts = showtimeRepository.cancelExpiredDrafts(
+                now, ShowtimeStatus.DRAFT, ShowtimeStatus.CANCELLED);
+        int finished = showtimeRepository.markFinishedIfExpired(now, activeStatuses, ShowtimeStatus.FINISHED);
+        return finished + cancelledDrafts;
     }
 
     @Transactional(readOnly = true)
@@ -249,7 +274,7 @@ public class ShowtimeService {
     }
 
     private OffsetDateTime toDayStart(LocalDate date) {
-        return date.atStartOfDay().atOffset(ZoneOffset.ofHours(7));
+        return AppTimeZones.dayStart(date);
     }
 
     private List<ShowtimeResponse> mapShowtimesToResponses(List<Showtime> showtimes) {
@@ -290,7 +315,7 @@ public class ShowtimeService {
 
     private ShowtimeResponse toShowtimeResponse(Showtime showtime, Movie movie, CinemaRoom room) {
         String movieTitle = movie != null ? movie.getTitle() : "Unkown Movie";
-        String moviePosterUrl = resolvePrimaryMediaUrl(movie);
+        String moviePosterUrl = S3MediaBorderUtils.toBorderUrl(resolvePrimaryMediaUrl(movie));
         String roomName = room != null ? room.getName() : "Unknown Room";
         String cinemaName = (room != null && room.getCinema() != null) ? room.getCinema().getName() : "Unknown Cinema";
         UUID cinemaUuid = (room != null && room.getCinema() != null) ? room.getCinema().getUuid() : null;
@@ -329,12 +354,12 @@ public class ShowtimeService {
         ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.merge(
                 systemConfigService.getConfig(), request);
 
-        ZoneOffset offset = OffsetDateTime.now().getOffset();
-        OffsetDateTime startRange = request.getStartDate().atStartOfDay().atOffset(offset);
-        OffsetDateTime endRange = request.getEndDate().plusDays(1).atStartOfDay().atOffset(offset);
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime startRange = AppTimeZones.dayStart(request.getStartDate());
+        OffsetDateTime endRange = AppTimeZones.dayStart(request.getEndDate().plusDays(1));
 
         List<Showtime> existingShowtimes = showtimeRepository.findActiveShowtimesInRooms(
-                request.getRoomUuids(), startRange, endRange);
+                request.getRoomUuids(), startRange, endRange, now);
 
         return showtimeSchedulingEngine.generatePreview(
                 request,

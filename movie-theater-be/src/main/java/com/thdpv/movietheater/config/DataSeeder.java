@@ -82,6 +82,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
     private final TransactionTemplate transactionTemplate;
+    private final AwsMovieOverrideSeeder awsMovieOverrideSeeder;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -130,7 +131,8 @@ public class DataSeeder implements CommandLineRunner {
             ActorRepository actorRepository,
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            AwsMovieOverrideSeeder awsMovieOverrideSeeder) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
@@ -149,6 +151,7 @@ public class DataSeeder implements CommandLineRunner {
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.awsMovieOverrideSeeder = awsMovieOverrideSeeder;
     }
 
     @Override
@@ -160,6 +163,7 @@ public class DataSeeder implements CommandLineRunner {
         }
         healWalletVersionColumn();
         healUserSchemaColumns();
+        healMovieMediaUrlColumns();
         seedRoles();
         seedAdminUser();
         seedStaffUser();
@@ -172,6 +176,7 @@ public class DataSeeder implements CommandLineRunner {
         seedSeatTypes();
         seedActors();
         seedMovies();
+        awsMovieOverrideSeeder.applyOverrides();
 
         // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng
         // có online_price là null
@@ -942,6 +947,17 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    /** S3 / CDN URLs often exceed varchar(255); widen before seed sync. */
+    private void healMovieMediaUrlColumns() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE movie_media ALTER COLUMN media_url TYPE VARCHAR(2048)");
+            jdbcTemplate.execute("ALTER TABLE movie ALTER COLUMN streaming_url TYPE VARCHAR(2048)");
+            logger.info("Widened movie_media.media_url and movie.streaming_url to VARCHAR(2048).");
+        } catch (Exception e) {
+            logger.warn("movie media URL column widen skipped: {}", e.getMessage());
+        }
+    }
+
     private void seedSeatTypes() {
         List<Map<String, Object>> seatTypesToSeed = null;
         try {
@@ -1063,8 +1079,10 @@ public class DataSeeder implements CommandLineRunner {
                 if (exists) {
                     Movie movie = movieRepository.findByTitleIgnoreCase(movieData.title).orElse(null);
                     if (movie != null) {
-                        // Cập nhật streamingUrl
-                        movie.setStreamingUrl(movieData.streamingUrl);
+                        // Chỉ cập nhật streamingUrl khi JSON có giá trị (AWS override file xử lý S3)
+                        if (movieData.streamingUrl != null && !movieData.streamingUrl.isBlank()) {
+                            movie.setStreamingUrl(movieData.streamingUrl);
+                        }
 
                         // Cập nhật trailer trong medias
                         if (movieData.medias != null) {
@@ -1094,8 +1112,7 @@ public class DataSeeder implements CommandLineRunner {
                             }
                         }
                         movieRepository.save(movie);
-                        logger.info("Updated existing movie '{}' with streamingUrl and trailer from JSON.",
-                                movie.getTitle());
+                        logger.info("Updated existing movie '{}' streaming/trailer from JSON.", movie.getTitle());
                     }
                     continue;
                 }
@@ -1232,8 +1249,7 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
-        // Self-healing: đồng bộ streaming_url từ TRAILER cho phim online chưa có link
-        // phát
+        // Self-healing: chỉ fill streaming_url trống từ media S3 movie/ (không copy trailer YouTube)
         try {
             int synced = jdbcTemplate.update("""
                         UPDATE movie m
@@ -1241,9 +1257,16 @@ public class DataSeeder implements CommandLineRunner {
                         FROM (
                             SELECT DISTINCT ON (mm.movie_uuid) mm.movie_uuid, mm.media_url
                             FROM movie_media mm
-                            WHERE mm.media_type = 'TRAILER'
+                            WHERE mm.media_type IN ('MOVIE', 'STREAM', 'FULL')
                               AND mm.media_url IS NOT NULL
                               AND btrim(mm.media_url) <> ''
+                              AND (
+                                    mm.media_url ILIKE '%/movie/%'
+                                 OR mm.media_url ILIKE '%.mp4%'
+                                 OR mm.media_url ILIKE '%.m3u8%'
+                              )
+                              AND mm.media_url NOT ILIKE '%youtube%'
+                              AND mm.media_url NOT ILIKE '%youtu.be%'
                             ORDER BY mm.movie_uuid, mm.sort_order NULLS LAST
                         ) src
                         WHERE m.uuid = src.movie_uuid
@@ -1251,10 +1274,10 @@ public class DataSeeder implements CommandLineRunner {
                           AND m.screening_mode IN ('BOTH', 'ONLINE_ONLY')
                     """);
             if (synced > 0) {
-                logger.info("Synced streaming_url from TRAILER media for {} online movies", synced);
+                logger.info("Synced streaming_url from S3/movie media for {} online movies", synced);
             }
         } catch (Exception e) {
-            logger.warn("Failed to sync streaming_url from trailer media", e);
+            logger.warn("Failed to sync streaming_url from movie media", e);
         }
 
         // Self-healing: đồng bộ trạng thái phim theo ngày công chiếu

@@ -198,7 +198,20 @@ export const getVideoSource = (url) => {
     return { type: 'none', provider: 'none' };
   }
 
-  const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+  // Border S3 qua BE (relative path) — phát như video trực tiếp
+  if (trimmed.includes('/api/media/border')) {
+    return buildDirectSource('direct', trimmed.startsWith('http') ? trimmed : trimmed);
+  }
+
+  const normalized = trimmed.startsWith('http') || trimmed.startsWith('/')
+    ? trimmed
+    : `https://${trimmed}`;
+
+  if (normalized.startsWith('/')) {
+    if (DIRECT_MEDIA_PATTERN.test(normalized) || normalized.includes('/api/media/')) {
+      return buildDirectSource('direct', normalized);
+    }
+  }
 
   const driveSource = parseGoogleDriveSource(normalized);
   if (driveSource) {

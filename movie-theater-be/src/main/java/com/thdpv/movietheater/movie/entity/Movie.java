@@ -59,7 +59,7 @@ public class Movie {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Column(name = "streaming_url")
+    @Column(name = "streaming_url", length = 2048)
     private String streamingUrl;
 
     @Enumerated(EnumType.STRING)

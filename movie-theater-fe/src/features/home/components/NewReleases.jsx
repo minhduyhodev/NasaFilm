@@ -33,7 +33,14 @@ const NewReleases = ({
     const fetchMovies = async () => {
       setIsLoading(true);
       try {
-        const data = await movieService.getMovies({ status: 'NOW_SHOWING', page: 0, size: 12 });
+        const data = await movieService.getMovies({
+          status: 'NOW_SHOWING',
+          requireBookableShowtime: !onlineOnly,
+          requireAwsStreaming: true,
+          onlineOnly: onlineOnly || undefined,
+          page: 0,
+          size: 12,
+        });
         let list = mapApiMovies(data?.content || []);
         if (onlineOnly) list = filterOnlineMovies(list);
         setMovies(sortMoviesByReleaseDate(list).slice(0, 6));

@@ -4,7 +4,7 @@ import {
   Ban, CheckCircle, MapPin, CreditCard,
   Clock, ChevronDown, ChevronsDown, ChevronsUp,
   Layers, Building2, Eye, EyeOff, XCircle, Ticket,
-  DoorOpen, CalendarDays, CalendarClock, AlignJustify,
+  DoorOpen, CalendarDays, CalendarClock, AlignJustify, Trash2,
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -29,6 +29,7 @@ import {
   formatDateShort,
   formatWeekday,
   isSameDay,
+  isShowtimePlayingNow,
   getValidTransitions,
   getTransitionBtnClass,
   sortShowtimes,
@@ -42,6 +43,7 @@ import {
 } from './showtimes/showtimesUi';
 import ShowtimeCard from './showtimes/ShowtimeCard';
 import ShowtimesKpiGrid from './showtimes/ShowtimesKpiGrid';
+import ShowtimesDraftBanner from './showtimes/ShowtimesDraftBanner';
 import './ShowtimesPage.css';
 
 const ShowtimesAutoModal = lazy(() => import('./showtimes/ShowtimesAutoModal'));
@@ -225,6 +227,24 @@ const ShowtimesPage = () => {
     if (main) main.scrollTop = 0;
   }, []);
 
+  const handleCleanupDrafts = async () => {
+    const ok = await confirm({
+      title: 'Hủy suất chiếu nháp (DRAFT)',
+      message:
+        'Sẽ hủy toàn bộ suất DRAFT (thường do tạo lịch tự động). Suất đang mở bán / đã lên lịch vẫn giữ. Tiếp tục?',
+      confirmLabel: 'Hủy DRAFT',
+      variant: 'warning',
+    });
+    if (!ok) return;
+    try {
+      const cancelled = await showtimeService.cleanupDraftShowtimes();
+      fetchShowtimes();
+      notificationService.success(`Đã hủy ${cancelled ?? 0} suất nháp. Bạn có thể tạo lịch mới.`);
+    } catch (error) {
+      notificationService.error(error.message || 'Không hủy được suất nháp');
+    }
+  };
+
   const handleAutoClick = async () => {
     let config = DEFAULT_SYSTEM_CONFIG;
     try {
@@ -365,7 +385,8 @@ const ShowtimesPage = () => {
       fetchShowtimes();
       notificationService.success('Tạo suất chiếu thành công!');
     } catch (error) {
-      notificationService.error(error.message || 'Lỗi khi tạo suất chiếu');
+      const detail = error?.response?.data?.message || error?.message || 'Lỗi khi tạo suất chiếu';
+      notificationService.error(detail);
     }
   };
 
@@ -450,8 +471,16 @@ const ShowtimesPage = () => {
     if (mapped === undefined) return;
     setStatusFilter(mapped);
     if (mapped === 'CANCELLED') setHideCancelled(false);
-    if (mapped === 'FINISHED' || mapped === 'CANCELLED') {
-      setCollapsedSections((prev) => ({ ...prev, [mapped]: false }));
+    if (mapped === 'FINISHED' || mapped === 'CANCELLED' || mapped === 'DRAFT') {
+      setCollapsedSections((prev) => ({ ...prev, [mapped === 'PLAYING_NOW' ? 'OPEN_FOR_BOOKING' : mapped]: false }));
+    }
+    if (mapped === 'PLAYING_NOW') {
+      setCollapsedSections((prev) => ({
+        ...prev,
+        OPEN_FOR_BOOKING: false,
+        SOLD_OUT: false,
+        SCHEDULED: false,
+      }));
     }
     setCurrentPage(1);
   }, []);
@@ -509,12 +538,14 @@ const ShowtimesPage = () => {
 
   // Apply search + status + cinema filters
   const filteredShowtimes = useMemo(() => {
+    const now = new Date();
     let result = dateFilteredShowtimes.filter(st => {
       const matchesSearch = !searchTerm ||
         st.movieTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         st.cinemaRoomName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         st.cinemaName?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = !statusFilter || st.status === statusFilter;
+      const matchesStatus = !statusFilter
+        || (statusFilter === 'PLAYING_NOW' ? isShowtimePlayingNow(st, now) : st.status === statusFilter);
       const matchesCinema = !cinemaFilter || st.cinemaName === cinemaFilter;
       const matchesCancelledHide =
         !hideCancelled || statusFilter === 'CANCELLED' || st.status !== 'CANCELLED';
@@ -532,13 +563,10 @@ const ShowtimesPage = () => {
     const soldOut = data.filter(s => s.status === 'SOLD_OUT').length;
     const finished = data.filter(s => s.status === 'FINISHED').length;
     const cancelled = data.filter(s => s.status === 'CANCELLED').length;
-    const playing = data.filter(s =>
-      (s.status === 'OPEN_FOR_BOOKING' || s.status === 'SOLD_OUT') &&
-      s.startTime && new Date(s.startTime) <= now &&
-      s.endTime && new Date(s.endTime) >= now
-    ).length;
+    const playing = data.filter(s => isShowtimePlayingNow(s, now)).length;
+    const draft = data.filter(s => s.status === 'DRAFT').length;
     const revenue = data.reduce((sum, s) => sum + (s.basePrice || 0), 0);
-    return { total: data.length, selling, scheduled, soldOut, playing, finished, cancelled, revenue };
+    return { total: data.length, selling, scheduled, soldOut, playing, finished, cancelled, draft, revenue };
   }, [dateFilteredShowtimes]);
 
   // Paginated slice for grid/list rendering
@@ -889,6 +917,11 @@ const ShowtimesPage = () => {
         variant="display"
         secondaryActions={[
           {
+            label: 'Hủy suất nháp (DRAFT)',
+            onClick: handleCleanupDrafts,
+            icon: <Trash2 className="w-4 h-4" />,
+          },
+          {
             label: 'Tạo lịch tự động',
             onClick: handleAutoClick,
             icon: <CalendarDays className="w-4 h-4" />,
@@ -902,6 +935,15 @@ const ShowtimesPage = () => {
       />
 
       <ShowtimesKpiGrid stats={stats} statusFilter={statusFilter} onKpiClick={handleKpiClick} />
+
+      <ShowtimesDraftBanner
+        draftCount={stats.draft}
+        onViewDrafts={() => {
+          setStatusFilter('DRAFT');
+          setCollapsedSections((prev) => ({ ...prev, DRAFT: false }));
+          setCurrentPage(1);
+        }}
+      />
 
       {/* ==================== DATE NAVIGATOR ==================== */}
       <div className="mb-5">
@@ -961,6 +1003,7 @@ const ShowtimesPage = () => {
             <option value="DRAFT">Nháp</option>
             <option value="SCHEDULED">Sắp Chiếu</option>
             <option value="OPEN_FOR_BOOKING">Đang Mở Bán</option>
+            <option value="PLAYING_NOW">Đang Chiếu (trong giờ)</option>
             <option value="SOLD_OUT">Hết Ghế</option>
             <option value="CANCELLED">Đã Hủy</option>
             <option value="FINISHED">Đã Kết Thúc</option>
