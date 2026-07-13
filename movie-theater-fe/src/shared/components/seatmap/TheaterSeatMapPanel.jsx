@@ -325,7 +325,15 @@ const TheaterSeatMapPanel = ({
                       className="seat-map-grid-cell relative z-[1]"
                       style={getGridColumnStyle(item.gridStart, item.span)}
                     >
-                      {item.kind === 'couple-invalid' ? (
+                      {item.kind === 'couple-invalid-ghost' ? (
+                        <div
+                          className="seat-couple-invalid-ghost flex items-center justify-center text-[8px] font-bold font-mono text-yellow-400/90"
+                          title={`Thiếu slot sofa đôi tại ${row}${item.seatNumber}`}
+                          aria-hidden
+                        >
+                          ?
+                        </div>
+                      ) : item.kind === 'couple-invalid' ? (
                         <div
                           className="seat standard occupied relative z-[1] w-full h-full flex items-center justify-center text-[9px] font-bold opacity-50 cursor-not-allowed"
                           title="Ghế sofa chưa đủ cặp — không thể đặt"
