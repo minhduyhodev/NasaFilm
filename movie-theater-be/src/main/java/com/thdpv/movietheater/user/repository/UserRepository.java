@@ -45,13 +45,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             Pageable pageable);
 
     @Query("""
-            SELECT DISTINCT u FROM UserRole ur
-            JOIN ur.user u
-            JOIN ur.role r
-            WHERE r.name IN (
+            SELECT u FROM User u
+            WHERE EXISTS (
+                  SELECT 1 FROM UserRole ur JOIN ur.role r
+                  WHERE ur.user = u AND r.name IN (
                       com.thdpv.movietheater.user.enums.RoleName.ADMIN,
                       com.thdpv.movietheater.user.enums.RoleName.STAFF
                   )
+              )
               AND (:query IS NULL OR :query = '' OR
                    LOWER(u.fullName) LIKE LOWER(CONCAT('%', :query, '%')) OR
                    LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR
