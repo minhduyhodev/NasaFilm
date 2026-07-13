@@ -71,10 +71,12 @@ export const useShowtimeRadarRefresh = () => {
 };
 
 export const useShowtimeRadarWidget = () => {
+  const { isAuthenticated } = useAuthContext();
   const radarQuery = useShowtimeRadarQuery();
   const favoritesQuery = useQuery({
     queryKey: queryKeys.favorites,
     queryFn: () => favoriteService.list(),
+    enabled: isAuthenticated,
     staleTime: 2 * 60 * 1000,
   });
   const { refreshSuggestions, refreshing } = useShowtimeRadarRefresh();

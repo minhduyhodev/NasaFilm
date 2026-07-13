@@ -41,6 +41,8 @@ const appendAccessTokenQuery = (httpUrl) => {
 };
 
 const SEAT_MAP_REFRESH_MS = 5000;
+const RECONNECT_DELAY_MS = 8000;
+const HEARTBEAT_MS = 20000;
 
 /** Lazy-loaded only when native WebSocket fails or VITE_WS_USE_SOCKJS=true */
 let sockJsModulePromise = null;
@@ -61,6 +63,7 @@ class StompSocketService {
     this.usingSockJs = false;
     this.sockJsClass = null;
     this.connectionListeners = new Set();
+    this.tearingDown = false;
   }
 
   isConnected() {
@@ -95,6 +98,16 @@ class StompSocketService {
       this.sockJsClass = await loadSockJS();
     }
     return this.sockJsClass;
+  }
+
+  async safeDeactivate(client) {
+    if (!client) return;
+    try {
+      client.reconnectDelay = 0;
+      await client.deactivate();
+    } catch {
+      // Ignore CLOSING/CLOSED races during intentional teardown
+    }
   }
 
   resubscribeActive() {
@@ -141,10 +154,10 @@ class StompSocketService {
         const nativeUrl = needsWebsocketSuffix ? `${httpUrl}/websocket` : httpUrl;
         return new WebSocket(toNativeWebSocketUrl(nativeUrl));
       },
-      reconnectDelay: 5000,
+      reconnectDelay: RECONNECT_DELAY_MS,
       connectionTimeout: 8000,
-      heartbeatIncoming: 5000,
-      heartbeatOutgoing: 5000,
+      heartbeatIncoming: HEARTBEAT_MS,
+      heartbeatOutgoing: HEARTBEAT_MS,
       onConnect: () => {
         this.connected = true;
         this.resubscribeActive();
@@ -155,18 +168,46 @@ class StompSocketService {
       },
       onWebSocketClose: () => {
         this.connected = false;
-        this.connectPromise = null;
+        // Keep client + connectPromise so auto-reconnect reuses the same Client
+        // instead of spawning orphan sockets.
         this.notifyConnectionListeners();
       },
+      debug: () => {},
     });
   }
 
   ensureConnected() {
+    if (this.tearingDown) {
+      return Promise.reject(new Error('WebSocket is disconnecting'));
+    }
+
     if (this.client?.connected) {
       return Promise.resolve();
     }
 
     if (this.connectPromise) {
+      return this.connectPromise;
+    }
+
+    // Existing client is reconnecting — wait for it instead of creating another.
+    if (this.client) {
+      this.connectPromise = new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          this.connectPromise = null;
+          reject(new Error('WebSocket reconnect timeout'));
+        }, 20000);
+
+        const previousOnConnect = this.client.onConnect;
+        this.client.onConnect = (frame) => {
+          clearTimeout(timeoutId);
+          this.connected = true;
+          this.resubscribeActive();
+          this.notifyConnectionListeners();
+          previousOnConnect?.(frame);
+          this.connectPromise = null;
+          resolve();
+        };
+      });
       return this.connectPromise;
     }
 
@@ -202,7 +243,6 @@ class StompSocketService {
         };
         this.client.onDisconnect = () => {
           this.connected = false;
-          this.connectPromise = null;
           this.notifyConnectionListeners();
         };
 
@@ -218,21 +258,29 @@ class StompSocketService {
     };
 
     const preferredSockJs = useSockJsTransport();
-    this.connectPromise = tryConnect(preferredSockJs).catch(async (error) => {
-      if (preferredSockJs) {
+    this.connectPromise = tryConnect(preferredSockJs)
+      .catch(async (error) => {
+        if (preferredSockJs) {
+          throw error;
+        }
+        console.warn('Native WebSocket failed, retrying with SockJS:', error?.message ?? error);
+        const failedClient = this.client;
+        this.client = null;
+        this.connected = false;
+        await this.safeDeactivate(failedClient);
+        return tryConnect(true);
+      })
+      .catch((error) => {
+        this.connectPromise = null;
         throw error;
-      }
-      console.warn('Native WebSocket failed, retrying with SockJS:', error?.message ?? error);
-      this.client = null;
-      return tryConnect(true);
-    });
+      });
 
     return this.connectPromise;
   }
 
   subscribe(topic, callback) {
     if (!topic || typeof callback !== 'function') {
-      return () => { };
+      return () => {};
     }
 
     const id = ++this.subscriptionCounter;
@@ -260,12 +308,18 @@ class StompSocketService {
         });
       })
       .catch((error) => {
-        console.error(`Failed to subscribe to ${topic}:`, error);
+        if (this.activeSubscriptions.has(id) && !entry.disposed) {
+          console.error(`Failed to subscribe to ${topic}:`, error);
+        }
       });
 
     return () => {
       entry.disposed = true;
-      entry.stompSub?.unsubscribe();
+      try {
+        entry.stompSub?.unsubscribe();
+      } catch {
+        // ignore
+      }
       this.activeSubscriptions.delete(id);
       this.disconnectIfIdle();
     };
@@ -275,18 +329,21 @@ class StompSocketService {
     if (this.activeSubscriptions.size > 0) {
       return;
     }
-    if (this.client) {
-      try {
-        this.client.deactivate();
-      } catch (error) {
-        console.error('Failed to disconnect WebSocket:', error);
-      }
-      this.client = null;
-      this.connected = false;
-      this.connectPromise = null;
-      this.usingSockJs = false;
-      this.notifyConnectionListeners();
+    if (!this.client) {
+      return;
     }
+
+    const client = this.client;
+    this.tearingDown = true;
+    this.client = null;
+    this.connected = false;
+    this.connectPromise = null;
+    this.usingSockJs = false;
+    this.notifyConnectionListeners();
+
+    this.safeDeactivate(client).finally(() => {
+      this.tearingDown = false;
+    });
   }
 }
 

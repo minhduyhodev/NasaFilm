@@ -79,9 +79,6 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
                   AND s.start_time > :now
             ) upcoming ON upcoming.movie_uuid = m.uuid
             WHERE m.status = 'COMING_SOON'
-              AND m.streaming_url IS NOT NULL
-              AND LOWER(m.streaming_url) LIKE '%java-06.s3.ap-southeast-1.amazonaws.com%'
-              AND LOWER(m.streaming_url) LIKE '%/movie/%'
               AND NOT EXISTS (
                   SELECT 1 FROM showtime s
                   WHERE s.movie_uuid = m.uuid
@@ -101,9 +98,6 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
                 GROUP BY s.movie_uuid
             ) upcoming ON upcoming.movie_uuid = m.uuid
             WHERE m.status = 'COMING_SOON'
-              AND m.streaming_url IS NOT NULL
-              AND LOWER(m.streaming_url) LIKE '%java-06.s3.ap-southeast-1.amazonaws.com%'
-              AND LOWER(m.streaming_url) LIKE '%/movie/%'
               AND NOT EXISTS (
                   SELECT 1 FROM showtime s
                   WHERE s.movie_uuid = m.uuid

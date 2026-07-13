@@ -36,7 +36,7 @@ const NewReleases = ({
         const data = await movieService.getMovies({
           status: 'NOW_SHOWING',
           requireBookableShowtime: !onlineOnly,
-          requireAwsStreaming: true,
+          requireAwsStreaming: onlineOnly || undefined,
           onlineOnly: onlineOnly || undefined,
           page: 0,
           size: 12,

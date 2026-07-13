@@ -25,13 +25,13 @@ import PosterImage from '../../../shared/components/PosterImage';
 import FavoriteIconButton from './FavoriteIconButton';
 import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../utils/movieUtils';
 import './MovieMatchmakerWidget.css';
+import './ProfilePreferencesTab.css';
 
-/** UI metadata keyed by enum values from BE DiscoverQuizConfig */
 const MOOD_UI = {
-  RELAX: { label: 'Thư giãn', hint: 'Quỹ đạo nhẹ · Giải trí êm', icon: Moon },
-  EXCITING: { label: 'Phấn khích', hint: 'Động cơ tối đa · Cuốn hút', icon: Flame },
-  EMOTIONAL: { label: 'Cảm xúc', hint: 'Tín hiệu sâu · Chạm tim', icon: Heart },
-  THRILLING: { label: 'Hồi hộp', hint: 'Zone nguy hiểm · Giật gân', icon: Zap },
+  RELAX: { label: 'Thư giãn', hint: 'Nhẹ nhàng · Giải trí êm', icon: Moon },
+  EXCITING: { label: 'Phấn khích', hint: 'Sôi động · Cuốn hút', icon: Flame },
+  EMOTIONAL: { label: 'Cảm xúc', hint: 'Sâu lắng · Chạm tim', icon: Heart },
+  THRILLING: { label: 'Hồi hộp', hint: 'Kịch tính · Giật gân', icon: Zap },
 };
 
 const ORBIT_SATELLITES = [
@@ -41,15 +41,15 @@ const ORBIT_SATELLITES = [
 ];
 
 const DURATION_UI = {
-  SHORT: { label: 'Ngắn', hint: '< 100 phút · Bay nhanh', code: 'T+90' },
-  MEDIUM: { label: 'Vừa', hint: '95–135 phút · Quỹ đạo ổn', code: 'T+120' },
-  LONG: { label: 'Dài', hint: '> 120 phút · Hành trình dài', code: 'T+150' },
+  SHORT: { label: 'Ngắn', hint: 'Dưới 100 phút · Xem nhanh', code: '<100p' },
+  MEDIUM: { label: 'Vừa', hint: '95–135 phút · Vừa đủ', code: '~2h' },
+  LONG: { label: 'Dài', hint: 'Trên 120 phút · Xem trọn vẹn', code: '>2h' },
 };
 
 const VIEWING_UI = {
-  THEATER: { label: 'Rạp chiếu', hint: 'Màn ảnh lớn · IMAX', icon: Clapperboard },
-  HOME: { label: 'Phòng khách', hint: 'VOD · Ghế sofa', icon: Tv },
-  BOTH: { label: 'Cả hai', hint: 'Rạp + nhà · Linh hoạt', icon: Film },
+  THEATER: { label: 'Rạp chiếu', hint: 'Màn ảnh lớn · Trải nghiệm rạp', icon: Clapperboard },
+  HOME: { label: 'Xem tại nhà', hint: 'Online · Thoải mái tại nhà', icon: Tv },
+  BOTH: { label: 'Cả hai', hint: 'Rạp hoặc nhà · Linh hoạt', icon: Film },
 };
 
 const buildConfigOptions = (values, uiMap) => {
@@ -71,36 +71,36 @@ const buildConfigOptions = (values, uiMap) => {
 const QUIZ_STEPS = [
   {
     key: 'mood',
-    title: 'Tín hiệu cảm xúc phi hành đoàn',
-    subtitle: 'Mission Control cần biết tâm trạng trước khi lên quỹ đạo',
+    title: 'Cảm xúc của bạn hôm nay',
+    subtitle: 'Chúng tôi cần biết tâm trạng của bạn để gợi ý phim phù hợp nhất',
   },
   {
     key: 'duration',
-    title: 'Thời lượng quỹ đạo',
-    subtitle: 'Phiên xem kéo dài bao lâu trước khi hạ cánh?',
+    title: 'Bạn muốn xem bao lâu?',
+    subtitle: 'Chọn khoảng thời lượng phù hợp với lịch trình của bạn',
   },
   {
     key: 'viewingLocation',
-    title: 'Điểm phóng & hạ cánh',
-    subtitle: 'Rạp chiếu, phòng khách hay cả hai?',
+    title: 'Bạn muốn xem ở đâu?',
+    subtitle: 'Rạp chiếu, xem tại nhà, hay linh hoạt cả hai?',
   },
   {
     key: 'genreUuids',
-    title: 'Chòm sao thể loại',
-    subtitle: 'Chọn tối đa 2 thiên hà — có thể bỏ qua',
+    title: 'Thể loại bạn thích',
+    subtitle: 'Chọn tối đa 2 thể loại — có thể bỏ qua',
   },
   {
     key: 'useHistory',
-    title: 'Nhật ký bay trước đó',
-    subtitle: 'Dùng dữ liệu phim bạn đã lưu để cá nhân hóa?',
+    title: 'Gợi ý theo sở thích của bạn',
+    subtitle: 'Dùng phim bạn đã lưu để cá nhân hóa kết quả?',
   },
 ];
 
 const LAUNCH_STAGES = [
-  'Kiểm tra tín hiệu phi hành đoàn…',
-  'Tính toán quỹ đạo phim…',
-  'Quét chòm sao thể loại…',
-  'Ghép manifest chuyến bay…',
+  'Đang đọc cảm xúc của bạn…',
+  'Đang lọc theo thời lượng…',
+  'Đang khớp thể loại yêu thích…',
+  'Đang chọn phim phù hợp nhất…',
 ];
 
 const formatDuration = (mins) => {
@@ -117,7 +117,7 @@ const MovieMatchmakerWidget = () => {
   const { isAuthenticated, loading: authLoading } = useAuthContext();
   const sectionRef = useRef(null);
   const [discoverConfig, setDiscoverConfig] = useState(null);
-  const [configLoading, setConfigLoading] = useState(true);
+  const [configLoading, setConfigLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [expandSweep, setExpandSweep] = useState(false);
   const [step, setStep] = useState(0);
@@ -166,20 +166,20 @@ const MovieMatchmakerWidget = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isAuthenticated && expanded) {
-      setExpandSweep(false);
-      setExpanded(false);
-      resetQuiz();
+    if (!isAuthenticated) {
+      setDiscoverConfig(null);
+      setConfigLoading(false);
+      if (expanded) {
+        setExpandSweep(false);
+        setExpanded(false);
+        resetQuiz();
+      }
     }
   }, [authLoading, isAuthenticated, expanded, resetQuiz]);
 
   useEffect(() => {
-    if (authLoading) return undefined;
-    if (!isAuthenticated) {
-      setDiscoverConfig(null);
-      setConfigLoading(false);
-      return undefined;
-    }
+    if (!expanded || authLoading || !isAuthenticated) return undefined;
+    if (discoverConfig || configLoading) return undefined;
 
     let cancelled = false;
     setConfigLoading(true);
@@ -197,7 +197,7 @@ const MovieMatchmakerWidget = () => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, isAuthenticated]);
+  }, [expanded, authLoading, isAuthenticated, discoverConfig, configLoading]);
 
   const loadGenres = useCallback(async () => {
     setLoadingGenres(true);
@@ -229,11 +229,11 @@ const MovieMatchmakerWidget = () => {
     return () => clearInterval(interval);
   }, [submitting]);
 
-  const maxMatches = discoverConfig?.maxMatches;
-  const maxGenreSelections = discoverConfig?.maxGenreSelections ?? 0;
+  const maxMatches = discoverConfig?.maxMatches ?? 3;
+  const maxGenreSelections = discoverConfig?.maxGenreSelections ?? 2;
   const questionCount = useMemo(() => {
-    if (!discoverConfig || !isAuthenticated) return null;
-    return discoverConfig.authenticatedQuestionCount;
+    if (!isAuthenticated) return null;
+    return discoverConfig?.authenticatedQuestionCount ?? 5;
   }, [discoverConfig, isAuthenticated]);
 
   const moodOptions = useMemo(
@@ -260,7 +260,7 @@ const MovieMatchmakerWidget = () => {
   const isLastStep = step >= visibleSteps.length - 1;
 
   const genreOptions = useMemo(
-    () => [...genres].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'vi')).slice(0, 12),
+    () => [...genres].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'vi')),
     [genres],
   );
 
@@ -298,7 +298,6 @@ const MovieMatchmakerWidget = () => {
       navigate('/login', { state: { from: '/#movie-matchmaker' } });
       return;
     }
-    if (!discoverConfig) return;
     resetQuiz();
     setExpandSweep(false);
     setExpanded(true);
@@ -316,7 +315,7 @@ const MovieMatchmakerWidget = () => {
       <div className="nsf-quiz-inline__control-grid" aria-hidden />
       <header className="nsf-quiz-inline__header">
         <div className="nsf-quiz-inline__brand">
-          <span>Ghép Phim Theo Gu</span>
+          <span>Phim dành cho bạn</span>
         </div>
       </header>
 
@@ -345,6 +344,17 @@ const MovieMatchmakerWidget = () => {
             >
               {renderResults()}
             </motion.div>
+          ) : configLoading || !discoverConfig ? (
+            <motion.div
+              key="config-loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="nsf-quiz__loading"
+            >
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Đang tải câu hỏi…
+            </motion.div>
           ) : (
             <motion.div
               key={currentStep?.key}
@@ -360,15 +370,15 @@ const MovieMatchmakerWidget = () => {
               <h3 className="nsf-quiz__step-title">{currentStep?.title}</h3>
               <p className="nsf-quiz__step-subtitle">
                 {currentStep?.key === 'genreUuids'
-                  ? `Chọn tối đa ${maxGenreSelections} thiên hà — có thể bỏ qua`
+                  ? `Chọn tối đa ${maxGenreSelections} thể loại — có thể bỏ qua`
                   : currentStep?.subtitle}
               </p>
               {renderStepContent()}
               {error && <p className="nsf-quiz__error">{error}</p>}
               <footer className="nsf-quiz__footer">
                 <button type="button" className="nsf-quiz__back" onClick={handleBack}>
-                  <ArrowLeft className="h-4 w-4" />
-                  {step === 0 ? 'Hủy nhiệm vụ' : 'Quay lại'}
+                  <ArrowLeft className="nsf-quiz__btn-icon" strokeWidth={2} />
+                  {step === 0 ? 'Hủy' : 'Quay lại'}
                 </button>
                 <button
                   type="button"
@@ -377,10 +387,10 @@ const MovieMatchmakerWidget = () => {
                   onClick={handleNext}
                 >
                   {isLastStep ? (
-                    <span className="nsf-quiz__next-content">Cất cánh · Ghép chuyến bay</span>
+                    <span className="nsf-quiz__next-content">Xem kết quả</span>
                   ) : (
                     <span className="nsf-quiz__next-content">
-                      Xác nhận tọa độ
+                      Xác nhận
                       <span className="nsf-quiz__next-arrow" aria-hidden>
                         →
                       </span>
@@ -411,9 +421,9 @@ const MovieMatchmakerWidget = () => {
     } catch (err) {
       const status = err?.response?.status;
       if (status === 502 || err?.code === 'ERR_NETWORK') {
-        setError('Mất tín hiệu Mission Control. Khởi động lại backend (port 8080) rồi thử cất cánh lại.');
+        setError('Không kết nối được máy chủ. Hãy khởi động lại backend (port 8080) rồi thử lại.');
       } else {
-        setError(err?.response?.data?.message || err?.message || 'Không thể ghép chuyến bay. Thử lại sau.');
+        setError(err?.response?.data?.message || err?.message || 'Không thể tìm phim phù hợp. Thử lại sau.');
       }
     } finally {
       setSubmitting(false);
@@ -442,7 +452,7 @@ const MovieMatchmakerWidget = () => {
   };
 
   const renderTimeline = () => (
-    <ol className="nsf-quiz__timeline" aria-label="Tiến trình nhiệm vụ">
+    <ol className="nsf-quiz__timeline" aria-label="Tiến trình câu hỏi">
       {visibleSteps.map((item, index) => {
         const done = index < step || Boolean(result);
         const active = index === step && !result;
@@ -556,17 +566,23 @@ const MovieMatchmakerWidget = () => {
           );
         }
         return (
-          <div className="nsf-quiz__genres">
-            {genreOptions.map((genre) => (
-              <button
-                key={genre.uuid}
-                type="button"
-                className={`nsf-quiz__genre-chip ${answers.genreUuids.includes(genre.uuid) ? 'is-selected' : ''}`}
-                onClick={() => toggleGenre(genre.uuid)}
-              >
-                {genre.name}
-              </button>
-            ))}
+          <div className="nsf-quiz__genres-panel">
+            <div className="profile-preferences-tab__chips nsf-quiz__genres-chips">
+              {genreOptions.map((genre) => {
+                const genreId = String(genre.uuid);
+                const active = answers.genreUuids.some((id) => String(id) === genreId);
+                return (
+                  <button
+                    key={genre.uuid}
+                    type="button"
+                    className={`profile-preferences-tab__chip${active ? ' is-active' : ''}`}
+                    onClick={() => toggleGenre(genre.uuid)}
+                  >
+                    {genre.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         );
       case 'useHistory':
@@ -577,16 +593,16 @@ const MovieMatchmakerWidget = () => {
               className={`nsf-quiz__option nsf-quiz__option--wide ${answers.useHistory ? 'is-selected' : ''}`}
               onClick={() => setAnswers((prev) => ({ ...prev, useHistory: true }))}
             >
-              <span className="nsf-quiz__option-label">Có — dùng nhật ký bay</span>
-              <span className="nsf-quiz__option-hint">Gợi ý theo phim yêu thích đã lưu</span>
+              <span className="nsf-quiz__option-label">Có — dùng sở thích đã lưu</span>
+              <span className="nsf-quiz__option-hint">Gợi ý theo phim yêu thích của bạn</span>
             </button>
             <button
               type="button"
               className={`nsf-quiz__option nsf-quiz__option--wide ${!answers.useHistory ? 'is-selected' : ''}`}
               onClick={() => setAnswers((prev) => ({ ...prev, useHistory: false }))}
             >
-              <span className="nsf-quiz__option-label">Không — khám phá chòm sao mới</span>
-              <span className="nsf-quiz__option-hint">Bay vào vùng phim chưa từng ghé</span>
+              <span className="nsf-quiz__option-label">Không — khám phá phim mới</span>
+              <span className="nsf-quiz__option-hint">Gợi ý theo câu trả lời vừa rồi</span>
             </button>
           </div>
         );
@@ -600,7 +616,7 @@ const MovieMatchmakerWidget = () => {
       <div className="nsf-quiz__launch-rocket" aria-hidden>
         <Rocket className="h-10 w-10 nsf-quiz__launch-rocket-icon" />
       </div>
-      <p className="nsf-quiz__launch-title">Đang chuẩn bị cất cánh</p>
+      <p className="nsf-quiz__launch-title">Đang tìm phim dành cho bạn</p>
       <ul className="nsf-quiz__launch-stages">
         {LAUNCH_STAGES.map((label, index) => {
           const isDone = index < launchStage;
@@ -631,16 +647,16 @@ const MovieMatchmakerWidget = () => {
     return (
       <div className="nsf-quiz__manifest">
         <div className="nsf-quiz__manifest-header">
-          <div className="nsf-quiz__manifest-badge">Sẵn sàng cất cánh</div>
+          <div className="nsf-quiz__manifest-badge">Kết quả dành cho bạn</div>
           <div className="nsf-quiz__manifest-flight">
-            <Rocket className="h-5 w-5" />
+            <Film className="h-5 w-5" />
             <div>
-              <div className="nsf-quiz__manifest-label">{result.flightLabel || 'Chuyến bay NASA'}</div>
+              <div className="nsf-quiz__manifest-label">{result.flightLabel || 'Gợi ý phim'}</div>
               <div className="nsf-quiz__manifest-code">{result.flightCode}</div>
             </div>
           </div>
           <p className="nsf-quiz__manifest-copy">
-            Danh sách gồm {result.matches.length} phim khớp chòm sao của bạn — sẵn sàng đặt vé hoặc xem VOD.
+            Có {result.matches.length} phim phù hợp với bạn — sẵn sàng đặt vé hoặc xem online.
           </p>
         </div>
 
@@ -653,7 +669,7 @@ const MovieMatchmakerWidget = () => {
 
             return (
               <article key={movie.uuid} className="nsf-quiz__manifest-card">
-                <div className="nsf-quiz__manifest-rank">Ghế {index + 1}</div>
+                <div className="nsf-quiz__manifest-rank">#{index + 1}</div>
                 <div className="nsf-quiz__manifest-poster">
                   <PosterImage src={poster} alt={movie.title} width={500} loading="eager" />
                   <FavoriteIconButton movieUuid={movie.uuid} className="nsf-quiz__manifest-favorite" />
@@ -688,7 +704,7 @@ const MovieMatchmakerWidget = () => {
         </div>
 
         <button type="button" className="nsf-quiz__manifest-retry" onClick={resetQuiz}>
-          Lập nhiệm vụ mới
+          Làm lại từ đầu
         </button>
       </div>
     );
@@ -703,7 +719,7 @@ const MovieMatchmakerWidget = () => {
       ref={sectionRef}
       layout
       className={`nsf-matchmaker-cta ${expanded ? 'nsf-matchmaker-cta--expanded' : ''}`}
-      aria-label="Trạm Cất Cánh Ghép Phim Theo Gu"
+      aria-label="Phim dành cho bạn"
       transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
     >
       <div className="nsf-matchmaker-cta__content">
@@ -720,14 +736,14 @@ const MovieMatchmakerWidget = () => {
             <div className="nsf-matchmaker-cta__copy">
               <h2 className="nsf-matchmaker-cta__title">
                 {configLoading || questionCount == null || maxMatches == null ? (
-                  <>Trả lời vài tọa độ — nhận ngay phim thuộc chòm sao của bạn</>
+                  <>Trả lời vài câu hỏi để tìm ra bộ phim phù hợp với bạn</>
                 ) : (
                   <>
                     Trả lời{' '}
-                    <span className="nsf-matchmaker-cta__accent">{questionCount} tọa độ</span>
-                    {' '}— nhận ngay{' '}
-                    <span className="nsf-matchmaker-cta__accent">{maxMatches} phim</span>
-                    {' '}thuộc chòm sao của bạn
+                    <span className="nsf-matchmaker-cta__accent">{questionCount}</span>
+                    {' '}câu hỏi để tìm ra{' '}
+                    <span className="nsf-matchmaker-cta__accent">{maxMatches}</span>
+                    {' '}bộ phim phù hợp với bạn
                   </>
                 )}
               </h2>
@@ -735,16 +751,12 @@ const MovieMatchmakerWidget = () => {
                 type="button"
                 className="nsf-matchmaker-cta__btn"
                 onClick={handleOpen}
-                disabled={authLoading || (isAuthenticated && (configLoading || !discoverConfig))}
+                disabled={authLoading}
               >
                 {authLoading
                   ? 'Đang kiểm tra phiên đăng nhập…'
                   : !isAuthenticated
                     ? 'Đăng nhập để tìm phim'
-                  : configLoading
-                  ? 'Đang kết nối Mission Control…'
-                  : !discoverConfig
-                    ? 'Mission Control chưa sẵn sàng'
                     : 'Tìm phim cho tôi'}
               </button>
             </div>

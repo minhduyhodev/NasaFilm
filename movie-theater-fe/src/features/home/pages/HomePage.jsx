@@ -43,11 +43,15 @@ const HomePage = () => {
 					</LazySection>
 
 					<div className="home-space-zone__content">
-						<section className="mt-12 px-4 md:px-8 lg:px-20 home-section">
+						<LazySection
+							as="section"
+							className="mt-12 px-4 md:px-8 lg:px-20 home-section"
+							fallback={<SectionPlaceholder minHeight="16rem" />}
+						>
 							<div className="max-w-7xl mx-auto">
 								<NowShowing />
 							</div>
-						</section>
+						</LazySection>
 
 						<LazySection
 							as="section"
