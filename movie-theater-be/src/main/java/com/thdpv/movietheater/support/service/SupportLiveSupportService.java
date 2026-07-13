@@ -7,6 +7,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.support.dto.request.SupportLiveRequestCreateRequest;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
 import com.thdpv.movietheater.support.entity.SupportTicket;
@@ -141,10 +143,21 @@ public class SupportLiveSupportService {
 
     @Transactional
     public SupportTicketResponse rateSatisfaction(String ticketCode, String ownerEmail, int rating) {
+        if (rating < 1 || rating > 5) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Điểm đánh giá phải từ 1 đến 5 sao.");
+        }
         SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy ticket hỗ trợ."));
         if (!ticket.getOwnerEmail().equalsIgnoreCase(ownerEmail)) {
-            throw new IllegalArgumentException("Bạn không có quyền đánh giá ticket này.");
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền đánh giá ticket này.");
+        }
+        String status = ticket.getStatus() == null ? "" : ticket.getStatus().trim().toUpperCase();
+        boolean closed = "DONE".equals(status) || "RESOLVED".equals(status) || "CLOSED".equals(status);
+        if (!closed) {
+            throw new AppException(ErrorCode.SUPPORT_SATISFACTION_NOT_ALLOWED);
+        }
+        if (ticket.getSatisfactionRating() != null) {
+            throw new AppException(ErrorCode.SUPPORT_ALREADY_RATED);
         }
         ticket.setSatisfactionRating(rating);
         ticket.setSatisfactionLabel(resolveSatisfactionLabel(rating));

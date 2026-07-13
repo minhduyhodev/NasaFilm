@@ -16,6 +16,7 @@ import com.thdpv.movietheater.support.dto.request.SupportLiveRequestCreateReques
 import com.thdpv.movietheater.support.dto.request.SupportSatisfactionRequest;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
 import com.thdpv.movietheater.support.service.SupportLiveSupportService;
+import com.thdpv.movietheater.support.support.SupportActionRateLimiter;
 
 import jakarta.validation.Valid;
 
@@ -24,9 +25,13 @@ import jakarta.validation.Valid;
 public class SupportLiveController {
 
     private final SupportLiveSupportService supportLiveSupportService;
+    private final SupportActionRateLimiter supportActionRateLimiter;
 
-    public SupportLiveController(SupportLiveSupportService supportLiveSupportService) {
+    public SupportLiveController(
+            SupportLiveSupportService supportLiveSupportService,
+            SupportActionRateLimiter supportActionRateLimiter) {
         this.supportLiveSupportService = supportLiveSupportService;
+        this.supportActionRateLimiter = supportActionRateLimiter;
     }
 
     @GetMapping("/availability")
@@ -38,6 +43,7 @@ public class SupportLiveController {
     public ResponseEntity<ApiResponse<SupportTicketResponse>> requestLiveSupport(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody SupportLiveRequestCreateRequest request) {
+        supportActionRateLimiter.assertTicketCreateAllowed(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(supportLiveSupportService.requestLiveSupport(userDetails.getUsername(), request)));
     }

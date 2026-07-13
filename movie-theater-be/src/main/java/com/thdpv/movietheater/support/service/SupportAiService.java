@@ -31,18 +31,6 @@ public class SupportAiService {
     private final ObjectMapper objectMapper;
     private final SystemConfigService systemConfigService;
 
-    @Value("${app.openai.api-key:}")
-    private String openaiApiKey;
-
-    @Value("${app.openai.model:gpt-4o-mini}")
-    private String openaiModel;
-
-    @Value("${app.gemini.api-key:}")
-    private String geminiApiKey;
-
-    @Value("${app.gemini.model:gemini-2.0-flash}")
-    private String geminiModel;
-
     @Value("${app.groq.api-key:}")
     private String groqApiKey;
 
@@ -54,7 +42,21 @@ public class SupportAiService {
         this.systemConfigService = systemConfigService;
     }
 
+    @jakarta.annotation.PostConstruct
+    void logProviderStatus() {
+        log.info("Support AI ready={} runtimeMode={}", isConfigured(), getRuntimeMode());
+    }
+
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
+        return chat(message, history, null);
+    }
+
+    /**
+     * @param mode {@code ANSWER} = free AI for every message (Giải đáp);
+     *             otherwise support/guided flow for ticket categories.
+     */
+    public SupportAiResult chat(String message, List<SupportAiMessage> history, String mode) {
+        boolean answerMode = isAnswerMode(mode);
         String detectedCategory = detectCategory(message);
         if (isGreetingOnly(message)) {
             return greetingReply();
@@ -66,7 +68,11 @@ public class SupportAiService {
             return unclearReply();
         }
         if (!isConfigured()) {
-            // In fallback mode, check ticket code early for fast routing
+            if (answerMode) {
+                return new SupportAiResult(
+                    "Hiện AI chưa được cấu hình. Liên hệ admin kiểm tra cấu hình backend rồi thử lại nhé.",
+                    "other");
+            }
             if (hasTicketOrOrderCode(message)) {
                 String reply = "Mình đã nhận mã " + extractTicketOrOrderCode(message) + ". "
                     + "Bạn cho mình biết mã này đang gặp lỗi gì: sai vé, chưa nhận vé, cần đổi/hủy/hoàn vé hay lỗi quét QR để admin kiểm tra đúng hướng nhé.";
@@ -75,41 +81,38 @@ public class SupportAiService {
             return fallback(message, history);
         }
 
-        // ── Ticket-related categories → always use guided flow ──
-        // Categories that need structured Q&A form → guided (no AI)
-        if (isGuidedCategory(detectedCategory)) {
+        // Support mode: ticket-related categories use guided form (no AI)
+        if (!answerMode && isGuidedCategory(detectedCategory)) {
             return fallback(message, history);
         }
 
-        // ── General questions (other) → AI ──
         try {
-            List<SupportAiMessage> messages = buildMessages(message, history);
-
-            SupportAiResult aiResult = null;
-
-            // 1. Try Groq first (free, OpenAI-compatible, fastest)
-            if (isGroqConfigured()) {
-                aiResult = callGroq(messages, detectedCategory);
-            }
-            // 2. Try Gemini (free tier)
-            if (aiResult == null && isGeminiConfigured()) {
-                aiResult = callGemini(messages, detectedCategory);
-            }
-            // 3. Fall back to OpenAI (paid)
-            if (aiResult == null && isOpenaiConfigured()) {
-                aiResult = callOpenAI(messages, detectedCategory);
-            }
+            List<SupportAiMessage> messages = buildMessages(message, history, answerMode);
+            SupportAiResult aiResult = callAi(messages, detectedCategory);
 
             if (aiResult != null) {
-                return aiResult;
+                return answerMode ? aiResult : postProcessAiResult(aiResult, message, history);
             }
 
-            // 4. All AI providers failed
+            if (answerMode) {
+                return new SupportAiResult(
+                    "Mình chưa gọi được AI lúc này. Bạn thử lại sau hoặc chuyển sang mục Hỗ trợ để tạo ticket nhé.",
+                    "other");
+            }
             return fallback(message, history);
         } catch (Exception error) {
             log.error("Unexpected error in AI chat flow", error);
+            if (answerMode) {
+                return new SupportAiResult(
+                    "Có lỗi khi gọi AI. Bạn thử lại sau hoặc chuyển sang mục Hỗ trợ nhé.",
+                    "other");
+            }
             return fallback(message, history);
         }
+    }
+
+    private boolean isAnswerMode(String mode) {
+        return mode != null && "ANSWER".equalsIgnoreCase(mode.trim());
     }
 
     /** Categories that use guided form flow instead of AI. */
@@ -850,9 +853,15 @@ public class SupportAiService {
 
     // ── AI Provider routing ──────────────────────────────────────────────
 
-    private List<SupportAiMessage> buildMessages(String message, List<SupportAiMessage> history) {
+    private List<SupportAiMessage> buildMessages(String message, List<SupportAiMessage> history, boolean answerMode) {
         List<SupportAiMessage> messages = new ArrayList<>();
-        messages.add(new SupportAiMessage("system", resolvePersonaPrompt()));
+        String persona = resolvePersonaPrompt();
+        if (answerMode) {
+            persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có. "
+                + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
+                + "hãy bảo họ chọn mục Hỗ trợ trên widget.";
+        }
+        messages.add(new SupportAiMessage("system", persona));
         if (history != null) {
             messages.addAll(history.stream()
                     .filter(item -> item != null && item.role() != null && item.content() != null)
@@ -862,111 +871,25 @@ public class SupportAiService {
         return messages;
     }
 
-    private boolean isGeminiConfigured() {
-        return geminiApiKey != null && !geminiApiKey.isBlank();
-    }
-
-    private boolean isGroqConfigured() {
+    private boolean isAiConfigured() {
         return groqApiKey != null && !groqApiKey.isBlank();
     }
 
-    private boolean isOpenaiConfigured() {
-        return openaiApiKey != null && !openaiApiKey.isBlank();
-    }
-
     public boolean isConfigured() {
-        return isGroqConfigured() || isGeminiConfigured() || isOpenaiConfigured();
+        return isAiConfigured();
     }
 
+    /** Public status label — do not expose provider brand to clients. */
     public String getRuntimeMode() {
-        if (isGroqConfigured()) return "GROQ";
-        if (isGeminiConfigured()) return "GEMINI";
-        if (isOpenaiConfigured()) return "OPENAI";
-        return "FALLBACK";
+        return isConfigured() ? "AI" : "FALLBACK";
     }
 
-    // ── Gemini API call ──────────────────────────────────────────────────
-
-    private SupportAiResult callGemini(List<SupportAiMessage> messages, String detectedCategory) {
-        try {
-            // Convert OpenAI-format messages to Gemini format
-            List<Map<String, Object>> contents = new ArrayList<>();
-            StringBuilder systemPrompt = new StringBuilder();
-            for (SupportAiMessage m : messages) {
-                if ("system".equals(m.role())) {
-                    systemPrompt.append(m.content()).append("\n");
-                } else {
-                    String role = "assistant".equals(m.role()) ? "model" : "user";
-                    Map<String, Object> content = Map.of(
-                        "role", role,
-                        "parts", List.of(Map.of("text", m.content()))
-                    );
-                    contents.add(content);
-                }
-            }
-
-            // Build Gemini request body
-            Map<String, Object> body = new java.util.LinkedHashMap<>();
-            body.put("contents", contents);
-            if (!systemPrompt.isEmpty()) {
-                body.put("systemInstruction", Map.of(
-                    "parts", List.of(Map.of("text", systemPrompt.toString().trim()))
-                ));
-            }
-            body.put("generationConfig", Map.of(
-                "maxOutputTokens", 512,
-                "temperature", 0.7
-            ));
-
-            String payload = objectMapper.writeValueAsString(body);
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey;
-
-            for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                if (attempt > 0) Thread.sleep(400L * attempt);
-                try {
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(url))
-                            .timeout(Duration.ofSeconds(20))
-                            .header("Content-Type", "application/json")
-                            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-                            .build();
-
-                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                    if (response.statusCode() == 200) {
-                        JsonNode root = objectMapper.readTree(response.body());
-                        String reply = root.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText(null);
-                        if (reply != null && !reply.isBlank()) {
-                            log.info("Gemini responded successfully");
-                            return new SupportAiResult(reply.trim(), detectedCategory);
-                        }
-                    }
-                    if (response.statusCode() >= 500) {
-                        log.warn("Gemini server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
-                        continue;
-                    }
-                    // 4xx or empty reply — don't retry, fall through to OpenAI
-                    log.warn("Gemini returned {} — falling back to next provider", response.statusCode());
-                    break;
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    log.warn("Gemini call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
-                    if (attempt >= MAX_RETRIES) break;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Gemini provider failed: {}", e.getMessage());
+    private SupportAiResult callAi(List<SupportAiMessage> messages, String detectedCategory) {
+        if (!isAiConfigured()) {
+            return null;
         }
-        return null; // Signal to try next provider
-    }
-
-    // ── Groq API call (primary — free, OpenAI-compatible) ────────────────
-
-    private SupportAiResult callGroq(List<SupportAiMessage> messages, String detectedCategory) {
         try {
-            // Groq is OpenAI-compatible — same payload format
-            String payload = objectMapper.writeValueAsString(new OpenAiChatRequest(groqModel, messages));
+            String payload = objectMapper.writeValueAsString(new ChatCompletionRequest(groqModel, messages));
 
             for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                 if (attempt > 0) Thread.sleep(300L * attempt);
@@ -984,74 +907,28 @@ public class SupportAiService {
                         JsonNode root = objectMapper.readTree(response.body());
                         String reply = root.path("choices").path(0).path("message").path("content").asText(null);
                         if (reply != null && !reply.isBlank()) {
-                            log.info("Groq responded successfully");
+                            log.info("Support AI responded successfully");
                             return new SupportAiResult(reply.trim(), detectedCategory);
                         }
                     }
                     if (response.statusCode() >= 500) {
-                        log.warn("Groq server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
+                        log.warn("Support AI server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
                         continue;
                     }
-                    log.warn("Groq returned {} — falling back to next provider", response.statusCode());
+                    log.warn("Support AI returned {} — no reply", response.statusCode());
                     break;
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    log.warn("Groq call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
+                    log.warn("Support AI call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
                     if (attempt >= MAX_RETRIES) break;
                 }
             }
         } catch (Exception e) {
-            log.warn("Groq provider failed: {}", e.getMessage());
+            log.warn("Support AI provider failed: {}", e.getMessage());
         }
-        return null; // Signal to try next provider
-    }
-
-    // ── OpenAI API call (fallback from Gemini) ───────────────────────────
-
-    private SupportAiResult callOpenAI(List<SupportAiMessage> messages, String detectedCategory) {
-        try {
-            String payload = objectMapper.writeValueAsString(new OpenAiChatRequest(openaiModel, messages));
-
-            for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                if (attempt > 0) Thread.sleep(300L * attempt);
-                try {
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create("https://api.openai.com/v1/chat/completions"))
-                            .timeout(Duration.ofSeconds(25))
-                            .header("Content-Type", "application/json")
-                            .header("Authorization", "Bearer " + openaiApiKey)
-                            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-                            .build();
-
-                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                    if (response.statusCode() == 200) {
-                        JsonNode root = objectMapper.readTree(response.body());
-                        String reply = root.path("choices").path(0).path("message").path("content").asText(null);
-                        if (reply != null && !reply.isBlank()) {
-                            log.info("OpenAI responded successfully");
-                            return new SupportAiResult(reply.trim(), detectedCategory);
-                        }
-                    }
-                    if (response.statusCode() >= 500) {
-                        log.warn("OpenAI server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
-                        continue;
-                    }
-                    log.warn("OpenAI returned {} — skipping retry", response.statusCode());
-                    break;
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    log.warn("OpenAI call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
-                    if (attempt >= MAX_RETRIES) break;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("OpenAI provider failed: {}", e.getMessage());
-        }
-        return null; // Signal to fall back to rule-based
+        return null;
     }
 
     public record SupportAiMessage(String role, String content) {}
@@ -1075,5 +952,5 @@ public class SupportAiService {
     }
     public record TicketAction(String category, String description, String summary) {}
 
-    private record OpenAiChatRequest(String model, List<SupportAiMessage> messages) {}
+    private record ChatCompletionRequest(String model, List<SupportAiMessage> messages) {}
 }
