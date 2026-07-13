@@ -61,9 +61,11 @@ public class AdminSupportController {
 
     @PatchMapping("/{ticketCode}/status")
     public ResponseEntity<ApiResponse<SupportTicketResponse>> updateStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String ticketCode,
             @RequestBody SupportTicketStatusRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(supportTicketService.updateStatus(ticketCode, request.getStatus())));
+        return ResponseEntity.ok(ApiResponse.success(
+                supportTicketService.updateStatus(ticketCode, request.getStatus(), userDetails.getUsername())));
     }
 
     @DeleteMapping("/{ticketCode}")

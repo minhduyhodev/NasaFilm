@@ -1,3 +1,187 @@
+.support-incoming-panel {
+  margin-bottom: 1rem;
+  background: var(--adm-bg-panel, rgba(11, 15, 25, 0.72));
+  border: 1px solid var(--adm-border, #1a2238);
+  border-radius: var(--adm-radius, 14px);
+  box-shadow: var(--adm-shadow-panel);
+  overflow: hidden;
+}
+
+.support-incoming-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.support-incoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.support-list-empty--compact {
+  padding: 0.85rem 0.25rem;
+  min-height: auto;
+}
+
+.support-incoming-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--adm-radius-sm, 10px);
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(251, 191, 36, 0.06);
+  animation: supportIncomingIn 280ms ease both;
+}
+
+.support-incoming-notice--live {
+  border-color: rgba(129, 140, 248, 0.28);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.support-incoming-notice__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.support-incoming-notice__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.support-incoming-notice__badge {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.support-incoming-notice--live .support-incoming-notice__badge {
+  color: #a5b4fc;
+}
+
+.support-incoming-notice__meta {
+  font-size: 0.6875rem;
+  color: var(--adm-text-dim, #64748b);
+  flex-shrink: 0;
+}
+
+.support-incoming-notice__title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--adm-text, #f8fafc);
+}
+
+.support-incoming-notice__title strong {
+  font-weight: 800;
+}
+
+.support-incoming-notice__who {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--adm-text-muted, #94a3b8);
+}
+
+.support-incoming-notice__preview {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--adm-text-secondary, #cbd5e1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.support-incoming-notice__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .support-incoming-notice {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-incoming-notice__actions {
+    flex-direction: row;
+  }
+}
+
+@keyframes supportIncomingIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.support-ticket-card--unread {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.support-ticket-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  font-size: 0.6875rem;
+  color: var(--adm-text-dim, #64748b);
+}
+
+.support-ticket-summary {
+  margin: 0 1.25rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--adm-radius-xs, 8px);
+  border: 1px solid var(--adm-border, #1a2238);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.support-ticket-summary > span {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--adm-text-dim, #64748b);
+  margin-bottom: 0.25rem;
+}
+
+.support-ticket-summary p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--adm-text-secondary, #cbd5e1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Admin Support Inbox */
 
 .support-inbox-layout {
@@ -205,10 +389,84 @@
 }
 
 .support-ticket-code {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
   font-family: 'Inter', sans-serif;
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--adm-text, #f8fafc);
+}
+
+.support-ticket-code strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-ticket-summary-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  min-width: 0;
+}
+
+.support-ticket-category {
+  flex-shrink: 0;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.28);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.support-ticket-summary-text {
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--adm-text, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.support-ticket-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 0.75rem;
+  margin: 0.65rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.support-ticket-detail--full {
+  grid-column: 1 / -1;
+}
+
+.support-ticket-detail dt {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--adm-text-dim, #64748b);
+}
+
+.support-ticket-detail dd {
+  margin: 0.12rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--adm-text-secondary, #cbd5e1);
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .support-ticket-unread {
@@ -217,19 +475,7 @@
   border-radius: 999px;
   background: var(--adm-accent, #ef4444);
   flex-shrink: 0;
-  margin-top: 0.25rem;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-}
-
-.support-ticket-preview {
-  margin-top: 0.375rem;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--adm-text-muted, #94a3b8);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .support-ticket-meta {

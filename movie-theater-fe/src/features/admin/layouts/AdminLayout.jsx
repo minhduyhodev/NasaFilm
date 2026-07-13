@@ -8,6 +8,7 @@ import { Menu } from "lucide-react";
 import nasaLogo from "../../../shared/assets/NASAFILM.jpg";
 import PageTransition from "../../../shared/components/PageTransition";
 import { isCounterOpsPath } from "../../../shared/utils/adminNavigation";
+import SupportAdminMessageAlerts from "../components/SupportAdminMessageAlerts";
 import "./AdminLayout.css";
 import "../styles/admin-theme.css";
 import "../../counter/styles/counter-staff-theme.css";
@@ -40,6 +41,7 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#080B14] text-gray-100 overflow-hidden relative font-sans antialiased admin-shell">
+      <SupportAdminMessageAlerts />
       <Suspense fallback={<div className="fixed inset-y-0 left-0 z-50 w-16 bg-[#0B0F19] border-r border-[#1E293B]/20" />}>
         <AdminSidebar
           isOpen={isSidebarOpen}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -8,6 +8,7 @@ import { REALTIME_TOPICS } from '../constants/realtimeTopics';
 import nasaAssistantFabAvatar from '../assets/nasa-assistant-avatar-head.jpg';
 import nasaLogo from '../assets/NASAFILM.jpg';
 import { useRealtimeTopic } from '../hooks/useRealtimeTopic';
+import { useRealtimeTopics } from '../hooks/useRealtimeTopics';
 import { notificationService } from '../services/notificationService';
 import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
@@ -342,11 +343,28 @@ const NasaAiAssistantWidget = () => {
   const [showTicketDrawer, setShowTicketDrawer] = useState(false);
   const [liveWaitStartedAt, setLiveWaitStartedAt] = useState(null);
   const [liveWaitTick, setLiveWaitTick] = useState(Date.now());
+  const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
   const lastSendAtRef = useRef(0);
+  const openRef = useRef(false);
+  const activeTicketCodeRef = useRef('');
+  const chatViewRef = useRef(CHAT_VIEW.BOT);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
   const isAdminUser = useMemo(() => hasAdminAccess(currentUser), [currentUser]);
+  const isLoggedInCustomer = Boolean(currentUser?.email) && !isAdminUser;
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    activeTicketCodeRef.current = activeTicketCode;
+  }, [activeTicketCode]);
+
+  useEffect(() => {
+    chatViewRef.current = chatView;
+  }, [chatView]);
 
   const activeTicket = useMemo(() => {
     const fromList = activeTicketCode
@@ -554,6 +572,20 @@ const NasaAiAssistantWidget = () => {
       }
     };
 
+    loadRuntimeConfig();
+    loadLiveAvailability();
+    loadAiStatus();
+
+    return () => {
+      activeFlag = false;
+    };
+  }, [open]);
+
+  // Keep ticket list warm so we can subscribe to open threads even when widget is closed.
+  useEffect(() => {
+    if (!isLoggedInCustomer || shouldHideOnRoute) return undefined;
+
+    let activeFlag = true;
     const loadMySupportTickets = async () => {
       try {
         const list = await supportService.getMySupportRequests();
@@ -567,15 +599,37 @@ const NasaAiAssistantWidget = () => {
       }
     };
 
-    loadRuntimeConfig();
-    loadLiveAvailability();
-    loadAiStatus();
     loadMySupportTickets();
-
+    const intervalId = window.setInterval(loadMySupportTickets, 60000);
     return () => {
       activeFlag = false;
+      window.clearInterval(intervalId);
     };
-  }, [open]);
+  }, [isLoggedInCustomer, shouldHideOnRoute]);
+
+  const openStaffAlertTopics = useMemo(() => {
+    if (!isLoggedInCustomer || shouldHideOnRoute) return [];
+    return myTickets
+      .filter((item) => item?.ticketCode && !isClosedSupportStatus(item.status))
+      .map((item) => REALTIME_TOPICS.supportTicket(item.ticketCode));
+  }, [isLoggedInCustomer, myTickets, shouldHideOnRoute]);
+
+  const markStaffTicketUnread = (ticketCode) => {
+    if (!ticketCode) return;
+    setUnreadStaffTicketCodes((prev) => (
+      prev.includes(ticketCode) ? prev : [...prev, ticketCode]
+    ));
+  };
+
+  const clearStaffTicketUnread = (ticketCode) => {
+    if (!ticketCode) {
+      setUnreadStaffTicketCodes([]);
+      return;
+    }
+    setUnreadStaffTicketCodes((prev) => prev.filter((code) => code !== ticketCode));
+  };
+
+  const openTicketThreadRef = useRef(async () => {});
 
   useRealtimeTopic(
     hasAdminAccess(user) ? REALTIME_TOPICS.SUPPORT_AGENTS : null,
@@ -586,23 +640,67 @@ const NasaAiAssistantWidget = () => {
     },
   );
 
-  useRealtimeTopic(
-    activeTicketCode ? REALTIME_TOPICS.supportTicket(activeTicketCode) : null,
-    async () => {
-      if (!activeTicketCode) return;
-      try {
-        const [detail, list, tickets] = await Promise.all([
-          supportService.getSupportRequest(activeTicketCode),
-          supportService.getSupportMessages(activeTicketCode),
-          supportService.getMySupportRequests(),
-        ]);
-        setTicket(detail || null);
-        setTicketMessages(Array.isArray(list) ? list : []);
-        setMyTickets(Array.isArray(tickets) ? tickets : []);
-      } catch {
-        // Ignore realtime refresh errors.
+  useRealtimeTopics(
+    openStaffAlertTopics,
+    async (payload, topic) => {
+      const ticketCode = payload?.ticketCode
+        || `${topic || ''}`.replace(/^\/topic\/support\//, '');
+      const senderRole = `${payload?.senderRole || ''}`.toUpperCase();
+      if (!ticketCode) return;
+
+      const viewingThisThread = openRef.current
+        && activeTicketCodeRef.current === ticketCode
+        && chatViewRef.current === CHAT_VIEW.STAFF;
+
+      if (senderRole === 'ADMIN' || senderRole === 'STAFF') {
+        if (!viewingThisThread) {
+          markStaffTicketUnread(ticketCode);
+          notificationService.info(`Nhân viên vừa nhắn trong ticket ${ticketCode}`, {
+            title: 'Tin nhắn từ hỗ trợ',
+            variant: 'message',
+            actionLabel: 'Mở chat',
+            onAction: () => {
+              setOpen(true);
+              clearStaffTicketUnread(ticketCode);
+              openTicketThreadRef.current?.(ticketCode);
+            },
+            toastId: `customer-support-msg-${ticketCode}`,
+            autoClose: 8000,
+          });
+          notificationService.addNotification(
+            'Tin nhắn từ hỗ trợ',
+            `Có tin nhắn mới trong ticket ${ticketCode}`,
+            'info',
+          );
+        }
+      }
+
+      if (activeTicketCodeRef.current === ticketCode) {
+        try {
+          const [detail, list, tickets] = await Promise.all([
+            supportService.getSupportRequest(ticketCode),
+            supportService.getSupportMessages(ticketCode),
+            supportService.getMySupportRequests(),
+          ]);
+          setTicket(detail || null);
+          setTicketMessages(Array.isArray(list) ? list : []);
+          setMyTickets(Array.isArray(tickets) ? tickets : []);
+          if (viewingThisThread && (senderRole === 'ADMIN' || senderRole === 'STAFF')) {
+            clearStaffTicketUnread(ticketCode);
+          }
+        } catch {
+          // Ignore realtime refresh errors.
+        }
+      } else if (senderRole === 'ADMIN' || senderRole === 'STAFF') {
+        try {
+          const tickets = await supportService.getMySupportRequests();
+          setMyTickets(Array.isArray(tickets) ? tickets : []);
+        } catch {
+          // Ignore list refresh errors.
+        }
       }
     },
+    250,
   );
 
   const pushMessage = (message) => {
@@ -737,6 +835,7 @@ const NasaAiAssistantWidget = () => {
     setChatFlow(null);
     setWizardCategory(null);
     setWizardDescription('');
+    clearStaffTicketUnread(ticketCode);
     try {
       await refreshTicketThread(ticketCode);
       await loadMyTickets();
@@ -745,6 +844,10 @@ const NasaAiAssistantWidget = () => {
       setTicketMessages([]);
     }
   };
+
+  useEffect(() => {
+    openTicketThreadRef.current = openTicketThread;
+  });
 
   const enterBotIntent = (intent) => {
     setChatView(CHAT_VIEW.BOT);
@@ -1576,32 +1679,33 @@ const NasaAiAssistantWidget = () => {
       <div className={`nasa-assistant-fab-shell ${open ? 'nasa-assistant-fab-shell--hidden' : ''}`}>
         <button
           type="button"
-          className="nasa-assistant-fab"
-          aria-label="Mở NASA BOT"
+          className={`nasa-assistant-fab ${unreadStaffTicketCodes.length > 0 ? 'nasa-assistant-fab--unread' : ''}`}
+          aria-label={unreadStaffTicketCodes.length > 0
+            ? `Mở NASA BOT, ${unreadStaffTicketCodes.length} tin nhắn mới`
+            : 'Mở NASA BOT'}
           onClick={() => {
+            const pendingTicket = unreadStaffTicketCodes[0];
             setOpen(true);
-            setChatView(CHAT_VIEW.BOT);
-            setBotIntent(BOT_INTENT.PICK);
-            setMessages([]);
-            setDraft('');
-            setChatFlow(null);
-            setGuidedChatActive(false);
-            setWizardCategory(null);
-            setWizardDescription('');
-            setSelectedCategory(null);
             setShowTicketDrawer(false);
-            setTyping(false);
+            if (pendingTicket) {
+              openTicketThread(pendingTicket);
+            }
           }}
         >
           <span className="nasa-assistant-fab-glow" />
           <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
+          {unreadStaffTicketCodes.length > 0 ? (
+            <span className="nasa-assistant-fab-badge" aria-hidden="true">
+              {unreadStaffTicketCodes.length > 9 ? '9+' : unreadStaffTicketCodes.length}
+            </span>
+          ) : null}
         </button>
         <span className="nasa-assistant-fab-label">NASA Bot</span>
       </div>
 
       {open && (
         <div className="nasa-assistant-overlay">
-          <button type="button" className="nasa-assistant-backdrop" aria-label="Đóng" onClick={() => setOpen(false)} />
+          <button type="button" className="nasa-assistant-backdrop" aria-label="Thu gọn" onClick={() => setOpen(false)} />
           <section
             className="nasa-assistant-panel"
             role="dialog"
@@ -1633,8 +1737,17 @@ const NasaAiAssistantWidget = () => {
                 >
                   <Ticket className="h-4 w-4" />
                 </button>
-                <button type="button" className="nasa-assistant-icon-btn" onClick={() => setOpen(false)}>
-                  <X className="h-4 w-4" />
+                <button
+                  type="button"
+                  className="nasa-assistant-icon-btn nasa-assistant-icon-btn--minimize"
+                  aria-label="Thu gọn"
+                  title="Thu gọn"
+                  onClick={() => {
+                    setShowTicketDrawer(false);
+                    setOpen(false);
+                  }}
+                >
+                  <Minus className="h-4 w-4" strokeWidth={2.5} />
                 </button>
               </div>
             </header>

@@ -144,10 +144,27 @@ public class SupportTicketService {
 
     @Transactional
     public SupportTicketResponse updateStatus(String ticketCode, String status) {
+        return updateStatus(ticketCode, status, null);
+    }
+
+    @Transactional
+    public SupportTicketResponse updateStatus(String ticketCode, String status, String adminEmail) {
         SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
-        ticket.setStatus(status.trim().toUpperCase());
-        return map(supportTicketRepository.save(ticket));
+        String nextStatus = status.trim().toUpperCase();
+        ticket.setStatus(nextStatus);
+        if ("IN_PROGRESS".equals(nextStatus) && adminEmail != null && !adminEmail.isBlank()) {
+            ticket.setReadByAdmin(true);
+            if (ticket.getAssignedStaffName() == null || ticket.getAssignedStaffName().isBlank()) {
+                ticket.setAssignedStaffEmail(adminEmail.trim().toLowerCase());
+                ticket.setAssignedStaffName(resolveUserDisplayName(adminEmail));
+            }
+        }
+        SupportTicket saved = supportTicketRepository.save(ticket);
+        if ("IN_PROGRESS".equals(nextStatus)) {
+            eventPublisher.publishEvent(new SupportTicketEvent(saved.getTicketCode(), "ADMIN"));
+        }
+        return map(saved);
     }
 
     @Transactional

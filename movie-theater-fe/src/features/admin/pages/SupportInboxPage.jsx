@@ -25,7 +25,6 @@ import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
   { id: 'all', label: 'Tất cả' },
-  { id: 'open', label: 'Mới' },
   { id: 'progress', label: 'Đang xử lý' },
   { id: 'resolved', label: 'Đã đóng' },
 ];
@@ -71,6 +70,20 @@ function getStatusMeta(status) {
   return { label: status || '—', className: 'support-status support-status--default', bucket: 'all' };
 }
 
+/** Ticket chưa được admin/staff nhận — chỉ hiện ở hàng chờ gọn. */
+function isIncomingTicket(ticket) {
+  if (!ticket) return false;
+  if (ticket.liveRequested && !ticket.liveConnected) return true;
+  const status = `${ticket.status || ''}`.toUpperCase();
+  return status === 'PENDING' || status === 'OPEN' || status === 'NEW' || status === 'LIVE_REQUESTED';
+}
+
+function previewText(value = '', max = 72) {
+  const text = `${value || ''}`.replace(/\s+/g, ' ').trim();
+  if (!text) return 'Không có mô tả';
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
 const SupportInboxPage = () => {
   const [tickets, setTickets] = useState([]);
   const [selectedTicketCode, setSelectedTicketCode] = useState('');
@@ -79,7 +92,6 @@ const SupportInboxPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [liveQueue, setLiveQueue] = useState([]);
-  const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
   const [processingLiveTicket, setProcessingLiveTicket] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -99,17 +111,43 @@ const SupportInboxPage = () => {
     let progress = 0;
     let resolved = 0;
     tickets.forEach((ticket) => {
+      if (isIncomingTicket(ticket)) {
+        open += 1;
+        return;
+      }
       const bucket = getStatusMeta(ticket.status).bucket;
-      if (bucket === 'open') open += 1;
-      else if (bucket === 'progress') progress += 1;
+      if (bucket === 'progress') progress += 1;
       else if (bucket === 'resolved') resolved += 1;
+      else open += 1;
     });
     return { total: tickets.length, open, progress, resolved };
   }, [tickets]);
 
+  const incomingTickets = useMemo(() => {
+    const byCode = new Map();
+    tickets.filter(isIncomingTicket).forEach((ticket) => {
+      byCode.set(ticket.ticketCode, ticket);
+    });
+    liveQueue.forEach((ticket) => {
+      if (!byCode.has(ticket.ticketCode)) {
+        byCode.set(ticket.ticketCode, ticket);
+      }
+    });
+    return [...byCode.values()].sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [tickets, liveQueue]);
+
+  const inboxTickets = useMemo(
+    () => tickets.filter((ticket) => !isIncomingTicket(ticket)),
+    [tickets],
+  );
+
   const filteredTickets = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return tickets.filter((ticket) => {
+    return inboxTickets.filter((ticket) => {
       const bucket = getStatusMeta(ticket.status).bucket;
       if (statusFilter !== 'all' && bucket !== statusFilter) return false;
       if (!query) return true;
@@ -126,7 +164,7 @@ const SupportInboxPage = () => {
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [tickets, searchQuery, statusFilter]);
+  }, [inboxTickets, searchQuery, statusFilter]);
 
   const loadTickets = async () => {
     setLoadingTickets(true);
@@ -134,10 +172,11 @@ const SupportInboxPage = () => {
       const list = await supportService.getAdminSupportRequests();
       const next = Array.isArray(list) ? list : [];
       setTickets(next);
-      if (!selectedTicketCode && next[0]?.ticketCode) {
-        setSelectedTicketCode(next[0].ticketCode);
-      } else if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
-        setSelectedTicketCode(next[0]?.ticketCode || '');
+      const accepted = next.filter((ticket) => !isIncomingTicket(ticket));
+      if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
+        setSelectedTicketCode(accepted[0]?.ticketCode || '');
+      } else if (selectedTicketCode && isIncomingTicket(next.find((t) => t.ticketCode === selectedTicketCode))) {
+        setSelectedTicketCode(accepted[0]?.ticketCode || '');
       }
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không tải được danh sách ticket hỗ trợ.');
@@ -152,15 +191,6 @@ const SupportInboxPage = () => {
       setLiveQueue(Array.isArray(list) ? list : []);
     } catch {
       setLiveQueue([]);
-    }
-  };
-
-  const loadLiveAvailability = async () => {
-    try {
-      const data = await supportService.getLiveSupportAvailability();
-      setLiveAvailability(data || { anyOnline: false, agents: [] });
-    } catch {
-      setLiveAvailability({ anyOnline: false, agents: [] });
     }
   };
 
@@ -193,7 +223,6 @@ const SupportInboxPage = () => {
   useEffect(() => {
     loadTickets();
     loadLiveQueue();
-    loadLiveAvailability();
   }, []);
 
   useEffect(() => {
@@ -207,6 +236,7 @@ const SupportInboxPage = () => {
 
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_SUPPORT, () => {
     loadTickets();
+    loadLiveQueue();
     if (selectedTicketCode) {
       loadTicketDetail(selectedTicketCode);
     }
@@ -214,10 +244,6 @@ const SupportInboxPage = () => {
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_SUPPORT_LIVE, () => {
     loadTickets();
     loadLiveQueue();
-    loadLiveAvailability();
-  });
-  useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
-    loadLiveAvailability();
   });
   useRealtimeTopic(
     selectedTicketCode ? REALTIME_TOPICS.supportTicket(selectedTicketCode) : null,
@@ -236,6 +262,28 @@ const SupportInboxPage = () => {
       notificationService.success('Đã nhận hỗ trợ trực tiếp cho khách hàng.');
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không thể nhận hỗ trợ.');
+    } finally {
+      setProcessingLiveTicket('');
+    }
+  };
+
+  const handleAcceptTicket = async (ticket) => {
+    const ticketCode = ticket?.ticketCode;
+    if (!ticketCode) return;
+    const isLive = Boolean(ticket.liveRequested && !ticket.liveConnected)
+      || `${ticket.status || ''}`.toUpperCase() === 'LIVE_REQUESTED';
+    if (isLive) {
+      await handleAcceptLiveSupport(ticketCode);
+      return;
+    }
+    setProcessingLiveTicket(ticketCode);
+    try {
+      await supportService.updateAdminSupportStatus(ticketCode, { status: 'IN_PROGRESS' });
+      await Promise.all([loadTickets(), loadLiveQueue(), loadMessages(ticketCode)]);
+      setSelectedTicketCode(ticketCode);
+      notificationService.success(`Đã nhận ticket ${ticketCode}.`);
+    } catch (err) {
+      notificationService.error(err?.response?.data?.message || 'Không thể nhận ticket.');
     } finally {
       setProcessingLiveTicket('');
     }
@@ -318,72 +366,114 @@ const SupportInboxPage = () => {
     }
   };
 
-  const renderTicketRequestCard = (ticket, {
-    isActive = false,
-    onClick,
-    asButton = true,
-    actions = null,
-  }) => {
-    const statusMeta = getStatusMeta(ticket.status);
-    const card = (
+  const renderIncomingNotice = (ticket) => {
+    const isLive = Boolean(ticket.liveRequested && !ticket.liveConnected)
+      || `${ticket.status || ''}`.toUpperCase() === 'LIVE_REQUESTED';
+    const busy = processingLiveTicket === ticket.ticketCode;
+
+    return (
       <div
-        className={`support-request-card support-request-card--list ${isActive ? 'support-request-card--active' : ''} ${!ticket.readByAdmin ? 'support-request-card--unread' : ''}`.trim()}
+        key={ticket.ticketCode}
+        className={`support-incoming-notice ${isLive ? 'support-incoming-notice--live' : ''}`}
       >
-        <div className="support-request-card__toolbar">
-          <div className="support-request-card__ticket">
+        <div className="support-incoming-notice__main">
+          <div className="support-incoming-notice__top">
+            <span className="support-incoming-notice__badge">
+              {isLive ? 'Chat trực tiếp' : 'Yêu cầu mới'}
+            </span>
+            <span className="support-incoming-notice__meta">{formatDateTime(ticket.createdAt)}</span>
+          </div>
+          <div className="support-incoming-notice__title">
+            {getCategoryLabel(ticket.category)}
+            <span>·</span>
+            <strong>{ticket.ticketCode}</strong>
+          </div>
+          <p className="support-incoming-notice__who">
+            {ticket.ownerName || ticket.ownerEmail || 'Khách hàng'}
+          </p>
+          <p className="support-incoming-notice__preview">
+            {previewText(ticket.description || ticket.lastMessage)}
+          </p>
+        </div>
+        <div className="support-incoming-notice__actions">
+          <PrimaryButton
+            type="button"
+            loading={busy}
+            onClick={() => handleAcceptTicket(ticket)}
+          >
+            Nhận
+          </PrimaryButton>
+          {isLive ? (
+            <button
+              type="button"
+              className="support-filter-tab"
+              disabled={busy}
+              onClick={() => handleRejectLiveSupport(ticket.ticketCode)}
+            >
+              Từ chối
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
+  const renderInboxTicketCard = (ticket) => {
+    const statusMeta = getStatusMeta(ticket.status);
+    const isActive = selectedTicketCode === ticket.ticketCode;
+    const shortDescription = previewText(ticket.description || ticket.lastMessage, 64);
+    const detailDescription = ticket.description || 'Không có mô tả';
+    const latestMessage = ticket.lastMessage && ticket.lastMessage !== ticket.description
+      ? ticket.lastMessage
+      : null;
+
+    return (
+      <button
+        key={ticket.ticketCode}
+        type="button"
+        className={`support-ticket-card ${isActive ? 'support-ticket-card--active' : ''} ${!ticket.readByAdmin ? 'support-ticket-card--unread' : ''}`.trim()}
+        onClick={() => setSelectedTicketCode(ticket.ticketCode)}
+      >
+        <div className="support-ticket-card-top">
+          <div className="support-ticket-code">
             {!ticket.readByAdmin ? <span className="support-ticket-unread" aria-label="Chưa đọc" /> : null}
             <strong>{ticket.ticketCode}</strong>
           </div>
           <span className={statusMeta.className}>{statusMeta.label}</span>
         </div>
-        <div className="support-request-card__head">Yêu cầu từ khách hàng</div>
-        <dl className="support-request-card__grid">
+
+        <div className="support-ticket-summary-line">
+          <span className="support-ticket-category">{getCategoryLabel(ticket.category)}</span>
+          <span className="support-ticket-summary-text">{shortDescription}</span>
+        </div>
+
+        <dl className="support-ticket-detail">
           <div>
-            <dt>Danh mục</dt>
-            <dd>{getCategoryLabel(ticket.category)}</dd>
+            <dt>Khách</dt>
+            <dd>{ticket.ownerName || '—'}</dd>
           </div>
           <div>
             <dt>Email</dt>
             <dd>{ticket.ownerEmail || '—'}</dd>
           </div>
-          <div>
-            <dt>Họ tên</dt>
-            <dd>{ticket.ownerName || '—'}</dd>
+          <div className="support-ticket-detail--full">
+            <dt>Mô tả</dt>
+            <dd>{previewText(detailDescription, 140)}</dd>
           </div>
-          <div>
-            <dt>Thời gian</dt>
-            <dd>{formatDateTime(ticket.createdAt)}</dd>
-          </div>
+          {latestMessage ? (
+            <div className="support-ticket-detail--full">
+              <dt>Tin mới</dt>
+              <dd>{previewText(latestMessage, 100)}</dd>
+            </div>
+          ) : null}
         </dl>
-        <div className="support-request-card__description">
-          <span>Mô tả</span>
-          <p>{ticket.description || 'Không có mô tả'}</p>
+
+        <div className="support-ticket-foot">
+          <span>{formatDateTime(ticket.updatedAt || ticket.createdAt)}</span>
+          {ticket.assignedStaffName ? <span>{ticket.assignedStaffName}</span> : null}
         </div>
-        {ticket.liveRequested ? (
-          <p className="support-request-card__live">
-            {ticket.liveConnected
-              ? `Live: ${ticket.assignedStaffName || ticket.assignedStaffEmail || 'Đã có người nhận'}`
-              : 'Live: Đang chờ staff/admin nhận'}
-          </p>
-        ) : null}
-        {actions}
-      </div>
+      </button>
     );
-
-    if (asButton && onClick) {
-      return (
-        <button
-          key={ticket.ticketCode}
-          type="button"
-          onClick={onClick}
-          className="support-request-card-btn"
-        >
-          {card}
-        </button>
-      );
-    }
-
-    return card;
   };
 
   return (
@@ -391,11 +481,14 @@ const SupportInboxPage = () => {
       <PageHeader
         eyebrow="NASAFilm · Support Inbox"
         title="Hỗ trợ khách hàng"
-        description="Ticket từ chatbot sẽ đổ vào đây. Admin có thể chat qua lại theo từng mã ticket, đồng bộ realtime."
+        description="Yêu cầu mới hiện dạng thông báo gọn. Nhấn Nhận để đưa ticket vào hộp thư và chat với khách."
         secondaryActions={[
           {
             label: 'Làm mới',
-            onClick: loadTickets,
+            onClick: () => {
+              loadTickets();
+              loadLiveQueue();
+            },
             disabled: loadingTickets,
             icon: <RefreshCw className={`h-4 w-4 ${loadingTickets ? 'support-spin' : ''}`} />,
           },
@@ -408,8 +501,8 @@ const SupportInboxPage = () => {
           <div className="support-kpi-value">{ticketStats.total}</div>
         </div>
         <div className="support-kpi-card">
-          <div className="support-kpi-label">Mới</div>
-          <div className="support-kpi-value support-kpi-value--warn">{ticketStats.open}</div>
+          <div className="support-kpi-label">Chờ nhận</div>
+          <div className="support-kpi-value support-kpi-value--warn">{incomingTickets.length}</div>
         </div>
         <div className="support-kpi-card">
           <div className="support-kpi-label">Đang xử lý</div>
@@ -421,66 +514,26 @@ const SupportInboxPage = () => {
         </div>
       </div>
 
-      <div className="support-kpi-grid" style={{ marginTop: '-0.25rem' }}>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Staff online</div>
-          <div className="support-kpi-value support-kpi-value--success">
-            {liveAvailability.agents?.length || 0}
-          </div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Yêu cầu live chờ nhận</div>
-          <div className="support-kpi-value support-kpi-value--warn">
-            {liveQueue.length}
-          </div>
-        </div>
-      </div>
-
-      <div className="support-list-panel" style={{ marginBottom: '1rem', minHeight: 'auto', maxHeight: 'none' }}>
+      <div className="support-incoming-panel">
         <div className="support-list-head">
           <div className="support-list-title">
             <Headphones className="w-4 h-4" />
-            Hàng chờ chat trực tiếp
+            Yêu cầu chờ nhận
+            {incomingTickets.length > 0 ? (
+              <span className="support-incoming-count">{incomingTickets.length}</span>
+            ) : null}
           </div>
           <p className="support-list-desc">
-            {liveAvailability.anyOnline
-              ? `${liveAvailability.agents?.length || 0} staff/admin đang online`
-              : 'Hiện chưa có staff/admin online'}
+            Ticket mới và chat trực tiếp hiện ở đây. Nhấn Nhận để mở hội thoại đầy đủ bên trái.
           </p>
         </div>
-        <div className="support-ticket-list">
-          {liveQueue.length === 0 ? (
-            <div className="support-list-empty">
-              Chưa có yêu cầu chat trực tiếp nào đang chờ nhận.
+        <div className="support-incoming-list">
+          {incomingTickets.length === 0 ? (
+            <div className="support-list-empty support-list-empty--compact">
+              Không có yêu cầu nào đang chờ nhận.
             </div>
           ) : (
-            liveQueue.map((ticket) => (
-              <div key={ticket.ticketCode}>
-                {renderTicketRequestCard(ticket, {
-                  isActive: true,
-                  asButton: false,
-                  actions: (
-                    <div className="support-request-card__actions">
-                      <PrimaryButton
-                        type="button"
-                        loading={processingLiveTicket === ticket.ticketCode}
-                        onClick={() => handleAcceptLiveSupport(ticket.ticketCode)}
-                      >
-                        Nhận
-                      </PrimaryButton>
-                      <button
-                        type="button"
-                        className="support-filter-tab"
-                        disabled={processingLiveTicket === ticket.ticketCode}
-                        onClick={() => handleRejectLiveSupport(ticket.ticketCode)}
-                      >
-                        Từ chối
-                      </button>
-                    </div>
-                  ),
-                })}
-              </div>
-            ))
+            incomingTickets.map(renderIncomingNotice)
           )}
         </div>
       </div>
@@ -493,7 +546,7 @@ const SupportInboxPage = () => {
               Hộp thư ticket
             </div>
             <p className="support-list-desc">
-              {filteredTickets.length} / {tickets.length} ticket hiển thị
+              {filteredTickets.length} / {inboxTickets.length} ticket đã nhận
             </p>
           </div>
 
@@ -530,13 +583,12 @@ const SupportInboxPage = () => {
               </div>
             ) : filteredTickets.length === 0 ? (
               <div className="support-list-empty">
-                {tickets.length === 0 ? 'Chưa có ticket hỗ trợ nào.' : 'Không tìm thấy ticket phù hợp.'}
+                {inboxTickets.length === 0
+                  ? 'Chưa có ticket đã nhận. Nhận yêu cầu ở phía trên để bắt đầu.'
+                  : 'Không tìm thấy ticket phù hợp.'}
               </div>
             ) : (
-              filteredTickets.map((ticket) => renderTicketRequestCard(ticket, {
-                isActive: selectedTicketCode === ticket.ticketCode,
-                onClick: () => setSelectedTicketCode(ticket.ticketCode),
-              }))
+              filteredTickets.map(renderInboxTicketCard)
             )}
           </div>
         </aside>
@@ -549,12 +601,21 @@ const SupportInboxPage = () => {
                   <div className="support-chat-title">{selectedTicket.ticketCode}</div>
                   <div className="support-chat-subtitle">
                     Hội thoại với {selectedTicket.ownerName || selectedTicket.ownerEmail}
+                    {' · '}
+                    {getCategoryLabel(selectedTicket.category)}
                   </div>
                 </div>
                 <span className={getStatusMeta(selectedTicket.status).className}>
                   {getStatusMeta(selectedTicket.status).label}
                 </span>
               </header>
+
+              {selectedTicket.description ? (
+                <div className="support-ticket-summary">
+                  <span>Mô tả yêu cầu</span>
+                  <p>{selectedTicket.description}</p>
+                </div>
+              ) : null}
 
               {selectedTicket.status === 'DONE' && (
                 <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
@@ -673,7 +734,7 @@ const SupportInboxPage = () => {
               </div>
               <p className="support-state-title">Chưa chọn ticket</p>
               <p className="support-state-desc">
-                Chọn một ticket từ danh sách bên trái để xem hội thoại và phản hồi khách hàng.
+                Nhận một yêu cầu ở phía trên, hoặc chọn ticket đã nhận ở danh sách bên trái.
               </p>
             </div>
           )}
