@@ -22,6 +22,7 @@ public class SeatViewDto {
     private UUID bookingSeatUuid;
     private UUID lockedUserUuid;
     private OffsetDateTime lockedUntil;
+    private OffsetDateTime checkedInAt;
 
     public SeatViewDto() {
     }
@@ -30,6 +31,14 @@ public class SeatViewDto {
                        UUID seatUuid, String rowName, Integer seatNumber, SeatStatus seatDbStatus, UUID seatTypeUuid,
                        String seatTypeName, BigDecimal basePrice, BigDecimal priceModifier, UUID bookingSeatUuid,
                        UUID lockedUserUuid, OffsetDateTime lockedUntil) {
+        this(showtimeUuid, cinemaRoomUuid, startTime, endTime, seatUuid, rowName, seatNumber, seatDbStatus,
+                seatTypeUuid, seatTypeName, basePrice, priceModifier, bookingSeatUuid, lockedUserUuid, lockedUntil, null);
+    }
+
+    public SeatViewDto(UUID showtimeUuid, UUID cinemaRoomUuid, OffsetDateTime startTime, OffsetDateTime endTime,
+                       UUID seatUuid, String rowName, Integer seatNumber, SeatStatus seatDbStatus, UUID seatTypeUuid,
+                       String seatTypeName, BigDecimal basePrice, BigDecimal priceModifier, UUID bookingSeatUuid,
+                       UUID lockedUserUuid, OffsetDateTime lockedUntil, OffsetDateTime checkedInAt) {
         this.showtimeUuid = showtimeUuid;
         this.cinemaRoomUuid = cinemaRoomUuid;
         this.startTime = startTime;
@@ -45,6 +54,7 @@ public class SeatViewDto {
         this.bookingSeatUuid = bookingSeatUuid;
         this.lockedUserUuid = lockedUserUuid;
         this.lockedUntil = lockedUntil;
+        this.checkedInAt = checkedInAt;
     }
 
     public UUID getShowtimeUuid() {
@@ -165,5 +175,13 @@ public class SeatViewDto {
 
     public void setLockedUntil(OffsetDateTime lockedUntil) {
         this.lockedUntil = lockedUntil;
+    }
+
+    public OffsetDateTime getCheckedInAt() {
+        return checkedInAt;
+    }
+
+    public void setCheckedInAt(OffsetDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
     }
 }

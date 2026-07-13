@@ -144,8 +144,12 @@ public class ShowtimeService {
             throw new AppException(ErrorCode.BAD_REQUEST,
                     "Trang thai nhap chi co the chuyen sang Da len lich hoac Huy.");
         }
-        if (current == ShowtimeStatus.SCHEDULED && newStatus != ShowtimeStatus.OPEN_FOR_BOOKING && newStatus != ShowtimeStatus.CANCELLED) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai Da len lich chi co the chuyen sang Mo ban ve hoac Huy.");
+        if (current == ShowtimeStatus.SCHEDULED
+                && newStatus != ShowtimeStatus.OPEN_FOR_BOOKING
+                && newStatus != ShowtimeStatus.CANCELLED
+                && newStatus != ShowtimeStatus.FINISHED) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Trang thai Da len lich chi co the chuyen sang Mo ban ve, Ket thuc hoac Huy.");
         }
         if (current == ShowtimeStatus.OPEN_FOR_BOOKING && newStatus != ShowtimeStatus.SOLD_OUT && newStatus != ShowtimeStatus.CANCELLED && newStatus != ShowtimeStatus.FINISHED) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai Mo ban ve chi co the chuyen sang Het ve, Huy hoac Ket thuc.");
@@ -177,6 +181,39 @@ public class ShowtimeService {
                             true);
                 } catch (AppException ex) {
                     // Skip bookings that cannot be cancelled (e.g. already processing)
+                }
+            }
+        }
+
+        if (newStatus == ShowtimeStatus.FINISHED) {
+            OffsetDateTime now = OffsetDateTime.now();
+            boolean showStillUpcoming = showtime.getEndTime() == null || showtime.getEndTime().isAfter(now);
+            boolean hasConfirmedTickets = bookingRepository.findByShowtimeUuid(showtimeUuid).stream()
+                    .anyMatch(b -> "CONFIRMED".equalsIgnoreCase(b.getStatus()));
+
+            // Không kết thúc cưỡng bức suất còn vé đã bán mà chưa chiếu xong — ảnh hưởng giờ/ghế trên vé khách.
+            // Admin muốn đóng suất có vé: dùng Hủy (hoàn tiền) hoặc đợi hết giờ chiếu.
+            if (showStillUpcoming && hasConfirmedTickets) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể kết thúc suất còn vé đã thanh toán và chưa chiếu xong. "
+                                + "Hãy chọn Hủy suất (hoàn tiền khách) hoặc đợi suất kết thúc tự động.");
+            }
+
+            // Chỉ xóa giữ ghế tạm (seat_locked), không đụng booking/ticket đã confirm
+            entityManager.createNativeQuery("DELETE FROM seat_locked WHERE showtime_uuid = :showtimeUuid")
+                    .setParameter("showtimeUuid", showtimeUuid)
+                    .executeUpdate();
+
+            // Chỉ chỉnh lại mốc thời gian khi không còn vé confirm (suất trống / đã hết giờ)
+            if (!hasConfirmedTickets) {
+                OffsetDateTime endTime = showtime.getEndTime();
+                OffsetDateTime startTime = showtime.getStartTime();
+                if (endTime == null || endTime.isAfter(now)) {
+                    showtime.setEndTime(now);
+                    endTime = now;
+                }
+                if (startTime != null && startTime.isAfter(endTime)) {
+                    showtime.setStartTime(endTime);
                 }
             }
         }
@@ -241,6 +278,34 @@ public class ShowtimeService {
                   AND st.status IN ('SCHEDULED', 'OPEN_FOR_BOOKING', 'SOLD_OUT', 'DRAFT')
                 """)
                 .setParameter("now", now)
+                .executeUpdate();
+
+        // Repair chỉ với suất FINISHED không còn vé confirm — tránh sửa giờ làm lệch vé khách
+        entityManager.createNativeQuery("""
+                UPDATE showtime st
+                SET end_time = :now,
+                    start_time = CASE
+                        WHEN st.start_time > :now THEN :now
+                        ELSE st.start_time
+                    END
+                WHERE st.status = 'FINISHED'
+                  AND st.end_time > :now
+                  AND NOT EXISTS (
+                      SELECT 1 FROM booking b
+                      WHERE b.showtime_uuid = st.uuid
+                        AND upper(b.status) = 'CONFIRMED'
+                  )
+                """)
+                .setParameter("now", now)
+                .executeUpdate();
+
+        // Clear locks on already-finished/cancelled showtimes (leftover holds only)
+        entityManager.createNativeQuery("""
+                DELETE FROM seat_locked sl
+                USING showtime st
+                WHERE sl.showtime_uuid = st.uuid
+                  AND st.status IN ('FINISHED', 'CANCELLED')
+                """)
                 .executeUpdate();
 
         int cancelledDrafts = showtimeRepository.cancelExpiredDrafts(

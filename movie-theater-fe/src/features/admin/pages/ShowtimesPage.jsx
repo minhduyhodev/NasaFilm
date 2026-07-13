@@ -426,13 +426,33 @@ const ShowtimesPage = () => {
       });
       if (!ok) return;
     }
+    if (action === 'FINISHED') {
+      const ok = await confirm({
+        title: 'Kết thúc nhiều suất chiếu',
+        message: `Đánh dấu ${ids.length} suất đã chọn là kết thúc?\n\nLưu ý: suất còn vé đã bán và chưa chiếu xong sẽ bị bỏ qua — hãy dùng Hủy suất (hoàn tiền) hoặc đợi hết giờ chiếu.`,
+        confirmLabel: 'Kết thúc suất',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+    let success = 0;
+    let failed = 0;
     try {
       for (const id of ids) {
-        await showtimeService.updateShowtimeStatus(id, action);
+        try {
+          await showtimeService.updateShowtimeStatus(id, action);
+          success += 1;
+        } catch {
+          failed += 1;
+        }
       }
       setSelectedIds(new Set());
       fetchShowtimes();
-      notificationService.success(`Đã cập nhật ${ids.length} suất chiếu thành công!`);
+      if (failed === 0) {
+        notificationService.success(`Đã cập nhật ${success} suất chiếu thành công!`);
+      } else {
+        notificationService.warning(`Cập nhật xong: ${success} thành công, ${failed} thất bại (sai bước trạng thái hoặc lỗi server).`);
+      }
     } catch (error) {
       notificationService.error(error.message || 'Lỗi khi cập nhật hàng loạt');
     }

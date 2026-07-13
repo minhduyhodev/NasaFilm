@@ -46,3 +46,81 @@
   gap: 0.5rem 0.75rem;
   padding: 0.5rem;
 }
+
+/* ---- Staff gate-control seat states (high visibility) ---- */
+.live-seat-map--staff .staff-seat {
+  opacity: 1 !important;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-seat-map--staff .staff-seat--available {
+  background: transparent !important;
+  border: 2px solid rgba(255, 255, 255, 0.28) !important;
+  color: #cbd5e1 !important;
+}
+
+.live-seat-map--staff .staff-seat.vip.staff-seat--available {
+  border-color: rgba(234, 179, 8, 0.55) !important;
+  color: #fbbf24 !important;
+}
+
+.live-seat-map--staff .staff-seat.couple.staff-seat--available {
+  border-color: rgba(192, 38, 211, 0.5) !important;
+  color: #e879f9 !important;
+}
+
+/* Đã mua, chưa soát — rõ ràng, giữ số ghế */
+.live-seat-map--staff .staff-seat--sold {
+  background: rgba(245, 158, 11, 0.22) !important;
+  border: 2px solid rgba(245, 158, 11, 0.85) !important;
+  color: #fbbf24 !important;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.25);
+}
+
+/* Đã soát vé */
+.live-seat-map--staff .staff-seat--checked-in {
+  background: rgba(16, 185, 129, 0.28) !important;
+  border: 2px solid rgba(52, 211, 153, 0.95) !important;
+  color: #6ee7b7 !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+/* Đang giữ tạm */
+.live-seat-map--staff .staff-seat--held {
+  background: rgba(148, 163, 184, 0.18) !important;
+  border: 2px dashed rgba(226, 232, 240, 0.7) !important;
+  color: #e2e8f0 !important;
+}
+
+.live-seat-map--staff .staff-seat--unavailable {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 2px solid rgba(100, 116, 139, 0.45) !important;
+  color: #64748b !important;
+}
+
+.staff-legend-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff-legend-swatch--sold {
+  background: rgba(245, 158, 11, 0.22);
+  border: 2px solid rgba(245, 158, 11, 0.85);
+  color: #fbbf24;
+}
+
+.staff-legend-swatch--checked {
+  background: rgba(16, 185, 129, 0.28);
+  border: 2px solid rgba(52, 211, 153, 0.95);
+  color: #6ee7b7;
+}
+
+.staff-legend-swatch--held {
+  background: rgba(148, 163, 184, 0.18);
+  border: 2px dashed rgba(226, 232, 240, 0.7);
+  color: #e2e8f0;
+}
