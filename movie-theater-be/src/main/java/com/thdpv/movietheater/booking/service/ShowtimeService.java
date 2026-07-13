@@ -343,6 +343,23 @@ public class ShowtimeService {
         return mapShowtimesToResponses(showtimes);
     }
 
+    /**
+     * Upcoming bookable showtimes within the next {@code hours} hours, capped for AI/prompt use.
+     */
+    @Transactional(readOnly = true)
+    public List<ShowtimeResponse> getUpcomingShowtimesWithinHours(int hours, int limit) {
+        int safeHours = Math.max(1, Math.min(hours, 72));
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime rangeEnd = now.plusHours(safeHours);
+        List<ShowtimeStatus> statuses = List.of(ShowtimeStatus.OPEN_FOR_BOOKING, ShowtimeStatus.SOLD_OUT);
+        List<Showtime> showtimes = showtimeRepository.findUpcomingByDateRange(statuses, now, now, rangeEnd);
+        if (showtimes.size() > safeLimit) {
+            showtimes = showtimes.subList(0, safeLimit);
+        }
+        return mapShowtimesToResponses(showtimes);
+    }
+
     @Transactional(readOnly = true)
     public Optional<ShowtimeResponse> getShowtimeSummary(UUID showtimeUuid) {
         return showtimeRepository.findById(showtimeUuid)
