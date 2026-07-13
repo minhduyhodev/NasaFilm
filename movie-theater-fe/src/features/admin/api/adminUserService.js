@@ -1,4 +1,4 @@
-import { authService } from '../../features/auth/api/authService';
+import { authService } from '../../auth/api/authService';
 
 const parseSpringPage = (data) => {
   const page = data?.content !== undefined ? data : { content: Array.isArray(data) ? data : [] };
