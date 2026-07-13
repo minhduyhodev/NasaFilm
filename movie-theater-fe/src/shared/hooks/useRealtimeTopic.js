@@ -16,6 +16,10 @@ export const useRealtimeTopic = (topic, onUpdate, debounceMs = 400) => {
     let timerId = null;
 
     const debouncedHandler = (payload) => {
+      if (debounceMs <= 0) {
+        handlerRef.current?.(payload);
+        return;
+      }
       if (timerId) {
         clearTimeout(timerId);
       }
