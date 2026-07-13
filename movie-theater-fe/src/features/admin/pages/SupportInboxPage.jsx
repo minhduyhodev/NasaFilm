@@ -8,12 +8,10 @@ import {
   RefreshCw,
   Search,
   Send,
-  Sticker,
 } from 'lucide-react';
 import SupportStickerBubble from '../../../shared/components/SupportStickerBubble';
 import {
   DEFAULT_THANK_YOU_STICKER_ID,
-  SUPPORT_THANK_YOU_STICKER,
   encodeSupportStickerMessage,
   parseSupportStickerMessage,
 } from '../../../shared/constants/supportStickers';
@@ -634,33 +632,6 @@ const SupportInboxPage = () => {
               </div>
 
               <div className="support-compose">
-                <div className="support-sticker-picker">
-                  <div className="support-sticker-picker__head">
-                    <Sticker className="h-4 w-4" />
-                    <span>Nhãn cảm ơn</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="support-sticker-picker__single"
-                    title={SUPPORT_THANK_YOU_STICKER.caption}
-                    disabled={loading}
-                    onClick={() => handleSendSticker(DEFAULT_THANK_YOU_STICKER_ID)}
-                  >
-                    <img
-                      src={SUPPORT_THANK_YOU_STICKER.src}
-                      alt={SUPPORT_THANK_YOU_STICKER.label}
-                      onError={(event) => {
-                        if (SUPPORT_THANK_YOU_STICKER.fallbackSrc) {
-                          event.currentTarget.src = SUPPORT_THANK_YOU_STICKER.fallbackSrc;
-                        }
-                      }}
-                    />
-                    <div className="support-sticker-picker__single-text">
-                      <strong>{SUPPORT_THANK_YOU_STICKER.label}</strong>
-                      <span>{SUPPORT_THANK_YOU_STICKER.caption}</span>
-                    </div>
-                  </button>
-                </div>
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}

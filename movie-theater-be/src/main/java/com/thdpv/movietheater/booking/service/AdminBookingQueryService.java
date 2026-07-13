@@ -49,7 +49,8 @@ public class AdminBookingQueryService {
                 keyword, status, cinema, startAt, endAt, offset, limit);
         List<AdminBookingListResponse> responses = mapAdminBookingRows(rows);
         if (effectivePageable.isUnpaged()) {
-            return new PageImpl<>(responses);
+            int pageSize = Math.max(responses.size(), 1);
+            return new PageImpl<>(responses, PageRequest.of(0, pageSize), responses.size());
         }
         return new PageImpl<>(responses, effectivePageable, total);
     }

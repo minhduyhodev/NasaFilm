@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -20,12 +21,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class MovieTheaterBackendApplication {
 
 	public static void main(String[] args) {
-		loadEnv();
+		Map<String, Object> envProps = loadEnv();
 		WalletSchemaPreBootstrap.apply();
-		SpringApplication.run(MovieTheaterBackendApplication.class, args);
+		SpringApplication app = new SpringApplication(MovieTheaterBackendApplication.class);
+		if (!envProps.isEmpty()) {
+			app.setDefaultProperties(envProps);
+		}
+		app.run(args);
 	}
 
-	private static void loadEnv() {
+	private static Map<String, Object> loadEnv() {
+		Map<String, Object> props = new java.util.LinkedHashMap<>();
 		try {
 			if (Files.exists(Paths.get(".env"))) {
 				List<String> lines = Files.readAllLines(Paths.get(".env"));
@@ -36,23 +42,32 @@ public class MovieTheaterBackendApplication {
 					}
 					int eqIdx = line.indexOf('=');
 					if (eqIdx > 0) {
-						String key = line.substring(0, eqIdx).trim();
-						String value = line.substring(eqIdx + 1).trim();
+						String key = line.substring(0, eqIdx).trim()
+								.replace("\uFEFF", "")
+								.replace("\u200B", "")
+								.replace("\u00A0", "");
+						String value = line.substring(eqIdx + 1).trim()
+								.replace("\uFEFF", "")
+								.replace("\u200B", "");
 						if (value.startsWith("\"") && value.endsWith("\"") && value.length() >= 2) {
 							value = value.substring(1, value.length() - 1);
 						} else if (value.startsWith("'") && value.endsWith("'") && value.length() >= 2) {
 							value = value.substring(1, value.length() - 1);
 						}
+						props.put(key, value);
 						System.setProperty(key, value);
 					}
 				}
-				System.out.println("[EnvLoader] Loaded environment variables from .env file successfully.");
+				System.out.println("[EnvLoader] Loaded " + props.size() + " vars from .env (AI=" 
+						+ (props.containsKey("APP_GROQ_API_KEY") && !String.valueOf(props.get("APP_GROQ_API_KEY")).isBlank())
+						+ ").");
 			} else {
 				System.out.println("[EnvLoader] No .env file found in root directory.");
 			}
 		} catch (IOException e) {
 			System.err.println("[EnvLoader] Failed to load .env file: " + e.getMessage());
 		}
+		return props;
 	}
 
 }

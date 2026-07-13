@@ -23,6 +23,7 @@ import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
 import com.thdpv.movietheater.support.service.SupportAiService;
 import com.thdpv.movietheater.support.service.SupportTicketService;
+import com.thdpv.movietheater.support.support.SupportActionRateLimiter;
 
 import jakarta.validation.Valid;
 
@@ -32,20 +33,28 @@ public class SupportController {
 
     private final SupportAiService supportAiService;
     private final SupportTicketService supportTicketService;
+    private final SupportActionRateLimiter supportActionRateLimiter;
 
-    public SupportController(SupportAiService supportAiService, SupportTicketService supportTicketService) {
+    public SupportController(
+            SupportAiService supportAiService,
+            SupportTicketService supportTicketService,
+            SupportActionRateLimiter supportActionRateLimiter) {
         this.supportAiService = supportAiService;
         this.supportTicketService = supportTicketService;
+        this.supportActionRateLimiter = supportActionRateLimiter;
     }
 
     @PostMapping("/support-ai/chat")
     public ResponseEntity<ApiResponse<SupportAiResponse>> chat(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody SupportAiRequest request) {
+        String userKey = userDetails != null ? userDetails.getUsername() : "anonymous";
+        supportActionRateLimiter.assertAiChatAllowed(userKey);
+
         var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
                 .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
                 .toList();
-        var result = supportAiService.chat(request.message(), history);
+        var result = supportAiService.chat(request.message(), history, request.mode());
 
         // Auto-create ticket if AI produced a ticketAction
         SupportTicketResponse createdTicket = null;
@@ -78,6 +87,7 @@ public class SupportController {
     public ResponseEntity<ApiResponse<SupportTicketResponse>> create(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody SupportTicketCreateRequest request) {
+        supportActionRateLimiter.assertTicketCreateAllowed(userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(supportTicketService.create(userDetails.getUsername(), request)));
     }
@@ -115,11 +125,12 @@ public class SupportController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String ticketCode,
             @Valid @RequestBody SupportTicketMessageRequest request) {
+        supportActionRateLimiter.assertTicketMessageAllowed(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
                 supportTicketService.addUserMessage(ticketCode, userDetails.getUsername(), request.getMessage())));
     }
 
-    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history) {}
+    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode) {}
 
     public record SupportAiMessageRequest(String role, String content) {}
 

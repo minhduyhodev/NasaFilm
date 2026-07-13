@@ -384,8 +384,8 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 b.uuid,
                 u.full_name,
                 u.email,
-                m.title,
-                coalesce(cr.name, 'Xem Online'),
+                coalesce(m.title, 'Không rõ phim'),
+                coalesce(c.name, cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -397,21 +397,27 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     where bs.booking_uuid = b.uuid
                 ), ''),
                 coalesce((
-                    select string_agg(bc.quantity || 'x ' || c.name, ', ' order by c.name asc)
+                    select string_agg(bc.quantity || 'x ' || c2.name, ', ' order by c2.name asc)
                     from booking_combo bc
-                    join combo c on c.uuid = bc.combo_uuid
+                    join combo c2 on c2.uuid = bc.combo_uuid
                     where bc.booking_uuid = b.uuid
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
             left join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
-            where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
-              and (:status is null or :status = '' or upper(b.status) = upper(:status))
-              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
-              and (:startAt is null or b.created_at >= :startAt)
-              and (:endAt is null or b.created_at < :endAt)
+            left join cinema c on c.uuid = cr.cinema_uuid
+            where (cast(:keyword as text) is null or cast(:keyword as text) = ''
+                   or upper(u.full_name) like cast(:keyword as text)
+                   or upper(u.email) like cast(:keyword as text)
+                   or upper(coalesce(m.title, '')) like cast(:keyword as text))
+              and (cast(:status as text) is null or cast(:status as text) = ''
+                   or upper(b.status) = upper(cast(:status as text)))
+              and (cast(:cinema as text) is null or cast(:cinema as text) = ''
+                   or upper(coalesce(c.name, cr.name, 'XEM ONLINE')) like cast(:cinema as text))
+              and (cast(:startAt as timestamptz) is null or b.created_at >= cast(:startAt as timestamptz))
+              and (cast(:endAt as timestamptz) is null or b.created_at < cast(:endAt as timestamptz))
             order by b.created_at desc
             limit :limit offset :offset
             """, nativeQuery = true)
@@ -429,8 +435,8 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 b.uuid,
                 u.full_name,
                 u.email,
-                m.title,
-                coalesce(cr.name, 'Xem Online'),
+                coalesce(m.title, 'Không rõ phim'),
+                coalesce(c.name, cr.name, 'Xem Online'),
                 b.total_price,
                 b.status,
                 b.created_at,
@@ -442,21 +448,27 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     where bs.booking_uuid = b.uuid
                 ), ''),
                 coalesce((
-                    select string_agg(bc.quantity || 'x ' || c.name, ', ' order by c.name asc)
+                    select string_agg(bc.quantity || 'x ' || c2.name, ', ' order by c2.name asc)
                     from booking_combo bc
-                    join combo c on c.uuid = bc.combo_uuid
+                    join combo c2 on c2.uuid = bc.combo_uuid
                     where bc.booking_uuid = b.uuid
                 ), '')
             from booking b
             join users u on u.id = b.user_uuid
             left join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
-            where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
-              and (:status is null or :status = '' or upper(b.status) = upper(:status))
-              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
-              and (:startAt is null or b.created_at >= :startAt)
-              and (:endAt is null or b.created_at < :endAt)
+            left join cinema c on c.uuid = cr.cinema_uuid
+            where (cast(:keyword as text) is null or cast(:keyword as text) = ''
+                   or upper(u.full_name) like cast(:keyword as text)
+                   or upper(u.email) like cast(:keyword as text)
+                   or upper(coalesce(m.title, '')) like cast(:keyword as text))
+              and (cast(:status as text) is null or cast(:status as text) = ''
+                   or upper(b.status) = upper(cast(:status as text)))
+              and (cast(:cinema as text) is null or cast(:cinema as text) = ''
+                   or upper(coalesce(c.name, cr.name, 'XEM ONLINE')) like cast(:cinema as text))
+              and (cast(:startAt as timestamptz) is null or b.created_at >= cast(:startAt as timestamptz))
+              and (cast(:endAt as timestamptz) is null or b.created_at < cast(:endAt as timestamptz))
             order by b.created_at desc
             """, nativeQuery = true)
     List<Object[]> queryAdminBookingsWithoutPagination(
@@ -497,13 +509,19 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
             from booking b
             join users u on u.id = b.user_uuid
             left join showtime st on st.uuid = b.showtime_uuid
-            join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
+            left join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
             left join cinema_room cr on cr.uuid = st.cinema_room_uuid
-            where (:keyword is null or :keyword = '' or upper(u.full_name) like :keyword or upper(u.email) like :keyword or upper(m.title) like :keyword)
-              and (:status is null or :status = '' or upper(b.status) = upper(:status))
-              and (:cinema is null or :cinema = '' or upper(coalesce(cr.name, 'XEM ONLINE')) like :cinema)
-              and (:startAt is null or b.created_at >= :startAt)
-              and (:endAt is null or b.created_at < :endAt)
+            left join cinema c on c.uuid = cr.cinema_uuid
+            where (cast(:keyword as text) is null or cast(:keyword as text) = ''
+                   or upper(u.full_name) like cast(:keyword as text)
+                   or upper(u.email) like cast(:keyword as text)
+                   or upper(coalesce(m.title, '')) like cast(:keyword as text))
+              and (cast(:status as text) is null or cast(:status as text) = ''
+                   or upper(b.status) = upper(cast(:status as text)))
+              and (cast(:cinema as text) is null or cast(:cinema as text) = ''
+                   or upper(coalesce(c.name, cr.name, 'XEM ONLINE')) like cast(:cinema as text))
+              and (cast(:startAt as timestamptz) is null or b.created_at >= cast(:startAt as timestamptz))
+              and (cast(:endAt as timestamptz) is null or b.created_at < cast(:endAt as timestamptz))
             """, nativeQuery = true)
     long queryAdminBookingsCount(
             @Param("keyword") String keyword,
