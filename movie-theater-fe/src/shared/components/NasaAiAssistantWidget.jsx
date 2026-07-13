@@ -376,8 +376,8 @@ const NasaAiAssistantWidget = () => {
     if (typing) return 'NASA BOT đang xử lý';
     if (botIntent === BOT_INTENT.PICK && chatView === CHAT_VIEW.BOT) return 'Chọn Hỗ trợ hoặc Giải đáp';
     if (botIntent === BOT_INTENT.ANSWER) {
-      if (aiStatus?.configured) return `Giải đáp AI · ${aiStatus.mode || 'OPENAI'}`;
-      return 'Giải đáp AI · chưa cấu hình key';
+      if (aiStatus?.configured) return 'Giải đáp AI';
+      return 'Giải đáp AI · chưa cấu hình';
     }
     if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) {
       return `Bước 2/3 · ${wizardCategory?.label || 'Mô tả'}`;
@@ -1257,7 +1257,6 @@ const NasaAiAssistantWidget = () => {
           <strong>2. Giải đáp</strong>
           <span>
             AI chat · hỏi tự do về NASAFilm
-            {aiStatus?.configured ? ` (${aiStatus.mode})` : ''}
           </span>
         </span>
       </button>

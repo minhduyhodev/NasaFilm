@@ -378,9 +378,9 @@ const ConfigPage = () => {
 
   const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
   const aiConfigured = Boolean(supportAiStatus.configured) && supportAiStatus.mode !== 'FALLBACK';
-  const supportAiModeLabel = aiConfigured ? (supportAiStatus.mode || 'AI') : 'FALLBACK';
+  const supportAiModeLabel = aiConfigured ? 'AI' : 'FALLBACK';
   const supportAiModeDescription = aiConfigured
-    ? `Persona prompt đang tác động vào /api/support-ai/chat (provider: ${supportAiModeLabel}).`
+    ? 'Persona prompt đang tác động vào /api/support-ai/chat.'
     : 'Backend đang chạy fallback nội bộ, nên persona prompt chưa tác động vào câu trả lời thực tế.';
 
   if (isLoading) {

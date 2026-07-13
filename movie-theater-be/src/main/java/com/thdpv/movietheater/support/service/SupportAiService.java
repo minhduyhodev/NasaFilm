@@ -9,7 +9,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,29 +24,12 @@ public class SupportAiService {
 
     private static final Logger log = LoggerFactory.getLogger(SupportAiService.class);
     private static final int MAX_RETRIES = 2;
-    /** Skip OpenAI until this epoch-ms after a 429 (quota / rate limit). */
-    private static final long OPENAI_COOLDOWN_MS = 5 * 60 * 1000L;
-    private final AtomicLong openaiCooldownUntilMs = new AtomicLong(0);
-    private final java.util.concurrent.atomic.AtomicReference<List<String>> lastProviderFailures =
-            new java.util.concurrent.atomic.AtomicReference<>(List.of());
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
             .build();
     private final ObjectMapper objectMapper;
     private final SystemConfigService systemConfigService;
-
-    @Value("${app.openai.api-key:}")
-    private String openaiApiKey;
-
-    @Value("${app.openai.model:gpt-4o-mini}")
-    private String openaiModel;
-
-    @Value("${app.gemini.api-key:}")
-    private String geminiApiKey;
-
-    @Value("${app.gemini.model:gemini-2.0-flash}")
-    private String geminiModel;
 
     @Value("${app.groq.api-key:}")
     private String groqApiKey;
@@ -62,8 +44,7 @@ public class SupportAiService {
 
     @jakarta.annotation.PostConstruct
     void logProviderStatus() {
-        log.info("Support AI providers — Groq={}, Gemini={}, OpenAI={}, runtimeMode={}",
-                isGroqConfigured(), isGeminiConfigured(), isOpenaiConfigured(), getRuntimeMode());
+        log.info("Support AI ready={} runtimeMode={}", isConfigured(), getRuntimeMode());
     }
 
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
@@ -89,7 +70,7 @@ public class SupportAiService {
         if (!isConfigured()) {
             if (answerMode) {
                 return new SupportAiResult(
-                    "Hiện AI chưa được cấu hình. Thêm APP_OPENAI_API_KEY (hoặc Groq/Gemini) vào .env rồi khởi động lại backend nhé.",
+                    "Hiện AI chưa được cấu hình. Liên hệ admin kiểm tra cấu hình backend rồi thử lại nhé.",
                     "other");
             }
             if (hasTicketOrOrderCode(message)) {
@@ -107,14 +88,16 @@ public class SupportAiService {
 
         try {
             List<SupportAiMessage> messages = buildMessages(message, history, answerMode);
-            SupportAiResult aiResult = invokeConfiguredProviders(messages, detectedCategory);
+            SupportAiResult aiResult = callAi(messages, detectedCategory);
 
             if (aiResult != null) {
                 return answerMode ? aiResult : postProcessAiResult(aiResult, message, history);
             }
 
             if (answerMode) {
-                return new SupportAiResult(buildAllProvidersFailedReply(), "other");
+                return new SupportAiResult(
+                    "Mình chưa gọi được AI lúc này. Bạn thử lại sau hoặc chuyển sang mục Hỗ trợ để tạo ticket nhé.",
+                    "other");
             }
             return fallback(message, history);
         } catch (Exception error) {
@@ -126,66 +109,6 @@ public class SupportAiService {
             }
             return fallback(message, history);
         }
-    }
-
-    /**
-     * Free-tier first (Groq → Gemini), then OpenAI — unless OpenAI is in 429 cooldown.
-     */
-    private SupportAiResult invokeConfiguredProviders(List<SupportAiMessage> messages, String detectedCategory) {
-        lastProviderFailures.set(new ArrayList<>());
-        SupportAiResult aiResult = null;
-        if (isGroqConfigured()) {
-            aiResult = callGroq(messages, detectedCategory);
-            if (aiResult == null) {
-                noteProviderFailure("Groq");
-            }
-        }
-        if (aiResult == null && isGeminiConfigured()) {
-            aiResult = callGemini(messages, detectedCategory);
-            if (aiResult == null) {
-                noteProviderFailure("Gemini");
-            }
-        }
-        if (aiResult == null && isOpenaiConfigured() && !isOpenaiCoolingDown()) {
-            aiResult = callOpenAI(messages, detectedCategory);
-            if (aiResult == null) {
-                noteProviderFailure("OpenAI");
-            }
-        } else if (aiResult == null && isOpenaiConfigured() && isOpenaiCoolingDown()) {
-            noteProviderFailure("OpenAI(429 cooldown)");
-        }
-        return aiResult;
-    }
-
-    private void noteProviderFailure(String label) {
-        lastProviderFailures.updateAndGet(list -> {
-            List<String> next = new ArrayList<>(list);
-            next.add(label);
-            return next;
-        });
-    }
-
-    private boolean isOpenaiCoolingDown() {
-        return System.currentTimeMillis() < openaiCooldownUntilMs.get();
-    }
-
-    private void markOpenaiRateLimited() {
-        openaiCooldownUntilMs.set(System.currentTimeMillis() + OPENAI_COOLDOWN_MS);
-        log.warn("OpenAI entered {}s cooldown after rate limit", OPENAI_COOLDOWN_MS / 1000);
-    }
-
-    private String buildAllProvidersFailedReply() {
-        List<String> fails = lastProviderFailures.get();
-        StringBuilder sb = new StringBuilder("Mình chưa gọi được AI lúc này. ");
-        if (fails != null && !fails.isEmpty()) {
-            sb.append("Provider lỗi: ").append(String.join(", ", fails)).append(". ");
-        }
-        if (!isGroqConfigured()) {
-            sb.append("Chưa có APP_GROQ_API_KEY trong runtime — kiểm tra .env và restart backend. ");
-        }
-        sb.append("OpenAI/Gemini 429 thường do hết quota (free hoặc chưa billing). Groq free thường vẫn dùng được nếu key đã load. ");
-        sb.append("Hoặc chuyển sang mục Hỗ trợ để tạo ticket.");
-        return sb.toString().trim();
     }
 
     private boolean isAnswerMode(String mode) {
@@ -948,115 +871,25 @@ public class SupportAiService {
         return messages;
     }
 
-    private boolean isGeminiConfigured() {
-        return geminiApiKey != null && !geminiApiKey.isBlank();
-    }
-
-    private boolean isGroqConfigured() {
+    private boolean isAiConfigured() {
         return groqApiKey != null && !groqApiKey.isBlank();
     }
 
-    private boolean isOpenaiConfigured() {
-        return openaiApiKey != null && !openaiApiKey.isBlank();
-    }
-
     public boolean isConfigured() {
-        return isGroqConfigured() || isGeminiConfigured() || isOpenaiConfigured();
+        return isAiConfigured();
     }
 
+    /** Public status label — do not expose provider brand to clients. */
     public String getRuntimeMode() {
-        if (isGroqConfigured()) return "GROQ";
-        if (isGeminiConfigured()) return "GEMINI";
-        if (isOpenaiConfigured()) return "OPENAI";
-        return "FALLBACK";
+        return isConfigured() ? "AI" : "FALLBACK";
     }
 
-    // ── Gemini API call ──────────────────────────────────────────────────
-
-    private SupportAiResult callGemini(List<SupportAiMessage> messages, String detectedCategory) {
-        try {
-            // Convert OpenAI-format messages to Gemini format
-            List<Map<String, Object>> contents = new ArrayList<>();
-            StringBuilder systemPrompt = new StringBuilder();
-            for (SupportAiMessage m : messages) {
-                if ("system".equals(m.role())) {
-                    systemPrompt.append(m.content()).append("\n");
-                } else {
-                    String role = "assistant".equals(m.role()) ? "model" : "user";
-                    Map<String, Object> content = Map.of(
-                        "role", role,
-                        "parts", List.of(Map.of("text", m.content()))
-                    );
-                    contents.add(content);
-                }
-            }
-
-            // Build Gemini request body
-            Map<String, Object> body = new java.util.LinkedHashMap<>();
-            body.put("contents", contents);
-            if (!systemPrompt.isEmpty()) {
-                body.put("systemInstruction", Map.of(
-                    "parts", List.of(Map.of("text", systemPrompt.toString().trim()))
-                ));
-            }
-            body.put("generationConfig", Map.of(
-                "maxOutputTokens", 512,
-                "temperature", 0.7
-            ));
-
-            String payload = objectMapper.writeValueAsString(body);
-            // Auth via header — required for newer Google AI Studio keys (AQ.…); avoid putting key in URL.
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
-                    + geminiModel + ":generateContent";
-
-            for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                if (attempt > 0) Thread.sleep(400L * attempt);
-                try {
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(url))
-                            .timeout(Duration.ofSeconds(20))
-                            .header("Content-Type", "application/json")
-                            .header("x-goog-api-key", geminiApiKey.trim())
-                            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-                            .build();
-
-                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                    if (response.statusCode() == 200) {
-                        JsonNode root = objectMapper.readTree(response.body());
-                        String reply = root.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText(null);
-                        if (reply != null && !reply.isBlank()) {
-                            log.info("Gemini responded successfully");
-                            return new SupportAiResult(reply.trim(), detectedCategory);
-                        }
-                    }
-                    if (response.statusCode() >= 500) {
-                        log.warn("Gemini server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
-                        continue;
-                    }
-                    log.warn("Gemini returned {} — falling back to next provider. bodySnippet={}",
-                            response.statusCode(),
-                            response.body() == null ? "" : response.body().substring(0, Math.min(180, response.body().length())));
-                    break;
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    log.warn("Gemini call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
-                    if (attempt >= MAX_RETRIES) break;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Gemini provider failed: {}", e.getMessage());
+    private SupportAiResult callAi(List<SupportAiMessage> messages, String detectedCategory) {
+        if (!isAiConfigured()) {
+            return null;
         }
-        return null; // Signal to try next provider
-    }
-
-    // ── Groq API call (primary — free, OpenAI-compatible) ────────────────
-
-    private SupportAiResult callGroq(List<SupportAiMessage> messages, String detectedCategory) {
         try {
-            // Groq is OpenAI-compatible — same payload format
-            String payload = objectMapper.writeValueAsString(new OpenAiChatRequest(groqModel, messages));
+            String payload = objectMapper.writeValueAsString(new ChatCompletionRequest(groqModel, messages));
 
             for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                 if (attempt > 0) Thread.sleep(300L * attempt);
@@ -1074,79 +907,28 @@ public class SupportAiService {
                         JsonNode root = objectMapper.readTree(response.body());
                         String reply = root.path("choices").path(0).path("message").path("content").asText(null);
                         if (reply != null && !reply.isBlank()) {
-                            log.info("Groq responded successfully");
+                            log.info("Support AI responded successfully");
                             return new SupportAiResult(reply.trim(), detectedCategory);
                         }
                     }
                     if (response.statusCode() >= 500) {
-                        log.warn("Groq server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
+                        log.warn("Support AI server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
                         continue;
                     }
-                    log.warn("Groq returned {} — falling back to next provider", response.statusCode());
+                    log.warn("Support AI returned {} — no reply", response.statusCode());
                     break;
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    log.warn("Groq call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
+                    log.warn("Support AI call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
                     if (attempt >= MAX_RETRIES) break;
                 }
             }
         } catch (Exception e) {
-            log.warn("Groq provider failed: {}", e.getMessage());
+            log.warn("Support AI provider failed: {}", e.getMessage());
         }
-        return null; // Signal to try next provider
-    }
-
-    // ── OpenAI API call (fallback from Gemini) ───────────────────────────
-
-    private SupportAiResult callOpenAI(List<SupportAiMessage> messages, String detectedCategory) {
-        try {
-            String payload = objectMapper.writeValueAsString(new OpenAiChatRequest(openaiModel, messages));
-
-            for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                if (attempt > 0) Thread.sleep(300L * attempt);
-                try {
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create("https://api.openai.com/v1/chat/completions"))
-                            .timeout(Duration.ofSeconds(25))
-                            .header("Content-Type", "application/json")
-                            .header("Authorization", "Bearer " + openaiApiKey)
-                            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-                            .build();
-
-                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                    if (response.statusCode() == 200) {
-                        JsonNode root = objectMapper.readTree(response.body());
-                        String reply = root.path("choices").path(0).path("message").path("content").asText(null);
-                        if (reply != null && !reply.isBlank()) {
-                            log.info("OpenAI responded successfully");
-                            return new SupportAiResult(reply.trim(), detectedCategory);
-                        }
-                    }
-                    if (response.statusCode() == 429) {
-                        markOpenaiRateLimited();
-                        log.warn("OpenAI returned 429 — cooling down, try next provider");
-                        break;
-                    }
-                    if (response.statusCode() >= 500) {
-                        log.warn("OpenAI server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
-                        continue;
-                    }
-                    log.warn("OpenAI returned {} — skipping retry", response.statusCode());
-                    break;
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    log.warn("OpenAI call failed on attempt {}/{}: {}", attempt + 1, MAX_RETRIES + 1, e.getMessage());
-                    if (attempt >= MAX_RETRIES) break;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("OpenAI provider failed: {}", e.getMessage());
-        }
-        return null; // Signal to fall back to rule-based
+        return null;
     }
 
     public record SupportAiMessage(String role, String content) {}
@@ -1170,5 +952,5 @@ public class SupportAiService {
     }
     public record TicketAction(String category, String description, String summary) {}
 
-    private record OpenAiChatRequest(String model, List<SupportAiMessage> messages) {}
+    private record ChatCompletionRequest(String model, List<SupportAiMessage> messages) {}
 }

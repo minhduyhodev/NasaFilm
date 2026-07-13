@@ -58,10 +58,8 @@ public class MovieTheaterBackendApplication {
 						System.setProperty(key, value);
 					}
 				}
-				System.out.println("[EnvLoader] Loaded " + props.size() + " vars from .env (GROQ=" 
+				System.out.println("[EnvLoader] Loaded " + props.size() + " vars from .env (AI=" 
 						+ (props.containsKey("APP_GROQ_API_KEY") && !String.valueOf(props.get("APP_GROQ_API_KEY")).isBlank())
-						+ ", OPENAI=" + (props.containsKey("APP_OPENAI_API_KEY") && !String.valueOf(props.get("APP_OPENAI_API_KEY")).isBlank())
-						+ ", GEMINI=" + (props.containsKey("APP_GEMINI_API_KEY") && !String.valueOf(props.get("APP_GEMINI_API_KEY")).isBlank())
 						+ ").");
 			} else {
 				System.out.println("[EnvLoader] No .env file found in root directory.");
