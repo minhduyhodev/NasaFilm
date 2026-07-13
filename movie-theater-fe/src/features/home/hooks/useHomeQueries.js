@@ -13,7 +13,6 @@ export async function fetchNowShowingMovies() {
   return movieService.getMovies({
     status: 'NOW_SHOWING',
     requireBookableShowtime: true,
-    requireAwsStreaming: true,
     page: 0,
     size: 50,
   });
@@ -39,12 +38,15 @@ export function useHomeCinemas() {
   return useQuery({
     queryKey: homeQueryKeys.cinemas,
     queryFn: () => movieService.getCinemas(),
+    staleTime: 5 * 60_000,
   });
 }
 
-export function usePublicShowtimes() {
+export function usePublicShowtimes({ enabled = true } = {}) {
   return useQuery({
     queryKey: homeQueryKeys.publicShowtimes,
     queryFn: () => showtimeService.getPublicShowtimes(),
+    enabled,
+    staleTime: 60_000,
   });
 }

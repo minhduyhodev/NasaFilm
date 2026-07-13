@@ -508,11 +508,14 @@ const NasaAiAssistantWidget = () => {
     };
   }, [open]);
 
-  useRealtimeTopic(REALTIME_TOPICS.SUPPORT_AGENTS, () => {
-    supportService.getLiveSupportAvailability()
-      .then((data) => setLiveAvailability(data || { anyOnline: false, agents: [] }))
-      .catch(() => setLiveAvailability({ anyOnline: false, agents: [] }));
-  });
+  useRealtimeTopic(
+    hasAdminAccess(user) ? REALTIME_TOPICS.SUPPORT_AGENTS : null,
+    () => {
+      supportService.getLiveSupportAvailability()
+        .then((data) => setLiveAvailability(data || { anyOnline: false, agents: [] }))
+        .catch(() => setLiveAvailability({ anyOnline: false, agents: [] }));
+    },
+  );
 
   useRealtimeTopic(
     activeTicketCode ? REALTIME_TOPICS.supportTicket(activeTicketCode) : null,

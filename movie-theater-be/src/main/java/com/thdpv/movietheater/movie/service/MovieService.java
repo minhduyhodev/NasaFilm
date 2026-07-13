@@ -279,10 +279,9 @@ public class MovieService {
             }
 
             boolean requireAws = Boolean.TRUE.equals(filter.getRequireAwsStreaming())
-                    || Boolean.TRUE.equals(filter.getOnlineOnly())
-                    || Boolean.TRUE.equals(filter.getRequireBookableShowtime());
+                    || Boolean.TRUE.equals(filter.getOnlineOnly());
             if (requireAws) {
-                // streaming_url must be mentor S3 object under movie/
+                // Chỉ áp dụng cho luồng xem online — home ĐANG CHIẾU / SẮP CHIẾU không filter AWS
                 jakarta.persistence.criteria.Expression<String> streamingLower =
                         cb.lower(root.get("streamingUrl"));
                 predicates.add(cb.isNotNull(root.get("streamingUrl")));

@@ -4,7 +4,6 @@ import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
 import NewReleases from '../components/NewReleases';
 import ExclusiveCollection from '../components/ExclusiveCollection';
-import OnlineVIPSection from '../components/online/OnlineVIPSection';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import MovieFilterPanel from '../components/MovieFilterPanel';
@@ -234,7 +233,6 @@ const OnlineMoviesPage = () => {
             getOnlinePath={getOnlinePath}
           />
         )}
-        {!isSpotlightLoading && <OnlineVIPSection />}
       </main>
 
       {spotlightError && spotlightMovies.length === 0 && (

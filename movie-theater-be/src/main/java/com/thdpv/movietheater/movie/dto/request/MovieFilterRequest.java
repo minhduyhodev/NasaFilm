@@ -27,6 +27,7 @@ public class MovieFilterRequest {
 
     /**
      * Chỉ lấy phim có file chiếu trên AWS S3 ({@code .../movie/...}).
+     * Dùng cho luồng xem online; không áp dụng cho PHIM ĐANG CHIẾU / SẮP CHIẾU trên home.
      * Khi {@code onlineOnly=true} BE cũng ép điều kiện này.
      */
     private Boolean requireAwsStreaming;

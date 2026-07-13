@@ -141,15 +141,18 @@ const TicketFilters = () => {
   const [movie, setMovie] = useState('');
   const [date, setDate] = useState('');
   const [showtime, setShowtime] = useState('');
+  const [showtimesEnabled, setShowtimesEnabled] = useState(false);
 
   const { data: moviesData, isLoading: moviesLoading } = useNowShowingMovies();
   const { data: cinemasData, isLoading: cinemasLoading } = useHomeCinemas();
-  const { data: showtimesData, isLoading: showtimesLoading } = usePublicShowtimes();
+  const { data: showtimesData, isLoading: showtimesLoading } = usePublicShowtimes({
+    enabled: showtimesEnabled,
+  });
 
   const moviesList = moviesData?.content || moviesData || [];
   const cinemasList = cinemasData?.content || cinemasData || [];
   const showtimesList = showtimesData || [];
-  const isLoading = moviesLoading || cinemasLoading || showtimesLoading;
+  const isLoading = moviesLoading || cinemasLoading || (showtimesEnabled && showtimesLoading);
   const [openDropdown, setOpenDropdown] = useState(null); // 'theater' | 'movie' | 'date' | 'showtime' | null
 
   const { user } = useAuthContext();
@@ -208,6 +211,9 @@ const TicketFilters = () => {
   };
 
   const handleToggleDropdown = (dropdownName, isOpen) => {
+    if (isOpen) {
+      setShowtimesEnabled(true);
+    }
     setOpenDropdown(isOpen ? dropdownName : null);
   };
 

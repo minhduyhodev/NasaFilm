@@ -108,7 +108,7 @@ public class DiscoverMatchService {
         int flightNumber = 100 + Math.floorMod(buildFlightSeed(request, userEmail), 900);
         DiscoverMatchResponse response = new DiscoverMatchResponse();
         response.setFlightCode("NSF-" + flightNumber);
-        response.setFlightLabel("Chuyến bay #" + flightNumber);
+        response.setFlightLabel("Gợi ý #" + flightNumber);
         response.setMatches(matches);
         response.setTotalCandidates(candidates.getNumberOfElements());
 
