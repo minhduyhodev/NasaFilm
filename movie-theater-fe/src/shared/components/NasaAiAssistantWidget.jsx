@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, CreditCard, Crown, Gift, Headset, HelpCircle, Send, Star, Ticket, User, X } from 'lucide-react';
+import { Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -23,13 +23,22 @@ const CHAT_FLOW = {
   AWAIT_CONFIRM: 'await_confirm',
 };
 
-const COMPOSER_TARGET = {
-  STAFF: 'staff',
+/** Two separate chatboxes: bot FAQ/wizard vs staff/ticket thread */
+const CHAT_VIEW = {
   BOT: 'bot',
+  STAFF: 'staff',
+};
+
+/** Within Chat bot: pick Hỗ trợ (wizard) or Giải đáp (AI) */
+const BOT_INTENT = {
+  PICK: 'pick',
+  SUPPORT: 'support',
+  ANSWER: 'answer',
 };
 
 const LIVE_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
 const MIN_DESCRIPTION_LENGTH = 15;
+const MIN_SEND_GAP_MS = 1200;
 
 const CATEGORY_GUIDED_KEYS = new Set(['account', 'promo', 'membership']);
 
@@ -154,12 +163,17 @@ const DEFAULT_NASA_BOT_RUNTIME = {
 };
 
 const SATISFACTION_OPTIONS = [
-  { value: 1, label: 'Rat te' },
-  { value: 2, label: 'Chua hai long' },
-  { value: 3, label: 'Binh thuong' },
-  { value: 4, label: 'Hai long' },
-  { value: 5, label: 'Rat hai long' },
+  { value: 1, label: 'Rất tệ' },
+  { value: 2, label: 'Chưa hài lòng' },
+  { value: 3, label: 'Bình thường' },
+  { value: 4, label: 'Hài lòng' },
+  { value: 5, label: 'Rất hài lòng' },
 ];
+
+const isClosedSupportStatus = (status = '') => {
+  const value = `${status || ''}`.toUpperCase();
+  return value === 'DONE' || value === 'RESOLVED' || value === 'CLOSED';
+};
 
 const formatCountdown = (ms = 0) => {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -207,8 +221,22 @@ const shouldOpenTicketListFromText = (text = '') => {
   return /(xem ticket|ticket cua toi|danh sach ticket|tinh trang ticket)/.test(value);
 };
 
-const resolveSupportErrorMessage = (error, fallback) =>
-  error?.response?.data?.message || error?.message || fallback;
+const resolveSupportErrorMessage = (error, fallback) => {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.code || error?.response?.data?.errorCode;
+  const apiMessage = error?.response?.data?.message || error?.message;
+  const msgNorm = normalise(`${apiMessage || ''}`);
+  if (status === 429 || code === 429 || `${code || ''}`.includes('RATE_LIMIT') || msgNorm.includes('qua nhanh')) {
+    return 'Bạn gửi tin nhắn quá nhanh. Vui lòng đợi vài giây rồi thử lại.';
+  }
+  if (code === 409 || msgNorm.includes('da danh gia') || `${code || ''}`.includes('ALREADY_RATED')) {
+    return 'Bạn đã đánh giá ticket này rồi.';
+  }
+  if (msgNorm.includes('hoan tat') || msgNorm.includes('chi danh gia') || `${code || ''}`.includes('SATISFACTION_NOT_ALLOWED')) {
+    return 'Chỉ đánh giá được khi ticket đã hoàn tất.';
+  }
+  return apiMessage || fallback;
+};
 
 const getTicketPreviewText = (value = '') => {
   const parsed = parseSupportStickerMessage(value);
@@ -255,30 +283,48 @@ const resolveShortcutCategoryKey = (shortcut = {}) => {
 
 const isAgentMessage = (senderRole = '') => `${senderRole}`.toUpperCase() !== 'USER';
 
-const initialMessages = () => ([
-  {
-    id: 'welcome',
-    role: 'bot',
-    type: 'text',
-    text: 'Chào bạn! Mình có thể giúp gì cho bạn không?',
-    time: formatTime(),
-  },
-  {
-    id: 'categories',
-    role: 'bot',
-    type: 'categories',
-    time: formatTime(),
-  },
-]);
+const initialMessages = (intent = BOT_INTENT.SUPPORT) => {
+  if (intent === BOT_INTENT.ANSWER) {
+    return [
+      {
+        id: 'welcome',
+        role: 'bot',
+        type: 'text',
+        text: 'Chào bạn! Mình đang ở chế độ Giải đáp AI — hỏi gì về NASAFilm cũng được (phim, rạp, đặt vé, hội viên, chính sách...).',
+        time: formatTime(),
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'welcome',
+      role: 'bot',
+      type: 'text',
+      text: 'Chào bạn! Chọn danh mục hỗ trợ bên dưới, mô tả vấn đề, rồi mình sẽ gửi yêu cầu tới nhân viên / tạo ticket.',
+      time: formatTime(),
+    },
+    {
+      id: 'categories',
+      role: 'bot',
+      type: 'categories',
+      time: formatTime(),
+    },
+  ];
+};
 
 const NasaAiAssistantWidget = () => {
   const location = useLocation();
   const { user } = useAuthContext();
 
   const botScrollRef = useRef(null);
+  const staffScrollRef = useRef(null);
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState(initialMessages);
+  const [chatView, setChatView] = useState(CHAT_VIEW.BOT);
+  const [botIntent, setBotIntent] = useState(BOT_INTENT.PICK);
+  const [messages, setMessages] = useState([]);
+  const [aiStatus, setAiStatus] = useState({ configured: false, mode: 'FALLBACK' });
   const [draft, setDraft] = useState('');
   const [typing, setTyping] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -289,24 +335,29 @@ const NasaAiAssistantWidget = () => {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
   const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
-  const [showSatisfactionPrompt, setShowSatisfactionPrompt] = useState(false);
   const [chatFlow, setChatFlow] = useState(null);
   const [guidedChatActive, setGuidedChatActive] = useState(false);
   const [wizardCategory, setWizardCategory] = useState(null);
   const [wizardDescription, setWizardDescription] = useState('');
   const [showTicketDrawer, setShowTicketDrawer] = useState(false);
-  const [composerTarget, setComposerTarget] = useState(COMPOSER_TARGET.BOT);
   const [liveWaitStartedAt, setLiveWaitStartedAt] = useState(null);
   const [liveWaitTick, setLiveWaitTick] = useState(Date.now());
+  const lastSendAtRef = useRef(0);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
   const isAdminUser = useMemo(() => hasAdminAccess(currentUser), [currentUser]);
 
-  const activeTicket = useMemo(
-    () => myTickets.find((item) => item.ticketCode === activeTicketCode) || ticket || null,
-    [activeTicketCode, myTickets, ticket],
-  );
+  const activeTicket = useMemo(() => {
+    const fromList = activeTicketCode
+      ? myTickets.find((item) => item.ticketCode === activeTicketCode)
+      : null;
+    if (ticket?.ticketCode && (!activeTicketCode || ticket.ticketCode === activeTicketCode)) {
+      // Prefer live detail (websocket/refresh) over possibly stale list row
+      return fromList ? { ...fromList, ...ticket } : ticket;
+    }
+    return fromList || ticket || null;
+  }, [activeTicketCode, myTickets, ticket]);
 
   const shouldHideOnRoute = useMemo(() => {
     const pathname = location.pathname || '';
@@ -323,33 +374,26 @@ const NasaAiAssistantWidget = () => {
 
   const supportStatus = useMemo(() => {
     if (typing) return 'NASA BOT đang xử lý';
+    if (botIntent === BOT_INTENT.PICK && chatView === CHAT_VIEW.BOT) return 'Chọn Hỗ trợ hoặc Giải đáp';
+    if (botIntent === BOT_INTENT.ANSWER) {
+      if (aiStatus?.configured) return `Giải đáp AI · ${aiStatus.mode || 'OPENAI'}`;
+      return 'Giải đáp AI · chưa cấu hình key';
+    }
     if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) {
       return `Bước 2/3 · ${wizardCategory?.label || 'Mô tả'}`;
     }
     if (chatFlow === CHAT_FLOW.AWAIT_CONFIRM) return 'Bước 3/3 · Xác nhận';
-    if (activeTicket?.ticketCode) {
-      if (`${activeTicket.status || ''}`.toUpperCase() === 'DONE') return `Ticket ${activeTicket.ticketCode} đã hoàn tất`;
-      if (activeTicket.liveConnected) {
-        return `Đang nhắn với ${activeTicket.assignedStaffName || activeTicket.assignedStaffEmail || 'staff/admin'}`;
-      }
-      if (activeTicket.liveRequested) {
-        return `Ticket ${activeTicket.ticketCode} đang chờ staff/admin`;
-      }
-      return `Đang theo dõi ticket ${activeTicket.ticketCode}`;
-    }
     if (liveAvailability?.anyOnline) {
       const onlineCount = Array.isArray(liveAvailability.agents) ? liveAvailability.agents.length : 0;
-      return onlineCount > 0 ? `${onlineCount} staff/admin đang online` : 'Có staff/admin đang online';
+      return onlineCount > 0 ? `${onlineCount} staff đang online · dùng tab Nhắn staff` : 'Có staff đang online';
     }
-    return 'Bot trực 24/7';
+    return 'Hỗ trợ · wizard tạo ticket';
   }, [
-    activeTicket?.assignedStaffEmail,
-    activeTicket?.assignedStaffName,
-    activeTicket?.liveConnected,
-    activeTicket?.liveRequested,
-    activeTicket?.status,
-    activeTicket?.ticketCode,
+    aiStatus?.configured,
+    aiStatus?.mode,
+    botIntent,
     chatFlow,
+    chatView,
     liveAvailability?.agents,
     liveAvailability?.anyOnline,
     typing,
@@ -358,19 +402,32 @@ const NasaAiAssistantWidget = () => {
 
   const canReplyToTicket = Boolean(
     activeTicket?.ticketCode
-    && `${activeTicket.status || ''}`.toUpperCase() !== 'DONE',
+    && !isClosedSupportStatus(activeTicket?.status),
   );
 
+  const isStaffView = chatView === CHAT_VIEW.STAFF;
+  const isBotView = chatView === CHAT_VIEW.BOT;
+  const isAnswerIntent = botIntent === BOT_INTENT.ANSWER;
+  const isBotPickIntent = isBotView && botIntent === BOT_INTENT.PICK;
+
   const composerPlaceholder = useMemo(() => {
-    if (canReplyToTicket && composerTarget === COMPOSER_TARGET.STAFF) {
+    if (isStaffView) {
+      if (!activeTicket?.ticketCode) {
+        return 'Chọn ticket hỗ trợ để nhắn nhân viên...';
+      }
+      if (!canReplyToTicket) {
+        return 'Ticket đã đóng — bạn có thể đánh giá hỗ trợ phía trên';
+      }
       if (activeTicket.liveConnected) {
-        return `Nhắn ${activeTicket.assignedStaffName || activeTicket.assignedStaffEmail || 'staff/admin'}...`;
+        return `Nhắn ${activeTicket.assignedStaffName || activeTicket.assignedStaffEmail || 'nhân viên'}...`;
       }
       if (activeTicket.liveRequested) {
-        return 'Để lại tin nhắn, staff/admin sẽ thấy ngay khi nhận hỗ trợ...';
+        return 'Để lại tin nhắn, nhân viên sẽ thấy khi nhận hỗ trợ...';
       }
-      return 'Nhắn admin xử lý ticket này...';
+      return 'Nhắn nhân viên / admin xử lý ticket...';
     }
+    if (isBotPickIntent) return 'Chọn Hỗ trợ hoặc Giải đáp phía trên...';
+    if (isAnswerIntent) return 'Hỏi AI về NASAFilm...';
     if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) {
       return wizardCategory?.question || 'Mô tả vấn đề của bạn...';
     }
@@ -378,7 +435,7 @@ const NasaAiAssistantWidget = () => {
       return 'Chọn Gửi yêu cầu hoặc Sửa trên card phía trên...';
     }
     return 'Nhập để chat với NASA BOT...';
-  }, [activeTicket, canReplyToTicket, chatFlow, composerTarget, wizardCategory]);
+  }, [activeTicket, canReplyToTicket, chatFlow, isAnswerIntent, isBotPickIntent, isStaffView, wizardCategory]);
 
   const liveWaitRemainingMs = useMemo(() => {
     if (!liveWaitStartedAt || activeTicket?.liveConnected) return 0;
@@ -392,19 +449,23 @@ const NasaAiAssistantWidget = () => {
   );
 
   const headerSubtitle = useMemo(() => {
-    if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) return `Bước 2/3 · ${wizardCategory?.label || 'Mô tả'}`;
-    if (chatFlow === CHAT_FLOW.AWAIT_CONFIRM) return 'Bước 3/3 · Xác nhận';
-    if (activeTicket?.ticketCode) {
+    if (isStaffView) {
+      if (!activeTicket?.ticketCode) return 'Hỗ trợ · chọn ticket để nhắn nhân viên';
       if (isWaitingLive) return `Chờ nhân viên · ${formatCountdown(liveWaitRemainingMs)}`;
-      if (activeTicket.liveConnected) return `Chat với ${activeTicket.assignedStaffName || 'nhân viên'}`;
+      if (activeTicket.liveConnected) return `Nhắn với ${activeTicket.assignedStaffName || 'nhân viên'}`;
+      if (isClosedSupportStatus(activeTicket.status)) return `Ticket ${activeTicket.ticketCode} đã hoàn tất`;
       return `Ticket ${activeTicket.ticketCode}`;
     }
+    if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) return `Bước 2/3 · ${wizardCategory?.label || 'Mô tả'}`;
+    if (chatFlow === CHAT_FLOW.AWAIT_CONFIRM) return 'Bước 3/3 · Xác nhận';
     return supportStatus;
   }, [
     activeTicket?.assignedStaffName,
     activeTicket?.liveConnected,
+    activeTicket?.status,
     activeTicket?.ticketCode,
     chatFlow,
+    isStaffView,
     isWaitingLive,
     liveWaitRemainingMs,
     supportStatus,
@@ -418,37 +479,30 @@ const NasaAiAssistantWidget = () => {
   }, [activeTicket?.liveConnected, liveWaitStartedAt]);
 
   useEffect(() => {
-    if (botScrollRef.current) {
-      botScrollRef.current.scrollTop = botScrollRef.current.scrollHeight;
+    const node = isStaffView ? staffScrollRef.current : botScrollRef.current;
+    if (node) {
+      node.scrollTop = node.scrollHeight;
     }
-  }, [messages, ticketMessages, typing, open, isWaitingLive]);
+  }, [messages, ticketMessages, typing, open, isWaitingLive, isStaffView, chatView]);
 
   useEffect(() => {
-    let timerId = null;
-    if (
+    const needsRating = Boolean(
       activeTicket?.ticketCode
-      && `${activeTicket.status || ''}`.toUpperCase() === 'DONE'
-      && !activeTicket?.satisfactionRating
-    ) {
-      timerId = window.setTimeout(() => {
-        setShowSatisfactionPrompt(true);
-      }, 1200);
-    } else {
-      setShowSatisfactionPrompt(false);
-    }
+      && isClosedSupportStatus(activeTicket?.status)
+      && !activeTicket?.satisfactionRating,
+    );
 
-    return () => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-      }
-    };
+    if (needsRating) {
+      // Đưa user sang tab staff để thấy sao đánh giá (ticket đóng thì không còn canReply).
+      setChatView(CHAT_VIEW.STAFF);
+      setMessages((prev) => prev.filter((item) => item.type !== 'satisfaction'));
+    }
   }, [activeTicket?.satisfactionRating, activeTicket?.status, activeTicket?.ticketCode]);
 
   useEffect(() => {
-    if (canReplyToTicket) {
-      setComposerTarget(COMPOSER_TARGET.STAFF);
-    } else {
-      setComposerTarget(COMPOSER_TARGET.BOT);
+    // Keep views independent: opening a ticket always jumps to Staff chatbox
+    if (activeTicketCode && canReplyToTicket) {
+      setChatView(CHAT_VIEW.STAFF);
     }
   }, [activeTicketCode, canReplyToTicket]);
 
@@ -486,6 +540,20 @@ const NasaAiAssistantWidget = () => {
       }
     };
 
+    const loadAiStatus = async () => {
+      try {
+        const data = await supportService.getSupportAiStatus();
+        if (activeFlag) {
+          setAiStatus({
+            configured: Boolean(data?.configured),
+            mode: data?.mode || 'FALLBACK',
+          });
+        }
+      } catch {
+        if (activeFlag) setAiStatus({ configured: false, mode: 'FALLBACK' });
+      }
+    };
+
     const loadMySupportTickets = async () => {
       try {
         const list = await supportService.getMySupportRequests();
@@ -501,6 +569,7 @@ const NasaAiAssistantWidget = () => {
 
     loadRuntimeConfig();
     loadLiveAvailability();
+    loadAiStatus();
     loadMySupportTickets();
 
     return () => {
@@ -563,11 +632,12 @@ const NasaAiAssistantWidget = () => {
         if (detail?.liveConnected) {
           setTicket(detail);
           setLiveWaitStartedAt(null);
+          setChatView(CHAT_VIEW.STAFF);
           pushMessage({
             role: 'bot',
             type: 'card',
             title: 'Đã kết nối nhân viên',
-            text: `${detail.assignedStaffName || detail.assignedStaffEmail || 'Nhân viên'} đã nhận yêu cầu chat. Bạn có thể nhắn trực tiếp trong khung chat.`,
+            text: `${detail.assignedStaffName || detail.assignedStaffEmail || 'Nhân viên'} đã nhận yêu cầu. Chuyển sang tab Nhắn staff để chat trực tiếp.`,
           });
           await loadMyTickets();
           return;
@@ -663,6 +733,7 @@ const NasaAiAssistantWidget = () => {
     if (!ticketCode) return;
     setShowTicketDrawer(false);
     setActiveTicketCode(ticketCode);
+    setChatView(CHAT_VIEW.STAFF);
     setChatFlow(null);
     setWizardCategory(null);
     setWizardDescription('');
@@ -675,6 +746,32 @@ const NasaAiAssistantWidget = () => {
     }
   };
 
+  const enterBotIntent = (intent) => {
+    setChatView(CHAT_VIEW.BOT);
+    setBotIntent(intent);
+    setMessages(initialMessages(intent));
+    setDraft('');
+    setChatFlow(null);
+    setGuidedChatActive(false);
+    setWizardCategory(null);
+    setWizardDescription('');
+    setSelectedCategory(null);
+    setShowTicketDrawer(false);
+  };
+
+  const backToBotIntentPick = () => {
+    setChatView(CHAT_VIEW.BOT);
+    setBotIntent(BOT_INTENT.PICK);
+    setMessages([]);
+    setDraft('');
+    setChatFlow(null);
+    setGuidedChatActive(false);
+    setWizardCategory(null);
+    setWizardDescription('');
+    setSelectedCategory(null);
+    setTyping(false);
+  };
+
   const ensureCategoryChips = () => {
     setMessages((prev) => {
       if (prev.some((item) => item.type === 'categories')) return prev;
@@ -684,10 +781,11 @@ const NasaAiAssistantWidget = () => {
 
   useEffect(() => {
     if (!activeTicket?.ticketCode || chatFlow) return;
-    if (`${activeTicket.status || ''}`.toUpperCase() === 'DONE') {
-      ensureCategoryChips();
-    }
-  }, [activeTicket?.status, activeTicket?.ticketCode, chatFlow]);
+    if (`${activeTicket.status || ''}`.toUpperCase() !== 'DONE') return;
+    // Chỉ bổ sung chip danh mục trên luồng bot; không kéo user khỏi tab staff (đánh giá sao).
+    if (chatView !== CHAT_VIEW.BOT || botIntent !== BOT_INTENT.SUPPORT) return;
+    ensureCategoryChips();
+  }, [activeTicket?.status, activeTicket?.ticketCode, botIntent, chatFlow, chatView]);
 
   const cancelRequestFlow = () => {
     setChatFlow(null);
@@ -736,6 +834,7 @@ const NasaAiAssistantWidget = () => {
         const ticketData = ai?.autoTicket || { ticketCode: ai.autoTicketCode, status: 'PENDING' };
         setTicket(ticketData);
         setActiveTicketCode(ai.autoTicketCode);
+        setChatView(CHAT_VIEW.STAFF);
         setGuidedChatActive(false);
         await loadMyTickets();
         await refreshTicketThread(ai.autoTicketCode);
@@ -794,6 +893,8 @@ const NasaAiAssistantWidget = () => {
   };
 
   const startSupportWizard = (categoryKey = '', seededDescription = '') => {
+    setChatView(CHAT_VIEW.BOT);
+    setBotIntent(BOT_INTENT.SUPPORT);
     const category = getCategoryByKey(categoryKey);
     if (category) {
       selectSupportCategory(category);
@@ -861,6 +962,7 @@ const NasaAiAssistantWidget = () => {
 
       if (ticketCode) {
         setActiveTicketCode(ticketCode);
+        setChatView(CHAT_VIEW.STAFF);
         await refreshTicketThread(ticketCode);
       } else {
         ensureCategoryChips();
@@ -896,11 +998,12 @@ const NasaAiAssistantWidget = () => {
         role: 'bot',
         type: 'card',
         title: 'Đã gọi staff/admin online',
-        text: 'Mình đã chuyển yêu cầu của bạn sang nhóm trực hỗ trợ. Bạn có thể nhắn tiếp ngay trong khung chat.',
+        text: 'Đã chuyển sang tab Nhắn staff. Tin nhắn bạn gửi ở đó sẽ tới nhân viên.',
       });
 
       if (response?.ticketCode) {
         setActiveTicketCode(response.ticketCode);
+        setChatView(CHAT_VIEW.STAFF);
         await refreshTicketThread(response.ticketCode);
       }
     } catch (error) {
@@ -917,6 +1020,8 @@ const NasaAiAssistantWidget = () => {
     try {
       const updated = await supportService.submitSatisfaction(activeTicketCode, { rating });
       setTicket(updated || null);
+      setMessages((prev) => prev.filter((item) => item.type !== 'satisfaction'));
+      pushBot(`Cảm ơn bạn đã đánh giá ${rating}/5 sao!`);
       await loadMyTickets();
       notificationService.success('Cảm ơn bạn đã đánh giá hỗ trợ.');
     } catch (error) {
@@ -924,9 +1029,47 @@ const NasaAiAssistantWidget = () => {
     }
   };
 
+  const renderSatisfactionStars = (ticketCode = activeTicketCode) => (
+    <div className="nasa-satisfaction">
+      <div className="nasa-satisfaction__title">Đánh giá hỗ trợ</div>
+      <p className="nasa-satisfaction__text">Ticket đã hoàn tất. Bạn chấm giúp mình 1–5 sao nhé.</p>
+      <div className="nasa-satisfaction__stars" role="group" aria-label="Đánh giá 1 đến 5 sao">
+        {SATISFACTION_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className="nasa-satisfaction__star"
+            title={`${option.value} sao · ${option.label}`}
+            aria-label={`${option.value} sao, ${option.label}`}
+            onClick={() => {
+              if (ticketCode && ticketCode !== activeTicketCode) {
+                setActiveTicketCode(ticketCode);
+              }
+              submitSatisfaction(option.value);
+            }}
+          >
+            <Star className="nasa-satisfaction__star-icon" />
+            <span>{option.value}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const assertSendGap = () => {
+    const now = Date.now();
+    if (now - lastSendAtRef.current < MIN_SEND_GAP_MS) {
+      notificationService.info('Bạn gửi hơi nhanh. Đợi khoảng 1 giây rồi thử lại nhé.');
+      return false;
+    }
+    lastSendAtRef.current = now;
+    return true;
+  };
+
   const sendTicketReply = async (rawValue = draft) => {
     const value = rawValue.trim();
     if (!value || !activeTicketCode || !canReplyToTicket) return;
+    if (!assertSendGap()) return;
 
     setDraft('');
     setTicketMessages((prev) => [
@@ -953,10 +1096,20 @@ const NasaAiAssistantWidget = () => {
   const submitBotMessage = async (rawValue) => {
     const value = rawValue.trim();
     if (!value) return;
+    if (botIntent === BOT_INTENT.PICK) {
+      notificationService.info('Chọn Hỗ trợ hoặc Giải đáp trước khi chat.');
+      return;
+    }
+    if (typing) {
+      notificationService.info('NASA BOT đang trả lời. Vui lòng đợi xong rồi gửi tiếp.');
+      return;
+    }
+    if (!assertSendGap()) return;
 
     setDraft('');
     pushUser(value);
 
+    const answerMode = botIntent === BOT_INTENT.ANSWER;
     let matchedCategory = selectedCategory;
     let hasAiReply = false;
 
@@ -965,17 +1118,18 @@ const NasaAiAssistantWidget = () => {
       const ai = await supportService.chatSupport({
         message: value,
         history: buildHistory(value),
+        mode: answerMode ? 'ANSWER' : 'SUPPORT',
       });
 
       if (ai?.reply) {
-        pushBot(ai.reply, { choices: normalizeAiChoices(ai.choices) });
+        pushBot(ai.reply, { choices: answerMode ? null : normalizeAiChoices(ai.choices) });
         hasAiReply = true;
-        if (ai?.choices?.length) {
+        if (!answerMode && ai?.choices?.length) {
           setGuidedChatActive(true);
         }
       }
 
-      if (ai?.suggestedCategory) {
+      if (!answerMode && ai?.suggestedCategory) {
         matchedCategory = CATEGORIES.find((item) => item.key === ai.suggestedCategory) || matchedCategory;
         if (matchedCategory) {
           setSelectedCategory(matchedCategory);
@@ -983,10 +1137,11 @@ const NasaAiAssistantWidget = () => {
       }
 
       // Handle auto-created ticket from backend
-      if (ai?.autoTicketCode) {
+      if (!answerMode && ai?.autoTicketCode) {
         const ticketData = ai?.autoTicket || { ticketCode: ai.autoTicketCode, status: 'PENDING' };
         setTicket(ticketData);
         setActiveTicketCode(ai.autoTicketCode);
+        setChatView(CHAT_VIEW.STAFF);
         setGuidedChatActive(false);
         await loadMyTickets();
         if (ai.autoTicketCode) {
@@ -994,21 +1149,29 @@ const NasaAiAssistantWidget = () => {
         }
         return;
       }
-    } catch {
-      // Fall back to local routing below.
+    } catch (error) {
+      const message = resolveSupportErrorMessage(error, '');
+      if (message) {
+        pushBot(message);
+        hasAiReply = true;
+      }
     } finally {
       setTyping(false);
     }
 
     if (!hasAiReply) {
-      pushBot('Mình đã nhận nội dung của bạn. Chọn danh mục hỗ trợ phía trên hoặc mở danh sách ticket.');
+      pushBot(answerMode
+        ? 'Mình chưa nhận được phản hồi AI. Kiểm tra API key và khởi động lại backend giúp mình nhé.'
+        : 'Mình đã nhận nội dung của bạn. Chọn danh mục hỗ trợ phía trên hoặc mở danh sách ticket.');
     }
 
-    if (shouldStartTicketFlowFromText(value)) {
-      startSupportWizard(detectCategory(value), value);
-    } else if (shouldOpenTicketListFromText(value)) {
-      await loadMyTickets();
-      setShowTicketDrawer(true);
+    if (!answerMode) {
+      if (shouldStartTicketFlowFromText(value)) {
+        startSupportWizard(detectCategory(value), value);
+      } else if (shouldOpenTicketListFromText(value)) {
+        await loadMyTickets();
+        setShowTicketDrawer(true);
+      }
     }
   };
 
@@ -1032,13 +1195,24 @@ const NasaAiAssistantWidget = () => {
 
   const handleComposerSend = async () => {
     const value = draft.trim();
-    if (!value) return;
+    if (!value || typing) return;
 
-    if (canReplyToTicket && composerTarget === COMPOSER_TARGET.STAFF) {
+    // Staff chatbox: always send to ticket / nhân viên
+    if (isStaffView) {
+      if (!canReplyToTicket) {
+        notificationService.info('Ticket đã đóng. Chuyển sang Chat bot nếu bạn cần hỏi thêm.');
+        return;
+      }
       await sendTicketReply(value);
       return;
     }
 
+    if (isBotPickIntent) {
+      notificationService.info('Chọn Hỗ trợ hoặc Giải đáp trước khi chat.');
+      return;
+    }
+
+    // Bot chatbox: wizard / AI only
     if (chatFlow === CHAT_FLOW.AWAIT_DESCRIPTION) {
       setDraft('');
       handleDescriptionSubmit(value);
@@ -1054,6 +1228,41 @@ const NasaAiAssistantWidget = () => {
 
     await submitBotMessage(value);
   };
+
+  const renderBotIntentPicker = () => (
+    <div className="nasa-mode-picker">
+      <p className="nasa-mode-picker__lead">Chọn 1 trong 2 để bắt đầu</p>
+      <button
+        type="button"
+        className="nasa-mode-picker__option nasa-mode-picker__option--support"
+        onClick={() => enterBotIntent(BOT_INTENT.SUPPORT)}
+      >
+        <span className="nasa-mode-picker__icon">
+          <Headset className="h-5 w-5" />
+        </span>
+        <span className="nasa-mode-picker__copy">
+          <strong>1. Hỗ trợ</strong>
+          <span>Wizard · chọn danh mục → mô tả → gửi nhân viên / ticket</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="nasa-mode-picker__option nasa-mode-picker__option--answer"
+        onClick={() => enterBotIntent(BOT_INTENT.ANSWER)}
+      >
+        <span className="nasa-mode-picker__icon">
+          <Sparkles className="h-5 w-5" />
+        </span>
+        <span className="nasa-mode-picker__copy">
+          <strong>2. Giải đáp</strong>
+          <span>
+            AI chat · hỏi tự do về NASAFilm
+            {aiStatus?.configured ? ` (${aiStatus.mode})` : ''}
+          </span>
+        </span>
+      </button>
+    </div>
+  );
 
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
   if (isAdminUser || shouldHideOnRoute || !portalTarget) return null;
@@ -1079,6 +1288,24 @@ const NasaAiAssistantWidget = () => {
             </div>
           ) : null}
           <div className="nasa-assistant-time">{message.time}</div>
+        </div>
+      );
+    }
+
+    if (message.type === 'satisfaction') {
+      return (
+        <div key={message.id} className="nasa-assistant-msg nasa-assistant-msg--bot">
+          <div className="nasa-assistant-msg__row">
+            <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
+              <img src={nasaLogo} alt="bot" />
+            </div>
+            <div className="nasa-assistant-msg__content">
+              <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--satisfaction">
+                {renderSatisfactionStars(message.ticketCode)}
+              </div>
+              <div className="nasa-assistant-time">{message.time}</div>
+            </div>
+          </div>
         </div>
       );
     }
@@ -1293,6 +1520,7 @@ const NasaAiAssistantWidget = () => {
   const renderTicketThreadSection = () => {
     if (!activeTicket?.ticketCode) return null;
     const statusMeta = getTicketStatusMeta(activeTicket.status);
+    const needsRating = isClosedSupportStatus(activeTicket.status) && !activeTicket.satisfactionRating;
 
     return (
       <>
@@ -1320,6 +1548,26 @@ const NasaAiAssistantWidget = () => {
             </div>
           );
         })}
+        {needsRating ? (
+          <div className="nasa-assistant-msg nasa-assistant-msg--bot">
+            <div className="nasa-assistant-msg__row">
+              <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
+                <img src={nasaLogo} alt="bot" />
+              </div>
+              <div className="nasa-assistant-msg__content">
+                <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--satisfaction">
+                  {renderSatisfactionStars(activeTicket.ticketCode)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {activeTicket.satisfactionRating ? (
+          <div className="nasa-satisfaction nasa-satisfaction--done">
+            Đã đánh giá {activeTicket.satisfactionRating}/5 sao
+            {activeTicket.satisfactionLabel ? ` · ${activeTicket.satisfactionLabel}` : ''}
+          </div>
+        ) : null}
       </>
     );
   };
@@ -1331,7 +1579,20 @@ const NasaAiAssistantWidget = () => {
           type="button"
           className="nasa-assistant-fab"
           aria-label="Mở NASA BOT"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true);
+            setChatView(CHAT_VIEW.BOT);
+            setBotIntent(BOT_INTENT.PICK);
+            setMessages([]);
+            setDraft('');
+            setChatFlow(null);
+            setGuidedChatActive(false);
+            setWizardCategory(null);
+            setWizardDescription('');
+            setSelectedCategory(null);
+            setShowTicketDrawer(false);
+            setTyping(false);
+          }}
         >
           <span className="nasa-assistant-fab-glow" />
           <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
@@ -1381,54 +1642,136 @@ const NasaAiAssistantWidget = () => {
 
             <div className="nasa-assistant-body nasa-assistant-body--chat-only">
               <section className="nasa-assistant-bot-stage">
-                <div className="nasa-assistant-thread nasa-assistant-thread--bot" ref={botScrollRef}>
-                  {messages.map(renderTimelineMessage)}
-                  {renderTicketThreadSection()}
-                  {typing && (
-                    <div className="nasa-assistant-msg nasa-assistant-msg--bot">
-                      <div className="nasa-assistant-msg__row">
-                        <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
-                          <img src={nasaLogo} alt="bot" />
+                {isBotView ? (
+                  <div className="nasa-assistant-thread nasa-assistant-thread--bot" ref={botScrollRef}>
+                    {isBotPickIntent ? renderBotIntentPicker() : (
+                      <>
+                        {messages.map(renderTimelineMessage)}
+                        {typing && (
+                          <div className="nasa-assistant-msg nasa-assistant-msg--bot">
+                            <div className="nasa-assistant-msg__row">
+                              <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
+                                <img src={nasaLogo} alt="bot" />
+                              </div>
+                              <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--typing">
+                                <span />
+                                <span />
+                                <span />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="nasa-assistant-thread nasa-assistant-thread--staff" ref={staffScrollRef}>
+                    {!activeTicket?.ticketCode ? (
+                      <div className="nasa-assistant-empty-state">
+                        <div className="nasa-assistant-empty-state__title">Chưa mở hội thoại staff</div>
+                        <div className="nasa-assistant-empty-state__text">
+                          Tạo yêu cầu ở Chat bot, hoặc chọn ticket có sẵn để nhắn nhân viên.
                         </div>
-                        <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--typing">
-                          <span />
-                          <span />
-                          <span />
+                        <div className="nasa-assistant-empty-state__actions">
+                          <button
+                            type="button"
+                            className="nasa-wizard-btn nasa-wizard-btn--primary"
+                            onClick={() => enterBotIntent(BOT_INTENT.SUPPORT)}
+                          >
+                            Tạo hỗ trợ với bot
+                          </button>
+                          <button
+                            type="button"
+                            className="nasa-wizard-btn"
+                            onClick={async () => {
+                              await loadMyTickets();
+                              setShowTicketDrawer(true);
+                            }}
+                          >
+                            Xem ticket
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      renderTicketThreadSection()
+                    )}
+                  </div>
+                )}
               </section>
 
               {showTicketDrawer ? renderTicketDrawer() : null}
             </div>
 
             <footer className="nasa-assistant-footer">
-              {chatFlow ? (
+              <div className="nasa-chat-tabs nasa-chat-tabs--footer" role="tablist" aria-label="Chế độ chat">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isBotView}
+                  className={`nasa-chat-tabs__btn ${isBotView ? 'nasa-chat-tabs__btn--active' : ''}`}
+                  onClick={() => {
+                    setChatView(CHAT_VIEW.BOT);
+                    setShowTicketDrawer(false);
+                    setDraft('');
+                    if (botIntent === BOT_INTENT.PICK && messages.length === 0) {
+                      // keep picker
+                    }
+                  }}
+                >
+                  <Bot className="h-3.5 w-3.5" />
+                  Chat bot
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isStaffView}
+                  className={`nasa-chat-tabs__btn ${isStaffView ? 'nasa-chat-tabs__btn--active' : ''}`}
+                  onClick={() => {
+                    setChatView(CHAT_VIEW.STAFF);
+                    setDraft('');
+                  }}
+                >
+                  <Headset className="h-3.5 w-3.5" />
+                  Nhắn staff
+                  {activeTicketCode ? <span className="nasa-chat-tabs__dot" /> : null}
+                </button>
+              </div>
+              {isBotView && botIntent !== BOT_INTENT.PICK ? (
+                <div className="nasa-staff-composer-meta">
+                  {isAnswerIntent ? <Sparkles className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                  <span>{isAnswerIntent ? 'Đang ở Giải đáp AI' : 'Đang ở Hỗ trợ (wizard)'}</span>
+                  <button
+                    type="button"
+                    className="nasa-staff-composer-meta__link"
+                    onClick={backToBotIntentPick}
+                  >
+                    Đổi chế độ
+                  </button>
+                </div>
+              ) : null}
+              {isBotView && chatFlow ? (
                 <div className="nasa-composer-toolbar">
                   <button type="button" className="nasa-composer-cancel" onClick={cancelRequestFlow}>
                     Hủy yêu cầu
                   </button>
                 </div>
               ) : null}
-              {canReplyToTicket && !chatFlow ? (
-                <div className="nasa-composer-segment nasa-composer-segment--compact">
+              {isStaffView && activeTicket?.ticketCode ? (
+                <div className="nasa-staff-composer-meta">
+                  <Headset className="h-3.5 w-3.5" />
+                  <span>
+                    {canReplyToTicket
+                      ? (activeTicket.liveConnected
+                        ? `Đang chat với ${activeTicket.assignedStaffName || 'nhân viên'}`
+                        : `Tin nhắn gửi vào ticket ${activeTicket.ticketCode}`)
+                      : `Ticket ${activeTicket.ticketCode} đã đóng`}
+                  </span>
                   <button
                     type="button"
-                    className={`nasa-composer-segment__btn ${composerTarget === COMPOSER_TARGET.STAFF ? 'nasa-composer-segment__btn--active' : ''}`}
-                    onClick={() => setComposerTarget(COMPOSER_TARGET.STAFF)}
+                    className="nasa-staff-composer-meta__link"
+                    onClick={() => setChatView(CHAT_VIEW.BOT)}
                   >
-                    <Headset className="h-3.5 w-3.5" />
-                    Nhắn staff
-                  </button>
-                  <button
-                    type="button"
-                    className={`nasa-composer-segment__btn ${composerTarget === COMPOSER_TARGET.BOT ? 'nasa-composer-segment__btn--active' : ''}`}
-                    onClick={() => setComposerTarget(COMPOSER_TARGET.BOT)}
-                  >
-                    <Bot className="h-3.5 w-3.5" />
-                    Chat bot
+                    Về Chat bot
                   </button>
                 </div>
               ) : null}
@@ -1438,7 +1781,12 @@ const NasaAiAssistantWidget = () => {
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     placeholder={composerPlaceholder}
-                    disabled={chatFlow === CHAT_FLOW.AWAIT_CONFIRM}
+                    disabled={
+                      typing
+                      || isBotPickIntent
+                      || (isBotView && chatFlow === CHAT_FLOW.AWAIT_CONFIRM)
+                      || (isStaffView && (!activeTicket?.ticketCode || !canReplyToTicket))
+                    }
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
@@ -1449,7 +1797,13 @@ const NasaAiAssistantWidget = () => {
                   <button
                     type="button"
                     className="nasa-assistant-send"
-                    disabled={!draft.trim() || chatFlow === CHAT_FLOW.AWAIT_CONFIRM}
+                    disabled={
+                      !draft.trim()
+                      || typing
+                      || isBotPickIntent
+                      || (isBotView && chatFlow === CHAT_FLOW.AWAIT_CONFIRM)
+                      || (isStaffView && (!activeTicket?.ticketCode || !canReplyToTicket))
+                    }
                     onClick={handleComposerSend}
                     aria-label="Gửi tin nhắn"
                   >
@@ -1457,22 +1811,6 @@ const NasaAiAssistantWidget = () => {
                   </button>
                 </div>
               </div>
-
-              {showSatisfactionPrompt && (
-                <div className="nasa-assistant-actions nasa-assistant-actions--rating-inline">
-                  {SATISFACTION_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className="nasa-assistant-pill nasa-assistant-pill--rating"
-                      onClick={() => submitSatisfaction(option.value)}
-                    >
-                      <Star className="h-4 w-4" />
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </footer>
           </section>
         </div>

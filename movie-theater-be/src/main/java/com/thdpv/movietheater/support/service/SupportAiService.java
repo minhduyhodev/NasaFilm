@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,11 @@ public class SupportAiService {
 
     private static final Logger log = LoggerFactory.getLogger(SupportAiService.class);
     private static final int MAX_RETRIES = 2;
+    /** Skip OpenAI until this epoch-ms after a 429 (quota / rate limit). */
+    private static final long OPENAI_COOLDOWN_MS = 5 * 60 * 1000L;
+    private final AtomicLong openaiCooldownUntilMs = new AtomicLong(0);
+    private final java.util.concurrent.atomic.AtomicReference<List<String>> lastProviderFailures =
+            new java.util.concurrent.atomic.AtomicReference<>(List.of());
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
@@ -54,7 +60,22 @@ public class SupportAiService {
         this.systemConfigService = systemConfigService;
     }
 
+    @jakarta.annotation.PostConstruct
+    void logProviderStatus() {
+        log.info("Support AI providers — Groq={}, Gemini={}, OpenAI={}, runtimeMode={}",
+                isGroqConfigured(), isGeminiConfigured(), isOpenaiConfigured(), getRuntimeMode());
+    }
+
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
+        return chat(message, history, null);
+    }
+
+    /**
+     * @param mode {@code ANSWER} = free AI for every message (Giải đáp);
+     *             otherwise support/guided flow for ticket categories.
+     */
+    public SupportAiResult chat(String message, List<SupportAiMessage> history, String mode) {
+        boolean answerMode = isAnswerMode(mode);
         String detectedCategory = detectCategory(message);
         if (isGreetingOnly(message)) {
             return greetingReply();
@@ -66,7 +87,11 @@ public class SupportAiService {
             return unclearReply();
         }
         if (!isConfigured()) {
-            // In fallback mode, check ticket code early for fast routing
+            if (answerMode) {
+                return new SupportAiResult(
+                    "Hiện AI chưa được cấu hình. Thêm APP_OPENAI_API_KEY (hoặc Groq/Gemini) vào .env rồi khởi động lại backend nhé.",
+                    "other");
+            }
             if (hasTicketOrOrderCode(message)) {
                 String reply = "Mình đã nhận mã " + extractTicketOrOrderCode(message) + ". "
                     + "Bạn cho mình biết mã này đang gặp lỗi gì: sai vé, chưa nhận vé, cần đổi/hủy/hoàn vé hay lỗi quét QR để admin kiểm tra đúng hướng nhé.";
@@ -75,41 +100,96 @@ public class SupportAiService {
             return fallback(message, history);
         }
 
-        // ── Ticket-related categories → always use guided flow ──
-        // Categories that need structured Q&A form → guided (no AI)
-        if (isGuidedCategory(detectedCategory)) {
+        // Support mode: ticket-related categories use guided form (no AI)
+        if (!answerMode && isGuidedCategory(detectedCategory)) {
             return fallback(message, history);
         }
 
-        // ── General questions (other) → AI ──
         try {
-            List<SupportAiMessage> messages = buildMessages(message, history);
-
-            SupportAiResult aiResult = null;
-
-            // 1. Try Groq first (free, OpenAI-compatible, fastest)
-            if (isGroqConfigured()) {
-                aiResult = callGroq(messages, detectedCategory);
-            }
-            // 2. Try Gemini (free tier)
-            if (aiResult == null && isGeminiConfigured()) {
-                aiResult = callGemini(messages, detectedCategory);
-            }
-            // 3. Fall back to OpenAI (paid)
-            if (aiResult == null && isOpenaiConfigured()) {
-                aiResult = callOpenAI(messages, detectedCategory);
-            }
+            List<SupportAiMessage> messages = buildMessages(message, history, answerMode);
+            SupportAiResult aiResult = invokeConfiguredProviders(messages, detectedCategory);
 
             if (aiResult != null) {
-                return aiResult;
+                return answerMode ? aiResult : postProcessAiResult(aiResult, message, history);
             }
 
-            // 4. All AI providers failed
+            if (answerMode) {
+                return new SupportAiResult(buildAllProvidersFailedReply(), "other");
+            }
             return fallback(message, history);
         } catch (Exception error) {
             log.error("Unexpected error in AI chat flow", error);
+            if (answerMode) {
+                return new SupportAiResult(
+                    "Có lỗi khi gọi AI. Bạn thử lại sau hoặc chuyển sang mục Hỗ trợ nhé.",
+                    "other");
+            }
             return fallback(message, history);
         }
+    }
+
+    /**
+     * Free-tier first (Groq → Gemini), then OpenAI — unless OpenAI is in 429 cooldown.
+     */
+    private SupportAiResult invokeConfiguredProviders(List<SupportAiMessage> messages, String detectedCategory) {
+        lastProviderFailures.set(new ArrayList<>());
+        SupportAiResult aiResult = null;
+        if (isGroqConfigured()) {
+            aiResult = callGroq(messages, detectedCategory);
+            if (aiResult == null) {
+                noteProviderFailure("Groq");
+            }
+        }
+        if (aiResult == null && isGeminiConfigured()) {
+            aiResult = callGemini(messages, detectedCategory);
+            if (aiResult == null) {
+                noteProviderFailure("Gemini");
+            }
+        }
+        if (aiResult == null && isOpenaiConfigured() && !isOpenaiCoolingDown()) {
+            aiResult = callOpenAI(messages, detectedCategory);
+            if (aiResult == null) {
+                noteProviderFailure("OpenAI");
+            }
+        } else if (aiResult == null && isOpenaiConfigured() && isOpenaiCoolingDown()) {
+            noteProviderFailure("OpenAI(429 cooldown)");
+        }
+        return aiResult;
+    }
+
+    private void noteProviderFailure(String label) {
+        lastProviderFailures.updateAndGet(list -> {
+            List<String> next = new ArrayList<>(list);
+            next.add(label);
+            return next;
+        });
+    }
+
+    private boolean isOpenaiCoolingDown() {
+        return System.currentTimeMillis() < openaiCooldownUntilMs.get();
+    }
+
+    private void markOpenaiRateLimited() {
+        openaiCooldownUntilMs.set(System.currentTimeMillis() + OPENAI_COOLDOWN_MS);
+        log.warn("OpenAI entered {}s cooldown after rate limit", OPENAI_COOLDOWN_MS / 1000);
+    }
+
+    private String buildAllProvidersFailedReply() {
+        List<String> fails = lastProviderFailures.get();
+        StringBuilder sb = new StringBuilder("Mình chưa gọi được AI lúc này. ");
+        if (fails != null && !fails.isEmpty()) {
+            sb.append("Provider lỗi: ").append(String.join(", ", fails)).append(". ");
+        }
+        if (!isGroqConfigured()) {
+            sb.append("Chưa có APP_GROQ_API_KEY trong runtime — kiểm tra .env và restart backend. ");
+        }
+        sb.append("OpenAI/Gemini 429 thường do hết quota (free hoặc chưa billing). Groq free thường vẫn dùng được nếu key đã load. ");
+        sb.append("Hoặc chuyển sang mục Hỗ trợ để tạo ticket.");
+        return sb.toString().trim();
+    }
+
+    private boolean isAnswerMode(String mode) {
+        return mode != null && "ANSWER".equalsIgnoreCase(mode.trim());
     }
 
     /** Categories that use guided form flow instead of AI. */
@@ -850,9 +930,15 @@ public class SupportAiService {
 
     // ── AI Provider routing ──────────────────────────────────────────────
 
-    private List<SupportAiMessage> buildMessages(String message, List<SupportAiMessage> history) {
+    private List<SupportAiMessage> buildMessages(String message, List<SupportAiMessage> history, boolean answerMode) {
         List<SupportAiMessage> messages = new ArrayList<>();
-        messages.add(new SupportAiMessage("system", resolvePersonaPrompt()));
+        String persona = resolvePersonaPrompt();
+        if (answerMode) {
+            persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có. "
+                + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
+                + "hãy bảo họ chọn mục Hỗ trợ trên widget.";
+        }
+        messages.add(new SupportAiMessage("system", persona));
         if (history != null) {
             messages.addAll(history.stream()
                     .filter(item -> item != null && item.role() != null && item.content() != null)
@@ -919,7 +1005,9 @@ public class SupportAiService {
             ));
 
             String payload = objectMapper.writeValueAsString(body);
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey;
+            // Auth via header — required for newer Google AI Studio keys (AQ.…); avoid putting key in URL.
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                    + geminiModel + ":generateContent";
 
             for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                 if (attempt > 0) Thread.sleep(400L * attempt);
@@ -928,6 +1016,7 @@ public class SupportAiService {
                             .uri(URI.create(url))
                             .timeout(Duration.ofSeconds(20))
                             .header("Content-Type", "application/json")
+                            .header("x-goog-api-key", geminiApiKey.trim())
                             .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                             .build();
 
@@ -944,8 +1033,9 @@ public class SupportAiService {
                         log.warn("Gemini server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);
                         continue;
                     }
-                    // 4xx or empty reply — don't retry, fall through to OpenAI
-                    log.warn("Gemini returned {} — falling back to next provider", response.statusCode());
+                    log.warn("Gemini returned {} — falling back to next provider. bodySnippet={}",
+                            response.statusCode(),
+                            response.body() == null ? "" : response.body().substring(0, Math.min(180, response.body().length())));
                     break;
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -1033,6 +1123,11 @@ public class SupportAiService {
                             log.info("OpenAI responded successfully");
                             return new SupportAiResult(reply.trim(), detectedCategory);
                         }
+                    }
+                    if (response.statusCode() == 429) {
+                        markOpenaiRateLimited();
+                        log.warn("OpenAI returned 429 — cooling down, try next provider");
+                        break;
                     }
                     if (response.statusCode() >= 500) {
                         log.warn("OpenAI server error {} on attempt {}/{}", response.statusCode(), attempt + 1, MAX_RETRIES + 1);

@@ -2,15 +2,14 @@ export const SUPPORT_STICKER_PREFIX = '[[sticker:';
 export const SUPPORT_STICKER_SUFFIX = ']]';
 
 /**
- * Nhãn cảm ơn — phải là file GIF thật trong public/support-stickers/
- * (Cursor chat chỉ lưu được 1 frame tĩnh khi paste, nên cần copy .gif gốc vào thư mục đó)
+ * Nhãn cảm ơn — file PNG (asset hiện tại là PNG dù trước đó đặt tên .jpg/.gif).
  */
 export const SUPPORT_THANK_YOU_STICKER = {
   id: 'thank-you-nasa',
   label: 'Cảm ơn',
   caption: 'Cảm ơn bạn đã tin tưởng NASAFilm!',
-  src: '/support-stickers/thank-you-nasa.gif',
-  fallbackSrc: '/support-stickers/thank-you-nasa.jpg',
+  src: '/support-stickers/thank-you-nasa.png',
+  fallbackSrc: '/support-stickers/thank-you-nasa.png',
 };
 
 /** Chỉ một nhãn cảm ơn duy nhất */
