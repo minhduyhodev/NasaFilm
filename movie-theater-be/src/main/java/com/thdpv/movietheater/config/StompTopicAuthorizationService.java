@@ -26,6 +26,27 @@ public class StompTopicAuthorizationService {
         }
     }
 
+    /** Admin dashboard topics stay admin-only; support inbox topics also allow staff. */
+    public void assertAdminOrSupportTopicAccess(Authentication authentication, String destination) {
+        assertAuthenticated(authentication, "Yêu cầu đăng nhập để theo dõi kênh quản trị");
+        if (isSupportAdminTopic(destination)) {
+            if (!hasAnyRole(authentication, "ROLE_ADMIN", "ROLE_STAFF")) {
+                throw new AccessDeniedException("Chỉ admin hoặc staff mới có quyền theo dõi kênh hỗ trợ");
+            }
+            return;
+        }
+        assertAdminTopicAccess(authentication);
+    }
+
+    public boolean isSupportAdminTopic(String destination) {
+        if (destination == null) {
+            return false;
+        }
+        return destination.equals("/topic/admin/support")
+                || destination.equals("/topic/admin/support-live")
+                || destination.startsWith("/topic/admin/support/");
+    }
+
     public void assertStaffTopicAccess(Authentication authentication) {
         assertAuthenticated(authentication, "Yêu cầu đăng nhập để theo dõi kênh nhân viên");
         if (!hasAnyRole(authentication, "ROLE_STAFF", "ROLE_ADMIN")) {

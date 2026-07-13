@@ -96,7 +96,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             return;
         }
         if (stompTopicAuthorizationService.isAdminTopic(destination)) {
-            stompTopicAuthorizationService.assertAdminTopicAccess(authentication);
+            stompTopicAuthorizationService.assertAdminOrSupportTopicAccess(authentication, destination);
             return;
         }
         if (stompTopicAuthorizationService.isStaffTopic(destination)) {
@@ -116,7 +116,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (ticketCode == null || ticketCode.isBlank()) {
             throw new AccessDeniedException("Topic hỗ trợ không hợp lệ");
         }
-        if (stompTopicAuthorizationService.hasAdminRole(authentication)) {
+        if (stompTopicAuthorizationService.hasStaffOrAdminRole(authentication)) {
             return;
         }
         if (!supportTopicAccessService.canSubscribe(authentication.getName(), ticketCode)) {

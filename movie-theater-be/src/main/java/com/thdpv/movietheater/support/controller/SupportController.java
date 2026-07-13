@@ -54,7 +54,11 @@ public class SupportController {
         var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
                 .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
                 .toList();
-        var result = supportAiService.chat(request.message(), history, request.mode());
+        var result = supportAiService.chat(
+                request.message(),
+                history,
+                request.mode(),
+                userDetails != null ? userDetails.getUsername() : null);
 
         // Auto-create ticket if AI produced a ticketAction
         SupportTicketResponse createdTicket = null;

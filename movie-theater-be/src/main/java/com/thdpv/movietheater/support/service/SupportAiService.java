@@ -30,6 +30,7 @@ public class SupportAiService {
             .build();
     private final ObjectMapper objectMapper;
     private final SystemConfigService systemConfigService;
+    private final SupportAiContextService supportAiContextService;
 
     @Value("${app.groq.api-key:}")
     private String groqApiKey;
@@ -37,9 +38,13 @@ public class SupportAiService {
     @Value("${app.groq.model:llama-3.1-8b-instant}")
     private String groqModel;
 
-    public SupportAiService(ObjectMapper objectMapper, SystemConfigService systemConfigService) {
+    public SupportAiService(
+            ObjectMapper objectMapper,
+            SystemConfigService systemConfigService,
+            SupportAiContextService supportAiContextService) {
         this.objectMapper = objectMapper;
         this.systemConfigService = systemConfigService;
+        this.supportAiContextService = supportAiContextService;
     }
 
     @jakarta.annotation.PostConstruct
@@ -48,14 +53,19 @@ public class SupportAiService {
     }
 
     public SupportAiResult chat(String message, List<SupportAiMessage> history) {
-        return chat(message, history, null);
+        return chat(message, history, null, null);
+    }
+
+    public SupportAiResult chat(String message, List<SupportAiMessage> history, String mode) {
+        return chat(message, history, mode, null);
     }
 
     /**
      * @param mode {@code ANSWER} = free AI for every message (Giải đáp);
      *             otherwise support/guided flow for ticket categories.
+     * @param userEmail logged-in customer email for personal score/tier context (nullable).
      */
-    public SupportAiResult chat(String message, List<SupportAiMessage> history, String mode) {
+    public SupportAiResult chat(String message, List<SupportAiMessage> history, String mode, String userEmail) {
         boolean answerMode = isAnswerMode(mode);
         String detectedCategory = detectCategory(message);
         if (isGreetingOnly(message)) {
@@ -87,7 +97,7 @@ public class SupportAiService {
         }
 
         try {
-            List<SupportAiMessage> messages = buildMessages(message, history, answerMode);
+            List<SupportAiMessage> messages = buildMessages(message, history, answerMode, userEmail);
             SupportAiResult aiResult = callAi(messages, detectedCategory);
 
             if (aiResult != null) {
@@ -853,13 +863,18 @@ public class SupportAiService {
 
     // ── AI Provider routing ──────────────────────────────────────────────
 
-    private List<SupportAiMessage> buildMessages(String message, List<SupportAiMessage> history, boolean answerMode) {
+    private List<SupportAiMessage> buildMessages(
+            String message,
+            List<SupportAiMessage> history,
+            boolean answerMode,
+            String userEmail) {
         List<SupportAiMessage> messages = new ArrayList<>();
         String persona = resolvePersonaPrompt();
         if (answerMode) {
-            persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có. "
+            persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có + DỮ LIỆU THỰC TẾ bên dưới. "
                 + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
-                + "hãy bảo họ chọn mục Hỗ trợ trên widget.";
+                + "hãy bảo họ chọn mục Hỗ trợ trên widget.\n\n"
+                + supportAiContextService.buildLiveContextBlock(userEmail);
         }
         messages.add(new SupportAiMessage("system", persona));
         if (history != null) {

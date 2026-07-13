@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { dismissToast, subscribeToToasts } from '../../shared/services/notificationService';
+import { MessageCircle } from 'lucide-react';
+import { dismissToast, runToastAction, subscribeToToasts } from '../../shared/services/notificationService';
+import './ToastViewport.css';
 
 const TOAST_STYLES = {
   success: {
@@ -29,6 +31,11 @@ const LoadingSpinner = () => (
   <div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
 );
 
+const handleActionClick = (toast) => {
+  runToastAction(toast.id);
+  dismissToast(toast.id);
+};
+
 export const ToastViewport = () => {
   const [toasts, setToasts] = useState([]);
 
@@ -39,41 +46,62 @@ export const ToastViewport = () => {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3">
+    <div className="toast-viewport pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3">
       {toasts.map((toast) => {
         const style = TOAST_STYLES[toast.type] ?? TOAST_STYLES.info;
+        const isMessage = toast.variant === 'message';
+        const title = toast.title || style.title;
 
         return (
           <div
             key={toast.id}
-            className="pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-[#11131a] shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+            className={[
+              'toast-card pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-[#11131a] shadow-[0_20px_60px_rgba(0,0,0,0.35)]',
+              isMessage ? 'toast-card--message' : '',
+            ].filter(Boolean).join(' ')}
           >
-            <div className={`h-1 w-full ${style.accent}`} />
+            <div className={`h-1 w-full ${isMessage ? 'bg-rose-500' : style.accent}`} />
             <div className="flex items-start gap-3 p-4">
               <div className="mt-0.5 shrink-0">
                 {toast.type === 'loading' ? (
                   <LoadingSpinner />
+                ) : isMessage ? (
+                  <div className="toast-message-icon">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </div>
                 ) : (
                   <div className={`h-3 w-3 rounded-full ${style.accent}`} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">{style.title}</p>
+                <p className="text-sm font-semibold text-white">{title}</p>
                 <p className="mt-1 break-words text-sm text-slate-300">{toast.message}</p>
-                {toast.actionPath && toast.actionLabel && (
+                {toast.actionLabel && toast.actionPath ? (
                   <Link
                     to={toast.actionPath}
-                    onClick={() => dismissToast(toast.id)}
-                    className="mt-2 inline-flex text-xs font-semibold text-amber-300 transition-colors hover:text-amber-200"
+                    onClick={() => handleActionClick(toast)}
+                    className={isMessage
+                      ? 'toast-action-btn mt-2 inline-flex'
+                      : 'mt-2 inline-flex text-xs font-semibold text-amber-300 transition-colors hover:text-amber-200'}
                   >
                     {toast.actionLabel}
                   </Link>
-                )}
+                ) : null}
+                {toast.actionLabel && !toast.actionPath ? (
+                  <button
+                    type="button"
+                    onClick={() => handleActionClick(toast)}
+                    className="toast-action-btn mt-2 inline-flex"
+                  >
+                    {toast.actionLabel}
+                  </button>
+                ) : null}
               </div>
               <button
                 type="button"
                 onClick={() => dismissToast(toast.id)}
                 className="rounded-full p-1 text-slate-400 transition-colors hover:text-white"
+                aria-label="Đóng thông báo"
               >
                 x
               </button>
