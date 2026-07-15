@@ -10,6 +10,9 @@ const STAFF_LANDING_CANDIDATES = [
   { path: '/admin/showtimes', permission: PERMISSIONS.SHOWTIME_WRITE },
   { path: '/admin/combos', permission: PERMISSIONS.COMBO_WRITE },
   { path: '/admin/support', permission: PERMISSIONS.SUPPORT_MANAGE },
+  { path: '/admin/hr/schedule', permission: PERMISSIONS.HR_SHIFT_MANAGE },
+  { path: '/admin/hr/attendance', permission: PERMISSIONS.HR_ATTENDANCE_MANAGE },
+  { path: '/admin/hr/payroll', permission: PERMISSIONS.HR_PAYROLL_MANAGE },
 ];
 
 export const canAccessAdminDashboard = (user) =>
@@ -22,7 +25,8 @@ export const getDefaultAdminPath = (user) => {
   const match = STAFF_LANDING_CANDIDATES.find((item) =>
     hasPermission(user, item.permission),
   );
-  return match?.path || '/unauthorized';
+  // Mọi nhân viên đều truy cập được trang tự phục vụ "Bảng công của tôi".
+  return match?.path || '/admin/hr/me';
 };
 
 /** Chuyển URL counter cũ sang admin thống nhất. */

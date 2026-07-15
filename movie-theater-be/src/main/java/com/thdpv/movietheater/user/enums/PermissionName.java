@@ -15,7 +15,10 @@ public enum PermissionName {
     COMBO_WRITE("Quản lý combo", "Content"),
     PROMOTION_WRITE("Quản lý khuyến mãi", "Content"),
     USER_VIEW("Xem danh sách user", "Admin ops"),
-    SUPPORT_MANAGE("Quản lý support ticket", "Admin ops");
+    SUPPORT_MANAGE("Quản lý support ticket", "Admin ops"),
+    HR_SHIFT_MANAGE("Xếp ca làm việc", "Chấm công & Lương"),
+    HR_ATTENDANCE_MANAGE("Quản lý & duyệt chấm công", "Chấm công & Lương"),
+    HR_PAYROLL_MANAGE("Quản lý lương, thưởng, OT", "Chấm công & Lương");
 
     private final String description;
     private final String group;
