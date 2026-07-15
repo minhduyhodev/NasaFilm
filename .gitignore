@@ -58,3 +58,11 @@ docs/movie_theater.sql
 
 
 special function/
+
+.testsprite/
+
+tests/
+
+testsprite-plans/
+
+testsprite_tests/
