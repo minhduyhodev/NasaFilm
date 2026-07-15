@@ -375,6 +375,21 @@
   color: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom-left-radius: 0.34rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.nasa-assistant-link {
+  color: #fca5a5;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.nasa-assistant-link:hover {
+  color: #fecaca;
 }
 
 .nasa-assistant-bubble--user {
@@ -582,6 +597,37 @@
   gap: 0.38rem;
   text-align: left;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.nasa-assistant-ticket-card__open {
+  display: grid;
+  gap: 0.38rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nasa-assistant-ticket-card__cancel,
+.nasa-timeline-cancel {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.nasa-assistant-ticket-card__cancel:hover,
+.nasa-timeline-cancel:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.55);
 }
 
 .nasa-assistant-ticket-card--active {

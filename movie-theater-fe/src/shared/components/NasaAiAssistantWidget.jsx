@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
 import { REALTIME_TOPICS } from '../constants/realtimeTopics';
@@ -14,6 +14,7 @@ import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
 import { DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../constants/systemConfig';
 import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
+import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import './NasaAiAssistantWidget.css';
@@ -259,6 +260,9 @@ const getTicketStatusMeta = (status = '') => {
   switch (value) {
     case 'DONE':
       return { label: 'Đã xong', className: 'nasa-assistant-status nasa-assistant-status--done' };
+    case 'CLOSED':
+    case 'RESOLVED':
+      return { label: 'Đã hủy/đóng', className: 'nasa-assistant-status nasa-assistant-status--done' };
     case 'IN_PROGRESS':
       return { label: 'Đang xử lý', className: 'nasa-assistant-status nasa-assistant-status--progress' };
     case 'LIVE_REQUESTED':
@@ -283,6 +287,23 @@ const resolveShortcutCategoryKey = (shortcut = {}) => {
 };
 
 const isAgentMessage = (senderRole = '') => `${senderRole}`.toUpperCase() !== 'USER';
+
+const readStoredAiSession = () => {
+  try {
+    return localStorage.getItem(AI_SESSION_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+};
+
+const readStoredUiState = () => {
+  try {
+    const raw = localStorage.getItem(AI_UI_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const initialMessages = (intent = BOT_INTENT.SUPPORT) => {
   if (intent === BOT_INTENT.ANSWER) {
@@ -314,21 +335,122 @@ const initialMessages = (intent = BOT_INTENT.SUPPORT) => {
   ];
 };
 
+/**
+ * Rebuild the initial bot chat state (mode + wizard step) from a lightweight
+ * localStorage snapshot. This lets an in-progress wizard (choosing a category,
+ * typing a description, confirming) survive a reload even before any AI exchange
+ * is persisted server-side. Wizard messages are deterministic from the snapshot,
+ * so we regenerate them instead of storing the whole (non-serializable) thread.
+ */
+const buildInitialBotState = (snapshot) => {
+  const empty = { intent: BOT_INTENT.PICK, messages: [], category: null, chatFlow: null, description: '' };
+  if (!snapshot || !snapshot.intent || snapshot.intent === BOT_INTENT.PICK) {
+    return empty;
+  }
+  if (snapshot.intent === BOT_INTENT.ANSWER) {
+    return { ...empty, intent: BOT_INTENT.ANSWER, messages: initialMessages(BOT_INTENT.ANSWER) };
+  }
+
+  // SUPPORT mode.
+  const category = snapshot.categoryKey ? getCategoryByKey(snapshot.categoryKey) : null;
+  if (!snapshot.chatFlow || !category) {
+    return { ...empty, intent: BOT_INTENT.SUPPORT, messages: initialMessages(BOT_INTENT.SUPPORT) };
+  }
+
+  const messages = [initialMessages(BOT_INTENT.SUPPORT)[0]]; // keep only the welcome bubble
+  messages.push({ id: 'restore-cat', role: 'user', type: 'text', text: category.label, time: formatTime() });
+  messages.push({
+    id: 'restore-question',
+    role: 'bot',
+    type: 'text',
+    text: `${category.question}. Mô tả tối thiểu ${MIN_DESCRIPTION_LENGTH} ký tự.`,
+    time: formatTime(),
+  });
+
+  if (snapshot.chatFlow === CHAT_FLOW.AWAIT_CONFIRM && snapshot.description) {
+    messages.push({ id: 'restore-desc', role: 'user', type: 'text', text: snapshot.description, time: formatTime() });
+    messages.push({ id: 'restore-confirm', role: 'bot', type: 'confirm', category, description: snapshot.description, time: formatTime() });
+    return { intent: BOT_INTENT.SUPPORT, messages, category, chatFlow: CHAT_FLOW.AWAIT_CONFIRM, description: snapshot.description };
+  }
+
+  return { intent: BOT_INTENT.SUPPORT, messages, category, chatFlow: CHAT_FLOW.AWAIT_DESCRIPTION, description: '' };
+};
+
+// Inline markdown the bot may emit: [label](url) links and **bold**.
+const INLINE_TOKEN_RE = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
+
+const renderInlineTokens = (line, keyPrefix, onLinkClick) => {
+  const nodes = [];
+  const re = new RegExp(INLINE_TOKEN_RE);
+  let lastIndex = 0;
+  let idx = 0;
+  let match;
+  while ((match = re.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(line.slice(lastIndex, match.index));
+    }
+    if (match[1] !== undefined) {
+      const label = match[1];
+      const url = match[2];
+      const isInternal = url.startsWith('/');
+      const linkKey = `${keyPrefix}-l-${idx++}`;
+      nodes.push(
+        <a
+          key={linkKey}
+          href={url}
+          className="nasa-assistant-link"
+          {...(isInternal
+            ? { onClick: (event) => { event.preventDefault(); onLinkClick?.(url); } }
+            : { target: '_blank', rel: 'noopener noreferrer' })}
+        >
+          {renderInlineTokens(label, linkKey, onLinkClick)}
+        </a>,
+      );
+    } else if (match[3] !== undefined) {
+      const boldKey = `${keyPrefix}-b-${idx++}`;
+      nodes.push(<strong key={boldKey}>{renderInlineTokens(match[3], boldKey, onLinkClick)}</strong>);
+    }
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < line.length) {
+    nodes.push(line.slice(lastIndex));
+  }
+  return nodes;
+};
+
+/** Render bot text with clickable movie links, **bold**, and real line breaks. */
+const renderRichText = (text, onLinkClick) => {
+  if (text === null || text === undefined) return null;
+  const lines = String(text).split('\n');
+  return lines.map((line, i) => (
+    <React.Fragment key={`rt-${i}`}>
+      {renderInlineTokens(line, `rt-${i}`, onLinkClick)}
+      {i < lines.length - 1 ? <br /> : null}
+    </React.Fragment>
+  ));
+};
+
 const NasaAiAssistantWidget = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuthContext();
 
   const botScrollRef = useRef(null);
   const staffScrollRef = useRef(null);
 
+  // Restore the mode + wizard step synchronously so a reload never drops the
+  // user back on the "Chọn 1 trong 2" screen mid-flow.
+  const [bootBotState] = useState(() => buildInitialBotState(readStoredUiState()));
+
   const [open, setOpen] = useState(false);
   const [chatView, setChatView] = useState(CHAT_VIEW.BOT);
-  const [botIntent, setBotIntent] = useState(BOT_INTENT.PICK);
-  const [messages, setMessages] = useState([]);
+  const [botIntent, setBotIntent] = useState(bootBotState.intent);
+  const [messages, setMessages] = useState(bootBotState.messages);
+  const [botSessionId, setBotSessionId] = useState(() => readStoredAiSession());
   const [aiStatus, setAiStatus] = useState({ configured: false, mode: 'FALLBACK' });
   const [draft, setDraft] = useState('');
   const [typing, setTyping] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(bootBotState.category);
   const [ticketDraft, setTicketDraft] = useState('');
   const [ticket, setTicket] = useState(null);
   const [myTickets, setMyTickets] = useState([]);
@@ -336,18 +458,29 @@ const NasaAiAssistantWidget = () => {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
   const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
-  const [chatFlow, setChatFlow] = useState(null);
+  const [chatFlow, setChatFlow] = useState(bootBotState.chatFlow);
   const [guidedChatActive, setGuidedChatActive] = useState(false);
-  const [wizardCategory, setWizardCategory] = useState(null);
-  const [wizardDescription, setWizardDescription] = useState('');
+  const [wizardCategory, setWizardCategory] = useState(bootBotState.category);
+  const [wizardDescription, setWizardDescription] = useState(bootBotState.description);
   const [showTicketDrawer, setShowTicketDrawer] = useState(false);
   const [liveWaitStartedAt, setLiveWaitStartedAt] = useState(null);
   const [liveWaitTick, setLiveWaitTick] = useState(Date.now());
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
+
+  // Bot reply movie links → navigate in-app and tuck the widget away so the
+  // customer lands on the movie page.
+  const handleBotLinkClick = (url) => {
+    if (!url) return;
+    setOpen(false);
+    navigate(url);
+  };
+
   const lastSendAtRef = useRef(0);
   const openRef = useRef(false);
   const activeTicketCodeRef = useRef('');
   const chatViewRef = useRef(CHAT_VIEW.BOT);
+  const botRestoredRef = useRef(false);
+  const prevUserKeyRef = useRef(undefined);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
@@ -357,6 +490,102 @@ const NasaAiAssistantWidget = () => {
   useEffect(() => {
     openRef.current = open;
   }, [open]);
+
+  // Keep the active AI session id in localStorage so the chat survives a reload.
+  useEffect(() => {
+    try {
+      if (botSessionId) {
+        localStorage.setItem(AI_SESSION_STORAGE_KEY, botSessionId);
+      } else {
+        localStorage.removeItem(AI_SESSION_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage unavailable — ignore.
+    }
+  }, [botSessionId]);
+
+  // Persist the lightweight wizard snapshot (mode + current step) so an
+  // in-progress support flow survives a reload before any AI reply is saved.
+  useEffect(() => {
+    try {
+      if (botIntent === BOT_INTENT.PICK) {
+        localStorage.removeItem(AI_UI_STATE_KEY);
+        return;
+      }
+      const category = wizardCategory || selectedCategory;
+      localStorage.setItem(AI_UI_STATE_KEY, JSON.stringify({
+        intent: botIntent,
+        chatFlow: chatFlow || null,
+        categoryKey: category?.key || null,
+        description: wizardDescription || '',
+      }));
+    } catch {
+      // localStorage unavailable — ignore.
+    }
+  }, [botIntent, chatFlow, selectedCategory, wizardCategory, wizardDescription]);
+
+  // On first load, restore the previous NASA BOT conversation from the server.
+  useEffect(() => {
+    if (botRestoredRef.current) return undefined;
+    if (!isLoggedInCustomer) return undefined;
+    const stored = readStoredAiSession();
+    if (!stored) return undefined;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [msgs, sessions] = await Promise.all([
+          supportService.getAiSessionMessages(stored),
+          supportService.getAiSessions(),
+        ]);
+        if (cancelled) return;
+        if (!Array.isArray(msgs) || msgs.length === 0) {
+          botRestoredRef.current = true;
+          return;
+        }
+
+        const meta = Array.isArray(sessions)
+          ? sessions.find((item) => item.sessionCode === stored)
+          : null;
+        const isSupport = `${meta?.mode || ''}`.toUpperCase() === 'SUPPORT';
+        const mode = isSupport ? BOT_INTENT.SUPPORT : BOT_INTENT.ANSWER;
+
+        const lastIndex = msgs.length - 1;
+        const restored = msgs.map((item, index) => {
+          const isBot = `${item.role || ''}`.toUpperCase() !== 'USER';
+          // Only the latest bot message keeps its choice buttons active.
+          const choices = isBot && index === lastIndex ? normalizeAiChoices(item.choices) : null;
+          return {
+            id: `restored-${index}`,
+            role: isBot ? 'bot' : 'user',
+            type: 'text',
+            text: item.content,
+            ...(choices?.length ? { choices } : {}),
+            time: item.createdAt ? formatTime(new Date(item.createdAt)) : formatTime(),
+          };
+        });
+
+        // Mark restored only on success so React StrictMode's double-invoke
+        // (which cancels the first run) doesn't skip the real restore.
+        botRestoredRef.current = true;
+        setBotIntent(mode);
+        setChatView(CHAT_VIEW.BOT);
+        setMessages(restored);
+        setBotSessionId(stored);
+        // Re-enable the guided wizard so the composer keeps driving the flow.
+        if (isSupport) {
+          setGuidedChatActive(true);
+        }
+      } catch {
+        // Stale or forbidden session — drop it so a fresh one starts.
+        if (!cancelled) setBotSessionId(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedInCustomer]);
 
   useEffect(() => {
     activeTicketCodeRef.current = activeTicketCode;
@@ -845,6 +1074,23 @@ const NasaAiAssistantWidget = () => {
     }
   };
 
+  const cancelActiveTicket = async (ticketCode = activeTicketCode) => {
+    if (!ticketCode) return;
+    const confirmed = window.confirm(`Hủy yêu cầu ${ticketCode}? Bạn có thể tạo ticket mới sau khi hủy.`);
+    if (!confirmed) return;
+    try {
+      await supportService.cancelSupportRequest(ticketCode);
+      clearStaffTicketUnread(ticketCode);
+      await loadMyTickets();
+      if (activeTicketCode === ticketCode) {
+        await refreshTicketThread(ticketCode);
+      }
+      notificationService.success(`Đã hủy ticket ${ticketCode}.`);
+    } catch (error) {
+      notificationService.error(resolveSupportErrorMessage(error, 'Không hủy được ticket lúc này.'));
+    }
+  };
+
   useEffect(() => {
     openTicketThreadRef.current = openTicketThread;
   });
@@ -853,6 +1099,7 @@ const NasaAiAssistantWidget = () => {
     setChatView(CHAT_VIEW.BOT);
     setBotIntent(intent);
     setMessages(initialMessages(intent));
+    setBotSessionId(null);
     setDraft('');
     setChatFlow(null);
     setGuidedChatActive(false);
@@ -866,6 +1113,7 @@ const NasaAiAssistantWidget = () => {
     setChatView(CHAT_VIEW.BOT);
     setBotIntent(BOT_INTENT.PICK);
     setMessages([]);
+    setBotSessionId(null);
     setDraft('');
     setChatFlow(null);
     setGuidedChatActive(false);
@@ -874,6 +1122,30 @@ const NasaAiAssistantWidget = () => {
     setSelectedCategory(null);
     setTyping(false);
   };
+
+  // When the signed-in account changes (logout, or switching users) reset the whole
+  // NASA Bot chat back to the initial screen so one person's conversation, tickets
+  // and wizard step never carry over to the next (or to an anonymous) visitor.
+  useEffect(() => {
+    const userKey = currentUser?.email ? String(currentUser.email).toLowerCase() : null;
+    if (prevUserKeyRef.current === undefined) {
+      // First render: remember who we started with; keep any restored session.
+      prevUserKeyRef.current = userKey;
+      return;
+    }
+    if (prevUserKeyRef.current === userKey) return;
+    prevUserKeyRef.current = userKey;
+
+    clearNasaBotStorage();
+    botRestoredRef.current = false;
+    backToBotIntentPick();
+    setOpen(false);
+    setTicket(null);
+    setMyTickets([]);
+    setActiveTicketCode('');
+    setTicketMessages([]);
+    setUnreadStaffTicketCodes([]);
+  }, [currentUser]);
 
   const ensureCategoryChips = () => {
     setMessages((prev) => {
@@ -923,7 +1195,13 @@ const NasaAiAssistantWidget = () => {
       const ai = await supportService.chatSupport({
         message: seed,
         history: buildHistory(seed),
+        mode: 'SUPPORT',
+        sessionId: botSessionId,
       });
+
+      if (ai?.sessionId) {
+        setBotSessionId(ai.sessionId);
+      }
 
       if (ai?.reply) {
         pushBot(ai.reply, { choices: normalizeAiChoices(ai.choices) });
@@ -1222,7 +1500,12 @@ const NasaAiAssistantWidget = () => {
         message: value,
         history: buildHistory(value),
         mode: answerMode ? 'ANSWER' : 'SUPPORT',
+        sessionId: botSessionId,
       });
+
+      if (ai?.sessionId) {
+        setBotSessionId(ai.sessionId);
+      }
 
       if (ai?.reply) {
         pushBot(ai.reply, { choices: answerMode ? null : normalizeAiChoices(ai.choices) });
@@ -1514,7 +1797,7 @@ const NasaAiAssistantWidget = () => {
             </div>
             <div className="nasa-assistant-msg__content">
               <div className="nasa-assistant-bubble nasa-assistant-bubble--bot">
-                {message.text}
+                {renderRichText(message.text, handleBotLinkClick)}
                 {message.actions?.length > 0 && (
                   <div className="nasa-assistant-card__actions nasa-assistant-card__actions--inline">
                     {message.actions.map((action) => (
@@ -1594,24 +1877,40 @@ const NasaAiAssistantWidget = () => {
         ) : (
           <div className="nasa-assistant-ticket-list">
             {myTickets.map((item) => (
-              <button
+              <div
                 key={item.ticketCode}
-                type="button"
                 className={`nasa-assistant-ticket-card nasa-assistant-ticket-card--compact ${item.ticketCode === activeTicketCode ? 'nasa-assistant-ticket-card--active' : ''}`}
-                onClick={() => openTicketThread(item.ticketCode)}
               >
-                <div className="nasa-assistant-ticket-card__head">
-                  <strong>{item.ticketCode}</strong>
-                  <span className={getTicketStatusMeta(item.status).className}>
-                    {getTicketStatusMeta(item.status).label}
-                  </span>
-                </div>
-                <p className="nasa-assistant-ticket-card__text">{getTicketPreviewText(item.lastMessage) || item.description}</p>
-                <div className="nasa-assistant-ticket-card__foot">
-                  <span>{getCategoryLabel(item.category)}</span>
-                  <span>{formatTicketStamp(item.updatedAt || item.createdAt)}</span>
-                </div>
-              </button>
+                <button
+                  type="button"
+                  className="nasa-assistant-ticket-card__open"
+                  onClick={() => openTicketThread(item.ticketCode)}
+                >
+                  <div className="nasa-assistant-ticket-card__head">
+                    <strong>{item.ticketCode}</strong>
+                    <span className={getTicketStatusMeta(item.status).className}>
+                      {getTicketStatusMeta(item.status).label}
+                    </span>
+                  </div>
+                  <p className="nasa-assistant-ticket-card__text">{getTicketPreviewText(item.lastMessage) || item.description}</p>
+                  <div className="nasa-assistant-ticket-card__foot">
+                    <span>{getCategoryLabel(item.category)}</span>
+                    <span>{formatTicketStamp(item.updatedAt || item.createdAt)}</span>
+                  </div>
+                </button>
+                {!isClosedSupportStatus(item.status) ? (
+                  <button
+                    type="button"
+                    className="nasa-assistant-ticket-card__cancel"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      cancelActiveTicket(item.ticketCode);
+                    }}
+                  >
+                    Hủy ticket
+                  </button>
+                ) : null}
+              </div>
             ))}
           </div>
         )}
@@ -1622,7 +1921,9 @@ const NasaAiAssistantWidget = () => {
   const renderTicketThreadSection = () => {
     if (!activeTicket?.ticketCode) return null;
     const statusMeta = getTicketStatusMeta(activeTicket.status);
-    const needsRating = isClosedSupportStatus(activeTicket.status) && !activeTicket.satisfactionRating;
+    const statusUpper = `${activeTicket.status || ''}`.toUpperCase();
+    const needsRating = statusUpper === 'DONE' && !activeTicket.satisfactionRating;
+    const canCancel = !isClosedSupportStatus(activeTicket.status);
 
     return (
       <>
@@ -1630,7 +1931,22 @@ const NasaAiAssistantWidget = () => {
           <span>{activeTicket.ticketCode}</span>
           <span className={statusMeta.className}>{statusMeta.label}</span>
           <span>{getCategoryLabel(activeTicket.category)}</span>
+          {canCancel ? (
+            <button
+              type="button"
+              className="nasa-timeline-cancel"
+              onClick={() => cancelActiveTicket(activeTicket.ticketCode)}
+            >
+              Hủy ticket
+            </button>
+          ) : null}
         </div>
+        {statusUpper === 'CLOSED' ? (
+          <div className="nasa-assistant-empty-state nasa-assistant-empty-state--compact">
+            <div className="nasa-assistant-empty-state__title">Bạn đã hủy ticket này</div>
+            <div className="nasa-assistant-empty-state__text">Có thể tạo yêu cầu mới ở Chat bot nếu vẫn cần hỗ trợ.</div>
+          </div>
+        ) : null}
         {renderLiveWaitBar()}
         {ticketMessages.map((item) => {
           const agentMessage = isAgentMessage(item.senderRole);
@@ -1726,6 +2042,17 @@ const NasaAiAssistantWidget = () => {
                 </div>
               </div>
               <div className="nasa-assistant-header-actions">
+                {isBotView && botIntent !== BOT_INTENT.PICK ? (
+                  <button
+                    type="button"
+                    className="nasa-assistant-icon-btn"
+                    aria-label="Quay lại"
+                    title="Quay lại chọn chế độ"
+                    onClick={backToBotIntentPick}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className={`nasa-assistant-icon-btn ${showTicketDrawer ? 'nasa-assistant-icon-btn--active' : ''}`}

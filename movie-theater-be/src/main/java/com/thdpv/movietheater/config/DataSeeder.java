@@ -1634,22 +1634,33 @@ public class DataSeeder implements CommandLineRunner {
                 }
                 UUID roomUuid = roomUuids.get(0);
 
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtimeUuid) == 0) {
-                    int startH = data.startHour != null ? data.startHour : 19;
-                    int startM = data.startMinute != null ? data.startMinute : 30;
-                    int endH = data.endHour != null ? data.endHour : 21;
-                    int endM = data.endMinute != null ? data.endMinute : 30;
-                    BigDecimal basePrice = data.basePrice != null ? data.basePrice : BigDecimal.valueOf(80000);
-                    String status = data.status != null ? data.status : "OPEN_FOR_BOOKING";
+                int startH = data.startHour != null ? data.startHour : 19;
+                int startM = data.startMinute != null ? data.startMinute : 30;
+                int endH = data.endHour != null ? data.endHour : 21;
+                int endM = data.endMinute != null ? data.endMinute : 30;
+                BigDecimal basePrice = data.basePrice != null ? data.basePrice : BigDecimal.valueOf(80000);
+                String status = data.status != null ? data.status : "OPEN_FOR_BOOKING";
+                OffsetDateTime startTime = baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0);
+                OffsetDateTime endTime = baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0);
 
+                Integer existing = jdbcTemplate.queryForObject(
+                        "SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtimeUuid);
+                if (existing != null && existing == 0) {
                     jdbcTemplate.update(
                             "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtimeUuid, movieUuid, roomUuid,
-                            baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0),
-                            baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0),
-                            basePrice, status);
+                            showtimeUuid, movieUuid, roomUuid, startTime, endTime, basePrice, status);
                     logger.info("Seeded showtime from JSON: {}", showtimeUuid);
+                } else {
+                    // Self-heal: các suất seed dùng UUID cố định nên chỉ insert ở lần chạy đầu.
+                    // Nếu ngày chiếu đã trôi qua (máy seed từ lâu) thì đẩy suất tới tương lai để
+                    // "phim đang chiếu" / lịch chiếu luôn có suất đặt được trên mọi máy — không
+                    // cần admin tạo tay.
+                    int rolled = jdbcTemplate.update(
+                            "UPDATE showtime SET start_time = ?, end_time = ?, status = ? WHERE uuid = ? AND start_time < ?",
+                            startTime, endTime, status, showtimeUuid, now);
+                    if (rolled > 0) {
+                        logger.info("Rolled stale seeded showtime {} forward to {}", showtimeUuid, startTime);
+                    }
                 }
             }
         }

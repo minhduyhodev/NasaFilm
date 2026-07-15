@@ -736,17 +736,6 @@ const ConfigPage = () => {
                   </div>
                 </div>
               </ConfigSection>
-
-              <div className="sys-config__bot-save-row">
-                <button
-                  type="button"
-                  className="sys-config__save"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
-                </button>
-              </div>
             </div>
           </div>
         )}

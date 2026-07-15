@@ -348,7 +348,9 @@ public class ShowtimeService {
      */
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getUpcomingShowtimesWithinHours(int hours, int limit) {
-        int safeHours = Math.max(1, Math.min(hours, 72));
+        // Cap at 14 days so the AI/prompt snapshot still surfaces schedules even when
+        // the nearest showtime is a couple of days out (common with seeded data).
+        int safeHours = Math.max(1, Math.min(hours, 336));
         int safeLimit = Math.max(1, Math.min(limit, 50));
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime rangeEnd = now.plusHours(safeHours);
