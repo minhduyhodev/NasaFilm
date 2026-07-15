@@ -181,7 +181,8 @@ public interface StaffMissionControlRepository extends JpaRepository<Showtime, U
                    COALESCE(cr.name, ''),
                    st.start_time,
                    COALESCE(s.row_name || CAST(s.seat_number AS TEXT), ''),
-                   COALESCE(b.booking_type, 'THEATER')
+                   COALESCE(b.booking_type, 'THEATER'),
+                   b.status
             FROM ticket t
             JOIN booking b ON b.uuid = t.booking_uuid
             JOIN users u ON u.id = b.user_uuid

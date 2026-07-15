@@ -120,6 +120,11 @@ public class BookingService {
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
 
+        // Serialize concurrent double-submits for the same user: a second request blocks here until the
+        // first commits, then sees the just-created booking below and is rejected — preventing double-charge.
+        userRepository.findByIdForUpdate(userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy người dùng"));
+
         Optional<Booking> existingOpt = bookingJpaRepository
                 .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                         userUuid, request.getMovieUuid(), "ONLINE", BOOKING_STATUS_CONFIRMED);
@@ -1314,14 +1319,66 @@ public class BookingService {
                     showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
         }
 
+        CheckInTicketResponse windowRejection = validateShowtimeCheckInWindow(
+                resolveEffectiveShowtimeUuid(ticket, showtimeUuid),
+                ticket, showtimeUuid, expectedRoomUuid, currentRoomUuid);
+        if (windowRejection != null) {
+            return windowRejection;
+        }
+
         OffsetDateTime checkedInAt = OffsetDateTime.now();
-        ticket.setStatus("USED");
-        ticket.setCheckedInAt(checkedInAt);
-        ticketRepository.save(ticket);
+        int updated = ticketRepository.markUsedIfIssued(ticket.getUuid(), checkedInAt);
+        if (updated == 0) {
+            return buildCheckInResponse("ALREADY_USED", "Vé đã được soát hoặc không còn hiệu lực", ticket,
+                    showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
 
         realtimeEventPublisher.notifyTicketCheckedIn(ticket.getBookingUuid(), showtimeUuid, ticketCode.trim());
         return buildCheckInResponse("VALID", "Soát vé thành công", ticket, showtimeUuid,
                 expectedRoomUuid, currentRoomUuid, checkedInAt);
+    }
+
+    private UUID resolveEffectiveShowtimeUuid(Ticket ticket, UUID fallbackShowtimeUuid) {
+        UUID showtimeUuid = fallbackShowtimeUuid;
+        if (ticket.getBookingSeatUuid() != null) {
+            showtimeUuid = bookingSeatRepository.findById(ticket.getBookingSeatUuid())
+                    .map(BookingSeat::getShowtimeUuid)
+                    .orElse(showtimeUuid);
+        }
+        return showtimeUuid;
+    }
+
+    private CheckInTicketResponse validateShowtimeCheckInWindow(UUID effectiveShowtimeUuid, Ticket ticket,
+            UUID responseShowtimeUuid, UUID expectedRoomUuid, UUID currentRoomUuid) {
+        if (effectiveShowtimeUuid == null) {
+            return null;
+        }
+        Showtime showtime = showtimeRepository.findById(effectiveShowtimeUuid).orElse(null);
+        if (showtime == null) {
+            return null;
+        }
+        if ("CANCELLED".equalsIgnoreCase(showtime.getStatus())) {
+            return buildCheckInResponse("SHOW_CANCELLED", "Suất chiếu đã bị hủy — không thể soát vé", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        if (!systemConfigService.isCheckInWindowEnforced()) {
+            return null;
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime start = showtime.getStartTime();
+        OffsetDateTime end = showtime.getEndTime();
+        int earlyMinutes = systemConfigService.getCheckInEarlyMinutes();
+        int graceMinutes = systemConfigService.getCheckInGraceMinutes();
+        if (start != null && now.isBefore(start.minusMinutes(earlyMinutes))) {
+            return buildCheckInResponse("TOO_EARLY",
+                    "Chưa đến giờ soát vé (mở soát trước giờ chiếu " + earlyMinutes + " phút)", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        if (end != null && now.isAfter(end.plusMinutes(graceMinutes))) {
+            return buildCheckInResponse("SHOW_ENDED", "Suất chiếu đã kết thúc — không thể soát vé", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        return null;
     }
 
     @Transactional

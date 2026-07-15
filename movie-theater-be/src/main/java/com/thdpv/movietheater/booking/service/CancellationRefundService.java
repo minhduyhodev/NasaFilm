@@ -194,6 +194,7 @@ public class CancellationRefundService {
                     orbitRoom.get().getUuid(), bookingUuid, seatPriceByUuid, now);
         } else if (scoreDeducted > 0) {
             bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
+            bookingNativeRepository.addLifetimeScore(booking.getUserUuid(), -scoreDeducted);
             bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, now);
         }
 
@@ -271,7 +272,19 @@ public class CancellationRefundService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Yêu cầu hoàn tiền không ở trạng thái chờ duyệt");
         }
 
-        return processRefund(refund, adminUuid, "ADMIN");
+        int claimed = refundRepository.transitionStatus(
+                refundUuid,
+                RefundStatus.PENDING.name(),
+                RefundStatus.PROCESSING.name(),
+                OffsetDateTime.now());
+        if (claimed == 0) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn tất");
+        }
+
+        Refund claimedRefund = refundRepository.findById(refundUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+        return processRefund(claimedRefund, adminUuid, "ADMIN");
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ package com.thdpv.movietheater.orbit.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -299,9 +300,16 @@ public class OrbitRoomService {
         if (room.getExpiresAt().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm đã hết hạn");
         }
+        // Hold member seats for as long as the room lives (not the short solo TTL) so waiting members
+        // don't silently lose their seats mid-session.
+        Integer roomTtlSeconds = null;
+        if (room.getExpiresAt() != null && room.getExpiresAt().isAfter(now)) {
+            roomTtlSeconds = (int) Math.max(1, Duration.between(now, room.getExpiresAt()).getSeconds());
+        }
         showtimeSeatService.syncSeatLocks(
                 currentUserEmail,
-                new SyncSeatLockRequest(room.getShowtimeUuid(), seatUuids));
+                new SyncSeatLockRequest(room.getShowtimeUuid(), seatUuids),
+                roomTtlSeconds);
 
         member.setSeatUuidsJson(OrbitSeatJson.writeSeatUuids(seatUuids));
         member.setUpdatedAt(now);

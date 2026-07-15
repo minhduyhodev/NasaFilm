@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.booking.dto.response.CheckInTicketResponse;
 import com.thdpv.movietheater.booking.service.AuditLogService;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.exception.AppException;
@@ -146,7 +147,14 @@ public class StaffMissionControlService {
         }
 
         try {
-            bookingService.checkInTicket(normalizedCode);
+            CheckInTicketResponse checkInResult = bookingService.checkInTicket(normalizedCode, null);
+            if (!"VALID".equalsIgnoreCase(checkInResult.getStatus())) {
+                throw new AppException(
+                        ErrorCode.BAD_REQUEST,
+                        checkInResult.getMessage() != null && !checkInResult.getMessage().isBlank()
+                                ? checkInResult.getMessage()
+                                : "Vé không hợp lệ để soát");
+            }
             StaffCheckInResponse result = buildCheckInResponse(normalizedCode);
             staffGateEventService.logCheckInSuccess(staffEmail, scanSource, result);
             UUID staffUuid = staffGateEventService.resolveStaffUuidForAudit(staffEmail);
@@ -189,8 +197,10 @@ public class StaffMissionControlService {
         String roomName = stringValue(row[8]);
         OffsetDateTime startTime = toOffsetDateTime(row[9]);
         String bookingType = stringValue(row[11]);
+        String bookingStatus = stringValue(row[12]);
 
         assertTheaterTicketEligible(bookingType, showtimeUuid);
+        assertBookingNotCancelled(bookingStatus);
 
         List<String> seatLabels = bookingUuid == null
                 ? List.of()
@@ -224,6 +234,23 @@ public class StaffMissionControlService {
             throw new AppException(
                     ErrorCode.BAD_REQUEST,
                     "Vé xem online (VOD) không dùng để soát vé tại rạp");
+        }
+    }
+
+    private void assertBookingNotCancelled(String bookingStatus) {
+        if (bookingStatus == null || bookingStatus.isBlank()) {
+            return;
+        }
+        String normalized = bookingStatus.toUpperCase();
+        boolean cancelled = "CANCELLED".equals(normalized)
+                || "REFUNDED".equals(normalized)
+                || "REFUND_PENDING".equals(normalized)
+                || "REFUND_PROCESSING".equals(normalized)
+                || "CANCELLING".equals(normalized);
+        if (cancelled) {
+            throw new AppException(
+                    ErrorCode.BAD_REQUEST,
+                    "Vé đã bị hủy hoặc đang hoàn tiền — không hợp lệ để soát");
         }
     }
 
