@@ -129,6 +129,10 @@ public class SupportAiContextService {
             nowFilter.setRequireBookableShowtime(true);
             addMovieLinks(links, movieService.getMovieList(nowFilter, PageRequest.of(0, MOVIE_LIMIT)).getContent());
 
+            // Also index movies flagged NOW_SHOWING by status so links still resolve on
+            // machines without upcoming bookable showtimes (mirrors appendNowShowing).
+            addMovieLinks(links, nowShowingByStatus());
+
             addMovieLinks(links, movieService.getUpcomingMovieList(PageRequest.of(0, COMING_SOON_LIMIT)).getContent());
 
             MovieFilterRequest vodFilter = new MovieFilterRequest();
@@ -316,10 +320,32 @@ public class SupportAiContextService {
     }
 
     private void appendNowShowing(StringBuilder sb) {
-        sb.append("\nPHIM ĐANG CHIẾU (có suất đặt được):\n");
+        sb.append("\nPHIM ĐANG CHIẾU:\n");
         MovieFilterRequest filter = new MovieFilterRequest();
         filter.setRequireBookableShowtime(true);
-        appendMovieLines(sb, movieService.getMovieList(filter, PageRequest.of(0, MOVIE_LIMIT)).getContent(), false);
+        List<MovieListResponse> movies = movieService
+                .getMovieList(filter, PageRequest.of(0, MOVIE_LIMIT))
+                .getContent();
+        if (!movies.isEmpty()) {
+            appendMovieLines(sb, movies, false);
+            return;
+        }
+        // Fallback for DBs without upcoming bookable showtimes (e.g. seed dates already
+        // passed on a teammate's machine): still surface movies flagged NOW_SHOWING by
+        // status so the bot can answer "phim đang chiếu" even when no showtime is open.
+        List<MovieListResponse> byStatus = nowShowingByStatus();
+        if (byStatus.isEmpty()) {
+            sb.append("- (Trống)\n");
+            return;
+        }
+        sb.append("- (Hiện chưa có suất mở bán — danh sách theo trạng thái phim đang chiếu)\n");
+        appendMovieLines(sb, byStatus, false);
+    }
+
+    private List<MovieListResponse> nowShowingByStatus() {
+        MovieFilterRequest statusFilter = new MovieFilterRequest();
+        statusFilter.setStatus("NOW_SHOWING");
+        return movieService.getMovieList(statusFilter, PageRequest.of(0, MOVIE_LIMIT)).getContent();
     }
 
     private void appendComingSoon(StringBuilder sb) {
@@ -535,12 +561,30 @@ public class SupportAiContextService {
     }
 
     private void appendMovieMeta(StringBuilder sb, MovieListResponse movie) {
+        String genres = formatGenres(movie.getGenres());
+        if (!genres.isBlank()) {
+            sb.append(" · ").append(genres);
+        }
         if (movie.getAgeRestriction() != null && !movie.getAgeRestriction().isBlank()) {
             sb.append(" · ").append(movie.getAgeRestriction().trim());
         }
         if (movie.getDurationMinutes() != null) {
             sb.append(" · ").append(movie.getDurationMinutes()).append(" phút");
         }
+    }
+
+    /** Compact per-movie genre list (max 3) so the AI can answer genre queries
+     *  like "phim hành động", "phim kinh dị"… straight from the snapshot. */
+    private static String formatGenres(List<String> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return "";
+        }
+        return genres.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .limit(3)
+                .collect(Collectors.joining(", "));
     }
 
     private String joinConfigLabels(List<Map<String, Object>> items) {

@@ -956,6 +956,22 @@ public class SupportAiService {
 
     // ── AI Provider routing ──────────────────────────────────────────────
 
+    /**
+     * Presentation rules injected in code (not just the persona) so the layout of a
+     * "gợi ý / liệt kê phim" answer is identical on every machine — even when that
+     * machine still has an out-of-date personaPrompt saved in system_config.
+     */
+    private static final String ANSWER_FORMAT_RULES = """
+            QUY TẮC TRÌNH BÀY (BẮT BUỘC khi gợi ý / liệt kê phim, suất chiếu, combo, voucher):
+            - Mở đầu bằng 1 câu ngắn giới thiệu.
+            - MỖI phim/mục nằm trên MỘT DÒNG riêng, bắt đầu bằng "• " và có XUỐNG DÒNG thật.
+              KHÔNG dồn tất cả vào một đoạn văn dài.
+            - Mỗi dòng phim gồm: tên phim + 1 thông tin ngắn (thể loại / giờ chiếu / giá) nếu có trong dữ liệu.
+            - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong DỮ LIỆU THỰC TẾ (không dịch, không rút gọn, không thêm bớt)
+              để hệ thống tự gắn link cho khách bấm mở trang phim. TUYỆT ĐỐI không tự chèn URL hay mã UUID.
+            - Kết thúc bằng 1 câu hỏi gợi mở (ví dụ: "Bạn muốn đặt vé phim nào ạ?").
+            """;
+
     private List<SupportAiMessage> buildMessages(
             String message,
             List<SupportAiMessage> history,
@@ -973,6 +989,7 @@ public class SupportAiService {
             persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có + DỮ LIỆU THỰC TẾ bên dưới. "
                 + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
                 + "hãy bảo họ chọn mục Hỗ trợ trên widget.\n\n"
+                + ANSWER_FORMAT_RULES + "\n\n"
                 + supportAiContextService.buildLiveContextBlock(userEmail);
         }
         messages.add(new SupportAiMessage("system", persona));
