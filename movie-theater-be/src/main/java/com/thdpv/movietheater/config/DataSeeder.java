@@ -371,7 +371,10 @@ public class DataSeeder implements CommandLineRunner {
                 { "aaaaaaaa-0009-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COMBO_WRITE.name() },
                 { "aaaaaaaa-0010-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.PROMOTION_WRITE.name() },
                 { "aaaaaaaa-0011-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.USER_VIEW.name() },
-                { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() }
+                { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() },
+                { "aaaaaaaa-0013-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_SHIFT_MANAGE.name() },
+                { "aaaaaaaa-0014-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_ATTENDANCE_MANAGE.name() },
+                { "aaaaaaaa-0015-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_PAYROLL_MANAGE.name() }
         };
 
         for (String[] def : permissionDefs) {
