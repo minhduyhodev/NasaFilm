@@ -42,9 +42,11 @@ const LIVE_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
 const MIN_DESCRIPTION_LENGTH = 15;
 const MIN_SEND_GAP_MS = 1200;
 
-const CATEGORY_GUIDED_KEYS = new Set(['account', 'promo', 'membership']);
+const CATEGORY_GUIDED_KEYS = new Set(['ticket', 'payment', 'account', 'promo', 'membership']);
 
 const CATEGORY_GUIDED_SEEDS = {
+  ticket: 'Tôi cần hỗ trợ về vé hoặc suất chiếu.',
+  payment: 'Tôi cần hỗ trợ về thanh toán.',
   account: 'Tôi không đăng nhập được và cần hỗ trợ tài khoản.',
   promo: 'Tôi cần hỗ trợ về voucher hoặc khuyến mãi.',
   membership: 'Tôi cần hỗ trợ về hội viên và điểm thưởng.',
@@ -1289,7 +1291,9 @@ const NasaAiAssistantWidget = () => {
     const category = getCategoryByKey(categoryKey);
     if (category) {
       selectSupportCategory(category);
-      if (seededDescription.trim()) {
+      // Guided categories collect the description through their own step-by-step flow, so
+      // don't also push a confirm card here (that would fork into two conflicting flows).
+      if (!CATEGORY_GUIDED_KEYS.has(category.key) && seededDescription.trim()) {
         handleDescriptionSubmit(seededDescription);
       }
       return;

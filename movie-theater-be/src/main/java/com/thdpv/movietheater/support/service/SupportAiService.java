@@ -524,56 +524,72 @@ public class SupportAiService {
         return new SupportAiResult(sb.toString(), category, "collecting", choices);
     }
 
-    /** Return quick-reply choice buttons for the given category and field index. */
+    /** Return quick-reply choice buttons for the field at {@code fieldIndex}. The chips are
+     *  chosen by the FIELD NAME (not a hardcoded index) so the "issue type" buttons show up
+     *  on the right step for every category — account & membership put issueType at index 0,
+     *  payment puts paymentMethod at 1 and issueType at 2. */
     private List<ChoiceButton> getChoicesForField(String category, int fieldIndex) {
-        if (fieldIndex == 1) { // second question = issue type
-            return switch (category) {
-                case "ticket" -> List.of(
-                    new ChoiceButton("🎫 Sai ghế / suất / phim", "Sai ghế/suất/phim"),
-                    new ChoiceButton("📭 Chưa nhận được vé", "Chưa nhận vé"),
-                    new ChoiceButton("🔄 Cần đổi / hủy / hoàn vé", "Đổi/hủy vé"),
-                    new ChoiceButton("📱 Lỗi quét mã QR", "Lỗi QR"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "payment" -> List.of(
-                    new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
-                    new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
-                    new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "account" -> List.of(
-                    new ChoiceButton("🔑 Không đăng nhập được", "Không đăng nhập được"),
-                    new ChoiceButton("📱 Không nhận được OTP", "Không nhận OTP"),
-                    new ChoiceButton("🔒 Quên mật khẩu", "Quên mật khẩu"),
-                    new ChoiceButton("🚫 Tài khoản bị khóa", "Tài khoản bị khóa"),
-                    new ChoiceButton("✏️ Cập nhật thông tin", "Cập nhật thông tin"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "promo" -> List.of(
-                    new ChoiceButton("❌ Không áp dụng được", "Không áp dụng được"),
-                    new ChoiceButton("⏰ Mã đã hết hạn", "Mã hết hạn"),
-                    new ChoiceButton("📋 Không đúng điều kiện", "Không đúng điều kiện"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "membership" -> List.of(
-                    new ChoiceButton("⭐ Điểm thưởng bị sai", "Điểm thưởng sai"),
-                    new ChoiceButton("👑 Hạng thành viên không đúng", "Hạng thành viên sai"),
-                    new ChoiceButton("🎁 Quyền lợi không được áp dụng", "Quyền lợi không áp dụng"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                default -> null;
-            };
+        String[] fields = CATEGORY_FLOW_FIELDS.get(category);
+        if (fields == null || fieldIndex < 0 || fieldIndex >= fields.length) {
+            return null;
         }
-        // Payment step 2 (paymentMethod) — show payment method choices
-        if ("payment".equals(category) && fieldIndex == 1) {
-            return List.of(
+        return switch (fields[fieldIndex]) {
+            case "issueType" -> issueTypeChoices(category);
+            case "paymentMethod" -> paymentMethodChoices();
+            default -> null;
+        };
+    }
+
+    /** Issue-type quick replies per category. */
+    private List<ChoiceButton> issueTypeChoices(String category) {
+        return switch (category) {
+            case "ticket" -> List.of(
+                new ChoiceButton("🎫 Sai ghế / suất / phim", "Sai ghế/suất/phim"),
+                new ChoiceButton("📭 Chưa nhận được vé", "Chưa nhận vé"),
+                new ChoiceButton("🔄 Cần đổi / hủy / hoàn vé", "Đổi/hủy vé"),
+                new ChoiceButton("📱 Lỗi quét mã QR", "Lỗi QR"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "payment" -> List.of(
                 new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
                 new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
                 new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
                 new ChoiceButton("📝 Khác", "Khác")
             );
-        }
-        return null;
+            case "account" -> List.of(
+                new ChoiceButton("🔑 Không đăng nhập được", "Không đăng nhập được"),
+                new ChoiceButton("📱 Không nhận được OTP", "Không nhận OTP"),
+                new ChoiceButton("🔒 Quên mật khẩu", "Quên mật khẩu"),
+                new ChoiceButton("🚫 Tài khoản bị khóa", "Tài khoản bị khóa"),
+                new ChoiceButton("✏️ Cập nhật thông tin", "Cập nhật thông tin"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "promo" -> List.of(
+                new ChoiceButton("❌ Không áp dụng được", "Không áp dụng được"),
+                new ChoiceButton("⏰ Mã đã hết hạn", "Mã hết hạn"),
+                new ChoiceButton("📋 Không đúng điều kiện", "Không đúng điều kiện"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "membership" -> List.of(
+                new ChoiceButton("⭐ Điểm thưởng bị sai", "Điểm thưởng sai"),
+                new ChoiceButton("👑 Hạng thành viên không đúng", "Hạng thành viên sai"),
+                new ChoiceButton("🎁 Quyền lợi không được áp dụng", "Quyền lợi không áp dụng"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            default -> null;
+        };
+    }
+
+    /** Payment-method quick replies (payment flow, field "paymentMethod"). */
+    private List<ChoiceButton> paymentMethodChoices() {
+        return List.of(
+            new ChoiceButton("🟦 ZaloPay", "ZaloPay"),
+            new ChoiceButton("🟪 MoMo", "MoMo"),
+            new ChoiceButton("🏦 VNPay", "VNPay"),
+            new ChoiceButton("💳 Thẻ ngân hàng", "Thẻ ngân hàng"),
+            new ChoiceButton("🌐 Stripe / thẻ quốc tế", "Stripe"),
+            new ChoiceButton("📝 Khác", "Khác")
+        );
     }
 
     // Opening messages that merely SELECT a topic (guided-category chip labels and the
