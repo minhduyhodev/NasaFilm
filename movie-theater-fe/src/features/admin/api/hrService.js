@@ -382,6 +382,130 @@ class HrService {
       throw authService.handleError(error);
     }
   }
+
+  // ----- Nghỉ phép (nhân viên) -----
+  async getMyLeaveRequests() {
+    try {
+      const res = await authService.api.get('/api/hr/me/leave-requests');
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createLeaveRequest(payload) {
+    try {
+      const res = await authService.api.post('/api/hr/me/leave-requests', payload);
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async cancelLeaveRequest(uuid) {
+    try {
+      const res = await authService.api.post(`/api/hr/me/leave-requests/${uuid}/cancel`);
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  // ----- Đổi ca (nhân viên) -----
+  async getMySwapRequests() {
+    try {
+      const res = await authService.api.get('/api/hr/me/swap-requests');
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getSwapCandidates(from, to) {
+    try {
+      const res = await authService.api.get('/api/hr/me/swap-candidates', { params: { from, to } });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createSwapRequest(payload) {
+    try {
+      const res = await authService.api.post('/api/hr/me/swap-requests', payload);
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async cancelSwapRequest(uuid) {
+    try {
+      const res = await authService.api.post(`/api/hr/me/swap-requests/${uuid}/cancel`);
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  // ----- Duyệt đơn từ (admin / HR_SHIFT_MANAGE) -----
+  async getLeaveRequestsAdmin({ status, userId } = {}) {
+    try {
+      const res = await authService.api.get('/api/hr/admin/requests/leave', {
+        params: { status: status || undefined, userId: userId || undefined },
+      });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async approveLeaveRequest(uuid, note) {
+    try {
+      const res = await authService.api.post(`/api/hr/admin/requests/leave/${uuid}/approve`, { note });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async rejectLeaveRequest(uuid, note) {
+    try {
+      const res = await authService.api.post(`/api/hr/admin/requests/leave/${uuid}/reject`, { note });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getSwapRequestsAdmin({ status } = {}) {
+    try {
+      const res = await authService.api.get('/api/hr/admin/requests/swap', {
+        params: { status: status || undefined },
+      });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async approveSwapRequest(uuid, note) {
+    try {
+      const res = await authService.api.post(`/api/hr/admin/requests/swap/${uuid}/approve`, { note });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async rejectSwapRequest(uuid, note) {
+    try {
+      const res = await authService.api.post(`/api/hr/admin/requests/swap/${uuid}/reject`, { note });
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const hrService = new HrService();

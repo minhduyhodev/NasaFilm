@@ -51,6 +51,7 @@ const MyHrPage = lazy(() => import("../pages/hr/MyHrPage"));
 const HrSchedulePage = lazy(() => import("../pages/hr/HrSchedulePage"));
 const HrAttendancePage = lazy(() => import("../pages/hr/HrAttendancePage"));
 const HrPayrollPage = lazy(() => import("../pages/hr/HrPayrollPage"));
+const HrRequestsPage = lazy(() => import("../pages/hr/HrRequestsPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -141,6 +142,7 @@ export const AdminRoutes = () => {
             )}
           />
           <Route path="hr/schedule" element={<PermissionRoute permission={PERMISSIONS.HR_SHIFT_MANAGE}><HrSchedulePage /></PermissionRoute>} />
+          <Route path="hr/requests" element={<PermissionRoute permission={PERMISSIONS.HR_SHIFT_MANAGE}><HrRequestsPage /></PermissionRoute>} />
           <Route path="hr/attendance" element={<PermissionRoute permission={PERMISSIONS.HR_ATTENDANCE_MANAGE}><HrAttendancePage /></PermissionRoute>} />
           <Route path="hr/payroll" element={<PermissionRoute permission={PERMISSIONS.HR_PAYROLL_MANAGE}><HrPayrollPage /></PermissionRoute>} />
         </Route>

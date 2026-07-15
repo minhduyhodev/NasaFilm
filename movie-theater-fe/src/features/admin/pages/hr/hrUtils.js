@@ -195,6 +195,24 @@ export const PAYSLIP_STATUS_META = {
   PAID: { label: 'Đã chi trả', className: 'hr-badge hr-badge--paid' },
 };
 
+export const REQUEST_STATUS_META = {
+  PENDING: { label: 'Chờ duyệt', className: 'hr-badge hr-badge--warning' },
+  APPROVED: { label: 'Đã duyệt', className: 'hr-badge hr-badge--success' },
+  REJECTED: { label: 'Từ chối', className: 'hr-badge hr-badge--danger' },
+  CANCELLED: { label: 'Đã hủy', className: 'hr-badge' },
+};
+
+export const LEAVE_TYPE_META = {
+  ANNUAL: { label: 'Phép năm' },
+  UNPAID: { label: 'Không lương' },
+  SICK: { label: 'Nghỉ ốm' },
+  OTHER: { label: 'Khác' },
+};
+
+export function leaveTypeLabel(value) {
+  return LEAVE_TYPE_META[value]?.label || value || '—';
+}
+
 export function statusBadge(meta, value) {
   const found = meta[value];
   return found || { label: value || '—', className: 'hr-badge' };

@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,7 +30,10 @@ import com.thdpv.movietheater.hr.entity.Attendance;
 import com.thdpv.movietheater.hr.entity.ShiftAssignment;
 import com.thdpv.movietheater.hr.entity.ShiftDefinition;
 import com.thdpv.movietheater.hr.enums.ShiftAssignmentStatus;
+import com.thdpv.movietheater.hr.entity.LeaveRequest;
+import com.thdpv.movietheater.hr.enums.RequestStatus;
 import com.thdpv.movietheater.hr.repository.AttendanceRepository;
+import com.thdpv.movietheater.hr.repository.LeaveRequestRepository;
 import com.thdpv.movietheater.hr.repository.ShiftAssignmentRepository;
 import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.user.entity.User;
@@ -50,15 +54,18 @@ public class ShiftAssignmentService {
     private final AttendanceRepository attendanceRepository;
     private final HrDirectory directory;
     private final UserNotificationService userNotificationService;
+    private final LeaveRequestRepository leaveRequestRepository;
 
     public ShiftAssignmentService(ShiftAssignmentRepository shiftAssignmentRepository,
             AttendanceRepository attendanceRepository,
             HrDirectory directory,
-            UserNotificationService userNotificationService) {
+            UserNotificationService userNotificationService,
+            LeaveRequestRepository leaveRequestRepository) {
         this.shiftAssignmentRepository = shiftAssignmentRepository;
         this.attendanceRepository = attendanceRepository;
         this.directory = directory;
         this.userNotificationService = userNotificationService;
+        this.leaveRequestRepository = leaveRequestRepository;
     }
 
     @Transactional
@@ -71,6 +78,10 @@ public class ShiftAssignmentService {
         if (shiftAssignmentRepository.existsByUserUuidAndWorkDateAndShiftDefinitionUuid(
                 request.userId(), request.workDate(), request.shiftDefinitionUuid())) {
             throw new AppException(ErrorCode.HR_ASSIGNMENT_CONFLICT);
+        }
+        if (isOnApprovedLeave(request.userId(), request.workDate())) {
+            throw new AppException(ErrorCode.HR_LEAVE_OVERLAP,
+                    "Nhân viên đang có đơn nghỉ phép đã duyệt trong ngày này");
         }
         List<Interval> existing = loadIntervals(
                 request.userId(), request.workDate().minusDays(1), request.workDate().plusDays(1));
@@ -119,15 +130,22 @@ public class ShiftAssignmentService {
             takenKeys.add(comboKey(a.getUserUuid(), a.getWorkDate(), a.getShiftDefinitionUuid()));
         }
 
+        // Nạp sẵn ngày nghỉ phép đã duyệt của các nhân viên để bỏ qua khi xếp ca.
+        Map<UUID, Set<LocalDate>> leaveDays = approvedLeaveDays(request.userIds(), minDate, maxDate);
+
         List<ShiftAssignment> created = new ArrayList<>();
         for (UUID userId : request.userIds()) {
             directory.requireUser(userId);
             List<Interval> intervals = userIntervals.computeIfAbsent(userId, k -> new ArrayList<>());
+            Set<LocalDate> userLeave = leaveDays.getOrDefault(userId, Set.of());
             for (UUID shiftUuid : request.shiftDefinitionUuids()) {
                 ShiftDefinition sd = shiftMap.get(shiftUuid);
                 for (LocalDate date : request.workDates()) {
                     if (date.isBefore(today)) {
                         continue;
+                    }
+                    if (userLeave.contains(date)) {
+                        continue; // đang nghỉ phép -> bỏ qua
                     }
                     if (takenKeys.contains(comboKey(userId, date, shiftUuid))) {
                         continue; // trùng ca đã có
@@ -186,12 +204,17 @@ public class ShiftAssignmentService {
             takenKeys.add(comboKey(a.getUserUuid(), a.getWorkDate(), a.getShiftDefinitionUuid()));
         }
 
+        Map<UUID, Set<LocalDate>> leaveDays = approvedLeaveDays(userIds, targetWeekStart, targetEnd);
+
         OffsetDateTime now = AppTimeZones.now();
         List<ShiftAssignment> created = new ArrayList<>();
         for (ShiftAssignment src : source) {
             LocalDate targetDate = src.getWorkDate().plusDays(offsetDays);
             if (targetDate.isBefore(today)) {
                 continue;
+            }
+            if (leaveDays.getOrDefault(src.getUserUuid(), Set.of()).contains(targetDate)) {
+                continue; // đang nghỉ phép -> bỏ qua
             }
             ShiftDefinition sd = shiftMap.get(src.getShiftDefinitionUuid());
             if (sd == null) {
@@ -293,6 +316,104 @@ public class ShiftAssignmentService {
 
     private static String comboKey(UUID userId, LocalDate date, UUID shiftUuid) {
         return userId + "|" + date + "|" + shiftUuid;
+    }
+
+    // ------------------------------------------------------------------
+    // Nghỉ phép & đổi ca
+    // ------------------------------------------------------------------
+
+    private boolean isOnApprovedLeave(UUID userId, LocalDate date) {
+        return leaveRequestRepository
+                .existsByUserUuidAndStatusAndFromDateLessThanEqualAndToDateGreaterThanEqual(
+                        userId, RequestStatus.APPROVED, date, date);
+    }
+
+    /** Tập ngày nghỉ phép đã duyệt của từng nhân viên trong khoảng [from, to]. */
+    private Map<UUID, Set<LocalDate>> approvedLeaveDays(Collection<UUID> userIds, LocalDate from, LocalDate to) {
+        Map<UUID, Set<LocalDate>> map = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return map;
+        }
+        for (LeaveRequest lr : leaveRequestRepository.findOverlapping(RequestStatus.APPROVED, userIds, from, to)) {
+            Set<LocalDate> days = map.computeIfAbsent(lr.getUserUuid(), k -> new HashSet<>());
+            LocalDate d = lr.getFromDate().isBefore(from) ? from : lr.getFromDate();
+            LocalDate end = lr.getToDate().isAfter(to) ? to : lr.getToDate();
+            while (!d.isAfter(end)) {
+                days.add(d);
+                d = d.plusDays(1);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Kiểm tra nhân viên có thể nhận ca (date, shift) không (chống xung đột + nghỉ phép),
+     * bỏ qua các phân ca thuộc {@code excludeUuids}. Trả về ErrorCode vi phạm hoặc null nếu hợp lệ.
+     */
+    public ErrorCode assignabilityViolation(UUID userId, LocalDate date, ShiftDefinition shift, Set<UUID> excludeUuids) {
+        if (isOnApprovedLeave(userId, date)) {
+            return ErrorCode.HR_LEAVE_OVERLAP;
+        }
+        Map<UUID, ShiftDefinition> shiftMap = directory.shiftMap();
+        List<Interval> existing = new ArrayList<>();
+        for (ShiftAssignment a : shiftAssignmentRepository
+                .findByUserUuidAndWorkDateBetweenOrderByWorkDateAscCreatedAtAsc(
+                        userId, date.minusDays(1), date.plusDays(1))) {
+            if (excludeUuids != null && excludeUuids.contains(a.getUuid())) {
+                continue;
+            }
+            ShiftDefinition sd = shiftMap.get(a.getShiftDefinitionUuid());
+            if (sd != null) {
+                existing.add(intervalOf(a.getWorkDate(), sd));
+            }
+        }
+        return scheduleViolation(existing, intervalOf(date, shift));
+    }
+
+    /** Danh sách ca sắp tới của đồng nghiệp (khác {@code excludeUserId}) để chọn đối tác đổi ca. */
+    @Transactional(readOnly = true)
+    public List<ShiftAssignmentResponse> listSwapCandidates(UUID excludeUserId, LocalDate from, LocalDate to) {
+        LocalDate today = AppTimeZones.now().toLocalDate();
+        LocalDate effFrom = from.isBefore(today) ? today : from;
+        List<ShiftAssignment> candidates = shiftAssignmentRepository
+                .findByWorkDateBetweenOrderByWorkDateAscCreatedAtAsc(effFrom, to).stream()
+                .filter(a -> !a.getUserUuid().equals(excludeUserId))
+                .filter(a -> a.getStatus() == ShiftAssignmentStatus.SCHEDULED)
+                .toList();
+        return buildResponses(candidates);
+    }
+
+    /**
+     * Áp dụng đổi ca: hoán đổi chủ sở hữu giữa {@code a} (của người yêu cầu) và {@code b} (của đồng nghiệp).
+     * Có kiểm tra xung đột lịch & nghỉ phép cho cả hai phía. Ném AppException nếu không hợp lệ.
+     */
+    @Transactional
+    public void applySwap(ShiftAssignment a, ShiftAssignment b, UUID actorId) {
+        UUID userA = a.getUserUuid();
+        UUID userB = b.getUserUuid();
+        Map<UUID, ShiftDefinition> shiftMap = directory.shiftMap();
+        ShiftDefinition sa = shiftMap.get(a.getShiftDefinitionUuid());
+        ShiftDefinition sb = shiftMap.get(b.getShiftDefinitionUuid());
+        if (sa == null || sb == null) {
+            throw new AppException(ErrorCode.HR_SHIFT_NOT_FOUND);
+        }
+        Set<UUID> exclude = Set.of(a.getUuid(), b.getUuid());
+        ErrorCode v1 = assignabilityViolation(userA, b.getWorkDate(), sb, exclude);
+        if (v1 != null) {
+            throw new AppException(v1, "Người yêu cầu bị xung đột lịch hoặc nghỉ phép với ca nhận");
+        }
+        ErrorCode v2 = assignabilityViolation(userB, a.getWorkDate(), sa, exclude);
+        if (v2 != null) {
+            throw new AppException(v2, "Đồng nghiệp bị xung đột lịch hoặc nghỉ phép với ca nhận");
+        }
+        OffsetDateTime now = AppTimeZones.now();
+        a.setUserUuid(userB);
+        a.setReminderSentAt(null);
+        a.setUpdatedAt(now);
+        b.setUserUuid(userA);
+        b.setReminderSentAt(null);
+        b.setUpdatedAt(now);
+        shiftAssignmentRepository.saveAll(List.of(a, b));
     }
 
     private List<Interval> loadIntervals(UUID userId, LocalDate from, LocalDate to) {

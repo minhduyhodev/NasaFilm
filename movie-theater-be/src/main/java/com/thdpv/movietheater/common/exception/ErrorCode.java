@@ -71,6 +71,14 @@ public enum ErrorCode {
     HR_PERIOD_EXISTS(409, "Kỳ lương của tháng này đã tồn tại", HttpStatus.CONFLICT),
     HR_PAYSLIP_NOT_FOUND(404, "Phiếu lương không tồn tại", HttpStatus.NOT_FOUND),
     HR_PAYROLL_STATE_INVALID(400, "Thao tác không hợp lệ với trạng thái kỳ lương hiện tại", HttpStatus.BAD_REQUEST),
+    HR_LEAVE_NOT_FOUND(404, "Đơn nghỉ phép không tồn tại", HttpStatus.NOT_FOUND),
+    HR_LEAVE_STATE_INVALID(400, "Thao tác không hợp lệ với trạng thái đơn nghỉ phép", HttpStatus.BAD_REQUEST),
+    HR_LEAVE_RANGE_INVALID(400, "Khoảng ngày nghỉ không hợp lệ", HttpStatus.BAD_REQUEST),
+    HR_LEAVE_PAST_DATE(400, "Không thể xin nghỉ cho ngày đã qua", HttpStatus.BAD_REQUEST),
+    HR_LEAVE_OVERLAP(409, "Đã có đơn nghỉ hoặc nhân viên đang nghỉ phép trong khoảng này", HttpStatus.CONFLICT),
+    HR_SWAP_NOT_FOUND(404, "Đơn đổi ca không tồn tại", HttpStatus.NOT_FOUND),
+    HR_SWAP_STATE_INVALID(400, "Thao tác không hợp lệ với trạng thái đơn đổi ca", HttpStatus.BAD_REQUEST),
+    HR_SWAP_INVALID(400, "Đơn đổi ca không hợp lệ", HttpStatus.BAD_REQUEST),
 
     INTERNAL_ERROR(500, "Loi he thong", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_ERROR(500, "Loi co so du lieu", HttpStatus.INTERNAL_SERVER_ERROR);

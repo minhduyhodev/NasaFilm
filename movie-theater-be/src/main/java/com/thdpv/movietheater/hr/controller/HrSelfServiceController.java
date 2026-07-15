@@ -18,16 +18,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.hr.dto.request.LeaveRequestCreateRequest;
 import com.thdpv.movietheater.hr.dto.request.ShiftActionRequest;
+import com.thdpv.movietheater.hr.dto.request.SwapCreateRequest;
 import com.thdpv.movietheater.hr.dto.response.AttendanceResponse;
+import com.thdpv.movietheater.hr.dto.response.LeaveRequestResponse;
 import com.thdpv.movietheater.hr.dto.response.MyHrOverviewResponse;
 import com.thdpv.movietheater.hr.dto.response.PayslipResponse;
 import com.thdpv.movietheater.hr.dto.response.ShiftAssignmentResponse;
+import com.thdpv.movietheater.hr.dto.response.ShiftSwapRequestResponse;
 import com.thdpv.movietheater.hr.service.AttendanceService;
 import com.thdpv.movietheater.hr.service.HrDirectory;
 import com.thdpv.movietheater.hr.service.HrSelfService;
+import com.thdpv.movietheater.hr.service.LeaveRequestService;
 import com.thdpv.movietheater.hr.service.PayrollService;
 import com.thdpv.movietheater.hr.service.ShiftAssignmentService;
+import com.thdpv.movietheater.hr.service.ShiftSwapService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +51,8 @@ public class HrSelfServiceController {
     private final ShiftAssignmentService shiftAssignmentService;
     private final AttendanceService attendanceService;
     private final PayrollService payrollService;
+    private final LeaveRequestService leaveRequestService;
+    private final ShiftSwapService shiftSwapService;
     private final HrDirectory directory;
 
     @GetMapping("/overview")
@@ -105,5 +113,69 @@ public class HrSelfServiceController {
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(payrollService.getMyPayslip(userId, uuid)));
+    }
+
+    // ----- Nghỉ phép -----
+
+    @GetMapping("/leave-requests")
+    public ResponseEntity<ApiResponse<List<LeaveRequestResponse>>> myLeaves(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(leaveRequestService.listMine(userId)));
+    }
+
+    @PostMapping("/leave-requests")
+    public ResponseEntity<ApiResponse<LeaveRequestResponse>> createLeave(
+            @Valid @RequestBody LeaveRequestCreateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(
+                leaveRequestService.create(userId, request), "Đã gửi đơn nghỉ phép"));
+    }
+
+    @PostMapping("/leave-requests/{uuid}/cancel")
+    public ResponseEntity<ApiResponse<LeaveRequestResponse>> cancelLeave(
+            @PathVariable UUID uuid,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(
+                leaveRequestService.cancelMine(userId, uuid), "Đã hủy đơn nghỉ phép"));
+    }
+
+    // ----- Đổi ca -----
+
+    @GetMapping("/swap-requests")
+    public ResponseEntity<ApiResponse<List<ShiftSwapRequestResponse>>> mySwaps(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(shiftSwapService.listMine(userId)));
+    }
+
+    @GetMapping("/swap-candidates")
+    public ResponseEntity<ApiResponse<List<ShiftAssignmentResponse>>> swapCandidates(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(
+                shiftAssignmentService.listSwapCandidates(userId, from, to)));
+    }
+
+    @PostMapping("/swap-requests")
+    public ResponseEntity<ApiResponse<ShiftSwapRequestResponse>> createSwap(
+            @Valid @RequestBody SwapCreateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(
+                shiftSwapService.create(userId, request), "Đã gửi yêu cầu đổi ca"));
+    }
+
+    @PostMapping("/swap-requests/{uuid}/cancel")
+    public ResponseEntity<ApiResponse<ShiftSwapRequestResponse>> cancelSwap(
+            @PathVariable UUID uuid,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = directory.requireUserIdByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(
+                shiftSwapService.cancelMine(userId, uuid), "Đã hủy yêu cầu đổi ca"));
     }
 }

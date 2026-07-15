@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
   Wallet,
   Clock,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -480,6 +481,13 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 CalendarClock,
                 "Xếp ca làm việc",
                 "text-sky-400",
+                { permission: PERMISSIONS.HR_SHIFT_MANAGE },
+              )}
+              {renderLink(
+                "/admin/hr/requests",
+                ArrowLeftRight,
+                "Duyệt đơn từ",
+                "text-fuchsia-400",
                 { permission: PERMISSIONS.HR_SHIFT_MANAGE },
               )}
               {renderLink(

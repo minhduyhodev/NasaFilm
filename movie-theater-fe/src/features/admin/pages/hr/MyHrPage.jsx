@@ -1,28 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ArrowLeftRight,
   BellRing,
   CalendarClock,
   CalendarPlus,
+  CalendarX,
   ChevronRight,
   Clock,
   Loader2,
   LogIn,
   LogOut,
+  Plus,
   QrCode,
   RefreshCw,
+  Send,
   Timer,
+  Trash2,
   Wallet,
 } from 'lucide-react';
 import { AdminPage, AdminKpiGrid, AdminModal, PageHeader, PrimaryButton } from '../../components';
+import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { userNotificationApi } from '../../../../shared/services/userNotificationApi';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import StaffQrScanner, { canUseQrScanner } from '../../../../shared/components/qr/StaffQrScanner';
 import { adminInputClass } from '../../components/adminFormStyles';
 import {
   APPROVAL_STATUS_META,
   ATTENDANCE_STATUS_META,
   PAYSLIP_STATUS_META,
+  REQUEST_STATUS_META,
   SHIFT_CATEGORY_META,
   SHIFT_CATEGORY_ORDER,
   addDaysIso,
@@ -32,6 +40,7 @@ import {
   formatMinutes,
   formatMoney,
   formatTime,
+  leaveTypeLabel,
   monthRangeIso,
   shiftCheckInState,
   statusBadge,
@@ -44,17 +53,34 @@ const TABS = [
   { id: 'shifts', label: 'Ca làm của tôi' },
   { id: 'attendance', label: 'Lịch sử chấm công' },
   { id: 'payslips', label: 'Phiếu lương' },
+  { id: 'leave', label: 'Nghỉ phép' },
+  { id: 'swap', label: 'Đổi ca' },
+];
+
+const LEAVE_TYPE_OPTIONS = [
+  { value: 'ANNUAL', label: 'Phép năm' },
+  { value: 'UNPAID', label: 'Không lương' },
+  { value: 'SICK', label: 'Nghỉ ốm' },
+  { value: 'OTHER', label: 'Khác' },
 ];
 
 const now = new Date();
 const CURRENT_MONTH_RANGE = monthRangeIso(now.getFullYear(), now.getMonth() + 1);
 
 // Các loại thông báo HR sinh ra từ backend.
-const HR_NOTIF_TYPES = new Set(['shift_assigned', 'shift_reminder', 'payslip_ready']);
+const HR_NOTIF_TYPES = new Set([
+  'shift_assigned',
+  'shift_reminder',
+  'payslip_ready',
+  'leave_request',
+  'shift_swap',
+]);
 const NOTIF_ICON = {
   shift_assigned: CalendarPlus,
   shift_reminder: CalendarClock,
   payslip_ready: Wallet,
+  leave_request: CalendarX,
+  shift_swap: ArrowLeftRight,
 };
 
 const MyHrPage = () => {
@@ -63,10 +89,13 @@ const MyHrPage = () => {
   const [shifts, setShifts] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [payslips, setPayslips] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  const [swaps, setSwaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkpoint, setCheckpoint] = useState(null);
   const [notifs, setNotifs] = useState([]);
   const [markingRead, setMarkingRead] = useState(false);
+  const confirm = useConfirm();
 
   const shiftRange = useMemo(
     () => ({ from: addDaysIso(todayIso(), -7), to: addDaysIso(todayIso(), 21) }),
@@ -116,6 +145,12 @@ const MyHrPage = () => {
       } else if (tab === 'payslips') {
         const data = await hrService.getMyPayslips();
         setPayslips(Array.isArray(data) ? data : []);
+      } else if (tab === 'leave') {
+        const data = await hrService.getMyLeaveRequests();
+        setLeaves(Array.isArray(data) ? data : []);
+      } else if (tab === 'swap') {
+        const data = await hrService.getMySwapRequests();
+        setSwaps(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       notificationService.error(err?.message || 'Không thể tải dữ liệu.');
@@ -273,8 +308,12 @@ const MyHrPage = () => {
         />
       ) : tab === 'attendance' ? (
         <AttendanceList attendance={attendance} />
-      ) : (
+      ) : tab === 'payslips' ? (
         <PayslipList payslips={payslips} />
+      ) : tab === 'leave' ? (
+        <LeaveTab leaves={leaves} onChanged={loadTab} confirm={confirm} />
+      ) : (
+        <SwapTab swaps={swaps} onChanged={loadTab} confirm={confirm} />
       )}
 
       {checkpoint && (
@@ -630,6 +669,343 @@ function PayslipList({ payslips }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function LeaveTab({ leaves, onChanged, confirm }) {
+  const [leaveType, setLeaveType] = useState('ANNUAL');
+  const [fromDate, setFromDate] = useState(todayIso());
+  const [toDate, setToDate] = useState(todayIso());
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
+
+  const submit = async () => {
+    if (!fromDate || !toDate) {
+      notificationService.error('Vui lòng chọn khoảng ngày nghỉ.');
+      return;
+    }
+    if (toDate < fromDate) {
+      notificationService.error('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await hrService.createLeaveRequest({ leaveType, fromDate, toDate, reason: reason.trim() || null });
+      notificationService.success('Đã gửi đơn nghỉ phép.');
+      setReason('');
+      await onChanged();
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể gửi đơn nghỉ phép.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancel = async (rec) => {
+    const ok = await confirm({
+      title: 'Hủy đơn nghỉ phép',
+      message: 'Bạn có chắc muốn hủy đơn nghỉ phép này không?',
+      highlight: `${formatDate(rec.fromDate)} → ${formatDate(rec.toDate)}`,
+      confirmLabel: 'Hủy đơn',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    setCancelId(rec.uuid);
+    try {
+      await hrService.cancelLeaveRequest(rec.uuid);
+      notificationService.success('Đã hủy đơn nghỉ phép.');
+      await onChanged();
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể hủy đơn.');
+    } finally {
+      setCancelId(null);
+    }
+  };
+
+  return (
+    <div className="hr-req-layout">
+      <div className="hr-card hr-req-form">
+        <p className="hr-card__title" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Plus className="h-4 w-4 text-emerald-400" />
+          Gửi đơn nghỉ phép
+        </p>
+        <div className="hr-field" style={{ marginTop: 12 }}>
+          <AdminSelectDropdown label="Loại nghỉ" value={leaveType} options={LEAVE_TYPE_OPTIONS} onChange={setLeaveType} size="sm" />
+        </div>
+        <div className="hr-inline" style={{ gap: 12, marginTop: 12 }}>
+          <div className="hr-field" style={{ flex: 1 }}>
+            <label className="hr-field__label">Từ ngày</label>
+            <input type="date" className={adminInputClass} value={fromDate} min={todayIso()} onChange={(e) => setFromDate(e.target.value)} />
+          </div>
+          <div className="hr-field" style={{ flex: 1 }}>
+            <label className="hr-field__label">Đến ngày</label>
+            <input type="date" className={adminInputClass} value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} />
+          </div>
+        </div>
+        <div className="hr-field" style={{ marginTop: 12 }}>
+          <label className="hr-field__label">Lý do (tùy chọn)</label>
+          <textarea
+            className={adminInputClass}
+            rows={3}
+            placeholder="Ví dụ: về quê, việc gia đình..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <PrimaryButton onClick={submit} loading={saving}>
+            <Send className="h-4 w-4" />
+            Gửi đơn
+          </PrimaryButton>
+        </div>
+      </div>
+
+      <div className="hr-req-history">
+        <p className="hr-card__title" style={{ marginBottom: 10 }}>Đơn của tôi</p>
+        {leaves.length === 0 ? (
+          <div className="hr-state">
+            <CalendarX className="h-9 w-9 text-slate-500" />
+            <p>Bạn chưa gửi đơn nghỉ phép nào.</p>
+          </div>
+        ) : (
+          <div className="hr-req-list">
+            {leaves.map((l) => (
+              <div key={l.uuid} className="hr-card">
+                <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span className="hr-strong">{leaveTypeLabel(l.leaveType)}</span>
+                  <span className={statusBadge(REQUEST_STATUS_META, l.status).className}>
+                    {statusBadge(REQUEST_STATUS_META, l.status).label}
+                  </span>
+                </div>
+                <p className="hr-muted" style={{ fontSize: 13 }}>
+                  {formatDate(l.fromDate)} → {formatDate(l.toDate)} · {l.days} ngày
+                </p>
+                {l.reason && <p className="hr-muted" style={{ fontSize: 12, marginTop: 4 }}>Lý do: {l.reason}</p>}
+                {l.reviewNote && <p className="hr-muted" style={{ fontSize: 12, marginTop: 4 }}>Phản hồi: {l.reviewNote}</p>}
+                {l.status === 'PENDING' && (
+                  <button
+                    type="button"
+                    className="hr-req-btn hr-req-btn--reject"
+                    style={{ marginTop: 10 }}
+                    disabled={cancelId === l.uuid}
+                    onClick={() => cancel(l)}
+                  >
+                    {cancelId === l.uuid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Hủy đơn
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SwapTab({ swaps, onChanged, confirm }) {
+  const [myShifts, setMyShifts] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [mine, setMine] = useState('');
+  const [theirs, setTheirs] = useState('');
+  const [note, setNote] = useState('');
+  const [loadingForm, setLoadingForm] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
+
+  const range = useMemo(() => ({ from: todayIso(), to: addDaysIso(todayIso(), 28) }), []);
+
+  const loadForm = useCallback(async () => {
+    setLoadingForm(true);
+    try {
+      const [ms, cs] = await Promise.all([
+        hrService.getMyShifts(range),
+        hrService.getSwapCandidates(range.from, range.to),
+      ]);
+      const upcoming = (Array.isArray(ms) ? ms : []).filter(
+        (s) => s.status === 'SCHEDULED' && s.workDate >= todayIso(),
+      );
+      setMyShifts(upcoming);
+      setCandidates(Array.isArray(cs) ? cs : []);
+    } catch {
+      setMyShifts([]);
+      setCandidates([]);
+    } finally {
+      setLoadingForm(false);
+    }
+  }, [range]);
+
+  useEffect(() => {
+    loadForm();
+  }, [loadForm]);
+
+  const mineOptions = useMemo(
+    () => [
+      { value: '', label: 'Chọn ca của bạn...' },
+      ...myShifts.map((s) => ({
+        value: s.uuid,
+        label: `${formatDate(s.workDate)} · ${s.shiftName} (${formatTime(s.startTime)}–${formatTime(s.endTime)})`,
+      })),
+    ],
+    [myShifts],
+  );
+
+  const theirsOptions = useMemo(
+    () => [
+      { value: '', label: 'Chọn ca đồng nghiệp...' },
+      ...candidates.map((s) => ({
+        value: s.uuid,
+        label: `${s.fullName || s.email} · ${formatDate(s.workDate)} · ${s.shiftName}`,
+      })),
+    ],
+    [candidates],
+  );
+
+  const submit = async () => {
+    if (!mine || !theirs) {
+      notificationService.error('Vui lòng chọn ca của bạn và ca của đồng nghiệp.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await hrService.createSwapRequest({
+        requesterAssignmentUuid: mine,
+        counterpartAssignmentUuid: theirs,
+        note: note.trim() || null,
+      });
+      notificationService.success('Đã gửi yêu cầu đổi ca.');
+      setMine('');
+      setTheirs('');
+      setNote('');
+      await Promise.all([onChanged(), loadForm()]);
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể gửi yêu cầu đổi ca.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancel = async (rec) => {
+    const ok = await confirm({
+      title: 'Hủy yêu cầu đổi ca',
+      message: 'Bạn có chắc muốn hủy yêu cầu đổi ca này không?',
+      confirmLabel: 'Hủy yêu cầu',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    setCancelId(rec.uuid);
+    try {
+      await hrService.cancelSwapRequest(rec.uuid);
+      notificationService.success('Đã hủy yêu cầu đổi ca.');
+      await onChanged();
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể hủy yêu cầu.');
+    } finally {
+      setCancelId(null);
+    }
+  };
+
+  return (
+    <div className="hr-req-layout">
+      <div className="hr-card hr-req-form">
+        <p className="hr-card__title" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <ArrowLeftRight className="h-4 w-4 text-sky-400" />
+          Gửi yêu cầu đổi ca
+        </p>
+        {loadingForm ? (
+          <div className="hr-state" style={{ padding: 20 }}>
+            <Loader2 className="h-6 w-6 text-red-500 animate-spin" />
+          </div>
+        ) : myShifts.length === 0 ? (
+          <p className="hr-muted" style={{ fontSize: 13, marginTop: 12 }}>
+            Bạn chưa có ca sắp tới nào để đổi.
+          </p>
+        ) : (
+          <>
+            <div className="hr-field" style={{ marginTop: 12 }}>
+              <AdminSelectDropdown label="Ca của tôi" value={mine} options={mineOptions} onChange={setMine} size="sm" />
+            </div>
+            <div className="hr-field" style={{ marginTop: 12 }}>
+              <AdminSelectDropdown label="Đổi lấy ca của đồng nghiệp" value={theirs} options={theirsOptions} onChange={setTheirs} size="sm" />
+            </div>
+            <div className="hr-field" style={{ marginTop: 12 }}>
+              <label className="hr-field__label">Ghi chú (tùy chọn)</label>
+              <textarea
+                className={adminInputClass}
+                rows={2}
+                placeholder="Lý do đổi ca..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+            <p className="hr-muted" style={{ fontSize: 11, marginTop: 8 }}>
+              Yêu cầu cần quản lý duyệt. Hệ thống sẽ kiểm tra trùng giờ và nghỉ phép trước khi đổi.
+            </p>
+            <div style={{ marginTop: 14 }}>
+              <PrimaryButton onClick={submit} loading={saving} disabled={!mine || !theirs}>
+                <Send className="h-4 w-4" />
+                Gửi yêu cầu
+              </PrimaryButton>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="hr-req-history">
+        <p className="hr-card__title" style={{ marginBottom: 10 }}>Yêu cầu của tôi</p>
+        {swaps.length === 0 ? (
+          <div className="hr-state">
+            <ArrowLeftRight className="h-9 w-9 text-slate-500" />
+            <p>Bạn chưa có yêu cầu đổi ca nào.</p>
+          </div>
+        ) : (
+          <div className="hr-req-list">
+            {swaps.map((s) => (
+              <div key={s.uuid} className="hr-card">
+                <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span className={statusBadge(REQUEST_STATUS_META, s.status).className}>
+                    {statusBadge(REQUEST_STATUS_META, s.status).label}
+                  </span>
+                  <span className="hr-muted" style={{ fontSize: 11 }}>{formatDate(s.createdAt)}</span>
+                </div>
+                <SwapPartyLine label="Ca của bạn" party={s.requester} />
+                <div className="hr-inline" style={{ justifyContent: 'center', margin: '4px 0' }}>
+                  <ArrowLeftRight className="h-4 w-4 text-sky-400" />
+                </div>
+                <SwapPartyLine label="Đổi lấy" party={s.counterpart} />
+                {s.reviewNote && <p className="hr-muted" style={{ fontSize: 12, marginTop: 6 }}>Phản hồi: {s.reviewNote}</p>}
+                {s.status === 'PENDING' && (
+                  <button
+                    type="button"
+                    className="hr-req-btn hr-req-btn--reject"
+                    style={{ marginTop: 10 }}
+                    disabled={cancelId === s.uuid}
+                    onClick={() => cancel(s)}
+                  >
+                    {cancelId === s.uuid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Hủy yêu cầu
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SwapPartyLine({ label, party }) {
+  if (!party) return null;
+  return (
+    <div>
+      <span className="hr-muted" style={{ fontSize: 11 }}>{label}: </span>
+      <span className="hr-strong" style={{ fontSize: 13 }}>{party.fullName || party.email}</span>
+      <div className="hr-muted" style={{ fontSize: 12 }}>
+        {party.shiftName} · {formatDate(party.workDate)} · {formatTime(party.startTime)}–{formatTime(party.endTime)}
+      </div>
     </div>
   );
 }
