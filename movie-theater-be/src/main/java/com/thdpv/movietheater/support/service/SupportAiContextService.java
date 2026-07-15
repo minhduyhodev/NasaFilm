@@ -53,8 +53,8 @@ public class SupportAiContextService {
     private static final int MOVIE_LIMIT = 12;
     private static final int COMING_SOON_LIMIT = 10;
     private static final int VOD_LIMIT = 10;
-    private static final int SHOWTIME_LIMIT = 20;
-    private static final int SHOWTIME_HOURS = 24;
+    private static final int SHOWTIME_LIMIT = 30;
+    private static final int SHOWTIME_HOURS = 168;
     private static final int CINEMA_LIMIT = 15;
     private static final int COMBO_LIMIT = 10;
     private static final int VOUCHER_LIMIT = 10;
@@ -330,11 +330,11 @@ public class SupportAiContextService {
     }
 
     private void appendShowtimes(StringBuilder sb) {
-        sb.append("\nSUẤT CHIẾU GẦN NHẤT (")
-                .append(SHOWTIME_HOURS)
-                .append(" giờ tới, tối đa ")
+        sb.append("\nSUẤT CHIẾU SẮP TỚI (trong ")
+                .append(SHOWTIME_HOURS / 24)
+                .append(" ngày tới, tối đa ")
                 .append(SHOWTIME_LIMIT)
-                .append("):\n");
+                .append(" suất):\n");
         List<ShowtimeResponse> showtimes = showtimeService.getUpcomingShowtimesWithinHours(
                 SHOWTIME_HOURS, SHOWTIME_LIMIT);
         if (showtimes.isEmpty()) {
