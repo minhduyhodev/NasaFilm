@@ -12,7 +12,6 @@ import { useRealtimeTopics } from '../hooks/useRealtimeTopics';
 import { notificationService } from '../services/notificationService';
 import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
-import { DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../constants/systemConfig';
 import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
 import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
@@ -1183,17 +1182,6 @@ const NasaAiAssistantWidget = () => {
     ensureCategoryChips();
   };
 
-  const pushFaqGuide = (categoryKey) => {
-    const group = DEFAULT_NASA_BOT_SUPPORT_FAQS.find((item) => item.key === categoryKey);
-    if (!group) return;
-    pushMessage({
-      role: 'bot',
-      type: 'faq',
-      categoryKey,
-      group,
-    });
-  };
-
   const startGuidedSupportChat = async (category) => {
     const seed = CATEGORY_GUIDED_SEEDS[category?.key];
     if (!seed || !category) return;
@@ -1249,7 +1237,10 @@ const NasaAiAssistantWidget = () => {
     setMessages((prev) => prev.filter((item) => item.type !== 'categories'));
 
     if (CATEGORY_GUIDED_KEYS.has(category.key)) {
-      pushFaqGuide(category.key);
+      // Guided categories collect info one question at a time (like "Vé"). We intentionally do
+      // NOT push the quick-FAQ card here anymore: showing it alongside the first guided question
+      // made the bot appear to ask two things at once, and clicking a FAQ chip pushed a local
+      // Q&A into the history that derailed the step-by-step ticket flow.
       void startGuidedSupportChat(category);
       return;
     }
