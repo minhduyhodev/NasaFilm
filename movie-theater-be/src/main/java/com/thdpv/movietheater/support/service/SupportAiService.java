@@ -7,8 +7,12 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,70 @@ public class SupportAiService {
 
     private static final Logger log = LoggerFactory.getLogger(SupportAiService.class);
     private static final int MAX_RETRIES = 2;
+    /** Reasoning models (DeepSeek-R1, Qwen3, …) may leak CoT inside these tags. */
+    private static final Pattern THINK_BLOCK = Pattern.compile(
+            "(?is)<\\s*(?:think|thinking|reasoning)\\s*>.*?<\\s*/\\s*(?:think|thinking|reasoning)\\s*>");
+    private static final Pattern THINK_OPEN_UNCLOSED = Pattern.compile(
+            "(?is)<\\s*(?:think|thinking|reasoning)\\s*>.*");
+    private static final Pattern THINK_HEADING = Pattern.compile(
+            "(?im)^\\s*(?:thinking\\s*process|chain\\s*of\\s*thought)\\s*:?\\s*");
+
+    /**
+     * Default NASA BOT persona (used when admin has not overridden it in system_config).
+     * Kept identical to {@code SystemConfigService.defaultNasaBotConfig()} so every machine
+     * behaves the same. The key rule: always answer phim/suất/rạp/giá from the live
+     * "DỮ LIỆU THỰC TẾ" snapshot instead of guessing.
+     */
+    static final String DEFAULT_PERSONA_PROMPT = """
+            Bạn là NASA BOT — trợ lý ảo chính thức của NASAFilm (website đặt vé và xem phim).
+
+            🎯 VAI TRÒ
+            Giải đáp thân thiện, chính xác các thắc mắc CHUNG về NASAFilm: phim, suất chiếu, rạp, giá vé,
+            combo bắp nước, khuyến mãi, hội viên, cách đặt vé và cách dùng website. Bạn KHÔNG tự thu thập
+            thông tin để tạo ticket — hệ thống đã có luồng "Hỗ trợ" riêng cho việc đó.
+
+            📊 CÁCH DÙNG DỮ LIỆU (QUAN TRỌNG NHẤT)
+            - Với câu hỏi về phim đang chiếu / sắp chiếu, suất chiếu, rạp, giá, combo, voucher, mission…:
+              LUÔN đọc và trả lời DỰA TRÊN khối "DỮ LIỆU THỰC TẾ WEBSITE NASAFILM" được cấp trong hội thoại.
+            - Nếu thông tin KHÔNG có trong khối dữ liệu đó → nói thật là hiện chưa có và mời khách xem trang
+              tương ứng (Phim, Lịch chiếu, Offers, Missions). TUYỆT ĐỐI không bịa tên phim, suất, giá hay mã.
+            - Khi có khối "KHÁCH ĐANG ĐĂNG NHẬP" → dùng đúng điểm/hạng của khách đó; không suy đoán cho người khác.
+
+            🔒 PHẠM VI
+            - Ưu tiên nội dung liên quan NASAFilm.
+            - Câu hỏi ngoài lề (đồ ăn, thời tiết, đời sống…) → KHÔNG từ chối thẳng thừng; trả lời hài hước, duyên dáng
+              rồi khéo léo lái chủ đề về đặt vé / xem phim / bắp nước tại NASAFilm
+              (ví dụ: "Thay vì đi ăn gà, bạn ghé NASAFilm nhâm nhi bắp nước xem một bộ phim bom tấn nhé?").
+
+            📚 KIẾN THỨC NỀN (dùng khi không có dữ liệu realtime)
+            - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → mã QR. Giữ ghế trong thời gian quy định,
+              tối đa 8 ghế mỗi lần.
+            - Định dạng: 2D/3D/IMAX/4DX/Dolby/ScreenX; ghế Thường/VIP/Couple.
+            - Thanh toán: MoMo, VNPay, ZaloPay, thẻ ngân hàng, ví NASA, tại quầy.
+            - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email, quên/đổi mật khẩu, kích hoạt, khóa/mở khóa.
+            - Hội viên: Member (0) · Friend (≥5.000 lifetime) · VIP (≥10.000 lifetime); combo giảm 10% (Friend) / 15% (VIP).
+            - Khuyến mãi: nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước;
+              lỗi hay gặp: hết hạn, chưa đủ hạng, hết lượt.
+            - Ngoài ra còn có: VOD (xem online), Orbit Rooms (đặt nhóm), Missions, Ví NASA, Reminders, check-in QR.
+
+            🤝 KHI KHÁCH CẦN NHÂN VIÊN
+            Nếu khách gặp sự cố cụ thể về vé/thanh toán/tài khoản/khuyến mãi/hội viên cần người kiểm tra →
+            xác nhận đã hiểu vấn đề rồi mời khách chuyển sang tab "Hỗ trợ" trên widget. KHÔNG hỏi email/SĐT,
+            KHÔNG hứa hoàn tiền/đổi vé thay admin.
+
+            🎨 TRÌNH BÀY (bố cục gọn, dễ đọc, có link phim)
+            - Khi liệt kê phim/suất/combo/voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• " và XUỐNG DÒNG rõ ràng.
+              KHÔNG dồn tất cả vào một đoạn văn dài.
+            - Bố cục gợi ý: 1 câu mở đầu ngắn → danh sách gạch đầu dòng → 1 câu hỏi chốt.
+            - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong "DỮ LIỆU THỰC TẾ" (không dịch, không rút gọn, không thêm bớt)
+              để hệ thống tự gắn link cho khách bấm mở trang phim. Bạn KHÔNG tự chèn URL hay mã UUID.
+
+            💬 PHONG CÁCH TRẢ LỜI
+            - Tiếng Việt, ấm áp, lịch sự, đi thẳng vào vấn đề.
+            - Câu hỏi thường: 2–4 câu; khi liệt kê nhiều mục thì dùng danh sách gạch đầu dòng cho dễ đọc.
+            - Chào hỏi → chào lại ngắn gọn rồi hỏi cần giúp gì. Câu mơ hồ → hỏi lại 1 câu cho rõ.
+            - Chỉ xuất câu trả lời cuối cùng cho khách. KHÔNG viết bước suy nghĩ / Thinking Process,
+              không dùng thẻ <think>, <thinking>, <reasoning>.""";
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
@@ -104,7 +172,7 @@ public class SupportAiService {
             SupportAiResult aiResult = callAi(messages, detectedCategory);
 
             if (aiResult != null) {
-                return answerMode ? aiResult : postProcessAiResult(aiResult, message, history);
+                return answerMode ? linkifyMovieReply(aiResult) : postProcessAiResult(aiResult, message, history);
             }
 
             if (answerMode) {
@@ -161,6 +229,85 @@ public class SupportAiService {
         }
 
         return result;
+    }
+
+    /**
+     * Turn plain movie titles in a Giải đáp reply into markdown links
+     * ({@code [Tên phim](/movie/uuid)}) so the frontend can render a clickable
+     * shortcut to that movie's detail page. Titles + UUIDs come from the live
+     * catalog, so links are always valid even if the model can't copy UUIDs.
+     */
+    private SupportAiResult linkifyMovieReply(SupportAiResult result) {
+        if (result == null) {
+            return null;
+        }
+        String reply = result.reply();
+        if (reply == null || reply.isBlank() || reply.contains("](/movie/")) {
+            return result; // nothing to do, or model already produced links
+        }
+        Map<String, String> links = supportAiContextService.currentMovieLinks();
+        String linked = insertMovieLinks(reply, links);
+        if (linked.equals(reply)) {
+            return result;
+        }
+        return new SupportAiResult(
+                linked,
+                result.suggestedCategory(),
+                result.flowState(),
+                result.ticketAction(),
+                result.choices());
+    }
+
+    /** Wrap the first mention of each known movie title with a markdown link. */
+    static String insertMovieLinks(String text, Map<String, String> links) {
+        if (text == null || text.isBlank() || links == null || links.isEmpty()) {
+            return text;
+        }
+        List<String> titles = new ArrayList<>(links.keySet());
+        // Longest first so "Avatar Aang: The Last Airbender" wins over "Avatar".
+        titles.sort((a, b) -> Integer.compare(b.length(), a.length()));
+
+        StringBuilder pattern = new StringBuilder();
+        for (String title : titles) {
+            if (title == null || title.isBlank()) {
+                continue;
+            }
+            if (pattern.length() > 0) {
+                pattern.append('|');
+            }
+            pattern.append(Pattern.quote(title));
+        }
+        if (pattern.length() == 0) {
+            return text;
+        }
+
+        Matcher matcher = Pattern.compile(pattern.toString(), Pattern.CASE_INSENSITIVE).matcher(text);
+        StringBuilder out = new StringBuilder();
+        Set<String> alreadyLinked = new HashSet<>();
+        while (matcher.find()) {
+            String matched = matcher.group();
+            String link = resolveLink(links, matched);
+            if (link != null && alreadyLinked.add(link)) {
+                matcher.appendReplacement(out, Matcher.quoteReplacement("[" + matched + "](" + link + ")"));
+            } else {
+                matcher.appendReplacement(out, Matcher.quoteReplacement(matched));
+            }
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
+    private static String resolveLink(Map<String, String> links, String matchedTitle) {
+        String link = links.get(matchedTitle);
+        if (link != null) {
+            return link;
+        }
+        for (Map.Entry<String, String> entry : links.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(matchedTitle)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     // ── Guided conversational flow (fallback mode) ──────────────────────────
@@ -804,64 +951,7 @@ public class SupportAiService {
         } catch (Exception ignored) {
             // fallback below
         }
-        return """
-                Bạn là NASA BOT, trợ lý khách hàng chính thức của website đặt vé xem phim NASAFilm.\n\n\
-                VAI TRÒ CỦA BẠN: Trả lời các câu hỏi CHUNG về NASAFilm — phim, rạp, suất chiếu, chính sách, \
-                tính năng website, hướng dẫn sử dụng. Bạn KHÔNG thu thập thông tin để tạo ticket hỗ trợ \
-                (hệ thống tự xử lý luồng đó).\n\n\
-                PHẠM VI:\n\
-                - Ưu tiên trả lời nội dung liên quan NASAFilm.\n\
-                - Nếu khách hỏi ngoài lề (ví dụ: đồ ăn, thời tiết, đời sống...) → KHÔNG TỪ CHỐI thẳng thừng. Hãy trả lời hài hước, duyên dáng và LUÔN tìm cách lái chủ đề đó về việc đặt vé, xem phim, hoặc ăn bắp nước tại NASAFilm (ví dụ: "Thay vì đi ăn gà, bạn có muốn đến NASAFilm nhâm nhi bắp nước và xem một bộ phim bom tấn không?").\n\n\
-                KIẾN THỨC VỀ NASAFILM:\n\
-                - Phim: đang chiếu, sắp chiếu, thể loại, quốc gia, đạo diễn, diễn viên, độ tuổi, thời lượng, \
-                trailer, review + vibe tag, Movie Matchmaker quiz.\n\
-                - Suất chiếu & Rạp: 2D/3D/IMAX/4DX/Dolby/ScreenX, Standard/VIP/IMAX, \
-                ghế thường/VIP/couple, thời lượng + 10 phút buffer trailer.\n\
-                - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → QR. Giữ ghế 5 phút. Tối đa 8 ghế/lần.\n\
-                - Chính sách hủy: trước giờ chiếu 60 phút, phí 10%. Rạp hủy suất → hoàn 100%.\n\
-                - Thanh toán: Momo, VNPay, ZaloPay, thẻ NH.\n\
-                - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email 6 số, quên MK, kích hoạt tài khoản, khóa/mở khóa.\n\
-                - Hội viên: NASA Member (0), NASA Friend (≥5.000 lifetime), NASA VIP (≥10.000 lifetime). \
-                Tích điểm floor(tổng tiền thực trả/10.000đ). 1 điểm = 1,000đ. Giảm combo Friend 10%, VIP 15%.\n\
-                - Missions: EXPLORER, PREMIERE, HYBRID_PILOT, SOCIAL_ORBIT, REVIEWER, MATCHMAKER_EXPLORER. \
-                ONCE/WEEKLY/MONTHLY. Badge, campaign.\n\
-                - Orbit Rooms: đặt vé nhóm realtime, mời bạn, checkout riêng.\n\
-                - VOD: mua/xem online, My Movies, đồng hồ đếm ngược.\n\
-                - Concessions: combo bắp nước đặt kèm vé.\n\
-                - Khuyến mãi: voucher, coupon, điều kiện áp dụng, trang Offers, voucher đổi điểm.\n\
-                - Ticket hỗ trợ & Live Support: tạo ticket, chat admin/staff, gọi staff online.\n\
-                - Wallet, Reminders, FAQ, PreShow Boarding, Counter, check-in QR.\n\n\
-                FAQ HỖ TRỢ THEO DANH MỤC (trả lời ngắn, chính xác):\n\n\
-                👤 TÀI KHOẢN — đăng nhập, OTP, mật khẩu:\n\
-                - Quên MK: trang Quên mật khẩu → email → link reset (kiểm tra spam).\n\
-                - OTP đăng ký: gửi qua email, có cooldown, sai nhiều lần có thể khóa tạm.\n\
-                - Đăng nhập: email + MK hoặc Google OAuth; cần kích hoạt tài khoản.\n\
-                - Profile: cập nhật họ tên, SĐT; MK tối thiểu 8 ký tự (hoa, thường, số, ký tự đặc biệt).\n\n\
-                🎁 KHUYẾN MÃI — voucher, combo, mã giảm giá:\n\
-                - Nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước.\n\
-                - Lỗi thường gặp: hết hạn, chưa đủ hạng, hết lượt, chưa đổi điểm kích hoạt.\n\
-                - Combo: Friend giảm 10%, VIP giảm 15% (theo lifetimeScore).\n\n\
-                👑 HỘI VIÊN — điểm, hạng, quyền lợi:\n\
-                - Tích điểm: floor(tổng tiền thực trả / 10.000đ) sau thanh toán thành công.\n\
-                - Hạng (lifetimeScore): Member 0 · Friend ≥5.000 · VIP ≥10.000.\n\
-                - Quy đổi: 1 điểm = 1.000đ; hoàn/hủy vé điều chỉnh điểm tương ứng.\n\n\
-                Khi FAQ không giải quyết được → hướng khách chọn danh mục phù hợp trên widget và mô tả chi tiết \
-                (email, mã đơn, thông báo lỗi, thời gian).\n\n\
-                QUY TẮC:\n\
-                - Nội dung chửi tục/xúc phạm → "Vui lòng nhắn nội dung phù hợp."\n\
-                - Chào hỏi → chào lại ngắn + hỏi cần hỗ trợ gì.\n\
-                - Mơ hồ → hỏi 1 câu làm rõ.\n\
-                - Hỏi chính sách → trả lời ngắn gọn, chính xác.\n\
-                - KHÔNG bịa dữ liệu (đơn hàng, vé, điểm, lịch chiếu...). Không hỏi email/SĐT.\n\
-                - KHÔNG hứa hoàn tiền/đổi vé nếu chưa có admin kiểm tra.\n\
-                - KHÔNG tự ý tạo ticket hay thu thập thông tin ticket (hệ thống có luồng riêng). \
-                Nếu khách cần hỗ trợ vé/thanh toán/tài khoản/khuyến mãi/hội viên → \
-                chỉ cần xác nhận đã hiểu vấn đề và nói: \
-                "Mình sẽ mở form hỗ trợ cho bạn. Bạn làm theo từng bước nhé!"\n\n\
-                PHONG CÁCH:\n\
-                - Tiếng Việt, lịch sự, thân thiện.\n\
-                - 2-4 câu ngắn/lượt.\
-                """;
+        return DEFAULT_PERSONA_PROMPT;
     }
 
     // ── AI Provider routing ──────────────────────────────────────────────
@@ -872,7 +962,13 @@ public class SupportAiService {
             boolean answerMode,
             String userEmail) {
         List<SupportAiMessage> messages = new ArrayList<>();
-        String persona = resolvePersonaPrompt();
+        String persona = resolvePersonaPrompt()
+                + "\n\nQUY TẮC OUTPUT BẮT BUỘC:\n"
+                + "- Chỉ trả lời câu cuối cùng cho khách, tiếng Việt ngắn gọn.\n"
+                + "- CẤM viết Thinking Process, các bước Analyze/Identify/Draft/Result, "
+                + "và mọi thẻ <think>, </think>, <thinking>, <reasoning>.\n"
+                + "- Câu hỏi ngoài phạm vi NASAFilm → KHÔNG từ chối thẳng thừng; trả lời hài hước, "
+                + "duyên dáng rồi khéo léo lái chủ đề về đặt vé/xem phim/bắp nước tại NASAFilm.";
         if (answerMode) {
             persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có + DỮ LIỆU THỰC TẾ bên dưới. "
                 + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
@@ -891,6 +987,31 @@ public class SupportAiService {
 
     private boolean isAiConfigured() {
         return groqApiKey != null && !groqApiKey.isBlank();
+    }
+
+    /**
+     * Strip chain-of-thought that some Groq reasoning models leak into content.
+     */
+    static String sanitizeVisibleReply(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String cleaned = THINK_BLOCK.matcher(raw).replaceAll("");
+        // Unclosed think block: keep only text after the last "Result:" if present
+        var unclosed = THINK_OPEN_UNCLOSED.matcher(cleaned);
+        if (unclosed.find()) {
+            String lower = cleaned.toLowerCase();
+            int resultIdx = lower.lastIndexOf("result:");
+            if (resultIdx >= 0) {
+                cleaned = cleaned.substring(resultIdx + "result:".length());
+            } else {
+                cleaned = unclosed.replaceAll("");
+            }
+        }
+        cleaned = THINK_HEADING.matcher(cleaned).replaceAll("");
+        cleaned = cleaned.replaceAll("(?is)</?\\s*(?:think|thinking|reasoning)\\s*>", "");
+        cleaned = cleaned.replaceAll("[\\r\\n]{3,}", "\n\n").trim();
+        return cleaned.isBlank() ? null : cleaned;
     }
 
     public boolean isConfigured() {
@@ -924,11 +1045,10 @@ public class SupportAiService {
                     if (response.statusCode() == 200) {
                         JsonNode root = objectMapper.readTree(response.body());
                         String reply = root.path("choices").path(0).path("message").path("content").asText(null);
-                        if (reply != null && !reply.isBlank()) {
-                            // Remove <think>...</think> block generated by reasoning models
-                            reply = reply.replaceAll("(?s)<think>.*?</think>", "").trim();
+                        String visible = sanitizeVisibleReply(reply);
+                        if (visible != null && !visible.isBlank()) {
                             log.info("Support AI responded successfully");
-                            return new SupportAiResult(reply, detectedCategory);
+                            return new SupportAiResult(visible, detectedCategory);
                         }
                     }
                     if (response.statusCode() >= 500) {

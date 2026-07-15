@@ -351,7 +351,6 @@ const SupportInboxPage = () => {
       await loadMessages(selectedTicketCode);
       await loadTickets();
       await loadTicketDetail(selectedTicketCode);
-      notificationService.success('Đã gửi phản hồi.');
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không gửi được phản hồi.');
     } finally {
@@ -605,9 +604,21 @@ const SupportInboxPage = () => {
                     {getCategoryLabel(selectedTicket.category)}
                   </div>
                 </div>
-                <span className={getStatusMeta(selectedTicket.status).className}>
-                  {getStatusMeta(selectedTicket.status).label}
-                </span>
+                <div className="support-chat-head__actions">
+                  {selectedTicket.status !== 'DONE' && selectedTicket.status !== 'CLOSED' && selectedTicket.status !== 'RESOLVED' ? (
+                    <button
+                      type="button"
+                      className="support-filter-tab support-filter-tab--active"
+                      onClick={handleFinishSupport}
+                      disabled={loading}
+                    >
+                      Gửi cảm ơn & kết thúc
+                    </button>
+                  ) : null}
+                  <span className={getStatusMeta(selectedTicket.status).className}>
+                    {getStatusMeta(selectedTicket.status).label}
+                  </span>
+                </div>
               </header>
 
               {selectedTicket.description ? (
@@ -617,17 +628,21 @@ const SupportInboxPage = () => {
                 </div>
               ) : null}
 
-              {selectedTicket.status === 'DONE' && (
+              {(selectedTicket.status === 'DONE' || selectedTicket.status === 'CLOSED' || selectedTicket.status === 'RESOLVED') && (
                 <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
                   <p className="support-state-title">
-                    {selectedTicket.satisfactionRating
-                      ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
-                      : 'Hỗ trợ đã kết thúc'}
+                    {selectedTicket.status === 'CLOSED'
+                      ? 'Khách đã hủy yêu cầu'
+                      : selectedTicket.satisfactionRating
+                        ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
+                        : 'Hỗ trợ đã kết thúc'}
                   </p>
                   <p className="support-state-desc">
-                    {selectedTicket.satisfactionRating
-                      ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
-                      : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
+                    {selectedTicket.status === 'CLOSED'
+                      ? 'Ticket đã bị khách hủy. Bạn có thể xóa khỏi hộp thư nếu không cần giữ.'
+                      : selectedTicket.satisfactionRating
+                        ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
+                        : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
                   </p>
                   <div className="support-compose-footer" style={{ justifyContent: 'flex-end' }}>
                     <button type="button" className="support-filter-tab" onClick={handleDeleteTicket}>
@@ -703,27 +718,15 @@ const SupportInboxPage = () => {
                 />
                 <div className="support-compose-footer">
                   <span className="support-compose-hint">Realtime · Enter gửi nhanh</span>
-                  <div className="flex gap-2 items-center">
-                    {selectedTicket.status !== 'DONE' && (
-                      <button type="button" className="support-filter-tab" onClick={handleDeleteTicket} disabled={loading}>
-                        Xóa ticket
-                      </button>
-                    )}
-                    {selectedTicket.status !== 'DONE' && (
-                      <button type="button" className="support-filter-tab support-filter-tab--active" onClick={handleFinishSupport} disabled={loading}>
-                        Gửi cảm ơn & kết thúc
-                      </button>
-                    )}
-                    <PrimaryButton
-                      type="button"
-                      disabled={!draft.trim()}
-                      loading={loading}
-                      onClick={handleReply}
-                    >
-                      <Send className="h-4 w-4" />
-                      Gửi phản hồi
-                    </PrimaryButton>
-                  </div>
+                  <PrimaryButton
+                    type="button"
+                    disabled={!draft.trim() || selectedTicket.status === 'DONE' || selectedTicket.status === 'CLOSED'}
+                    loading={loading}
+                    onClick={handleReply}
+                  >
+                    <Send className="h-4 w-4" />
+                    Gửi phản hồi
+                  </PrimaryButton>
                 </div>
               </div>
             </>
