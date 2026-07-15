@@ -4,6 +4,7 @@ import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -190,6 +191,33 @@ public class AttendanceService {
         attendanceRepository.save(attendance);
         return toResponse(attendance, directory.requireUser(attendance.getUserUuid()),
                 directory.requireShift(attendance.getShiftDefinitionUuid()));
+    }
+
+    /**
+     * Duyệt hàng loạt các bản ghi chấm công đang chờ (PENDING) trong khoảng ngày.
+     * Bỏ qua bản ghi chưa check-out. Tự điền OT duyệt như duyệt đơn lẻ.
+     * @return số bản ghi được duyệt.
+     */
+    @Transactional
+    public int bulkApprove(LocalDate from, LocalDate to, UUID actorId) {
+        List<Attendance> pending = attendanceRepository.search(from, to, null, ApprovalStatus.PENDING);
+        OffsetDateTime now = AppTimeZones.now();
+        List<Attendance> changed = new ArrayList<>();
+        for (Attendance a : pending) {
+            if (a.getCheckOutAt() == null) {
+                continue; // chưa check-out -> chưa thể duyệt
+            }
+            if (!a.isOtApprovalManual() && a.getOtMinutesApproved() == 0 && a.getOtMinutes() > 0) {
+                a.setOtMinutesApproved(a.getOtMinutes());
+            }
+            a.setApprovalStatus(ApprovalStatus.APPROVED);
+            a.setApprovedBy(actorId);
+            a.setApprovedAt(now);
+            a.setUpdatedAt(now);
+            changed.add(a);
+        }
+        attendanceRepository.saveAll(changed);
+        return changed.size();
     }
 
     @Transactional

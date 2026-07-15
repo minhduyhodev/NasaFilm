@@ -15,5 +15,6 @@ public record ShiftDefinitionResponse(
         boolean active,
         int sortOrder,
         List<String> requiredPermissions,
-        boolean usingDefaultPermissions) {
+        boolean usingDefaultPermissions,
+        int minStaff) {
 }

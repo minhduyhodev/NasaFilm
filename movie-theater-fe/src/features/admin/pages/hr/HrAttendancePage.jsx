@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Loader2, Lock, Pencil, QrCode, ScanLine, X } from 'lucide-react';
+import { Check, CheckCheck, Loader2, Lock, Pencil, QrCode, ScanLine, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { AdminPage, AdminModal, PageHeader, PrimaryButton } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
@@ -57,6 +57,7 @@ const HrAttendancePage = () => {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [bulkApproving, setBulkApproving] = useState(false);
   const [editing, setEditing] = useState(null);
   const [checkpointOpen, setCheckpointOpen] = useState(false);
   const confirm = useConfirm();
@@ -138,6 +139,35 @@ const HrAttendancePage = () => {
     }
   };
 
+  const handleBulkApprove = async () => {
+    const pendingCount = records.filter(
+      (r) => r.approvalStatus === 'PENDING' && r.checkOutAt,
+    ).length;
+    if (pendingCount === 0) {
+      notificationService.info('Không có chấm công chờ duyệt (đã check-out) trong khoảng đang xem.');
+      return;
+    }
+    const ok = await confirm({
+      title: 'Duyệt chấm công hàng loạt',
+      message: 'Duyệt toàn bộ chấm công đang CHỜ DUYỆT (đã check-out) trong khoảng ngày đang xem. Sau khi duyệt sẽ bị khóa và dùng để tính lương.',
+      highlight: `${formatDate(from)} → ${formatDate(to)} · khoảng ${pendingCount} bản ghi`,
+      detail: 'Bản ghi chưa check-out sẽ được bỏ qua. Hành động này không thể hoàn tác.',
+      confirmLabel: 'Duyệt hàng loạt',
+      variant: 'warning',
+    });
+    if (!ok) return;
+    setBulkApproving(true);
+    try {
+      const res = await hrService.bulkApproveAttendance(from, to);
+      notificationService.success(`Đã duyệt ${res?.approved ?? 0} chấm công.`);
+      await loadRecords();
+    } catch (err) {
+      notificationService.error(err?.message || 'Duyệt hàng loạt thất bại.');
+    } finally {
+      setBulkApproving(false);
+    }
+  };
+
   const handleScanAbsent = async () => {
     const ok = await confirm({
       title: 'Quét ca vắng',
@@ -186,6 +216,12 @@ const HrAttendancePage = () => {
           icon: <QrCode className="h-4 w-4" />,
         }}
         secondaryActions={[
+          {
+            label: bulkApproving ? 'Đang duyệt...' : 'Duyệt hàng loạt',
+            onClick: handleBulkApprove,
+            disabled: bulkApproving,
+            icon: <CheckCheck className={`h-4 w-4 ${bulkApproving ? 'animate-pulse' : ''}`} />,
+          },
           {
             label: scanning ? 'Đang quét...' : 'Quét ca vắng',
             onClick: handleScanAbsent,

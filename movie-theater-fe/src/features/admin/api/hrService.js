@@ -35,11 +35,11 @@ class HrService {
     }
   }
 
-  async updateShiftRequiredPermissions(uuid, permissions) {
+  async updateShiftConfig(uuid, { permissions, minStaff } = {}) {
     try {
       const res = await authService.api.put(
-        `/api/hr/admin/shift-definitions/${uuid}/required-permissions`,
-        { permissions },
+        `/api/hr/admin/shift-definitions/${uuid}/config`,
+        { permissions, minStaff },
       );
       return unwrap(res);
     } catch (error) {
@@ -71,6 +71,18 @@ class HrService {
   async createAssignmentsBulk(payload) {
     try {
       const res = await authService.api.post('/api/hr/admin/assignments/bulk', payload);
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async copyWeek(sourceWeekStart, targetWeekStart) {
+    try {
+      const res = await authService.api.post('/api/hr/admin/assignments/copy-week', {
+        sourceWeekStart,
+        targetWeekStart,
+      });
       return unwrap(res);
     } catch (error) {
       throw authService.handleError(error);
@@ -133,6 +145,17 @@ class HrService {
   async scanAbsent() {
     try {
       const res = await authService.api.post('/api/hr/admin/attendance/scan-absent');
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async bulkApproveAttendance(from, to) {
+    try {
+      const res = await authService.api.post('/api/hr/admin/attendance/bulk-approve', null, {
+        params: { from, to },
+      });
       return unwrap(res);
     } catch (error) {
       throw authService.handleError(error);

@@ -6,11 +6,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  CopyPlus,
   Loader2,
   Lock,
   ShieldAlert,
   ShieldCheck,
   Trash2,
+  UserX,
   Users,
 } from 'lucide-react';
 import { AdminPage, AdminModal, PageHeader, PrimaryButton } from '../../components';
@@ -78,6 +80,52 @@ function coverageOf(userIds, staffById, required) {
   });
   const missing = required.filter((r) => !covered.has(r.name));
   return { missing, ok: missing.length === 0 };
+}
+
+// ----- Kiểm tra xung đột lịch (đồng bộ với backend) -----
+const MIN_REST_MINUTES = 8 * 60; // nghỉ tối thiểu qua đêm
+const DAILY_SOFT_MINUTES = 8 * 60; // >8h/ngày -> cảnh báo
+const DAILY_HARD_MINUTES = 12 * 60; // >12h/ngày -> backend chặn
+
+function toEpochDay(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  return Math.floor(Date.UTC(y, (m || 1) - 1, d || 1) / 86400000);
+}
+function minutesOfTime(timeStr) {
+  const [h, mm] = String(timeStr || '0:0').split(':').map(Number);
+  return (h || 0) * 60 + (mm || 0);
+}
+function shiftInterval(iso, startTime, endTime) {
+  const day = toEpochDay(iso);
+  const s = minutesOfTime(startTime);
+  const e = minutesOfTime(endTime);
+  const startAbs = day * 1440 + s;
+  const endAbs = e > s ? day * 1440 + e : (day + 1) * 1440 + e;
+  return { iso, startAbs, endAbs };
+}
+// Trả về 'overlap' | 'rest' | 'dailyHard' | 'dailySoft' | null
+function scheduleViolation(existing, cand) {
+  let sameDay = cand.endAbs - cand.startAbs;
+  for (const iv of existing) {
+    if (cand.startAbs < iv.endAbs && iv.startAbs < cand.endAbs) return 'overlap';
+    if (iv.iso === cand.iso) {
+      sameDay += iv.endAbs - iv.startAbs;
+    } else {
+      let earlierEnd;
+      let laterStart;
+      if (iv.startAbs <= cand.startAbs) {
+        earlierEnd = iv.endAbs;
+        laterStart = cand.startAbs;
+      } else {
+        earlierEnd = cand.endAbs;
+        laterStart = iv.startAbs;
+      }
+      if (laterStart > earlierEnd && laterStart - earlierEnd < MIN_REST_MINUTES) return 'rest';
+    }
+  }
+  if (sameDay > DAILY_HARD_MINUTES) return 'dailyHard';
+  if (sameDay > DAILY_SOFT_MINUTES) return 'dailySoft';
+  return null;
 }
 
 const HrSchedulePage = () => {
@@ -226,6 +274,71 @@ const HrSchedulePage = () => {
     return result;
   }, [assignments]);
 
+  const activeShifts = useMemo(
+    () => shifts.filter((s) => s.active !== false).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')),
+    [shifts],
+  );
+
+  // Đánh giá đủ người vận hành cho hôm nay & các ngày tới: ca chưa xếp, thiếu người, thiếu quyền.
+  const weekStaffing = useMemo(() => {
+    const perDay = {};
+    let unstaffed = 0;
+    let understaffed = 0;
+    let coverageGaps = 0;
+    days.forEach((day) => {
+      if (day < today) return;
+      const groups = groupedByDay[day] || [];
+      const countByShift = new Map();
+      groups.forEach((g) => countByShift.set(g.shiftDefinitionUuid, g.items.length));
+      const empty = [];
+      activeShifts.forEach((s) => {
+        const min = s.minStaff ?? 0;
+        if (min <= 0) return;
+        const count = countByShift.get(s.uuid) || 0;
+        if (count === 0) {
+          empty.push({ uuid: s.uuid, name: s.name, startTime: s.startTime, endTime: s.endTime, min });
+          unstaffed += 1;
+        } else if (count < min) {
+          understaffed += 1;
+        }
+      });
+      groups.forEach((g) => {
+        const cov = coverageOf(g.items.map((i) => i.userId), staffById, requiredForShift(g.shiftDefinitionUuid));
+        if (cov && !cov.ok) coverageGaps += 1;
+      });
+      if (empty.length) perDay[day] = empty;
+    });
+    return { perDay, unstaffed, understaffed, coverageGaps };
+  }, [days, today, groupedByDay, activeShifts, staffById, requiredForShift]);
+
+  const hasWeekWarnings =
+    weekStaffing.unstaffed + weekStaffing.understaffed + weekStaffing.coverageGaps > 0;
+
+  const [copying, setCopying] = useState(false);
+  const handleCopyWeek = async () => {
+    const sourceWeekStart = addDaysIso(weekStart, -7);
+    const ok = await confirm({
+      title: 'Nhân bản lịch tuần trước',
+      message: 'Sao chép toàn bộ ca của tuần trước sang tuần đang xem (giữ nguyên thứ trong tuần).',
+      highlight: `${formatDate(sourceWeekStart)} → ${formatDate(weekStart)}`,
+      detail: 'Tự động bỏ qua ngày đã qua, ca trùng và ca xung đột lịch.',
+      confirmLabel: 'Nhân bản',
+    });
+    if (!ok) return;
+    setCopying(true);
+    try {
+      const created = await hrService.copyWeek(sourceWeekStart, weekStart);
+      const n = Array.isArray(created) ? created.length : 0;
+      if (n > 0) notificationService.success(`Đã nhân bản ${n} lượt ca từ tuần trước.`);
+      else notificationService.info('Không có ca nào được nhân bản (tuần trước trống hoặc đã trùng/xung đột).');
+      await loadAssignments();
+    } catch (err) {
+      notificationService.error(err?.message || 'Nhân bản lịch thất bại.');
+    } finally {
+      setCopying(false);
+    }
+  };
+
   const staffOptions = [
     { value: '', label: 'Tất cả nhân viên' },
     ...staff.map((s) => ({ value: s.userId, label: s.fullName || s.email })),
@@ -286,11 +399,21 @@ const HrSchedulePage = () => {
         <button
           type="button"
           className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-xs font-semibold inline-flex items-center gap-1.5"
+          onClick={handleCopyWeek}
+          disabled={copying}
+          title="Sao chép lịch của tuần trước sang tuần đang xem"
+        >
+          {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CopyPlus className="h-4 w-4" />}
+          Nhân bản tuần trước
+        </button>
+        <button
+          type="button"
+          className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-xs font-semibold inline-flex items-center gap-1.5"
           onClick={() => setPermConfigOpen(true)}
-          title="Cấu hình bộ quyền vận hành yêu cầu cho từng ca"
+          title="Cấu hình số nhân viên tối thiểu và bộ quyền vận hành cho từng ca"
         >
           <ShieldCheck className="h-4 w-4" />
-          Cấu hình quyền ca
+          Cấu hình ca
         </button>
       </div>
 
@@ -300,7 +423,37 @@ const HrSchedulePage = () => {
           <p>Đang tải lịch ca...</p>
         </div>
       ) : (
-        <div className="hr-week-scroll">
+        <>
+          {hasWeekWarnings ? (
+            <div className="hr-week-banner hr-week-banner--warn">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>
+                Tuần này cần bổ sung:
+                {weekStaffing.unstaffed > 0 && (
+                  <strong> {weekStaffing.unstaffed} ca chưa xếp người</strong>
+                )}
+                {weekStaffing.understaffed > 0 && (
+                  <strong>
+                    {weekStaffing.unstaffed > 0 ? ', ' : ' '}
+                    {weekStaffing.understaffed} ca thiếu người
+                  </strong>
+                )}
+                {weekStaffing.coverageGaps > 0 && (
+                  <strong>
+                    {weekStaffing.unstaffed + weekStaffing.understaffed > 0 ? ', ' : ' '}
+                    {weekStaffing.coverageGaps} ca thiếu quyền vận hành
+                  </strong>
+                )}
+                . Hãy xếp thêm nhân viên để đảm bảo vận hành.
+              </span>
+            </div>
+          ) : (
+            <div className="hr-week-banner hr-week-banner--ok">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>Các ca từ hôm nay trở đi đã đủ người và đủ quyền vận hành.</span>
+            </div>
+          )}
+          <div className="hr-week-scroll">
           <div
             className="hr-grid hr-week-grid"
             style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', alignItems: 'start' }}
@@ -329,7 +482,7 @@ const HrSchedulePage = () => {
                     <span className="hr-day-col__total">{totalCount}</span>
                   ) : null}
                 </div>
-                {groups.length === 0 ? (
+                {groups.length === 0 && !(weekStaffing.perDay[day]?.length) ? (
                   <p className="hr-muted" style={{ fontSize: 12 }}>Chưa xếp ca</p>
                 ) : (
                   <div className="hr-shift-groups">
@@ -339,11 +492,18 @@ const HrSchedulePage = () => {
                         staffById,
                         requiredForShift(g.shiftDefinitionUuid),
                       );
+                      const minStaff = shiftById.get(g.shiftDefinitionUuid)?.minStaff ?? 0;
+                      const understaffed = minStaff > 0 && g.items.length < minStaff;
                       return (
                       <div key={g.key} className="hr-shift-group">
                         <div className="hr-shift-group__head">
                           <span className="hr-shift-group__name">{g.shiftName}</span>
-                          <span className="hr-shift-group__count">{g.items.length}</span>
+                          <span
+                            className={`hr-shift-group__count${understaffed ? ' hr-shift-group__count--bad' : ''}`}
+                            title={understaffed ? `Thiếu người: cần tối thiểu ${minStaff}` : (minStaff > 0 ? `Tối thiểu ${minStaff} người` : undefined)}
+                          >
+                            {g.items.length}{minStaff > 0 ? `/${minStaff}` : ''}
+                          </span>
                         </div>
                         <p className="hr-shift-group__time">
                           {formatTime(g.startTime)}–{formatTime(g.endTime)}
@@ -426,6 +586,14 @@ const HrSchedulePage = () => {
                       </div>
                       );
                     })}
+                    {(weekStaffing.perDay[day] || []).map((gap) => (
+                      <div key={`gap-${gap.uuid}`} className="hr-shift-gap" title={`Ca này cần tối thiểu ${gap.min} người`}>
+                        <UserX className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          <strong>{gap.name}</strong> · {formatTime(gap.startTime)}–{formatTime(gap.endTime)} — chưa xếp người (cần {gap.min})
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -433,12 +601,14 @@ const HrSchedulePage = () => {
           })}
           </div>
         </div>
+        </>
       )}
 
       {modalOpen && (
         <AssignModal
           staff={staff}
           shifts={shifts}
+          assignments={assignments}
           requiredForShift={requiredForShift}
           fallbackRequired={requiredPerms}
           permLabel={permLabel}
@@ -467,7 +637,7 @@ const HrSchedulePage = () => {
   );
 };
 
-function AssignModal({ staff, shifts, requiredForShift, fallbackRequired, permLabel = {}, defaultFrom, defaultTo, onClose, onSaved }) {
+function AssignModal({ staff, shifts, assignments = [], requiredForShift, fallbackRequired, permLabel = {}, defaultFrom, defaultTo, onClose, onSaved }) {
   const today = todayIso();
   const [selectedStaff, setSelectedStaff] = useState([]);
   const [selectedShifts, setSelectedShifts] = useState([]);
@@ -517,6 +687,50 @@ function AssignModal({ staff, shifts, requiredForShift, fallbackRequired, permLa
   const dateCount = validDates.length;
   const totalCombos = selectedStaff.length * selectedShifts.length * dateCount;
 
+  // Phát hiện xung đột lịch cho lựa chọn hiện tại (đồng bộ backend): chồng giờ / thiếu nghỉ / vượt giờ.
+  const conflictReport = useMemo(() => {
+    const shiftByUuid = new Map(shifts.map((s) => [s.uuid, s]));
+    const existingByUser = new Map();
+    const dupByUser = new Map();
+    assignments.forEach((a) => {
+      if (!a.startTime) return;
+      if (!existingByUser.has(a.userId)) existingByUser.set(a.userId, []);
+      existingByUser.get(a.userId).push(shiftInterval(a.workDate, a.startTime, a.endTime));
+      if (!dupByUser.has(a.userId)) dupByUser.set(a.userId, new Set());
+      dupByUser.get(a.userId).add(`${a.workDate}|${a.shiftDefinitionUuid}`);
+    });
+    let overlap = 0;
+    let rest = 0;
+    let dailyHard = 0;
+    let dailySoft = 0;
+    selectedStaff.forEach((uid) => {
+      const running = [...(existingByUser.get(uid) || [])];
+      const dup = new Set(dupByUser.get(uid) || []);
+      selectedShifts.forEach((sid) => {
+        const sh = shiftByUuid.get(sid);
+        if (!sh) return;
+        validDates.forEach((dt) => {
+          const key = `${dt}|${sid}`;
+          if (dup.has(key)) return;
+          const cand = shiftInterval(dt, sh.startTime, sh.endTime);
+          const v = scheduleViolation(running, cand);
+          if (v === 'overlap') overlap += 1;
+          else if (v === 'rest') rest += 1;
+          else if (v === 'dailyHard') dailyHard += 1;
+          else {
+            if (v === 'dailySoft') dailySoft += 1;
+            running.push(cand);
+            dup.add(key);
+          }
+        });
+      });
+    });
+    const blocked = overlap + rest + dailyHard;
+    return { overlap, rest, dailyHard, dailySoft, blocked };
+  }, [assignments, shifts, selectedStaff, selectedShifts, validDates]);
+
+  const willCreate = Math.max(0, totalCombos - conflictReport.blocked);
+
   const handleSubmit = async () => {
     if (selectedStaff.length === 0 || selectedShifts.length === 0 || dateCount === 0) {
       notificationService.warning('Vui lòng chọn nhân viên, ca và khoảng ngày hợp lệ (từ hôm nay trở đi).');
@@ -544,12 +758,16 @@ function AssignModal({ staff, shifts, requiredForShift, fallbackRequired, permLa
       open
       onClose={onClose}
       title="Xếp ca hàng loạt"
-      subtitle="Chọn nhân viên × ca × khoảng ngày. Các phân ca trùng sẽ tự bỏ qua."
+      subtitle="Chọn nhân viên × ca × khoảng ngày. Ca trùng hoặc xung đột lịch (chồng giờ, thiếu nghỉ, quá giờ) sẽ tự bỏ qua."
       size="lg"
       footer={
         <div className="hr-inline" style={{ justifyContent: 'space-between', width: '100%' }}>
           <span className="hr-muted" style={{ fontSize: 12 }}>
-            {totalCombos > 0 ? `${totalCombos} lượt ca sẽ được tạo` : 'Chưa chọn đủ thông tin'}
+            {totalCombos > 0
+              ? (conflictReport.blocked > 0
+                ? `${willCreate}/${totalCombos} lượt sẽ được tạo · ${conflictReport.blocked} bị bỏ qua do trùng lịch`
+                : `${totalCombos} lượt ca sẽ được tạo`)
+              : 'Chưa chọn đủ thông tin'}
           </span>
           <div className="hr-inline">
             <button
@@ -612,12 +830,29 @@ function AssignModal({ staff, shifts, requiredForShift, fallbackRequired, permLa
             {staff.length === 0 && <p className="hr-muted" style={{ fontSize: 12 }}>Không có nhân viên.</p>}
           </div>
 
-          {selectedNoProfile.length > 0 && (
+          {(selectedNoProfile.length > 0 || conflictReport.blocked > 0 || conflictReport.dailySoft > 0) && (
             <div className="hr-assign-warn">
-              <p className="hr-cover hr-cover--warn">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {selectedNoProfile.length} nhân viên đã chọn chưa có hồ sơ lương — hãy tạo hồ sơ ở mục “Hồ sơ lương” để được tính lương.
-              </p>
+              {selectedNoProfile.length > 0 && (
+                <p className="hr-cover hr-cover--warn">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {selectedNoProfile.length} nhân viên đã chọn chưa có hồ sơ lương — hãy tạo hồ sơ ở mục “Hồ sơ lương” để được tính lương.
+                </p>
+              )}
+              {conflictReport.blocked > 0 && (
+                <p className="hr-cover hr-cover--bad">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  {conflictReport.blocked} lượt sẽ bị bỏ qua do trùng lịch:
+                  {conflictReport.overlap > 0 && ` ${conflictReport.overlap} chồng giờ;`}
+                  {conflictReport.rest > 0 && ` ${conflictReport.rest} chưa đủ nghỉ 8h giữa 2 ca;`}
+                  {conflictReport.dailyHard > 0 && ` ${conflictReport.dailyHard} vượt 12h/ngày;`}
+                </p>
+              )}
+              {conflictReport.dailySoft > 0 && (
+                <p className="hr-cover hr-cover--warn">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {conflictReport.dailySoft} lượt khiến nhân viên làm trên 8h/ngày (vẫn tạo được, nên cân nhắc).
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -721,6 +956,11 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
     shifts.forEach((sh) => { init[sh.uuid] = new Set(sh.requiredPermissions || []); });
     return init;
   });
+  const [minStaff, setMinStaff] = useState(() => {
+    const init = {};
+    shifts.forEach((sh) => { init[sh.uuid] = sh.minStaff ?? 1; });
+    return init;
+  });
   const [savingId, setSavingId] = useState(null);
   const [dirty, setDirty] = useState(false);
 
@@ -735,13 +975,22 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
     });
   };
 
+  const setMin = (shiftUuid, value) => {
+    const n = Math.max(0, Math.min(50, Number(value) || 0));
+    setMinStaff((prev) => ({ ...prev, [shiftUuid]: n }));
+  };
+
   const saveShift = async (sh) => {
     setSavingId(sh.uuid);
     try {
-      const res = await hrService.updateShiftRequiredPermissions(sh.uuid, Array.from(sel[sh.uuid] || []));
+      const res = await hrService.updateShiftConfig(sh.uuid, {
+        permissions: Array.from(sel[sh.uuid] || []),
+        minStaff: minStaff[sh.uuid] ?? 1,
+      });
       // Đồng bộ lại theo bộ hiệu lực server trả (nếu bỏ chọn hết -> server áp bộ mặc định).
       setSel((prev) => ({ ...prev, [sh.uuid]: new Set(res?.requiredPermissions || []) }));
-      notificationService.success(`Đã lưu quyền yêu cầu cho ca ${sh.name}.`);
+      setMinStaff((prev) => ({ ...prev, [sh.uuid]: res?.minStaff ?? prev[sh.uuid] }));
+      notificationService.success(`Đã lưu cấu hình ca ${sh.name}.`);
       setDirty(true);
     } catch (err) {
       notificationService.error(err?.message || 'Lưu thất bại.');
@@ -753,7 +1002,7 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
   const resetShift = async (sh) => {
     setSavingId(sh.uuid);
     try {
-      const res = await hrService.updateShiftRequiredPermissions(sh.uuid, []);
+      const res = await hrService.updateShiftConfig(sh.uuid, { permissions: [], minStaff: minStaff[sh.uuid] ?? 1 });
       setSel((prev) => ({ ...prev, [sh.uuid]: new Set(res?.requiredPermissions || []) }));
       notificationService.success(`Ca ${sh.name} đã khôi phục bộ quyền mặc định.`);
       setDirty(true);
@@ -770,8 +1019,8 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
     <AdminModal
       open
       onClose={close}
-      title="Cấu hình quyền vận hành theo ca"
-      subtitle="Tổng quyền của nhân viên trong mỗi ca phải phủ đủ bộ quyền này. Bỏ chọn hết = dùng bộ mặc định."
+      title="Cấu hình ca làm việc"
+      subtitle="Đặt số nhân viên tối thiểu và bộ quyền vận hành cho mỗi ca. Bỏ chọn hết quyền = dùng bộ mặc định; số tối thiểu = 0 để tắt cảnh báo."
       size="lg"
       footer={
         <div className="hr-inline" style={{ justifyContent: 'flex-end', width: '100%' }}>
@@ -792,7 +1041,19 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
                   <span className="hr-badge" style={{ marginLeft: 8 }}>Mặc định</span>
                 )}
               </span>
-              <div className="hr-inline">
+              <div className="hr-inline" style={{ gap: 10 }}>
+                <label className="hr-inline" style={{ gap: 6, fontSize: 12 }}>
+                  <span className="hr-muted">Tối thiểu</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={minStaff[sh.uuid] ?? 1}
+                    onChange={(e) => setMin(sh.uuid, e.target.value)}
+                    className="hr-minstaff-input"
+                  />
+                  <span className="hr-muted">người</span>
+                </label>
                 <button
                   type="button"
                   className="adm-btn adm-btn--ghost px-3 py-1.5 rounded-md cursor-pointer text-xs font-semibold"

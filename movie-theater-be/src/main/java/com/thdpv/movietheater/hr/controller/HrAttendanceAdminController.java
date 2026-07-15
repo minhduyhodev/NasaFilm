@@ -93,4 +93,15 @@ public class HrAttendanceAdminController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("created", created),
                 "Đã đánh dấu vắng " + created + " ca"));
     }
+
+    @PostMapping("/bulk-approve")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> bulkApprove(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID actorId = directory.requireUserIdByEmail(userDetails.getUsername());
+        int approved = attendanceService.bulkApprove(from, to, actorId);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("approved", approved),
+                "Đã duyệt " + approved + " chấm công"));
+    }
 }

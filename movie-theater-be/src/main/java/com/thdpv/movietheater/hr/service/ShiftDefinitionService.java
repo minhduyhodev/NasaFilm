@@ -33,9 +33,9 @@ public class ShiftDefinitionService {
                 .toList();
     }
 
-    /** Cập nhật bộ quyền vận hành yêu cầu cho một ca. Danh sách rỗng/null = trả về dùng bộ mặc định. */
+    /** Cập nhật cấu hình một ca: bộ quyền vận hành + số nhân viên tối thiểu. */
     @Transactional
-    public ShiftDefinitionResponse updateRequiredPermissions(UUID uuid, List<String> permissions) {
+    public ShiftDefinitionResponse updateConfig(UUID uuid, List<String> permissions, Integer minStaff) {
         ShiftDefinition shift = shiftDefinitionRepository.findById(uuid)
                 .orElseThrow(() -> new AppException(ErrorCode.HR_SHIFT_NOT_FOUND));
         if (permissions == null || permissions.isEmpty()) {
@@ -53,6 +53,12 @@ public class ShiftDefinitionService {
                 }
             }
             shift.setRequiredPermissions(valid.isEmpty() ? null : String.join(",", valid));
+        }
+        if (minStaff != null) {
+            if (minStaff < 0 || minStaff > 50) {
+                throw new AppException(ErrorCode.VALIDATION_FAILED, "Số nhân viên tối thiểu phải trong khoảng 0–50");
+            }
+            shift.setMinStaff(minStaff);
         }
         shift.setUpdatedAt(AppTimeZones.now());
         shiftDefinitionRepository.save(shift);
@@ -87,6 +93,7 @@ public class ShiftDefinitionService {
                 shift.isActive(),
                 shift.getSortOrder(),
                 effective,
-                usingDefault);
+                usingDefault,
+                shift.getMinStaff());
     }
 }

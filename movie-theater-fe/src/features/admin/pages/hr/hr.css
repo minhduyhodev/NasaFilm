@@ -416,10 +416,119 @@
   align-items: center;
   justify-content: center;
 }
+.hr-shift-group__count--bad {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.18);
+}
 .hr-shift-group__time {
   font-size: 11px;
   color: #64748b;
   margin: 2px 0 6px;
+}
+.hr-shift-gap {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.09);
+  border: 1px dashed rgba(251, 191, 36, 0.35);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+.hr-shift-gap strong {
+  color: #fcd34d;
+}
+.hr-week-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.hr-week-banner--warn {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.hr-week-banner--warn strong {
+  color: #fcd34d;
+  font-weight: 700;
+}
+.hr-week-banner--ok {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.09);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+}
+.hr-notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hr-notif {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+}
+.hr-notif > svg {
+  margin-top: 2px;
+  color: #64748b;
+}
+.hr-notif--unread {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.28);
+}
+.hr-notif--unread > svg {
+  color: #38bdf8;
+}
+.hr-notif__body {
+  min-width: 0;
+}
+.hr-notif__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+.hr-notif--unread .hr-notif__title {
+  color: #f1f5f9;
+}
+.hr-notif__content {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+.hr-notif__time {
+  font-size: 11px;
+  color: #64748b;
+  margin: 3px 0 0;
+}
+.hr-minstaff-input {
+  width: 58px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 12px;
+  text-align: center;
+}
+.hr-minstaff-input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
 }
 .hr-cover {
   display: flex;

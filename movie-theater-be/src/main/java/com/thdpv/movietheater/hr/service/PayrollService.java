@@ -41,12 +41,14 @@ import com.thdpv.movietheater.hr.repository.HolidayRepository;
 import com.thdpv.movietheater.hr.repository.PayrollPeriodRepository;
 import com.thdpv.movietheater.hr.repository.PayslipAdjustmentRepository;
 import com.thdpv.movietheater.hr.repository.PayslipRepository;
+import com.thdpv.movietheater.notification.service.UserNotificationService;
 import com.thdpv.movietheater.user.entity.User;
 
 @Service
 public class PayrollService {
 
     private static final BigDecimal SIXTY = new BigDecimal("60");
+    private static final String SELF_SERVICE_URL = "/admin/hr/me";
 
     private final PayrollPeriodRepository payrollPeriodRepository;
     private final PayslipRepository payslipRepository;
@@ -55,6 +57,7 @@ public class PayrollService {
     private final HolidayRepository holidayRepository;
     private final EmployeeProfileService employeeProfileService;
     private final HrDirectory directory;
+    private final UserNotificationService userNotificationService;
 
     public PayrollService(PayrollPeriodRepository payrollPeriodRepository,
             PayslipRepository payslipRepository,
@@ -62,7 +65,8 @@ public class PayrollService {
             AttendanceRepository attendanceRepository,
             HolidayRepository holidayRepository,
             EmployeeProfileService employeeProfileService,
-            HrDirectory directory) {
+            HrDirectory directory,
+            UserNotificationService userNotificationService) {
         this.payrollPeriodRepository = payrollPeriodRepository;
         this.payslipRepository = payslipRepository;
         this.adjustmentRepository = adjustmentRepository;
@@ -70,6 +74,7 @@ public class PayrollService {
         this.holidayRepository = holidayRepository;
         this.employeeProfileService = employeeProfileService;
         this.directory = directory;
+        this.userNotificationService = userNotificationService;
     }
 
     // ------------------------------------------------------------------
@@ -177,7 +182,24 @@ public class PayrollService {
         period.setApprovedAt(now);
         period.setUpdatedAt(now);
         payrollPeriodRepository.save(period);
+        notifyPayslipsReady(period, slips);
         return toPeriodResponse(period);
+    }
+
+    /** Thông báo cho nhân viên khi bảng lương kỳ này đã được duyệt và sẵn sàng xem. */
+    private void notifyPayslipsReady(PayrollPeriod period, List<Payslip> slips) {
+        String title = "Bảng lương đã sẵn sàng";
+        String content = String.format(
+                "Bảng lương kỳ %02d/%d đã được duyệt. Xem chi tiết phiếu lương của bạn.",
+                period.getPeriodMonth(), period.getPeriodYear());
+        for (Payslip slip : slips) {
+            try {
+                userNotificationService.createSystemNotification(
+                        slip.getUserUuid(), title, content, "payslip_ready", SELF_SERVICE_URL);
+            } catch (Exception ignored) {
+                // Không để lỗi thông báo ảnh hưởng việc duyệt lương.
+            }
+        }
     }
 
     @Transactional

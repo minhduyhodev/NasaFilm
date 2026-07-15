@@ -62,4 +62,8 @@ public class ShiftAssignment {
 
     @Column(name = "created_by")
     private UUID createdBy;
+
+    /** Thời điểm đã gửi nhắc ca sắp tới cho nhân viên (null = chưa nhắc). */
+    @Column(name = "reminder_sent_at")
+    private OffsetDateTime reminderSentAt;
 }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.hr.dto.request.CopyWeekRequest;
 import com.thdpv.movietheater.hr.dto.request.ShiftAssignmentBulkRequest;
 import com.thdpv.movietheater.hr.dto.request.ShiftAssignmentCreateRequest;
 import com.thdpv.movietheater.hr.dto.response.ShiftAssignmentResponse;
@@ -65,6 +66,17 @@ public class HrScheduleController {
         List<ShiftAssignmentResponse> created = shiftAssignmentService.assignBulk(request, actorId);
         return ResponseEntity.ok(ApiResponse.success(created,
                 "Đã xếp " + created.size() + " lượt ca"));
+    }
+
+    @PostMapping("/copy-week")
+    public ResponseEntity<ApiResponse<List<ShiftAssignmentResponse>>> copyWeek(
+            @Valid @RequestBody CopyWeekRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID actorId = directory.requireUserIdByEmail(userDetails.getUsername());
+        List<ShiftAssignmentResponse> created = shiftAssignmentService.copyWeek(
+                request.sourceWeekStart(), request.targetWeekStart(), actorId);
+        return ResponseEntity.ok(ApiResponse.success(created,
+                "Đã nhân bản " + created.size() + " lượt ca"));
     }
 
     @DeleteMapping("/{uuid}")

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  BellRing,
   CalendarClock,
+  CalendarPlus,
   ChevronRight,
   Clock,
   Loader2,
@@ -13,6 +15,7 @@ import {
 } from 'lucide-react';
 import { AdminPage, AdminKpiGrid, AdminModal, PageHeader, PrimaryButton } from '../../components';
 import { hrService } from '../../api/hrService';
+import { userNotificationApi } from '../../../../shared/services/userNotificationApi';
 import { notificationService } from '../../../../shared/services/notificationService';
 import StaffQrScanner, { canUseQrScanner } from '../../../../shared/components/qr/StaffQrScanner';
 import { adminInputClass } from '../../components/adminFormStyles';
@@ -46,6 +49,14 @@ const TABS = [
 const now = new Date();
 const CURRENT_MONTH_RANGE = monthRangeIso(now.getFullYear(), now.getMonth() + 1);
 
+// Các loại thông báo HR sinh ra từ backend.
+const HR_NOTIF_TYPES = new Set(['shift_assigned', 'shift_reminder', 'payslip_ready']);
+const NOTIF_ICON = {
+  shift_assigned: CalendarPlus,
+  shift_reminder: CalendarClock,
+  payslip_ready: Wallet,
+};
+
 const MyHrPage = () => {
   const [tab, setTab] = useState('shifts');
   const [overview, setOverview] = useState(null);
@@ -54,6 +65,8 @@ const MyHrPage = () => {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkpoint, setCheckpoint] = useState(null);
+  const [notifs, setNotifs] = useState([]);
+  const [markingRead, setMarkingRead] = useState(false);
 
   const shiftRange = useMemo(
     () => ({ from: addDaysIso(todayIso(), -7), to: addDaysIso(todayIso(), 21) }),
@@ -68,6 +81,28 @@ const MyHrPage = () => {
       setOverview(null);
     }
   }, []);
+
+  const loadNotifs = useCallback(async () => {
+    try {
+      const data = await userNotificationApi.list();
+      const list = Array.isArray(data) ? data : [];
+      setNotifs(list.filter((n) => HR_NOTIF_TYPES.has(n.type)).slice(0, 6));
+    } catch {
+      setNotifs([]);
+    }
+  }, []);
+
+  const handleMarkRead = useCallback(async () => {
+    setMarkingRead(true);
+    try {
+      await userNotificationApi.markAllRead();
+      await loadNotifs();
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể đánh dấu đã đọc.');
+    } finally {
+      setMarkingRead(false);
+    }
+  }, [loadNotifs]);
 
   const loadTab = useCallback(async () => {
     setLoading(true);
@@ -91,7 +126,8 @@ const MyHrPage = () => {
 
   useEffect(() => {
     loadOverview();
-  }, [loadOverview]);
+    loadNotifs();
+  }, [loadOverview, loadNotifs]);
 
   useEffect(() => {
     loadTab();
@@ -159,6 +195,7 @@ const MyHrPage = () => {
             onClick: () => {
               loadTab();
               loadOverview();
+              loadNotifs();
             },
             disabled: loading,
             icon: <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />,
@@ -167,6 +204,10 @@ const MyHrPage = () => {
       />
 
       {kpis.length > 0 && <AdminKpiGrid items={kpis} columns={4} className="mb-6" />}
+
+      {notifs.length > 0 && (
+        <NotificationPanel notifs={notifs} onMarkRead={handleMarkRead} marking={markingRead} />
+      )}
 
       {overview?.activeShift && (
         <div className="hr-card mb-6" style={{ borderColor: 'rgba(239,68,68,0.35)' }}>
@@ -247,6 +288,61 @@ const MyHrPage = () => {
     </AdminPage>
   );
 };
+
+function relativeTime(value) {
+  if (!value) return '';
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return '';
+  const diff = Date.now() - then;
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return 'vừa xong';
+  if (mins < 60) return `${mins} phút trước`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+  return formatDate(value);
+}
+
+function NotificationPanel({ notifs, onMarkRead, marking }) {
+  const unread = notifs.filter((n) => !n.read).length;
+  return (
+    <div className="hr-card mb-6">
+      <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+        <p className="hr-card__title" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <BellRing className="h-4 w-4 text-sky-400" />
+          Thông báo
+          {unread > 0 && <span className="hr-badge hr-badge--info">{unread} mới</span>}
+        </p>
+        {unread > 0 && (
+          <button
+            type="button"
+            className="adm-btn adm-btn--ghost px-3 py-1.5 rounded-md cursor-pointer text-xs font-semibold"
+            onClick={onMarkRead}
+            disabled={marking}
+          >
+            {marking ? 'Đang lưu...' : 'Đánh dấu đã đọc'}
+          </button>
+        )}
+      </div>
+      <ul className="hr-notif-list">
+        {notifs.map((n) => {
+          const Icon = NOTIF_ICON[n.type] || BellRing;
+          return (
+            <li key={n.uuid} className={`hr-notif${n.read ? '' : ' hr-notif--unread'}`}>
+              <Icon className="h-4 w-4 shrink-0" />
+              <div className="hr-notif__body">
+                <p className="hr-notif__title">{n.title}</p>
+                {n.content && <p className="hr-notif__content">{n.content}</p>}
+                <p className="hr-notif__time">{relativeTime(n.createdAt)}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 function ShiftList({ shifts, onCheckIn, onCheckOut }) {
   const today = todayIso();

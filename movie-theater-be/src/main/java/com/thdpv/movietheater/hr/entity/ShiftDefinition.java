@@ -53,6 +53,10 @@ public class ShiftDefinition {
     @Column(name = "required_permissions", columnDefinition = "text")
     private String requiredPermissions;
 
+    /** Số nhân viên tối thiểu cần xếp cho ca này mỗi ngày. 0 = không kiểm tra. */
+    @Column(name = "min_staff", nullable = false, columnDefinition = "integer default 1")
+    private int minStaff = 1;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
