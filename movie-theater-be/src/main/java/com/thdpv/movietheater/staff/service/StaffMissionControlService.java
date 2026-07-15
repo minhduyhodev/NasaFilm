@@ -127,12 +127,16 @@ public class StaffMissionControlService {
     }
 
     @Transactional
-    public StaffCheckInResponse checkInTicket(String ticketCode, String staffEmail, String scanSource) {
+    public StaffCheckInResponse checkInTicket(String ticketCode, String staffEmail, String scanSource,
+            UUID gateShowtimeUuid) {
         if (ticketCode == null || ticketCode.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mã vé không hợp lệ");
         }
 
         String normalizedCode = ticketCode.trim();
+        UUID gateRoomUuid = gateShowtimeUuid != null
+                ? staffRepository.findRoomUuidByShowtime(gateShowtimeUuid)
+                : null;
         StaffCheckInResponse preview;
         try {
             preview = buildCheckInResponse(normalizedCode);
@@ -147,7 +151,7 @@ public class StaffMissionControlService {
         }
 
         try {
-            CheckInTicketResponse checkInResult = bookingService.checkInTicket(normalizedCode, null);
+            CheckInTicketResponse checkInResult = bookingService.checkInTicket(normalizedCode, gateRoomUuid);
             if (!"VALID".equalsIgnoreCase(checkInResult.getStatus())) {
                 throw new AppException(
                         ErrorCode.BAD_REQUEST,

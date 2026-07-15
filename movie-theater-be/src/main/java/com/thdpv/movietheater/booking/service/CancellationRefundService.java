@@ -446,8 +446,22 @@ public class CancellationRefundService {
                     "Hoàn tiền hủy vé");
             refund.setGatewayRefundId("WALLET-CREDIT");
         } else {
-            PaymentGatewayService.GatewayRefundResult gatewayResult = paymentGatewayService.refund(
-                    refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+            PaymentGatewayService.GatewayRefundResult gatewayResult;
+            try {
+                gatewayResult = paymentGatewayService.refund(
+                        refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+            } catch (RuntimeException ex) {
+                // A thrown gateway error (e.g. network timeout) is ambiguous — the refund may already have gone
+                // through. The stable idempotency key ("refund-<bookingUuid>") makes a retry safe (the gateway
+                // dedupes), so we fail this attempt deterministically and audit it instead of letting an opaque
+                // error escape. The surrounding @Transactional rolls back, leaving the booking CONFIRMED and the
+                // refund retryable. (Durable async refund via the Stripe refund webhook is the full solution once
+                // the real gateway is wired.)
+                auditLogService.log("REFUND", refund.getUuid(), "REFUND_GATEWAY_ERROR", actorUuid, actorRole,
+                        ex.getMessage());
+                throw new AppException(ErrorCode.INTERNAL_ERROR,
+                        "Hoàn tiền qua cổng thanh toán gặp sự cố. Vui lòng thử lại sau.");
+            }
 
             if (!gatewayResult.success()) {
                 refund.setStatus(RefundStatus.FAILED.name());

@@ -196,4 +196,7 @@ public interface StaffMissionControlRepository extends JpaRepository<Showtime, U
             LIMIT 1
             """, nativeQuery = true)
     List<Object[]> findTicketCheckInContext(@Param("ticketCode") String ticketCode);
+
+    @Query(value = "SELECT cinema_room_uuid FROM showtime WHERE uuid = :showtimeUuid", nativeQuery = true)
+    UUID findRoomUuidByShowtime(@Param("showtimeUuid") UUID showtimeUuid);
 }

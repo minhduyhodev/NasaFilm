@@ -156,6 +156,7 @@ const StaffMissionControlPage = () => {
   const checkIn = useStaffTicketCheckIn({
     audioEnabled,
     onCheckInComplete: handleCheckInComplete,
+    gateShowtimeUuid: selectedUuid,
   });
 
   useEffect(() => {

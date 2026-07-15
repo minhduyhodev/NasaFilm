@@ -307,17 +307,10 @@ const CheckoutPage = () => {
       return;
     }
 
-    // Consolidated combos for Orbit group bookings
+    // Send only the host's own combos. For Orbit group bookings the server merges in each member's combos
+    // authoritatively from the room (BookingService.confirmBooking), so pre-merging them here would
+    // double-charge members. finalTotal above already reflects the full host + members amount.
     const hostCombos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-    const memberCombos = resolvedOtherMembersCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-    const mergedMap = {};
-    [...hostCombos, ...memberCombos].forEach(c => {
-      mergedMap[c.comboUuid] = (mergedMap[c.comboUuid] || 0) + c.quantity;
-    });
-    const consolidatedCombos = Object.entries(mergedMap).map(([comboUuid, quantity]) => ({
-      comboUuid,
-      quantity
-    }));
 
     if (paymentMethod === 'card') {
       navigate('/payment', {
@@ -325,7 +318,7 @@ const CheckoutPage = () => {
           amount: finalTotal,
           checkoutState: {
             ...checkoutState,
-            selectedCombos: consolidatedCombos,
+            selectedCombos: hostCombos,
             voucherCode: discount > 0 ? voucherInput.trim() : null,
           },
         },
@@ -343,7 +336,7 @@ const CheckoutPage = () => {
         response = await bookingService.confirmBooking(
           showtimeUuid,
           seatUuids,
-          consolidatedCombos,
+          hostCombos,
           discount > 0 ? voucherInput.trim() : null,
           paymentMethod,
           orbitRoomUuid,
