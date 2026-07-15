@@ -90,6 +90,7 @@ const OrbitWaitingPage = () => {
   useRealtimeTopic(REALTIME_TOPICS.orbitRoom(roomUuid), (updatedRoom) => {
     if (updatedRoom) {
       setRoom(updatedRoom);
+
       if (updatedRoom.status === 'CLOSED' && updatedRoom.bookingUuid) {
         notificationService.addNotification(
           'Đặt vé Orbit thành công',
@@ -98,6 +99,22 @@ const OrbitWaitingPage = () => {
         );
         notificationService.success('Đơn hàng nhóm đã được thanh toán thành công!');
         navigate(`/pre-show/boarding/${updatedRoom.bookingUuid}`, { replace: true });
+      } else if (updatedRoom.status === 'CANCELLED') {
+        notificationService.addNotification(
+          'Phòng Orbit đã bị hủy',
+          'Host đã hủy thanh toán. Bạn được chuyển về trang chủ. Vui lòng đặt vé lại.',
+          'error',
+        );
+        notificationService.error('Host đã hủy thanh toán. Phòng Orbit bị đóng.');
+        navigate('/', { replace: true });
+      } else if (updatedRoom.status === 'EXPIRED') {
+        notificationService.addNotification(
+          'Phòng Orbit đã hết hạn',
+          'Phiên đặt vé nhóm đã quá thời gian cho phép. Vui lòng thử lại.',
+          'error',
+        );
+        notificationService.error('Phiên Orbit đã hết hạn. Vui lòng đặt vé lại.');
+        navigate('/', { replace: true });
       }
     }
   });

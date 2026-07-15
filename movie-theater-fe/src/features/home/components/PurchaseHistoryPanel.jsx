@@ -49,11 +49,9 @@ const countSeats = (seats) => {
   return seats.split(',').map((s) => s.trim()).filter(Boolean).length;
 };
 
-const statusMeta = (status) => {
-  const normalized = (status || '').toUpperCase();
-  if (normalized === 'CONFIRMED') {
-    return { label: 'Thành công', className: 'ph-status--success' };
-  }
+const statusMeta = (item) => {
+  const normalized = (item?.bookingStatus || '').toUpperCase();
+  // Terminal cancel/refund states take priority over the time-based status.
   if (normalized === 'CANCELLED') {
     return { label: 'Đã hủy', className: 'ph-status--cancelled' };
   }
@@ -69,7 +67,19 @@ const statusMeta = (status) => {
   if (normalized === 'PENDING') {
     return { label: 'Chờ xử lý', className: 'ph-status--pending' };
   }
-  return { label: status || 'Không rõ', className: 'ph-status--neutral' };
+  // For a paid (CONFIRMED) booking, reflect the derived time/usage-aware status from the server so
+  // a ticket whose showtime has passed no longer shows "Thành công".
+  const activity = (item?.activityStatus || '').toLowerCase();
+  if (activity === 'used') {
+    return { label: 'Đã sử dụng', className: 'ph-status--used' };
+  }
+  if (activity === 'expired') {
+    return { label: 'Hết hạn', className: 'ph-status--expired' };
+  }
+  if (normalized === 'CONFIRMED') {
+    return { label: 'Thành công', className: 'ph-status--success' };
+  }
+  return { label: item?.bookingStatus || 'Không rõ', className: 'ph-status--neutral' };
 };
 
 const paymentStatusMeta = (status) => {
@@ -91,7 +101,7 @@ const paymentStatusMeta = (status) => {
 
 const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
   const online = isOnlineOrder(order);
-  const status = statusMeta(order.bookingStatus);
+  const status = statusMeta(order);
   const payStatus = paymentStatusMeta(order.paymentStatus);
   const seatCount = online ? 1 : Math.max(countSeats(order.seats), 1);
 
@@ -390,7 +400,7 @@ const PurchaseHistoryPanel = () => {
         ) : (
           <div className="ph-list">
             {paginatedOrders.map((item) => {
-              const status = statusMeta(item.bookingStatus);
+              const status = statusMeta(item);
               const online = isOnlineOrder(item);
               return (
                 <button

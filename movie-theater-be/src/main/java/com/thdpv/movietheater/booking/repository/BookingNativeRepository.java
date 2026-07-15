@@ -367,7 +367,11 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                 p.discount_type,
                 p.discount_value,
                 b.created_at,
-                coalesce(b.movie_uuid, st.movie_uuid)
+                coalesce(b.movie_uuid, st.movie_uuid),
+                st.end_time,
+                case when exists (select 1 from ticket t where t.booking_uuid = b.uuid)
+                      and not exists (select 1 from ticket t where t.booking_uuid = b.uuid and t.status <> 'USED')
+                     then 1 else 0 end
             from booking b
             left join showtime st on st.uuid = b.showtime_uuid
             join movie m on m.uuid = coalesce(b.movie_uuid, st.movie_uuid)
@@ -401,7 +405,13 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     from booking_combo bc
                     join combo c2 on c2.uuid = bc.combo_uuid
                     where bc.booking_uuid = b.uuid
-                ), '')
+                ), ''),
+                st.start_time,
+                st.end_time,
+                coalesce(b.booking_type, 'THEATER'),
+                case when exists (select 1 from ticket t where t.booking_uuid = b.uuid)
+                      and not exists (select 1 from ticket t where t.booking_uuid = b.uuid and t.status <> 'USED')
+                     then 1 else 0 end
             from booking b
             join users u on u.id = b.user_uuid
             left join showtime st on st.uuid = b.showtime_uuid
@@ -452,7 +462,13 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
                     from booking_combo bc
                     join combo c2 on c2.uuid = bc.combo_uuid
                     where bc.booking_uuid = b.uuid
-                ), '')
+                ), ''),
+                st.start_time,
+                st.end_time,
+                coalesce(b.booking_type, 'THEATER'),
+                case when exists (select 1 from ticket t where t.booking_uuid = b.uuid)
+                      and not exists (select 1 from ticket t where t.booking_uuid = b.uuid and t.status <> 'USED')
+                     then 1 else 0 end
             from booking b
             join users u on u.id = b.user_uuid
             left join showtime st on st.uuid = b.showtime_uuid
@@ -655,31 +671,12 @@ public interface BookingNativeRepository extends JpaRepository<Booking, UUID> {
         if (existsShowtime(showtimeUuid)) {
             return;
         }
-
-        if (countMovieByUuid(showtimeUuid) > 0) {
-            OffsetDateTime now = OffsetDateTime.now();
-            OffsetDateTime startTime = now.withHour(19).withMinute(30).withSecond(0).withNano(0);
-            OffsetDateTime endTime = now.withHour(21).withMinute(30).withSecond(0).withNano(0);
-            
-            UUID roomUuid = null;
-            UUID seededRoomUuid = UUID.fromString("88888888-8888-8888-8888-888888888888");
-            if (countCinemaRoomByUuid(seededRoomUuid) > 0) {
-                roomUuid = seededRoomUuid;
-            } else {
-                List<UUID> rooms = findAnyCinemaRoomUuid();
-                if (!rooms.isEmpty()) {
-                    roomUuid = rooms.get(0);
-                }
-            }
-
-            if (roomUuid == null) {
-                throw new com.thdpv.movietheater.common.exception.AppException(
-                        com.thdpv.movietheater.common.exception.ErrorCode.INTERNAL_ERROR,
-                        "Không tìm thấy phòng chiếu khả dụng để khởi tạo suất chiếu.");
-            }
-            
-            insertShowtime(showtimeUuid, showtimeUuid, roomUuid, startTime, endTime, BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-        }
+        // Previously this fabricated a phantom showtime when the id happened to match a movie UUID.
+        // That branch is unused by every real flow (FE/orbit/staff/seeder always pass real showtime UUIDs),
+        // so a missing showtime is now surfaced explicitly instead of silently inventing one.
+        throw new com.thdpv.movietheater.common.exception.AppException(
+                com.thdpv.movietheater.common.exception.ErrorCode.SHOWTIME_NOT_FOUND,
+                "Suất chiếu không tồn tại");
     }
 
     default OffsetDateTime toOffsetDateTime(Object value) {

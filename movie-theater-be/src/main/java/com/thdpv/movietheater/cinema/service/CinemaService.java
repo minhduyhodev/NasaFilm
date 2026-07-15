@@ -231,16 +231,21 @@ public class CinemaService {
         // Fetch existing seats in room to soft-disable or reuse
         List<Seat> existingSeats = seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(roomUuid);
 
-        // Check if there are future active showtimes or confirmed bookings for this room, but only if the room already has active seats
+        // Block resize only when seats are already linked to selling showtimes or future paid tickets.
+        // DRAFT / SCHEDULED (chưa mở bán) không chặn — admin vẫn chỉnh sơ đồ trước khi mở bán.
         boolean hasActiveSeats = existingSeats.stream().anyMatch(Seat::isActive);
         if (hasActiveSeats) {
-            boolean hasFutureShowtimes = showtimeRepository.existsFutureBookableShowtime(
+            boolean hasSellingShowtimes = showtimeRepository.existsFutureBookableShowtime(
                     roomUuid, OffsetDateTime.now());
             boolean hasFutureConfirmedBookings = showtimeRepository.existsFutureConfirmedBookingForRoom(
                     roomUuid, OffsetDateTime.now());
-            if (hasFutureShowtimes || hasFutureConfirmedBookings) {
+            if (hasSellingShowtimes) {
                 throw new AppException(ErrorCode.CONFLICT,
-                        "Không thể thay đổi kích thước sơ đồ: phòng còn suất chiếu tương lai hoặc vé đã đặt cho suất chưa chiếu.");
+                        "Không thể đổi sơ đồ: phòng còn suất đang mở bán hoặc hết vé trong tương lai. Hãy đóng/hủy các suất đó trước.");
+            }
+            if (hasFutureConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể đổi sơ đồ: còn vé đã thanh toán cho suất chưa kết thúc (chưa FINISHED/CANCELLED). Hãy hủy/hoàn vé hoặc đợi suất chiếu xong.");
             }
         }
 

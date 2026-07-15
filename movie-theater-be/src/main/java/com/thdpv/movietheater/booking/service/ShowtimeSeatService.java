@@ -125,13 +125,26 @@ public class ShowtimeSeatService {
 
     @Transactional
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
+        return syncSeatLocks(currentUserEmail, request, null);
+    }
+
+    /**
+     * @param ttlSecondsOverride optional lock lifetime (seconds); when null the default solo seat-lock TTL is used.
+     *                           Used by Orbit group rooms so member seat holds live as long as the room, not the
+     *                           short solo TTL.
+     */
+    @Transactional
+    public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request,
+            Integer ttlSecondsOverride) {
         bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
-        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        int lockTtlSeconds = ttlSecondsOverride != null && ttlSecondsOverride > 0
+                ? ttlSecondsOverride
+                : systemConfigService.getSeatLockTtlSeconds();
         OffsetDateTime expiresAt = now.plusSeconds(lockTtlSeconds);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
@@ -186,6 +199,7 @@ public class ShowtimeSeatService {
 
         String availabilityStatus = resolveAvailabilityStatus(seatDbStatus, booked, lockedUserUuid, currentUserUuid);
         BigDecimal price = basePrice.multiply(priceModifier);
+        boolean checkedIn = booked && row.getCheckedInAt() != null;
 
         return new ShowtimeSeatMapResponse.SeatItem(
                 seatUuid,
@@ -197,7 +211,8 @@ public class ShowtimeSeatService {
                 availabilityStatus,
                 selected,
                 false,
-                lockedUntil);
+                lockedUntil,
+                checkedIn);
     }
 
     private void applySingleGapBlocking(Map<String, List<ShowtimeSeatMapResponse.SeatItem>> seatRows) {

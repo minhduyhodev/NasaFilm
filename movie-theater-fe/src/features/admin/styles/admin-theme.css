@@ -266,6 +266,24 @@
   cursor: not-allowed;
 }
 
+/* Toolbar filters: không inherit width:100% của .adm-select (tránh xếp dọc full-width) */
+.adm-filter-select.adm-select,
+select.adm-filter-select {
+  width: auto;
+  min-width: 11.5rem;
+  max-width: 16rem;
+  flex: 0 0 auto;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 12px;
+}
+
+.adm-filter-select.adm-select:focus,
+select.adm-filter-select:focus {
+  border-color: #334155;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.15);
+}
+
 .adm-textarea {
   min-height: 120px;
   resize: vertical;

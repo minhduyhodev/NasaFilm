@@ -31,12 +31,14 @@ class StaffMissionService {
     }
   }
 
-  async checkInTicket(ticketCode, scanSource = 'MANUAL') {
+  async checkInTicket(ticketCode, scanSource = 'MANUAL', showtimeUuid = null) {
     try {
+      const params = { scanSource };
+      if (showtimeUuid) params.showtimeUuid = showtimeUuid;
       const response = await authService.api.put(
         `/api/staff/tickets/${encodeURIComponent(ticketCode)}/check-in`,
         null,
-        { params: { scanSource } },
+        { params },
       );
       return {
         data: response.data.data ?? response.data,

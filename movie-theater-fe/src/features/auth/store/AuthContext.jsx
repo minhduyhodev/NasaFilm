@@ -3,8 +3,15 @@ import { authService } from '../api/authService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import tokenService from '../utils/tokenService';
 import { clearOrbitRecentStorage } from '../../../shared/utils/orbitRecentStorage';
+import { clearNasaBotStorage } from '../../../shared/utils/nasaBotStorage';
 
 export const AuthContext = createContext(undefined);
+
+// Clear per-user local state that must not leak to the next (or anonymous) session.
+const clearGuestSessionStorage = () => {
+  clearOrbitRecentStorage();
+  clearNasaBotStorage();
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useLocalStorage('auth_user', null);
@@ -21,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
         if (!token) {
           if (!cancelled) setUser(null);
-          clearOrbitRecentStorage();
+          clearGuestSessionStorage();
           return;
         }
 
@@ -37,13 +44,13 @@ export const AuthProvider = ({ children }) => {
             } catch {
               tokenService.clear();
               if (!cancelled) setUser(null);
-              clearOrbitRecentStorage();
+              clearGuestSessionStorage();
               return;
             }
           }
           tokenService.clear();
           if (!cancelled) setUser(null);
-          clearOrbitRecentStorage();
+          clearGuestSessionStorage();
           return;
         }
 
@@ -52,12 +59,12 @@ export const AuthProvider = ({ children }) => {
         } else {
           tokenService.clear();
           if (!cancelled) setUser(null);
-          clearOrbitRecentStorage();
+          clearGuestSessionStorage();
         }
       } catch {
         tokenService.clear();
         if (!cancelled) setUser(null);
-        clearOrbitRecentStorage();
+        clearGuestSessionStorage();
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -97,7 +104,7 @@ export const AuthProvider = ({ children }) => {
       if (tokenService.isTokenExpired(token)) {
         tokenService.clear();
         setUser(null);
-        clearOrbitRecentStorage();
+        clearGuestSessionStorage();
       }
     };
 
@@ -159,7 +166,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
     } finally {
-      clearOrbitRecentStorage();
+      clearGuestSessionStorage();
       setUser(null);
       setError(null);
     }

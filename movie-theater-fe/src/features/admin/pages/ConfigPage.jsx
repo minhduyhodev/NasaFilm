@@ -458,23 +458,34 @@ const ConfigPage = () => {
 
         <div className="sys-config__body" key={activeTab}>
         {activeTab === 'showtime' && (
-          <div className="sys-config__split">
-            <ConfigSection title="Khung giờ suất chiếu">
-              <div className="sys-config__fields sys-config__fields--2">
-                <ConfigField label="Giờ mở cửa" hint="Khung giờ sớm nhất thuật toán có thể phân bổ suất.">
-                  <input type="time" className="sys-config__input" value={config.startTime} onChange={(e) => updateField('startTime', e.target.value)} />
-                </ConfigField>
-                <ConfigField label="Giờ đóng cửa" hint="Thời gian muộn nhất suất phải kết thúc.">
-                  <input type="time" className="sys-config__input" value={config.endTime} onChange={(e) => updateField('endTime', e.target.value)} />
-                </ConfigField>
-                <ConfigField label="Thời gian dọn dẹp (phút)">
-                  <input type="number" min="0" max="120" className="sys-config__input" value={config.intervalMinutes} onChange={(e) => updateField('intervalMinutes', parseInt(e.target.value, 10) || 0)} />
-                </ConfigField>
-                <ConfigField label="Trailer buffer (phút)">
-                  <input type="number" min="0" max="60" className="sys-config__input" value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value, 10) || 0)} />
-                </ConfigField>
-              </div>
-            </ConfigSection>
+          <div className="sys-config__split sys-config__split--showtime">
+            <div className="sys-config__split-stack">
+              <ConfigSection title="Khung giờ suất chiếu">
+                <div className="sys-config__fields sys-config__fields--2">
+                  <ConfigField label="Giờ mở cửa" hint="Khung giờ sớm nhất thuật toán có thể phân bổ suất.">
+                    <input type="time" className="sys-config__input" value={config.startTime} onChange={(e) => updateField('startTime', e.target.value)} />
+                  </ConfigField>
+                  <ConfigField label="Giờ đóng cửa" hint="Thời gian muộn nhất suất phải kết thúc.">
+                    <input type="time" className="sys-config__input" value={config.endTime} onChange={(e) => updateField('endTime', e.target.value)} />
+                  </ConfigField>
+                  <ConfigField label="Thời gian dọn dẹp (phút)">
+                    <input type="number" min="0" max="120" className="sys-config__input" value={config.intervalMinutes} onChange={(e) => updateField('intervalMinutes', parseInt(e.target.value, 10) || 0)} />
+                  </ConfigField>
+                  <ConfigField label="Trailer buffer (phút)">
+                    <input type="number" min="0" max="60" className="sys-config__input" value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value, 10) || 0)} />
+                  </ConfigField>
+                </div>
+              </ConfigSection>
+
+              <ConfigSection title="Trọng số ưu tiên">
+                <div className="sys-config__fields sys-config__fields--2">
+                  <ConfigSlider label="Giờ vàng" value={config.goldenHourWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('goldenHourWeight', v)} />
+                  <ConfigSlider label="Cuối tuần" value={config.weekendWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('weekendWeight', v)} />
+                  <ConfigSlider label="Đánh giá phim" value={config.ratingWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('ratingWeight', v)} />
+                  <ConfigSlider label="Độ hot thể loại" value={config.genreWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('genreWeight', v)} />
+                </div>
+              </ConfigSection>
+            </div>
 
             <ConfigSection title="Thuật toán phân bổ" description="Các hằng số điều khiển cách sinh suất chiếu tự động.">
               <div className="sys-config__fields sys-config__fields--2">
@@ -505,25 +516,25 @@ const ConfigPage = () => {
                 <ConfigField label="Điểm giờ vàng">
                   <input type="number" min="0" max="30" className="sys-config__input" value={config.goldenHourPeakScore} onChange={(e) => updateField('goldenHourPeakScore', parseInt(e.target.value, 10) || 15)} />
                 </ConfigField>
-                <ConfigField label="Điểm genre hot / mid / base">
+                <ConfigField label="Điểm genre (hot / mid / base)">
                   <div className="sys-config__inline-triple">
-                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierHot} onChange={(e) => updateField('genreTierHot', parseInt(e.target.value, 10) || 10)} />
-                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierMid} onChange={(e) => updateField('genreTierMid', parseInt(e.target.value, 10) || 7)} />
-                    <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierBase} onChange={(e) => updateField('genreTierBase', parseInt(e.target.value, 10) || 4)} />
+                    <label className="sys-config__mini-field">
+                      <span>Hot</span>
+                      <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierHot} onChange={(e) => updateField('genreTierHot', parseInt(e.target.value, 10) || 10)} />
+                    </label>
+                    <label className="sys-config__mini-field">
+                      <span>Mid</span>
+                      <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierMid} onChange={(e) => updateField('genreTierMid', parseInt(e.target.value, 10) || 7)} />
+                    </label>
+                    <label className="sys-config__mini-field">
+                      <span>Base</span>
+                      <input type="number" min="0" max="20" className="sys-config__input" value={config.genreTierBase} onChange={(e) => updateField('genreTierBase', parseInt(e.target.value, 10) || 4)} />
+                    </label>
                   </div>
                 </ConfigField>
                 <ConfigSwitch checked={config.includeFridayAsWeekend} onChange={(v) => updateField('includeFridayAsWeekend', v)}>
                   Tính thứ Sáu là cuối tuần
                 </ConfigSwitch>
-              </div>
-            </ConfigSection>
-
-            <ConfigSection title="Trọng số ưu tiên">
-              <div className="sys-config__fields sys-config__fields--2">
-                <ConfigSlider label="Giờ vàng" value={config.goldenHourWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('goldenHourWeight', v)} />
-                <ConfigSlider label="Cuối tuần" value={config.weekendWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('weekendWeight', v)} />
-                <ConfigSlider label="Đánh giá phim" value={config.ratingWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('ratingWeight', v)} />
-                <ConfigSlider label="Độ hot thể loại" value={config.genreWeight} min={0.5} max={3} step={0.1} onChange={(v) => updateField('genreWeight', v)} />
               </div>
             </ConfigSection>
           </div>
@@ -725,17 +736,6 @@ const ConfigPage = () => {
                   </div>
                 </div>
               </ConfigSection>
-
-              <div className="sys-config__bot-save-row">
-                <button
-                  type="button"
-                  className="sys-config__save"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Đang lưu…' : 'Lưu cấu hình NASA Bot'}
-                </button>
-              </div>
             </div>
           </div>
         )}

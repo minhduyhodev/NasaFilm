@@ -122,6 +122,7 @@ export const getValidTransitions = (status) => {
     ];
     case 'SCHEDULED': return [
       { target: 'OPEN_FOR_BOOKING', label: 'Mở Bán Vé' },
+      { target: 'FINISHED', label: 'Kết Thúc' },
       { target: 'CANCELLED', label: 'Hủy Suất' },
     ];
     case 'OPEN_FOR_BOOKING': return [

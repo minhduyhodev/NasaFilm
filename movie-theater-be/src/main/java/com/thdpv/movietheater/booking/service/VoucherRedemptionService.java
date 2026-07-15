@@ -48,7 +48,9 @@ public class VoucherRedemptionService {
         Promotion promotion = promotionRepository.findByIdForUpdate(promotionId)
                 .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy voucher"));
 
-        User user = userRepository.findById(userUuid)
+        // Lock the user row so concurrent redemptions of *different* vouchers serialize on the same
+        // account and re-read a fresh point balance — otherwise both could pass the point check and overspend.
+        User user = userRepository.findByIdForUpdate(userUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         OffsetDateTime now = OffsetDateTime.now();

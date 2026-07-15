@@ -42,6 +42,11 @@ public class PaymentService {
         return paymentProvider;
     }
 
+    /** True when the booking payment gateway is the always-succeeds mock (demo/local), not a real provider. */
+    public boolean isMockProvider() {
+        return paymentProvider == null || "mock".equalsIgnoreCase(paymentProvider.trim());
+    }
+
     @Transactional(readOnly = true)
     public java.util.Optional<Payment> findLatestPayment(UUID bookingUuid) {
         if (bookingUuid == null) {

@@ -156,6 +156,7 @@ const StaffMissionControlPage = () => {
   const checkIn = useStaffTicketCheckIn({
     audioEnabled,
     onCheckInComplete: handleCheckInComplete,
+    gateShowtimeUuid: selectedUuid,
   });
 
   useEffect(() => {
@@ -352,6 +353,7 @@ const StaffMissionControlPage = () => {
                         layoutConfig={seatMap?.layoutConfig}
                         showLegend
                         compact
+                        variant="staff"
                       />
                     </div>
                   </>

@@ -39,7 +39,8 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                 COALESCE(stt.priceModifier, 1.0),
                 CASE WHEN b.status = 'CONFIRMED' THEN bs.uuid ELSE NULL END,
                 sl.userUuid,
-                sl.expiredAt
+                sl.expiredAt,
+                CASE WHEN b.status = 'CONFIRMED' THEN t.checkedInAt ELSE NULL END
             )
             FROM Showtime st
             JOIN Seat s ON s.cinemaRoom.uuid = st.cinemaRoomUuid
@@ -48,6 +49,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                 ON bs.showtimeUuid = st.uuid
                AND bs.seatUuid = s.uuid
             LEFT JOIN Booking b ON b.uuid = bs.bookingUuid
+            LEFT JOIN Ticket t ON t.bookingSeatUuid = bs.uuid
             LEFT JOIN SeatLocked sl
                 ON sl.showtimeUuid = st.uuid
                AND sl.seatUuid = s.uuid
@@ -66,8 +68,6 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
             WHERE s.cinemaRoomUuid = :roomUuid
               AND s.startTime > :now
               AND s.status IN (
-                com.thdpv.movietheater.booking.enums.ShowtimeStatus.DRAFT,
-                com.thdpv.movietheater.booking.enums.ShowtimeStatus.SCHEDULED,
                 com.thdpv.movietheater.booking.enums.ShowtimeStatus.OPEN_FOR_BOOKING,
                 com.thdpv.movietheater.booking.enums.ShowtimeStatus.SOLD_OUT
               )
@@ -80,8 +80,12 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b JOIN Showtime s ON s.uuid = b.showtimeUuid
             WHERE s.cinemaRoomUuid = :roomUuid
-              AND b.status = 'CONFIRMED'
-              AND s.startTime > :now
+              AND upper(b.status) = 'CONFIRMED'
+              AND s.endTime > :now
+              AND s.status NOT IN (
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.FINISHED,
+                com.thdpv.movietheater.booking.enums.ShowtimeStatus.CANCELLED
+              )
             """)
     boolean existsFutureConfirmedBookingForRoom(@Param("roomUuid") UUID roomUuid, @Param("now") OffsetDateTime now);
 

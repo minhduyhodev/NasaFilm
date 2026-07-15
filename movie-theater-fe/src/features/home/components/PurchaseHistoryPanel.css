@@ -288,6 +288,18 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.ph-status--used {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.ph-status--expired {
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.16);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
 .ph-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
