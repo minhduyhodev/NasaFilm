@@ -2,9 +2,11 @@ package com.thdpv.movietheater.orbit.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -299,9 +301,16 @@ public class OrbitRoomService {
         if (room.getExpiresAt().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm đã hết hạn");
         }
+        // Hold member seats for as long as the room lives (not the short solo TTL) so waiting members
+        // don't silently lose their seats mid-session.
+        Integer roomTtlSeconds = null;
+        if (room.getExpiresAt() != null && room.getExpiresAt().isAfter(now)) {
+            roomTtlSeconds = (int) Math.max(1, Duration.between(now, room.getExpiresAt()).getSeconds());
+        }
         showtimeSeatService.syncSeatLocks(
                 currentUserEmail,
-                new SyncSeatLockRequest(room.getShowtimeUuid(), seatUuids));
+                new SyncSeatLockRequest(room.getShowtimeUuid(), seatUuids),
+                roomTtlSeconds);
 
         member.setSeatUuidsJson(OrbitSeatJson.writeSeatUuids(seatUuids));
         member.setUpdatedAt(now);
@@ -760,6 +769,48 @@ public class OrbitRoomService {
             all.addAll(OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson()));
         }
         return all;
+    }
+
+    private static final ObjectMapper ORBIT_COMBO_MAPPER = new ObjectMapper();
+
+    /**
+     * Aggregates the concession combos chosen by every NON-host member of an Orbit room, keyed by
+     * {@code comboUuid} and summed by quantity. This is the server's authoritative source for member
+     * combos during checkout: the host's booking request carries only the host's own combos, so a stale
+     * or tampered client can no longer silently drop members' concession orders from the charge or from
+     * {@code booking_combo}. The host's combos are intentionally excluded here — they ride in the booking
+     * request and are merged in {@code BookingService.confirmBooking}.
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, Integer> collectNonHostMemberComboQuantities(UUID roomUuid) {
+        OrbitRoom room = orbitRoomRepository.findById(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng Orbit"));
+        UUID hostUuid = room.getHostUserUuid();
+        Map<UUID, Integer> quantities = new LinkedHashMap<>();
+        for (OrbitMember member : orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid)) {
+            if (member.getUserUuid() != null && member.getUserUuid().equals(hostUuid)) {
+                continue;
+            }
+            for (OrbitComboItem item : parseComboItems(member.getCombosJson())) {
+                if (item.getComboUuid() == null || item.getQuantity() <= 0) {
+                    continue;
+                }
+                quantities.merge(item.getComboUuid(), item.getQuantity(), Integer::sum);
+            }
+        }
+        return quantities;
+    }
+
+    private List<OrbitComboItem> parseComboItems(String combosJson) {
+        if (combosJson == null || combosJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return ORBIT_COMBO_MAPPER.readValue(combosJson, new TypeReference<List<OrbitComboItem>>() {
+            });
+        } catch (Exception ex) {
+            return List.of();
+        }
     }
 
     private BigDecimal sumMemberSeatPrices(OrbitMember member, Map<UUID, BigDecimal> seatPrices) {

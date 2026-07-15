@@ -28,6 +28,9 @@ public class ConfirmBookingRequest {
     /** Present when checkout originates from an Orbit group room (host pays all). */
     private UUID orbitRoomUuid;
 
+    /** Stripe PaymentIntent id (pi_...) for card payments; the server reconciles the paid amount against it. */
+    private String paymentIntentId;
+
     public ConfirmBookingRequest() {
     }
 
@@ -67,6 +70,14 @@ public class ConfirmBookingRequest {
 
     public void setOrbitRoomUuid(UUID orbitRoomUuid) {
         this.orbitRoomUuid = orbitRoomUuid;
+    }
+
+    public String getPaymentIntentId() {
+        return paymentIntentId;
+    }
+
+    public void setPaymentIntentId(String paymentIntentId) {
+        this.paymentIntentId = paymentIntentId;
     }
 
     public UUID getShowtimeUuid() {

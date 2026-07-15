@@ -3,7 +3,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import axios from 'axios';
+import { authService } from '../auth/api/authService';
 import { bookingService } from '../../shared/services/bookingService';
 import { vodService } from '../../shared/services/vodService';
 import { notificationService } from '../../shared/services/notificationService';
@@ -100,7 +100,7 @@ export default function PaymentFlow() {
   const handleCreateIntent = async () => {
     setIsInitializing(true);
     try {
-      const { data } = await axios.post('/v1/payments/payment-intents', {
+      const { data } = await authService.api.post('/v1/payments/payment-intents', {
         amount,
         currency: 'vnd',
       });
@@ -137,6 +137,7 @@ export default function PaymentFlow() {
           voucherCode || null,
           'card',
           orbitRoomUuid || null,
+          paymentIntent?.id || null,
         );
       } else {
         // Fallback: no booking state – just show success

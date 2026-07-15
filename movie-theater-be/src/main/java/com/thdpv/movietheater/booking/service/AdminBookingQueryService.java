@@ -76,7 +76,7 @@ public class AdminBookingQueryService {
     private List<AdminBookingListResponse> mapAdminBookingRows(List<Object[]> rows) {
         List<AdminBookingListResponse> responses = new ArrayList<>();
         for (Object[] row : rows) {
-            responses.add(new AdminBookingListResponse(
+            AdminBookingListResponse response = new AdminBookingListResponse(
                     toUuid(row[0]),
                     stringValue(row[1]),
                     stringValue(row[2]),
@@ -87,9 +87,49 @@ public class AdminBookingQueryService {
                     toBigDecimal(row[5]),
                     stringValue(row[6]),
                     bookingRepository.toOffsetDateTime(row[7]),
-                    stringValue(row[8])));
+                    stringValue(row[8]));
+
+            OffsetDateTime startTime = bookingRepository.toOffsetDateTime(row[11]);
+            OffsetDateTime endTime = bookingRepository.toOffsetDateTime(row[12]);
+            String bookingType = stringValue(row[13]);
+            boolean allTicketsUsed = row[14] != null && ((Number) row[14]).intValue() == 1;
+
+            response.setShowtimeStartTime(startTime);
+            response.setShowtimeEndTime(endTime);
+            response.setBookingType(bookingType);
+            response.setActivityStatus(
+                    resolveActivityStatus(stringValue(row[6]), bookingType, startTime, endTime, allTicketsUsed));
+
+            responses.add(response);
         }
         return responses;
+    }
+
+    /**
+     * Derives a time/usage-aware display status without mutating any DB row (mirrors the customer purchase
+     * history). A paid (CONFIRMED) theater booking whose showtime has ended is "expired"; a fully checked-in
+     * one is "used". Cancellation/refund/revenue flows keep keying off the raw {@code booking.status}.
+     */
+    private String resolveActivityStatus(String bookingStatus, String bookingType,
+            OffsetDateTime startTime, OffsetDateTime endTime, boolean allTicketsUsed) {
+        String status = bookingStatus == null ? "" : bookingStatus.toUpperCase();
+        boolean cancelled = status.equals("CANCELLED") || status.equals("REFUNDED")
+                || status.equals("REFUND_PENDING") || status.equals("REFUND_PROCESSING")
+                || status.equals("CANCELLING");
+        if (cancelled) {
+            return "cancelled";
+        }
+        if (allTicketsUsed) {
+            return "used";
+        }
+        boolean isOnline = "ONLINE".equalsIgnoreCase(bookingType);
+        if (!isOnline) {
+            OffsetDateTime cutoff = endTime != null ? endTime : startTime;
+            if (cutoff != null && OffsetDateTime.now().isAfter(cutoff)) {
+                return "expired";
+            }
+        }
+        return "active";
     }
 
     private UUID toUuid(Object value) {

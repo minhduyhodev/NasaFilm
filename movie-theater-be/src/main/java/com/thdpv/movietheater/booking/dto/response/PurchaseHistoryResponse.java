@@ -21,6 +21,8 @@ public class PurchaseHistoryResponse {
     private String paymentMethod;
     private String paymentStatus;
     private String purchasedAt;
+    /** Derived, time/usage-aware status for display: active | used | expired | cancelled. */
+    private String activityStatus;
 
     public PurchaseHistoryResponse() {
     }
@@ -159,5 +161,13 @@ public class PurchaseHistoryResponse {
 
     public void setPurchasedAt(String purchasedAt) {
         this.purchasedAt = purchasedAt;
+    }
+
+    public String getActivityStatus() {
+        return activityStatus;
+    }
+
+    public void setActivityStatus(String activityStatus) {
+        this.activityStatus = activityStatus;
     }
 }
