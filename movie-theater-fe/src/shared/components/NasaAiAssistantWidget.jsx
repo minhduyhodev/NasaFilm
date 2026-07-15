@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
 import { REALTIME_TOPICS } from '../constants/realtimeTopics';
@@ -378,8 +378,63 @@ const buildInitialBotState = (snapshot) => {
   return { intent: BOT_INTENT.SUPPORT, messages, category, chatFlow: CHAT_FLOW.AWAIT_DESCRIPTION, description: '' };
 };
 
+// Inline markdown the bot may emit: [label](url) links and **bold**.
+const INLINE_TOKEN_RE = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
+
+const renderInlineTokens = (line, keyPrefix, onLinkClick) => {
+  const nodes = [];
+  const re = new RegExp(INLINE_TOKEN_RE);
+  let lastIndex = 0;
+  let idx = 0;
+  let match;
+  while ((match = re.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(line.slice(lastIndex, match.index));
+    }
+    if (match[1] !== undefined) {
+      const label = match[1];
+      const url = match[2];
+      const isInternal = url.startsWith('/');
+      const linkKey = `${keyPrefix}-l-${idx++}`;
+      nodes.push(
+        <a
+          key={linkKey}
+          href={url}
+          className="nasa-assistant-link"
+          {...(isInternal
+            ? { onClick: (event) => { event.preventDefault(); onLinkClick?.(url); } }
+            : { target: '_blank', rel: 'noopener noreferrer' })}
+        >
+          {renderInlineTokens(label, linkKey, onLinkClick)}
+        </a>,
+      );
+    } else if (match[3] !== undefined) {
+      const boldKey = `${keyPrefix}-b-${idx++}`;
+      nodes.push(<strong key={boldKey}>{renderInlineTokens(match[3], boldKey, onLinkClick)}</strong>);
+    }
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < line.length) {
+    nodes.push(line.slice(lastIndex));
+  }
+  return nodes;
+};
+
+/** Render bot text with clickable movie links, **bold**, and real line breaks. */
+const renderRichText = (text, onLinkClick) => {
+  if (text === null || text === undefined) return null;
+  const lines = String(text).split('\n');
+  return lines.map((line, i) => (
+    <React.Fragment key={`rt-${i}`}>
+      {renderInlineTokens(line, `rt-${i}`, onLinkClick)}
+      {i < lines.length - 1 ? <br /> : null}
+    </React.Fragment>
+  ));
+};
+
 const NasaAiAssistantWidget = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuthContext();
 
   const botScrollRef = useRef(null);
@@ -413,6 +468,15 @@ const NasaAiAssistantWidget = () => {
   const [liveWaitStartedAt, setLiveWaitStartedAt] = useState(null);
   const [liveWaitTick, setLiveWaitTick] = useState(Date.now());
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
+
+  // Bot reply movie links → navigate in-app and tuck the widget away so the
+  // customer lands on the movie page.
+  const handleBotLinkClick = (url) => {
+    if (!url) return;
+    setOpen(false);
+    navigate(url);
+  };
+
   const lastSendAtRef = useRef(0);
   const openRef = useRef(false);
   const activeTicketCodeRef = useRef('');
@@ -1710,7 +1774,7 @@ const NasaAiAssistantWidget = () => {
             </div>
             <div className="nasa-assistant-msg__content">
               <div className="nasa-assistant-bubble nasa-assistant-bubble--bot">
-                {message.text}
+                {renderRichText(message.text, handleBotLinkClick)}
                 {message.actions?.length > 0 && (
                   <div className="nasa-assistant-card__actions nasa-assistant-card__actions--inline">
                     {message.actions.map((action) => (

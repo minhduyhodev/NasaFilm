@@ -7,8 +7,11 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -74,9 +77,16 @@ public class SupportAiService {
             xác nhận đã hiểu vấn đề rồi mời khách chuyển sang tab "Hỗ trợ" trên widget. KHÔNG hỏi email/SĐT,
             KHÔNG hứa hoàn tiền/đổi vé thay admin.
 
+            🎨 TRÌNH BÀY (bố cục gọn, dễ đọc, có link phim)
+            - Khi liệt kê phim/suất/combo/voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• " và XUỐNG DÒNG rõ ràng.
+              KHÔNG dồn tất cả vào một đoạn văn dài.
+            - Bố cục gợi ý: 1 câu mở đầu ngắn → danh sách gạch đầu dòng → 1 câu hỏi chốt.
+            - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong "DỮ LIỆU THỰC TẾ" (không dịch, không rút gọn, không thêm bớt)
+              để hệ thống tự gắn link cho khách bấm mở trang phim. Bạn KHÔNG tự chèn URL hay mã UUID.
+
             💬 PHONG CÁCH TRẢ LỜI
             - Tiếng Việt, ấm áp, lịch sự, đi thẳng vào vấn đề.
-            - Ngắn gọn 2–4 câu; nếu liệt kê nhiều phim/suất thì dùng gạch đầu dòng cho dễ đọc.
+            - Câu hỏi thường: 2–4 câu; khi liệt kê nhiều mục thì dùng danh sách gạch đầu dòng cho dễ đọc.
             - Chào hỏi → chào lại ngắn gọn rồi hỏi cần giúp gì. Câu mơ hồ → hỏi lại 1 câu cho rõ.
             - Chỉ xuất câu trả lời cuối cùng cho khách. KHÔNG viết bước suy nghĩ / Thinking Process,
               không dùng thẻ <think>, <thinking>, <reasoning>.""";
@@ -157,7 +167,7 @@ public class SupportAiService {
             SupportAiResult aiResult = callAi(messages, detectedCategory);
 
             if (aiResult != null) {
-                return answerMode ? aiResult : postProcessAiResult(aiResult, message, history);
+                return answerMode ? linkifyMovieReply(aiResult) : postProcessAiResult(aiResult, message, history);
             }
 
             if (answerMode) {
@@ -214,6 +224,85 @@ public class SupportAiService {
         }
 
         return result;
+    }
+
+    /**
+     * Turn plain movie titles in a Giải đáp reply into markdown links
+     * ({@code [Tên phim](/movie/uuid)}) so the frontend can render a clickable
+     * shortcut to that movie's detail page. Titles + UUIDs come from the live
+     * catalog, so links are always valid even if the model can't copy UUIDs.
+     */
+    private SupportAiResult linkifyMovieReply(SupportAiResult result) {
+        if (result == null) {
+            return null;
+        }
+        String reply = result.reply();
+        if (reply == null || reply.isBlank() || reply.contains("](/movie/")) {
+            return result; // nothing to do, or model already produced links
+        }
+        Map<String, String> links = supportAiContextService.currentMovieLinks();
+        String linked = insertMovieLinks(reply, links);
+        if (linked.equals(reply)) {
+            return result;
+        }
+        return new SupportAiResult(
+                linked,
+                result.suggestedCategory(),
+                result.flowState(),
+                result.ticketAction(),
+                result.choices());
+    }
+
+    /** Wrap the first mention of each known movie title with a markdown link. */
+    static String insertMovieLinks(String text, Map<String, String> links) {
+        if (text == null || text.isBlank() || links == null || links.isEmpty()) {
+            return text;
+        }
+        List<String> titles = new ArrayList<>(links.keySet());
+        // Longest first so "Avatar Aang: The Last Airbender" wins over "Avatar".
+        titles.sort((a, b) -> Integer.compare(b.length(), a.length()));
+
+        StringBuilder pattern = new StringBuilder();
+        for (String title : titles) {
+            if (title == null || title.isBlank()) {
+                continue;
+            }
+            if (pattern.length() > 0) {
+                pattern.append('|');
+            }
+            pattern.append(Pattern.quote(title));
+        }
+        if (pattern.length() == 0) {
+            return text;
+        }
+
+        Matcher matcher = Pattern.compile(pattern.toString(), Pattern.CASE_INSENSITIVE).matcher(text);
+        StringBuilder out = new StringBuilder();
+        Set<String> alreadyLinked = new HashSet<>();
+        while (matcher.find()) {
+            String matched = matcher.group();
+            String link = resolveLink(links, matched);
+            if (link != null && alreadyLinked.add(link)) {
+                matcher.appendReplacement(out, Matcher.quoteReplacement("[" + matched + "](" + link + ")"));
+            } else {
+                matcher.appendReplacement(out, Matcher.quoteReplacement(matched));
+            }
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
+    private static String resolveLink(Map<String, String> links, String matchedTitle) {
+        String link = links.get(matchedTitle);
+        if (link != null) {
+            return link;
+        }
+        for (Map.Entry<String, String> entry : links.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(matchedTitle)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     // ── Guided conversational flow (fallback mode) ──────────────────────────
