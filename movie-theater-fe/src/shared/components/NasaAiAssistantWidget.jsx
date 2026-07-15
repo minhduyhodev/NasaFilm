@@ -14,6 +14,7 @@ import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
 import { DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../constants/systemConfig';
 import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
+import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import './NasaAiAssistantWidget.css';
@@ -287,9 +288,6 @@ const resolveShortcutCategoryKey = (shortcut = {}) => {
 
 const isAgentMessage = (senderRole = '') => `${senderRole}`.toUpperCase() !== 'USER';
 
-const AI_SESSION_STORAGE_KEY = 'nasabot_ai_session_v1';
-const AI_UI_STATE_KEY = 'nasabot_ui_state_v1';
-
 const readStoredAiSession = () => {
   try {
     return localStorage.getItem(AI_SESSION_STORAGE_KEY) || null;
@@ -482,6 +480,7 @@ const NasaAiAssistantWidget = () => {
   const activeTicketCodeRef = useRef('');
   const chatViewRef = useRef(CHAT_VIEW.BOT);
   const botRestoredRef = useRef(false);
+  const prevUserKeyRef = useRef(undefined);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
@@ -1123,6 +1122,30 @@ const NasaAiAssistantWidget = () => {
     setSelectedCategory(null);
     setTyping(false);
   };
+
+  // When the signed-in account changes (logout, or switching users) reset the whole
+  // NASA Bot chat back to the initial screen so one person's conversation, tickets
+  // and wizard step never carry over to the next (or to an anonymous) visitor.
+  useEffect(() => {
+    const userKey = currentUser?.email ? String(currentUser.email).toLowerCase() : null;
+    if (prevUserKeyRef.current === undefined) {
+      // First render: remember who we started with; keep any restored session.
+      prevUserKeyRef.current = userKey;
+      return;
+    }
+    if (prevUserKeyRef.current === userKey) return;
+    prevUserKeyRef.current = userKey;
+
+    clearNasaBotStorage();
+    botRestoredRef.current = false;
+    backToBotIntentPick();
+    setOpen(false);
+    setTicket(null);
+    setMyTickets([]);
+    setActiveTicketCode('');
+    setTicketMessages([]);
+    setUnreadStaffTicketCodes([]);
+  }, [currentUser]);
 
   const ensureCategoryChips = () => {
     setMessages((prev) => {

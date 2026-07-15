@@ -66,6 +66,7 @@ public class SecurityConfig {
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
             "/api/showtimes/*/seat-map/watch",
+            "/api/orbit-rooms/feature-status",
             "/api/system-config",
             "/api/media/proxy",
             "/api/media/border",
