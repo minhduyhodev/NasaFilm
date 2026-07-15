@@ -58,8 +58,10 @@ public class SupportAiService {
             - Khi có khối "KHÁCH ĐANG ĐĂNG NHẬP" → dùng đúng điểm/hạng của khách đó; không suy đoán cho người khác.
 
             🔒 PHẠM VI
-            - Chỉ hỗ trợ nội dung liên quan NASAFilm.
-            - Ngoài phạm vi → trả lời đúng một câu: "Câu hỏi không thuộc phạm vi hỗ trợ của Nasa."
+            - Ưu tiên nội dung liên quan NASAFilm.
+            - Câu hỏi ngoài lề (đồ ăn, thời tiết, đời sống…) → KHÔNG từ chối thẳng thừng; trả lời hài hước, duyên dáng
+              rồi khéo léo lái chủ đề về đặt vé / xem phim / bắp nước tại NASAFilm
+              (ví dụ: "Thay vì đi ăn gà, bạn ghé NASAFilm nhâm nhi bắp nước xem một bộ phim bom tấn nhé?").
 
             📚 KIẾN THỨC NỀN (dùng khi không có dữ liệu realtime)
             - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → mã QR. Giữ ghế trong thời gian quy định,
@@ -98,11 +100,14 @@ public class SupportAiService {
     private final SystemConfigService systemConfigService;
     private final SupportAiContextService supportAiContextService;
 
-    @Value("${app.groq.api-key:}")
+    @Value("${app.groq.api-key}")
     private String groqApiKey;
 
-    @Value("${app.groq.model:llama-3.1-8b-instant}")
+    @Value("${app.groq.model}")
     private String groqModel;
+
+    @Value("${app.groq.api-url}")
+    private String groqApiUrl;
 
     public SupportAiService(
             ObjectMapper objectMapper,
@@ -322,12 +327,12 @@ public class SupportAiService {
 
     private static final Map<String, String[]> CATEGORY_FLOW_PROMPTS = Map.of(
         "ticket", new String[]{
-            "🎫 Bạn vui lòng nhập **mã vé** hoặc **mã đơn hàng** giúp mình nhé.",
+            "🎫 Bạn vui lòng nhập mã vé hoặc mã đơn hàng giúp mình nhé.",
             "🔍 Mã vé này đang gặp vấn đề gì ạ?\n• Vé bị sai / nhầm (ghế, suất, phim, rạp)\n• Chưa nhận được vé sau khi thanh toán\n• Cần đổi / hủy / hoàn vé\n• Lỗi quét mã QR\n• Khác (mô tả thêm)",
             "📝 Bạn mô tả thêm chi tiết vấn đề để admin xử lý nhanh hơn nhé."
         },
         "payment", new String[]{
-            "🧾 Bạn vui lòng nhập **mã đơn hàng** bị lỗi thanh toán giúp mình.",
+            "🧾 Bạn vui lòng nhập mã đơn hàng bị lỗi thanh toán giúp mình.",
             "💳 Bạn thanh toán qua phương thức nào? (Ví dụ: ZaloPay, MoMo, VNPay, thẻ ngân hàng, Stripe...)",
             "⚠️ Vấn đề thanh toán bạn gặp là gì?\n• Bị trừ tiền nhưng chưa nhận vé\n• Cần hoàn tiền / refund\n• Giao dịch bị lỗi / timeout\n• Khác (mô tả thêm)",
             "📝 Bạn mô tả thêm chi tiết (số tiền, thời gian giao dịch, thông báo lỗi nếu có) để admin đối soát nhé."
@@ -338,7 +343,7 @@ public class SupportAiService {
             "📝 Ghi email đăng ký, thông báo lỗi trên màn hình và thời gian phát sinh để admin kiểm tra."
         },
         "promo", new String[]{
-            "🎁 Bạn vui lòng nhập **mã voucher** hoặc tên **chương trình khuyến mãi** gặp lỗi giúp mình.",
+            "🎁 Bạn vui lòng nhập mã voucher hoặc tên chương trình khuyến mãi gặp lỗi giúp mình.",
             "⚠️ Vấn đề bạn gặp với mã này là gì?\n• Không áp dụng được khi thanh toán\n• Mã đã hết hạn\n• Không đúng điều kiện áp dụng\n• Combo bắp nước không giảm giá\n• Khác (mô tả thêm)",
             "📝 Ghi mã đơn liên quan, thông báo lỗi và thời điểm áp dụng để admin kiểm tra."
         },
@@ -380,11 +385,11 @@ public class SupportAiService {
             }
             return new SupportAiResult(
                 "Mình chưa xác định rõ danh mục vấn đề của bạn. Bạn có thể chọn một trong các mục sau để mình hỗ trợ theo luồng nhé:\n"
-                + "🎫 **Vé / Suất chiếu** — vấn đề về mã vé, ghế, suất chiếu, đổi/hủy/hoàn vé\n"
-                + "💳 **Thanh toán** — lỗi giao dịch, trừ tiền, hoàn tiền\n"
-                + "👤 **Tài khoản** — đăng nhập, OTP, mật khẩu\n"
-                + "🎁 **Khuyến mãi** — voucher, combo, mã giảm giá\n"
-                + "👑 **Hội viên** — điểm thưởng, hạng thành viên, quyền lợi\n\n"
+                + "🎫 Vé / Suất chiếu — vấn đề về mã vé, ghế, suất chiếu, đổi/hủy/hoàn vé\n"
+                + "💳 Thanh toán — lỗi giao dịch, trừ tiền, hoàn tiền\n"
+                + "👤 Tài khoản — đăng nhập, OTP, mật khẩu\n"
+                + "🎁 Khuyến mãi — voucher, combo, mã giảm giá\n"
+                + "👑 Hội viên — điểm thưởng, hạng thành viên, quyền lợi\n\n"
                 + "Bạn chọn danh mục nào ạ?",
                 "other", "collecting"
             );
@@ -445,7 +450,7 @@ public class SupportAiService {
                 // User confirmed → finalize with auto ticket creation
                 String summary = buildSummary(category, message, history);
                 String description = buildDescription(category, message, history);
-                String ticketInfo = "📋 **Tóm tắt ticket:**\n" + summary;
+                String ticketInfo = "📋 Tóm tắt ticket:\n" + summary;
                 return new SupportAiResult(
                     "✅ Đã ghi nhận thắc mắc của bạn! Mình đang tạo ticket gửi admin...\n" + ticketInfo
                     + "\n\n⏳ Admin sẽ phản hồi bạn trong thời gian sớm nhất.",
@@ -655,14 +660,14 @@ public class SupportAiService {
             case "membership" -> "Hội viên";
             default -> category;
         };
-        sb.append("**Danh mục:** ").append(catName).append("\n");
+        sb.append("• Danh mục: ").append(catName).append("\n");
 
         // Fill in each field from collected messages
         for (int i = 0; i < fields.length && i < fieldLabels.length; i++) {
             String value = i < substantial.size() ? substantial.get(i) : "(chưa cung cấp)";
             // Truncate long values
             if (value.length() > 120) value = value.substring(0, 117) + "...";
-            sb.append("**").append(fieldLabels[i]).append(":** ").append(value).append("\n");
+            sb.append("• ").append(fieldLabels[i]).append(": ").append(value).append("\n");
         }
 
         return sb.toString();
@@ -962,8 +967,8 @@ public class SupportAiService {
                 + "- Chỉ trả lời câu cuối cùng cho khách, tiếng Việt ngắn gọn.\n"
                 + "- CẤM viết Thinking Process, các bước Analyze/Identify/Draft/Result, "
                 + "và mọi thẻ <think>, </think>, <thinking>, <reasoning>.\n"
-                + "- Ngoài phạm vi NASAFilm → đúng một câu: "
-                + "\"Câu hỏi không thuộc phạm vi hỗ trợ của Nasa.\"";
+                + "- Câu hỏi ngoài phạm vi NASAFilm → KHÔNG từ chối thẳng thừng; trả lời hài hước, "
+                + "duyên dáng rồi khéo léo lái chủ đề về đặt vé/xem phim/bắp nước tại NASAFilm.";
         if (answerMode) {
             persona = persona + "\n\nCHẾ ĐỘ GIẢI ĐÁP: Trả lời mọi câu hỏi liên quan NASAFilm bằng kiến thức sẵn có + DỮ LIỆU THỰC TẾ bên dưới. "
                 + "Không mở luồng thu thập ticket. Nếu khách cần tạo ticket/gặp nhân viên, "
@@ -1029,7 +1034,7 @@ public class SupportAiService {
                 if (attempt > 0) Thread.sleep(300L * attempt);
                 try {
                     HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
+                            .uri(URI.create(groqApiUrl))
                             .timeout(Duration.ofSeconds(20))
                             .header("Content-Type", "application/json")
                             .header("Authorization", "Bearer " + groqApiKey)

@@ -162,7 +162,8 @@ public class SupportController {
             @PathVariable String ticketCode) {
         var ticket = supportTicketService.getByCode(ticketCode);
         if (!ticket.getOwnerEmail().equalsIgnoreCase(userDetails.getUsername())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
         }
         return ResponseEntity.ok(ApiResponse.success(ticket));
     }
@@ -173,7 +174,8 @@ public class SupportController {
             @PathVariable String ticketCode) {
         var ticket = supportTicketService.getByCode(ticketCode);
         if (!ticket.getOwnerEmail().equalsIgnoreCase(userDetails.getUsername())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
         }
         return ResponseEntity.ok(ApiResponse.success(supportTicketService.listMessages(ticketCode)));
     }
@@ -198,7 +200,8 @@ public class SupportController {
 
     public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode, String sessionId) {}
 
-    public record SupportAiMessageRequest(String role, String content) {}
+    public record SupportAiMessageRequest(String role, String content) {
+    }
 
     public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices, String sessionId) {
         public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons, String sessionId) {
@@ -213,5 +216,6 @@ public class SupportController {
         }
     }
 
-    public record SupportAiStatusResponse(boolean configured, String mode) {}
+    public record SupportAiStatusResponse(boolean configured, String mode) {
+    }
 }

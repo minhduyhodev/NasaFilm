@@ -152,6 +152,7 @@ public class ShowtimeSeatMapResponse {
         private Boolean selected;
         private Boolean blocked;
         private OffsetDateTime lockedUntil;
+        private Boolean checkedIn;
 
         public SeatItem() {
         }
@@ -159,6 +160,13 @@ public class ShowtimeSeatMapResponse {
         public SeatItem(UUID seatUuid, Integer seatNumber, String seatDbStatus, UUID seatTypeUuid,
                 String seatTypeName, BigDecimal price, String availabilityStatus, Boolean selected, Boolean blocked,
                 OffsetDateTime lockedUntil) {
+            this(seatUuid, seatNumber, seatDbStatus, seatTypeUuid, seatTypeName, price, availabilityStatus,
+                    selected, blocked, lockedUntil, false);
+        }
+
+        public SeatItem(UUID seatUuid, Integer seatNumber, String seatDbStatus, UUID seatTypeUuid,
+                String seatTypeName, BigDecimal price, String availabilityStatus, Boolean selected, Boolean blocked,
+                OffsetDateTime lockedUntil, Boolean checkedIn) {
             this.seatUuid = seatUuid;
             this.seatNumber = seatNumber;
             this.seatDbStatus = seatDbStatus;
@@ -169,6 +177,7 @@ public class ShowtimeSeatMapResponse {
             this.selected = selected;
             this.blocked = blocked;
             this.lockedUntil = lockedUntil;
+            this.checkedIn = checkedIn;
         }
 
         public UUID getSeatUuid() {
@@ -249,6 +258,14 @@ public class ShowtimeSeatMapResponse {
 
         public void setLockedUntil(OffsetDateTime lockedUntil) {
             this.lockedUntil = lockedUntil;
+        }
+
+        public Boolean getCheckedIn() {
+            return checkedIn;
+        }
+
+        public void setCheckedIn(Boolean checkedIn) {
+            this.checkedIn = checkedIn;
         }
     }
 }

@@ -859,7 +859,7 @@ const NasaAiAssistantWidget = () => {
     setUnreadStaffTicketCodes((prev) => prev.filter((code) => code !== ticketCode));
   };
 
-  const openTicketThreadRef = useRef(async () => {});
+  const openTicketThreadRef = useRef(async () => { });
 
   useRealtimeTopic(
     hasAdminAccess(user) ? REALTIME_TOPICS.SUPPORT_AGENTS : null,
@@ -1447,7 +1447,7 @@ const NasaAiAssistantWidget = () => {
       await loadMyTickets();
     } catch (error) {
       notificationService.error(resolveSupportErrorMessage(error, 'Không gửi được tin nhắn support.'));
-      await refreshTicketThread(activeTicketCode).catch(() => {});
+      await refreshTicketThread(activeTicketCode).catch(() => { });
     }
   };
 
@@ -2010,14 +2010,14 @@ const NasaAiAssistantWidget = () => {
                 <div className="nasa-assistant-brand-icon">
                   <img src={nasaLogo} alt="NASAFilm" />
                 </div>
-                  <div>
-                    <div className="nasa-assistant-title">NASA BOT</div>
-                    <div className="nasa-assistant-subtitle">
-                      <span className={`nasa-status-dot ${liveAvailability?.anyOnline ? 'nasa-status-dot--online' : ''}`} />
-                      {headerSubtitle}
-                    </div>
+                <div>
+                  <div className="nasa-assistant-title">NASA BOT</div>
+                  <div className="nasa-assistant-subtitle">
+                    <span className={`nasa-status-dot ${liveAvailability?.anyOnline ? 'nasa-status-dot--online' : ''}`} />
+                    {headerSubtitle}
                   </div>
                 </div>
+              </div>
               <div className="nasa-assistant-header-actions">
                 {isBotView && botIntent !== BOT_INTENT.PICK ? (
                   <button
@@ -2152,19 +2152,7 @@ const NasaAiAssistantWidget = () => {
                   {activeTicketCode ? <span className="nasa-chat-tabs__dot" /> : null}
                 </button>
               </div>
-              {isBotView && botIntent !== BOT_INTENT.PICK ? (
-                <div className="nasa-staff-composer-meta">
-                  {isAnswerIntent ? <Sparkles className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
-                  <span>{isAnswerIntent ? 'Đang ở Giải đáp AI' : 'Đang ở Hỗ trợ (wizard)'}</span>
-                  <button
-                    type="button"
-                    className="nasa-staff-composer-meta__link"
-                    onClick={backToBotIntentPick}
-                  >
-                    Đổi chế độ
-                  </button>
-                </div>
-              ) : null}
+
               {isBotView && chatFlow ? (
                 <div className="nasa-composer-toolbar">
                   <button type="button" className="nasa-composer-cancel" onClick={cancelRequestFlow}>

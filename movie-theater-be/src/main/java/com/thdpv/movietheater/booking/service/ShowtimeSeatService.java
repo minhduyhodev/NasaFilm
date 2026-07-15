@@ -186,6 +186,7 @@ public class ShowtimeSeatService {
 
         String availabilityStatus = resolveAvailabilityStatus(seatDbStatus, booked, lockedUserUuid, currentUserUuid);
         BigDecimal price = basePrice.multiply(priceModifier);
+        boolean checkedIn = booked && row.getCheckedInAt() != null;
 
         return new ShowtimeSeatMapResponse.SeatItem(
                 seatUuid,
@@ -197,7 +198,8 @@ public class ShowtimeSeatService {
                 availabilityStatus,
                 selected,
                 false,
-                lockedUntil);
+                lockedUntil,
+                checkedIn);
     }
 
     private void applySingleGapBlocking(Map<String, List<ShowtimeSeatMapResponse.SeatItem>> seatRows) {
