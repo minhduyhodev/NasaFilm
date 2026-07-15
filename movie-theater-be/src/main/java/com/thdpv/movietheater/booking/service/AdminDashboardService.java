@@ -5,13 +5,17 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.dto.response.AdminDashboardResponse;
+import com.thdpv.movietheater.booking.dto.response.RevenueSeriesResponse;
+import com.thdpv.movietheater.booking.service.RevenueSeriesSupport.Granularity;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -224,6 +228,58 @@ public class AdminDashboardService {
                 genreStats,
                 topMovies
         );
+    }
+
+    /**
+     * Real revenue detail (confirmed bookings) for one selected period, chosen by {@code offset} back
+     * from now: a month drills into its days, a week into its 7 days, a day into its 24 hours. All
+     * bucketing is in Vietnam local time and gap-filled so charts render an even axis.
+     */
+    @Transactional(readOnly = true)
+    public RevenueSeriesResponse getRevenueSeries(String granularity, int offset, String date) {
+        Granularity g = Granularity.parse(granularity);
+        int effectiveOffset = RevenueSeriesSupport.resolveOffset(g, offset, date);
+        RevenueSeriesSupport.Period period = RevenueSeriesSupport.buildPeriod(g, effectiveOffset);
+
+        String sql = "select cast(date_trunc('" + period.subTruncKeyword
+                + "', b.created_at at time zone 'Asia/Ho_Chi_Minh') as text) as bucket,"
+                + " coalesce(sum(b.total_price), 0) as revenue,"
+                + " count(1) as txns"
+                + " from booking b"
+                + " where b.status = 'CONFIRMED' and b.created_at >= :from and b.created_at < :to"
+                + " group by 1";
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setParameter("from", period.from)
+                .setParameter("to", period.to)
+                .getResultList();
+
+        Map<String, BigDecimal> revenueByBucket = new HashMap<>();
+        Map<String, Long> txnByBucket = new HashMap<>();
+        for (Object[] row : rows) {
+            String key = RevenueSeriesSupport.normalizeKey(stringValue(row[0]), period.keyLength);
+            if (key == null) {
+                continue;
+            }
+            revenueByBucket.put(key, toBigDecimal(row[1]));
+            txnByBucket.put(key, toLong(row[2]));
+        }
+
+        List<RevenueSeriesResponse.RevenueSeriesPoint> points = new ArrayList<>();
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        long totalTransactions = 0;
+        for (RevenueSeriesSupport.SeriesBucket bucket : period.buckets) {
+            BigDecimal revenue = revenueByBucket.getOrDefault(bucket.key, BigDecimal.ZERO);
+            long txns = txnByBucket.getOrDefault(bucket.key, 0L);
+            totalRevenue = totalRevenue.add(revenue);
+            totalTransactions += txns;
+            points.add(new RevenueSeriesResponse.RevenueSeriesPoint(
+                    bucket.key, bucket.label, revenue, txns));
+        }
+        return new RevenueSeriesResponse(g.apiValue(), period.periodLabel,
+                period.from.toLocalDate().toString(), period.offset, period.hasNext,
+                points, totalRevenue, totalTransactions);
     }
 
     private BigDecimal toBigDecimal(Object value) {

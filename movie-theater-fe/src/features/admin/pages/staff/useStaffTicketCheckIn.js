@@ -45,7 +45,7 @@ const buildSpeechMessage = (result) => {
   return result.message || 'Có lỗi xảy ra';
 };
 
-export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete } = {}) => {
+export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete, gateShowtimeUuid = null } = {}) => {
   const [ticketCode, setTicketCode] = useState('');
   const [ticketPreview, setTicketPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -161,7 +161,7 @@ export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete }
     setCheckingIn(true);
     const scanSource = scanSourceRef.current === 'camera' ? 'CAMERA' : 'MANUAL';
     try {
-      const { data, message } = await staffMissionService.checkInTicket(code, scanSource);
+      const { data, message } = await staffMissionService.checkInTicket(code, scanSource, gateShowtimeUuid);
       const result = buildScanResult(data, code, message);
       const isSuccess = result.status === 'VALID';
       playCheckInBeep(isSuccess);
@@ -183,7 +183,7 @@ export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete }
     } finally {
       setCheckingIn(false);
     }
-  }, [audioEnabled, onCheckInComplete, pushHistory, ticketCode]);
+  }, [audioEnabled, onCheckInComplete, pushHistory, ticketCode, gateShowtimeUuid]);
 
   handleCheckInRef.current = handleCheckIn;
 

@@ -276,6 +276,9 @@ public class WalletService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
+        if (refundUuid != null && walletTransactionRepository.existsByReferenceUuid(refundUuid)) {
+            return;
+        }
         ensureWalletInitialized(findUser(userUuid));
         runWalletWriteWithRetry(userUuid, user ->
                 credit(user, amount, refundUuid, description != null ? description : "Hoàn tiền hủy vé"));

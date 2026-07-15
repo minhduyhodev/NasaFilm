@@ -323,14 +323,12 @@ const BookingsPage = () => {
   };
 
   const getBookingShowtime = (booking) => {
-    if (!booking.createdAt) return null;
-    const bookingDate = new Date(booking.createdAt).toDateString();
-    return showtimes.find(st => {
-      const matchMovie = st.movieTitle?.toLowerCase().trim() === booking.movieTitle?.toLowerCase().trim();
-      const matchRoom = st.cinemaRoomName?.toLowerCase().trim() === booking.cinemaRoomName?.toLowerCase().trim();
-      if (!matchMovie || !matchRoom) return false;
-      return new Date(st.startTime).toDateString() === bookingDate;
-    });
+    // The server now returns the booking's own showtime directly, so we no longer guess it by
+    // fuzzy-matching movie + room + createdAt date against the loaded showtime list.
+    if (booking?.showtimeStartTime) {
+      return { startTime: booking.showtimeStartTime, endTime: booking.showtimeEndTime };
+    }
+    return null;
   };
 
   const getBookingShowtimeTime = (booking) => {
@@ -369,7 +367,7 @@ const BookingsPage = () => {
   }, [bookings, selectedShowtime, showtimes]);
 
   const { active: activeBookings, archived: archivedBookings } = React.useMemo(
-    () => partitionAdminBookings(filteredBookings, getBookingShowtime),
+    () => partitionAdminBookings(filteredBookings),
     [filteredBookings, showtimes],
   );
 
@@ -414,15 +412,32 @@ const BookingsPage = () => {
     return false;
   };
 
-  const getStatusConfig = (status) => {
-    const s = status?.toUpperCase();
-    if (s === 'CONFIRMED') return {
-      label: 'Thành công',
-      accentBg: 'bg-emerald-500',
-      accentBorder: 'bk-order-row--confirmed',
-      badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
-      dot: 'bg-emerald-400 animate-pulse',
-    };
+  const getStatusConfig = (row) => {
+    const s = row?.status?.toUpperCase();
+    if (s === 'CONFIRMED') {
+      const activity = (row?.activityStatus || '').toLowerCase();
+      if (activity === 'expired') return {
+        label: 'Đã qua suất',
+        accentBg: 'bg-slate-500',
+        accentBorder: 'bk-order-row--confirmed',
+        badgeCls: 'bg-slate-500/15 border border-slate-500/30 text-slate-300',
+        dot: 'bg-slate-400',
+      };
+      if (activity === 'used') return {
+        label: 'Đã sử dụng',
+        accentBg: 'bg-sky-500',
+        accentBorder: 'bk-order-row--confirmed',
+        badgeCls: 'bg-sky-500/15 border border-sky-500/30 text-sky-300',
+        dot: 'bg-sky-400',
+      };
+      return {
+        label: 'Thành công',
+        accentBg: 'bg-emerald-500',
+        accentBorder: 'bk-order-row--confirmed',
+        badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
+        dot: 'bg-emerald-400 animate-pulse',
+      };
+    }
     if (s === 'CANCELLED') return {
       label: 'Đã hủy',
       accentBg: 'bg-rose-500',
@@ -461,7 +476,7 @@ const BookingsPage = () => {
   };
 
   const renderOrderRow = (row, archived = false) => {
-    const statusCfg = getStatusConfig(row.status);
+    const statusCfg = getStatusConfig(row);
     const rawPoster = moviesMap[row.movieTitle?.toLowerCase().trim()];
     const seatList = row.seats ? row.seats.split(',').map((s) => s.trim()).filter(Boolean) : [];
     const st = getBookingShowtime(row);
@@ -469,7 +484,7 @@ const BookingsPage = () => {
       ? `${new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} · ${new Date(st.startTime).toLocaleDateString('vi-VN')}`
       : null;
     const isRefundPending = row.status?.toUpperCase() === 'REFUND_PENDING';
-    const archiveLabel = archived ? getAdminBookingArchiveLabel(row, getBookingShowtime) : null;
+    const archiveLabel = archived ? getAdminBookingArchiveLabel(row) : null;
 
     return (
       <div

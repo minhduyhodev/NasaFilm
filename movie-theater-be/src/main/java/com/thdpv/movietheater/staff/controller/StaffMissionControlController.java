@@ -63,9 +63,10 @@ public class StaffMissionControlController {
     public ResponseEntity<ApiResponse<StaffCheckInResponse>> checkInTicket(
             @PathVariable("code") String code,
             @RequestParam(required = false) String scanSource,
+            @RequestParam(required = false) UUID showtimeUuid,
             @AuthenticationPrincipal UserDetails userDetails) {
         StaffCheckInResponse response = staffMissionControlService.checkInTicket(
-                code, actorEmail(userDetails), scanSource);
+                code, actorEmail(userDetails), scanSource, showtimeUuid);
         String message = response.alreadyCheckedIn() && response.checkedInAt() != null
                 ? "Vé đã được soát trước đó"
                 : "Welcome aboard — Soát vé thành công";

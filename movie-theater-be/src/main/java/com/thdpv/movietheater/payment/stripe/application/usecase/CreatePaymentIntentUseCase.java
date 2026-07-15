@@ -2,6 +2,9 @@ package com.thdpv.movietheater.payment.stripe.application.usecase;
 
 import org.springframework.stereotype.Service;
 
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.payment.service.WalletService;
 import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
 import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentInput;
 import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentResult;
@@ -15,6 +18,9 @@ import java.util.UUID;
 @Service
 public class CreatePaymentIntentUseCase {
 
+    /** Hard ceiling for a single card payment intent (VND). Guards against absurd/overflow amounts. */
+    private static final long MAX_INTENT_AMOUNT = 100_000_000L;
+
     private final StripeGateway stripeGateway;
     private final PaymentTransactionRepository paymentTransactionRepository;
 
@@ -25,11 +31,20 @@ public class CreatePaymentIntentUseCase {
 
     public PaymentIntentResult execute(PaymentIntentInput input) {
         if (input.getAmount() == null || input.getAmount() <= 0) {
-            throw new IllegalArgumentException("amount must be a positive integer");
+            throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền thanh toán không hợp lệ");
         }
-        if (input.getCurrency() == null || input.getCurrency().isEmpty()) {
-            throw new IllegalArgumentException("currency is required");
+        if (input.getAmount() > MAX_INTENT_AMOUNT) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền vượt quá giới hạn cho phép");
         }
+        String currency = input.getCurrency() == null ? null : input.getCurrency().trim().toLowerCase();
+        if (!"vnd".equals(currency)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ hỗ trợ đơn vị tiền VND");
+        }
+        input.setCurrency(currency);
+        // This endpoint only issues intents for booking card payments. Force the purpose so a client cannot
+        // set purpose=WALLET_TOP_UP and have the webhook credit a wallet, bypassing the validated wallet
+        // top-up flow (min/max bounds live in WalletService.createTopUpIntent).
+        input.putMetadata("purpose", WalletService.PURPOSE_BOOKING);
         PaymentIntentResult result = stripeGateway.createPaymentIntent(input);
         
         // Save to Database
