@@ -57,10 +57,33 @@ const StaffPage = () => {
   }, [fetchUsers]);
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, roleFilter]);
+
+  useEffect(() => {
     adminUserService.getPermissions()
       .then((data) => setAvailablePermissions(Array.isArray(data) ? data : []))
       .catch(() => setAvailablePermissions([]));
   }, []);
+
+  const normalizeRoles = (roles) => {
+    if (!Array.isArray(roles)) return [];
+    return roles
+      .map((role) => {
+        if (typeof role === 'string') return role;
+        if (role && typeof role === 'object') return role.name || role.roleName || '';
+        return '';
+      })
+      .filter(Boolean)
+      .map((role) => String(role).replace(/^ROLE_/i, '').toUpperCase());
+  };
+
+  const normalizeStatus = (status) => {
+    if (status == null) return '';
+    if (typeof status === 'string') return status.toUpperCase();
+    if (typeof status === 'object' && status.name) return String(status.name).toUpperCase();
+    return String(status).toUpperCase();
+  };
 
   const handleStatusChange = async (userId, userEmail, newStatus) => {
     if (userId === currentUser?.id && newStatus === 'SUSPENDED') {
@@ -81,8 +104,9 @@ const StaffPage = () => {
 
   const handleOpenDetailModal = (user) => {
     setSelectedUser(user);
-    setRoleForm(user.roles?.[0] || 'STAFF');
-    setStatusForm(user.status || 'ACTIVE');
+    const roles = normalizeRoles(user.roles);
+    setRoleForm(roles[0] || 'STAFF');
+    setStatusForm(normalizeStatus(user.status) || 'ACTIVE');
     setPermissionForm(user.permissions || []);
     setIsDetailModalOpen(true);
   };
@@ -103,13 +127,13 @@ const StaffPage = () => {
       let hasChanges = false;
 
       // Update role if changed
-      if (!selectedUser.roles?.includes(roleForm)) {
+      if (!normalizeRoles(selectedUser.roles).includes(roleForm)) {
         promises.push(adminUserService.updateUserRole(selectedUser.id, roleForm));
         hasChanges = true;
       }
 
       // Update status if changed
-      if (statusForm !== selectedUser.status) {
+      if (statusForm !== normalizeStatus(selectedUser.status)) {
         promises.push(adminUserService.updateUserStatus(selectedUser.id, statusForm));
         hasChanges = true;
       }
@@ -136,37 +160,52 @@ const StaffPage = () => {
     }
   };
 
-  // Filter list to only contain STAFF and ADMIN
-  const staffAndAdmins = usersList.filter(u => 
-    u.roles?.includes('STAFF') || u.roles?.includes('ADMIN')
-  );
+  // API audience=STAFF đã lọc sẵn; normalize role để không nuốt user khi format role lệch
+  const staffAndAdmins = React.useMemo(() => {
+    return (usersList || []).filter((user) => {
+      const roles = normalizeRoles(user.roles);
+      if (roles.length === 0) return true;
+      return roles.includes('STAFF') || roles.includes('ADMIN');
+    });
+  }, [usersList]);
 
-  const filteredStaff = staffAndAdmins.filter((user) => {
+  const filteredStaff = React.useMemo(() => {
     const normalizedSearch = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !normalizedSearch ||
-      (user.fullName && user.fullName.toLowerCase().includes(normalizedSearch)) ||
-      (user.email && user.email.toLowerCase().includes(normalizedSearch)) ||
-      (user.phoneNumber && user.phoneNumber.includes(normalizedSearch));
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    const matchesRole = roleFilter === 'all' || (user.roles && user.roles.includes(roleFilter));
-    return matchesSearch && matchesStatus && matchesRole;
-  });
+    return staffAndAdmins.filter((user) => {
+      const roles = normalizeRoles(user.roles);
+      const status = normalizeStatus(user.status);
+      const matchesSearch =
+        !normalizedSearch ||
+        (user.fullName && user.fullName.toLowerCase().includes(normalizedSearch)) ||
+        (user.email && user.email.toLowerCase().includes(normalizedSearch)) ||
+        (user.phoneNumber && user.phoneNumber.includes(normalizedSearch));
+      const matchesStatus = statusFilter === 'all' || status === String(statusFilter).toUpperCase();
+      const matchesRole = roleFilter === 'all' || roles.includes(String(roleFilter).toUpperCase());
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }, [staffAndAdmins, searchQuery, statusFilter, roleFilter]);
 
   const stats = React.useMemo(() => ({
     total: staffAndAdmins.length,
-    admins: staffAndAdmins.filter(u => u.roles?.includes('ADMIN')).length,
-    staff: staffAndAdmins.filter(u => u.roles?.includes('STAFF')).length,
-    active: staffAndAdmins.filter(u => u.status === 'ACTIVE').length,
-    suspended: staffAndAdmins.filter(u => u.status === 'SUSPENDED').length,
+    admins: staffAndAdmins.filter((u) => normalizeRoles(u.roles).includes('ADMIN')).length,
+    staff: staffAndAdmins.filter((u) => normalizeRoles(u.roles).includes('STAFF')).length,
+    active: staffAndAdmins.filter((u) => normalizeStatus(u.status) === 'ACTIVE').length,
+    suspended: staffAndAdmins.filter((u) => normalizeStatus(u.status) === 'SUSPENDED').length,
   }), [staffAndAdmins]);
 
-  const paginatedStaff = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredStaff.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredStaff, currentPage, itemsPerPage]);
+  const totalPages = Math.max(1, Math.ceil(filteredStaff.length / itemsPerPage) || 1);
 
-  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage) || 1;
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedStaff = React.useMemo(() => {
+    const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+    const startIndex = (safePage - 1) * itemsPerPage;
+    return filteredStaff.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredStaff, currentPage, itemsPerPage, totalPages]);
 
   const getStatusLabel = (status) => {
     if (status === 'ACTIVE') return 'Hoạt động';
@@ -261,34 +300,34 @@ const StaffPage = () => {
       />
 
       {/* FILTER TOOLBAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1 font-sans">
-        <div className="relative w-full sm:w-72 font-sans">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-1 font-sans">
+        <div className="relative w-full md:max-w-sm md:flex-1 font-sans">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5 pointer-events-none" />
           <input
-            className="w-full rounded-lg bg-[#0B0F19] border border-[#1A2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-amber-500/50 transition-colors font-sans"
+            className="w-full rounded-lg bg-[#0B0F19] border border-[#1A2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-slate-500/60 transition-colors font-sans"
             placeholder="Tìm theo tên, email, SĐT..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap font-sans sm:ml-auto">
-          {/* Role Filter */}
+        <div className="flex items-center gap-2 flex-nowrap font-sans md:ml-auto shrink-0">
           <select
             className={`${adminFilterSelectClass} font-mono`}
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
+            aria-label="Lọc theo vai trò"
           >
             <option value="all">Tất cả Vai trò</option>
             <option value="STAFF">Nhân viên (STAFF)</option>
             <option value="ADMIN">Quản trị viên (ADMIN)</option>
           </select>
 
-          {/* Status Filter */}
           <select
             className={`${adminFilterSelectClass} font-mono`}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Lọc theo trạng thái"
           >
             <option value="all">Tất cả Trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
@@ -429,8 +468,16 @@ const StaffPage = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-28 gap-3 bg-[#0F1322] border border-[#1A2238] rounded-xl mb-4 font-sans">
           <UserX className="w-14 h-14 text-gray-700" />
-          <p className="text-sm font-bold uppercase tracking-wider text-gray-400 font-sans">Không tìm thấy tài khoản nhân sự nào</p>
-          <p className="text-xs text-gray-600 font-sans">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
+          <p className="text-sm font-bold uppercase tracking-wider text-gray-400 font-sans">
+            {staffAndAdmins.length === 0
+              ? 'Chưa có tài khoản nhân sự'
+              : 'Không khớp bộ lọc hiện tại'}
+          </p>
+          <p className="text-xs text-gray-600 font-sans">
+            {staffAndAdmins.length === 0
+              ? 'Bấm “Thêm nhân sự” để tạo tài khoản Staff/Admin.'
+              : 'Thử xóa từ khóa hoặc chọn lại Vai trò / Trạng thái.'}
+          </p>
         </div>
       )}
 

@@ -352,6 +352,7 @@ const StaffMissionControlPage = () => {
                         layoutConfig={seatMap?.layoutConfig}
                         showLegend
                         compact
+                        variant="staff"
                       />
                     </div>
                   </>

@@ -237,13 +237,15 @@ public class ShowtimeServiceTest {
         Query mockQuery = mock(Query.class);
         when(entityManager.createNativeQuery(anyString())).thenReturn(mockQuery);
         when(mockQuery.setParameter(eq("now"), any(OffsetDateTime.class))).thenReturn(mockQuery);
+        when(showtimeRepository.cancelExpiredDrafts(
+                any(OffsetDateTime.class), eq(ShowtimeStatus.DRAFT), eq(ShowtimeStatus.CANCELLED))).thenReturn(0);
         when(showtimeRepository.markFinishedIfExpired(
                 any(OffsetDateTime.class), anyList(), eq(ShowtimeStatus.FINISHED))).thenReturn(2);
 
         int count = showtimeService.finishExpiredShowtimes();
 
         assertEquals(2, count);
-        verify(mockQuery).executeUpdate();
+        verify(mockQuery, atLeastOnce()).executeUpdate();
         verify(showtimeRepository).markFinishedIfExpired(
                 any(OffsetDateTime.class), anyList(), eq(ShowtimeStatus.FINISHED));
     }

@@ -40,6 +40,7 @@ import com.thdpv.movietheater.orbit.repository.OrbitMemberRepository;
 import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.orbit.repository.OrbitRoomMessageRepository;
 
 @ExtendWith(MockitoExtension.class)
 class OrbitRoomServiceTest {
@@ -72,6 +73,10 @@ class OrbitRoomServiceTest {
     private OrbitRoomMissionHelper orbitRoomMissionHelper;
     @Mock
     private OrbitRoomResponseMapper orbitRoomResponseMapper;
+    @Mock
+    private OrbitRoomExpiryService orbitRoomExpiryService;
+    @Mock
+    private OrbitRoomMessageRepository orbitRoomMessageRepository;
 
     @InjectMocks
     private OrbitRoomService orbitRoomService;
@@ -95,8 +100,8 @@ class OrbitRoomServiceTest {
         openRoom.setExpiresAt(OffsetDateTime.now().plusMinutes(30));
 
         ReflectionTestUtils.setField(orbitRoomService, "orbitEnabled", true);
-        ReflectionTestUtils.setField(orbitRoomService, "roomTtlMinutes", 30);
-        ReflectionTestUtils.setField(orbitRoomService, "checkoutTtlMinutes", 15);
+        ReflectionTestUtils.setField(orbitRoomService, "roomTtlMinutesFallback", 30);
+        ReflectionTestUtils.setField(orbitRoomService, "checkoutTtlMinutesFallback", 15);
     }
 
     @Test
@@ -199,5 +204,31 @@ class OrbitRoomServiceTest {
         assertEquals("OPEN", response.getStatus());
         verify(seatMapEventPublisher).notifySeatMapUpdated(openRoom.getShowtimeUuid());
         verify(orbitRoomBroadcaster).notifyRoomUpdated(any());
+    }
+
+    @Test
+    void sendChatMessageShouldSaveAndBroadcast() {
+        User host = new User();
+        host.setId(hostUuid);
+        host.setEmail("host@example.com");
+
+        OrbitMember hostMember = new OrbitMember();
+        hostMember.setUserUuid(hostUuid);
+        hostMember.setDisplayName("Test Host");
+
+        when(userRepository.findByEmailIgnoreCase("host@example.com")).thenReturn(Optional.of(host));
+        when(orbitMemberRepository.findByRoomUuidAndUserUuid(roomUuid, hostUuid)).thenReturn(Optional.of(hostMember));
+        when(orbitRoomMessageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        com.thdpv.movietheater.orbit.dto.response.OrbitRoomMessageResponse response =
+                orbitRoomService.sendChatMessage("host@example.com", roomUuid, "Hello World!");
+
+        assertEquals("Hello World!", response.getMessage());
+        assertEquals("Test Host", response.getSenderDisplayName());
+        assertEquals(hostUuid, response.getSenderUserUuid());
+        assertFalse(response.isSystem());
+
+        verify(orbitRoomMessageRepository).save(any());
+        verify(orbitRoomBroadcaster).broadcastChatMessage(eq(roomUuid), any());
     }
 }
