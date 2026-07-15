@@ -312,6 +312,11 @@ class AuthService {
         }
       }
 
+      // Không nhận được phản hồi từ server (mất kết nối / backend chưa chạy / CORS).
+      if (!error.response) {
+        return new Error('Không kết nối được máy chủ. Kiểm tra backend có đang chạy không rồi thử lại.');
+      }
+
       return new Error('Đã xảy ra lỗi. Vui lòng thử lại.');
     }
     return error instanceof Error ? error : new Error('Đã xảy ra lỗi. Vui lòng thử lại.');

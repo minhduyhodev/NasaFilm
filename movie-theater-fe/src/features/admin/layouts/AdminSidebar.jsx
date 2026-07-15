@@ -27,6 +27,11 @@ import {
   Sparkles,
   Store,
   ExternalLink,
+  CalendarClock,
+  ClipboardCheck,
+  Wallet,
+  Clock,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -62,6 +67,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     facility: true,
     business: true,
     hrm: true,
+    timekeeping: true,
     security: true,
   });
   const [pendingRefundCount, setPendingRefundCount] = useState(0);
@@ -456,6 +462,51 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
           )}
         </div>
         )}
+
+        {/* Timekeeping & Payroll Group (Collapsible) */}
+        <div className="space-y-1 text-left">
+          {renderGroupHeader("Chấm công & Lương", "timekeeping", Clock)}
+          {(!isOpen || openGroups.timekeeping) && (
+            <div
+              className={`${isOpen ? "pl-2 border-l border-[#1E293B]/10 ml-4.5 space-y-1" : "space-y-1"}`}
+            >
+              {renderLink(
+                "/admin/hr/me",
+                Clock,
+                "Bảng công của tôi",
+                "text-teal-400",
+              )}
+              {renderLink(
+                "/admin/hr/schedule",
+                CalendarClock,
+                "Xếp ca làm việc",
+                "text-sky-400",
+                { permission: PERMISSIONS.HR_SHIFT_MANAGE },
+              )}
+              {renderLink(
+                "/admin/hr/requests",
+                ArrowLeftRight,
+                "Duyệt đơn từ",
+                "text-fuchsia-400",
+                { permission: PERMISSIONS.HR_SHIFT_MANAGE },
+              )}
+              {renderLink(
+                "/admin/hr/attendance",
+                ClipboardCheck,
+                "Duyệt chấm công",
+                "text-amber-400",
+                { permission: PERMISSIONS.HR_ATTENDANCE_MANAGE },
+              )}
+              {renderLink(
+                "/admin/hr/payroll",
+                Wallet,
+                "Lương, thưởng & OT",
+                "text-emerald-400",
+                { permission: PERMISSIONS.HR_PAYROLL_MANAGE },
+              )}
+            </div>
+          )}
+        </div>
 
         {/* System Settings Group (Collapsible) */}
         {hasAnyPermission(user, [PERMISSIONS.USER_VIEW]) && (
