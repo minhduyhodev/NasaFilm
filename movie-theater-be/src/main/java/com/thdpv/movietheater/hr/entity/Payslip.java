@@ -71,6 +71,10 @@ public class Payslip {
     @Column(name = "net_pay", nullable = false, precision = 15, scale = 2)
     private BigDecimal netPay = BigDecimal.ZERO;
 
+    /** true khi nhân viên chưa có hồ sơ lương hợp lệ (chưa cấu hình / tạm ngưng / đơn giá 0) -> cần rà soát. */
+    @Column(name = "salary_config_missing", nullable = false, columnDefinition = "boolean default false")
+    private boolean salaryConfigMissing = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
     private PayslipStatus status = PayslipStatus.DRAFT;

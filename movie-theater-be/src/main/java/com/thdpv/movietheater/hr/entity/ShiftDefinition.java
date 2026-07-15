@@ -46,6 +46,13 @@ public class ShiftDefinition {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder = 0;
 
+    /**
+     * Bộ quyền vận hành yêu cầu cho ca này (tên PermissionName, phân tách bằng dấu phẩy).
+     * Null/rỗng = dùng bộ mặc định {@code PermissionName.shiftOperationalRequired()}.
+     */
+    @Column(name = "required_permissions", columnDefinition = "text")
+    private String requiredPermissions;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

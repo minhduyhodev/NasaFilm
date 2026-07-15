@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.user.enums;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -34,6 +35,21 @@ public enum PermissionName {
 
     public String getGroup() {
         return group;
+    }
+
+    /** Các nhóm quyền phục vụ khách trực tiếp tại rạp -> cần được bao phủ trong mỗi ca làm việc. */
+    private static final Set<String> SHIFT_OPERATIONAL_GROUPS = Set.of("Gate", "Counter");
+
+    public boolean isShiftOperational() {
+        return SHIFT_OPERATIONAL_GROUPS.contains(group);
+    }
+
+    /**
+     * Bộ quyền "vận hành ca": tổng hợp quyền của các nhân viên trong cùng một ca
+     * nên bao phủ đủ bộ này để rạp/website hoạt động mượt (soát vé, bán vé, combo, voucher, hoàn tiền...).
+     */
+    public static List<PermissionName> shiftOperationalRequired() {
+        return Arrays.stream(values()).filter(PermissionName::isShiftOperational).toList();
     }
 
     public static Set<PermissionName> presetPermissions(String preset) {

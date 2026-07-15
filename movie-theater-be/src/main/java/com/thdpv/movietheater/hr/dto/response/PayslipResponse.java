@@ -23,6 +23,7 @@ public record PayslipResponse(
         BigDecimal deductionTotal,
         BigDecimal grossPay,
         BigDecimal netPay,
+        boolean salaryConfigMissing,
         String status,
         String note,
         OffsetDateTime approvedAt,

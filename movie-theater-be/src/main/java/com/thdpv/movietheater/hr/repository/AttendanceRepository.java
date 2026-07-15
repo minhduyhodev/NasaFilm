@@ -1,6 +1,7 @@
 package com.thdpv.movietheater.hr.repository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,17 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
 
     List<Attendance> findByApprovalStatusAndWorkDateBetween(
             ApprovalStatus approvalStatus, LocalDate from, LocalDate to);
+
+    List<Attendance> findByApprovalStatusAndUserUuidAndWorkDateBetween(
+            ApprovalStatus approvalStatus, UUID userUuid, LocalDate from, LocalDate to);
+
+    /** Đếm chấm công theo trạng thái duyệt trong khoảng ngày (dùng phát hiện công chưa duyệt trong kỳ lương). */
+    long countByApprovalStatusAndWorkDateBetween(
+            ApprovalStatus approvalStatus, LocalDate from, LocalDate to);
+
+    /** Có chấm công được duyệt trong kỳ SAU thời điểm sinh phiếu -> kỳ lương đã "lỗi thời". */
+    boolean existsByApprovalStatusAndWorkDateBetweenAndApprovedAtAfter(
+            ApprovalStatus approvalStatus, LocalDate from, LocalDate to, OffsetDateTime approvedAt);
 
     @Query("""
             SELECT a FROM Attendance a

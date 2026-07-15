@@ -421,6 +421,119 @@
   color: #64748b;
   margin: 2px 0 6px;
 }
+.hr-cover {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  margin: 0 0 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+.hr-cover > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.hr-cover--ok {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+.hr-cover--bad {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+.hr-cover--warn {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+.hr-emp-row__warn {
+  color: #fbbf24;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.hr-assign-warn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Pill số quyền vận hành mỗi nhân viên đảm nhận (trong danh sách chọn) */
+.hr-perm-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+/* Pill tổng phủ quyền ở tiêu đề checklist */
+.hr-cover-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+.hr-cover-count--ok {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+}
+.hr-cover-count--miss {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.14);
+}
+
+/* Bảng checklist phủ quyền vận hành theo ca */
+.hr-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px;
+}
+.hr-cover-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  min-width: 0;
+}
+.hr-cover-check--ok {
+  color: #a7f3d0;
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+.hr-cover-check--ok > svg {
+  color: #34d399;
+}
+.hr-cover-check--miss {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+.hr-cover-check--miss > svg {
+  color: #f87171;
+}
+.hr-cover-check__label {
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hr-cover-check__by {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: right;
+}
 .hr-emp-list {
   list-style: none;
   margin: 0;

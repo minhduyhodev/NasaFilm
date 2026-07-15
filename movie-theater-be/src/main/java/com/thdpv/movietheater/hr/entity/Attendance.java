@@ -70,6 +70,10 @@ public class Attendance {
     @Column(name = "ot_minutes_approved", nullable = false)
     private int otMinutesApproved = 0;
 
+    /** true khi admin đã chỉnh số phút OT duyệt bằng tay (kể cả về 0) -> không tự động duyệt full khi Duyệt. */
+    @Column(name = "ot_approval_manual", nullable = false, columnDefinition = "boolean default false")
+    private boolean otApprovalManual = false;
+
     @Column(name = "late_minutes", nullable = false)
     private int lateMinutes = 0;
 

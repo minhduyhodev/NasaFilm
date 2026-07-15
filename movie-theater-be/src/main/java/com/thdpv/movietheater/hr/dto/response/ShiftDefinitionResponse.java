@@ -2,6 +2,7 @@ package com.thdpv.movietheater.hr.dto.response;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 public record ShiftDefinitionResponse(
@@ -12,5 +13,7 @@ public record ShiftDefinitionResponse(
         LocalTime endTime,
         BigDecimal standardHours,
         boolean active,
-        int sortOrder) {
+        int sortOrder,
+        List<String> requiredPermissions,
+        boolean usingDefaultPermissions) {
 }

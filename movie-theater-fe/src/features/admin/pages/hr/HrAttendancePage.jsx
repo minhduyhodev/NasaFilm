@@ -6,6 +6,7 @@ import { adminInputClass, adminTextareaClass } from '../../components/adminFormS
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import {
   APPROVAL_STATUS_META,
   ATTENDANCE_STATUS_META,
@@ -20,18 +21,21 @@ import './hr.css';
 const now = new Date();
 const DEFAULT_RANGE = monthRangeIso(now.getFullYear(), now.getMonth() + 1);
 
+// Hiển thị/nhập giờ chấm công luôn theo múi giờ nghiệp vụ (VN, +07:00) bất kể máy admin đang ở đâu.
+const VN_OFFSET_MS = 7 * 60 * 60000;
+
 function toDatetimeLocal(value) {
   if (!value) return '';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  const off = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - off * 60000);
-  return local.toISOString().slice(0, 16);
+  // Cộng offset VN rồi đọc theo UTC -> ra "giờ treo tường" VN cho input datetime-local.
+  return new Date(date.getTime() + VN_OFFSET_MS).toISOString().slice(0, 16);
 }
 
 function fromDatetimeLocal(value) {
   if (!value) return null;
-  const date = new Date(value);
+  // Chuỗi từ input là giờ VN -> gắn offset +07:00 để ra đúng mốc tuyệt đối.
+  const date = new Date(`${value}:00+07:00`);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 }
@@ -55,6 +59,7 @@ const HrAttendancePage = () => {
   const [scanning, setScanning] = useState(false);
   const [editing, setEditing] = useState(null);
   const [checkpointOpen, setCheckpointOpen] = useState(false);
+  const confirm = useConfirm();
 
   const loadStaff = useCallback(async () => {
     try {
@@ -92,6 +97,14 @@ const HrAttendancePage = () => {
   }, [loadRecords]);
 
   const handleApprove = async (rec) => {
+    const ok = await confirm({
+      title: 'Duyệt chấm công',
+      message: 'Sau khi duyệt, bản ghi sẽ được khóa (không thể sửa/đổi trạng thái) và được dùng để tính lương. Tiếp tục?',
+      highlight: `${rec.fullName || rec.email} · ${rec.shiftName} · ${formatDate(rec.workDate)}`,
+      confirmLabel: 'Duyệt',
+      variant: 'warning',
+    });
+    if (!ok) return;
     setActionId(rec.uuid);
     try {
       await hrService.approveAttendance(rec.uuid);
@@ -105,6 +118,14 @@ const HrAttendancePage = () => {
   };
 
   const handleReject = async (rec) => {
+    const ok = await confirm({
+      title: 'Từ chối chấm công',
+      message: 'Bản ghi sẽ bị đánh dấu từ chối và không được tính lương (OT duyệt về 0). Tiếp tục?',
+      highlight: `${rec.fullName || rec.email} · ${rec.shiftName} · ${formatDate(rec.workDate)}`,
+      confirmLabel: 'Từ chối',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setActionId(rec.uuid);
     try {
       await hrService.rejectAttendance(rec.uuid);
@@ -118,6 +139,14 @@ const HrAttendancePage = () => {
   };
 
   const handleScanAbsent = async () => {
+    const ok = await confirm({
+      title: 'Quét ca vắng',
+      message: 'Hệ thống sẽ đánh dấu VẮNG cho tất cả ca đã qua mà nhân viên không check-in. Tiếp tục?',
+      detail: 'Các bản ghi vắng được duyệt tự động và tính 0 công.',
+      confirmLabel: 'Quét ca vắng',
+      variant: 'warning',
+    });
+    if (!ok) return;
     setScanning(true);
     try {
       const res = await hrService.scanAbsent();

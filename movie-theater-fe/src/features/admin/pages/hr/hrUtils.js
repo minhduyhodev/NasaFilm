@@ -18,6 +18,9 @@ export function formatHours(minutes) {
   return (value / 60).toFixed(2);
 }
 
+/** Múi giờ nghiệp vụ (đồng bộ với backend AppTimeZones.BUSINESS). VN không có DST nên offset cố định +07:00. */
+export const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
 export function formatDate(value) {
   if (!value) return '—';
   const date = new Date(value);
@@ -26,6 +29,7 @@ export function formatDate(value) {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: VN_TIME_ZONE,
   });
 }
 
@@ -38,6 +42,7 @@ export function formatDateTime(value) {
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: VN_TIME_ZONE,
   });
 }
 
@@ -49,14 +54,26 @@ export function formatTime(value) {
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: VN_TIME_ZONE });
 }
 
 export function formatClock(value) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: VN_TIME_ZONE });
+}
+
+/**
+ * Dựng mốc thời gian tuyệt đối cho một ngày+giờ theo múi giờ VN (+07:00),
+ * để so sánh không lệch theo múi giờ máy người dùng.
+ */
+export function vnDateTime(isoDate, time) {
+  if (!isoDate || !time) return null;
+  const t = String(time);
+  const hhmmss = /^\d{2}:\d{2}:\d{2}/.test(t) ? t.slice(0, 8) : `${t.slice(0, 5)}:00`;
+  const d = new Date(`${isoDate}T${hhmmss}+07:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 /** Chuyển Date -> chuỗi yyyy-MM-dd theo local (không lệch múi giờ). */
@@ -101,9 +118,13 @@ export const CHECK_IN_LATE_MINUTES = 30;
  */
 export function shiftCheckInState(workDate, startTime, endTime, now = new Date()) {
   if (!workDate || !startTime || !endTime) return 'UPCOMING';
-  const start = new Date(`${workDate}T${String(startTime).slice(0, 8)}`);
-  const end = new Date(`${workDate}T${String(endTime).slice(0, 8)}`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'UPCOMING';
+  const start = vnDateTime(workDate, startTime);
+  let end = vnDateTime(workDate, endTime);
+  if (!start || !end) return 'UPCOMING';
+  // Ca qua đêm: giờ tan <= giờ vào -> giờ tan thuộc ngày hôm sau.
+  if (end.getTime() <= start.getTime()) {
+    end = new Date(end.getTime() + 24 * 60 * 60000);
+  }
   const openFrom = new Date(start.getTime() - CHECK_IN_EARLY_MINUTES * 60000);
   const openUntil = new Date(end.getTime() + CHECK_IN_LATE_MINUTES * 60000);
   if (now.getTime() < openFrom.getTime()) return 'UPCOMING';

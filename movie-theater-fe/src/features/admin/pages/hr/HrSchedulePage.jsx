@@ -1,10 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, ChevronLeft, ChevronRight, Loader2, Lock, Trash2, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  CalendarPlus,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  Loader2,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { AdminPage, AdminModal, PageHeader, PrimaryButton } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import {
   ATTENDANCE_STATUS_META,
   addDaysIso,
@@ -13,6 +27,7 @@ import {
   startOfWeekIso,
   statusBadge,
   todayIso,
+  vnDateTime,
 } from './hrUtils';
 import './hr.css';
 
@@ -45,31 +60,53 @@ function weekdayOf(iso) {
 // Ca đang diễn ra hoặc đã qua (đã tới giờ bắt đầu) thì khóa, không cho sửa/xóa.
 function isAssignmentLocked(a) {
   if (!a?.workDate) return false;
-  const start = new Date(`${a.workDate}T${a.startTime || '00:00:00'}`);
-  if (Number.isNaN(start.getTime())) return false;
+  const start = vnDateTime(a.workDate, a.startTime || '00:00:00');
+  if (!start) return false;
   return Date.now() >= start.getTime();
+}
+
+/**
+ * Tính phủ quyền của một tập nhân viên so với bộ quyền vận hành yêu cầu.
+ * Trả về danh sách quyền còn thiếu (kèm nhãn) và cờ ok.
+ */
+function coverageOf(userIds, staffById, required) {
+  if (!required || required.length === 0) return null;
+  const covered = new Set();
+  userIds.forEach((id) => {
+    const s = staffById.get(id);
+    (s?.permissions || []).forEach((p) => covered.add(p));
+  });
+  const missing = required.filter((r) => !covered.has(r.name));
+  return { missing, ok: missing.length === 0 };
 }
 
 const HrSchedulePage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeekIso());
   const [staff, setStaff] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [requiredPerms, setRequiredPerms] = useState([]);
+  const [allPerms, setAllPerms] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [userFilter, setUserFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [permConfigOpen, setPermConfigOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const confirm = useConfirm();
 
   const weekEnd = useMemo(() => addDaysIso(weekStart, 6), [weekStart]);
 
   const loadRefData = useCallback(async () => {
     try {
-      const [staffList, shiftList] = await Promise.all([
+      const [staffList, shiftList, catalog] = await Promise.all([
         hrService.getStaffDirectory(),
         hrService.getShiftDefinitions(),
+        hrService.getShiftPermissionCatalog(),
       ]);
       setStaff(Array.isArray(staffList) ? staffList : []);
       setShifts(Array.isArray(shiftList) ? shiftList : []);
+      setRequiredPerms(Array.isArray(catalog?.required) ? catalog.required : []);
+      setAllPerms(Array.isArray(catalog?.all) ? catalog.all : []);
     } catch (err) {
       notificationService.error(err?.message || 'Không thể tải danh mục.');
     }
@@ -105,9 +142,15 @@ const HrSchedulePage = () => {
       notificationService.warning('Ca đang diễn ra hoặc đã qua — không thể xóa.');
       return;
     }
-    if (!window.confirm(`Xóa phân ca "${assignment.shiftName}" của ${assignment.fullName || assignment.email}?`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Xóa phân ca',
+      message: 'Bạn có chắc muốn xóa phân ca này không?',
+      highlight: `${assignment.shiftName} · ${assignment.fullName || assignment.email}`,
+      detail: 'Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setDeletingId(assignment.uuid);
     try {
       await hrService.deleteAssignment(assignment.uuid);
@@ -123,6 +166,33 @@ const HrSchedulePage = () => {
   const days = useMemo(() => datesBetween(weekStart, weekEnd), [weekStart, weekEnd]);
   const today = todayIso();
 
+  const staffById = useMemo(() => {
+    const m = new Map();
+    staff.forEach((s) => m.set(s.userId, s));
+    return m;
+  }, [staff]);
+
+  const permLabel = useMemo(() => {
+    const m = {};
+    allPerms.forEach((p) => { m[p.name] = p.label; });
+    return m;
+  }, [allPerms]);
+
+  const shiftById = useMemo(() => {
+    const m = new Map();
+    shifts.forEach((s) => m.set(s.uuid, s));
+    return m;
+  }, [shifts]);
+
+  // Bộ quyền yêu cầu (kèm nhãn) cho một ca cụ thể; ưu tiên cấu hình riêng của ca, fallback bộ mặc định.
+  const requiredForShift = useCallback((shiftUuid) => {
+    const names = shiftById.get(shiftUuid)?.requiredPermissions;
+    if (Array.isArray(names) && names.length > 0) {
+      return names.map((n) => ({ name: n, label: permLabel[n] || n }));
+    }
+    return requiredPerms;
+  }, [shiftById, permLabel, requiredPerms]);
+
   // Gom theo ngày -> theo ca, mỗi ca liệt kê danh sách nhân viên (không tách thẻ riêng từng người).
   const groupedByDay = useMemo(() => {
     const byDay = {};
@@ -137,6 +207,7 @@ const HrSchedulePage = () => {
         if (!shiftMap.has(key)) {
           shiftMap.set(key, {
             key,
+            shiftDefinitionUuid: a.shiftDefinitionUuid,
             shiftName: a.shiftName,
             startTime: a.startTime,
             endTime: a.endTime,
@@ -212,6 +283,15 @@ const HrSchedulePage = () => {
             size="sm"
           />
         </div>
+        <button
+          type="button"
+          className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-xs font-semibold inline-flex items-center gap-1.5"
+          onClick={() => setPermConfigOpen(true)}
+          title="Cấu hình bộ quyền vận hành yêu cầu cho từng ca"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          Cấu hình quyền ca
+        </button>
       </div>
 
       {loading ? (
@@ -253,7 +333,13 @@ const HrSchedulePage = () => {
                   <p className="hr-muted" style={{ fontSize: 12 }}>Chưa xếp ca</p>
                 ) : (
                   <div className="hr-shift-groups">
-                    {groups.map((g) => (
+                    {groups.map((g) => {
+                      const cov = coverageOf(
+                        g.items.map((i) => i.userId),
+                        staffById,
+                        requiredForShift(g.shiftDefinitionUuid),
+                      );
+                      return (
                       <div key={g.key} className="hr-shift-group">
                         <div className="hr-shift-group__head">
                           <span className="hr-shift-group__name">{g.shiftName}</span>
@@ -262,12 +348,29 @@ const HrSchedulePage = () => {
                         <p className="hr-shift-group__time">
                           {formatTime(g.startTime)}–{formatTime(g.endTime)}
                         </p>
+                        {cov && (
+                          cov.ok ? (
+                            <p className="hr-cover hr-cover--ok" title="Tổng quyền của nhân viên trong ca đã đủ để vận hành">
+                              <ShieldCheck className="h-3 w-3" />
+                              Đủ quyền vận hành
+                            </p>
+                          ) : (
+                            <p
+                              className="hr-cover hr-cover--bad"
+                              title={`Ca thiếu quyền: ${cov.missing.map((m) => m.label).join(', ')}. Hãy xếp thêm nhân viên có các quyền này.`}
+                            >
+                              <ShieldAlert className="h-3 w-3" />
+                              Thiếu quyền: {cov.missing.map((m) => m.label).join(', ')}
+                            </p>
+                          )
+                        )}
                         <ul className="hr-emp-list">
                           {g.items.map((a) => {
                             const meta = a.attendanceStatus
                               ? statusBadge(ATTENDANCE_STATUS_META, a.attendanceStatus)
                               : null;
                             const locked = isAssignmentLocked(a);
+                            const noProfile = staffById.get(a.userId)?.hasSalaryProfile === false;
                             return (
                               <li key={a.uuid} className="hr-emp-row">
                                 {a.attendanceStatus && (
@@ -283,6 +386,15 @@ const HrSchedulePage = () => {
                                 >
                                   {a.fullName || a.email}
                                 </span>
+                                {noProfile && (
+                                  <span
+                                    className="hr-emp-row__warn"
+                                    title="Chưa có hồ sơ lương (hoặc đang tạm ngưng) — sẽ không được tính lương"
+                                    aria-label="Chưa có hồ sơ lương"
+                                  >
+                                    <AlertTriangle className="h-3 w-3" />
+                                  </span>
+                                )}
                                 {locked ? (
                                   <span
                                     className="hr-emp-row__lock"
@@ -312,7 +424,8 @@ const HrSchedulePage = () => {
                           })}
                         </ul>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -326,6 +439,9 @@ const HrSchedulePage = () => {
         <AssignModal
           staff={staff}
           shifts={shifts}
+          requiredForShift={requiredForShift}
+          fallbackRequired={requiredPerms}
+          permLabel={permLabel}
           defaultFrom={weekStart}
           defaultTo={weekEnd}
           onClose={() => setModalOpen(false)}
@@ -335,11 +451,23 @@ const HrSchedulePage = () => {
           }}
         />
       )}
+
+      {permConfigOpen && (
+        <ShiftPermissionConfigModal
+          shifts={shifts}
+          allPerms={allPerms}
+          onClose={() => setPermConfigOpen(false)}
+          onSaved={async () => {
+            setPermConfigOpen(false);
+            await loadRefData();
+          }}
+        />
+      )}
     </AdminPage>
   );
 };
 
-function AssignModal({ staff, shifts, defaultFrom, defaultTo, onClose, onSaved }) {
+function AssignModal({ staff, shifts, requiredForShift, fallbackRequired, permLabel = {}, defaultFrom, defaultTo, onClose, onSaved }) {
   const today = todayIso();
   const [selectedStaff, setSelectedStaff] = useState([]);
   const [selectedShifts, setSelectedShifts] = useState([]);
@@ -350,6 +478,36 @@ function AssignModal({ staff, shifts, defaultFrom, defaultTo, onClose, onSaved }
 
   const toggle = (list, setList, value) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  };
+
+  const staffMap = useMemo(() => new Map(staff.map((s) => [s.userId, s])), [staff]);
+  const selectedNoProfile = selectedStaff.filter(
+    (id) => staffMap.get(id)?.hasSalaryProfile === false,
+  );
+  // Bộ quyền cần phủ = hợp của bộ quyền các ca đang chọn (fallback bộ mặc định nếu chưa chọn ca).
+  const previewRequired = useMemo(() => {
+    if (selectedShifts.length === 0) return fallbackRequired;
+    const map = new Map();
+    selectedShifts.forEach((id) => {
+      (requiredForShift(id) || []).forEach((r) => map.set(r.name, r));
+    });
+    return Array.from(map.values());
+  }, [selectedShifts, requiredForShift, fallbackRequired]);
+  // Bảng checklist: từng quyền yêu cầu + ai (trong nhóm đang chọn) đang đảm nhận.
+  const coverageChecklist = useMemo(
+    () => previewRequired.map((r) => {
+      const providers = selectedStaff
+        .map((id) => staffMap.get(id))
+        .filter((s) => s && (s.permissions || []).includes(r.name));
+      return { name: r.name, label: r.label, providers, ok: providers.length > 0 };
+    }),
+    [previewRequired, selectedStaff, staffMap],
+  );
+  const coveredCount = coverageChecklist.filter((c) => c.ok).length;
+  const permTitle = (s) => {
+    const perms = s?.permissions || [];
+    if (perms.length === 0) return 'Không có quyền vận hành';
+    return `Quyền: ${perms.map((p) => permLabel[p] || p).join(', ')}`;
   };
 
   // Chỉ xếp ca cho hôm nay trở đi — bỏ qua ngày đã qua.
@@ -417,20 +575,90 @@ function AssignModal({ staff, shifts, defaultFrom, defaultTo, onClose, onSaved }
           <div className="hr-check-list">
             {staff.map((s) => {
               const active = selectedStaff.includes(s.userId);
+              const noProfile = s.hasSalaryProfile === false;
+              const opCount = previewRequired.filter((r) => (s.permissions || []).includes(r.name)).length;
               return (
-                <label key={s.userId} className={`hr-check-item${active ? ' hr-check-item--active' : ''}`}>
+                <label
+                  key={s.userId}
+                  className={`hr-check-item${active ? ' hr-check-item--active' : ''}`}
+                  title={permTitle(s)}
+                >
                   <input
                     type="checkbox"
                     checked={active}
                     onChange={() => toggle(selectedStaff, setSelectedStaff, s.userId)}
                   />
                   <span className="truncate">{s.fullName || s.email}</span>
+                  {previewRequired.length > 0 && (
+                    <span
+                      className="hr-perm-count"
+                      title={`Đảm nhận ${opCount}/${previewRequired.length} quyền vận hành của ca`}
+                    >
+                      {opCount}/{previewRequired.length}
+                    </span>
+                  )}
+                  {noProfile && (
+                    <span
+                      title="Chưa có hồ sơ lương — sẽ không được tính lương"
+                      aria-label="Chưa có hồ sơ lương"
+                      style={{ display: 'inline-flex', color: '#fbbf24', flexShrink: 0 }}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    </span>
+                  )}
                 </label>
               );
             })}
             {staff.length === 0 && <p className="hr-muted" style={{ fontSize: 12 }}>Không có nhân viên.</p>}
           </div>
+
+          {selectedNoProfile.length > 0 && (
+            <div className="hr-assign-warn">
+              <p className="hr-cover hr-cover--warn">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {selectedNoProfile.length} nhân viên đã chọn chưa có hồ sơ lương — hãy tạo hồ sơ ở mục “Hồ sơ lương” để được tính lương.
+              </p>
+            </div>
+          )}
         </div>
+
+        {previewRequired.length > 0 && (
+          <div>
+            <p className="hr-field__label" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck className="inline h-3.5 w-3.5" />
+              Phủ quyền vận hành ca
+              <span
+                className={`hr-cover-count${coveredCount === previewRequired.length ? ' hr-cover-count--ok' : ' hr-cover-count--miss'}`}
+              >
+                {coveredCount}/{previewRequired.length}
+              </span>
+              {selectedShifts.length > 0 && (
+                <span className="hr-muted" style={{ fontWeight: 400 }}>· theo ca đang chọn</span>
+              )}
+            </p>
+            <div className="hr-cover-grid">
+              {coverageChecklist.map((c) => (
+                <div
+                  key={c.name}
+                  className={`hr-cover-check${c.ok ? ' hr-cover-check--ok' : ' hr-cover-check--miss'}`}
+                >
+                  {c.ok
+                    ? <CheckCircle2 className="h-4 w-4" style={{ flexShrink: 0 }} />
+                    : <Circle className="h-4 w-4" style={{ flexShrink: 0 }} />}
+                  <span className="hr-cover-check__label">{c.label}</span>
+                  <span className="hr-cover-check__by">
+                    {c.ok ? c.providers.map((p) => p.fullName || p.email).join(', ') : 'Chưa ai đảm nhận'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {selectedStaff.length === 0 && (
+              <p className="hr-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Chọn nhân viên để hệ thống kiểm tra tổng quyền của ca đã đủ chưa.
+              </p>
+            )}
+          </div>
+        )}
 
         <div>
           <p className="hr-field__label" style={{ marginBottom: 8 }}>Ca làm ({selectedShifts.length})</p>
@@ -473,6 +701,136 @@ function AssignModal({ staff, shifts, defaultFrom, defaultTo, onClose, onSaved }
             placeholder="Ví dụ: tăng cường dịp lễ..."
           />
         </div>
+      </div>
+    </AdminModal>
+  );
+}
+
+function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
+  const groups = useMemo(() => {
+    const m = new Map();
+    allPerms.forEach((p) => {
+      if (!m.has(p.group)) m.set(p.group, []);
+      m.get(p.group).push(p);
+    });
+    return Array.from(m.entries());
+  }, [allPerms]);
+
+  const [sel, setSel] = useState(() => {
+    const init = {};
+    shifts.forEach((sh) => { init[sh.uuid] = new Set(sh.requiredPermissions || []); });
+    return init;
+  });
+  const [savingId, setSavingId] = useState(null);
+  const [dirty, setDirty] = useState(false);
+
+  const togglePerm = (shiftUuid, name) => {
+    setSel((prev) => {
+      const next = { ...prev };
+      const s = new Set(next[shiftUuid]);
+      if (s.has(name)) s.delete(name);
+      else s.add(name);
+      next[shiftUuid] = s;
+      return next;
+    });
+  };
+
+  const saveShift = async (sh) => {
+    setSavingId(sh.uuid);
+    try {
+      const res = await hrService.updateShiftRequiredPermissions(sh.uuid, Array.from(sel[sh.uuid] || []));
+      // Đồng bộ lại theo bộ hiệu lực server trả (nếu bỏ chọn hết -> server áp bộ mặc định).
+      setSel((prev) => ({ ...prev, [sh.uuid]: new Set(res?.requiredPermissions || []) }));
+      notificationService.success(`Đã lưu quyền yêu cầu cho ca ${sh.name}.`);
+      setDirty(true);
+    } catch (err) {
+      notificationService.error(err?.message || 'Lưu thất bại.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const resetShift = async (sh) => {
+    setSavingId(sh.uuid);
+    try {
+      const res = await hrService.updateShiftRequiredPermissions(sh.uuid, []);
+      setSel((prev) => ({ ...prev, [sh.uuid]: new Set(res?.requiredPermissions || []) }));
+      notificationService.success(`Ca ${sh.name} đã khôi phục bộ quyền mặc định.`);
+      setDirty(true);
+    } catch (err) {
+      notificationService.error(err?.message || 'Khôi phục thất bại.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const close = () => (dirty ? onSaved() : onClose());
+
+  return (
+    <AdminModal
+      open
+      onClose={close}
+      title="Cấu hình quyền vận hành theo ca"
+      subtitle="Tổng quyền của nhân viên trong mỗi ca phải phủ đủ bộ quyền này. Bỏ chọn hết = dùng bộ mặc định."
+      size="lg"
+      footer={
+        <div className="hr-inline" style={{ justifyContent: 'flex-end', width: '100%' }}>
+          <PrimaryButton onClick={close}>Xong</PrimaryButton>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {shifts.map((sh) => (
+          <div key={sh.uuid} className="hr-card">
+            <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+              <span className="hr-strong">
+                {sh.name}{' '}
+                <span className="hr-muted" style={{ fontSize: 12 }}>
+                  ({formatTime(sh.startTime)}–{formatTime(sh.endTime)})
+                </span>
+                {sh.usingDefaultPermissions && (
+                  <span className="hr-badge" style={{ marginLeft: 8 }}>Mặc định</span>
+                )}
+              </span>
+              <div className="hr-inline">
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--ghost px-3 py-1.5 rounded-md cursor-pointer text-xs font-semibold"
+                  onClick={() => resetShift(sh)}
+                  disabled={savingId === sh.uuid}
+                >
+                  Khôi phục mặc định
+                </button>
+                <PrimaryButton onClick={() => saveShift(sh)} loading={savingId === sh.uuid}>
+                  Lưu
+                </PrimaryButton>
+              </div>
+            </div>
+            {groups.map(([groupName, perms]) => (
+              <div key={groupName} style={{ marginBottom: 6 }}>
+                <p className="hr-muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0' }}>
+                  {groupName}
+                </p>
+                <div className="hr-inline" style={{ flexWrap: 'wrap', gap: 6 }}>
+                  {perms.map((p) => {
+                    const checked = sel[sh.uuid]?.has(p.name);
+                    return (
+                      <label
+                        key={p.name}
+                        className={`hr-check-item${checked ? ' hr-check-item--active' : ''}`}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <input type="checkbox" checked={!!checked} onChange={() => togglePerm(sh.uuid, p.name)} />
+                        <span>{p.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+        {shifts.length === 0 && <p className="hr-muted" style={{ fontSize: 12 }}>Không có ca làm việc.</p>}
       </div>
     </AdminModal>
   );

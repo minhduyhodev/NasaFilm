@@ -164,6 +164,7 @@ public class AttendanceService {
         }
         if (request.otMinutesApproved() != null) {
             attendance.setOtMinutesApproved(Math.max(0, request.otMinutesApproved()));
+            attendance.setOtApprovalManual(true);
         }
         attendance.setUpdatedAt(AppTimeZones.now());
         attendanceRepository.save(attendance);
@@ -177,8 +178,9 @@ public class AttendanceService {
             throw new AppException(ErrorCode.HR_PAYROLL_STATE_INVALID,
                     "Chưa check-out nên chưa thể duyệt chấm công");
         }
-        // Mặc định duyệt toàn bộ OT đã tính nếu admin chưa điều chỉnh riêng.
-        if (attendance.getOtMinutesApproved() == 0 && attendance.getOtMinutes() > 0) {
+        // Mặc định duyệt toàn bộ OT đã tính, TRỪ khi admin đã chỉnh tay (kể cả cố ý để 0).
+        if (!attendance.isOtApprovalManual()
+                && attendance.getOtMinutesApproved() == 0 && attendance.getOtMinutes() > 0) {
             attendance.setOtMinutesApproved(attendance.getOtMinutes());
         }
         attendance.setApprovalStatus(ApprovalStatus.APPROVED);
@@ -295,7 +297,9 @@ public class AttendanceService {
     }
 
     private static OffsetDateTime shiftEndAt(LocalDate date, ShiftDefinition shift) {
-        return date.atTime(shift.getEndTime()).atZone(AppTimeZones.BUSINESS).toOffsetDateTime();
+        // Ca qua đêm (giờ tan <= giờ vào) -> giờ tan rơi vào ngày hôm sau.
+        LocalDate endDate = shift.getEndTime().isAfter(shift.getStartTime()) ? date : date.plusDays(1);
+        return endDate.atTime(shift.getEndTime()).atZone(AppTimeZones.BUSINESS).toOffsetDateTime();
     }
 
     private static long positiveMinutes(OffsetDateTime from, OffsetDateTime to) {

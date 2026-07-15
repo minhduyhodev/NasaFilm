@@ -26,6 +26,27 @@ class HrService {
     }
   }
 
+  async getShiftPermissionCatalog() {
+    try {
+      const res = await authService.api.get('/api/hr/admin/staff-directory/permission-catalog');
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateShiftRequiredPermissions(uuid, permissions) {
+    try {
+      const res = await authService.api.put(
+        `/api/hr/admin/shift-definitions/${uuid}/required-permissions`,
+        { permissions },
+      );
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   // ----- Xếp ca (HR_SHIFT_MANAGE) -----
   async getAssignments({ from, to, userId } = {}) {
     try {

@@ -5,6 +5,7 @@ import { adminInputClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import { formatDate, todayIso } from './hrUtils';
 
 const now = new Date();
@@ -15,6 +16,7 @@ const HolidaysTab = () => {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const confirm = useConfirm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,7 +35,15 @@ const HolidaysTab = () => {
   }, [load]);
 
   const handleDelete = async (holiday) => {
-    if (!window.confirm(`Xóa ngày lễ "${holiday.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Xóa ngày lễ',
+      message: 'Bạn có chắc muốn xóa ngày lễ này không?',
+      highlight: `${holiday.name} · ${formatDate(holiday.holidayDate)}`,
+      detail: 'Hệ số OT ngày lễ sẽ không còn áp dụng cho ngày này.',
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setDeletingId(holiday.uuid);
     try {
       await hrService.deleteHoliday(holiday.uuid);

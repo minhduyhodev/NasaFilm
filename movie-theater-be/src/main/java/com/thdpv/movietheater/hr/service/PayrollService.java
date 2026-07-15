@@ -330,8 +330,8 @@ public class PayrollService {
 
     private void recomputeUserPayslip(PayrollPeriod period, UUID userId) {
         List<Attendance> approved = attendanceRepository
-                .findByApprovalStatusAndWorkDateBetween(ApprovalStatus.APPROVED, period.getStartDate(), period.getEndDate())
-                .stream().filter(a -> a.getUserUuid().equals(userId)).toList();
+                .findByApprovalStatusAndUserUuidAndWorkDateBetween(
+                        ApprovalStatus.APPROVED, userId, period.getStartDate(), period.getEndDate());
         List<PayslipAdjustment> userAdjustments = adjustmentRepository
                 .findByPayrollPeriodUuidAndUserUuid(period.getUuid(), userId);
         Map<LocalDate, Holiday> holidays = holidayMap(period);
@@ -360,7 +360,11 @@ public class PayrollService {
     private void computeInto(Payslip slip, UUID userId, List<Attendance> attendance,
             List<PayslipAdjustment> adjustments, Map<LocalDate, Holiday> holidays) {
         EmployeeProfile profile = employeeProfileService.resolveOrDefault(userId);
-        BigDecimal hourlyRate = profile.getHourlyRate() != null ? profile.getHourlyRate() : BigDecimal.ZERO;
+        // Chỉ áp dụng đơn giá khi hồ sơ tồn tại VÀ đang được bật (active). Hồ sơ tạm ngưng/chưa cấu hình -> đơn giá 0.
+        boolean effectiveProfile = profile.getUuid() != null && profile.isActive();
+        BigDecimal hourlyRate = effectiveProfile && profile.getHourlyRate() != null
+                ? profile.getHourlyRate()
+                : BigDecimal.ZERO;
 
         int regularMinutes = 0;
         int otMinutes = 0;
@@ -405,6 +409,8 @@ public class PayrollService {
         slip.setDeductionTotal(deductionTotal);
         slip.setGrossPay(gross);
         slip.setNetPay(net);
+        // Cảnh báo rà soát: có công/OT nhưng không có đơn giá hợp lệ (chưa cấu hình / tạm ngưng / đơn giá 0).
+        slip.setSalaryConfigMissing(hourlyRate.signum() == 0 && (regularMinutes > 0 || otMinutes > 0));
         slip.setUpdatedAt(AppTimeZones.now());
     }
 
@@ -446,6 +452,21 @@ public class PayrollService {
         BigDecimal totalNet = slips.stream()
                 .map(Payslip::getNetPay)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int warningCount = (int) slips.stream()
+                .filter(s -> s.isSalaryConfigMissing() || s.getNetPay().signum() < 0)
+                .count();
+        // "Lỗi thời": đã sinh phiếu nhưng sau đó còn chấm công được duyệt trong kỳ -> phiếu chưa phản ánh dữ liệu mới.
+        boolean stale = period.getStatus() == PayrollPeriodStatus.GENERATED
+                && period.getGeneratedAt() != null
+                && attendanceRepository.existsByApprovalStatusAndWorkDateBetweenAndApprovedAtAfter(
+                        ApprovalStatus.APPROVED, period.getStartDate(), period.getEndDate(), period.getGeneratedAt());
+        // Chấm công còn chờ duyệt trong kỳ -> nếu sinh/duyệt lúc này sẽ bị bỏ sót. Chỉ quan tâm khi kỳ chưa chốt.
+        int pendingAttendanceCount = 0;
+        if (period.getStatus() == PayrollPeriodStatus.OPEN
+                || period.getStatus() == PayrollPeriodStatus.GENERATED) {
+            pendingAttendanceCount = (int) attendanceRepository.countByApprovalStatusAndWorkDateBetween(
+                    ApprovalStatus.PENDING, period.getStartDate(), period.getEndDate());
+        }
         return new PayrollPeriodResponse(
                 period.getUuid(),
                 period.getPeriodYear(),
@@ -456,6 +477,9 @@ public class PayrollService {
                 period.getStatus().name(),
                 slips.size(),
                 totalNet,
+                stale,
+                warningCount,
+                pendingAttendanceCount,
                 period.getGeneratedAt(),
                 period.getApprovedAt(),
                 period.getPaidAt(),
@@ -485,6 +509,7 @@ public class PayrollService {
                 slip.getDeductionTotal(),
                 slip.getGrossPay(),
                 slip.getNetPay(),
+                slip.isSalaryConfigMissing(),
                 slip.getStatus().name(),
                 slip.getNote(),
                 slip.getApprovedAt(),
