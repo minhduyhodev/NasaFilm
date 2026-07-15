@@ -561,12 +561,30 @@ public class SupportAiContextService {
     }
 
     private void appendMovieMeta(StringBuilder sb, MovieListResponse movie) {
+        String genres = formatGenres(movie.getGenres());
+        if (!genres.isBlank()) {
+            sb.append(" · ").append(genres);
+        }
         if (movie.getAgeRestriction() != null && !movie.getAgeRestriction().isBlank()) {
             sb.append(" · ").append(movie.getAgeRestriction().trim());
         }
         if (movie.getDurationMinutes() != null) {
             sb.append(" · ").append(movie.getDurationMinutes()).append(" phút");
         }
+    }
+
+    /** Compact per-movie genre list (max 3) so the AI can answer genre queries
+     *  like "phim hành động", "phim kinh dị"… straight from the snapshot. */
+    private static String formatGenres(List<String> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return "";
+        }
+        return genres.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .limit(3)
+                .collect(Collectors.joining(", "));
     }
 
     private String joinConfigLabels(List<Map<String, Object>> items) {
