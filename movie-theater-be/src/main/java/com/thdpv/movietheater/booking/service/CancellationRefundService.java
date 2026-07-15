@@ -194,6 +194,7 @@ public class CancellationRefundService {
                     orbitRoom.get().getUuid(), bookingUuid, seatPriceByUuid, now);
         } else if (scoreDeducted > 0) {
             bookingNativeRepository.addUserScore(booking.getUserUuid(), -scoreDeducted);
+            bookingNativeRepository.addLifetimeScore(booking.getUserUuid(), -scoreDeducted);
             bookingNativeRepository.insertRefundScoreHistory(booking.getUserUuid(), scoreDeducted, bookingUuid, now);
         }
 
@@ -271,7 +272,19 @@ public class CancellationRefundService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Yêu cầu hoàn tiền không ở trạng thái chờ duyệt");
         }
 
-        return processRefund(refund, adminUuid, "ADMIN");
+        int claimed = refundRepository.transitionStatus(
+                refundUuid,
+                RefundStatus.PENDING.name(),
+                RefundStatus.PROCESSING.name(),
+                OffsetDateTime.now());
+        if (claimed == 0) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn tất");
+        }
+
+        Refund claimedRefund = refundRepository.findById(refundUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+        return processRefund(claimedRefund, adminUuid, "ADMIN");
     }
 
     @Transactional(readOnly = true)
@@ -433,8 +446,22 @@ public class CancellationRefundService {
                     "Hoàn tiền hủy vé");
             refund.setGatewayRefundId("WALLET-CREDIT");
         } else {
-            PaymentGatewayService.GatewayRefundResult gatewayResult = paymentGatewayService.refund(
-                    refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+            PaymentGatewayService.GatewayRefundResult gatewayResult;
+            try {
+                gatewayResult = paymentGatewayService.refund(
+                        refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
+            } catch (RuntimeException ex) {
+                // A thrown gateway error (e.g. network timeout) is ambiguous — the refund may already have gone
+                // through. The stable idempotency key ("refund-<bookingUuid>") makes a retry safe (the gateway
+                // dedupes), so we fail this attempt deterministically and audit it instead of letting an opaque
+                // error escape. The surrounding @Transactional rolls back, leaving the booking CONFIRMED and the
+                // refund retryable. (Durable async refund via the Stripe refund webhook is the full solution once
+                // the real gateway is wired.)
+                auditLogService.log("REFUND", refund.getUuid(), "REFUND_GATEWAY_ERROR", actorUuid, actorRole,
+                        ex.getMessage());
+                throw new AppException(ErrorCode.INTERNAL_ERROR,
+                        "Hoàn tiền qua cổng thanh toán gặp sự cố. Vui lòng thử lại sau.");
+            }
 
             if (!gatewayResult.success()) {
                 refund.setStatus(RefundStatus.FAILED.name());

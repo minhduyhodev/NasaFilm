@@ -62,6 +62,8 @@ import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.notification.dto.TheaterTicketQrItem;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
 import com.thdpv.movietheater.notification.service.VodNotificationService;
+import com.thdpv.movietheater.payment.entity.PaymentTransaction;
+import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
@@ -99,6 +101,7 @@ public class BookingService {
     private final RealtimeEventPublisher realtimeEventPublisher;
     private final CancellationRefundService cancellationRefundService;
     private final PaymentService paymentService;
+    private final PaymentTransactionRepository paymentTransactionRepository;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
     private final OrbitRoomService orbitRoomService;
@@ -119,6 +122,11 @@ public class BookingService {
 
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
+
+        // Serialize concurrent double-submits for the same user: a second request blocks here until the
+        // first commits, then sees the just-created booking below and is rejected — preventing double-charge.
+        userRepository.findByIdForUpdate(userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy người dùng"));
 
         Optional<Booking> existingOpt = bookingJpaRepository
                 .findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
@@ -268,6 +276,15 @@ public class BookingService {
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         if (isOrbitCheckout) {
             orbitRoomService.assertCheckoutReady(orbitRoomUuid, userUuid, request.getShowtimeUuid(), seatUuids);
+            // The host's request carries only the host's own combos; members' combos are read authoritatively
+            // from the room server-side so they can't be silently dropped or tampered by the client. Aggregate
+            // by comboUuid (host + members) into one map — required by the (booking_uuid, combo_uuid) unique key.
+            Map<UUID, Integer> memberCombos = orbitRoomService.collectNonHostMemberComboQuantities(orbitRoomUuid);
+            if (!memberCombos.isEmpty()) {
+                Map<UUID, Integer> mergedCombos = new LinkedHashMap<>(comboQuantities);
+                memberCombos.forEach((comboUuid, quantity) -> mergedCombos.merge(comboUuid, quantity, Integer::sum));
+                comboQuantities = mergedCombos;
+            }
         }
         showtimeCapacityService.validateCapacity(request.getShowtimeUuid(), seatUuids.size(), userUuid, now);
         bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
@@ -417,6 +434,8 @@ public class BookingService {
         }
 
         // Charge after seats/tickets persist; same @Transactional rolls back booking if charge fails
+        reconcileExternalCardPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
+                request.getPaymentIntentId());
         paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
         int scoreAdded;
@@ -824,6 +843,51 @@ public class BookingService {
         return new ArrayList<>(normalized);
     }
 
+    /**
+     * Interim guard against the "pay-what-you-want" card exploit. The server-side card charge currently goes
+     * through the mock gateway (always succeeds), while the real money is a client-chosen Stripe amount — so a
+     * client could pay 1đ and still get full-price tickets. Until the full webhook-driven confirmation flow
+     * lands, a real card booking must be backed by a Stripe {@link PaymentTransaction} that (a) belongs to this
+     * user, (b) is for a booking, (c) has succeeded (webhook-confirmed), and (d) covers the order total, and
+     * each transaction can back only one booking. Enforced only when a real gateway is configured; mock/demo
+     * runs keep their existing behavior so local testing is not blocked.
+     */
+    private void reconcileExternalCardPayment(UUID userUuid, UUID bookingUuid, BigDecimal totalPrice,
+            String paymentMethod, String paymentIntentId) {
+        if (!"card".equalsIgnoreCase(paymentMethod)) {
+            return;
+        }
+        if (paymentService.isMockProvider()) {
+            return;
+        }
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Thiếu mã thanh toán thẻ.");
+        }
+        String intentId = paymentIntentId.trim();
+        PaymentTransaction tx = paymentTransactionRepository.findByGatewayTransactionId(intentId)
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Không tìm thấy giao dịch thanh toán."));
+        if (tx.getUserUuid() == null || !tx.getUserUuid().equals(userUuid)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Giao dịch thanh toán không thuộc về bạn.");
+        }
+        if (tx.getPurpose() != null && !"BOOKING".equalsIgnoreCase(tx.getPurpose())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Giao dịch thanh toán không hợp lệ cho đặt vé.");
+        }
+        if (!"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Chưa nhận được xác nhận thanh toán. Vui lòng thử lại sau giây lát.");
+        }
+        if (tx.getAmount() == null || tx.getAmount().compareTo(totalPrice) < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền đã thanh toán không đủ cho đơn đặt vé.");
+        }
+        if (tx.getBookingUuid() != null && !tx.getBookingUuid().equals(bookingUuid)) {
+            throw new AppException(ErrorCode.CONFLICT, "Giao dịch thanh toán đã được dùng cho đơn khác.");
+        }
+        int claimed = paymentTransactionRepository.claimSucceededForBooking(intentId, bookingUuid, OffsetDateTime.now());
+        if (claimed == 0 && !bookingUuid.equals(tx.getBookingUuid())) {
+            throw new AppException(ErrorCode.CONFLICT, "Giao dịch thanh toán đã được sử dụng.");
+        }
+    }
+
     private Map<UUID, Integer> normalizeCombos(List<ConfirmBookingRequest.ComboItem> comboItems) {
         if (comboItems == null || comboItems.isEmpty()) {
             return Map.of();
@@ -1165,6 +1229,8 @@ public class BookingService {
                 createdAt = createdAt.withOffsetSameInstant(ZoneOffset.ofHours(7));
             }
             UUID movieUuid = toUuid(row[15]);
+            OffsetDateTime endTime = bookingRepository.toOffsetDateTime(row[16]);
+            boolean allTicketsUsed = row[17] != null && ((Number) row[17]).intValue() == 1;
 
             PurchaseHistoryResponse item = new PurchaseHistoryResponse();
             item.setBookingUuid(bookingUuid);
@@ -1193,6 +1259,26 @@ public class BookingService {
             item.setPurchasedAt(createdAt != null
                     ? createdAt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm | dd/MM/yyyy"))
                     : "");
+
+            // Derive a time/usage-aware status so the history mirrors the ticket wallet: a paid (CONFIRMED)
+            // theater booking whose showtime has ended is no longer "Thành công" but "Hết hạn" (no-show) or
+            // "Đã sử dụng" (fully checked in). This is computed at read time — no DB mutation — so revenue,
+            // cancellation and refund flows that key off booking.status are untouched.
+            String activityStatus;
+            boolean isOnline = "ONLINE".equalsIgnoreCase(bookingType);
+            if (isCancelledBookingStatus(bookingStatus)) {
+                activityStatus = "cancelled";
+            } else if (allTicketsUsed) {
+                activityStatus = "used";
+            } else if (!isOnline) {
+                // Theater ticket stays valid until the showtime ends; showtimeRaw holds the start as fallback.
+                OffsetDateTime cutoff = endTime != null ? endTime : showtimeRaw;
+                activityStatus = (cutoff != null && OffsetDateTime.now().isAfter(cutoff)) ? "expired" : "active";
+            } else {
+                activityStatus = "active";
+            }
+            item.setActivityStatus(activityStatus);
+
             responses.add(item);
         }
 
@@ -1314,14 +1400,66 @@ public class BookingService {
                     showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
         }
 
+        CheckInTicketResponse windowRejection = validateShowtimeCheckInWindow(
+                resolveEffectiveShowtimeUuid(ticket, showtimeUuid),
+                ticket, showtimeUuid, expectedRoomUuid, currentRoomUuid);
+        if (windowRejection != null) {
+            return windowRejection;
+        }
+
         OffsetDateTime checkedInAt = OffsetDateTime.now();
-        ticket.setStatus("USED");
-        ticket.setCheckedInAt(checkedInAt);
-        ticketRepository.save(ticket);
+        int updated = ticketRepository.markUsedIfIssued(ticket.getUuid(), checkedInAt);
+        if (updated == 0) {
+            return buildCheckInResponse("ALREADY_USED", "Vé đã được soát hoặc không còn hiệu lực", ticket,
+                    showtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
 
         realtimeEventPublisher.notifyTicketCheckedIn(ticket.getBookingUuid(), showtimeUuid, ticketCode.trim());
         return buildCheckInResponse("VALID", "Soát vé thành công", ticket, showtimeUuid,
                 expectedRoomUuid, currentRoomUuid, checkedInAt);
+    }
+
+    private UUID resolveEffectiveShowtimeUuid(Ticket ticket, UUID fallbackShowtimeUuid) {
+        UUID showtimeUuid = fallbackShowtimeUuid;
+        if (ticket.getBookingSeatUuid() != null) {
+            showtimeUuid = bookingSeatRepository.findById(ticket.getBookingSeatUuid())
+                    .map(BookingSeat::getShowtimeUuid)
+                    .orElse(showtimeUuid);
+        }
+        return showtimeUuid;
+    }
+
+    private CheckInTicketResponse validateShowtimeCheckInWindow(UUID effectiveShowtimeUuid, Ticket ticket,
+            UUID responseShowtimeUuid, UUID expectedRoomUuid, UUID currentRoomUuid) {
+        if (effectiveShowtimeUuid == null) {
+            return null;
+        }
+        Showtime showtime = showtimeRepository.findById(effectiveShowtimeUuid).orElse(null);
+        if (showtime == null) {
+            return null;
+        }
+        if (ShowtimeStatus.CANCELLED.equals(showtime.getStatus())) {
+            return buildCheckInResponse("SHOW_CANCELLED", "Suất chiếu đã bị hủy — không thể soát vé", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        if (!systemConfigService.isCheckInWindowEnforced()) {
+            return null;
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime start = showtime.getStartTime();
+        OffsetDateTime end = showtime.getEndTime();
+        int earlyMinutes = systemConfigService.getCheckInEarlyMinutes();
+        int graceMinutes = systemConfigService.getCheckInGraceMinutes();
+        if (start != null && now.isBefore(start.minusMinutes(earlyMinutes))) {
+            return buildCheckInResponse("TOO_EARLY",
+                    "Chưa đến giờ soát vé (mở soát trước giờ chiếu " + earlyMinutes + " phút)", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        if (end != null && now.isAfter(end.plusMinutes(graceMinutes))) {
+            return buildCheckInResponse("SHOW_ENDED", "Suất chiếu đã kết thúc — không thể soát vé", ticket,
+                    responseShowtimeUuid, expectedRoomUuid, currentRoomUuid, ticket.getCheckedInAt());
+        }
+        return null;
     }
 
     @Transactional

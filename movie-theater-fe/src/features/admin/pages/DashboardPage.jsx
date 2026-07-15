@@ -7,9 +7,16 @@ import TabTransition from '../../../shared/components/TabTransition';
 import PosterImage from '../../../shared/components/PosterImage';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { shiftPeriod, todayYmd } from '../utils/revenueSeriesNav';
 import './DashboardPage.css';
 
 const CHART_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981', '#6366f1'];
+
+const GRANULARITIES = [
+  { id: 'day', label: 'Ngày', subtitle: 'Chi tiết theo giờ' },
+  { id: 'week', label: 'Tuần', subtitle: 'Chi tiết 7 ngày trong tuần' },
+  { id: 'month', label: 'Tháng', subtitle: 'Chi tiết theo ngày trong tháng' },
+];
 
 const generateSparkline = (seed, count = 14) => {
   const base = Math.max(Number(seed) || 1, 1);
@@ -60,6 +67,10 @@ const AreaChart = ({ labels, values, color = '#a855f7' }) => {
   const linePath = coords.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   const areaPath = `${linePath} L ${coords[coords.length - 1].x} ${pad.top + innerH} L ${coords[0].x} ${pad.top + innerH} Z`;
 
+  // Keep at most ~12 x-labels and shrink dots when the period has many buckets (24h / ~31 days).
+  const labelStep = Math.max(1, Math.ceil(labels.length / 12));
+  const pointRadius = values.length > 16 ? 2.5 : 4;
+
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
     y: pad.top + innerH - t * innerH,
     label: Math.round(minVal + t * (maxVal - minVal)).toLocaleString('vi-VN'),
@@ -82,19 +93,22 @@ const AreaChart = ({ labels, values, color = '#a855f7' }) => {
       <path d={areaPath} fill="url(#areaGrad)" />
       <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {coords.map((p, i) => (
-        <circle key={`point-${i}`} cx={p.x} cy={p.y} r="4" fill="#0f1322" stroke={color} strokeWidth="2" />
+        <circle key={`point-${i}`} cx={p.x} cy={p.y} r={pointRadius} fill="#0f1322" stroke={color} strokeWidth="2" />
       ))}
-      {labels.map((label, i) => (
-        <text
-          key={`x-label-${i}`}
-          x={coords[i].x}
-          y={height - 10}
-          textAnchor="middle"
-          className="dashboard-chart-x-label"
-        >
-          {label.length > 10 ? `${label.slice(0, 9)}…` : label}
-        </text>
-      ))}
+      {labels.map((label, i) => {
+        if (i % labelStep !== 0 && i !== labels.length - 1) return null;
+        return (
+          <text
+            key={`x-label-${i}`}
+            x={coords[i].x}
+            y={height - 10}
+            textAnchor="middle"
+            className="dashboard-chart-x-label"
+          >
+            {label.length > 10 ? `${label.slice(0, 9)}…` : label}
+          </text>
+        );
+      })}
     </svg>
   );
 };
@@ -404,6 +418,10 @@ const DashboardPage = () => {
   const [missionAnalytics, setMissionAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cinemas');
+  const [revenueGranularity, setRevenueGranularity] = useState('day');
+  const [revenueAnchor, setRevenueAnchor] = useState(() => todayYmd());
+  const [revenueSeries, setRevenueSeries] = useState(null);
+  const [seriesLoading, setSeriesLoading] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -420,9 +438,30 @@ const DashboardPage = () => {
     }
   }, []);
 
+  const fetchSeries = useCallback(async (granularity, date) => {
+    setSeriesLoading(true);
+    try {
+      const data = await adminDashboardService.getRevenueSeries(granularity, date);
+      setRevenueSeries(data);
+    } catch (error) {
+      console.error('Failed to fetch revenue series', error);
+      setRevenueSeries(null);
+    } finally {
+      setSeriesLoading(false);
+    }
+  }, []);
+
+  const handlePeriodShift = useCallback((dir) => {
+    setRevenueAnchor((prev) => shiftPeriod(revenueSeries?.periodStartDate || prev, revenueGranularity, dir));
+  }, [revenueSeries, revenueGranularity]);
+
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  useEffect(() => {
+    fetchSeries(revenueGranularity, revenueAnchor);
+  }, [revenueGranularity, revenueAnchor, fetchSeries]);
 
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_DASHBOARD, fetchStats);
 
@@ -537,7 +576,6 @@ const DashboardPage = () => {
     { id: 'cinemas', label: 'Doanh thu rạp' },
     { id: 'movies', label: 'Top phim' },
     { id: 'genres', label: 'Thể loại phim' },
-    { id: 'overview', label: 'Tổng quan' },
   ];
 
   const activeChart =
@@ -555,19 +593,15 @@ const DashboardPage = () => {
           title: 'Tỷ lệ lấp đầy theo thể loại',
           subtitle: 'Phân tích xu hướng khán giả theo genre',
         }
-      : activeTab === 'overview'
-        ? {
-            labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-            values: generateSparkline(Number(stats?.totalRevenue) || 100, 7),
-            title: 'Xu hướng doanh thu tuần',
-            subtitle: 'Ước tính từ dữ liệu giao dịch hiện tại',
-          }
-        : {
-            labels: chartData?.cinemas.map((c) => c.name) || [],
-            values: chartData?.cinemaRevenues || [],
-            title: 'Doanh thu theo cụm rạp',
-            subtitle: 'So sánh hiệu suất kinh doanh từng chi nhánh',
-          };
+      : {
+          labels: chartData?.cinemas.map((c) => c.name) || [],
+          values: chartData?.cinemaRevenues || [],
+          title: 'Doanh thu theo cụm rạp',
+          subtitle: 'So sánh hiệu suất kinh doanh từng chi nhánh',
+        };
+
+  const activeGranularityMeta = GRANULARITIES.find((g) => g.id === revenueGranularity) || GRANULARITIES[0];
+  const seriesPoints = revenueSeries?.points || [];
 
   const maxMovieRevenue = Math.max(...(stats?.topMovies || []).map((m) => Number(m.revenue) || 0), 1);
   const cinemasList = stats?.cinemas || [];
@@ -619,6 +653,95 @@ const DashboardPage = () => {
         maxCinemaRevenue={maxCinemaRevenue}
         formatRevenueFull={formatRevenueFull}
       />
+
+      <section className="dashboard-chart-panel dashboard-revenue-trend">
+        <div className="dashboard-revenue-trend-head">
+          <div>
+            <h2 className="dashboard-panel-title">Xu hướng doanh thu</h2>
+            <p className="dashboard-panel-subtitle">
+              {activeGranularityMeta.subtitle} · doanh thu đơn đã xác nhận
+            </p>
+          </div>
+          <div className="dashboard-granularity-toggle" role="tablist" aria-label="Khoảng thời gian">
+            {GRANULARITIES.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                role="tab"
+                aria-selected={revenueGranularity === g.id}
+                className={`dashboard-granularity-btn ${revenueGranularity === g.id ? 'is-active' : ''}`}
+                onClick={() => setRevenueGranularity(g.id)}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="dashboard-period-nav">
+          <button
+            type="button"
+            className="dashboard-period-nav-btn"
+            onClick={() => handlePeriodShift(-1)}
+            aria-label="Kỳ trước"
+          >
+            ◀
+          </button>
+          <span className="dashboard-period-nav-label">
+            {revenueSeries?.periodLabel || activeGranularityMeta.label}
+          </span>
+          <button
+            type="button"
+            className="dashboard-period-nav-btn"
+            onClick={() => handlePeriodShift(1)}
+            disabled={!revenueSeries?.canGoNext}
+            aria-label="Kỳ sau"
+          >
+            ▶
+          </button>
+          <input
+            type="date"
+            className="dashboard-period-date"
+            value={revenueSeries?.periodStartDate || revenueAnchor}
+            max={todayYmd()}
+            onChange={(e) => e.target.value && setRevenueAnchor(e.target.value)}
+            aria-label="Chọn ngày"
+          />
+        </div>
+
+        <div className="dashboard-revenue-trend-totals">
+          <div className="dashboard-revenue-trend-total">
+            <span className="dashboard-revenue-trend-total-label">Tổng doanh thu kỳ</span>
+            <strong className="dashboard-revenue-trend-total-value">
+              {formatRevenueFull(revenueSeries?.totalRevenue)}
+            </strong>
+          </div>
+          <div className="dashboard-revenue-trend-total">
+            <span className="dashboard-revenue-trend-total-label">Giao dịch</span>
+            <strong className="dashboard-revenue-trend-total-value">
+              {new Intl.NumberFormat('vi-VN').format(revenueSeries?.totalTransactions || 0)}
+            </strong>
+          </div>
+        </div>
+
+        <div className="dashboard-chart-area">
+          {seriesLoading ? (
+            <div className="dashboard-empty-chart">Đang tải dữ liệu…</div>
+          ) : seriesPoints.length > 0 ? (
+            <AreaChart
+              labels={seriesPoints.map((p) => p.label)}
+              values={seriesPoints.map((p) => Number(p.revenue) || 0)}
+              color="#10b981"
+            />
+          ) : (
+            <div className="dashboard-empty-chart">Chưa có dữ liệu doanh thu</div>
+          )}
+        </div>
+        <div className="dashboard-chart-legend">
+          <span className="dashboard-legend-dot" style={{ background: '#10b981' }} />
+          <span>Doanh thu (đ)</span>
+        </div>
+      </section>
 
       <section className="dashboard-analytics">
         <div className="dashboard-tabs">

@@ -16,6 +16,11 @@ public class AdminBookingListResponse {
     private String status;
     private OffsetDateTime createdAt;
     private String customerAvatarUrl;
+    private OffsetDateTime showtimeStartTime;
+    private OffsetDateTime showtimeEndTime;
+    private String bookingType;
+    /** Derived, time/usage-aware status for display: active | used | expired | cancelled. */
+    private String activityStatus;
 
     public AdminBookingListResponse() {
     }
@@ -135,5 +140,37 @@ public class AdminBookingListResponse {
 
     public void setCustomerAvatarUrl(String customerAvatarUrl) {
         this.customerAvatarUrl = customerAvatarUrl;
+    }
+
+    public OffsetDateTime getShowtimeStartTime() {
+        return showtimeStartTime;
+    }
+
+    public void setShowtimeStartTime(OffsetDateTime showtimeStartTime) {
+        this.showtimeStartTime = showtimeStartTime;
+    }
+
+    public OffsetDateTime getShowtimeEndTime() {
+        return showtimeEndTime;
+    }
+
+    public void setShowtimeEndTime(OffsetDateTime showtimeEndTime) {
+        this.showtimeEndTime = showtimeEndTime;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public String getActivityStatus() {
+        return activityStatus;
+    }
+
+    public void setActivityStatus(String activityStatus) {
+        this.activityStatus = activityStatus;
     }
 }

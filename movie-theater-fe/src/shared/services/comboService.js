@@ -55,6 +55,17 @@ class ComboService {
     }
   }
 
+  async getComboRevenueSeries(granularity = 'day', date = null) {
+    try {
+      const params = { granularity };
+      if (date) params.date = date;
+      const response = await authService.api.get('/api/admin/combos/revenue/series', { params });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async uploadComboImage(file) {
     try {
       const formData = new FormData();

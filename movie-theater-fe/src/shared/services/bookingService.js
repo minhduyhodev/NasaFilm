@@ -52,7 +52,7 @@ class BookingService {
     }
   }
 
-  async confirmBooking(showtimeUuid, seatUuids, combos = [], promotionCode = null, paymentMethod = null, orbitRoomUuid = null) {
+  async confirmBooking(showtimeUuid, seatUuids, combos = [], promotionCode = null, paymentMethod = null, orbitRoomUuid = null, paymentIntentId = null) {
     try {
       const payload = {
         showtimeUuid,
@@ -67,6 +67,9 @@ class BookingService {
       }
       if (orbitRoomUuid) {
         payload.orbitRoomUuid = orbitRoomUuid;
+      }
+      if (paymentIntentId) {
+        payload.paymentIntentId = paymentIntentId;
       }
       const response = await authService.api.post('/api/bookings/confirm', payload);
       return response.data.data ?? response.data;

@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.booking.dto.request.ComboRequest;
 import com.thdpv.movietheater.booking.dto.response.ComboRevenueResponse;
+import com.thdpv.movietheater.booking.dto.response.RevenueSeriesResponse;
 import com.thdpv.movietheater.booking.entity.Combo;
 import com.thdpv.movietheater.booking.service.ComboRevenueService;
 import com.thdpv.movietheater.booking.service.ComboService;
@@ -38,6 +39,15 @@ public class AdminComboController {
     @GetMapping("/revenue/stats")
     public ResponseEntity<ApiResponse<ComboRevenueResponse>> getRevenueStats() {
         return ResponseEntity.ok(ApiResponse.success(comboRevenueService.getRevenueStats()));
+    }
+
+    @GetMapping("/revenue/series")
+    public ResponseEntity<ApiResponse<RevenueSeriesResponse>> getRevenueSeries(
+            @RequestParam(defaultValue = "day") String granularity,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(required = false) String date) {
+        return ResponseEntity.ok(ApiResponse.success(
+                comboRevenueService.getRevenueSeries(granularity, offset, date)));
     }
 
     @GetMapping

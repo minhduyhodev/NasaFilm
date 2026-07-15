@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.dto.response.ComboRevenueResponse;
+import com.thdpv.movietheater.booking.dto.response.RevenueSeriesResponse;
+import com.thdpv.movietheater.booking.service.RevenueSeriesSupport.Granularity;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -64,6 +66,59 @@ public class ComboRevenueService {
                 byCombo,
                 dailyRevenue
         );
+    }
+
+    /**
+     * Combo revenue detail for one selected period (day/week/month) chosen by {@code offset} back from
+     * now — month drills into its days, week into 7 days, day into 24 hours. Bucketed in Vietnam local
+     * time and gap-filled. "transactions" here counts distinct orders that included a combo.
+     */
+    @Transactional(readOnly = true)
+    public RevenueSeriesResponse getRevenueSeries(String granularity, int offset, String date) {
+        Granularity g = Granularity.parse(granularity);
+        int effectiveOffset = RevenueSeriesSupport.resolveOffset(g, offset, date);
+        RevenueSeriesSupport.Period period = RevenueSeriesSupport.buildPeriod(g, effectiveOffset);
+
+        String sql = "select cast(date_trunc('" + period.subTruncKeyword
+                + "', b.created_at at time zone 'Asia/Ho_Chi_Minh') as text) as bucket,"
+                + " coalesce(sum(bc.price), 0) as revenue,"
+                + " count(distinct b.uuid) as orders"
+                + " from booking_combo bc"
+                + " join booking b on b.uuid = bc.booking_uuid"
+                + " where b.status = 'CONFIRMED' and b.created_at >= :from and b.created_at < :to"
+                + " group by 1";
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setParameter("from", period.from)
+                .setParameter("to", period.to)
+                .getResultList();
+
+        Map<String, BigDecimal> revenueByBucket = new HashMap<>();
+        Map<String, Long> ordersByBucket = new HashMap<>();
+        for (Object[] row : rows) {
+            String key = RevenueSeriesSupport.normalizeKey(stringValue(row[0]), period.keyLength);
+            if (key == null) {
+                continue;
+            }
+            revenueByBucket.put(key, toBigDecimal(row[1]));
+            ordersByBucket.put(key, toLong(row[2]));
+        }
+
+        List<RevenueSeriesResponse.RevenueSeriesPoint> points = new ArrayList<>();
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        long totalOrders = 0;
+        for (RevenueSeriesSupport.SeriesBucket bucket : period.buckets) {
+            BigDecimal revenue = revenueByBucket.getOrDefault(bucket.key, BigDecimal.ZERO);
+            long orders = ordersByBucket.getOrDefault(bucket.key, 0L);
+            totalRevenue = totalRevenue.add(revenue);
+            totalOrders += orders;
+            points.add(new RevenueSeriesResponse.RevenueSeriesPoint(
+                    bucket.key, bucket.label, revenue, orders));
+        }
+        return new RevenueSeriesResponse(g.apiValue(), period.periodLabel,
+                period.from.toLocalDate().toString(), period.offset, period.hasNext,
+                points, totalRevenue, totalOrders);
     }
 
     private BigDecimal sumComboRevenue(OffsetDateTime from, OffsetDateTime to) {
