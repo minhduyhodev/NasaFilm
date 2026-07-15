@@ -166,6 +166,19 @@ public class SupportAiService {
         if (!answerMode && isGuidedCategory(detectedCategory)) {
             return fallback(message, history);
         }
+        // Short confirm/edit replies ("ok", "sửa"…) from the guided buttons carry no
+        // category of their own — keep them in the guided flow (so "OK — Gửi ticket"
+        // finalizes the ticket) instead of routing to the free LLM, as long as the
+        // conversation history is already inside a ticket category.
+        if (!answerMode) {
+            String norm = normalize(message);
+            if (CONFIRM_YES.contains(norm) || CONFIRM_EDIT.contains(norm)) {
+                String historyCategory = detectCategoryFromHistory(history);
+                if (historyCategory != null && isGuidedCategory(historyCategory)) {
+                    return fallback(message, history);
+                }
+            }
+        }
 
         try {
             List<SupportAiMessage> messages = buildMessages(message, history, answerMode, userEmail);
@@ -430,10 +443,17 @@ public class SupportAiService {
         int fieldsCollected = countCollectedFields(normalized, message, category, history);
         int totalFields = fields.length;
 
-        // Check if user is responding to a confirmation prompt
+        // Check if user is responding to a confirmation prompt. Match the ACTUAL
+        // confirmation replies produced below ("…kiểm tra lại thông tin rồi chọn bên dưới nhé:"
+        // and the ambiguous re-ask "Mình chưa rõ ý bạn…"), not only the old edit wording,
+        // so clicking "OK — Gửi ticket" (value "ok") actually finalizes the ticket.
         String lastBotMsg = getLastBotMessage(history);
         boolean wasConfirming = lastBotMsg != null && (
-            lastBotMsg.contains("muốn chỉnh sửa") || lastBotMsg.contains("muốn chỉnh sửa thông tin"));
+            lastBotMsg.contains("kiểm tra lại thông tin")
+            || lastBotMsg.contains("chọn bên dưới")
+            || lastBotMsg.contains("chưa rõ ý bạn")
+            || lastBotMsg.contains("OK — Gửi ticket")
+            || lastBotMsg.contains("muốn chỉnh sửa"));
 
         boolean wasFinalizing = lastBotMsg != null && lastBotMsg.contains("chốt ticket");
 
@@ -904,6 +924,12 @@ public class SupportAiService {
         String normalized = normalize(text).replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
         if (normalized.isBlank()) {
             return true;
+        }
+        // Short confirm/edit replies from the guided-flow buttons ("ok", "edit", "sửa"…)
+        // are meaningful — never flag them as low-signal noise, otherwise the ticket
+        // confirmation ("OK — Gửi ticket") would be rejected as "chưa hiểu rõ".
+        if (CONFIRM_YES.contains(normalized) || CONFIRM_EDIT.contains(normalized)) {
+            return false;
         }
         if (hasSupportKeyword(normalized)) {
             return false;

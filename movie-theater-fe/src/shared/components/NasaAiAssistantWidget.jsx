@@ -838,10 +838,20 @@ const NasaAiAssistantWidget = () => {
 
   const openStaffAlertTopics = useMemo(() => {
     if (!isLoggedInCustomer || shouldHideOnRoute) return [];
-    return myTickets
-      .filter((item) => item?.ticketCode && !isClosedSupportStatus(item.status))
-      .map((item) => REALTIME_TOPICS.supportTicket(item.ticketCode));
-  }, [isLoggedInCustomer, myTickets, shouldHideOnRoute]);
+    const codes = new Set(
+      myTickets
+        .filter((item) => item?.ticketCode && !isClosedSupportStatus(item.status))
+        .map((item) => item.ticketCode),
+    );
+    // Always keep the ticket the user is currently viewing subscribed — even after it
+    // flips to DONE/RESOLVED. The admin's closing "thank-you" sticker is sent together
+    // with the status change in one broadcast; without this the topic would be dropped
+    // as the status turns closed and the message would only appear after a manual reload.
+    if (activeTicketCode) {
+      codes.add(activeTicketCode);
+    }
+    return [...codes].map((code) => REALTIME_TOPICS.supportTicket(code));
+  }, [isLoggedInCustomer, myTickets, shouldHideOnRoute, activeTicketCode]);
 
   const markStaffTicketUnread = (ticketCode) => {
     if (!ticketCode) return;
