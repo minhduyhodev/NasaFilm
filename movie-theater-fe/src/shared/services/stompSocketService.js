@@ -64,6 +64,7 @@ class StompSocketService {
     this.sockJsClass = null;
     this.connectionListeners = new Set();
     this.tearingDown = false;
+    this.disconnectTimeout = null;
   }
 
   isConnected() {
@@ -279,6 +280,11 @@ class StompSocketService {
   }
 
   subscribe(topic, callback) {
+    if (this.disconnectTimeout) {
+      clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
+    }
+
     if (!topic || typeof callback !== 'function') {
       return () => {};
     }
@@ -326,24 +332,32 @@ class StompSocketService {
   }
 
   disconnectIfIdle() {
-    if (this.activeSubscriptions.size > 0) {
-      return;
-    }
-    if (!this.client) {
-      return;
+    if (this.disconnectTimeout) {
+      clearTimeout(this.disconnectTimeout);
+      this.disconnectTimeout = null;
     }
 
-    const client = this.client;
-    this.tearingDown = true;
-    this.client = null;
-    this.connected = false;
-    this.connectPromise = null;
-    this.usingSockJs = false;
-    this.notifyConnectionListeners();
+    this.disconnectTimeout = setTimeout(() => {
+      this.disconnectTimeout = null;
+      if (this.activeSubscriptions.size > 0) {
+        return;
+      }
+      if (!this.client) {
+        return;
+      }
 
-    this.safeDeactivate(client).finally(() => {
-      this.tearingDown = false;
-    });
+      const client = this.client;
+      this.tearingDown = true;
+      this.client = null;
+      this.connected = false;
+      this.connectPromise = null;
+      this.usingSockJs = false;
+      this.notifyConnectionListeners();
+
+      this.safeDeactivate(client).finally(() => {
+        this.tearingDown = false;
+      });
+    }, 2000);
   }
 }
 

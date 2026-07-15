@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import {
   buildRowPlacedItems,
   getCoupleLabel,
@@ -39,16 +39,39 @@ const normalizeSeatType = (seatTypeName = '') => {
   return 'standard';
 };
 
-const isSeatOccupied = (seat) =>
+/** Staff monitoring: sold / checked-in / held / available */
+const resolveStaffSeatState = (seat) => {
+  const status = seat?.availabilityStatus;
+  if (status === 'BOOKED') {
+    return seat?.checkedIn ? 'checked-in' : 'sold';
+  }
+  if (status === 'LOCKED_BY_OTHER' || status === 'LOCKED_BY_ME') {
+    return 'held';
+  }
+  if (status === 'UNAVAILABLE') {
+    return 'unavailable';
+  }
+  return 'available';
+};
+
+const staffStateLabel = {
+  available: 'Trống',
+  sold: 'Đã mua · chưa soát',
+  'checked-in': 'Đã soát',
+  held: 'Đang giữ',
+  unavailable: 'Không bán',
+};
+
+const isSeatOccupiedBooking = (seat) =>
   seat.availabilityStatus === 'BOOKED'
   || seat.availabilityStatus === 'LOCKED_BY_OTHER'
   || seat.availabilityStatus === 'UNAVAILABLE';
 
-const isSeatHeld = (seat) => seat.availabilityStatus === 'LOCKED_BY_ME';
+const isSeatHeldBooking = (seat) => seat.availabilityStatus === 'LOCKED_BY_ME';
 
-const renderReadOnlySeat = (seat) => {
-  const occupied = isSeatOccupied(seat);
-  const held = isSeatHeld(seat);
+const renderBookingSeat = (seat) => {
+  const occupied = isSeatOccupiedBooking(seat);
+  const held = isSeatHeldBooking(seat);
   const type = normalizeSeatType(seat.seatTypeName || '');
 
   let seatClass = `seat ${type} relative z-[1] w-full h-full pointer-events-none`;
@@ -66,9 +89,29 @@ const renderReadOnlySeat = (seat) => {
   );
 };
 
-const renderReadOnlyCouple = (seats, rowName) => {
-  const occupied = seats.some(isSeatOccupied);
-  const held = seats.some(isSeatHeld);
+const renderStaffSeat = (seat) => {
+  const type = normalizeSeatType(seat.seatTypeName || '');
+  const state = resolveStaffSeatState(seat);
+  const seatClass = `seat ${type} staff-seat staff-seat--${state} relative z-[1] w-full h-full pointer-events-none`;
+
+  return (
+    <div
+      key={seat.seatUuid}
+      className={seatClass}
+      title={`${seat.seatTypeName || 'Ghế'} · ${staffStateLabel[state]}`}
+    >
+      {state === 'checked-in' ? (
+        <Check className="h-3 w-3" strokeWidth={3} />
+      ) : (
+        seat.seatNumber
+      )}
+    </div>
+  );
+};
+
+const renderBookingCouple = (seats, rowName) => {
+  const occupied = seats.some(isSeatOccupiedBooking);
+  const held = seats.some(isSeatHeldBooking);
   const label = getCoupleLabel(rowName, seats).replace(rowName, '');
 
   let seatClass = 'seat couple relative z-[1] w-full h-full pointer-events-none';
@@ -86,7 +129,99 @@ const renderReadOnlyCouple = (seats, rowName) => {
   );
 };
 
-const LiveSeatMapView = ({ rows = [], layoutConfig = null, showLegend = true, compact = false }) => {
+const renderStaffCouple = (seats, rowName) => {
+  const states = seats.map(resolveStaffSeatState);
+  let state = 'available';
+  if (states.some((s) => s === 'checked-in')) state = 'checked-in';
+  else if (states.some((s) => s === 'sold')) state = 'sold';
+  else if (states.some((s) => s === 'held')) state = 'held';
+  else if (states.some((s) => s === 'unavailable')) state = 'unavailable';
+
+  const label = getCoupleLabel(rowName, seats).replace(rowName, '');
+  const seatClass = `seat couple staff-seat staff-seat--${state} relative z-[1] w-full h-full pointer-events-none`;
+
+  return (
+    <div
+      key={seats.map((s) => s.seatUuid).join('-')}
+      className={seatClass}
+      title={`Sofa đôi ${getCoupleLabel(rowName, seats)} · ${staffStateLabel[state]}`}
+    >
+      {state === 'checked-in' ? <Check className="h-3 w-3" strokeWidth={3} /> : label}
+    </div>
+  );
+};
+
+const BookingLegend = () => (
+  <>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 border-2 border-white/25 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-zinc-500">1</div>
+      <span className="text-[10px] font-bold text-gray-400">Ghế thường</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 border-2 border-yellow-500/35 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-yellow-500/70">1</div>
+      <span className="text-[10px] font-bold text-gray-400">VIP</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="seat couple opacity-80 pointer-events-none flex items-center justify-center text-[8px] font-bold w-[calc(2rem*2+0.35rem)] h-5">12·11</div>
+      <span className="text-[10px] font-bold text-gray-400">Ghế đôi</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 bg-white/5 border-2 border-red-500/20 rounded-lg flex items-center justify-center text-red-500/25 opacity-60">
+        <X className="h-3 w-3" />
+      </div>
+      <span className="text-[10px] font-bold text-gray-400">Đã đặt</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 bg-white border border-white rounded-lg flex items-center justify-center text-[8px] font-bold text-black">1</div>
+      <span className="text-[10px] font-bold text-gray-400">Đang giữ</span>
+    </div>
+  </>
+);
+
+const StaffLegend = () => (
+  <>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 border-2 border-white/30 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-zinc-300">1</div>
+      <span className="text-[10px] font-bold text-gray-400">Chưa mua</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 rounded-lg staff-legend-swatch staff-legend-swatch--sold flex items-center justify-center text-[8px] font-bold">1</div>
+      <span className="text-[10px] font-bold text-gray-400">Đã mua · chưa soát</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 rounded-lg staff-legend-swatch staff-legend-swatch--checked flex items-center justify-center">
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </div>
+      <span className="text-[10px] font-bold text-gray-400">Đã soát</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 rounded-lg staff-legend-swatch staff-legend-swatch--held flex items-center justify-center text-[8px] font-bold">1</div>
+      <span className="text-[10px] font-bold text-gray-400">Đang giữ</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-5 border-2 border-yellow-500/40 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-yellow-500/80">1</div>
+      <span className="text-[10px] font-bold text-gray-400">VIP</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="seat couple opacity-90 pointer-events-none flex items-center justify-center text-[8px] font-bold w-[calc(2rem*2+0.35rem)] h-5">12·11</div>
+      <span className="text-[10px] font-bold text-gray-400">Ghế đôi</span>
+    </div>
+  </>
+);
+
+/**
+ * @param {'booking' | 'staff'} variant
+ *  - booking: customer booking map (sold seats dimmed with X)
+ *  - staff: gate control map (sold / checked-in / held clearly visible)
+ */
+const LiveSeatMapView = ({
+  rows = [],
+  layoutConfig = null,
+  showLegend = true,
+  compact = false,
+  variant = 'booking',
+}) => {
+  const isStaff = variant === 'staff';
   const aisleLayout = useMemo(() => parseLayoutConfig(layoutConfig), [layoutConfig]);
 
   const seatsByRow = useMemo(() => {
@@ -133,8 +268,11 @@ const LiveSeatMapView = ({ rows = [], layoutConfig = null, showLegend = true, co
     return <p className="text-sm text-gray-500 text-center py-8">Chưa có sơ đồ ghế cho suất này.</p>;
   }
 
+  const renderSeat = isStaff ? renderStaffSeat : renderBookingSeat;
+  const renderCouple = isStaff ? renderStaffCouple : renderBookingCouple;
+
   return (
-    <div className={`live-seat-map ${compact ? 'live-seat-map--compact' : ''}`}>
+    <div className={`live-seat-map ${compact ? 'live-seat-map--compact' : ''} ${isStaff ? 'live-seat-map--staff' : ''}`}>
       <div className={`live-seat-map__screen ${compact ? 'live-seat-map__screen--compact' : ''}`}>
         <div className="screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b from-white/45 to-transparent rounded-[50%] screen-glow" />
         <p className="text-[10px] font-bold text-gray-400 mt-3 tracking-widest uppercase">
@@ -224,7 +362,7 @@ const LiveSeatMapView = ({ rows = [], layoutConfig = null, showLegend = true, co
                           <X className="h-3 w-3" />
                         </div>
                       ) : item.kind === 'couple'
-                        ? renderReadOnlyCouple(item.seats, row)
+                        ? renderCouple(item.seats, row)
                         : (() => {
                           const seat = item.seats[0];
                           const isAisle = hasAisleSlot(aisleLayout, row, seat.seatNumber);
@@ -241,7 +379,7 @@ const LiveSeatMapView = ({ rows = [], layoutConfig = null, showLegend = true, co
                             && !inCompleteVert;
 
                           if (!isAisle) {
-                            return renderReadOnlySeat(seat);
+                            return renderSeat(seat);
                           }
 
                           const verticalCell = inCompleteVert
@@ -305,28 +443,7 @@ const LiveSeatMapView = ({ rows = [], layoutConfig = null, showLegend = true, co
 
       {showLegend && (
         <div className={`live-seat-map__legend ${compact ? 'live-seat-map__legend--compact' : ''}`}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-5 border-2 border-white/25 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-zinc-500">1</div>
-            <span className="text-[10px] font-bold text-gray-400">Ghế thường</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-5 border-2 border-yellow-500/35 rounded-lg bg-transparent flex items-center justify-center text-[8px] font-bold text-yellow-500/70">1</div>
-            <span className="text-[10px] font-bold text-gray-400">VIP</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="seat couple opacity-80 pointer-events-none flex items-center justify-center text-[8px] font-bold w-[calc(2rem*2+0.35rem)] h-5">12·11</div>
-            <span className="text-[10px] font-bold text-gray-400">Ghế đôi</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-5 bg-white/5 border-2 border-red-500/20 rounded-lg flex items-center justify-center text-red-500/25 opacity-60">
-              <X className="h-3 w-3" />
-            </div>
-            <span className="text-[10px] font-bold text-gray-400">Đã đặt</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-5 bg-white border border-white rounded-lg flex items-center justify-center text-[8px] font-bold text-black">1</div>
-            <span className="text-[10px] font-bold text-gray-400">Đang giữ</span>
-          </div>
+          {isStaff ? <StaffLegend /> : <BookingLegend />}
         </div>
       )}
     </div>

@@ -51,9 +51,10 @@ public class SupportController {
         String userKey = userDetails != null ? userDetails.getUsername() : "anonymous";
         supportActionRateLimiter.assertAiChatAllowed(userKey);
 
-        var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
-                .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
-                .toList();
+        var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of()
+                : request.history().stream()
+                        .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
+                        .toList();
         var result = supportAiService.chat(
                 request.message(),
                 history,
@@ -108,7 +109,8 @@ public class SupportController {
             @PathVariable String ticketCode) {
         var ticket = supportTicketService.getByCode(ticketCode);
         if (!ticket.getOwnerEmail().equalsIgnoreCase(userDetails.getUsername())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
         }
         return ResponseEntity.ok(ApiResponse.success(ticket));
     }
@@ -119,7 +121,8 @@ public class SupportController {
             @PathVariable String ticketCode) {
         var ticket = supportTicketService.getByCode(ticketCode);
         if (!ticket.getOwnerEmail().equalsIgnoreCase(userDetails.getUsername())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(ErrorCode.FORBIDDEN, "Bạn không có quyền xem ticket này."));
         }
         return ResponseEntity.ok(ApiResponse.success(supportTicketService.listMessages(ticketCode)));
     }
@@ -134,12 +137,16 @@ public class SupportController {
                 supportTicketService.addUserMessage(ticketCode, userDetails.getUsername(), request.getMessage())));
     }
 
-    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode) {}
+    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode) {
+    }
 
-    public record SupportAiMessageRequest(String role, String content) {}
+    public record SupportAiMessageRequest(String role, String content) {
+    }
 
-    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices) {
-        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons) {
+    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode,
+            SupportTicketResponse autoTicket, List<Map<String, String>> choices) {
+        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode,
+                SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons) {
             List<Map<String, String>> choiceList = null;
             if (choiceButtons != null) {
                 choiceList = new ArrayList<>();
@@ -151,5 +158,6 @@ public class SupportController {
         }
     }
 
-    public record SupportAiStatusResponse(boolean configured, String mode) {}
+    public record SupportAiStatusResponse(boolean configured, String mode) {
+    }
 }
