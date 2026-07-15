@@ -19,9 +19,12 @@ import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.support.dto.request.SupportTicketCreateRequest;
 import com.thdpv.movietheater.support.dto.request.SupportTicketMessageRequest;
+import com.thdpv.movietheater.support.dto.response.SupportAiMessageResponse;
+import com.thdpv.movietheater.support.dto.response.SupportAiSessionResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
 import com.thdpv.movietheater.support.service.SupportAiService;
+import com.thdpv.movietheater.support.service.SupportAiSessionService;
 import com.thdpv.movietheater.support.service.SupportTicketService;
 import com.thdpv.movietheater.support.support.SupportActionRateLimiter;
 
@@ -33,14 +36,17 @@ public class SupportController {
 
     private final SupportAiService supportAiService;
     private final SupportTicketService supportTicketService;
+    private final SupportAiSessionService supportAiSessionService;
     private final SupportActionRateLimiter supportActionRateLimiter;
 
     public SupportController(
             SupportAiService supportAiService,
             SupportTicketService supportTicketService,
+            SupportAiSessionService supportAiSessionService,
             SupportActionRateLimiter supportActionRateLimiter) {
         this.supportAiService = supportAiService;
         this.supportTicketService = supportTicketService;
+        this.supportAiSessionService = supportAiSessionService;
         this.supportActionRateLimiter = supportActionRateLimiter;
     }
 
@@ -51,15 +57,15 @@ public class SupportController {
         String userKey = userDetails != null ? userDetails.getUsername() : "anonymous";
         supportActionRateLimiter.assertAiChatAllowed(userKey);
 
-        var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of()
-                : request.history().stream()
-                        .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
-                        .toList();
+        var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
+                .map(item -> new SupportAiService.SupportAiMessage(item.role(), item.content()))
+                .toList();
+        String ownerEmail = userDetails != null ? userDetails.getUsername() : null;
         var result = supportAiService.chat(
                 request.message(),
                 history,
                 request.mode(),
-                userDetails != null ? userDetails.getUsername() : null);
+                ownerEmail);
 
         // Auto-create ticket if AI produced a ticketAction
         SupportTicketResponse createdTicket = null;
@@ -74,12 +80,59 @@ public class SupportController {
             }
         }
 
+        // Persist the conversation server-side (chat lives in DB, not only in the browser).
+        String sessionCode = request.sessionId();
+        if (ownerEmail != null) {
+            try {
+                List<Map<String, String>> choiceList = null;
+                if (result.choices() != null) {
+                    choiceList = new ArrayList<>();
+                    for (var c : result.choices()) {
+                        choiceList.add(Map.of("text", c.text(), "value", c.value()));
+                    }
+                }
+                var session = supportAiSessionService.recordExchange(
+                        request.sessionId(),
+                        ownerEmail,
+                        null,
+                        request.mode(),
+                        request.message(),
+                        result.reply(),
+                        choiceList);
+                if (session != null) {
+                    sessionCode = session.getSessionCode();
+                }
+            } catch (Exception e) {
+                // Persistence must never break the chat response.
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.success(SupportAiResponse.of(
                 result.reply(),
                 result.suggestedCategory(),
                 createdTicket != null ? createdTicket.getTicketCode() : null,
                 createdTicket,
-                result.choices())));
+                result.choices(),
+                sessionCode)));
+    }
+
+    @GetMapping("/support-ai/sessions")
+    public ResponseEntity<ApiResponse<List<SupportAiSessionResponse>>> myAiSessions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.ok(ApiResponse.success(List.of()));
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                supportAiSessionService.listMine(userDetails.getUsername())));
+    }
+
+    @GetMapping("/support-ai/sessions/{sessionCode}/messages")
+    public ResponseEntity<ApiResponse<List<SupportAiMessageResponse>>> aiSessionMessages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String sessionCode) {
+        String ownerEmail = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(ApiResponse.success(
+                supportAiSessionService.listMessages(sessionCode, ownerEmail)));
     }
 
     @GetMapping("/support-ai/status")
@@ -137,16 +190,21 @@ public class SupportController {
                 supportTicketService.addUserMessage(ticketCode, userDetails.getUsername(), request.getMessage())));
     }
 
-    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode) {
+    @PostMapping("/support-requests/{ticketCode}/cancel")
+    public ResponseEntity<ApiResponse<SupportTicketResponse>> cancelMine(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String ticketCode) {
+        return ResponseEntity.ok(ApiResponse.success(
+                supportTicketService.cancelByOwner(ticketCode, userDetails.getUsername())));
     }
+
+    public record SupportAiRequest(String message, List<SupportAiMessageRequest> history, String mode, String sessionId) {}
 
     public record SupportAiMessageRequest(String role, String content) {
     }
 
-    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode,
-            SupportTicketResponse autoTicket, List<Map<String, String>> choices) {
-        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode,
-                SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons) {
+    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices, String sessionId) {
+        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons, String sessionId) {
             List<Map<String, String>> choiceList = null;
             if (choiceButtons != null) {
                 choiceList = new ArrayList<>();
@@ -154,7 +212,7 @@ public class SupportController {
                     choiceList.add(Map.of("text", c.text(), "value", c.value()));
                 }
             }
-            return new SupportAiResponse(reply, suggestedCategory, autoTicketCode, autoTicket, choiceList);
+            return new SupportAiResponse(reply, suggestedCategory, autoTicketCode, autoTicket, choiceList, sessionId);
         }
     }
 

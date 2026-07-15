@@ -111,6 +111,10 @@ public class SupportTicketService {
         if (!ticket.getOwnerEmail().equalsIgnoreCase(ownerEmail)) {
             throw new IllegalArgumentException("Bạn không có quyền gửi vào ticket này.");
         }
+        String status = ticket.getStatus() == null ? "" : ticket.getStatus().trim().toUpperCase();
+        if (CLOSED_STATUSES.contains(status)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Ticket đã đóng, không thể gửi thêm tin nhắn.");
+        }
         ticket.setLastMessage(message.trim());
         ticket.setLastMessageSender("USER");
         ticket.setReadByAdmin(false);
@@ -139,6 +143,28 @@ public class SupportTicketService {
         }
         SupportTicket saved = supportTicketRepository.save(ticket);
         saveMessage(saved.getUuid(), "ADMIN", adminDisplayName, trimmedMessage);
+        return map(saved);
+    }
+
+    @Transactional
+    public SupportTicketResponse cancelByOwner(String ticketCode, String ownerEmail) {
+        SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
+        if (!ticket.getOwnerEmail().equalsIgnoreCase(ownerEmail)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền hủy ticket này.");
+        }
+        String status = ticket.getStatus() == null ? "" : ticket.getStatus().trim().toUpperCase();
+        if (CLOSED_STATUSES.contains(status)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Ticket đã đóng, không thể hủy thêm.");
+        }
+        ticket.setStatus("CLOSED");
+        ticket.setLiveRequested(false);
+        ticket.setLiveConnected(false);
+        ticket.setReadByAdmin(false);
+        ticket.setLastMessage("Khách đã hủy yêu cầu hỗ trợ.");
+        ticket.setLastMessageSender("USER");
+        SupportTicket saved = supportTicketRepository.save(ticket);
+        saveMessage(saved.getUuid(), "SYSTEM", "NASA BOT", "Khách đã hủy yêu cầu hỗ trợ này.");
         return map(saved);
     }
 

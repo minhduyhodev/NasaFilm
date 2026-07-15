@@ -935,6 +935,13 @@
   padding: 0.875rem 1.25rem;
 }
 
+.support-chat-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .support-chat-head--compact .support-chat-title {
   font-size: 1rem;
 }

@@ -11,6 +11,16 @@ export const supportService = {
     return response.data.data ?? response.data;
   },
 
+  async getAiSessions() {
+    const response = await authService.api.get('/api/support-ai/sessions');
+    return response.data.data ?? response.data;
+  },
+
+  async getAiSessionMessages(sessionCode) {
+    const response = await authService.api.get(`/api/support-ai/sessions/${sessionCode}/messages`);
+    return response.data.data ?? response.data;
+  },
+
   async createSupportRequest(payload) {
     const response = await authService.api.post('/api/support-requests', payload);
     return response.data.data ?? response.data;
@@ -53,6 +63,11 @@ export const supportService = {
 
   async sendSupportMessage(ticketCode, payload) {
     const response = await authService.api.post(`/api/support-requests/${ticketCode}/messages`, payload);
+    return response.data.data ?? response.data;
+  },
+
+  async cancelSupportRequest(ticketCode) {
+    const response = await authService.api.post(`/api/support-requests/${ticketCode}/cancel`);
     return response.data.data ?? response.data;
   },
 
