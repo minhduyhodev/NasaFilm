@@ -40,7 +40,7 @@ const PageHeader = ({
         )}
         <div className="min-w-0">
           {eyebrow && <p className="adm-eyebrow">{eyebrow}</p>}
-          <h1 className={`adm-title ${variant === 'default' ? 'adm-title--sm' : ''} truncate`}>
+          <h1 className={`adm-title ${variant === 'compact' ? 'adm-title--sm' : ''} truncate`}>
             {title}
           </h1>
           {description && <p className="adm-desc">{description}</p>}

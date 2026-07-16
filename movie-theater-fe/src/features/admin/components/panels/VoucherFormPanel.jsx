@@ -5,7 +5,7 @@ import { systemConfigService } from '../../../../shared/services/systemConfigSer
 import { getPointsToCashValue } from '../../../../shared/utils/systemConfig';
 import { TIER_FORM_OPTIONS } from '../../../../shared/utils/memberTiers';
 import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../../utils/voucherFormUtils';
-import { PrimaryButton, GhostButton } from '..';
+import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
 
 const VOUCHER_TYPES = {
@@ -241,14 +241,18 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           </label>
           <input type="number" min="1" className={adminInputClass} placeholder="Không giới hạn" value={form.maxUsagePerUser} onChange={(e) => setForm((p) => ({ ...p, maxUsagePerUser: e.target.value }))} />
         </div>
-        <div>
-          <label className={adminLabelClass}>Ngày bắt đầu *</label>
-          <input type="datetime-local" className={adminInputClass} value={form.startDate} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} required />
-        </div>
-        <div>
-          <label className={adminLabelClass}>Ngày kết thúc *</label>
-          <input type="datetime-local" className={adminInputClass} value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} required />
-        </div>
+        <AdminDateTimePicker
+          label="Ngày bắt đầu *"
+          value={form.startDate}
+          onChange={(v) => setForm((p) => ({ ...p, startDate: v }))}
+          required
+        />
+        <AdminDateTimePicker
+          label="Ngày kết thúc *"
+          value={form.endDate}
+          onChange={(v) => setForm((p) => ({ ...p, endDate: v }))}
+          required
+        />
         <div>
           <label className={adminLabelClass}>Trạng thái *</label>
           <select className={adminSelectClass} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Search, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
+import { AdminDateTimePicker } from '../../components';
 
 const getPosterSrc = (rawUrl, width = 120) =>
   rawUrl?.trim() ? resolveMediaUrl(rawUrl.trim(), width) : FALLBACK_POSTER;
@@ -182,15 +183,12 @@ const ShowtimesCreateModal = ({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Datetime Picker */}
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Thời Gian Bắt Đầu *</label>
-                  <input
-                    type="datetime-local"
-                    className="w-full bg-[#0F1322] border border-[#1a2238] rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500/50"
+                  <AdminDateTimePicker
+                    label="Thời Gian Bắt Đầu *"
                     value={formData.startTime}
-                    min={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16)}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                    onChange={(v) => setFormData((prev) => ({ ...prev, startTime: v }))}
+                    minDate={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 10)}
                     required
                   />
                 </div>

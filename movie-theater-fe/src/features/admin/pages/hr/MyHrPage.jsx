@@ -18,7 +18,7 @@ import {
   Trash2,
   Wallet,
 } from 'lucide-react';
-import { AdminPage, AdminKpiGrid, AdminModal, PageHeader, PrimaryButton } from '../../components';
+import { AdminPage, AdminKpiGrid, AdminModal, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminTableShell, AdminDatePicker } from '../../components';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { userNotificationApi } from '../../../../shared/services/userNotificationApi';
@@ -44,6 +44,7 @@ import {
   monthRangeIso,
   shiftCheckInState,
   statusBadge,
+  statusVariant,
   todayIso,
   weekdayLabel,
 } from './hrUtils';
@@ -282,18 +283,13 @@ const MyHrPage = () => {
         </div>
       )}
 
-      <div className="hr-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`hr-tab${tab === t.id ? ' hr-tab--active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <FilterPills
+        value={tab}
+        onChange={setTab}
+        items={TABS}
+        ariaLabel="Tab HR cá nhân"
+        className="mb-4"
+      />
 
       {loading ? (
         <div className="hr-state">
@@ -510,9 +506,9 @@ function ShiftCard({ shift, onCheckIn, onCheckOut }) {
         {cancelled ? (
           <span className="hr-badge hr-badge--danger">Đã hủy</span>
         ) : shift.attendanceStatus ? (
-          <span className={statusBadge(ATTENDANCE_STATUS_META, shift.attendanceStatus).className}>
+          <StatusBadge variant={statusVariant(ATTENDANCE_STATUS_META, shift.attendanceStatus)}>
             {statusBadge(ATTENDANCE_STATUS_META, shift.attendanceStatus).label}
-          </span>
+          </StatusBadge>
         ) : windowState === 'MISSED' ? (
           <span className="hr-badge hr-badge--danger">Đã lỡ ca</span>
         ) : windowState === 'UPCOMING' ? (
@@ -578,8 +574,8 @@ function AttendanceList({ attendance }) {
     );
   }
   return (
-    <div className="hr-table-wrap">
-      <table className="hr-table">
+    <AdminTableShell>
+      <table className="adm-table hr-table">
         <thead>
           <tr>
             <th>Ngày</th>
@@ -607,20 +603,20 @@ function AttendanceList({ attendance }) {
                 )}
               </td>
               <td>
-                <span className={statusBadge(ATTENDANCE_STATUS_META, a.attendanceStatus).className}>
+                <StatusBadge variant={statusVariant(ATTENDANCE_STATUS_META, a.attendanceStatus)}>
                   {statusBadge(ATTENDANCE_STATUS_META, a.attendanceStatus).label}
-                </span>
+                </StatusBadge>
               </td>
               <td>
-                <span className={statusBadge(APPROVAL_STATUS_META, a.approvalStatus).className}>
+                <StatusBadge variant={statusVariant(APPROVAL_STATUS_META, a.approvalStatus)}>
                   {statusBadge(APPROVAL_STATUS_META, a.approvalStatus).label}
-                </span>
+                </StatusBadge>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableShell>
   );
 }
 
@@ -634,8 +630,8 @@ function PayslipList({ payslips }) {
     );
   }
   return (
-    <div className="hr-table-wrap">
-      <table className="hr-table">
+    <AdminTableShell>
+      <table className="adm-table hr-table">
         <thead>
           <tr>
             <th>Kỳ lương</th>
@@ -661,15 +657,15 @@ function PayslipList({ payslips }) {
               <td className="hr-num" style={{ color: '#f87171' }}>{formatMoney(p.deductionTotal)}</td>
               <td className="hr-num hr-strong">{formatMoney(p.netPay)}</td>
               <td>
-                <span className={statusBadge(PAYSLIP_STATUS_META, p.status).className}>
+                <StatusBadge variant={statusVariant(PAYSLIP_STATUS_META, p.status)}>
                   {statusBadge(PAYSLIP_STATUS_META, p.status).label}
-                </span>
+                </StatusBadge>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableShell>
   );
 }
 
@@ -745,12 +741,22 @@ function LeaveTab({ leaves, onChanged, confirm }) {
         </div>
         <div className="hr-inline" style={{ gap: 12, marginTop: 12 }}>
           <div className="hr-field" style={{ flex: 1 }}>
-            <label className="hr-field__label">Từ ngày</label>
-            <input type="date" className={adminInputClass} value={fromDate} min={todayIso()} onChange={(e) => setFromDate(e.target.value)} />
+            <AdminDatePicker
+              label="Từ ngày"
+              value={fromDate}
+              onChange={setFromDate}
+              min={todayIso()}
+              size="sm"
+            />
           </div>
           <div className="hr-field" style={{ flex: 1 }}>
-            <label className="hr-field__label">Đến ngày</label>
-            <input type="date" className={adminInputClass} value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} />
+            <AdminDatePicker
+              label="Đến ngày"
+              value={toDate}
+              onChange={setToDate}
+              min={fromDate || todayIso()}
+              size="sm"
+            />
           </div>
         </div>
         <div className="hr-field" style={{ marginTop: 12 }}>
@@ -784,9 +790,9 @@ function LeaveTab({ leaves, onChanged, confirm }) {
               <div key={l.uuid} className="hr-card">
                 <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
                   <span className="hr-strong">{leaveTypeLabel(l.leaveType)}</span>
-                  <span className={statusBadge(REQUEST_STATUS_META, l.status).className}>
+                  <StatusBadge variant={statusVariant(REQUEST_STATUS_META, l.status)}>
                     {statusBadge(REQUEST_STATUS_META, l.status).label}
-                  </span>
+                  </StatusBadge>
                 </div>
                 <p className="hr-muted" style={{ fontSize: 13 }}>
                   {formatDate(l.fromDate)} → {formatDate(l.toDate)} · {l.days} ngày
@@ -982,9 +988,9 @@ function SwapTab({ swaps, onChanged, confirm }) {
             {swaps.map((s) => (
               <div key={s.uuid} className="hr-card">
                 <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span className={statusBadge(REQUEST_STATUS_META, s.status).className}>
+                  <StatusBadge variant={statusVariant(REQUEST_STATUS_META, s.status)}>
                     {statusBadge(REQUEST_STATUS_META, s.status).label}
-                  </span>
+                  </StatusBadge>
                   <span className="hr-muted" style={{ fontSize: 11 }}>{formatDate(s.createdAt)}</span>
                 </div>
                 <SwapPartyLine label="Ca của bạn" party={s.requester} />

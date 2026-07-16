@@ -11,6 +11,7 @@ import {
   Ticket,
 } from 'lucide-react';
 import StaffQrScanner, { canUseQrScanner } from '../../../../shared/components/qr/StaffQrScanner';
+import { adminInputClass } from '../../components/adminFormStyles';
 import StaffCheckInSessionHistory from './StaffCheckInSessionHistory';
 
 export const StaffTicketCheckInForm = ({
@@ -79,7 +80,7 @@ export const StaffTicketCheckInForm = ({
       <form className="staff-control__checkin-form" onSubmit={onCheckIn}>
         <input
           type="text"
-          className="staff-control__input"
+          className={adminInputClass}
           placeholder="Nhập hoặc quét mã vé..."
           value={ticketCode}
           onChange={(e) => setTicketCode(e.target.value)}

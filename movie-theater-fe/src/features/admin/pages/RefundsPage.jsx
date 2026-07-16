@@ -6,7 +6,7 @@ import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import Pagination from '../../../shared/components/Pagination';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
-import { AdminPage, PageHeader, PrimaryButton } from '../components';
+import { AdminPage, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminTableShell } from '../components';
 import './RefundsPage.css';
 
 function formatMoney(amount) {
@@ -35,11 +35,12 @@ function approverLabel(item) {
   return '—';
 }
 
-function statusBadgeClass(status) {
+function statusVariant(status) {
   const normalized = (status || '').toUpperCase();
-  if (normalized === 'COMPLETED') return 'refunds-status-badge refunds-status-badge--success';
-  if (normalized === 'FAILED') return 'refunds-status-badge refunds-status-badge--failed';
-  return 'refunds-status-badge';
+  if (normalized === 'COMPLETED') return 'success';
+  if (normalized === 'FAILED') return 'danger';
+  if (normalized === 'PENDING' || normalized === 'PROCESSING') return 'warning';
+  return 'muted';
 }
 
 function NoteCell({ item }) {
@@ -151,36 +152,43 @@ const RefundsPage = () => {
         ]}
       />
 
-      <div className="refunds-tabs">
-        <button
-          type="button"
-          className={`refunds-tab${listTab === 'pending' ? ' refunds-tab--active' : ''}`}
-          onClick={() => setListTab('pending')}
-        >
-          Chờ duyệt
-        </button>
-        <button
-          type="button"
-          className={`refunds-tab${listTab === 'history' ? ' refunds-tab--active' : ''}`}
-          onClick={() => setListTab('history')}
-        >
-          Lịch sử duyệt
-        </button>
-      </div>
-
+      <AdminTableShell
+        toolbar={(
+          <FilterPills
+            value={listTab}
+            onChange={setListTab}
+            items={[
+              { id: 'pending', label: 'Chờ duyệt', count: listTab === 'pending' ? refunds.length : undefined },
+              { id: 'history', label: 'Lịch sử duyệt', count: listTab === 'history' ? refunds.length : undefined },
+            ]}
+            ariaLabel="Nhóm hoàn tiền"
+          />
+        )}
+        footer={listTab === 'history' && refunds.length > 0 ? (
+          <Pagination
+            currentPage={historyPage}
+            totalItems={refunds.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setHistoryPage}
+            onItemsPerPageChange={(size) => {
+              setItemsPerPage(size);
+              setHistoryPage(1);
+            }}
+          />
+        ) : null}
+      >
       {isLoading ? (
-        <div className="refunds-state">
+        <div className="adm-loading">
           <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
           <p>Đang tải danh sách hoàn tiền...</p>
         </div>
       ) : refunds.length === 0 ? (
-        <div className="refunds-state">
+        <div className="adm-empty">
           <CheckCircle2 className="h-10 w-10 text-emerald-500" />
           <p>{emptyMessage}</p>
         </div>
       ) : (
-        <div className="refunds-table-wrap">
-          <table className="refunds-table">
+          <table className="adm-table">
             <thead>
               <tr>
                 <th>Khách hàng</th>
@@ -203,24 +211,26 @@ const RefundsPage = () => {
                 <tr key={item.refundUuid}>
                   <td>{item.customerEmail || '—'}</td>
                   <td>{item.movieTitle || '—'}</td>
-                  <td className="refunds-amount">{formatMoney(item.amount)}</td>
+                  <td className="refunds-amount adm-tabular">{formatMoney(item.amount)}</td>
                   <NoteCell item={item} />
                   <td>
-                    <span className={statusBadgeClass(item.status)}>{item.status || 'PENDING'}</span>
+                    <StatusBadge variant={statusVariant(item.status)}>
+                      {item.status || 'PENDING'}
+                    </StatusBadge>
                   </td>
-                  <td>{formatDate(item.createdAt)}</td>
+                  <td className="adm-tabular">{formatDate(item.createdAt)}</td>
                   {listTab === 'history' && (
                     <>
                       <td className="refunds-approver-cell">
-                        <span className="refunds-approver-name">
+                        <span className="refunds-approver-name adm-table__primary">
                           {item.approvedByName || item.approvedByEmail || '—'}
                         </span>
                         {item.approvedByEmail && item.approvedByName && (
-                          <span className="refunds-approver-email">{item.approvedByEmail}</span>
+                          <span className="refunds-approver-email adm-table__secondary">{item.approvedByEmail}</span>
                         )}
                         <span className="refunds-approver-role">{approverLabel(item)}</span>
                       </td>
-                      <td>{formatDate(item.approvedAt)}</td>
+                      <td className="adm-tabular">{formatDate(item.approvedAt)}</td>
                     </>
                   )}
                   {listTab === 'pending' && (
@@ -238,21 +248,8 @@ const RefundsPage = () => {
               ))}
             </tbody>
           </table>
-        </div>
       )}
-
-      {listTab === 'history' && refunds.length > 0 && (
-        <Pagination
-          currentPage={historyPage}
-          totalItems={refunds.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setHistoryPage}
-          onItemsPerPageChange={(size) => {
-            setItemsPerPage(size);
-            setHistoryPage(1);
-          }}
-        />
-      )}
+      </AdminTableShell>
     </AdminPage>
   );
 };

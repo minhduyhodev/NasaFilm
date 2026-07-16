@@ -16,6 +16,13 @@ import AdminModal from "../components/AdminModal";
 import ActorFormPanel from "../components/panels/ActorFormPanel";
 import CountryFormPanel from "../components/panels/CountryFormPanel";
 import GenreFormPanel from "../components/panels/GenreFormPanel";
+import {
+  AdminPage,
+  PageHeader,
+  AdminKpiGrid,
+  FilterPills,
+  AdminTableShell,
+} from "../components";
 import "./MediaCatalogPage.css";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 
@@ -388,89 +395,62 @@ const MediaCatalogPage = () => {
   };
 
   return (
-    <div className="space-y-6 text-left">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">
-            Danh mục nội dung
-          </p>
-          <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">
-            Truyền thông
-          </h1>
-          <p className="text-sm text-gray-400 mt-2">
-            Quản lý diễn viên, quốc gia và thể loại phim trong hệ thống.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm text-white font-bold transition-all shadow-lg cursor-pointer shrink-0 self-start md:self-auto"
-          onClick={handleAdd}
-        >
-          <Plus size={16} />
-          {addLabel}
-        </button>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Danh mục nội dung"
+        title="Truyền thông"
+        description="Quản lý diễn viên, quốc gia và thể loại phim trong hệ thống."
+        primaryAction={{
+          label: addLabel,
+          icon: <Plus size={16} />,
+          onClick: handleAdd,
+        }}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[
-          { label: "Diễn viên", value: actors.length, icon: User, color: "text-indigo-400", kpiClass: "kpi-total" },
+      <AdminKpiGrid
+        columns={3}
+        items={[
+          { label: "Diễn viên", value: actors.length, icon: User, color: "text-sky-400", kpiClass: "kpi-total" },
           { label: "Quốc gia", value: countriesList.length, icon: Globe, color: "text-emerald-400", kpiClass: "kpi-represented" },
           { label: "Thể loại", value: genresList.length, icon: Tags, color: "text-amber-400", kpiClass: "kpi-popular" },
-        ].map((kpi) => (
-          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">
-                {kpi.label}
-              </span>
-              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
-            </div>
-            <p className={`text-xl font-black ${kpi.color} leading-none`}>{kpi.value}</p>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
-      <div className="media-catalog-panel">
-        <div className="media-catalog-toolbar">
-          <div className="media-catalog-tabs">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`media-catalog-tab ${isActive ? "media-catalog-tab--active" : ""}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-          <div className="media-catalog-search">
-            <Search className="media-catalog-search-icon" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+      <AdminTableShell
+        toolbar={
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+            <FilterPills
+              value={activeTab}
+              onChange={setActiveTab}
+              items={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+              ariaLabel="Danh mục truyền thông"
             />
+            <div className="adm-toolbar__search max-w-md w-full">
+              <Search className="adm-toolbar__search-icon" />
+              <input
+                type="text"
+                className="adm-input"
+                placeholder={searchPlaceholder}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-
+        }
+        footer={
+          totalItems > 0 ? (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          ) : null
+        }
+      >
         {renderTabContent()}
-      </div>
-
-      {totalItems > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
-      )}
+      </AdminTableShell>
 
       <AdminModal
         open={actorModal.open}
@@ -520,7 +500,7 @@ const MediaCatalogPage = () => {
           onCancel={() => setGenreModal({ open: false, mode: "create", genre: null })}
         />
       </AdminModal>
-    </div>
+    </AdminPage>
   );
 };
 

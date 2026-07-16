@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Mail, Plus, Trash2, Eye } from 'lucide-react';
 import { adminEmailTemplateService } from '../api/adminEmailTemplateService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { AdminPage } from '../components';
+import { AdminPage, PageHeader } from '../components';
 import EmailTemplateBlockEditor from '../components/EmailTemplateBlockEditor';
 import {
   BLOCK_PRESETS,
@@ -233,21 +233,16 @@ const EmailTemplatesPage = () => {
 
   return (
     <AdminPage className="et-page">
-      <header>
-        <div className="et-page__top-row">
-          <div>
-            <p className="et-page__eyebrow">Cấu hình hệ thống</p>
-            <h1 className="et-page__title">Cấu hình mẫu email</h1>
-            <p className="et-page__desc">
-              Soạn nội dung bằng đoạn văn và chọn trường dữ liệu có sẵn. Hệ thống tự bọc khung HTML NASA FILM khi gửi.
-            </p>
-          </div>
-          <button type="button" className="et-page__action" onClick={startCreate}>
-            <Plus className="w-3.5 h-3.5" />
-            Thêm mẫu
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Cấu hình hệ thống"
+        title="Cấu hình mẫu email"
+        description="Soạn nội dung bằng đoạn văn và chọn trường dữ liệu có sẵn. Hệ thống tự bọc khung HTML NASA FILM khi gửi."
+        primaryAction={{
+          label: 'Thêm mẫu',
+          icon: <Plus className="w-3.5 h-3.5" />,
+          onClick: startCreate,
+        }}
+      />
 
       <div className="et-page__workspace">
         <div className="et-page__stats">

@@ -20,8 +20,8 @@ import {
   DEFAULT_SCREENING_FORMATS,
 } from '../../../shared/constants/systemConfig';
 import { normalizeNasaBotConfig, writeCachedSystemConfig } from '../../../shared/utils/systemConfig';
-import { AdminPage } from '../components';
-import ActionMenu from '../components/ActionMenu';
+import { AdminPage, PageHeader, FilterPills, AdminKpiGrid } from '../components';
+import { adminInputClass } from '../components/adminFormStyles';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { supportService } from '../../../shared/services/supportService';
 import './ConfigPage.css';
@@ -115,7 +115,7 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
               <td className="sys-config__table-code">
                 <input
                   type="text"
-                  className="sys-config__input"
+                  className={`sys-config__input ${adminInputClass}`}
                   value={item.value}
                   placeholder={valuePlaceholder}
                   onChange={(e) => updateItem(index, 'value', e.target.value.toUpperCase().replace(/\s+/g, '_'))}
@@ -378,10 +378,42 @@ const ConfigPage = () => {
   };
 
   const stats = useMemo(() => ([
-    { label: 'Khung giờ', value: `${config.startTime} – ${config.endTime}` },
-    { label: 'Vé thường', value: formatVnd(config.basePrice) },
-    { label: 'Giữ ghế', value: `${config.seatLockMinutes} phút` },
-    { label: 'Orbit checkout', value: `${Math.max(config.orbitCheckoutTtlMinutes || 15, config.seatLockMinutes || 5)} phút` },
+    {
+      id: 'hours',
+      label: 'Khung giờ',
+      value: `${config.startTime} – ${config.endTime}`,
+      badge: 'suất chiếu',
+      icon: Clock,
+      color: 'text-red-400',
+      kpiClass: 'kpi-total',
+    },
+    {
+      id: 'price',
+      label: 'Vé thường',
+      value: formatVnd(config.basePrice),
+      badge: 'giá cơ bản',
+      icon: Banknote,
+      color: 'text-amber-400',
+      kpiClass: 'kpi-showing',
+    },
+    {
+      id: 'lock',
+      label: 'Giữ ghế',
+      value: `${config.seatLockMinutes} phút`,
+      badge: 'seat lock',
+      icon: Shield,
+      color: 'text-emerald-400',
+      kpiClass: 'kpi-upcoming',
+    },
+    {
+      id: 'orbit',
+      label: 'Orbit checkout',
+      value: `${Math.max(config.orbitCheckoutTtlMinutes || 15, config.seatLockMinutes || 5)} phút`,
+      badge: 'TTL',
+      icon: MonitorPlay,
+      color: 'text-sky-400',
+      kpiClass: 'kpi-hidden',
+    },
   ]), [config]);
 
   const nasaBot = normalizeNasaBotConfig(config.nasaBot || DEFAULT_SYSTEM_CONFIG.nasaBot);
@@ -393,76 +425,48 @@ const ConfigPage = () => {
 
   if (isLoading) {
     return (
-      <div className="sys-config__loading">
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        Đang tải…
-      </div>
+      <AdminPage className="sys-config">
+        <div className="sys-config__loading">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Đang tải cấu hình…
+        </div>
+      </AdminPage>
     );
   }
 
   return (
     <AdminPage className="sys-config">
-      <header className="sys-config__top">
-        <div className="sys-config__top-row">
-          <div>
-            <p className="sys-config__eyebrow">Cấu hình hệ thống</p>
-            <h1 className="sys-config__title">Trung tâm điều khiển vận hành</h1>
-            <p className="sys-config__desc">
-              Tham số suất chiếu, giá vé, giới hạn đặt chỗ và streaming — mọi thay đổi áp dụng toàn hệ thống.
-            </p>
-          </div>
-          <div className="sys-config__actions">
-            <ActionMenu
-              items={[
-                {
-                  label: 'Khôi phục mặc định',
-                  icon: <RotateCcw className="w-3.5 h-3.5" />,
-                  onClick: handleReset,
-                  destructive: true,
-                  disabled: isSaving,
-                },
-              ]}
-            />
-            <button
-              type="button"
-              className="sys-config__save"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Đang lưu…' : 'Lưu cấu hình'}
-            </button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Cấu hình hệ thống"
+        title="Trung tâm điều khiển vận hành"
+        description="Tham số suất chiếu, giá vé, giới hạn đặt chỗ và streaming — mọi thay đổi áp dụng toàn hệ thống."
+        primaryAction={{
+          label: isSaving ? 'Đang lưu…' : 'Lưu cấu hình',
+          onClick: handleSave,
+          disabled: isSaving,
+        }}
+        menuItems={[
+          {
+            label: 'Khôi phục mặc định',
+            icon: <RotateCcw className="w-3.5 h-3.5" />,
+            onClick: handleReset,
+            destructive: true,
+            disabled: isSaving,
+          },
+        ]}
+      />
 
-      <div className="sys-config__workspace">
-        <div className="sys-config__workspace-stats">
-          {stats.map((item) => (
-            <div key={item.label} className="sys-config__stat">
-              <span className="sys-config__stat-label">{item.label}</span>
-              <span className="sys-config__stat-value">{item.value}</span>
-            </div>
-          ))}
-        </div>
+      <AdminKpiGrid items={stats} />
 
-        <nav className="sys-config__tabs" aria-label="Nhóm cấu hình">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`sys-config__tab${isActive ? ' is-active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+      <section className="sys-config__workspace">
+        <div className="sys-config__workspace-toolbar">
+          <FilterPills
+            value={activeTab}
+            onChange={setActiveTab}
+            items={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+            ariaLabel="Nhóm cấu hình"
+          />
+        </div>
 
         <div className="sys-config__body" key={activeTab}>
         {activeTab === 'showtime' && (
@@ -748,7 +752,7 @@ const ConfigPage = () => {
           </div>
         )}
         </div>
-      </div>
+      </section>
     </AdminPage>
   );
 };

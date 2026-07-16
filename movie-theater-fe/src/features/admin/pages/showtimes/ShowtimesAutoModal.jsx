@@ -14,6 +14,7 @@ import {
   formatPreviewSlot,
 } from './showtimesAutoUtils';
 import ShowtimesAutoMoviePicker from './ShowtimesAutoMoviePicker';
+import { AdminDatePicker } from '../../components';
 
 const STEPS = [
   { id: 'scope', label: 'Phạm vi', icon: Building2 },
@@ -170,27 +171,18 @@ const ShowtimesAutoModal = ({
           {autoStep === 0 && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="st-auto-label">Ngày bắt đầu *</label>
-                  <input
-                    type="date"
-                    className="st-auto-input"
-                    value={autoFormData.startDate}
-                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="st-auto-label">Ngày kết thúc *</label>
-                  <input
-                    type="date"
-                    className="st-auto-input"
-                    value={autoFormData.endDate}
-                    min={autoFormData.startDate}
-                    onChange={(e) => setAutoFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                    required
-                  />
-                </div>
+                <AdminDatePicker
+                  label="Ngày bắt đầu *"
+                  value={autoFormData.startDate}
+                  onChange={(v) => setAutoFormData((prev) => ({ ...prev, startDate: v }))}
+                  max={autoFormData.endDate || undefined}
+                />
+                <AdminDatePicker
+                  label="Ngày kết thúc *"
+                  value={autoFormData.endDate}
+                  onChange={(v) => setAutoFormData((prev) => ({ ...prev, endDate: v }))}
+                  min={autoFormData.startDate || undefined}
+                />
               </div>
 
               <div>

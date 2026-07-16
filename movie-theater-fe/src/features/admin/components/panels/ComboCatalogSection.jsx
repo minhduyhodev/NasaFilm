@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Plus, Search, Loader2, ChevronDown, Image as ImageIcon, Edit2, Trash2,
+  Plus, Search, Loader2, Image as ImageIcon, Edit2, Trash2,
 } from 'lucide-react';
 import { comboService } from '../../../../shared/services/comboService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import AdminModal from '../AdminModal';
 import ComboFormPanel from './ComboFormPanel';
-import { PrimaryButton, GhostButton } from '../index';
+import {
+  AdminPage,
+  PageHeader,
+  FilterPills,
+  StatusBadge,
+  PrimaryButton,
+  GhostButton,
+} from '../index';
 import '../../pages/AdminCombosPage.css';
 import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 
@@ -16,7 +23,6 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [comboModal, setComboModal] = useState({ open: false, mode: 'create', combo: null });
 
@@ -37,6 +43,15 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
     fetchCombos();
   }, []);
 
+  const counts = useMemo(() => {
+    const active = combosList.filter((c) => c?.status === 'ACTIVE').length;
+    return {
+      all: combosList.length,
+      active,
+      inactive: combosList.length - active,
+    };
+  }, [combosList]);
+
   const filteredCombos = combosList.filter((combo) => {
     if (!combo) return false;
     const comboName = combo.name || '';
@@ -48,13 +63,6 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
     if (statusFilter === 'inactive') return matchesSearch && !isComboActive;
     return matchesSearch;
   });
-
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả bắp nước', icon: <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 shrink-0" /> },
-    { value: 'active', label: 'Hoạt động', icon: <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shrink-0" /> },
-    { value: 'inactive', label: 'Vô hiệu hóa', icon: <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 shrink-0" /> },
-  ];
-  const currentStatusOpt = statusOptions.find((opt) => opt.value === statusFilter) || statusOptions[0];
 
   const closeComboModal = () => setComboModal({ open: false, mode: 'create', combo: null });
 
@@ -96,169 +104,122 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
       ? comboModal.combo.status === 'ACTIVE' ? 'Đang bán · Combo bắp nước' : 'Tạm ngưng · Combo bắp nước'
       : undefined;
 
-  const Wrapper = embedded ? 'section' : 'div';
-  const wrapperProps = embedded ? { id: sectionId, className: 'combo-catalog-section' } : { className: 'space-y-6 text-left' };
+  const openCreate = () => setComboModal({ open: true, mode: 'create', combo: null });
 
-  return (
-    <Wrapper {...wrapperProps}>
-      {!embedded && (
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-1.5">Trung Tâm Quản Lý Dịch Vụ</p>
-            <h1 className="text-4xl font-black text-white uppercase leading-none tracking-tight">Quản Lý Bắp Nước</h1>
-            <p className="text-sm text-gray-400 mt-2">Xem danh mục, điều chỉnh giá bán và trạng thái bán bắp nước đi kèm phim.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setComboModal({ open: true, mode: 'create', combo: null })}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2.5 text-xs text-white font-bold transition shadow-lg shadow-red-600/10 cursor-pointer shrink-0 self-start md:self-auto"
-          >
-            <Plus size={14} /> Tạo Combo Mới
-          </button>
-        </div>
-      )}
-
-      {embedded && (
+  const body = (
+    <>
+      {!embedded ? (
+        <PageHeader
+          eyebrow="Dịch vụ đi kèm"
+          title="Quản lý bắp nước"
+          description="Xem danh mục, điều chỉnh giá bán và trạng thái bán bắp nước đi kèm phim."
+          primaryAction={{
+            label: 'Tạo combo mới',
+            icon: <Plus size={16} />,
+            onClick: openCreate,
+          }}
+        />
+      ) : (
         <div className="combo-catalog-section__header">
           <div>
             <h2 className="combo-catalog-section__title">Danh mục bắp nước</h2>
             <p className="combo-catalog-section__desc">Quản lý giá bán, mô tả và trạng thái các gói combo đi kèm vé.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setComboModal({ open: true, mode: 'create', combo: null })}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-3 py-2 text-xs text-white font-bold transition cursor-pointer shrink-0"
-          >
+          <PrimaryButton type="button" onClick={openCreate}>
             <Plus size={14} /> Tạo combo
-          </button>
+          </PrimaryButton>
         </div>
       )}
 
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${embedded ? 'combo-catalog-section__toolbar' : 'mb-6 p-1'}`}>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
-          <input
-            type="text"
-            autoComplete="off"
-            placeholder="Tìm kiếm bắp nước theo tên, mô tả..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-[#0f172a] border border-[#242d42] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 transition-colors"
+      <div className="adm-panel">
+        <div className="adm-toolbar flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="adm-toolbar__search max-w-md w-full">
+            <Search className="adm-toolbar__search-icon" />
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Tìm kiếm bắp nước theo tên, mô tả..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="adm-input"
+            />
+          </div>
+          <FilterPills
+            value={statusFilter}
+            onChange={setStatusFilter}
+            items={[
+              { id: 'all', label: 'Tất cả', count: counts.all },
+              { id: 'active', label: 'Hoạt động', count: counts.active },
+              { id: 'inactive', label: 'Vô hiệu', count: counts.inactive },
+            ]}
+            ariaLabel="Lọc trạng thái combo"
           />
         </div>
 
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <div className="relative text-left z-30">
-            <button
-              type="button"
-              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f172a] border border-[#242d42] text-gray-300 text-xs font-semibold hover:text-white hover:border-[#475569] focus:outline-none transition-all duration-200 cursor-pointer min-w-[160px] h-[34px] justify-between"
-            >
-              <span className="flex items-center">
-                {currentStatusOpt.icon}
-                <span>{currentStatusOpt.label}</span>
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
+        <div className="adm-panel__body">
+          {isLoading ? (
+            <div className="adm-loading min-h-[240px]">
+              <Loader2 className="w-8 h-8 text-[var(--adm-accent)] animate-spin" />
+              <p className="text-sm text-[var(--adm-text-dim)]">Đang tải danh mục bắp nước...</p>
+            </div>
+          ) : filteredCombos.length === 0 ? (
+            <div className="adm-empty">
+              <p className="font-semibold text-[var(--adm-text)]">Không tìm thấy combo nào</p>
+              <p className="text-xs text-[var(--adm-text-dim)] mt-1">
+                Hãy tạo gói combo mới hoặc thay đổi từ khóa tìm kiếm.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--adm-border)]">
+              <div className="px-1 pb-3 text-xs font-semibold text-[var(--adm-text-muted)]">
+                Danh mục ({filteredCombos.length} gói)
+              </div>
+              {filteredCombos.map((combo) => {
+                const isActiveCombo = combo.status === 'ACTIVE';
+                return (
+                  <button
+                    key={combo.uuid}
+                    type="button"
+                    onClick={() => setComboModal({ open: true, mode: 'detail', combo })}
+                    className="flex items-center flex-col md:flex-row py-4 gap-4 hover:bg-white/[0.02] transition-colors w-full text-left cursor-pointer bg-transparent border-none"
+                  >
+                    <div className="w-20 h-20 rounded-[var(--adm-radius-sm)] overflow-hidden border border-[var(--adm-border)] bg-black/30 shrink-0">
+                      {combo.imageUrl ? (
+                        <img src={combo.imageUrl} alt={combo.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[var(--adm-text-dim)]">
+                          <ImageIcon size={24} />
+                        </div>
+                      )}
+                    </div>
 
-            {isStatusDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsStatusDropdownOpen(false)} />
-                <div className="absolute right-0 mt-1 w-44 bg-[#1c2333] border border-[#242d42] rounded-lg shadow-xl p-1.5 space-y-0.5 animate-dropdown-fade-in z-20 text-left">
-                  {statusOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter(opt.value);
-                        setIsStatusDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 rounded-md hover:bg-white/5 transition text-left text-xs font-semibold cursor-pointer ${statusFilter === opt.value ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'text-gray-300 border border-transparent'}`}
-                    >
-                      {opt.icon}
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                    <div className="flex-1 min-w-0 text-center md:text-left">
+                      <h3 className="text-sm font-bold text-[var(--adm-text)] uppercase tracking-wide leading-snug">
+                        {combo.name}
+                      </h3>
+                      <p className="text-[11px] text-[var(--adm-text-dim)] mt-1 leading-relaxed line-clamp-2 pr-4">
+                        {combo.description || 'Chưa có mô tả chi tiết.'}
+                      </p>
+                    </div>
+
+                    <div className="w-32 shrink-0 text-center">
+                      <span className="text-sm font-bold text-amber-400 block adm-tabular">
+                        {(combo.price || 0).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+
+                    <div className="w-32 shrink-0 flex justify-center">
+                      <StatusBadge variant={isActiveCombo ? 'success' : 'danger'}>
+                        {isActiveCombo ? 'Đang bán' : 'Tạm ngưng'}
+                      </StatusBadge>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-
-      {isLoading ? (
-        <div className="min-h-[240px] flex flex-col items-center justify-center gap-3 bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-          <p className="text-gray-400 text-xs font-medium">Đang tải danh mục bắp nước...</p>
-        </div>
-      ) : filteredCombos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl">
-          <span className="material-symbols-outlined text-zinc-700 text-5xl">fastfood</span>
-          <p className="font-bold text-white uppercase tracking-wider text-xs">Không tìm thấy combo nào</p>
-          <p className="text-[10px] text-gray-500">Hãy tạo gói combo mới hoặc thay đổi từ khóa tìm kiếm.</p>
-        </div>
-      ) : (
-        <div className="bg-[#0B0F19]/50 border border-[#1A2238] rounded-2xl overflow-hidden shadow-xl">
-          <div className="p-4 border-b border-[#1A2238] flex items-center justify-between bg-black/10">
-            <span className="text-xs font-bold text-white">
-              Danh mục hoạt động ({filteredCombos.length} gói)
-            </span>
-          </div>
-
-          <div className="divide-y divide-[#1A2238]/40">
-            {filteredCombos.map((combo) => {
-              const isActiveCombo = combo.status === 'ACTIVE';
-              return (
-                <button
-                  key={combo.uuid}
-                  type="button"
-                  onClick={() => setComboModal({ open: true, mode: 'detail', combo })}
-                  className="flex items-center flex-col md:flex-row p-5 gap-4 hover:bg-white/[0.012] transition-colors w-full text-left cursor-pointer bg-transparent border-none"
-                >
-                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/5 bg-black/30 shrink-0 shadow-lg">
-                    {combo.imageUrl ? (
-                      <img src={combo.imageUrl} alt={combo.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-white/5 text-gray-600">
-                        <ImageIcon size={24} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0 text-center md:text-left">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider leading-snug">
-                      {combo.name}
-                    </h3>
-                    <p className="text-[11px] text-gray-400 mt-1 leading-relaxed line-clamp-2 pr-4">
-                      {combo.description || 'Chưa có mô tả chi tiết.'}
-                    </p>
-                  </div>
-
-                  <div className="w-32 shrink-0 text-center">
-                    <span className="text-sm font-bold text-yellow-400 block font-mono">
-                      {(combo.price || 0).toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-
-                  <div className="w-32 shrink-0 flex justify-center">
-                    {isActiveCombo ? (
-                      <span className="bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 shadow-md">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Đang bán
-                      </span>
-                    ) : (
-                      <span className="bg-rose-500/15 border border-rose-500/35 text-rose-400 px-3 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 shadow-md">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                        Tạm ngưng
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <AdminModal
         open={comboModal.open}
@@ -269,25 +230,29 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
       >
         {comboModal.mode === 'detail' && comboModal.combo && (
           <div className="space-y-5">
-            <div className="w-full max-w-[200px] mx-auto aspect-square rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+            <div className="w-full max-w-[200px] mx-auto aspect-square rounded-[var(--adm-radius-sm)] overflow-hidden bg-white/[0.03] border border-[var(--adm-border)] flex items-center justify-center">
               {comboModal.combo.imageUrl ? (
                 <img src={comboModal.combo.imageUrl} alt={comboModal.combo.name} className="w-full h-full object-cover" />
               ) : (
-                <ImageIcon className="w-12 h-12 text-gray-600" />
+                <ImageIcon className="w-12 h-12 text-[var(--adm-text-dim)]" />
               )}
             </div>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Giá bán</dt>
-                <dd className="text-amber-400 font-bold">{Number(comboModal.combo.price || 0).toLocaleString('vi-VN')} đ</dd>
+                <dt className="text-[10px] uppercase tracking-wider text-[var(--adm-text-dim)] font-bold mb-0.5">Giá bán</dt>
+                <dd className="text-amber-400 font-bold adm-tabular">{Number(comboModal.combo.price || 0).toLocaleString('vi-VN')} đ</dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Trạng thái</dt>
-                <dd className="text-white">{comboModal.combo.status === 'ACTIVE' ? 'Đang bán' : 'Tạm ngưng'}</dd>
+                <dt className="text-[10px] uppercase tracking-wider text-[var(--adm-text-dim)] font-bold mb-0.5">Trạng thái</dt>
+                <dd>
+                  <StatusBadge variant={comboModal.combo.status === 'ACTIVE' ? 'success' : 'danger'}>
+                    {comboModal.combo.status === 'ACTIVE' ? 'Đang bán' : 'Tạm ngưng'}
+                  </StatusBadge>
+                </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Mô tả</dt>
-                <dd className="text-gray-300">{comboModal.combo.description || 'Chưa có mô tả'}</dd>
+                <dt className="text-[10px] uppercase tracking-wider text-[var(--adm-text-dim)] font-bold mb-0.5">Mô tả</dt>
+                <dd className="text-[var(--adm-text-muted)]">{comboModal.combo.description || 'Chưa có mô tả'}</dd>
               </div>
             </dl>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -319,8 +284,18 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
           />
         )}
       </AdminModal>
-    </Wrapper>
+    </>
   );
+
+  if (embedded) {
+    return (
+      <section id={sectionId} className="combo-catalog-section">
+        {body}
+      </section>
+    );
+  }
+
+  return <AdminPage>{body}</AdminPage>;
 };
 
 export default ComboCatalogSection;

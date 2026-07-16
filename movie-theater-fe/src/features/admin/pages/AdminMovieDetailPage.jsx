@@ -13,9 +13,19 @@ import {
   MetadataRow,
   GhostButton,
   PrimaryButton,
+  StatusBadge,
 } from '../components';
 import PosterImage from '../../../shared/components/PosterImage';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import './AdminMovieFormPage.css';
+
+function movieStatusVariant(status) {
+  const s = (status || '').toUpperCase();
+  if (s === 'NOW_SHOWING' || s === 'SHOWING') return 'success';
+  if (s === 'COMING_SOON' || s === 'UPCOMING') return 'info';
+  if (s === 'ENDED' || s === 'ARCHIVED') return 'muted';
+  return 'warning';
+}
 
 const AdminMovieDetailPage = () => {
   const { movieUuid } = useParams();
@@ -74,18 +84,21 @@ const AdminMovieDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[320px] text-gray-500 text-sm">
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        Đang tải thông tin phim...
-      </div>
+      <AdminPage className="amf-page">
+        <div className="adm-loading">
+          <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+          <p>Đang tải thông tin phim...</p>
+        </div>
+      </AdminPage>
     );
   }
 
   if (!movie) return null;
 
   return (
-    <AdminPage>
+    <AdminPage className="amf-page">
       <PageHeader
+        eyebrow="Quản lý nội dung"
         title={movie.title}
         description={[
           getMovieStatusLabel(movie.status),
@@ -94,22 +107,22 @@ const AdminMovieDetailPage = () => {
         backTo="/admin/movies"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 flex flex-col items-start gap-3">
+      <div className="amd-layout">
+        <aside className="amd-aside">
           {posterUrl ? (
             <PosterImage
               src={posterUrl}
               alt={movie.title}
               width={400}
-              className="w-full max-w-xs aspect-[2/3] object-cover rounded-lg"
+              className="amd-poster"
             />
           ) : (
-            <div className="w-full max-w-xs aspect-[2/3] flex items-center justify-center rounded-lg bg-white/[0.03]">
-              <Film className="w-12 h-12 text-gray-600" />
+            <div className="amd-poster amd-poster--empty">
+              <Film className="w-12 h-12" />
             </div>
           )}
 
-          <div className="w-full max-w-xs flex flex-col gap-2">
+          <div className="amd-aside__actions">
             <PrimaryButton
               type="button"
               className="w-full justify-center py-2.5"
@@ -129,12 +142,19 @@ const AdminMovieDetailPage = () => {
               {isDeleting ? 'Đang xóa...' : 'Xóa phim'}
             </GhostButton>
           </div>
-        </div>
+        </aside>
 
-        <div className="lg:col-span-8 space-y-8">
+        <div className="amd-panel space-y-6">
           <Section title="Thông tin cơ bản">
-            <dl className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <MetadataRow label="Trạng thái" value={getMovieStatusLabel(movie.status)} />
+            <dl className="amd-meta">
+              <MetadataRow
+                label="Trạng thái"
+                value={
+                  <StatusBadge variant={movieStatusVariant(movie.status)}>
+                    {getMovieStatusLabel(movie.status)}
+                  </StatusBadge>
+                }
+              />
               <MetadataRow label="Thời lượng" value={`${movie.durationMinutes} phút`} />
               <MetadataRow label="Độ tuổi" value={formatAgeRestrictionBadge(movie.ageRestriction || 'P')} />
               <MetadataRow
@@ -158,7 +178,7 @@ const AdminMovieDetailPage = () => {
           </Section>
 
           <Section title="Mô tả" divided>
-            <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">
+            <p className="amd-desc">
               {movie.description || 'Chưa có mô tả chi tiết cho phim này.'}
             </p>
           </Section>
@@ -182,34 +202,34 @@ const AdminMovieDetailPage = () => {
             divided
           >
             {movie.actors?.length ? (
-              <ul className="divide-y divide-white/[0.06]">
+              <ul className="amd-cast">
                 {movie.actors.map((actor, idx) => (
-                  <li key={idx} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="w-9 h-9 rounded-full overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">
+                  <li key={idx} className="amd-cast__item">
+                    <div className="amd-cast__avatar">
                       {actor.avatarUrl ? (
                         <img src={actor.avatarUrl} alt={actor.fullName} className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-4 h-4 text-gray-600" />
+                        <User className="w-4 h-4" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-200 truncate">
+                      <p className="amd-cast__name">
                         {actor.fullName}
                         {actor.isMain && (
-                          <span className="ml-2 text-xs text-gray-500">· Vai chính</span>
+                          <span className="ml-2 text-xs text-[var(--adm-text-dim)] font-medium">· Vai chính</span>
                         )}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">vai {actor.characterName || 'N/A'}</p>
+                      <p className="amd-cast__role">vai {actor.characterName || 'N/A'}</p>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="amd-desc">
                 Chưa có thông tin diễn viên.{' '}
                 <GhostButton
                   type="button"
-                  className="inline px-0 py-0 text-sm text-gray-400 hover:text-white"
+                  className="inline px-0 py-0 text-sm"
                   onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
                 >
                   Thêm trong form chỉnh sửa

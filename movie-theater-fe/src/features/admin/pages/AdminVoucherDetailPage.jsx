@@ -16,8 +16,16 @@ import {
   MetadataRow,
   PrimaryButton,
   GhostButton,
+  StatusBadge,
 } from "../components";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
+
+function lifecycleVariant(tone) {
+  if (tone === "emerald") return "success";
+  if (tone === "rose") return "danger";
+  if (tone === "amber") return "warning";
+  return "muted";
+}
 
 const AdminVoucherDetailPage = () => {
   const { voucherId } = useParams();
@@ -140,7 +148,14 @@ const AdminVoucherDetailPage = () => {
         <div className="lg:col-span-8">
           <Section title="Chi tiet">
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <MetadataRow label="Trang thai" value={lifecycle.label} />
+              <MetadataRow
+                label="Trang thai"
+                value={
+                  <StatusBadge variant={lifecycleVariant(lifecycle.tone)}>
+                    {lifecycle.label}
+                  </StatusBadge>
+                }
+              />
               {voucher.deletedAt && (
                 <MetadataRow
                   label="Ngay xoa"

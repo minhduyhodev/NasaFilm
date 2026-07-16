@@ -6,12 +6,9 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getPointsToCashValue } from '../../../shared/utils/systemConfig';
 import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../utils/voucherFormUtils';
-import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
+import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton, AdminDateTimePicker } from '../components';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../components/adminFormStyles';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
-
-const inputClass =
-  'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
-const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
 const AdminVoucherFormPage = () => {
   const confirm = useConfirm();
@@ -167,23 +164,23 @@ const AdminVoucherFormPage = () => {
         <Section title="Thong tin khuyen mai">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
             <div>
-              <label className={labelClass}>Ma voucher *</label>
-              <input className={`${inputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.replace(/\s/g, '').toUpperCase() }))} required />
+              <label className={adminLabelClass}>Ma voucher *</label>
+              <input className={`${adminInputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.replace(/\s/g, '').toUpperCase() }))} required />
             </div>
             <div>
-              <label className={labelClass}>Loai giam gia *</label>
-              <select className={`${inputClass} app-select`} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
+              <label className={adminLabelClass}>Loai giam gia *</label>
+              <select className={adminSelectClass} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
                 <option value="PERCENTAGE">Phan tram (%)</option>
                 <option value="FIXED_AMOUNT">So tien co dinh (VND)</option>
               </select>
             </div>
             <div>
-              <label className={labelClass}>Gia tri giam *</label>
+              <label className={adminLabelClass}>Gia tri giam *</label>
               <input
                 type="number"
                 min={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
                 step={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
-                className={inputClass}
+                className={adminInputClass}
                 value={form.discountValue}
                 onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))}
                 required
@@ -195,20 +192,22 @@ const AdminVoucherFormPage = () => {
               )}
             </div>
             <div>
-              <label className={labelClass}>Luot dung toi da</label>
-              <input type="number" min="1" className={inputClass} placeholder="Khong gioi han" value={form.maxUsage} onChange={(e) => setForm((p) => ({ ...p, maxUsage: e.target.value }))} />
+              <label className={adminLabelClass}>Luot dung toi da</label>
+              <input type="number" min="1" className={adminInputClass} placeholder="Khong gioi han" value={form.maxUsage} onChange={(e) => setForm((p) => ({ ...p, maxUsage: e.target.value }))} />
             </div>
+            <AdminDateTimePicker
+              label="Ngay bat dau"
+              value={form.startDate}
+              onChange={(v) => setForm((p) => ({ ...p, startDate: v }))}
+            />
+            <AdminDateTimePicker
+              label="Ngay ket thuc"
+              value={form.endDate}
+              onChange={(v) => setForm((p) => ({ ...p, endDate: v }))}
+            />
             <div>
-              <label className={labelClass}>Ngay bat dau</label>
-              <input type="datetime-local" className={inputClass} value={form.startDate} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} />
-            </div>
-            <div>
-              <label className={labelClass}>Ngay ket thuc</label>
-              <input type="datetime-local" className={inputClass} value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} />
-            </div>
-            <div>
-              <label className={labelClass}>Trang thai *</label>
-              <select className={`${inputClass} app-select`} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+              <label className={adminLabelClass}>Trang thai *</label>
+              <select className={adminSelectClass} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
                 <option value="ACTIVE">Hoat dong</option>
                 <option value="INACTIVE">Vo hieu</option>
               </select>

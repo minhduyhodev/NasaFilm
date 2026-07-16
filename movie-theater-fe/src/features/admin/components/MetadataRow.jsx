@@ -5,8 +5,10 @@ import React from 'react';
  */
 const MetadataRow = ({ label, value, children, className = '' }) => (
   <div className={`space-y-1 ${className}`}>
-    <dt className="text-xs font-medium text-gray-500">{label}</dt>
-    <dd className="text-sm text-gray-200">{children ?? value ?? '—'}</dd>
+    <dt className="adm-label !mb-1">{label}</dt>
+    <dd className="amd-meta__value">
+      {children ?? value ?? '—'}
+    </dd>
   </div>
 );
 

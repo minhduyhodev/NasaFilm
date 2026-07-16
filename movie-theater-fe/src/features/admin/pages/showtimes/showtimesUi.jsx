@@ -1,14 +1,23 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import StatusBadgeShared from '../../components/StatusBadge';
 import { STATUS_CONFIG } from './showtimesConstants';
+
+const STATUS_VARIANT = {
+  OPEN_FOR_BOOKING: 'success',
+  SCHEDULED: 'info',
+  SOLD_OUT: 'warning',
+  DRAFT: 'muted',
+  FINISHED: 'muted',
+  CANCELLED: 'danger',
+};
 
 export const StatusBadge = ({ status }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${cfg.pillBg} border ${cfg.pillBorder} ${cfg.pillText}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+    <StatusBadgeShared variant={STATUS_VARIANT[status] || 'muted'}>
       {cfg.label}
-    </span>
+    </StatusBadgeShared>
   );
 };
 
@@ -17,19 +26,19 @@ export const SkeletonGrid = () => (
     {Array.from({ length: 9 }).map((_, i) => (
       <div key={i} className="skeleton-card">
         <div className="flex items-center justify-between">
-          <div className="sk-line skeleton-pulse" style={{ width: '80px' }} />
-          <div className="sk-line skeleton-pulse" style={{ width: '100px' }} />
+          <div className="sk-line adm-skeleton" style={{ width: '80px' }} />
+          <div className="sk-line adm-skeleton" style={{ width: '100px' }} />
         </div>
-        <div className="sk-line skeleton-pulse" style={{ width: '70%', height: '16px' }} />
-        <div className="sk-line-sm skeleton-pulse" style={{ width: '50%' }} />
+        <div className="sk-line adm-skeleton" style={{ width: '70%', height: '16px' }} />
+        <div className="sk-line-sm adm-skeleton" style={{ width: '50%' }} />
         <div className="flex gap-3 mt-1">
-          <div className="sk-line-sm skeleton-pulse" style={{ width: '60px' }} />
-          <div className="sk-line-sm skeleton-pulse" style={{ width: '80px' }} />
+          <div className="sk-line-sm adm-skeleton" style={{ width: '60px' }} />
+          <div className="sk-line-sm adm-skeleton" style={{ width: '80px' }} />
         </div>
-        <div className="sk-bar skeleton-pulse" style={{ width: '100%' }} />
+        <div className="sk-bar adm-skeleton" style={{ width: '100%' }} />
         <div className="flex gap-2 mt-1">
-          <div className="sk-line skeleton-pulse" style={{ width: '70px', height: '28px' }} />
-          <div className="sk-line skeleton-pulse" style={{ width: '70px', height: '28px' }} />
+          <div className="sk-line adm-skeleton" style={{ width: '70px', height: '28px' }} />
+          <div className="sk-line adm-skeleton" style={{ width: '70px', height: '28px' }} />
         </div>
       </div>
     ))}
@@ -37,7 +46,7 @@ export const SkeletonGrid = () => (
 );
 
 export const EmptyState = ({ icon: Icon, title, subtitle }) => (
-  <div className="empty-state">
+  <div className="empty-state adm-empty">
     {Icon && <Icon className="empty-state-icon" />}
     <p className="font-bold text-white/70 uppercase tracking-wider text-xs">{title}</p>
     {subtitle && <p className="text-xs text-gray-500 max-w-sm">{subtitle}</p>}

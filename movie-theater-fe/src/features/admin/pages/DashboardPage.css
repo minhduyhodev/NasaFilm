@@ -703,5 +703,15 @@
 }
 
 .dashboard-period-date:focus {
-  @apply outline-none border-purple-500/60;
+  @apply outline-none border-red-500/60;
+}
+
+.dashboard-period-datepicker {
+  width: 168px;
+  margin-left: 4px;
+}
+
+.dashboard-period-datepicker .adm-datepicker__trigger {
+  min-height: 34px;
+  font-size: 12px;
 }

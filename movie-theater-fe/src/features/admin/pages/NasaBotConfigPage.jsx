@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bot, MessageCircleMore, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
-import { AdminPage } from '../components';
+import { AdminPage, PageHeader } from '../components';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { DEFAULT_NASA_BOT_CONFIG, DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../../../shared/constants/systemConfig';
@@ -167,20 +167,18 @@ const NasaBotConfigPage = () => {
 
   return (
     <AdminPage className="nasabot-config">
-      <header className="nasabot-config__top">
-        <div>
-          <p className="nasabot-config__eyebrow">AI Agent · NASA Bot</p>
-          <h1 className="nasabot-config__title">Cấu hình đang áp dụng cho NASA Bot</h1>
-          <p className="nasabot-config__desc">
-            Trang này chỉ giữ lại các mục đang được dùng thật trong widget và luồng chat AI:
-            prompt, câu mở đầu và shortcut hỗ trợ.
-          </p>
-        </div>
-        <button type="button" className="nasabot-config__save" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" />
-          {saving ? 'Đang lưu...' : 'Lưu NASA Bot'}
-        </button>
-      </header>
+      <PageHeader
+        eyebrow="AI Agent · NASA Bot"
+        title="Cấu hình NASA Bot"
+        description="Prompt, câu mở đầu và shortcut hỗ trợ đang áp dụng cho widget chat AI."
+        primaryAction={{
+          label: saving ? 'Đang lưu...' : 'Lưu NASA Bot',
+          icon: <Save className="w-4 h-4" />,
+          onClick: handleSave,
+          disabled: saving,
+          loading: saving,
+        }}
+      />
 
       <div className="nasabot-config__shell">
         <section className="nasabot-config__panel nasabot-config__panel--prompt">

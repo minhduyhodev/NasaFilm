@@ -10,6 +10,7 @@ import {
   MetadataRow,
   PrimaryButton,
   GhostButton,
+  StatusBadge,
 } from '../components';
 import AdminModal from '../components/AdminModal';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
@@ -147,7 +148,12 @@ const AdminCinemaDetailPage = () => {
                       <Tv className="w-4 h-4 text-gray-500 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm text-white font-medium truncate">{room.name}</p>
-                        <p className="text-xs text-gray-500">{room.roomCode} · {room.roomType} · {room.status}</p>
+                        <p className="text-xs text-gray-500">
+                          {room.roomCode} · {room.roomType} ·{' '}
+                          <StatusBadge variant={room.status === 'ACTIVE' ? 'success' : 'warning'}>
+                            {room.status === 'ACTIVE' ? 'Đang mở' : room.status}
+                          </StatusBadge>
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

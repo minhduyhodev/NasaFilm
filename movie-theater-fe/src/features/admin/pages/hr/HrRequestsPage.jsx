@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, CalendarX, Check, Loader2, RefreshCw, X } from 'lucide-react';
-import { AdminPage, PageHeader } from '../../components';
-import AdminSelectDropdown from '../../components/AdminSelectDropdown';
+import { AdminPage, PageHeader, FilterPills, StatusBadge, AdminTableShell } from '../../components';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
@@ -11,20 +10,16 @@ import {
   formatTime,
   leaveTypeLabel,
   statusBadge,
+  statusVariant,
 } from './hrUtils';
 import './hr.css';
 
-const TABS = [
-  { id: 'leave', label: 'Nghỉ phép', icon: CalendarX },
-  { id: 'swap', label: 'Đổi ca', icon: ArrowLeftRight },
-];
-
-const STATUS_OPTIONS = [
-  { value: 'PENDING', label: 'Chờ duyệt' },
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'APPROVED', label: 'Đã duyệt' },
-  { value: 'REJECTED', label: 'Từ chối' },
-  { value: 'CANCELLED', label: 'Đã hủy' },
+const STATUS_PILLS = [
+  { id: 'PENDING', label: 'Chờ duyệt' },
+  { id: 'all', label: 'Tất cả' },
+  { id: 'APPROVED', label: 'Đã duyệt' },
+  { id: 'REJECTED', label: 'Từ chối' },
+  { id: 'CANCELLED', label: 'Đã hủy' },
 ];
 
 const HrRequestsPage = () => {
@@ -131,29 +126,24 @@ const HrRequestsPage = () => {
         ]}
       />
 
-      <div className="hr-tabs">
-        {TABS.map((t) => {
-          const count = t.id === 'leave' ? pendingLeaveCount : pendingSwapCount;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              className={`hr-tab${tab === t.id ? ' hr-tab--active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              <t.icon className="h-4 w-4" />
-              {t.label}
-              {count > 0 && <span className="hr-badge hr-badge--warning" style={{ marginLeft: 6 }}>{count}</span>}
-            </button>
-          );
-        })}
-      </div>
+      <FilterPills
+        value={tab}
+        onChange={setTab}
+        items={[
+          { id: 'leave', label: 'Nghỉ phép', count: pendingLeaveCount || undefined },
+          { id: 'swap', label: 'Đổi ca', count: pendingSwapCount || undefined },
+        ]}
+        ariaLabel="Loại đơn từ"
+        className="mb-4"
+      />
 
-      <div className="hr-filters" style={{ marginBottom: 14 }}>
-        <div className="hr-field" style={{ minWidth: 220 }}>
-          <AdminSelectDropdown label="Trạng thái" value={status} options={STATUS_OPTIONS} onChange={setStatus} size="sm" />
-        </div>
-      </div>
+      <FilterPills
+        value={status === '' ? 'all' : status}
+        onChange={(id) => setStatus(id === 'all' ? '' : id)}
+        items={STATUS_PILLS}
+        ariaLabel="Trạng thái đơn"
+        className="mb-4"
+      />
 
       {loading ? (
         <div className="hr-state">
@@ -198,8 +188,8 @@ function LeaveTable({ rows, actionId, onDecide }) {
     );
   }
   return (
-    <div className="hr-table-wrap">
-      <table className="hr-table">
+    <AdminTableShell>
+      <table className="adm-table hr-table">
         <thead>
           <tr>
             <th>Nhân viên</th>
@@ -225,9 +215,9 @@ function LeaveTable({ rows, actionId, onDecide }) {
               <td className="hr-num">{l.days}</td>
               <td style={{ maxWidth: 220 }}>{l.reason || '—'}</td>
               <td>
-                <span className={statusBadge(REQUEST_STATUS_META, l.status).className}>
+                <StatusBadge variant={statusVariant(REQUEST_STATUS_META, l.status)}>
                   {statusBadge(REQUEST_STATUS_META, l.status).label}
-                </span>
+                </StatusBadge>
               </td>
               <td>
                 <ActionButtons rec={l} actionId={actionId} onDecide={onDecide} />
@@ -236,7 +226,7 @@ function LeaveTable({ rows, actionId, onDecide }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableShell>
   );
 }
 
@@ -266,9 +256,9 @@ function SwapTable({ rows, actionId, onDecide }) {
       {rows.map((s) => (
         <div key={s.uuid} className="hr-card">
           <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <span className={statusBadge(REQUEST_STATUS_META, s.status).className}>
+            <StatusBadge variant={statusVariant(REQUEST_STATUS_META, s.status)}>
               {statusBadge(REQUEST_STATUS_META, s.status).label}
-            </span>
+            </StatusBadge>
             <span className="hr-muted" style={{ fontSize: 11 }}>{formatDate(s.createdAt)}</span>
           </div>
           <div className="hr-swap-grid">

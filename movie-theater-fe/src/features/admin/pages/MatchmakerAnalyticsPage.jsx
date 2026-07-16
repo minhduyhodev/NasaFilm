@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LayoutGrid, Loader2, RefreshCw } from 'lucide-react';
 import { AdminPage, PageHeader } from '../components';
 import { adminDiscoverService } from '../api/adminDiscoverService';
 import MatchmakerAnalyticsKpi from './staff/MatchmakerAnalyticsKpi';
@@ -9,7 +9,7 @@ import './MatchmakerAnalyticsPage.css';
 const MOOD_COLORS = {
   RELAX: '#06b6d4',
   EXCITING: '#f97316',
-  EMOTIONAL: '#a855f7',
+  EMOTIONAL: '#e11d48',
   THRILLING: '#ef4444',
 };
 
@@ -19,7 +19,7 @@ const VIEWING_COLORS = {
   BOTH: '#f59e0b',
 };
 
-const CHART_FALLBACK_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981'];
+const CHART_FALLBACK_COLORS = ['#ef4444', '#f59e0b', '#f97316', '#06b6d4', '#10b981'];
 
 const MoodDonutChart = ({ items }) => {
   const segments = useMemo(
@@ -179,11 +179,19 @@ const MatchmakerAnalyticsPage = () => {
           title="Thống kê quiz gợi ý phim"
           description="Phân bố tâm trạng và nơi xem từ quiz trên trang chủ — gợi ý điều phối suất chiếu và nhập phim VOD."
           variant="display"
+          secondaryActions={[
+            {
+              label: 'Làm mới',
+              icon: <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'mma-spin' : ''}`} />,
+              onClick: handleRefresh,
+              disabled: loading,
+            },
+          ]}
         />
 
         {loading && !analytics ? (
           <div className="matchmaker-analytics__loading">
-            <Loader2 className="w-6 h-6 animate-spin text-rose-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-red-400" />
             <span>Đang tải thống kê quiz...</span>
           </div>
         ) : error ? (
@@ -206,11 +214,27 @@ const MatchmakerAnalyticsPage = () => {
 
             <div className="matchmaker-analytics__charts">
               <section className="matchmaker-analytics__chart-panel">
-                <h2 className="matchmaker-analytics__chart-title">Phân bố tâm trạng</h2>
+                <div className="matchmaker-analytics__panel-head">
+                  <h2 className="matchmaker-analytics__chart-title">
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    Phân bố tâm trạng
+                  </h2>
+                  <span className="matchmaker-analytics__panel-badge">
+                    {(analytics?.totalQuizzes ?? 0).toLocaleString('vi-VN')} quiz
+                  </span>
+                </div>
                 <MoodDonutChart items={analytics?.moodDistribution} />
               </section>
               <section className="matchmaker-analytics__chart-panel">
-                <h2 className="matchmaker-analytics__chart-title">Nơi xem ưa thích</h2>
+                <div className="matchmaker-analytics__panel-head">
+                  <h2 className="matchmaker-analytics__chart-title">
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    Nơi xem ưa thích
+                  </h2>
+                  <span className="matchmaker-analytics__panel-badge">
+                    {(analytics?.viewingDistribution?.length ?? 0)} nhóm
+                  </span>
+                </div>
                 <ViewingBarChart items={analytics?.viewingDistribution} />
               </section>
             </div>

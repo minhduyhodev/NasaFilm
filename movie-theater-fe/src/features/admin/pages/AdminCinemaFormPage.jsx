@@ -4,10 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
-
-const inputClass =
-  'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
-const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
+import { adminInputClass, adminLabelClass, adminTextareaClass } from '../components/adminFormStyles';
 
 const AdminCinemaFormPage = () => {
   const navigate = useNavigate();
@@ -99,33 +96,33 @@ const AdminCinemaFormPage = () => {
         <Section title="Thong tin chi nhanh">
           <div className="grid grid-cols-1 gap-4 max-w-xl">
             <div>
-              <label className={labelClass}>Ten chi nhanh *</label>
-              <input className={inputClass} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              <label className={adminLabelClass}>Ten chi nhanh *</label>
+              <input className={adminInputClass} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>Dia chi *</label>
-              <input className={inputClass} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} required />
+              <label className={adminLabelClass}>Dia chi *</label>
+              <input className={adminInputClass} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>So dien thoai *</label>
-              <input className={inputClass} value={form.phoneNumber} onChange={(e) => setForm((p) => ({ ...p, phoneNumber: e.target.value }))} required />
+              <label className={adminLabelClass}>So dien thoai *</label>
+              <input className={adminInputClass} value={form.phoneNumber} onChange={(e) => setForm((p) => ({ ...p, phoneNumber: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>Huong dan vao cong</label>
+              <label className={adminLabelClass}>Huong dan vao cong</label>
               <textarea
-                className={`${inputClass} min-h-[88px] resize-y`}
+                className={`${adminTextareaClass} min-h-[88px] resize-y`}
                 value={form.entranceNote}
                 onChange={(e) => setForm((p) => ({ ...p, entranceNote: e.target.value }))}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Vi do</label>
-                <input className={inputClass} type="number" step="any" value={form.latitude} onChange={(e) => setForm((p) => ({ ...p, latitude: e.target.value }))} />
+                <label className={adminLabelClass}>Vi do</label>
+                <input className={adminInputClass} type="number" step="any" value={form.latitude} onChange={(e) => setForm((p) => ({ ...p, latitude: e.target.value }))} />
               </div>
               <div>
-                <label className={labelClass}>Kinh do</label>
-                <input className={inputClass} type="number" step="any" value={form.longitude} onChange={(e) => setForm((p) => ({ ...p, longitude: e.target.value }))} />
+                <label className={adminLabelClass}>Kinh do</label>
+                <input className={adminInputClass} type="number" step="any" value={form.longitude} onChange={(e) => setForm((p) => ({ ...p, longitude: e.target.value }))} />
               </div>
             </div>
           </div>

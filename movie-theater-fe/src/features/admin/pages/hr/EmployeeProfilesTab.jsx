@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, Pencil, Users } from 'lucide-react';
-import { AdminModal, PrimaryButton } from '../../components';
+import { AdminModal, PrimaryButton, StatusBadge, AdminTableShell } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
@@ -62,8 +62,8 @@ const EmployeeProfilesTab = () => {
         Cấu hình đơn giá theo giờ và hệ số OT cho từng nhân viên. Nhân viên chưa có hồ sơ sẽ dùng
         đơn giá 0đ khi tính lương.
       </p>
-      <div className="hr-table-wrap">
-        <table className="hr-table">
+      <AdminTableShell>
+        <table className="adm-table hr-table">
           <thead>
             <tr>
               <th>Nhân viên</th>
@@ -90,11 +90,11 @@ const EmployeeProfilesTab = () => {
                 <td className="hr-num">×{Number(p.otMultiplierHoliday).toFixed(2)}</td>
                 <td>
                   {!p.hasProfile ? (
-                    <span className="hr-badge">Chưa cấu hình</span>
+                    <StatusBadge variant="muted">Chưa cấu hình</StatusBadge>
                   ) : p.active ? (
-                    <span className="hr-badge hr-badge--success">Đang áp dụng</span>
+                    <StatusBadge variant="success">Đang áp dụng</StatusBadge>
                   ) : (
-                    <span className="hr-badge hr-badge--danger">Tạm ngưng</span>
+                    <StatusBadge variant="danger">Tạm ngưng</StatusBadge>
                   )}
                 </td>
                 <td>
@@ -113,7 +113,7 @@ const EmployeeProfilesTab = () => {
             ))}
           </tbody>
         </table>
-      </div>
+      </AdminTableShell>
 
       {editing && (
         <ProfileModal

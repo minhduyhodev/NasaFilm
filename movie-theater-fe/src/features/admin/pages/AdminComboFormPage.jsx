@@ -4,11 +4,8 @@ import { Loader2, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
+import { adminInputClass, adminLabelClass, adminTextareaClass } from '../components/adminFormStyles';
 import { comboFormSchema, firstComboFormError } from '../utils/comboFormSchema';
-
-const inputClass =
-  'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
-const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
 const AdminComboFormPage = () => {
   const navigate = useNavigate();
@@ -137,12 +134,12 @@ const AdminComboFormPage = () => {
         <Section title="Thong tin combo">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
             <div className="md:col-span-2">
-              <label className={labelClass}>Ten combo *</label>
-              <input className={inputClass} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              <label className={adminLabelClass}>Ten combo *</label>
+              <input className={adminInputClass} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
             </div>
             <div>
-              <label className={labelClass}>Don gia (VND) *</label>
-              <input type="number" min="1000" step="1000" className={inputClass} value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} required />
+              <label className={adminLabelClass}>Don gia (VND) *</label>
+              <input type="number" min="1000" step="1000" className={adminInputClass} value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} required />
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -151,11 +148,11 @@ const AdminComboFormPage = () => {
               </label>
             </div>
             <div className="md:col-span-2">
-              <label className={labelClass}>Mo ta</label>
-              <textarea rows={3} className={`${inputClass} resize-none`} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
+              <label className={adminLabelClass}>Mo ta</label>
+              <textarea rows={3} className={`${adminTextareaClass} resize-none`} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
             </div>
             <div className="md:col-span-2">
-              <label className={labelClass}>Hinh anh</label>
+              <label className={adminLabelClass}>Hinh anh</label>
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}

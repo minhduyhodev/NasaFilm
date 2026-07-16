@@ -10,6 +10,7 @@ import {
   MetadataRow,
   PrimaryButton,
   GhostButton,
+  StatusBadge,
 } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
@@ -118,7 +119,14 @@ const AdminComboDetailPage = () => {
           <Section title="Thong tin co ban">
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <MetadataRow label="Gia ban" value={`${Number(combo.price || 0).toLocaleString('vi-VN')} VND`} />
-              <MetadataRow label="Trang thai" value={isActive ? 'Dang ban' : 'Tam ngung'} />
+              <MetadataRow
+                label="Trang thai"
+                value={
+                  <StatusBadge variant={isActive ? 'success' : 'danger'}>
+                    {isActive ? 'Dang ban' : 'Tam ngung'}
+                  </StatusBadge>
+                }
+              />
               <MetadataRow label="Mo ta" value={combo.description || 'Chua co mo ta'} className="md:col-span-2" />
             </dl>
           </Section>

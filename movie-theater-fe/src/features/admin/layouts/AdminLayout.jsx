@@ -21,6 +21,7 @@ const AdminLayout = ({ children }) => {
   const mainRef = useRef(null);
   const isOpsPage = isCounterOpsPath(location.pathname);
   const isWidePage = isOpsPage;
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -40,9 +41,13 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-gray-100 overflow-hidden relative font-sans antialiased admin-shell">
+    <div className="admin-shell adm-app antialiased overflow-hidden relative min-h-screen">
       <SupportAdminMessageAlerts />
-      <Suspense fallback={<div className="fixed inset-y-0 left-0 z-50 w-16 bg-[#0B0F19] border-r border-[#1E293B]/20" />}>
+      <Suspense
+        fallback={
+          <div className="adm-sidebar-fallback" aria-hidden="true" />
+        }
+      >
         <AdminSidebar
           isOpen={isSidebarOpen}
           onToggle={() => setSidebarOpen((prev) => !prev)}
@@ -57,49 +62,45 @@ const AdminLayout = ({ children }) => {
       {isSidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-all duration-300"
+          className="adm-sidebar-overlay lg:hidden"
+          aria-hidden="true"
         />
       )}
 
       <main
         ref={mainRef}
         data-scroll-container="admin-main"
-        className={`min-h-screen flex flex-col overflow-y-auto custom-scrollbar relative z-10 bg-[#080B14] font-sans transition-all duration-300 ${
-          isSidebarOpen ? "lg:ml-64" : "lg:ml-16"
+        className={`adm-main custom-scrollbar ${
+          isSidebarOpen ? "adm-main--sidebar-open" : "adm-main--sidebar-collapsed"
         }`}
       >
-        <div className="sticky top-0 z-40 w-full border-b border-[#1E293B]/60 bg-[#0B0F19]/90 backdrop-blur-[16px] shadow-sm lg:hidden">
-          <div className="flex w-full items-center px-6 py-3 justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setSidebarOpen((prev) => !prev)}
-                className="inline-flex h-10 w-10 items-center justify-center text-gray-200 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                title="Mở sidebar"
-                aria-label="Mở sidebar"
-                aria-expanded={isSidebarOpen}
-              >
-                <Menu className="w-5 h-5" aria-hidden="true" />
-              </button>
+        <div className="adm-topbar lg:hidden">
+          <div className="adm-topbar__brand">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="adm-icon-btn"
+              title="Mở sidebar"
+              aria-label="Mở sidebar"
+              aria-expanded={isSidebarOpen}
+            >
+              <Menu className="w-5 h-5" aria-hidden="true" />
+            </button>
 
-              <Link
-                to="/admin"
-                className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                <img
-                  src={nasaLogo}
-                  alt="NASAFILM Logo"
-                  className="h-6 w-6 rounded-md object-cover shadow-sm"
-                />
-                <span className="text-sm font-bold tracking-tight leading-none text-white font-heading">
-                  NASA<span className="text-red-500">Film</span>
-                </span>
-              </Link>
-            </div>
+            <Link to="/admin" className="adm-brand-link">
+              <img
+                src={nasaLogo}
+                alt="NASAFILM Logo"
+                className="adm-brand-logo"
+              />
+              <span className="adm-brand-text">
+                NASA<span className="adm-brand-accent">Film</span>
+              </span>
+            </Link>
           </div>
         </div>
 
-        <div className={`mx-auto flex w-full flex-col px-4 py-6 md:px-8 md:py-8 ${isWidePage ? 'max-w-none' : 'max-w-7xl'}`}>
+        <div className={`adm-main-pad ${isWidePage ? "adm-main-pad--wide" : ""}`}>
           <PageTransition scrollTarget='[data-scroll-container="admin-main"]'>
             {children ?? <Outlet />}
           </PageTransition>
