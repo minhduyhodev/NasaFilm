@@ -42,6 +42,7 @@ import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.time.AppTimeZones;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -63,6 +64,7 @@ public class ShowtimeService {
     private final SystemConfigService systemConfigService;
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine;
     private final ShowtimeOverlapSupport showtimeOverlapSupport;
+    private final CatalogCacheEvictor catalogCacheEvictor;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -116,6 +118,7 @@ public class ShowtimeService {
         showtime.setCouplePrice(request.getCouplePrice());
 
         Showtime savedShowtime = showtimeRepository.save(showtime);
+        catalogCacheEvictor.evictMovieLists();
         return toShowtimeResponse(savedShowtime, movie, room);
     }
 
@@ -220,6 +223,7 @@ public class ShowtimeService {
 
         showtime.setStatus(newStatus);
         Showtime updatedShowtime = showtimeRepository.save(showtime);
+        catalogCacheEvictor.evictMovieLists();
 
         Movie movie = movieRepository.findById(updatedShowtime.getMovieUuid()).orElse(null);
         CinemaRoom room = cinemaRoomRepository.findById(updatedShowtime.getCinemaRoomUuid()).orElse(null);
@@ -240,11 +244,13 @@ public class ShowtimeService {
                   AND st.status = 'DRAFT'
                 """).executeUpdate();
 
-        return entityManager.createNativeQuery("""
+        int cancelled = entityManager.createNativeQuery("""
                 UPDATE showtime
                 SET status = 'CANCELLED'
                 WHERE status = 'DRAFT'
                 """).executeUpdate();
+        catalogCacheEvictor.evictMovieLists();
+        return cancelled;
     }
 
     @Transactional

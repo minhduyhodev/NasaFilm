@@ -53,7 +53,6 @@ import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
-import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
@@ -1564,7 +1563,9 @@ public class BookingService {
                 playbackState = "EXPIRED";
             } else {
                 playbackState = "STREAMING";
-                streamingUrl = S3MediaBorderUtils.toBorderUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
+                String resolved = S3MediaBorderUtils.resolveStreamingUrl(movie);
+                // Kèm token hiện tại (nếu còn) — WatchPage vẫn chỉ play sau activate/Play
+                streamingUrl = S3MediaBorderUtils.toStreamUrlWithToken(resolved, booking.getStreamToken());
             }
         }
 
@@ -1665,10 +1666,11 @@ public class BookingService {
         Movie movie = movieRepository.findById(movieUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
 
-        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
-        if (streamingUrl == null || streamingUrl.isBlank()) {
+        String streamingUrl = S3MediaBorderUtils.resolveStreamingUrl(movie);
+        if (streamingUrl == null || streamingUrl.isBlank()
+                || !S3MediaBorderUtils.isAwsMovieStreamingUrl(streamingUrl)) {
             throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Phim chưa được cấu hình link phát trực tuyến. Vui lòng liên hệ quản trị viên.");
+                    "Phim chưa được cấu hình link phát trực tuyến S3 (movie/...). Vui lòng liên hệ quản trị viên.");
         }
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -1681,7 +1683,9 @@ public class BookingService {
             }
             booking.setStreamToken(streamToken);
             bookingJpaRepository.save(booking);
-            return new VodPlayResponse(streamToken, S3MediaBorderUtils.toBorderUrl(streamingUrl), booking.getExpiresAt());
+            return new VodPlayResponse(streamToken,
+                    S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
+                    booking.getExpiresAt());
         }
 
         int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
@@ -1700,7 +1704,9 @@ public class BookingService {
                     userUuid, booking.getUuid(), movieUuid, now));
         }
 
-        VodPlayResponse response = new VodPlayResponse(streamToken, S3MediaBorderUtils.toBorderUrl(streamingUrl), expiresAt);
+        VodPlayResponse response = new VodPlayResponse(streamToken,
+                S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
+                expiresAt);
         response.setMissionCompletions(missionCompletions);
         return response;
     }

@@ -328,7 +328,9 @@ class BookingServiceTest {
         VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
 
         org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
-        assertEquals("/api/media/border?key=movie%2Fdemo-stream.mp4", response.getStreamingUrl());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                response.getStreamingUrl().startsWith("/api/media/stream?key=movie%2Fdemo-stream.mp4&token="),
+                () -> "expected stream URL with token but was: " + response.getStreamingUrl());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
     }

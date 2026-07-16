@@ -16,12 +16,21 @@ import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
 import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getTemporaryVodToken, removeTemporaryVodToken, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
-import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import { resolveMediaUrl, resolvePlayableMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import { useHomeChrome } from '../context/HomeChromeContext';
 import './WatchPage.css';
+
+const toPlayableStreamUrl = async (rawUrl) => {
+  if (!rawUrl?.trim()) return '';
+  try {
+    return (await resolvePlayableMediaUrl(rawUrl.trim())) || rawUrl.trim();
+  } catch {
+    return rawUrl.trim();
+  }
+};
 
 const getPosterRaw = (movie) =>
   movie?.medias?.find((m) => m.isPrimary)?.mediaUrl ||
@@ -64,6 +73,8 @@ const WatchPage = () => {
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const heartbeatIntervalRef = useRef(null);
   const cinemaUiTimerRef = useRef(null);
+  // Prevent double-click races that can rotate token twice.
+  const playLockRef = useRef(false);
 
   const getFullscreenRect = () => ({
     top: 0,
@@ -218,8 +229,12 @@ const WatchPage = () => {
         if (!active) return;
         setMovie(movieDetail);
         setUpNext(pendingMovies);
+        // Chuẩn hóa URL đẹp: /watch/uuid → /watch/slug (UUID vẫn mở được)
+        if (movieDetail?.slug && id && movieDetail.slug !== id) {
+          navigate(`/watch/${movieDetail.slug}`, { replace: true });
+        }
 
-        const status = await vodService.getStatus(id);
+        const status = await vodService.getStatus(movieDetail?.uuid || id);
         if (!active) return;
         if (!status.hasPurchased) {
           throw new Error('Bạn chưa mua vé xem trực tuyến phim này.');
@@ -237,36 +252,20 @@ const WatchPage = () => {
         const resolvedStreamUrl = getMovieStreamingUrl(movieDetail);
         if (!resolvedStreamUrl?.trim()) {
           throw new Error(
-            'Phim chưa được cấu hình link phát trực tuyến. Admin cần thêm URL video (.mp4) hoặc YouTube/Vimeo trong trang quản lý phim.'
+            'Phim chưa được cấu hình link phát trực tuyến. Admin cần thêm S3 key thư mục movie/ (vd: movie/tenphim.mp4).'
           );
         }
 
+        // Align develop: đã STREAMING → chỉ preview, bấm Play mới activatePlay (tránh đổi token/kick tab khác)
         if (canWatchOnlineDirectly(status)) {
-          const playSession = await vodService.activatePlay(id);
-          if (!active) return;
-          showMissionCompletionToasts(playSession?.missionCompletions);
-          const expiresAt = resolvePlayExpiresAt(
-            playSession,
-            movieDetail,
-            countdownSettings.lockMultiplier
-          );
-          setStreamData({
-            ...playSession,
-            streamingUrl: playSession.streamingUrl || resolvedStreamUrl.trim(),
-            expiresAt,
-          });
-          setVodExpiresAt(expiresAt);
-          setPreviewReady(false);
-          setIsPlaying(true);
+          setPreviewReady(true);
+          if (status.expiresAt) {
+            setVodExpiresAt(status.expiresAt);
+          }
           return;
         }
 
-        const verifiedBookingUuid = getTemporaryVodToken(id);
-        if (!verifiedBookingUuid) {
-          navigate(getOnlineActivatePath(id), { replace: true });
-          return;
-        }
-
+        // Đã mua vé (WAITING_FOR_PLAY): cho vào trang xem — lần đầu bấm Play sẽ kích hoạt.
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
@@ -291,14 +290,16 @@ const WatchPage = () => {
         const video = videoRef.current;
         const positionSeconds = video?.currentTime ?? null;
         const durationSeconds = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
-        await vodService.heartbeat(id, streamData.streamToken, positionSeconds, durationSeconds);
+        const movieRef = movie?.uuid || id;
+        await vodService.heartbeat(movieRef, streamData.streamToken, positionSeconds, durationSeconds);
       } catch (err) {
+        const moviePath = movie?.slug || movie?.uuid || id;
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
           notificationService.error('Tài khoản đang xem ở thiết bị khác.');
-          navigate(`/movie/${id}?from=online`);
+          navigate(`/movie/${moviePath}?from=online`);
         } else if (err.message?.includes('hết hạn')) {
           notificationService.error('Vé xem trực tuyến đã hết hạn.');
-          navigate(`/movie/${id}?from=online`);
+          navigate(`/movie/${moviePath}?from=online`);
         }
       }
     };
@@ -308,7 +309,7 @@ const WatchPage = () => {
     return () => {
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
     };
-  }, [streamData, id, navigate]);
+  }, [streamData, id, movie, navigate]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -318,11 +319,6 @@ const WatchPage = () => {
     }
 
     let expiresAt = streamData?.expiresAt || vodExpiresAt;
-    if (!expiresAt && streamData?.streamToken && movie) {
-      expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
-      setVodExpiresAt(expiresAt);
-      setStreamData((prev) => (prev ? { ...prev, expiresAt } : prev));
-    }
     if (!expiresAt || !countdownSettings.enabled) {
       setRemainingTimeText('');
       setCountdownWarning(false);
@@ -360,33 +356,35 @@ const WatchPage = () => {
   const handlePlay = async () => {
     setVideoError('');
     if (streamData?.streamToken) {
-      if (!streamData.expiresAt && !vodExpiresAt && movie) {
-        const expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
-        setVodExpiresAt(expiresAt);
-        setStreamData((prev) => ({ ...prev, expiresAt }));
-      }
       setIsPlaying(true);
       return;
     }
-    if (isStartingPlay) return;
+    if (playLockRef.current || isStartingPlay) return;
+    playLockRef.current = true;
     setIsStartingPlay(true);
     try {
-      const verifiedBookingUuid = getTemporaryVodToken(id);
-      const playSession = await vodService.activatePlay(id, verifiedBookingUuid || undefined);
+      const movieRef = movie?.uuid || id;
+      const verifiedBookingUuid = getTemporaryVodToken(movieRef) || getTemporaryVodToken(id);
+      const playSession = await vodService.activatePlay(movieRef, verifiedBookingUuid || undefined);
       showMissionCompletionToasts(playSession?.missionCompletions);
-      const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movie);
-      if (!resolvedStreamUrl?.trim()) {
-        throw new Error('Phim chưa được cấu hình link phát trực tuyến.');
+      // Chỉ dùng URL kèm token từ activatePlay — fallback catalog (không token) sẽ 401 ở /stream.
+      const resolvedStreamUrl = playSession?.streamingUrl?.trim();
+      if (!resolvedStreamUrl) {
+        throw new Error(
+          'Không nhận được link phát có token. Thử lại hoặc kiểm tra cấu hình S3 movie/ trên admin.'
+        );
       }
+      const playUrl = await toPlayableStreamUrl(resolvedStreamUrl);
       const expiresAt = resolvePlayExpiresAt(
         playSession,
         movie,
         countdownSettings.lockMultiplier
       );
       removeTemporaryVodToken(id);
+      removeTemporaryVodToken(movieRef);
       setStreamData({
         ...playSession,
-        streamingUrl: resolvedStreamUrl.trim(),
+        streamingUrl: playUrl,
         expiresAt,
       });
       setVodExpiresAt(expiresAt);
@@ -396,10 +394,12 @@ const WatchPage = () => {
       notificationService.error(err?.message || 'Không thể bắt đầu phát phim.');
     } finally {
       setIsStartingPlay(false);
+      playLockRef.current = false;
     }
   };
 
-  const streamUrl = streamData?.streamingUrl || movie?.streamingUrl || '';
+  // Chỉ phát sau activatePlay — không dùng movie.streamingUrl công khai (thiếu token)
+  const streamUrl = streamData?.streamingUrl || '';
   const videoSource = getVideoSource(streamUrl);
 
   const getDirectPlaybackUrl = () => {
@@ -583,6 +583,7 @@ const WatchPage = () => {
             controls={!isCustomCinema}
             autoPlay={videoSource.type === 'direct'}
             playsInline
+            preload="auto"
             className="watch-player-video"
             controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}

@@ -1,16 +1,19 @@
 package com.thdpv.movietheater.movie.service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.Cacheable;
@@ -67,7 +70,6 @@ import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
-import com.thdpv.movietheater.movie.util.MovieStreamingUtils;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -82,6 +84,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class MovieService {
+
+    private static final Pattern NON_SLUG = Pattern.compile("[^a-z0-9]+");
+    private static final Pattern MULTI_DASH = Pattern.compile("-{2,}");
 
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
@@ -281,12 +286,15 @@ public class MovieService {
             boolean requireAws = Boolean.TRUE.equals(filter.getRequireAwsStreaming())
                     || Boolean.TRUE.equals(filter.getOnlineOnly());
             if (requireAws) {
-                // Chỉ áp dụng cho luồng xem online — home ĐANG CHIẾU / SẮP CHIẾU không filter AWS
+                // Chỉ áp dụng cho luồng xem online — chấp nhận key (movie/...) hoặc Object URL cũ
                 jakarta.persistence.criteria.Expression<String> streamingLower =
                         cb.lower(root.get("streamingUrl"));
                 predicates.add(cb.isNotNull(root.get("streamingUrl")));
-                predicates.add(cb.like(streamingLower, "%" + S3MediaBorderUtils.DEFAULT_BUCKET_HOST.toLowerCase() + "%"));
-                predicates.add(cb.like(streamingLower, "%/movie/%"));
+                predicates.add(cb.or(
+                        cb.like(streamingLower, "movie/%"),
+                        cb.and(
+                                cb.like(streamingLower, "%" + S3MediaBorderUtils.DEFAULT_BUCKET_HOST.toLowerCase() + "%"),
+                                cb.like(streamingLower, "%/movie/%"))));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -386,6 +394,33 @@ public class MovieService {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
         return toMovieDetailResponse(movie);
+    }
+
+    /** Chi tiết phim theo UUID hoặc slug (URL đẹp). */
+    @Transactional
+    public MovieDetailResponse getMovieDetailByRef(String idOrSlug) {
+        Movie movie = resolveMovieRef(idOrSlug);
+        if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
+            throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+        }
+        if (movie.getSlug() == null || movie.getSlug().isBlank()) {
+            ensureSlug(movie);
+            movie = movieRepository.save(movie);
+        }
+        return toMovieDetailResponse(movie);
+    }
+
+    @Transactional
+    public int backfillMissingSlugs() {
+        int updated = 0;
+        for (Movie movie : movieRepository.findAll()) {
+            if (movie.getSlug() == null || movie.getSlug().isBlank()) {
+                ensureSlug(movie);
+                movieRepository.save(movie);
+                updated++;
+            }
+        }
+        return updated;
     }
 
     @Transactional(readOnly = true)
@@ -586,7 +621,7 @@ public class MovieService {
             clearPrimaryFlags(movie);
         }
 
-        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaUrl(S3MediaBorderUtils.toStoredKey(trim(request.getMediaUrl())));
         movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
         movieMedia.setTitle(trimToNull(request.getTitle()));
         movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
@@ -615,6 +650,78 @@ public class MovieService {
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));
         movie.setAgeRestriction(trim(ageRestriction));
+        ensureSlug(movie);
+    }
+
+    /**
+     * Resolve movie by UUID hoặc slug (URL đẹp). UUID vẫn là khóa ổn định cho API nội bộ.
+     */
+    @Transactional(readOnly = true)
+    public Movie resolveMovieRef(String idOrSlug) {
+        if (idOrSlug == null || idOrSlug.isBlank()) {
+            throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+        }
+        String trimmed = idOrSlug.trim();
+        try {
+            return getMovieOrThrow(UUID.fromString(trimmed));
+        } catch (IllegalArgumentException ignored) {
+            // not a UUID — try slug
+        }
+        return movieRepository.findBySlugIgnoreCase(trimmed)
+                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public UUID resolveMovieUuid(String idOrSlug) {
+        return resolveMovieRef(idOrSlug).getUuid();
+    }
+
+    private void ensureSlug(Movie movie) {
+        // Giữ slug cũ để URL đẹp không đổi khi sửa tên phim; UUID vẫn luôn resolve được.
+        if (movie.getSlug() != null && !movie.getSlug().isBlank()) {
+            return;
+        }
+        String base = slugFromTitle(movie.getTitle());
+        if (base == null || base.isBlank()) {
+            base = "phim";
+        }
+        String candidate = base;
+        int suffix = 2;
+        while (true) {
+            var existing = movieRepository.findBySlugIgnoreCase(candidate);
+            if (existing.isEmpty()
+                    || (movie.getUuid() != null && existing.get().getUuid().equals(movie.getUuid()))) {
+                movie.setSlug(candidate);
+                return;
+            }
+            candidate = base + "-" + suffix++;
+            if (suffix > 500) {
+                movie.setSlug(base + "-" + UUID.randomUUID().toString().substring(0, 8));
+                return;
+            }
+        }
+    }
+
+    /** Tạo slug URL thân thiện từ tên phim (vd: "Ngôi đền kỳ quái" → ngoi-den-ky-quai). */
+    private static String slugFromTitle(String title) {
+        if (title == null || title.isBlank()) {
+            return null;
+        }
+        String normalized = Normalizer.normalize(title.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'd')
+                .toLowerCase(Locale.ROOT);
+        String dashed = NON_SLUG.matcher(normalized).replaceAll("-");
+        dashed = MULTI_DASH.matcher(dashed).replaceAll("-");
+        dashed = dashed.replaceAll("^-+|-+$", "");
+        if (dashed.isBlank()) {
+            return null;
+        }
+        if (dashed.length() > 120) {
+            dashed = dashed.substring(0, 120).replaceAll("-+$", "");
+        }
+        return dashed;
     }
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
@@ -745,7 +852,7 @@ public class MovieService {
 
     private MovieMedia toMovieMediaEntity(MovieMediaRequest request, UUID operatorId) {
         MovieMedia movieMedia = new MovieMedia();
-        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaUrl(S3MediaBorderUtils.toStoredKey(trim(request.getMediaUrl())));
         movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
         movieMedia.setTitle(trimToNull(request.getTitle()));
         movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
@@ -794,12 +901,13 @@ public class MovieService {
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
-                toBorderMediaUrl(MovieStreamingUtils.resolveStreamingUrl(movie)),
+                toPlayableStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
         response.setOnlinePrice(resolveOnlinePrice(movie));
         response.setRating(movie.getRating());
+        response.setSlug(movie.getSlug());
         return response;
     }
 
@@ -827,12 +935,13 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
-                toBorderMediaUrl(MovieStreamingUtils.resolveStreamingUrl(movie)),
+                toPlayableStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
         response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
         response.setOnlinePrice(resolveOnlinePrice(movie));
         response.setRating(movie.getRating());
+        response.setSlug(movie.getSlug());
         return response;
     }
 
@@ -880,6 +989,11 @@ public class MovieService {
 
     private String toBorderMediaUrl(String mediaUrl) {
         return S3MediaBorderUtils.toBorderUrl(mediaUrl);
+    }
+
+    /** File phim (movie/) → /api/media/stream; còn lại giữ border. */
+    private String toPlayableStreamingUrl(String mediaUrl) {
+        return S3MediaBorderUtils.toStreamUrl(mediaUrl);
     }
 
     private String resolvePrimaryMediaUrl(Movie movie) {
@@ -946,40 +1060,17 @@ public class MovieService {
         return value == null ? null : value.trim().toUpperCase();
     }
 
-    @Transactional(readOnly = true)
-    public String getMovieStreamUrl(UUID movieUuid, String email) {
-        if (email == null || email.isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
-
-        Movie movie = movieRepository.findById(movieUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
-
-        String streamingUrl = MovieStreamingUtils.resolveStreamingUrl(movie);
-        if (!S3MediaBorderUtils.isAwsMovieStreamingUrl(streamingUrl)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phim chi ho tro xem qua link AWS S3 (movie/)");
-        }
-
-        boolean isVip = user.getScore() != null && user.getScore() >= 10000;
-        boolean hasTicket = movieRepository.hasConfirmedBookingForMovie(user.getId(), movieUuid);
-
-        if (!isVip && !hasTicket) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
-        }
-
-        return toBorderMediaUrl(streamingUrl);
-    }
-
     private void applyStreamingUrl(Movie movie, String streamingUrl, List<MovieMediaRequest> medias) {
         String resolved = trimToNull(streamingUrl);
         if (resolved == null) {
-            resolved = MovieStreamingUtils.resolveFromMediaRequests(medias);
+            resolved = S3MediaBorderUtils.resolveFromMediaRequests(medias);
+        }
+        if (resolved != null) {
+            resolved = S3MediaBorderUtils.toStoredKey(resolved);
         }
         if (resolved != null && !S3MediaBorderUtils.isAwsMovieStreamingUrl(resolved)) {
             throw new AppException(ErrorCode.BAD_REQUEST,
-                    "streamingUrl chi chap nhan Object URL AWS S3 thu muc movie/ (java-06.s3.ap-southeast-1.amazonaws.com)");
+                    "streamingUrl chi chap nhan S3 key thu muc movie/ (vd: movie/avatar2009.mp4) hoac Object URL bucket java-06");
         }
         movie.setStreamingUrl(resolved);
     }
@@ -991,7 +1082,7 @@ public class MovieService {
             }
             return;
         }
-        movie.setStreamingUrl(MovieStreamingUtils.resolveStreamingUrl(movie));
+        movie.setStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie));
     }
 
     private BigDecimal resolveOnlinePrice(Movie movie) {

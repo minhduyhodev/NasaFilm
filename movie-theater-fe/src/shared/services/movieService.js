@@ -239,6 +239,51 @@ class MovieService {
       throw authService.handleError(error);
     }
   }
+
+  async presignS3Put(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/presign-put', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async initiateS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/initiate', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async signS3MultipartPart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/sign-part', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async completeS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/complete', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async abortS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/abort', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
 }
 
 export const movieService = new MovieService();

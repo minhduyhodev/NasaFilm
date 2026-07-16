@@ -1,22 +1,22 @@
 [
   {
     "matchTitle": "Mortal Kombat 2",
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/MortalKombat2_FIlm.mp4"
+    "posterUrl": "poster/MortalKombat2_Poster.jpg",
+    "trailerUrl": "trailer/MortalKombat2_Trailer.mp4",
+    "streamingUrl": "movie/MortalKombat2_FIlm.mp4"
   },
   {
     "matchTitle": "Zootopia 2",
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/zootopia-2.jpg",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TRAILER-zootopia-2.mp4",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/zootopia-2.mp4",
+    "posterUrl": "poster/zootopia-2.jpg",
+    "trailerUrl": "trailer/TRAILER-zootopia-2.mp4",
+    "streamingUrl": "movie/zootopia-2.mp4",
     "status": "NOW_SHOWING"
   },
   {
     "matchTitle": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/kimetsu-no-yaiba.jpg",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TRAILER-kimetsu-no-yaiba.mp4",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/kimetsu-no-yai-001.mp4",
+    "posterUrl": "poster/kimetsu-no-yaiba.jpg",
+    "trailerUrl": "trailer/TRAILER-kimetsu-no-yaiba.mp4",
+    "streamingUrl": "movie/kimetsu-no-yai-001.mp4",
     "status": "NOW_SHOWING"
   },
   {
@@ -29,9 +29,9 @@
     "ageRating": "T13",
     "genres": ["Hành động", "Khoa học viễn tưởng", "Phiêu lưu"],
     "countries": ["Mỹ"],
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/Avatar2009.jpg",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/trailerAvatar2009.mkv",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/avatar2009.mp4"
+    "posterUrl": "poster/Avatar2009.jpg",
+    "trailerUrl": "trailer/trailerAvatar2009.mkv",
+    "streamingUrl": "movie/avatar2009.mp4"
   },
   {
     "matchTitle": "The Matrix",
@@ -43,9 +43,9 @@
     "ageRating": "T16",
     "genres": ["Hành động", "Khoa học viễn tưởng"],
     "countries": ["Mỹ"],
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TheMatrix.png",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TheMatrixTrailer.mkv",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/TheMatrix.mp4"
+    "posterUrl": "poster/TheMatrix.png",
+    "trailerUrl": "trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "movie/TheMatrix.mp4"
   },
   {
     "matchTitle": "Lời thì thầm của Trái tim",
@@ -57,8 +57,14 @@
     "ageRating": "P",
     "genres": ["Hoạt hình", "Tình cảm", "Gia đình"],
     "countries": ["Nhật Bản"],
-    "posterUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/Whisper-of-the-Heart-Poster.jpg",
-    "trailerUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TheMatrixTrailer.mkv",
-    "streamingUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/movie/Whisper-of-the-Heart.mp4"
+    "posterUrl": "poster/Whisper-of-the-Heart-Poster.jpg",
+    "trailerUrl": "trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "movie/Whisper-of-the-Heart.mp4"
+  },
+  {
+    "matchTitle": "Ngôi đền kỳ quái",
+    "posterUrl": "poster/NgoiDenKyQuai.webp",
+    "trailerUrl": "https://www.youtube.com/watch?v=Jr9fXN74ivE",
+    "streamingUrl": "movie/ngoidenkyquai.mp4"
   }
 ]

@@ -92,9 +92,9 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/movies/{movieUuid}")
-    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable UUID movieUuid) {
-        MovieDetailResponse response = movieService.getMovieDetail(movieUuid);
+    @GetMapping("/movies/{movieRef}")
+    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable("movieRef") String movieRef) {
+        MovieDetailResponse response = movieService.getMovieDetailByRef(movieRef);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -221,12 +221,4 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa quoc gia thanh cong"));
     }
 
-    @GetMapping("/movies/{movieUuid}/stream")
-    public ResponseEntity<ApiResponse<String>> getMovieStream(
-            @PathVariable UUID movieUuid,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String streamUrl = movieService.getMovieStreamUrl(movieUuid,
-                userDetails != null ? userDetails.getUsername() : null);
-        return ResponseEntity.ok(ApiResponse.success(streamUrl));
-    }
 }

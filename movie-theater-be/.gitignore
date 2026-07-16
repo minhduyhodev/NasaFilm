@@ -36,6 +36,10 @@ build/
 ### Environment files ###
 .env
 
+### Node (html5-qrcode helper only — not part of Maven build) ###
+node_modules/
+.s3-tools/
+
 
 ### Cursor ###
 .Cursor/

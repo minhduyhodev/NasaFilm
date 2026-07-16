@@ -45,12 +45,47 @@ export const initMediaUrlRouting = () => {
   return initPromise;
 };
 
-/** Lấy lại URL TMDB/S3 gốc nếu đã bị bọc qua wsrv hoặc proxy/border BE. */
+const S3_KEY_PREFIX_RE = /^(movie|poster|trailer)\//i;
+
+/** Key S3 dạng movie/... | poster/... | trailer/... (không phải full URL). */
+export const isAwsS3Key = (url) => {
+  if (!url?.trim()) return false;
+  const trimmed = url.trim();
+  return !trimmed.includes('://') && S3_KEY_PREFIX_RE.test(trimmed);
+};
+
+const toBorderFromKey = (key) =>
+  `/api/media/border?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
+
+const extractStreamToken = (url) => {
+  if (!url?.trim()) return null;
+  try {
+    const parsed = url.trim().startsWith('http')
+      ? new URL(url.trim())
+      : new URL(url.trim(), 'http://localhost');
+    return parsed.searchParams.get('token');
+  } catch {
+    return null;
+  }
+};
+
+const toStreamFromKey = (key, token = null) => {
+  let path = `/api/media/stream?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
+  if (token) {
+    path += `&token=${encodeURIComponent(token)}`;
+  }
+  return path;
+};
+
+/** Lấy lại key S3 / URL gốc nếu đã bị bọc qua wsrv hoặc proxy/border/stream BE. */
 export const unwrapMediaUrl = (url) => {
   if (!url?.trim()) {
     return '';
   }
   const trimmed = url.trim();
+  if (isAwsS3Key(trimmed)) {
+    return trimmed;
+  }
   try {
     if (trimmed.includes('wsrv.nl')) {
       const inner = new URL(trimmed).searchParams.get('url');
@@ -58,17 +93,27 @@ export const unwrapMediaUrl = (url) => {
         return decodeURIComponent(inner);
       }
     }
-    if (trimmed.includes('/api/media/proxy') || trimmed.includes('/api/media/border')) {
+    if (
+      trimmed.includes('/api/media/proxy')
+      || trimmed.includes('/api/media/border')
+      || trimmed.includes('/api/media/stream')
+    ) {
       const parsed = trimmed.startsWith('http')
         ? new URL(trimmed)
         : new URL(trimmed, 'http://localhost');
       const key = parsed.searchParams.get('key');
       if (key) {
-        return `https://${AWS_S3_BUCKET_HOST}/${decodeURIComponent(key)}`;
+        return decodeURIComponent(key);
       }
       const inner = parsed.searchParams.get('url');
       if (inner) {
         return decodeURIComponent(inner);
+      }
+    }
+    if (new RegExp(AWS_S3_BUCKET_HOST.replace(/\./g, '\\.'), 'i').test(trimmed)) {
+      const key = new URL(trimmed).pathname.replace(/^\//, '');
+      if (S3_KEY_PREFIX_RE.test(key)) {
+        return key;
       }
     }
   } catch {
@@ -80,22 +125,16 @@ export const unwrapMediaUrl = (url) => {
 /** Link file phim đầy đủ trên S3 (prefix movie/). */
 export const isAwsMovieStreamingUrl = (url) => {
   if (!url?.trim()) return false;
-  const lower = url.trim().toLowerCase();
-  if (lower.includes('/api/media/border')) {
-    try {
-      const parsed = lower.startsWith('http') ? new URL(url.trim()) : new URL(url.trim(), 'http://localhost');
-      const key = decodeURIComponent(parsed.searchParams.get('key') || '');
-      return key.toLowerCase().startsWith('movie/');
-    } catch {
-      return false;
-    }
-  }
-  return lower.includes(AWS_S3_BUCKET_HOST) && lower.includes('/movie/');
+  const key = unwrapMediaUrl(url.trim()).toLowerCase();
+  return key.startsWith('movie/');
 };
 
 /** Border S3 qua BE — giữ nguyên path relative để Vite proxy. */
 export const isBorderMediaUrl = (url) =>
   typeof url === 'string' && url.includes('/api/media/border');
+
+export const isStreamMediaUrl = (url) =>
+  typeof url === 'string' && url.includes('/api/media/stream');
 
 export const resolveMediaUrl = (url, width = 400) => {
   if (!url?.trim()) {
@@ -104,12 +143,20 @@ export const resolveMediaUrl = (url, width = 400) => {
 
   const trimmed = url.trim();
 
-  // FE luôn dùng link border của BE (không unwrap ra S3).
-  if (isBorderMediaUrl(trimmed)) {
-    return trimmed.startsWith('http') ? trimmed : trimmed;
+  // FE luôn dùng link border/stream của BE (không unwrap ra S3).
+  if (isBorderMediaUrl(trimmed) || isStreamMediaUrl(trimmed)) {
+    return trimmed;
   }
 
   const unwrapped = unwrapMediaUrl(trimmed);
+
+  if (isAwsS3Key(unwrapped)) {
+    // File phim: stream Range same-origin. Poster/trailer: border redirect.
+    if (unwrapped.toLowerCase().startsWith('movie/')) {
+      return toStreamFromKey(unwrapped);
+    }
+    return toBorderFromKey(unwrapped);
+  }
 
   if (isCloudinaryUrl(unwrapped)) {
     return toCloudinaryOptimizedUrl(unwrapped, width);
@@ -123,13 +170,33 @@ export const resolveMediaUrl = (url, width = 400) => {
   if (new RegExp(AWS_S3_BUCKET_HOST.replace(/\./g, '\\.'), 'i').test(unwrapped)) {
     try {
       const key = new URL(unwrapped).pathname.replace(/^\//, '');
-      return `/api/media/border?key=${encodeURIComponent(key)}`;
+      return toBorderFromKey(key);
     } catch {
       return unwrapped;
     }
   }
 
   return unwrapped;
+};
+
+/**
+ * URL phát cho &lt;video&gt;: ưu tiên same-origin `/api/media/stream` (hỗ trợ Range),
+ * tránh 302 sang S3 khiến player xoay/kẹt.
+ */
+export const resolvePlayableMediaUrl = async (url) => {
+  if (!url?.trim()) {
+    return '';
+  }
+  const trimmed = url.trim();
+  if (isStreamMediaUrl(trimmed)) {
+    return trimmed;
+  }
+  const token = extractStreamToken(trimmed);
+  const key = unwrapMediaUrl(trimmed);
+  if (key.toLowerCase().startsWith('movie/')) {
+    return toStreamFromKey(key, token);
+  }
+  return resolveMediaUrl(trimmed) || trimmed;
 };
 
 export const handlePosterError = (event) => {

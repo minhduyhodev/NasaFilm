@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, Plus, User, Play, Calendar, FileText, Archive, Pause,
-  ChevronLeft, ChevronRight, Search, Loader2, Film
+  ChevronLeft, ChevronRight, Search, Loader2, Film, Upload
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -20,7 +20,7 @@ import {
 import { adminInputClass } from '../components/adminFormStyles';
 import PosterImage from '../../../shared/components/PosterImage';
 import { unwrapMediaUrl, isAwsMovieStreamingUrl } from '../../../shared/utils/mediaUrlUtils';
-
+import { uploadMediaToS3 } from '../../../shared/utils/s3Upload';
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '');
   const trailer = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'TRAILER')?.mediaUrl || '');
@@ -94,11 +94,39 @@ const AdminMovieFormPage = () => {
   const [actorSearchTerm, setActorSearchTerm] = useState('');
   const [actorCountryFilter, setActorCountryFilter] = useState('');
   const [posterLoadError, setPosterLoadError] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({
+    poster: null,
+    trailer: null,
+    movie: null,
+  });
 
   useEffect(() => {
     setPosterLoadError(false);
   }, [formData.posterUrl]);
 
+  const handleS3FileUpload = async (folder, file, fieldName) => {
+    if (!file) return;
+    if (!formData.title?.trim()) {
+      notificationService.error('Nhập Tên phim trước khi upload — file S3 sẽ đặt theo tên phim (vd: movie/avatar2009.mp4)');
+      return;
+    }
+    setUploadProgress((prev) => ({ ...prev, [folder]: 1 }));
+    try {
+      const key = await uploadMediaToS3(folder, file, {
+        movieTitle: formData.title.trim(),
+        onProgress: (percent) => {
+          setUploadProgress((prev) => ({ ...prev, [folder]: percent }));
+        },
+      });
+      setFormData((prev) => ({ ...prev, [fieldName]: key }));
+      notificationService.success(`Đã upload ${folder} lên S3: ${key}`);
+    } catch (err) {
+      console.error('S3 upload failed:', err);
+      notificationService.error(err.message || `Upload ${folder} thất bại`);
+    } finally {
+      setUploadProgress((prev) => ({ ...prev, [folder]: null }));
+    }
+  };
   const ageRestrictionOptions = [
     { value: 'P', label: 'P - Mọi lứa tuổi' },
     { value: 'K', label: 'K - Dưới 13 tuổi (cần có người giám hộ)' },
@@ -337,7 +365,7 @@ const AdminMovieFormPage = () => {
     let streamingUrl = unwrapMediaUrl(formData.streamingUrl.trim()) || null;
     if (streamingUrl && !isAwsMovieStreamingUrl(streamingUrl)) {
       notificationService.error(
-        'Link phim chỉ chấp nhận Object URL AWS S3 thư mục movie/ (java-06.s3.ap-southeast-1.amazonaws.com/movie/...)'
+        'Link phim chỉ chấp nhận S3 key thư mục movie/ (vd: movie/avatar2009.mp4) hoặc Object URL bucket java-06'
       );
       return;
     }
@@ -463,15 +491,34 @@ const AdminMovieFormPage = () => {
                 </div>
                 <div>
                   <label className={labelClass}>Poster URL *</label>
-                  <input
-                    type="url"
-                    className={inputClass}
-                    placeholder="https://..."
-                    value={formData.posterUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
-                    required
-                  />
-                  <p className="text-xs text-gray-600 mt-1">Anh xem truoc cap nhat khi ban nhap URL.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className={`${inputClass} flex-1`}
+                      placeholder="poster/Avatar2009.jpg"
+                      value={formData.posterUrl}
+                      onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
+                      required
+                    />
+                    <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
+                      <Upload className="w-3.5 h-3.5" />
+                      {uploadProgress.poster != null ? `${uploadProgress.poster}%` : 'Upload'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadProgress.poster != null}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          handleS3FileUpload('poster', file, 'posterUrl');
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Nhập Tên phim trước, rồi Upload — key dạng poster/Avatar2009.jpg.
+                  </p>
                 </div>
                 <div>
                   <label className={labelClass}>Mô tả phim</label>
@@ -643,13 +690,61 @@ const AdminMovieFormPage = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className={labelClass}>Trailer URL (YouTube)</label>
-                <input type="url" className={inputClass} placeholder="https://youtube.com/watch?v=..." value={formData.trailerUrl} onChange={(e) => setFormData(prev => ({ ...prev, trailerUrl: e.target.value }))} />
+                <label className={labelClass}>Trailer URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className={`${inputClass} flex-1`}
+                    placeholder="trailer/trailerAvatar2009.mp4"
+                    value={formData.trailerUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, trailerUrl: e.target.value }))}
+                  />
+                  <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
+                    <Upload className="w-3.5 h-3.5" />
+                    {uploadProgress.trailer != null ? `${uploadProgress.trailer}%` : 'Upload'}
+                    <input
+                      type="file"
+                      accept="video/*,.mkv,.mp4,.webm"
+                      className="hidden"
+                      disabled={uploadProgress.trailer != null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        handleS3FileUpload('trailer', file, 'trailerUrl');
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <div>
                 <label className={labelClass}>Link phim (Streaming URL)</label>
-                <input type="url" className={inputClass} placeholder="https://java-06.s3.ap-southeast-1.amazonaws.com/movie/TenPhim.mp4" value={formData.streamingUrl} onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))} />
-                <p className="mt-1 text-[10px] text-gray-500">Google Drive: mở file video → Chia sẻ → Sao chép liên kết file (dạng /file/d/ID/view). Không dùng link thư mục /folders/</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className={`${inputClass} flex-1`}
+                    placeholder="movie/avatar2009.mp4"
+                    value={formData.streamingUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))}
+                  />
+                  <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
+                    <Upload className="w-3.5 h-3.5" />
+                    {uploadProgress.movie != null ? `${uploadProgress.movie}%` : 'Upload'}
+                    <input
+                      type="file"
+                      accept="video/*,.mkv,.mp4,.webm"
+                      className="hidden"
+                      disabled={uploadProgress.movie != null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        handleS3FileUpload('movie', file, 'streamingUrl');
+                      }}
+                    />
+                  </label>
+                </div>
+                <p className="mt-1 text-[10px] text-gray-500">
+                  Nhập Tên phim trước — upload tạo key movie/tênphim.mp4 (không dùng tên file local), tự điền vào ô Link phim. Nên dùng file MP4 chuẩn (H.264); tránh file ghép từ m3u8 để phát mượt.
+                </p>
               </div>
             </div>
           </Section>
