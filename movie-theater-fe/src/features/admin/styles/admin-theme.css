@@ -1,6 +1,13 @@
 /* NASA FILM — Admin / Staff design tokens & shared UI */
 
 .admin-shell {
+  /* Typography tokens — reuse the global Google Fonts already loaded in index.css
+     (Montserrat/Be Vietnam Pro/Inter) so headings inherit consistently everywhere,
+     instead of silently falling back to `inherit` when unset. */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Be Vietnam Pro', sans-serif;
+  --font-ui: 'Inter', sans-serif;
+
   --adm-bg-app: #080b14;
   --adm-bg-main: #080b14;
   --adm-bg-sidebar: #0b0f19;

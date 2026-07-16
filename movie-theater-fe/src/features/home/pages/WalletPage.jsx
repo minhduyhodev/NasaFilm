@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { walletService } from '../../../shared/services/walletService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useWalletSummary, useInvalidateWallet } from '../../../shared/hooks/queries/useWalletQuery';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -102,6 +103,7 @@ function StripeTopUpForm({ amount, onSuccess, onCancel }) {
 }
 
 const WalletPage = () => {
+  const confirm = useConfirm();
   const { data: summary, isLoading, refetch } = useWalletSummary();
   const invalidateWallet = useInvalidateWallet();
   const [amount, setAmount] = useState('');
@@ -143,6 +145,15 @@ const WalletPage = () => {
   const handleTopUp = async () => {
     const value = Number(amount);
     if (!validateAmount(value)) return;
+
+    const ok = await confirm({
+      title: 'Xác nhận nạp tiền',
+      message: 'Bạn có chắc muốn nạp tiền vào Ví NASA?',
+      highlight: formatMoney(value),
+      confirmLabel: 'Nạp tiền',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     setIsSubmitting(true);
     try {

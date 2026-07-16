@@ -6,6 +6,7 @@ public class ConfirmOnlineBookingRequest {
     private UUID movieUuid;
     private String promotionCode;
     private String paymentMethod;
+    private String paymentIntentId;
 
     public ConfirmOnlineBookingRequest() {
     }
@@ -37,5 +38,13 @@ public class ConfirmOnlineBookingRequest {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public String getPaymentIntentId() {
+        return paymentIntentId;
+    }
+
+    public void setPaymentIntentId(String paymentIntentId) {
+        this.paymentIntentId = paymentIntentId;
     }
 }

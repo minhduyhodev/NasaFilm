@@ -121,7 +121,7 @@ const OrbitChatBox = ({ roomUuid }) => {
 
   return (
     <div 
-      className="flex flex-col rounded-2xl overflow-hidden shadow-2xl h-[400px]"
+      className="flex flex-col min-w-0 rounded-2xl overflow-hidden shadow-2xl h-[400px]"
       style={{ backgroundColor: 'rgba(14, 18, 30, 0.65)', border: '1px solid rgba(255, 255, 255, 0.04)', backdropFilter: 'blur(16px)' }}
     >
       {/* Header */}
@@ -144,13 +144,21 @@ const OrbitChatBox = ({ roomUuid }) => {
             Chưa có tin nhắn. Hãy bắt đầu trò chuyện với cả nhóm!
           </div>
         ) : (
-          messages.map((msg) => {
+          messages.map((msg, index) => {
             const isMe = msg.senderUserUuid === currentUserUuid;
+            const prevMsg = messages[index - 1];
+            const isContinuation =
+              !msg.system
+              && prevMsg
+              && !prevMsg.system
+              && prevMsg.senderUserUuid === msg.senderUserUuid;
+            const showSenderName = !isMe && !msg.system && !isContinuation;
+
             if (msg.system) {
               return (
                 <div key={msg.uuid} className="flex justify-center my-2">
                   <span 
-                    className="text-[10px] text-zinc-400 font-semibold px-3 py-1 rounded-full text-center max-w-[80%] border"
+                    className="text-[10px] text-zinc-400 font-semibold px-3 py-1 rounded-full text-center max-w-[80%] border break-words [overflow-wrap:anywhere]"
                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)', borderColor: 'rgba(255, 255, 255, 0.04)' }}
                   >
                     {msg.message}
@@ -162,10 +170,10 @@ const OrbitChatBox = ({ roomUuid }) => {
             return (
               <div
                 key={msg.uuid}
-                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isContinuation ? 'mt-0.5' : ''}`}
               >
-                {!isMe && (
-                  <span className="text-[10px] text-zinc-400 font-bold mb-1 ml-1">
+                {showSenderName && (
+                  <span className="text-[10px] text-zinc-400 font-bold mb-1 ml-1 truncate max-w-full">
                     {msg.senderDisplayName}
                   </span>
                 )}
@@ -173,7 +181,7 @@ const OrbitChatBox = ({ roomUuid }) => {
                   className={`max-w-[75%] min-w-0 px-3.5 py-2.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-md border break-words [overflow-wrap:anywhere] ${
                     isMe
                       ? 'bg-gradient-to-r from-red-600 to-red-700 text-white rounded-tr-none border-transparent'
-                      : 'text-zinc-100 rounded-tl-none bg-zinc-800/80 border-white/10'
+                      : `text-zinc-100 rounded-tl-none bg-zinc-800/80 border-white/10 ${isContinuation ? 'rounded-tl-2xl' : ''}`
                   }`}
                 >
                   {msg.message}

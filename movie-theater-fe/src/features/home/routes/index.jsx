@@ -34,6 +34,7 @@ const SearchResultsPage = lazy(() => import('../pages/SearchResultsPage'));
 const MyMoviesPage = lazy(() => import('../pages/MyMoviesPage'));
 const PaymentFlow = lazy(() => import('../../payment/PaymentFlow'));
 const PaymentSuccess = lazy(() => import('../../payment/PaymentSuccess'));
+const VietQRPage = lazy(() => import('../../payment/VietQRPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -165,6 +166,14 @@ export const HomeRoutes = () => {
             element={
               <ProtectedRoute>
                 <PaymentFlow />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="payment/vietqr"
+            element={
+              <ProtectedRoute>
+                <VietQRPage />
               </ProtectedRoute>
             }
           />

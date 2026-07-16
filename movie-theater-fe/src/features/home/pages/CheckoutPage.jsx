@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle, QrCode } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
 import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -17,8 +17,10 @@ import PosterImage from '../../../shared/components/PosterImage';
 import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
 import { orbitService } from '../../../shared/services/orbitService';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const CheckoutPage = () => {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -71,6 +73,7 @@ const CheckoutPage = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const orbitAutoAbortRef = useRef(false);
 
   const [activeCombos, setActiveCombos] = useState([]);
   useEffect(() => {
@@ -216,6 +219,19 @@ const CheckoutPage = () => {
     }
   }, [isStateValid, isVod, lockExpiresAt]);
 
+  useEffect(() => {
+    if (!isExpired || !isOrbit || !orbitRoomUuid || orbitAutoAbortRef.current) return;
+    orbitAutoAbortRef.current = true;
+    (async () => {
+      try {
+        await orbitService.abortCheckout(orbitRoomUuid);
+        notificationService.info('Hết thời gian thanh toán — phòng Orbit đã mở lại cho cả nhóm.');
+      } catch (err) {
+        console.error('Auto abort checkout on expiry failed:', err);
+      }
+    })();
+  }, [isExpired, isOrbit, orbitRoomUuid]);
+
   const memberDiscountRate = getMemberDiscountRate(userScore);
   const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
@@ -307,6 +323,24 @@ const CheckoutPage = () => {
       return;
     }
 
+    const paymentLabel = paymentMethod === 'wallet'
+      ? 'Số dư ví NASA'
+      : paymentMethod === 'card'
+        ? 'Thẻ Visa/Mastercard'
+        : 'Apple Pay';
+    const seatLabel = isVod
+      ? 'Xem phim Online'
+      : `Ghế: ${selectedSeats.map((s) => s.id).join(', ')}`;
+    const ok = await confirm({
+      title: 'Xác nhận thanh toán',
+      message: 'Bạn có chắc muốn hoàn tất đặt vé và thanh toán?',
+      highlight: `${finalTotal.toLocaleString('vi-VN')} đ · ${paymentLabel}`,
+      detail: `${isVod ? movie : `${movie} · ${theater}`} · ${seatLabel}`,
+      confirmLabel: 'Thanh toán ngay',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     // Send only the host's own combos. For Orbit group bookings the server merges in each member's combos
     // authoritatively from the room (BookingService.confirmBooking), so pre-merging them here would
     // double-charge members. finalTotal above already reflects the full host + members amount.
@@ -314,6 +348,20 @@ const CheckoutPage = () => {
 
     if (paymentMethod === 'card') {
       navigate('/payment', {
+        state: {
+          amount: finalTotal,
+          checkoutState: {
+            ...checkoutState,
+            selectedCombos: hostCombos,
+            voucherCode: discount > 0 ? voucherInput.trim() : null,
+          },
+        },
+      });
+      return;
+    }
+
+    if (paymentMethod === 'vietqr') {
+      navigate('/payment/vietqr', {
         state: {
           amount: finalTotal,
           checkoutState: {
@@ -352,10 +400,10 @@ const CheckoutPage = () => {
         successMessage,
         "success"
       );
+
+      const methodLabel = paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'vietqr' ? 'VietQR chuyển khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay';
       
-      notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
-        paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
-      }.`);
+      notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${methodLabel}.`);
       showMissionCompletionToasts(response?.missionCompletions);
       clearAllBookingSessions();
       if (orbitRoomUuid) {
@@ -398,6 +446,13 @@ const CheckoutPage = () => {
 
   const handleBackToBooking = async () => {
     if (isOrbit && orbitRoomUuid) {
+      const ok = await confirm({
+        title: 'Quay lại phòng nhóm',
+        message: 'Phiên thanh toán nhóm sẽ bị hủy. Bạn có chắc muốn quay lại?',
+        confirmLabel: 'Quay lại',
+        variant: 'warning',
+      });
+      if (!ok) return;
       try {
         await orbitService.abortCheckout(orbitRoomUuid);
       } catch (err) {
@@ -598,7 +653,7 @@ const CheckoutPage = () => {
 
               <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
               <p className="text-[11px] text-amber-400/90 font-semibold mb-6 px-1">
-                Chế độ demo — Ví NASA trừ số dư thật (mock), thẻ/Apple Pay qua Mock Gateway. Cổng VNPay/MoMo sẽ tích hợp sau.
+                Chế độ demo — Ví NASA trừ số dư (mock), Thẻ Visa/Mastercard qua Stripe. <strong className="text-blue-400">VietQR chuyển khoản ngân hàng thật.</strong>
               </p>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
@@ -649,6 +704,32 @@ const CheckoutPage = () => {
                     <div className="text-[10px] font-semibold text-gray-400">Visa liên kết đuôi **** 4429</div>
                   </div>
                   <CreditCard className="w-5 h-5 text-[#c8c5ca] group-hover:text-white transition-colors shrink-0" />
+                </label>
+
+                {/* VietQR Bank Transfer */}
+                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${
+                  paymentMethod === 'vietqr' ? 'border-blue-500/50 bg-blue-600/5 ring-1 ring-blue-500/20' : 'border-white/10 bg-white/5'
+                }`}>
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    checked={paymentMethod === 'vietqr'}
+                    onChange={() => setPaymentMethod('vietqr')}
+                    className="hidden"
+                  />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${
+                    paymentMethod === 'vietqr' ? 'border-blue-500 bg-blue-500' : 'border-white/30'
+                  }`}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">VietQR — Chuyển khoản ngân hàng</span>
+                      <span className="bg-blue-500/20 text-blue-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase border border-blue-500/30">Thật</span>
+                    </div>
+                    <div className="text-[10px] font-semibold text-gray-400">Quét mã QR · Xác nhận tức thì</div>
+                  </div>
+                  <QrCode className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors shrink-0" />
                 </label>
 
                 {/* Apple Pay / MoMo */}
@@ -815,6 +896,7 @@ const CheckoutPage = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

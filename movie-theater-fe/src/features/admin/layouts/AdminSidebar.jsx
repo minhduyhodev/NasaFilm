@@ -34,6 +34,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { bookingService } from '../../../shared/services/bookingService';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -51,6 +52,7 @@ const getRoleDisplayLabel = (roles = []) => {
 };
 
 const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
+  const confirm = useConfirm();
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,10 +131,17 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     loadPendingFeedbackReportCount,
   );
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Đăng xuất',
+      message: 'Bạn có chắc chắn muốn đăng xuất khỏi trang quản trị?',
+      confirmLabel: 'Đăng xuất',
+      variant: 'warning',
+    });
+    if (!ok) return;
     logout();
     navigate("/login");
-  }, [logout, navigate]);
+  }, [confirm, logout, navigate]);
 
   const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge, permission } = {}) => {
     if (permission && !hasPermission(user, permission)) {

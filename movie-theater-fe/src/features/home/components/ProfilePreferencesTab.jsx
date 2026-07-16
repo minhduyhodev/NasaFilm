@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { Loader2, Radar, RefreshCw, Save } from 'lucide-react';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { useShowtimeRadar } from '../context/ShowtimeRadarProvider';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import ShowtimeRadarSuggestionsList from './ShowtimeRadarSuggestionsList';
 import './ProfilePreferencesTab.css';
 import './ShowtimeRadarWidget.css';
 
 const ProfilePreferencesTab = () => {
+  const confirm = useConfirm();
   const { data: filterOptions, isLoading: genresLoading } = useMovieFilterOptions();
   const genres = filterOptions?.genres ?? [];
 
@@ -26,6 +28,17 @@ const ProfilePreferencesTab = () => {
     refreshSuggestions,
     toggleGenre,
   } = useShowtimeRadar();
+
+  const handleSavePreferences = async () => {
+    const ok = await confirm({
+      title: 'Lưu sở thích',
+      message: 'Lưu thể loại yêu thích và cập nhật gợi ý Radar suất chiếu?',
+      confirmLabel: 'Lưu sở thích',
+      variant: 'default',
+    });
+    if (!ok) return;
+    await savePreferences();
+  };
 
   return (
     <div className="profile-preferences-tab">
@@ -99,7 +112,7 @@ const ProfilePreferencesTab = () => {
           <button
             type="button"
             className="profile-preferences-tab__save"
-            onClick={savePreferences}
+            onClick={handleSavePreferences}
             disabled={saving}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

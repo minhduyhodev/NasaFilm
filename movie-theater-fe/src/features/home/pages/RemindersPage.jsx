@@ -9,8 +9,10 @@ import {
   saveMovieReminders,
   REMINDERS_UPDATED_EVENT,
 } from '../utils/movieReminderUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const RemindersPage = () => {
+  const confirm = useConfirm();
   const [reminders, setReminders] = useState(loadMovieReminders);
 
   const refresh = useCallback(() => {
@@ -23,7 +25,16 @@ const RemindersPage = () => {
     return () => window.removeEventListener(REMINDERS_UPDATED_EVENT, refresh);
   }, [refresh]);
 
-  const handleRemove = (movieUuid, title) => {
+  const handleRemove = async (movieUuid, title) => {
+    const ok = await confirm({
+      title: 'Hủy nhắc hẹn',
+      message: 'Bạn có chắc muốn hủy nhắc hẹn suất chiếu cho phim này?',
+      highlight: title || 'Phim đã chọn',
+      confirmLabel: 'Hủy nhắc hẹn',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     const next = removeMovieReminder(movieUuid, reminders);
     setReminders(next);
     saveMovieReminders(next);

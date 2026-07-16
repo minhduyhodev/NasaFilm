@@ -4,7 +4,7 @@ import { User, Edit2, Trash2, Loader2, Film } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatDateDisplay, getScreeningModeLabel } from '../utils/adminMovieUtils.jsx';
-import { getMovieStreamingUrl } from '../../home/utils/movieUtils';
+import { getMovieStreamingUrl, formatAgeRestrictionBadge } from '../../home/utils/movieUtils';
 import { getMovieStatusLabel } from '../utils/statusLabels';
 import {
   AdminPage,
@@ -76,7 +76,7 @@ const AdminMovieDetailPage = () => {
     return (
       <div className="flex items-center justify-center min-h-[320px] text-gray-500 text-sm">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        Dang tai thong tin phim...
+        Đang tải thông tin phim...
       </div>
     );
   }
@@ -136,7 +136,7 @@ const AdminMovieDetailPage = () => {
             <dl className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <MetadataRow label="Trạng thái" value={getMovieStatusLabel(movie.status)} />
               <MetadataRow label="Thời lượng" value={`${movie.durationMinutes} phút`} />
-              <MetadataRow label="Độ tuổi" value={movie.ageRestriction || 'P'} />
+              <MetadataRow label="Độ tuổi" value={formatAgeRestrictionBadge(movie.ageRestriction || 'P')} />
               <MetadataRow
                 label="Ngày khởi chiếu"
                 value={movie.releaseDate ? formatDateDisplay(movie.releaseDate) : '—'}
@@ -212,7 +212,7 @@ const AdminMovieDetailPage = () => {
                   className="inline px-0 py-0 text-sm text-gray-400 hover:text-white"
                   onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
                 >
-                  Them trong form chinh sua
+                  Thêm trong form chỉnh sửa
                 </GhostButton>
               </p>
             )}

@@ -5,6 +5,7 @@ import { adminInputClass, adminTextareaClass } from '../../components/adminFormS
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import { formatMoney } from './hrUtils';
 
 const EMPLOYMENT_TYPES = [
@@ -155,6 +156,7 @@ const validateMultiplier = (value, label) => {
 };
 
 function ProfileModal({ profile, onClose, onSaved }) {
+  const confirm = useConfirm();
   const [hourlyRate, setHourlyRate] = useState(
     profile.hasProfile ? String(profile.hourlyRate ?? '') : '',
   );
@@ -187,6 +189,16 @@ function ProfileModal({ profile, onClose, onSaved }) {
       notificationService.warning('Vui lòng kiểm tra lại thông tin hồ sơ lương.');
       return;
     }
+    const ok = await confirm({
+      title: 'Lưu hồ sơ lương',
+      message: 'Cập nhật hồ sơ lương cho nhân viên này?',
+      highlight: profile.fullName || profile.email,
+      detail: !active ? 'Nhân viên sẽ không được tính lương theo hồ sơ này.' : '',
+      confirmLabel: 'Lưu hồ sơ',
+      variant: !active ? 'danger' : 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       await hrService.upsertEmployeeProfile(profile.userId, {

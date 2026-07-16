@@ -7,12 +7,14 @@ import { systemConfigService } from '../../../shared/services/systemConfigServic
 import { getPointsToCashValue } from '../../../shared/utils/systemConfig';
 import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../utils/voucherFormUtils';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const inputClass =
   'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
 const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
 
 const AdminVoucherFormPage = () => {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const { voucherId } = useParams();
   const isEditing = Boolean(voucherId);
@@ -80,11 +82,15 @@ const AdminVoucherFormPage = () => {
 
   const isDirty = initialForm && JSON.stringify(form) !== JSON.stringify(initialForm);
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (isDirty) {
-      if (!window.confirm('Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.')) {
-        return;
-      }
+      const ok = await confirm({
+        title: 'Hủy chỉnh sửa',
+        message: 'Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.',
+        confirmLabel: 'Hủy bỏ',
+        variant: 'warning',
+      });
+      if (!ok) return;
     }
     navigate(isEditing ? `/admin/vouchers/${voucherId}` : '/admin/vouchers');
   };

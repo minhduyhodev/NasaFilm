@@ -55,9 +55,11 @@ import { vodService } from "../../../shared/services/vodService";
 import { resolveTierFromLifetime, resolveTierProgress } from "../../../shared/utils/memberTiers";
 import { missionService, MISSION_BOARD_REFRESH_EVENT } from "../../../shared/services/missionService";
 import MissionBoard from "../components/MissionBoard";
+import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import "./ProfilePage.css";
 
 export const ProfilePage = () => {
+  const confirm = useConfirm();
   const { user, logout, updateUser } = useAuthContext();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
@@ -307,6 +309,16 @@ export const ProfilePage = () => {
   }, [user]);
 
   const handleRedeemVoucher = async (promotionId) => {
+    const item = voucherCatalog.find((v) => v.id === promotionId);
+    const ok = await confirm({
+      title: 'Đổi voucher',
+      message: 'Điểm đã trừ sẽ không được hoàn lại. Xác nhận đổi voucher?',
+      highlight: item ? `${item.code || item.name} · ${item.pointsCost ?? 0} điểm` : String(promotionId),
+      confirmLabel: 'Đổi voucher',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setRedeemingVoucherId(promotionId);
     try {
       await promotionService.redeemVoucher(promotionId);
@@ -516,6 +528,15 @@ export const ProfilePage = () => {
       return;
     }
 
+    const ok = await confirm({
+      title: 'Lưu thông tin cá nhân',
+      message: 'Cập nhật họ tên, số điện thoại và ngày sinh lên hệ thống?',
+      highlight: fullName.trim(),
+      confirmLabel: 'Lưu thay đổi',
+      variant: 'default',
+    });
+    if (!ok) return;
+
     setIsSaving(true);
     try {
       const data = await authService.updateProfile({
@@ -593,6 +614,14 @@ export const ProfilePage = () => {
       notificationService.error("Mật khẩu mới phải có tối thiểu 6 ký tự.");
       return;
     }
+
+    const ok = await confirm({
+      title: 'Xác nhận đổi mật khẩu',
+      message: 'Bạn có chắc muốn thay đổi mật khẩu tài khoản? Bạn sẽ cần dùng mật khẩu mới cho lần đăng nhập tiếp theo.',
+      confirmLabel: 'Đổi mật khẩu',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     setIsChangingPass(true);
     try {

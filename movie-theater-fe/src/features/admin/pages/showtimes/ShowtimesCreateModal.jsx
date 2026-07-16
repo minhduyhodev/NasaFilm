@@ -196,10 +196,10 @@ const ShowtimesCreateModal = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 items-start">
                 {/* Base Ticket Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Thường (đ) *</label>
+                <div className="flex flex-col">
+                  <label className="flex items-end min-h-[2rem] text-[11px] font-bold uppercase text-gray-400 mb-1 leading-tight">Giá Vé Thường (đ) *</label>
                   <input
                     type="number"
                     min="10000"
@@ -211,8 +211,8 @@ const ShowtimesCreateModal = ({
                   />
                 </div>
                 {/* VIP Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé VIP (đ) *</label>
+                <div className="flex flex-col">
+                  <label className="flex items-end min-h-[2rem] text-[11px] font-bold uppercase text-gray-400 mb-1 leading-tight">Giá Vé VIP (đ) *</label>
                   <input
                     type="number"
                     min="10000"
@@ -224,8 +224,8 @@ const ShowtimesCreateModal = ({
                   />
                 </div>
                 {/* Couple Price */}
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-gray-400 mb-1">Giá Vé Đôi (đ) *</label>
+                <div className="flex flex-col">
+                  <label className="flex items-end min-h-[2rem] text-[11px] font-bold uppercase text-gray-400 mb-1 leading-tight">Giá Vé Đôi (đ) *</label>
                   <input
                     type="number"
                     min="10000"

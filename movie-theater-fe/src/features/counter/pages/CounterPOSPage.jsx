@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
@@ -14,13 +14,16 @@ import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
 import { CounterPageHeader, PrintTicketModal } from '../components/CounterStaffUI';
+import VietQRPOSModal from '../components/VietQRPOSModal';
 import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
 import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
 
 export default function CounterPOSPage() {
+  const confirm = useConfirm();
   const { user } = useAuthContext();
   const canCreateBooking = hasPermission(user, PERMISSIONS.COUNTER_BOOKING_CREATE);
   const canAddCombos = hasPermission(user, PERMISSIONS.COUNTER_COMBO_CREATE);
@@ -62,6 +65,7 @@ export default function CounterPOSPage() {
   const [paymentMethod, setPaymentMethod] = useState('COUNTER_CASH');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [printTicketData, setPrintTicketData] = useState(null);
+  const [isVietQRModalOpen, setIsVietQRModalOpen] = useState(false);
   const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
 
   const showtimeUuid = selectedShowtime?.uuid || '';
@@ -85,6 +89,26 @@ export default function CounterPOSPage() {
         bookingService.syncSeatLocks(showtimeUuid, []).catch(() => {});
       }
     };
+  }, [showtimeUuid]);
+
+  // Ref to hold the latest selected seat UUIDs for the keep-alive interval
+  const selectedSeatUuidsRef = useRef([]);
+  useEffect(() => {
+    selectedSeatUuidsRef.current = selectedSeats.map(s => s.seatUuid);
+  }, [selectedSeats]);
+
+  // Keep seat locks alive periodically for POS staff so it doesn't expire after 5 mins
+  useEffect(() => {
+    if (!showtimeUuid) return;
+
+    const intervalId = setInterval(() => {
+      const uuids = selectedSeatUuidsRef.current;
+      if (uuids.length > 0) {
+        bookingService.syncSeatLocks(showtimeUuid, uuids).catch(console.error);
+      }
+    }, 4 * 60 * 1000); // Renew every 4 minutes
+
+    return () => clearInterval(intervalId);
   }, [showtimeUuid]);
 
   // Load Movies
@@ -339,44 +363,9 @@ export default function CounterPOSPage() {
   const discount = 0; // Simple calculation fallback
   const finalTotal = Math.max(0, subTotal - discount);
 
-  // Booking confirm submit
-  const handleConfirmPOSBooking = async () => {
-    if (!canCreateBooking) {
-      notificationService.error('Bạn không có quyền bán vé tại quầy');
-      return;
-    }
-    if (!selectedShowtime) {
-      notificationService.error('Vui lòng chọn suất chiếu');
-      return;
-    }
-    if (selectedSeats.length === 0) {
-      notificationService.error('Vui lòng chọn ít nhất 1 ghế');
-      return;
-    }
-    if (!selectedCustomer) {
-      notificationService.error('Vui lòng chọn khách hàng hoặc bật Khách vãng lai');
-      return;
-    }
-
-    if (hasGapViolation) {
-      notificationService.error('Lỗi khoảng trống ghế — vui lòng chọn lại');
-      return;
-    }
-
+  const executeConfirmPOSBooking = async (payload) => {
     setIsSubmitting(true);
     try {
-      const payload = {
-        customerUuid: selectedCustomer.id,
-        showtimeUuid: selectedShowtime.uuid,
-        seatUuids: selectedSeats.map(s => s.seatUuid),
-        combos: Object.entries(selectedCombos).map(([uuid, qty]) => ({
-          comboUuid: uuid,
-          quantity: qty
-        })),
-        promotionCode: promoCode || null,
-        paymentMethod: paymentMethod
-      };
-
       const res = await counterService.confirmCounterBooking(payload);
 
       // Trigger success dialog & thermal ticket mockup
@@ -407,6 +396,84 @@ export default function CounterPOSPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleConfirmPOSBooking = async () => {
+    if (!canCreateBooking) {
+      notificationService.error('Bạn không có quyền bán vé tại quầy');
+      return;
+    }
+    if (!selectedShowtime) {
+      notificationService.error('Vui lòng chọn suất chiếu');
+      return;
+    }
+    if (selectedSeats.length === 0) {
+      notificationService.error('Vui lòng chọn ít nhất 1 ghế');
+      return;
+    }
+    if (!selectedCustomer) {
+      notificationService.error('Vui lòng chọn khách hàng hoặc bật Khách vãng lai');
+      return;
+    }
+
+    if (hasGapViolation) {
+      notificationService.error('Lỗi khoảng trống ghế — vui lòng chọn lại');
+      return;
+    }
+
+    const paymentLabel = paymentMethod === 'COUNTER_CASH'
+      ? 'Tiền mặt'
+      : paymentMethod === 'COUNTER_CARD'
+        ? 'Thẻ tại quầy'
+        : paymentMethod === 'COUNTER_VIETQR'
+          ? 'VietQR'
+          : paymentMethod;
+    const ok = await confirm({
+      title: 'Xác nhận bán vé tại quầy',
+      message: paymentMethod === 'COUNTER_VIETQR'
+        ? 'Mở mã VietQR để khách thanh toán?'
+        : 'Xác nhận xuất vé và thanh toán cho khách hàng?',
+      highlight: `${selectedCustomer.fullName || selectedCustomer.email} · ${finalTotal.toLocaleString('vi-VN')} đ`,
+      detail: `Ghế: ${selectedSeats.map((s) => s.id || s.name).join(', ')} · Thanh toán: ${paymentLabel}`,
+      confirmLabel: paymentMethod === 'COUNTER_VIETQR' ? 'Mở VietQR' : 'Xác nhận bán vé',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
+    if (paymentMethod === 'COUNTER_VIETQR') {
+      setIsVietQRModalOpen(true);
+      return;
+    }
+
+    const payload = {
+      customerUuid: selectedCustomer.id,
+      showtimeUuid: selectedShowtime.uuid,
+      seatUuids: selectedSeats.map(s => s.seatUuid),
+      combos: Object.entries(selectedCombos).map(([uuid, qty]) => ({
+        comboUuid: uuid,
+        quantity: qty
+      })),
+      promotionCode: promoCode || null,
+      paymentMethod: paymentMethod
+    };
+
+    await executeConfirmPOSBooking(payload);
+  };
+
+  const handleVietQRSuccess = async () => {
+    setIsVietQRModalOpen(false);
+    const payload = {
+      customerUuid: selectedCustomer.id,
+      showtimeUuid: selectedShowtime.uuid,
+      seatUuids: selectedSeats.map(s => s.seatUuid),
+      combos: Object.entries(selectedCombos).map(([uuid, qty]) => ({
+        comboUuid: uuid,
+        quantity: qty
+      })),
+      promotionCode: promoCode || null,
+      paymentMethod: paymentMethod
+    };
+    await executeConfirmPOSBooking(payload);
   };
 
   const getSeatLabel = (seat) => seat.id || seat.name || '';
@@ -690,6 +757,12 @@ export default function CounterPOSPage() {
       </div>
 
       <PrintTicketModal data={printTicketData} onClose={() => setPrintTicketData(null)} />
+      <VietQRPOSModal 
+        isOpen={isVietQRModalOpen} 
+        onClose={() => setIsVietQRModalOpen(false)} 
+        onPaymentSuccess={handleVietQRSuccess} 
+        amount={finalTotal} 
+      />
     </div>
   );
 }

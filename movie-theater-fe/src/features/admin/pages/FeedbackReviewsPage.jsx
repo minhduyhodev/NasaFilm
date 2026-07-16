@@ -222,6 +222,15 @@ const FeedbackReviewsPage = () => {
   };
 
   const handleSaveBannedWords = async () => {
+    const ok = await confirm({
+      title: 'Lưu danh sách từ cấm',
+      message: 'Xác nhận cập nhật danh sách từ cấm? Các đánh giá chứa từ này sẽ bị lọc tự động.',
+      highlight: `${bannedWords.length} từ cấm`,
+      confirmLabel: 'Lưu danh sách',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsSavingBannedWords(true);
     try {
       const saved = await adminReviewService.updateBannedWords(bannedWords);
