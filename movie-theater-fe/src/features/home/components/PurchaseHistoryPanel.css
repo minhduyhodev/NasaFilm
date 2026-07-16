@@ -10,10 +10,15 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.ph-panel .panel-header {
+  margin-bottom: 0.25rem;
 }
 
 .ph-panel__intro {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
 }
 
 .ph-panel__intro h2 {
@@ -713,10 +718,19 @@
 }
 
 .ph-pagination {
-  margin-top: 0.5rem;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  padding-right: clamp(1rem, 5.5rem, 6.5rem);
   border-radius: 0.85rem;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(8, 11, 20, 0.55);
+}
+
+.ph-pagination > div {
+  border-top: none !important;
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {

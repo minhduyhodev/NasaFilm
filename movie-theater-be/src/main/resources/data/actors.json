@@ -1,374 +1,374 @@
-[
-  {
-    "uuid": "52016220-7f87-4b31-88c3-cf1629cc4f80",
-    "fullName": "Akari Kito",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/AkariKito_zozun0.webp",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "b1a55aaf-ca6b-4696-a735-58de11d7f668",
-    "fullName": "Cho Yeo-jeong",
-    "avatarUrl": "",
-    "countryName": "Hàn Quốc"
-  },
-  {
-    "uuid": "c5601c3b-c15c-4e14-93a0-1a0152cdfe26",
-    "fullName": "Choi Woo-shik",
-    "avatarUrl": "",
-    "countryName": "Hàn Quốc"
-  },
-  {
-    "uuid": "42d2becd-0c67-4b82-bd86-fa1221d25873",
-    "fullName": "Cillian Murphy",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "00983234-c0eb-4c9a-b7aa-bb72f4b1a95c",
-    "fullName": "Diệu Nhi",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "f84ba293-e47e-4b1a-985b-4cbe32939c42",
-    "fullName": "Emily Blunt",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "26ccf4aa-0154-442e-bd39-6f8a2ed67041",
-    "fullName": "Huỳnh Bột",
-    "avatarUrl": "",
-    "countryName": "Trung Quốc"
-  },
-  {
-    "uuid": "5c424458-9a99-4d69-906d-e49048a1d2f7",
-    "fullName": "Jessica McNamee",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/JessicaMcNamee_jsphbu.webp",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "55d7a8d5-3be7-4a00-af15-c26685a1ef4c",
-    "fullName": "Josh Lawson",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "3bb89bf5-ff27-44d5-916f-1791740e1caf",
-    "fullName": "Kaity Nguyễn",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "04a9cfd8-97bc-4e7d-86ca-d463d22ada61",
-    "fullName": "Karl Urban",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/KarlUrban_eavsxb.webp",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "8c24ef00-f8dc-4c9d-82ec-4696a2c071ab",
-    "fullName": "Kengo Kawanishi",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/KengoKawanishi_krpprp.webp",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "2059371d-a068-45be-bb85-df048995a947",
-    "fullName": "Kiều Minh Tuấn",
-    "avatarUrl": "https://upload.wikimedia.org/wikipedia/vi/8/87/Kieu_Minh_Tuan.jpg",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "c5ec6c89-e0df-43c5-8175-0cfaa9cfc927",
-    "fullName": "Lee Sun-kyun",
-    "avatarUrl": "",
-    "countryName": "Hàn Quốc"
-  },
-  {
-    "uuid": "5059371d-a068-45be-bb85-df048995a947",
-    "fullName": "Lewis Tan",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/LewisTan_jc5hlm.webp",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "b8f2bd0e-fe43-4449-8f28-6e72761d4c18",
-    "fullName": "Lý Tuyết Kiện",
-    "avatarUrl": "",
-    "countryName": "Trung Quốc"
-  },
-  {
-    "uuid": "4c424458-9a99-4d69-906d-e49048a1d2f7",
-    "fullName": "Mạc Văn Khoa",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "ec70eb29-56ed-448a-b0fb-e916843f8cfa",
-    "fullName": "Matt Damon",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "6bfb37f2-91bb-4c2f-8d0f-eca3623567f0",
-    "fullName": "Pháo",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/Phao_ssx13u.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "da2d370d-0eb7-4085-999a-4dec625b5e6a",
-    "fullName": "Phí Tường Anh",
-    "avatarUrl": "",
-    "countryName": "Trung Quốc"
-  },
-  {
-    "uuid": "9c0791fa-0a06-4222-989a-94dc4cc0192c",
-    "fullName": "Phương Anh Đào",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/Ph%C6%B0%C6%A1ngAnh%C4%90%C3%A0o_x5o3im.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "36b798b0-23cd-471b-aec2-15df0a89b154",
-    "fullName": "Quách Ngọc Ngoan",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/QuachNgocNgoan_iywaex.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "45d7a8d5-3be7-4a00-af15-c26685a1ef4c",
-    "fullName": "Quốc Trường",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "00e9b6f1-27f2-4705-988a-9596543c7a3d",
-    "fullName": "Robert Downey Jr.",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "d7812b18-ebdc-49c9-ab0b-3e0238a13122",
-    "fullName": "Song Kang-ho",
-    "avatarUrl": "",
-    "countryName": "Hàn Quốc"
-  },
-  {
-    "uuid": "60bfbf0f-7b0f-4889-8d76-e8188ea1ef4b",
-    "fullName": "Tadanobu Asano",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "6af13d68-7e10-4154-b07d-7d1fe1038783",
-    "fullName": "Thái Hòa",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/ThaiHoa_lwv8dh.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "9f0ec2cc-c83e-4488-a314-52d37e0d5355",
-    "fullName": "Trấn Thành",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/TranThanh_guowtg.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "954371f5-4a85-4409-ad01-b1eb111344d4",
-    "fullName": "Tuấn Trần",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/TuanTran_ofshrq.webp",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "04bfbf0f-7b0f-4889-8d76-e8188ea1ef4b",
-    "fullName": "Vân Trang",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "69c0f8e0-7d2e-44b2-a186-15647433a55b",
-    "fullName": "Yumiri Hanamori",
-    "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/YumiriHanamori_bw0jhx.webp",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "d3bca6c1-75e8-421e-a6ec-c07a663a86f9",
-    "fullName": "Quyền Linh",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "a48c88a4-4acd-4e14-b6e7-05eaff11ba95",
-    "fullName": "Chi Bảo",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "318b6cc3-2d50-467e-85fb-30ff18b1fc6c",
-    "fullName": "Tiến Luật",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "520496aa-70fd-40c1-b0e3-7834b4667e19",
-    "fullName": "Huỳnh Lập",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "f42130a8-6e01-49d8-9daa-15887d1a51f7",
-    "fullName": "Shameik Moore",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "8291a8d6-861a-4d9e-ac61-4a1555c833fa",
-    "fullName": "Hailee Steinfeld",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "c1a713e7-642a-4f22-8d43-7f9a8ef7efa3",
-    "fullName": "Oscar Isaac",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "cd41c913-334e-47f9-a9f0-0d199179c383",
-    "fullName": "Pedro Pascal",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "fd29a022-ccf6-44d5-9046-c6f35ff23a10",
-    "fullName": "Sigourney Weaver",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "43527bcf-c755-46a1-bbbc-d51107e6af92",
-    "fullName": "Hoàng Yến Chibi",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "d411da93-8394-465f-b65b-7f82136b67cc",
-    "fullName": "Quốc Huy",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "b3430ecd-5ee3-4993-8391-6558b497e28f",
-    "fullName": "Chinawut Indracusin",
-    "avatarUrl": "",
-    "countryName": "Thái Lan"
-  },
-  {
-    "uuid": "1bd425ca-1429-46de-8c18-eb0d7d6a35e9",
-    "fullName": "Bhuripat Vejvongsatechawat",
-    "avatarUrl": "",
-    "countryName": "Thái Lan"
-  },
-  {
-    "uuid": "8bd0483d-4b2c-4551-b668-bbc5e499d6dc",
-    "fullName": "Cao Minh Đạt",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "6d11d1b3-0613-4b97-ba56-36bebefe3be8",
-    "fullName": "Oanh Kiều",
-    "avatarUrl": "",
-    "countryName": "Việt Nam"
-  },
-  {
-    "uuid": "4862f57b-3b82-47bf-bf57-cf8178c09c55",
-    "fullName": "Minami Takayama",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "5601fa42-426a-4ccb-9267-e942c762ca91",
-    "fullName": "Wakana Yamazaki",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "4cc4f246-e54a-4fea-8225-82fa8c50e07b",
-    "fullName": "Tomokazu Sugita",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "d086ec6f-9ed0-41f5-a3ba-ab942e77b4f4",
-    "fullName": "Rie Kugimiya",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "c0acc594-a2ae-4387-a771-aa30ee235a22",
-    "fullName": "Tom Hanks",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "a87d8ae9-3d96-472e-ab57-8cbda9c1fbdc",
-    "fullName": "Tim Allen",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "2543a63d-8a63-4368-8f4c-b7b225cf97d1",
-    "fullName": "Ginnifer Goodwin",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "3caabce7-3a77-47fc-9bfb-cc386af8f4c8",
-    "fullName": "Jason Bateman",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "ed708c42-b89b-49df-a2f6-5acd918b4ca7",
-    "fullName": "Mike Myers",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "fa28a41b-ee75-4c93-8f30-baa144beec32",
-    "fullName": "Eddie Murphy",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "7934aa7a-e6ea-4fa8-8911-529965bb3294",
-    "fullName": "Cameron Diaz",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "c841abf2-c227-4cd6-a36e-1d70eb9c852a",
-    "fullName": "David Corenswet",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "a1b74db0-af3f-4469-a7c6-93da5470f38b",
-    "fullName": "Rachel Brosnahan",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "109f6b72-e48f-465c-904b-01c2ff7ee7fe",
-    "fullName": "Nicholas Hoult",
-    "avatarUrl": "",
-    "countryName": "Mỹ"
-  },
-  {
-    "uuid": "fc0bebeb-ab13-4b26-a640-eadd5971d333",
-    "fullName": "Natsuki Hanae",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  },
-  {
-    "uuid": "1fcd9ef8-2319-4d91-b901-873d52b40904",
-    "fullName": "Yoshitsugu Matsuoka",
-    "avatarUrl": "",
-    "countryName": "Nhật Bản"
-  }
+﻿[
+    {
+        "uuid":  "52016220-7f87-4b31-88c3-cf1629cc4f80",
+        "fullName":  "Akari Kito",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/AkariKito_zozun0.webp",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "b1a55aaf-ca6b-4696-a735-58de11d7f668",
+        "fullName":  "Cho Yeo-jeong",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Cho_Yeo-jeong_in_October_2024.png/330px-Cho_Yeo-jeong_in_October_2024.png",
+        "countryName":  "Hàn Quốc"
+    },
+    {
+        "uuid":  "c5601c3b-c15c-4e14-93a0-1a0152cdfe26",
+        "fullName":  "Choi Woo-shik",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/211227_%EC%B5%9C%EC%9A%B0%EC%8B%9D.png/330px-211227_%EC%B5%9C%EC%9A%B0%EC%8B%9D.png",
+        "countryName":  "Hàn Quốc"
+    },
+    {
+        "uuid":  "42d2becd-0c67-4b82-bd86-fa1221d25873",
+        "fullName":  "Cillian Murphy",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Cillian_Murphy_at_the_London_premier_of_Steve_in_September_2025_%28cropped%29.jpg/330px-Cillian_Murphy_at_the_London_premier_of_Steve_in_September_2025_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "00983234-c0eb-4c9a-b7aa-bb72f4b1a95c",
+        "fullName":  "Diệu Nhi",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Di%E1%BB%87u_Nhi_GQT6.jpg/330px-Di%E1%BB%87u_Nhi_GQT6.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "f84ba293-e47e-4b1a-985b-4cbe32939c42",
+        "fullName":  "Emily Blunt",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Emily_Blunt_at_WWD_Style_Awards_2026-02.jpg/330px-Emily_Blunt_at_WWD_Style_Awards_2026-02.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "26ccf4aa-0154-442e-bd39-6f8a2ed67041",
+        "fullName":  "Huỳnh Bột",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/a/a8/Hu%E1%BB%B3nh_Th%E1%BB%8B_Thanh_Th%E1%BB%A7y.png",
+        "countryName":  "Trung Quốc"
+    },
+    {
+        "uuid":  "5c424458-9a99-4d69-906d-e49048a1d2f7",
+        "fullName":  "Jessica McNamee",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/JessicaMcNamee_jsphbu.webp",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "55d7a8d5-3be7-4a00-af15-c26685a1ef4c",
+        "fullName":  "Josh Lawson",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Josh_Lawson.jpg/330px-Josh_Lawson.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "3bb89bf5-ff27-44d5-916f-1791740e1caf",
+        "fullName":  "Kaity Nguyễn",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/KAITY_NGUY%E1%BB%84N_2025.jpg/330px-KAITY_NGUY%E1%BB%84N_2025.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "04a9cfd8-97bc-4e7d-86ca-d463d22ada61",
+        "fullName":  "Karl Urban",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/KarlUrban_eavsxb.webp",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "8c24ef00-f8dc-4c9d-82ec-4696a2c071ab",
+        "fullName":  "Kengo Kawanishi",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/KengoKawanishi_krpprp.webp",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "2059371d-a068-45be-bb85-df048995a947",
+        "fullName":  "Kiều Minh Tuấn",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/vi/8/87/Kieu_Minh_Tuan.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "c5ec6c89-e0df-43c5-8175-0cfaa9cfc927",
+        "fullName":  "Lee Sun-kyun",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Lee_Seon-gun_in_Oct_2018.png/330px-Lee_Seon-gun_in_Oct_2018.png",
+        "countryName":  "Hàn Quốc"
+    },
+    {
+        "uuid":  "5059371d-a068-45be-bb85-df048995a947",
+        "fullName":  "Lewis Tan",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/LewisTan_jc5hlm.webp",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "b8f2bd0e-fe43-4449-8f28-6e72761d4c18",
+        "fullName":  "Lý Tuyết Kiện",
+        "avatarUrl":  "",
+        "countryName":  "Trung Quốc"
+    },
+    {
+        "uuid":  "4c424458-9a99-4d69-906d-e49048a1d2f7",
+        "fullName":  "Mạc Văn Khoa",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/MAC_VAN_KHOA_2023.jpg/330px-MAC_VAN_KHOA_2023.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "ec70eb29-56ed-448a-b0fb-e916843f8cfa",
+        "fullName":  "Matt Damon",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/MattDamon-byPhilipRomano.jpg/330px-MattDamon-byPhilipRomano.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "6bfb37f2-91bb-4c2f-8d0f-eca3623567f0",
+        "fullName":  "Pháo",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/Phao_ssx13u.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "da2d370d-0eb7-4085-999a-4dec625b5e6a",
+        "fullName":  "Phí Tường Anh",
+        "avatarUrl":  "",
+        "countryName":  "Trung Quốc"
+    },
+    {
+        "uuid":  "9c0791fa-0a06-4222-989a-94dc4cc0192c",
+        "fullName":  "Phương Anh Đào",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/Ph%C6%B0%C6%A1ngAnh%C4%90%C3%A0o_x5o3im.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "36b798b0-23cd-471b-aec2-15df0a89b154",
+        "fullName":  "Quách Ngọc Ngoan",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/QuachNgocNgoan_iywaex.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "45d7a8d5-3be7-4a00-af15-c26685a1ef4c",
+        "fullName":  "Quốc Trường",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Qu%E1%BB%91c_Tr%C6%B0%E1%BB%9Dng_2019_%28cropped%29.jpeg/330px-Qu%E1%BB%91c_Tr%C6%B0%E1%BB%9Dng_2019_%28cropped%29.jpeg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "00e9b6f1-27f2-4705-988a-9596543c7a3d",
+        "fullName":  "Robert Downey Jr.",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/RobertDowneyJr-byPhilipRomano7_%28cropped%29.jpg/330px-RobertDowneyJr-byPhilipRomano7_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "d7812b18-ebdc-49c9-ab0b-3e0238a13122",
+        "fullName":  "Song Kang-ho",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Song_Gangho_2016.jpg/330px-Song_Gangho_2016.jpg",
+        "countryName":  "Hàn Quốc"
+    },
+    {
+        "uuid":  "60bfbf0f-7b0f-4889-8d76-e8188ea1ef4b",
+        "fullName":  "Tadanobu Asano",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Asano_Tadanobu_from_%22Ravens%22_at_Red_Carpet_of_the_Tokyo_International_Film_Festival_2024_%2854577962659%29.jpg/330px-Asano_Tadanobu_from_%22Ravens%22_at_Red_Carpet_of_the_Tokyo_International_Film_Festival_2024_%2854577962659%29.jpg",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "6af13d68-7e10-4154-b07d-7d1fe1038783",
+        "fullName":  "Thái Hòa",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/ThaiHoa_lwv8dh.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "9f0ec2cc-c83e-4488-a314-52d37e0d5355",
+        "fullName":  "Trấn Thành",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/TranThanh_guowtg.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "954371f5-4a85-4409-ad01-b1eb111344d4",
+        "fullName":  "Tuấn Trần",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/TuanTran_ofshrq.webp",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "04bfbf0f-7b0f-4889-8d76-e8188ea1ef4b",
+        "fullName":  "Vân Trang",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/V%C3%A2n_Trang.png/330px-V%C3%A2n_Trang.png",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "69c0f8e0-7d2e-44b2-a186-15647433a55b",
+        "fullName":  "Yumiri Hanamori",
+        "avatarUrl":  "https://res.cloudinary.com/dmywhl4za/image/upload/YumiriHanamori_bw0jhx.webp",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "d3bca6c1-75e8-421e-a6ec-c07a663a86f9",
+        "fullName":  "Quyền Linh",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Quy%E1%BB%81n_Linh_2020.png/330px-Quy%E1%BB%81n_Linh_2020.png",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "a48c88a4-4acd-4e14-b6e7-05eaff11ba95",
+        "fullName":  "Chi Bảo",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Chi_Bao_Esquire_Vietnam_February_2014_2.jpg/330px-Chi_Bao_Esquire_Vietnam_February_2014_2.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "318b6cc3-2d50-467e-85fb-30ff18b1fc6c",
+        "fullName":  "Tiến Luật",
+        "avatarUrl":  "",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "520496aa-70fd-40c1-b0e3-7834b4667e19",
+        "fullName":  "Huỳnh Lập",
+        "avatarUrl":  "",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "f42130a8-6e01-49d8-9daa-15887d1a51f7",
+        "fullName":  "Shameik Moore",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Shameik_Moore_Photo_Op_GalaxyCon_Raleigh_2023.jpg/330px-Shameik_Moore_Photo_Op_GalaxyCon_Raleigh_2023.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "8291a8d6-861a-4d9e-ac61-4a1555c833fa",
+        "fullName":  "Hailee Steinfeld",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Hailee_Steinfeld_by_Gage_Skidmore.jpg/330px-Hailee_Steinfeld_by_Gage_Skidmore.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "c1a713e7-642a-4f22-8d43-7f9a8ef7efa3",
+        "fullName":  "Oscar Isaac",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Oscar_Isaac_at_82nd_Venice_International_Film_Festival-1_%28cropped%29.jpg/330px-Oscar_Isaac_at_82nd_Venice_International_Film_Festival-1_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "cd41c913-334e-47f9-a9f0-0d199179c383",
+        "fullName":  "Pedro Pascal",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Pedro_Pascal_at_the_2025_Cannes_Film_Festival_04.jpg/330px-Pedro_Pascal_at_the_2025_Cannes_Film_Festival_04.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "fd29a022-ccf6-44d5-9046-c6f35ff23a10",
+        "fullName":  "Sigourney Weaver",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Sigourney_Weaver_at_the_2025_Toronto_International_Film_Festival_%28cropped%29.jpg/330px-Sigourney_Weaver_at_the_2025_Toronto_International_Film_Festival_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "43527bcf-c755-46a1-bbbc-d51107e6af92",
+        "fullName":  "Hoàng Yến Chibi",
+        "avatarUrl":  "",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "d411da93-8394-465f-b65b-7f82136b67cc",
+        "fullName":  "Quốc Huy",
+        "avatarUrl":  "",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "b3430ecd-5ee3-4993-8391-6558b497e28f",
+        "fullName":  "Chinawut Indracusin",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Chin_chinvut.jpg/330px-Chin_chinvut.jpg",
+        "countryName":  "Thái Lan"
+    },
+    {
+        "uuid":  "1bd425ca-1429-46de-8c18-eb0d7d6a35e9",
+        "fullName":  "Bhuripat Vejvongsatechawat",
+        "avatarUrl":  "",
+        "countryName":  "Thái Lan"
+    },
+    {
+        "uuid":  "8bd0483d-4b2c-4551-b668-bbc5e499d6dc",
+        "fullName":  "Cao Minh Đạt",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/CaoMinhDat1975.jpg/330px-CaoMinhDat1975.jpg",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "6d11d1b3-0613-4b97-ba56-36bebefe3be8",
+        "fullName":  "Oanh Kiều",
+        "avatarUrl":  "",
+        "countryName":  "Việt Nam"
+    },
+    {
+        "uuid":  "4862f57b-3b82-47bf-bf57-cf8178c09c55",
+        "fullName":  "Minami Takayama",
+        "avatarUrl":  "",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "5601fa42-426a-4ccb-9267-e942c762ca91",
+        "fullName":  "Wakana Yamazaki",
+        "avatarUrl":  "",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "4cc4f246-e54a-4fea-8225-82fa8c50e07b",
+        "fullName":  "Tomokazu Sugita",
+        "avatarUrl":  "",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "d086ec6f-9ed0-41f5-a3ba-ab942e77b4f4",
+        "fullName":  "Rie Kugimiya",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Rie_kugimiya_in_26th_Tokyo_International_Film_Festival.jpg/330px-Rie_kugimiya_in_26th_Tokyo_International_Film_Festival.jpg",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "c0acc594-a2ae-4387-a771-aa30ee235a22",
+        "fullName":  "Tom Hanks",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/TomHanksPrincEdw031223_%2811_of_41%29_%28cropped%29.jpg/330px-TomHanksPrincEdw031223_%2811_of_41%29_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "a87d8ae9-3d96-472e-ab57-8cbda9c1fbdc",
+        "fullName":  "Tim Allen",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Tim_Allen_2012.jpg/330px-Tim_Allen_2012.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "2543a63d-8a63-4368-8f4c-b7b225cf97d1",
+        "fullName":  "Ginnifer Goodwin",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ginnifer_Goodwin_by_Gage_Skidmore_%28cropped%29.jpg/330px-Ginnifer_Goodwin_by_Gage_Skidmore_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "3caabce7-3a77-47fc-9bfb-cc386af8f4c8",
+        "fullName":  "Jason Bateman",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Jason_Bateman.jpg/330px-Jason_Bateman.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "ed708c42-b89b-49df-a2f6-5acd918b4ca7",
+        "fullName":  "Mike Myers",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Mike_Myers_2017.jpg/330px-Mike_Myers_2017.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "fa28a41b-ee75-4c93-8f30-baa144beec32",
+        "fullName":  "Eddie Murphy",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Eddie_Murphy_by_David_Shankbone.jpg/330px-Eddie_Murphy_by_David_Shankbone.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "7934aa7a-e6ea-4fa8-8911-529965bb3294",
+        "fullName":  "Cameron Diaz",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Cameron_Diaz_at_WWD_Style_Awards_2026-1998.jpg/330px-Cameron_Diaz_at_WWD_Style_Awards_2026-1998.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "c841abf2-c227-4cd6-a36e-1d70eb9c852a",
+        "fullName":  "David Corenswet",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/David_Corenswet_Manila_2025.jpg/330px-David_Corenswet_Manila_2025.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "a1b74db0-af3f-4469-a7c6-93da5470f38b",
+        "fullName":  "Rachel Brosnahan",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Rachel_Brosnahan_Manilla_2025.jpg/330px-Rachel_Brosnahan_Manilla_2025.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "109f6b72-e48f-465c-904b-01c2ff7ee7fe",
+        "fullName":  "Nicholas Hoult",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Nicholas_Hoult-67849_%28cropped%29.jpg/330px-Nicholas_Hoult-67849_%28cropped%29.jpg",
+        "countryName":  "Mỹ"
+    },
+    {
+        "uuid":  "fc0bebeb-ab13-4b26-a640-eadd5971d333",
+        "fullName":  "Natsuki Hanae",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Natsuki_Hanae_by_Gage_Skidmore.jpg/330px-Natsuki_Hanae_by_Gage_Skidmore.jpg",
+        "countryName":  "Nhật Bản"
+    },
+    {
+        "uuid":  "1fcd9ef8-2319-4d91-b901-873d52b40904",
+        "fullName":  "Yoshitsugu Matsuoka",
+        "avatarUrl":  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Yoshitsugu_Matsuoka_%E6%9D%BE%E5%B2%A1_%E7%A6%8E%E4%B8%9E_2022.jpg/330px-Yoshitsugu_Matsuoka_%E6%9D%BE%E5%B2%A1_%E7%A6%8E%E4%B8%9E_2022.jpg",
+        "countryName":  "Nhật Bản"
+    }
 ]

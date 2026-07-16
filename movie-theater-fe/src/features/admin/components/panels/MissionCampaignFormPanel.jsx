@@ -111,6 +111,7 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
         <div className="mc-form-field">
           <AdminDateTimePicker
             label="Bắt đầu"
+            timeLabel={null}
             value={form.startsAt}
             onChange={(v) => setForm({ ...form, startsAt: v })}
           />
@@ -118,6 +119,7 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
         <div className="mc-form-field">
           <AdminDateTimePicker
             label="Kết thúc"
+            timeLabel={null}
             value={form.endsAt}
             onChange={(v) => setForm({ ...form, endsAt: v })}
           />

@@ -340,10 +340,10 @@ const SupportInboxPage = () => {
       message: 'Xác nhận xóa ticket đã hoàn tất? Hành động này không thể hoàn tác.',
       highlight: selectedTicketCode,
       confirmLabel: 'Xóa ticket',
+      cancelLabel: 'Giữ lại',
       variant: 'danger',
     });
     if (!ok) return;
-
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
