@@ -87,7 +87,6 @@ public class AdminDashboardService {
         }
 
         // 4. Cinema statistics
-        @SuppressWarnings("unchecked")
         List<Object[]> cinemaRows = entityManager.createNativeQuery("""
                 select
                     c.name as cinema_name,
@@ -134,7 +133,6 @@ public class AdminDashboardService {
         }
 
         // 5. Genre statistics
-        @SuppressWarnings("unchecked")
         List<Object[]> genreRows = entityManager.createNativeQuery("""
                 select
                     g.name as genre_name,
@@ -173,7 +171,6 @@ public class AdminDashboardService {
         }
 
         // 6. Top movies by revenue (theater + online)
-        @SuppressWarnings("unchecked")
         List<Object[]> movieRows = entityManager.createNativeQuery("""
                 select
                     m.uuid as movie_uuid,
@@ -249,7 +246,6 @@ public class AdminDashboardService {
                 + " where b.status = 'CONFIRMED' and b.created_at >= :from and b.created_at < :to"
                 + " group by 1";
 
-        @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery(sql)
                 .setParameter("from", period.from)
                 .setParameter("to", period.to)

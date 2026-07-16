@@ -742,15 +742,6 @@ public class SupportAiService {
         return false;
     }
 
-    private boolean containsAny(String normalized, String... keywords) {
-        for (String keyword : keywords) {
-            if (normalized.contains(normalize(keyword))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private String extractTicketOrOrderCode(String text) {
         if (text == null) {
             return null;
@@ -781,7 +772,6 @@ public class SupportAiService {
         return "other";
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, List<String>> categoryKeywords() {
         try {
             Object nasaBot = systemConfigService.getConfig().get("nasaBot");
@@ -857,7 +847,6 @@ public class SupportAiService {
         return normalized.matches("^(hi|hello|hey|xin chao|chao|chao ban|alo|hallo|good morning|good afternoon|good evening)$");
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> bannedWords() {
         try {
             Object nasaBot = systemConfigService.getConfig().get("nasaBot");
@@ -938,7 +927,6 @@ public class SupportAiService {
     private SupportAiResult unclearReply() {
         return new SupportAiResult("Mình chưa hiểu rõ nội dung bạn muốn hỗ trợ ạ. Bạn mô tả ngắn vấn đề liên quan đến vé, thanh toán, tài khoản, khuyến mãi hoặc hội viên giúp mình nhé.", "other");
     }
-    @SuppressWarnings("unchecked")
     private String resolvePersonaPrompt() {
         try {
             Object nasaBot = systemConfigService.getConfig().get("nasaBot");

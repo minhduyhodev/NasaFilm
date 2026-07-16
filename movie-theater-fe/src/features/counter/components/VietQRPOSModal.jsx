@@ -34,7 +34,6 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
       });
     }, 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Generate QR

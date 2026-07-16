@@ -1280,6 +1280,7 @@ public class MissionService {
         public UUID genreId;
         public OffsetDateTime at;
 
+        @SuppressWarnings("unused")
         public GenreEvent() {
         }
 

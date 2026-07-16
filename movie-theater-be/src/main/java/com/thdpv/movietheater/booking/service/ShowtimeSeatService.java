@@ -1,9 +1,7 @@
 package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -30,7 +28,6 @@ import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
-import com.thdpv.movietheater.cinema.service.CinemaService;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -52,7 +49,6 @@ public class ShowtimeSeatService {
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
-    private final CinemaService cinemaService;
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatMapEventPublisher seatMapEventPublisher;
@@ -438,65 +434,5 @@ public class ShowtimeSeatService {
         }
         return currentUserUuid;
     }
-
-    private UUID toUuid(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof UUID uuid) {
-            return uuid;
-        }
-        return UUID.fromString(value.toString());
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : value.toString();
-    }
-
-    private Integer toInteger(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Integer number) {
-            return number;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return Integer.parseInt(value.toString());
-    }
-
-    private BigDecimal toBigDecimal(Object value) {
-        if (value == null) {
-            return BigDecimal.ZERO;
-        }
-        if (value instanceof BigDecimal bigDecimal) {
-            return bigDecimal;
-        }
-        if (value instanceof Number number) {
-            return BigDecimal.valueOf(number.doubleValue());
-        }
-        return new BigDecimal(value.toString());
-    }
-
-    private OffsetDateTime toOffsetDateTime(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof OffsetDateTime offsetDateTime) {
-            return offsetDateTime;
-        }
-        if (value instanceof java.time.Instant instant) {
-            return instant.atOffset(ZoneOffset.UTC);
-        }
-        if (value instanceof Timestamp timestamp) {
-            return timestamp.toInstant().atOffset(ZoneOffset.UTC);
-        }
-        if (value instanceof java.util.Date date) {
-            return date.toInstant().atOffset(ZoneOffset.UTC);
-        }
-        return OffsetDateTime.parse(value.toString());
-    }
-
 
 }

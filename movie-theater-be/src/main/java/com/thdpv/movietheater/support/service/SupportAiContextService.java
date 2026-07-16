@@ -36,7 +36,6 @@ import com.thdpv.movietheater.mission.repository.MissionCampaignRepository;
 import com.thdpv.movietheater.mission.repository.MissionTemplateRepository;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
-import com.thdpv.movietheater.movie.dto.response.ReviewVibeTagResponse;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.service.MovieService;

@@ -673,18 +673,6 @@ public class OrbitRoomService {
         return response;
     }
 
-    private OrbitRoom loadEditableRoom(UUID roomUuid, OffsetDateTime now) {
-        OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng nhóm"));
-        if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm không còn cho phép chỉnh sửa ghế");
-        }
-        if (room.getExpiresAt().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm đã hết hạn");
-        }
-        return room;
-    }
-
     private int clampMaxMembers(int requested) {
         int maxSeats = systemConfigService.getMaxSeatsPerBooking();
         return Math.max(2, Math.min(requested, maxSeats));
