@@ -63,12 +63,15 @@ import com.thdpv.movietheater.notification.dto.TheaterTicketQrItem;
 import com.thdpv.movietheater.notification.service.TheaterNotificationService;
 import com.thdpv.movietheater.notification.service.VodNotificationService;
 import com.thdpv.movietheater.payment.entity.PaymentTransaction;
+import com.thdpv.movietheater.payment.entity.VietQRWebhookTransaction;
 import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
+import com.thdpv.movietheater.payment.repository.VietQRWebhookTransactionRepository;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
 import com.thdpv.movietheater.orbit.service.OrbitRoomService;
+
 
 import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
@@ -102,6 +105,7 @@ public class BookingService {
     private final CancellationRefundService cancellationRefundService;
     private final PaymentService paymentService;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final VietQRWebhookTransactionRepository vietQRWebhookTransactionRepository;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
     private final OrbitRoomService orbitRoomService;
@@ -224,6 +228,9 @@ public class BookingService {
             promotionRepository.save(resolvedPromotion);
             voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
+
+        reconcileExternalVietQRPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
+                request.getPaymentIntentId());
 
         // Charge after booking rows exist so a seat/DB failure cannot leave a paid orphan charge
         paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
@@ -435,6 +442,8 @@ public class BookingService {
 
         // Charge after seats/tickets persist; same @Transactional rolls back booking if charge fails
         reconcileExternalCardPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
+                request.getPaymentIntentId());
+        reconcileExternalVietQRPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
                 request.getPaymentIntentId());
         paymentService.chargeBooking(bookingUuid, totalPrice, request.getPaymentMethod(), "pay-" + bookingUuid, userUuid);
 
@@ -888,6 +897,31 @@ public class BookingService {
         }
     }
 
+    private void reconcileExternalVietQRPayment(UUID userUuid, UUID bookingUuid, BigDecimal totalPrice,
+            String paymentMethod, String paymentIntentId) {
+        if (!"vietqr".equalsIgnoreCase(paymentMethod)) {
+            return;
+        }
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Thiếu mã chuyển khoản VietQR.");
+        }
+        String transferCode = paymentIntentId.trim();
+
+        // Query database for unused VietQR transaction matching code and amount
+        List<VietQRWebhookTransaction> txs = vietQRWebhookTransactionRepository.findMatchingUnusedTransaction(transferCode, totalPrice);
+        if (txs.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Hệ thống chưa ghi nhận được chuyển khoản hoặc số tiền chuyển khoản không khớp. Vui lòng chờ 1-2 phút hoặc bấm kiểm tra lại.");
+        }
+
+        // Mark transaction as used
+        VietQRWebhookTransaction tx = txs.get(0);
+        tx.setStatus("USED");
+        tx.setUsedByBookingUuid(bookingUuid);
+        vietQRWebhookTransactionRepository.save(tx);
+    }
+
+
     private Map<UUID, Integer> normalizeCombos(List<ConfirmBookingRequest.ComboItem> comboItems) {
         if (comboItems == null || comboItems.isEmpty()) {
             return Map.of();
@@ -1323,6 +1357,7 @@ public class BookingService {
             case "COUNTER_CASH" -> "Tiền mặt tại quầy";
             case "COUNTER_CARD" -> "Thẻ tại quầy";
             case "COUNTER_VIETQR" -> "VietQR tại quầy";
+            case "VIETQR" -> "VietQR chuyển khoản";
             default -> method;
         };
     }
