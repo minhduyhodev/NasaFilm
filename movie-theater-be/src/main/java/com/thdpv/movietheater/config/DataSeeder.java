@@ -1039,6 +1039,14 @@ public class DataSeeder implements CommandLineRunner {
                     }
                     actorRepository.save(actor);
                     logger.info("Seeded actor from JSON: {}", fullName);
+                } else if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    actorRepository.findByFullNameIgnoreCase(fullName).ifPresent(existing -> {
+                        if (existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank()) {
+                            existing.setAvatarUrl(avatarUrl);
+                            actorRepository.save(existing);
+                            logger.info("Backfilled actor avatar from JSON: {}", fullName);
+                        }
+                    });
                 }
             }
         }

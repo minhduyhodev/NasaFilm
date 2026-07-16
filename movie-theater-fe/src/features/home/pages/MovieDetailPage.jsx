@@ -472,7 +472,7 @@ const MovieDetailPage = () => {
         name: act.fullName,
         role: act.characterName || "Diễn viên",
         avatar:
-          act.avatarUrl ||
+          resolveMediaUrl(act.avatarUrl, 120) ||
           "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100",
       })) || [],
   };
