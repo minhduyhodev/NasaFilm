@@ -375,16 +375,18 @@ const MissionFormPanel = ({
             onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
           />
         </div>
-        <div className="mc-form-field">
+        <div className="mc-form-field mc-form-field--full">
           <AdminDateTimePicker
             label="Bắt đầu (tuỳ chọn)"
+            timeLabel={null}
             value={form.startsAt}
             onChange={(v) => setForm({ ...form, startsAt: v })}
           />
         </div>
-        <div className="mc-form-field">
+        <div className="mc-form-field mc-form-field--full">
           <AdminDateTimePicker
             label="Kết thúc (tuỳ chọn)"
+            timeLabel={null}
             value={form.endsAt}
             onChange={(v) => setForm({ ...form, endsAt: v })}
           />
@@ -398,7 +400,7 @@ const MissionFormPanel = ({
             placeholder="EXPLORER_BADGE"
           />
         </div>
-        <div className="mc-form-field mc-form-field--full">
+        <div className="mc-form-field">
           <label className={adminLabelClass}>Tên huy hiệu (tuỳ chọn)</label>
           <input
             className={adminInputClass}
