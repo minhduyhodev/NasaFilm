@@ -198,9 +198,35 @@ export const getVideoSource = (url) => {
     return { type: 'none', provider: 'none' };
   }
 
-  // Border S3 qua BE (relative path) — phát như video trực tiếp
-  if (trimmed.includes('/api/media/border')) {
-    return buildDirectSource('direct', trimmed.startsWith('http') ? trimmed : trimmed);
+  // Stream / border S3 qua BE (relative path) — phát như video trực tiếp
+  if (trimmed.includes('/api/media/stream') || trimmed.includes('/api/media/border')) {
+    // movie/ qua border → ép sang stream (Range); giữ token nếu có
+    if (trimmed.includes('/api/media/border')) {
+      try {
+        const parsed = trimmed.startsWith('http')
+          ? new URL(trimmed)
+          : new URL(trimmed, 'http://localhost');
+        const key = decodeURIComponent(parsed.searchParams.get('key') || '');
+        const token = parsed.searchParams.get('token');
+        if (/^movie\//i.test(key)) {
+          let path = `/api/media/stream?key=${encodeURIComponent(key)}`;
+          if (token) path += `&token=${encodeURIComponent(token)}`;
+          return buildDirectSource('direct', path);
+        }
+      } catch {
+        // fall through
+      }
+    }
+    return buildDirectSource('direct', trimmed);
+  }
+
+  // S3 key thô: movie/... → stream Range; trailer/poster → border
+  if (/^(movie|poster|trailer)\//i.test(trimmed) && !trimmed.includes('://')) {
+    if (/^movie\//i.test(trimmed)) {
+      // Key thô không có token — player chỉ dùng sau activatePlay (URL đã kèm token)
+      return buildDirectSource('direct', `/api/media/stream?key=${encodeURIComponent(trimmed)}`);
+    }
+    return buildDirectSource('direct', `/api/media/border?key=${encodeURIComponent(trimmed)}`);
   }
 
   const normalized = trimmed.startsWith('http') || trimmed.startsWith('/')

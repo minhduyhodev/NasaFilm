@@ -23,11 +23,13 @@ import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * Áp dụng link AWS S3 từ file riêng — tránh sửa {@code movies.json} (giảm merge conflict).
+ * Áp dụng media AWS từ file riêng — lưu S3 key ({@code movie/...}), không lưu Object URL.
+ * Tránh sửa {@code movies.json} (giảm merge conflict).
  */
 @Component
 @RequiredArgsConstructor
@@ -81,7 +83,7 @@ public class AwsMovieOverrideSeeder {
 
     private void applyMedia(Movie movie, AwsOverride item) {
         if (item.streamingUrl != null && !item.streamingUrl.isBlank()) {
-            movie.setStreamingUrl(item.streamingUrl.trim());
+            movie.setStreamingUrl(S3MediaBorderUtils.toStoredKey(item.streamingUrl));
         }
         upsertMedia(movie, "POSTER", item.posterUrl, item.matchTitle + " Poster", true, 1);
         upsertMedia(movie, "TRAILER", item.trailerUrl, item.matchTitle + " Trailer", false, 2);
@@ -91,10 +93,11 @@ public class AwsMovieOverrideSeeder {
         if (url == null || url.isBlank()) {
             return;
         }
+        String stored = S3MediaBorderUtils.toStoredKey(url);
         if (movie.getMovieMedias() != null) {
             for (MovieMedia mm : movie.getMovieMedias()) {
                 if (type.equals(mm.getMediaType())) {
-                    mm.setMediaUrl(url.trim());
+                    mm.setMediaUrl(stored);
                     mm.setTitle(title);
                     return;
                 }
@@ -102,7 +105,7 @@ public class AwsMovieOverrideSeeder {
         }
         MovieMedia media = new MovieMedia();
         media.setMovie(movie);
-        media.setMediaUrl(url.trim());
+        media.setMediaUrl(stored);
         media.setMediaType(type);
         media.setTitle(title);
         media.setIsPrimary(primary);
@@ -120,7 +123,6 @@ public class AwsMovieOverrideSeeder {
         movie.setAgeRestriction(item.ageRating != null ? item.ageRating : "P");
         movie.setOnlinePrice(BigDecimal.valueOf(45000));
         movie.setRating(8.0);
-        movie.setStreamingUrl(item.streamingUrl);
 
         if (item.genres != null) {
             for (String genreName : item.genres) {

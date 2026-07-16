@@ -70,6 +70,7 @@ public class SecurityConfig {
             "/api/system-config",
             "/api/media/proxy",
             "/api/media/border",
+            "/api/media/stream",
             "/api/payments/config",
             "/api/promotions/public",
             "/api/promotions/validate",
@@ -130,7 +131,6 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/movies/*/stream").authenticated();
                     if (swaggerEnabled) {
                         auth.requestMatchers(SWAGGER_ENDPOINTS).permitAll();
                     }

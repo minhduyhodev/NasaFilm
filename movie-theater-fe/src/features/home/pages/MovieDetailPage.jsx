@@ -108,6 +108,9 @@ const MovieDetailPage = () => {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
         setIsVideoActive(false);
+        if (data?.slug && id && data.slug !== id) {
+          navigate(`/movie/${data.slug}${window.location.search}`, { replace: true });
+        }
 
         try {
           const allShowtimes = await showtimeService.getPublicShowtimes();
@@ -483,8 +486,12 @@ const MovieDetailPage = () => {
     backdropRaw,
     poster: getMoviePosterUrl(dbMovie),
     backdrop: backdropRaw || posterRaw,
-    trailer:
-      dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "",
+    trailer: (() => {
+      const raw =
+        dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "";
+      // S3 key trailer/... → /api/media/border; YouTube giữ nguyên.
+      return resolveMediaUrl(raw) || raw;
+    })(),
     cast:
       dbMovie.actors?.map((act) => ({
         name: act.fullName,

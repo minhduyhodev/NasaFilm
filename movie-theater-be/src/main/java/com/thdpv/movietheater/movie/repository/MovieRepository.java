@@ -47,6 +47,8 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
 
     boolean existsByTitleIgnoreCase(String title);
 
+    Optional<Movie> findBySlugIgnoreCase(String slug);
+
     @Query("SELECT m FROM Movie m LEFT JOIN FETCH m.movieMedias WHERE LOWER(m.title) = LOWER(:title)")
     Optional<Movie> findByTitleIgnoreCase(@Param("title") String title);
 

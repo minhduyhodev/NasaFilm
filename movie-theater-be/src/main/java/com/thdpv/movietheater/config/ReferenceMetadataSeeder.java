@@ -1,17 +1,21 @@
 package com.thdpv.movietheater.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thdpv.movietheater.common.util.MojibakeUtils;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
@@ -31,20 +35,87 @@ public class ReferenceMetadataSeeder {
     private final CountryRepository countryRepository;
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
+    private final JdbcTemplate jdbcTemplate;
 
     public ReferenceMetadataSeeder(GenreRepository genreRepository,
             CountryRepository countryRepository,
             ObjectMapper objectMapper,
-            ResourceLoader resourceLoader) {
+            ResourceLoader resourceLoader,
+            JdbcTemplate jdbcTemplate) {
         this.genreRepository = genreRepository;
         this.countryRepository = countryRepository;
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public void seedAll() {
+        healMojibakeGenres();
         seedGenres();
         seedCountries();
+    }
+
+    /** Gọi độc lập khi seed tắt — dọn thể loại lỗi font đã nằm trong DB. */
+    public void healCatalogEncoding() {
+        healMojibakeGenres();
+    }
+
+    /**
+     * Sửa thể loại lỗi font: mojibake ({@code BÃ­ áº©n}) hoặc ký tự thay thế ({@code Hành �?�?ng}).
+     */
+    private void healMojibakeGenres() {
+        int healed = 0;
+        List<Genre> all = genreRepository.findAll();
+        List<String> goodNames = all.stream()
+                .map(Genre::getName)
+                .filter(n -> n != null && !MojibakeUtils.looksCorrupt(n))
+                .toList();
+
+        for (Genre genre : all) {
+            String name = genre.getName();
+            if (!MojibakeUtils.looksCorrupt(name)) {
+                continue;
+            }
+
+            String fixed = MojibakeUtils.tryFix(name);
+            if (fixed == null || fixed.equals(name)) {
+                fixed = MojibakeUtils.matchCanonical(name, goodNames);
+            }
+            if (fixed == null || fixed.equals(name)) {
+                logger.warn("Skip corrupt genre (no canonical match): '{}'", name);
+                continue;
+            }
+
+            Optional<Genre> existing = genreRepository.findByNameIgnoreCase(fixed);
+            if (existing.isPresent() && !existing.get().getUuid().equals(genre.getUuid())) {
+                mergeGenreInto(genre.getUuid(), existing.get().getUuid());
+                genreRepository.delete(genre);
+                healed++;
+                logger.info("Merged corrupt genre '{}' into '{}'", name, fixed);
+            } else {
+                genre.setName(fixed);
+                genreRepository.save(genre);
+                healed++;
+                logger.info("Renamed corrupt genre '{}' -> '{}'", name, fixed);
+            }
+        }
+        if (healed > 0) {
+            logger.info("Healed {} corrupt genre row(s).", healed);
+        }
+    }
+
+    private void mergeGenreInto(UUID fromGenreUuid, UUID toGenreUuid) {
+        jdbcTemplate.update("""
+                DELETE FROM movie_genre mg
+                WHERE mg.genre_uuid = ?
+                  AND EXISTS (
+                      SELECT 1 FROM movie_genre ok
+                      WHERE ok.movie_uuid = mg.movie_uuid AND ok.genre_uuid = ?
+                  )
+                """, fromGenreUuid, toGenreUuid);
+        jdbcTemplate.update(
+                "UPDATE movie_genre SET genre_uuid = ? WHERE genre_uuid = ?",
+                toGenreUuid, fromGenreUuid);
     }
 
     private void seedGenres() {

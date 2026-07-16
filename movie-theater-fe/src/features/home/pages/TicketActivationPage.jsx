@@ -79,6 +79,11 @@ const TicketActivationPage = () => {
           try {
             const status = await vodService.getStatus(movieId);
             setVodStatus(status);
+            // Đã kích hoạt / đang STREAMING → vào xem luôn, không bắt nhập mã lại
+            if (canWatchOnlineDirectly(status)) {
+              navigate(getOnlineWatchPath(movieId), { replace: true });
+              return;
+            }
           } catch {
             setVodStatus(null);
           }
@@ -92,7 +97,7 @@ const TicketActivationPage = () => {
       }
     };
     if (movieId) load();
-  }, [movieId, isAuthenticated]);
+  }, [movieId, isAuthenticated, navigate]);
 
   const handleBuyOnline = () => {
     if (!isAuthenticated) {
@@ -303,28 +308,44 @@ const TicketActivationPage = () => {
                       Bạn đã có vé online cho phim này. Mã vé đã được gửi tới{' '}
                       <strong>{maskEmail(user?.email)}</strong>.
                     </p>
-                    <p className="mt-2 text-xs text-sky-200/80">
-                      Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên.
-                    </p>
-                    {vodStatus?.playbackState === 'WAITING_FOR_PLAY' && (
-                    <button
-                      type="button"
-                      onClick={handleResendTicketEmail}
-                      disabled={isResending}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-bold uppercase tracking-wider text-sky-200 hover:bg-sky-500/15 disabled:opacity-60"
-                    >
-                      {isResending ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Đang gửi...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="h-3.5 w-3.5" />
-                          Gửi lại mã vé qua email
-                        </>
-                      )}
-                    </button>
+                    {vodStatus?.playbackState === VOD_PLAYBACK_STATE.WAITING_FOR_PLAY ? (
+                      <>
+                        <p className="mt-2 text-xs text-sky-200/80">
+                          Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên — hoặc vào xem trực tiếp nếu đã xác nhận mua vé.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => navigate(getOnlineWatchPath(movieId))}
+                            className="inline-flex items-center gap-2 rounded-lg border border-red-400/40 bg-red-500/15 px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-200 hover:bg-red-500/25"
+                          >
+                            Vào xem phim
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResendTicketEmail}
+                            disabled={isResending}
+                            className="inline-flex items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-bold uppercase tracking-wider text-sky-200 hover:bg-sky-500/15 disabled:opacity-60"
+                          >
+                            {isResending ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Đang gửi...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="h-3.5 w-3.5" />
+                                Gửi lại mã vé qua email
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-xs text-sky-200/80">
+                        Vé đang hiệu lực — dùng nút bên dưới hoặc vào trang xem để tiếp tục.
+                      </p>
                     )}
                   </div>
                 )}

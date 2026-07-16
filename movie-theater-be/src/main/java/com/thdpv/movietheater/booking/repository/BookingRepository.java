@@ -43,6 +43,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findByUserUuidAndMovieUuidAndBookingTypeAndStatus(UUID userUuid, UUID movieUuid, String bookingType, String status);
     List<Booking> findByUserUuidAndBookingTypeAndStatus(UUID userUuid, String bookingType, String status);
 
+    /** Token phiên phát VOD đang active (dùng cho /api/media/stream). */
+    java.util.Optional<Booking> findFirstByStreamTokenAndExpiresAtAfter(String streamToken, OffsetDateTime now);
+
     @Query("""
             SELECT b FROM Booking b
             WHERE b.userUuid = :userUuid

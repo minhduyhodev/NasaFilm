@@ -141,3 +141,11 @@ CREATE INDEX IF NOT EXISTS idx_orbit_room_message_room
 ALTER TABLE payment_transaction ADD COLUMN IF NOT EXISTS purpose varchar(40);
 UPDATE payment_transaction SET purpose = 'BOOKING' WHERE purpose IS NULL;
 
+-- ── Movie slug (URL đẹp; API vẫn nhận UUID) ───────────────────────────────────
+
+ALTER TABLE movie ADD COLUMN IF NOT EXISTS slug varchar(160);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_movie_slug
+    ON movie (slug)
+    WHERE slug IS NOT NULL;
+
