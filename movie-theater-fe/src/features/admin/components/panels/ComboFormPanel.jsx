@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload, Image as ImageIcon, Check } from 'lucide-react';
 import { comboService } from '../../../../shared/services/comboService';
 import { notificationService } from '../../../../shared/services/notificationService';

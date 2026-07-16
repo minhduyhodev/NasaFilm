@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { cinemaService } from '../../../../shared/services/cinemaService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';
@@ -57,6 +57,13 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, room, onSuccess, onCancel
     if (!form.roomCode.trim() || !form.name.trim()) {
       notificationService.error('Vui lòng điền mã và tên phòng');
       return;
+    }
+    if (!isEditing) {
+      const capacityValue = Number(form.capacity);
+      if (!Number.isFinite(capacityValue) || capacityValue < 1 || capacityValue > 1000) {
+        notificationService.error('Sức chứa phải là số từ 1 đến 1000');
+        return;
+      }
     }
     setIsSaving(true);
     try {
@@ -130,10 +137,14 @@ const CinemaRoomFormPanel = ({ cinemaUuid, cinemaName, room, onSuccess, onCancel
             <input
               type="number"
               min="1"
+              max="1000"
               className={adminInputClass}
               value={form.capacity}
               onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))}
             />
+            <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">
+              Chỉ là số ước tính ban đầu — sẽ tự động đồng bộ theo số ghế thực tế khi bạn tạo sơ đồ ghế ở trang quản lý phòng.
+            </p>
           </div>
         ) : (
           <div>

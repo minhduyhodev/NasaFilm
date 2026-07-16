@@ -9,7 +9,7 @@ const resolveApiBaseUrl = () => {
   return window.location.origin;
 };
 
-const resolveWsHttpUrl = (useSockJs = useSockJsTransport()) => {
+const resolveWsHttpUrl = (useSockJs = shouldUseSockJsTransport()) => {
   const configured = import.meta.env.VITE_WS_URL;
   if (configured) {
     return configured.replace(/\/$/, '');
@@ -21,7 +21,7 @@ const resolveWsHttpUrl = (useSockJs = useSockJsTransport()) => {
 const toNativeWebSocketUrl = (httpUrl) =>
   httpUrl.replace(/^http:\/\//i, 'ws://').replace(/^https:\/\//i, 'wss://');
 
-const useSockJsTransport = () => import.meta.env.VITE_WS_USE_SOCKJS === 'true';
+const shouldUseSockJsTransport = () => import.meta.env.VITE_WS_USE_SOCKJS === 'true';
 
 const buildConnectHeaders = () => {
   const token = tokenService.getToken();
@@ -258,7 +258,7 @@ class StompSocketService {
       });
     };
 
-    const preferredSockJs = useSockJsTransport();
+    const preferredSockJs = shouldUseSockJsTransport();
     this.connectPromise = tryConnect(preferredSockJs)
       .catch(async (error) => {
         if (preferredSockJs) {

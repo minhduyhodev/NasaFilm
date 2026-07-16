@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Filter,
   ArrowRight,
@@ -124,7 +124,6 @@ const MovieFilterPanel = ({
   onClearTemp,
   activeFilterCount,
   activeFilters,
-  onRemoveActiveFilter,
   onClearApplied,
   tempCountry,
   tempGenre,

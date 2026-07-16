@@ -190,7 +190,7 @@ public class MovieService {
             query.distinct(true);
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE")));
+            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE", "ENDED", "DRAFT")));
 
             String keyword = filter.getKeyword();
             if (keyword != null && !keyword.isBlank()) {
@@ -202,10 +202,17 @@ public class MovieService {
 
             String status = filter.getStatus();
             boolean bookableShowtimeFilter = Boolean.TRUE.equals(filter.getRequireBookableShowtime());
+            boolean comingSoonWithoutShowtimes = false;
             if (status != null && !status.isBlank()) {
                 String normalizedStatus = status.trim().toUpperCase();
-                // Có suất chiếu còn đặt được = đang chiếu thực tế, không phụ thuộc movie.status
-                if (!(bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus))) {
+                // Đang chiếu thực tế = có suất còn đặt được (không phụ thuộc movie.status)
+                if (bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus)) {
+                    // skip equality on status
+                } else if ("COMING_SOON".equals(normalizedStatus)) {
+                    // Sắp chiếu = chưa có suất OPEN_FOR_BOOKING/SOLD_OUT sắp tới
+                    comingSoonWithoutShowtimes = true;
+                    predicates.add(root.get("status").in("COMING_SOON", "NOW_SHOWING"));
+                } else {
                     predicates.add(cb.equal(root.get("status"), normalizedStatus));
                 }
             }
@@ -260,7 +267,7 @@ public class MovieService {
                 predicates.add(root.get("uuid").in(subquery));
             }
 
-            if (bookableShowtimeFilter) {
+            if (bookableShowtimeFilter || comingSoonWithoutShowtimes) {
                 OffsetDateTime now = OffsetDateTime.now();
                 Subquery<UUID> bookableSubquery = query.subquery(UUID.class);
                 Root<Showtime> bookableRoot = bookableSubquery.from(Showtime.class);
@@ -270,11 +277,20 @@ public class MovieService {
                         bookableRoot.get("status").in(
                                 ShowtimeStatus.OPEN_FOR_BOOKING,
                                 ShowtimeStatus.SOLD_OUT));
-                predicates.add(root.get("uuid").in(bookableSubquery));
-                predicates.add(cb.or(
-                        cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
-                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
-                        cb.isNull(root.get("screeningMode"))));
+                if (bookableShowtimeFilter) {
+                    predicates.add(root.get("uuid").in(bookableSubquery));
+                    predicates.add(cb.or(
+                            cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                            cb.isNull(root.get("screeningMode"))));
+                } else {
+                    predicates.add(cb.not(root.get("uuid").in(bookableSubquery)));
+                    predicates.add(cb.or(
+                            cb.equal(root.get("status"), "COMING_SOON"),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                            cb.isNull(root.get("screeningMode"))));
+                }
             }
 
             if (Boolean.TRUE.equals(filter.getOnlineOnly())) {

@@ -415,6 +415,7 @@ public class OrbitRoomService {
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
         OffsetDateTime renewExpiresAt = now.plusMinutes(resolveRoomTtlMinutes());
         for (OrbitMember member : members) {
+            member.setCompleted(false);
             List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
             if (seatUuids.isEmpty()) {
                 continue;
@@ -435,6 +436,7 @@ public class OrbitRoomService {
         room.setStatus(OrbitRoomStatus.OPEN);
         room.setExpiresAt(renewExpiresAt);
         room.setUpdatedAt(now);
+        orbitMemberRepository.saveAll(members);
         orbitRoomRepository.save(room);
         seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
         OrbitRoomResponse response = toRoomResponse(room, hostUuid);
@@ -669,18 +671,6 @@ public class OrbitRoomService {
         response.setMembers(List.of());
         orbitRoomResponseMapper.enrichShowtimeContext(response, room);
         return response;
-    }
-
-    private OrbitRoom loadEditableRoom(UUID roomUuid, OffsetDateTime now) {
-        OrbitRoom room = orbitRoomRepository.findById(roomUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phòng nhóm"));
-        if (room.getStatus() != OrbitRoomStatus.OPEN) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm không còn cho phép chỉnh sửa ghế");
-        }
-        if (room.getExpiresAt().isBefore(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phòng nhóm đã hết hạn");
-        }
-        return room;
     }
 
     private int clampMaxMembers(int requested) {

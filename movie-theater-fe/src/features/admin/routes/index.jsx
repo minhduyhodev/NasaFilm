@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import { ProtectedRoute } from "../../auth/components/ProtectedRoute";
@@ -47,6 +47,11 @@ const RefundsPage = lazy(() => import("../pages/RefundsPage"));
 const FeedbackReviewsPage = lazy(() => import("../pages/FeedbackReviewsPage"));
 const MissionsPage = lazy(() => import("../pages/MissionsPage"));
 const SupportInboxPage = lazy(() => import("../pages/SupportInboxPage"));
+const MyHrPage = lazy(() => import("../pages/hr/MyHrPage"));
+const HrSchedulePage = lazy(() => import("../pages/hr/HrSchedulePage"));
+const HrAttendancePage = lazy(() => import("../pages/hr/HrAttendancePage"));
+const HrPayrollPage = lazy(() => import("../pages/hr/HrPayrollPage"));
+const HrRequestsPage = lazy(() => import("../pages/hr/HrRequestsPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -54,7 +59,7 @@ const AdminPageLoader = () => (
   </div>
 );
 
-const PlaceholderPage = ({ title }) => (
+const _PlaceholderPage = ({ title }) => (
   <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-8 text-center max-w-lg mx-auto my-12">
     <h2 className="text-lg font-bold text-white uppercase tracking-wider mb-2 font-mono">
       {title}
@@ -128,6 +133,18 @@ export const AdminRoutes = () => {
           <Route path="staff_control" element={<Navigate to="/admin/staff-control" replace />} />
           <Route path="config" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><ConfigPage /></PermissionRoute>} />
           <Route path="email-templates" element={<PermissionRoute permission={PERMISSIONS.USER_VIEW}><EmailTemplatesPage /></PermissionRoute>} />
+          <Route
+            path="hr/me"
+            element={(
+              <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                <MyHrPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route path="hr/schedule" element={<PermissionRoute permission={PERMISSIONS.HR_SHIFT_MANAGE}><HrSchedulePage /></PermissionRoute>} />
+          <Route path="hr/requests" element={<PermissionRoute permission={PERMISSIONS.HR_SHIFT_MANAGE}><HrRequestsPage /></PermissionRoute>} />
+          <Route path="hr/attendance" element={<PermissionRoute permission={PERMISSIONS.HR_ATTENDANCE_MANAGE}><HrAttendancePage /></PermissionRoute>} />
+          <Route path="hr/payroll" element={<PermissionRoute permission={PERMISSIONS.HR_PAYROLL_MANAGE}><HrPayrollPage /></PermissionRoute>} />
         </Route>
       </Routes>
     </Suspense>

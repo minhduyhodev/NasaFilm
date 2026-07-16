@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Building2, Milestone } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { CounterSelectDropdown } from './CounterSelectDropdown';

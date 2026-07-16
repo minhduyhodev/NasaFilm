@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import MovieCard from '../components/MovieCard';
 import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import MovieFilterPanel from '../components/MovieFilterPanel';
 import TabTransition from '../../../shared/components/TabTransition';
-import { useMoviesList, useUpcomingMoviesList } from '../../../shared/hooks/queries/useMovieQueries';
+import { useMoviesList } from '../../../shared/hooks/queries/useMovieQueries';
 import { useMovieListFilters } from '../hooks/useMovieListFilters';
 import './MoviesPage.css';
 
@@ -19,8 +19,6 @@ const MoviesPage = () => {
   const {
     titleSearch,
     setTitleSearch,
-    trimmedKeyword,
-    hasAppliedFilters,
     appliedQueryParams,
     filterPanelProps,
     resetAllFilters,
@@ -30,8 +28,6 @@ const MoviesPage = () => {
     onPageReset: resetListPage,
     includeShowtimeFilters: activeTab !== 'coming-soon',
   });
-
-  const isUpcomingSimple = activeTab === 'coming-soon' && !trimmedKeyword && !hasAppliedFilters;
 
   const listQueryParams = useMemo(() => {
     const queryParams = {
@@ -46,16 +42,11 @@ const MoviesPage = () => {
     return queryParams;
   }, [activeTab, currentPage, appliedQueryParams]);
 
-  const upcomingQuery = useUpcomingMoviesList(currentPage - 1, 6, isUpcomingSimple);
-  const listQuery = useMoviesList(listQueryParams, !isUpcomingSimple);
+  const listQuery = useMoviesList(listQueryParams, true);
 
-  const movies = isUpcomingSimple
-    ? (upcomingQuery.data?.content || [])
-    : (listQuery.data?.content || []);
-  const totalPages = isUpcomingSimple
-    ? (upcomingQuery.data?.totalPages || 1)
-    : (listQuery.data?.totalPages || 1);
-  const isLoading = isUpcomingSimple ? upcomingQuery.isLoading : listQuery.isLoading;
+  const movies = listQuery.data?.content || [];
+  const totalPages = listQuery.data?.totalPages || 1;
+  const isLoading = listQuery.isLoading;
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -118,7 +109,7 @@ const MoviesPage = () => {
         <div className="movie-title-search">
           <Search className="movie-title-search-icon" aria-hidden="true" />
           <input
-            type="search"
+            type="text"
             value={titleSearch}
             onChange={(e) => setTitleSearch(e.target.value)}
             placeholder="Tìm kiếm tên phim..."

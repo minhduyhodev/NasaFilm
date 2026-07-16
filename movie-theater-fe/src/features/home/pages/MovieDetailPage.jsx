@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Clock,
   Calendar,
@@ -16,7 +16,6 @@ import { movieService } from "../../../shared/services/movieService";
 import { showtimeService } from "../../../shared/services/showtimeService";
 
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
-import { bookingService } from "../../../shared/services/bookingService";
 import { orbitService } from "../../../shared/services/orbitService";
 import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
 import OrbitJoinInput from "../components/OrbitJoinInput";
@@ -27,7 +26,6 @@ import {
   getRecentOrbitRoomForShowtime,
   rememberOrbitRoom,
 } from "../../../shared/utils/orbitRecentStorage";
-import { getMaxSeatsPerBooking } from "../../../shared/utils/systemConfig";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
@@ -44,7 +42,7 @@ import "./MovieDetailPage.css";
 const getEmbedUrl = (url) => {
   if (!url) return null;
   const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   if (match && match[2].length === 11) {
     return `https://www.youtube.com/embed/${match[2]}?autoplay=1&rel=0`;
@@ -116,8 +114,9 @@ const MovieDetailPage = () => {
 
         try {
           const allShowtimes = await showtimeService.getPublicShowtimes();
-          const movieShowtimes = allShowtimes.filter(
-            (st) => st.movieUuid === data.uuid,
+          const movieId = String(data.uuid || '').toLowerCase();
+          const movieShowtimes = (allShowtimes || []).filter(
+            (st) => String(st.movieUuid || '').toLowerCase() === movieId,
           );
           setShowtimes(movieShowtimes);
         } catch (stErr) {
@@ -172,7 +171,6 @@ const MovieDetailPage = () => {
   };
 
   const getDynamicDates = () => {
-    const dates = [];
     const daysOfWeek = [
       "Chủ Nhật",
       "Thứ 2",
@@ -182,26 +180,46 @@ const MovieDetailPage = () => {
       "Thứ 6",
       "Thứ 7",
     ];
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 10; i++) {
-      const d = new Date(now);
-      d.setDate(now.getDate() + i);
+    const uniqueDates = new Map();
+    showtimes.forEach((st) => {
+      const stDate = new Date(st.startTime);
+      const normalized = new Date(
+        stDate.getFullYear(),
+        stDate.getMonth(),
+        stDate.getDate(),
+      );
+      const key = `${normalized.getFullYear()}-${normalized.getMonth()}-${normalized.getDate()}`;
+      if (!uniqueDates.has(key)) uniqueDates.set(key, normalized);
+    });
 
-      const dayName = i === 0 ? "Hôm nay" : daysOfWeek[d.getDay()];
-      const dateStr = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+    return Array.from(uniqueDates.values())
+      .sort((a, b) => a - b)
+      .map((d) => {
+        const dayDiff = Math.round((d - today) / (24 * 60 * 60 * 1000));
+        const dayName = dayDiff === 0 ? "Hôm nay" : daysOfWeek[d.getDay()];
+        const dateStr = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+        const id = `day-${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, "0")}${d.getDate().toString().padStart(2, "0")}`;
 
-      dates.push({
-        id: `day-${i}`,
-        label: `${dayName}, ${dateStr}`,
-        fullDateText: `${dayName}, ${dateStr}`,
-        rawDate: d,
+        return {
+          id,
+          label: `${dayName}, ${dateStr}`,
+          fullDateText: `${dayName}, ${dateStr}`,
+          rawDate: d,
+        };
       });
-    }
-    return dates;
   };
 
-  const dynamicDates = getDynamicDates();
+  const dynamicDates = useMemo(() => getDynamicDates(), [showtimes]);
+
+  useEffect(() => {
+    if (dynamicDates.length === 0) return;
+    setActiveDateTab((prev) =>
+      dynamicDates.some((d) => d.id === prev) ? prev : dynamicDates[0].id,
+    );
+  }, [dynamicDates]);
 
   const dateMap = {};
   dynamicDates.forEach((d) => {
@@ -479,10 +497,27 @@ const MovieDetailPage = () => {
         name: act.fullName,
         role: act.characterName || "Diễn viên",
         avatar:
-          act.avatarUrl ||
+          resolveMediaUrl(act.avatarUrl, 120) ||
           "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100",
       })) || [],
   };
+
+  const hasBookableShowtime = (showtimes || []).some((st) => {
+    const stStatus = String(st.status || '').toUpperCase();
+    if (stStatus !== 'OPEN_FOR_BOOKING' && stStatus !== 'SOLD_OUT') return false;
+    const startMs = new Date(st.startTime).getTime();
+    return !Number.isNaN(startMs) && startMs > Date.now();
+  });
+
+  // Có suất mở bán sắp tới = đang chiếu (không phụ thuộc status/releaseDate trong admin).
+  const isComingSoon = !isFromOnline && !hasBookableShowtime;
+
+  const canBookTheater =
+    hasBookableShowtime &&
+    !isFromOnline &&
+    (dbMovie.screeningMode === 'THEATER_ONLY' ||
+      dbMovie.screeningMode === 'BOTH' ||
+      !dbMovie.screeningMode);
 
   const showtimesForActiveTab = getShowtimesForActiveTab();
 
@@ -525,7 +560,7 @@ const MovieDetailPage = () => {
                 movie.trailer.includes("youtu.be");
               if (isYouTube) {
                 const regExp =
-                  /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                  /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
                 const match = movie.trailer.match(regExp);
                 const videoId = match && match[2].length === 11 ? match[2] : "";
                 const bgYoutubeUrl = videoId
@@ -647,17 +682,19 @@ const MovieDetailPage = () => {
 
               <div className="flex flex-col gap-4 pt-4">
                 <div className="flex flex-wrap items-center gap-4">
-                {/* 1. Mua vé xem tại rạp */}
-                {!isFromOnline &&
-                  (dbMovie.screeningMode === "THEATER_ONLY" ||
-                    dbMovie.screeningMode === "BOTH" ||
-                    !dbMovie.screeningMode) && (
+                {/* 1. Mua vé xem tại rạp — ẩn với phim sắp chiếu */}
+                {canBookTheater && (
                   <button
                     onClick={handleBookTickets}
                     className="bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider neon-red-glow hover:scale-105 active:scale-95 transition-all cursor-pointer"
                   >
                     Đặt vé tại rạp
                   </button>
+                )}
+                {isComingSoon && !isFromOnline && (
+                  <span className="px-6 py-3.5 bg-amber-500/10 text-amber-300 rounded-xl font-bold text-sm uppercase tracking-wider border border-amber-400/30">
+                    Sắp chiếu
+                  </span>
                 )}
 
                 {/* 2. Vé xem Online VOD */}
@@ -737,7 +774,7 @@ const MovieDetailPage = () => {
           )}
 
           {/* Right Side: Showtimes */}
-          {!isFromOnline && (
+          {!isFromOnline && canBookTheater && (
           <div className={`movie-detail-showtimes-col${movie.cast.length === 0 ? ' movie-detail-showtimes-col--full' : ''}`}>
             {orbitFeatureEnabled && (
               <div className="mb-5 space-y-3 flex flex-col items-center">
@@ -960,12 +997,7 @@ const MovieDetailPage = () => {
             isExpanded={reviewsExpanded}
             onExpandedChange={setReviewsExpanded}
             onSummaryChange={setReviewSummary}
-            showTheaterCta={
-              !isFromOnline &&
-              (dbMovie.screeningMode === 'THEATER_ONLY' ||
-                dbMovie.screeningMode === 'BOTH' ||
-                !dbMovie.screeningMode)
-            }
+            showTheaterCta={canBookTheater}
             showOnlineCta={
               isFromOnline ||
               dbMovie.screeningMode === 'ONLINE_ONLY' ||

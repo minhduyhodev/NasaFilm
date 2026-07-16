@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Loader2, TrendingUp, ShoppingBag, Package, DollarSign } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
 import AdminKpiGrid from '../components/AdminKpiGrid';
+import { AdminPage, PageHeader, FilterPills, AdminDatePicker } from '../components';
 import { shiftPeriod, todayYmd } from '../utils/revenueSeriesNav';
 import '../pages/DashboardPage.css';
 import './AdminComboRevenuePage.css';
 
-const CHART_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981', '#6366f1'];
+const CHART_COLORS = ['#ef4444', '#f59e0b', '#f97316', '#06b6d4', '#10b981', '#e11d48'];
 
 const GRANULARITIES = [
   { id: 'day', label: 'Ngày', subtitle: 'Chi tiết theo giờ' },
@@ -23,7 +24,7 @@ const formatMoney = (val) => {
 
 const formatMoneyFull = (val) => `${new Intl.NumberFormat('vi-VN').format(Number(val) || 0)}đ`;
 
-const AreaChart = ({ labels, values, color = '#a855f7' }) => {
+const AreaChart = ({ labels, values, color = '#ef4444' }) => {
   const width = 560;
   const height = 220;
   const pad = { top: 16, right: 16, bottom: 36, left: 48 };
@@ -89,7 +90,7 @@ const DonutChart = ({ segments }) => {
   const displayTotal = segments.length === 1 && segments[0].isFallback ? 0 : segments.reduce((s, seg) => s + seg.value, 0);
   let angle = -90;
 
-  const arcs = segments.map((seg, i) => {
+  const arcs = segments.map((seg, _i) => {
     const pct = seg.value / computedTotal;
     const sweep = pct * 360;
     const start = angle;
@@ -233,14 +234,12 @@ const AdminComboRevenuePage = () => {
     : [{ label: 'Chưa có dữ liệu', value: 1, color: '#334155', isFallback: true }];
 
   return (
-    <div className="dashboard-page combo-revenue-page">
-      <header className="dashboard-page-header">
-        <p className="combo-revenue-eyebrow">Trung tâm kinh doanh</p>
-        <h1 className="dashboard-page-title">Doanh thu bắp nước</h1>
-        <p className="dashboard-page-desc">
-          Theo dõi doanh thu combo, số đơn và xu hướng bán hàng theo ngày, tuần, tháng.
-        </p>
-      </header>
+    <AdminPage className="dashboard-page combo-revenue-page">
+      <PageHeader
+        eyebrow="Trung tâm kinh doanh"
+        title="Doanh thu bắp nước"
+        description="Theo dõi doanh thu combo, số đơn và xu hướng bán hàng theo ngày, tuần, tháng."
+      />
 
       <AdminKpiGrid items={comboKpis} />
 
@@ -253,20 +252,12 @@ const AdminComboRevenuePage = () => {
                 {activeGranularityMeta.subtitle} · combo trong đơn đã xác nhận
               </p>
             </div>
-            <div className="dashboard-granularity-toggle" role="tablist" aria-label="Khoảng thời gian">
-              {GRANULARITIES.map((g) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={granularity === g.id}
-                  className={`dashboard-granularity-btn ${granularity === g.id ? 'is-active' : ''}`}
-                  onClick={() => setGranularity(g.id)}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              value={granularity}
+              onChange={setGranularity}
+              items={GRANULARITIES.map((g) => ({ id: g.id, label: g.label }))}
+              ariaLabel="Khoảng thời gian"
+            />
           </div>
 
           <div className="dashboard-period-nav">
@@ -290,13 +281,14 @@ const AdminComboRevenuePage = () => {
             >
               ▶
             </button>
-            <input
-              type="date"
-              className="dashboard-period-date"
+            <AdminDatePicker
               value={series?.periodStartDate || anchor}
+              onChange={(v) => v && setAnchor(v)}
               max={todayYmd()}
-              onChange={(e) => e.target.value && setAnchor(e.target.value)}
-              aria-label="Chọn ngày"
+              clearable={false}
+              size="sm"
+              className="dashboard-period-datepicker"
+              placeholder="Chọn ngày"
             />
           </div>
 
@@ -386,7 +378,7 @@ const AdminComboRevenuePage = () => {
           </div>
         )}
       </div>
-    </div>
+    </AdminPage>
   );
 };
 

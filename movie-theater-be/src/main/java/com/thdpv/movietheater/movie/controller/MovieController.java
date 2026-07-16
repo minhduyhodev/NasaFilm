@@ -30,6 +30,7 @@ import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.dto.response.ActorAvatarEnrichmentResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
@@ -37,6 +38,7 @@ import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
+import com.thdpv.movietheater.movie.service.ActorAvatarEnrichmentService;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import jakarta.validation.Valid;
@@ -48,6 +50,7 @@ import lombok.RequiredArgsConstructor;
 public class MovieController {
 
     private final MovieService movieService;
+    private final ActorAvatarEnrichmentService actorAvatarEnrichmentService;
 
     @PostMapping("/admin/movies")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
@@ -173,6 +176,13 @@ public class MovieController {
     public ResponseEntity<ApiResponse<Void>> deleteActor(@PathVariable UUID actorUuid) {
         movieService.deleteActor(actorUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
+    }
+
+    @PostMapping("/admin/actors/enrich-avatars")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<ActorAvatarEnrichmentResponse>> enrichActorAvatars() {
+        ActorAvatarEnrichmentResponse response = actorAvatarEnrichmentService.enrichMissingAvatars();
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/admin/genres")

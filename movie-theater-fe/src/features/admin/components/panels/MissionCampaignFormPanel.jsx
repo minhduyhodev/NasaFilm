@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminMissionService, MISSION_CAMPAIGN_STATUSES } from '../../api/adminMissionService';
 import { notificationService } from '../../../../shared/services/notificationService';
-import { PrimaryButton, GhostButton } from '..';
+import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
 
 const emptyForm = {
@@ -109,21 +109,19 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
           <p className="mc-form-note">{STATUS_HINTS[form.status]}</p>
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Bắt đầu</label>
-          <input
-            type="datetime-local"
-            className={adminInputClass}
+          <AdminDateTimePicker
+            label="Bắt đầu"
+            timeLabel={null}
             value={form.startsAt}
-            onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+            onChange={(v) => setForm({ ...form, startsAt: v })}
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Kết thúc</label>
-          <input
-            type="datetime-local"
-            className={adminInputClass}
+          <AdminDateTimePicker
+            label="Kết thúc"
+            timeLabel={null}
             value={form.endsAt}
-            onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+            onChange={(v) => setForm({ ...form, endsAt: v })}
           />
         </div>
       </div>

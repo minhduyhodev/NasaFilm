@@ -14,6 +14,7 @@ import com.thdpv.movietheater.booking.entity.Ticket;
 
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     Optional<Ticket> findByTicketCode(String ticketCode);
+    boolean existsByTicketCode(String ticketCode);
     void deleteByBookingUuid(UUID bookingUuid);
     List<Ticket> findByBookingUuid(UUID bookingUuid);
 

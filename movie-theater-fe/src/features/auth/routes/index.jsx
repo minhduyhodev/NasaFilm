@@ -1,7 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PublicRoute } from '../components/PublicRoute';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import ActivateAccountPage from '../pages/ActivateAccountPage';

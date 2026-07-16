@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Home, LogOut } from 'lucide-react';
 import { useAuthContext } from '../hooks/useAuthContext';

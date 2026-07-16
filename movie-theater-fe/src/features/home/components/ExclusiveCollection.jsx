@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { movieService } from '../../../shared/services/movieService';
 import { mapApiMovies, filterOnlineMovies, getMovieDetailPath, sortMoviesByReleaseDate } from '../utils/movieUtils';

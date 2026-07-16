@@ -1,7 +1,6 @@
 package com.thdpv.movietheater.orbit.service;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 

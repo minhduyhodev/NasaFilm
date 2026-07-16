@@ -11,6 +11,9 @@ export const PERMISSIONS = {
   PROMOTION_WRITE: 'PROMOTION_WRITE',
   USER_VIEW: 'USER_VIEW',
   SUPPORT_MANAGE: 'SUPPORT_MANAGE',
+  HR_SHIFT_MANAGE: 'HR_SHIFT_MANAGE',
+  HR_ATTENDANCE_MANAGE: 'HR_ATTENDANCE_MANAGE',
+  HR_PAYROLL_MANAGE: 'HR_PAYROLL_MANAGE',
 };
 
 export const isAdmin = (user) => (user?.roles || []).includes('admin');

@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.booking.service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -26,12 +25,8 @@ import com.thdpv.movietheater.booking.dto.response.ShowtimeResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
-import com.thdpv.movietheater.booking.repository.BookingComboRepository;
-import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
-import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
-import com.thdpv.movietheater.booking.repository.TicketRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
@@ -46,20 +41,14 @@ import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class ShowtimeService {
 
     private final ShowtimeRepository showtimeRepository;
     private final MovieRepository movieRepository;
     private final CinemaRoomRepository cinemaRoomRepository;
     private final BookingRepository bookingRepository;
-    private final BookingSeatRepository bookingSeatRepository;
-    private final BookingComboRepository bookingComboRepository;
-    private final TicketRepository ticketRepository;
-    private final BookingNativeRepository bookingNativeRepository;
     private final CancellationRefundService cancellationRefundService;
     private final SystemConfigService systemConfigService;
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine;
@@ -68,6 +57,25 @@ public class ShowtimeService {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    public ShowtimeService(
+            ShowtimeRepository showtimeRepository,
+            MovieRepository movieRepository,
+            CinemaRoomRepository cinemaRoomRepository,
+            BookingRepository bookingRepository,
+            CancellationRefundService cancellationRefundService,
+            SystemConfigService systemConfigService,
+            ShowtimeSchedulingEngine showtimeSchedulingEngine,
+            ShowtimeOverlapSupport showtimeOverlapSupport) {
+        this.showtimeRepository = showtimeRepository;
+        this.movieRepository = movieRepository;
+        this.cinemaRoomRepository = cinemaRoomRepository;
+        this.bookingRepository = bookingRepository;
+        this.cancellationRefundService = cancellationRefundService;
+        this.systemConfigService = systemConfigService;
+        this.showtimeSchedulingEngine = showtimeSchedulingEngine;
+        this.showtimeOverlapSupport = showtimeOverlapSupport;
+    }
 
     @Transactional
     public ShowtimeResponse createShowtime(ShowtimeRequest request) {
@@ -346,7 +354,20 @@ public class ShowtimeService {
         } else {
             showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
         }
+        showtimes = filterActiveRoomShowtimes(showtimes);
         return mapShowtimesToResponses(showtimes);
+    }
+
+    private List<Showtime> filterActiveRoomShowtimes(List<Showtime> showtimes) {
+        if (showtimes.isEmpty()) {
+            return showtimes;
+        }
+        Set<UUID> roomUuids = showtimes.stream().map(Showtime::getCinemaRoomUuid).collect(Collectors.toSet());
+        Map<UUID, CinemaRoomStatus> roomStatusMap = cinemaRoomRepository.findAllById(roomUuids).stream()
+                .collect(Collectors.toMap(CinemaRoom::getUuid, CinemaRoom::getStatus));
+        return showtimes.stream()
+                .filter(st -> CinemaRoomStatus.ACTIVE.equals(roomStatusMap.get(st.getCinemaRoomUuid())))
+                .toList();
     }
 
     /**

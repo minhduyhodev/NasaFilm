@@ -1,4 +1,3 @@
-import React from 'react';
 import './AdminKpiGrid.css';
 
 const GRID_CLASS = {
@@ -8,7 +7,7 @@ const GRID_CLASS = {
 };
 
 /**
- * KPI summary cards — same layout as admin/movies (label, icon, value, badge).
+ * KPI summary cards — label, optional icon, value, meta badge (real data only).
  */
 const AdminKpiGrid = ({ items, columns = 4, className = '' }) => {
   const gridClass = GRID_CLASS[columns] || GRID_CLASS[4];
@@ -17,24 +16,26 @@ const AdminKpiGrid = ({ items, columns = 4, className = '' }) => {
     <div className={`${gridClass}${className ? ` ${className}` : ''}`}>
       {items.map((kpi) => {
         const Icon = kpi.icon;
+        const Tag = kpi.onClick ? 'button' : 'div';
         return (
-          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass || ''}`.trim()}>
+          <Tag
+            key={kpi.label}
+            type={kpi.onClick ? 'button' : undefined}
+            onClick={kpi.onClick}
+            className={`kpi-card adm-kpi-card ${kpi.onClick ? 'adm-kpi-card--clickable' : ''} ${kpi.active ? 'adm-kpi-card--active' : ''} ${kpi.kpiClass || ''}`.trim()}
+          >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">
-                {kpi.label}
-              </span>
-              {Icon ? <Icon className={`w-4 h-4 ${kpi.color} opacity-60`} /> : null}
+              <span className="adm-kpi-card__label">{kpi.label}</span>
+              {Icon ? <Icon className={`w-4 h-4 ${kpi.color || 'text-slate-400'} opacity-70`} /> : null}
             </div>
             <p
-              className={`text-xl font-black ${kpi.color} leading-none truncate font-heading`}
+              className={`adm-kpi-card__value adm-tabular ${kpi.color || ''}`.trim()}
               title={String(kpi.value)}
             >
               {kpi.value}
             </p>
-            {kpi.badge ? (
-              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
-            ) : null}
-          </div>
+            {kpi.badge ? <p className="adm-kpi-card__meta">{kpi.badge}</p> : null}
+          </Tag>
         );
       })}
     </div>

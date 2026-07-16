@@ -55,6 +55,7 @@ public class MediaProxyController {
 
     private static final Set<String> ALLOWED_HOSTS = Set.of(
             "image.tmdb.org",
+            "upload.wikimedia.org",
             S3MediaBorderUtils.DEFAULT_BUCKET_HOST);
 
     private static final URI TMDB_PROBE_URI = URI.create(

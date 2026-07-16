@@ -1,14 +1,32 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapPin, Search, Plus, Tv, Activity, Grid } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { MapPin, Search, Plus, Tv, Activity, Grid, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { AdminPage, PageHeader, AdminKpiGrid, StatusBadge, PrimaryButton } from '../components';
 import AdminModal from '../components/AdminModal';
-import AdminKpiGrid from '../components/AdminKpiGrid';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import './CinemasPage.css';
+
+const cinemaStatusVariant = (status) => {
+  switch (status) {
+    case 'MAINTENANCE': return 'warning';
+    case 'DISABLED': return 'danger';
+    case 'ACTIVE':
+    default: return 'success';
+  }
+};
+
+const cinemaStatusLabel = (status) => {
+  switch (status) {
+    case 'MAINTENANCE': return 'Bảo trì';
+    case 'DISABLED': return 'Vô hiệu';
+    case 'ACTIVE':
+    default: return 'Đang mở';
+  }
+};
 
 const CinemasPage = () => {
   const navigate = useNavigate();
@@ -22,7 +40,7 @@ const CinemasPage = () => {
   const [isLoadingCinemas, setIsLoadingCinemas] = useState(false);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, _setStatusFilter] = useState('');
   const [cinemaModal, setCinemaModal] = useState({ open: false, mode: 'create', cinema: null });
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const roomsSectionRef = useRef(null);
@@ -223,44 +241,59 @@ const CinemasPage = () => {
     navigate(`/admin/cinemas/${selectedCinema.uuid}/rooms/${room.uuid}`);
   };
 
+  const handleDeleteRoom = async (room, e) => {
+    e.stopPropagation();
+    const ok = await confirm({
+      title: 'Xóa phòng chiếu',
+      message: `Xóa phòng "${room.name}"? Hành động này không thể hoàn tác.`,
+      detail: 'Chỉ xóa được khi phòng không còn suất chiếu tương lai và không có vé đã xác nhận.',
+      confirmLabel: 'Xóa phòng',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await cinemaService.deleteRoom(room.uuid);
+      notificationService.success('Đã xóa phòng chiếu.');
+      if (selectedCinema) {
+        await fetchRooms(selectedCinema.uuid);
+        await fetchCinemasAndGlobalStats(true);
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể xóa phòng chiếu.');
+    }
+  };
+
   return (
-    <>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase">Kiến Trúc Rạp Chiếu</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Chọn chi nhánh rạp, sau đó chọn phòng chiếu để quản lý sơ đồ ghế.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleAddCinemaClick}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-xs text-white font-bold transition shadow-md shadow-red-600/20 cursor-pointer border-none"
-          >
-            <Plus className="w-4 h-4" />
-            Thêm Rạp Mới
-          </button>
-        </div>
-      </div>
+    <AdminPage>
+      <PageHeader
+        eyebrow="Cơ sở vật chất"
+        title="Kiến trúc rạp chiếu"
+        description="Chọn chi nhánh rạp, sau đó chọn phòng chiếu để quản lý sơ đồ ghế."
+        variant="display"
+        primaryAction={{
+          label: 'Thêm rạp mới',
+          onClick: handleAddCinemaClick,
+          icon: <Plus className="w-4 h-4" />,
+        }}
+      />
 
-      <AdminKpiGrid items={cinemaKpis} className="mb-6" />
+      <AdminKpiGrid items={cinemaKpis} />
 
-      <div className="bg-[#0F1322] p-6 border border-[#1A2238] rounded-xl shadow-lg mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="adm-panel">
+        <div className="adm-panel__head">
           <div>
-            <h2 className="text-sm font-bold uppercase text-white tracking-wide">Danh Sách Rạp Chiếu</h2>
-            <p className="text-xs text-gray-500 mt-1">Chọn một chi nhánh để xem danh sách phòng chiếu bên dưới.</p>
+            <h2 className="adm-panel__title">Danh sách rạp chiếu</h2>
+            <p className="text-xs text-[var(--adm-text-dim)] mt-1">Chọn một chi nhánh để xem danh sách phòng chiếu bên dưới.</p>
           </div>
-          <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded shrink-0">
-            HOẠT ĐỘNG: {cinemas.filter((c) => getCinemaStats(c.uuid).activeCount > 0).length}
-          </span>
+          <StatusBadge variant="accent">
+            Hoạt động: {cinemas.filter((c) => getCinemaStats(c.uuid).activeCount > 0).length}
+          </StatusBadge>
         </div>
-
-        <div className="relative mb-4 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
+        <div className="adm-panel__body">
+        <div className="adm-toolbar__search mb-4 max-w-md">
+          <Search className="adm-toolbar__search-icon" />
           <input
-            className="w-full bg-[#0B0F19] border border-[#1A2238] text-xs py-2 pl-9 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 transition-all rounded-lg"
+            className="adm-input"
             placeholder="Tìm kiếm chi nhánh..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -268,7 +301,7 @@ const CinemasPage = () => {
         </div>
 
         {isLoadingCinemas ? (
-          <div className="flex justify-center items-center py-16">
+          <div className="adm-loading min-h-[160px]">
             <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredCinemas.length > 0 ? (
@@ -276,34 +309,6 @@ const CinemasPage = () => {
             {filteredCinemas.map((cinema) => {
               const isSelected = selectedCinema?.uuid === cinema.uuid;
               const cStats = getCinemaStats(cinema.uuid);
-              
-              const getCinemaStatusLabel = (status) => {
-                switch (status) {
-                  case 'MAINTENANCE': return 'Bảo Trì';
-                  case 'DISABLED': return 'Vô Hiệu';
-                  case 'ACTIVE':
-                  default:
-                    return 'Đang Mở';
-                }
-              };
-              const getCinemaStatusColor = (status) => {
-                switch (status) {
-                  case 'MAINTENANCE': return 'text-amber-400';
-                  case 'DISABLED': return 'text-rose-400';
-                  case 'ACTIVE':
-                  default:
-                    return 'text-emerald-400';
-                }
-              };
-              const getCinemaStatusDotBg = (status) => {
-                switch (status) {
-                  case 'MAINTENANCE': return 'bg-amber-400';
-                  case 'DISABLED': return 'bg-rose-400';
-                  case 'ACTIVE':
-                  default:
-                    return 'bg-emerald-400 animate-pulse';
-                }
-              };
 
               return (
                 <div
@@ -312,38 +317,37 @@ const CinemasPage = () => {
                   tabIndex={0}
                   onClick={() => handleSelectCinema(cinema)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSelectCinema(cinema)}
-                  className={`p-4 border transition-all cursor-pointer rounded-lg text-left w-full cinema-card ${
+                  className={`p-4 border transition-all cursor-pointer rounded-[var(--adm-radius-sm)] text-left w-full cinema-card ${
                     isSelected
-                      ? 'bg-[#1e293b]/30 border-red-500/50 shadow-md shadow-red-500/5 cinema-card--selected'
-                      : 'bg-[#0B0F19]/60 border-[#1A2238] hover:bg-[#1a2238]/30 hover:border-[#2C3B5E]'
+                      ? 'bg-[var(--adm-accent-soft)] border-[var(--adm-accent-border)] cinema-card--selected'
+                      : 'bg-[var(--adm-bg-panel-solid)] border-[var(--adm-border)] hover:border-[#2C3B5E]'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1 gap-2">
-                    <h3 className="text-xs text-white uppercase font-black truncate">{cinema.name}</h3>
-                    <span className={`flex items-center gap-1 text-[9px] uppercase font-bold shrink-0 ${getCinemaStatusColor(cinema.status)}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${getCinemaStatusDotBg(cinema.status)}`} />
-                      {getCinemaStatusLabel(cinema.status)}
-                    </span>
+                    <h3 className="text-xs text-white font-black truncate">{cinema.name}</h3>
+                    <StatusBadge variant={cinemaStatusVariant(cinema.status)}>
+                      {cinemaStatusLabel(cinema.status)}
+                    </StatusBadge>
                   </div>
-                  <p className="text-[11px] text-gray-400 opacity-80 truncate" title={cinema.address}>
+                  <p className="text-[11px] text-[var(--adm-text-muted)] truncate" title={cinema.address}>
                     {cinema.address}
                   </p>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1A2238]/60 text-[9px] text-gray-500 font-mono">
-                    <span>{cStats.totalRoomsCount} PHÒNG CHIẾU</span>
-                    <span>{cStats.capacity} GHẾ</span>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-[var(--adm-border)] text-[9px] text-[var(--adm-text-dim)] font-mono">
+                    <span>{cStats.totalRoomsCount} phòng chiếu</span>
+                    <span>{cStats.capacity} ghế</span>
                   </div>
-                  <div className="mt-2.5 pt-2 border-t border-[#1A2238]/30 flex justify-between items-center">
+                  <div className="mt-2.5 pt-2 border-t border-[var(--adm-border)] flex justify-between items-center">
                     <button
                       type="button"
                       onClick={(e) => handleDeleteCinemaClick(cinema, e)}
-                      className="text-[10px] text-red-500 hover:text-red-400 uppercase font-bold bg-transparent border-none cursor-pointer p-0 transition-colors"
+                      className="text-[10px] text-red-500 hover:text-red-400 uppercase font-bold bg-transparent border-none cursor-pointer p-0"
                     >
                       Xóa rạp
                     </button>
                     <button
                       type="button"
                       onClick={(e) => handleEditCinemaClick(cinema, e)}
-                      className="text-[10px] text-gray-500 hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer p-0 transition-colors"
+                      className="text-[10px] text-[var(--adm-text-dim)] hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer p-0"
                     >
                       Chỉnh sửa rạp
                     </button>
@@ -353,63 +357,71 @@ const CinemasPage = () => {
             })}
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-500 border border-dashed border-[#1A2238] rounded-lg p-4 bg-[#0F1322]">
-            <p className="text-xs uppercase tracking-wider">Không tìm thấy chi nhánh</p>
+          <div className="adm-empty border border-dashed border-[var(--adm-border)] rounded-[var(--adm-radius-sm)]">
+            <p>Không tìm thấy chi nhánh</p>
           </div>
         )}
+        </div>
       </div>
 
       {selectedCinema && (
         <div
           ref={roomsSectionRef}
           id="rooms-section"
-          className="bg-[#0F1322] border border-[#1A2238] p-6 rounded-xl shadow-lg mb-6 scroll-mt-6"
+          className="adm-panel scroll-mt-6"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="adm-panel__head">
             <div>
-              <h2 className="text-sm font-bold uppercase text-white tracking-wide">Phòng Chiếu</h2>
-              <p className="text-xs text-gray-500 mt-1">
-                Chi nhánh: <span className="text-gray-300 font-semibold">{selectedCinema.name}</span>
+              <h2 className="adm-panel__title">Phòng chiếu</h2>
+              <p className="text-xs text-[var(--adm-text-dim)] mt-1">
+                Chi nhánh: <span className="text-[var(--adm-text-secondary)] font-semibold">{selectedCinema.name}</span>
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleAddRoomClick}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-400 font-bold hover:bg-red-500/20 transition cursor-pointer"
-            >
+            <PrimaryButton type="button" onClick={handleAddRoomClick}>
               <Plus className="w-3.5 h-3.5" />
               Thêm phòng
-            </button>
+            </PrimaryButton>
           </div>
+          <div className="adm-panel__body">
 
           {isLoadingRooms ? (
-            <div className="flex justify-center py-10">
+            <div className="adm-loading min-h-[80px]">
               <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : rooms.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {rooms.map((room) => (
-                <button
-                  key={room.uuid}
-                  type="button"
-                  onClick={() => handleSelectRoom(room)}
-                  className="px-4 py-2 rounded-lg text-xs uppercase font-bold tracking-wider transition-all cursor-pointer border bg-[#0B0F19] border-[#1A2238] text-gray-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5"
-                >
-                  {room.name} ({room.roomType})
-                </button>
+                <div key={room.uuid} className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectRoom(room)}
+                    className="adm-btn adm-btn--ghost px-4 py-2 text-xs uppercase"
+                  >
+                    {room.name} ({room.roomType})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteRoom(room, e)}
+                    className="adm-btn adm-btn--ghost p-2"
+                    title="Xóa phòng"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-500 py-6 text-center border border-dashed border-[#1A2238] rounded-lg">
+            <p className="adm-empty border border-dashed border-[var(--adm-border)] rounded-[var(--adm-radius-sm)]">
               Chưa có phòng chiếu. Nhấn &quot;Thêm phòng&quot; để tạo mới.
             </p>
           )}
 
           {rooms.length > 0 && (
-            <p className="text-xs text-gray-500 mt-4 text-center">
+            <p className="text-xs text-[var(--adm-text-dim)] mt-4 text-center">
               Chọn một phòng chiếu để mở trang quản lý sơ đồ ghế.
             </p>
           )}
+          </div>
         </div>
       )}
 
@@ -443,7 +455,7 @@ const CinemasPage = () => {
           />
         )}
       </AdminModal>
-    </>
+    </AdminPage>
   );
 };
 

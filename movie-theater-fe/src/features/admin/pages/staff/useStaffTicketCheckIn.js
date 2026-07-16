@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { staffMissionService } from '../../api/staffMissionService';
 import { playCheckInBeep, speakCheckInText } from './staffCheckInAudio';
+import { confirmAction } from '../../../../shared/utils/confirmDialog';
 
 const SESSION_HISTORY_KEY = 'staff_checkin_session_history';
 
@@ -158,6 +159,22 @@ export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete, 
     const code = ticketCode.trim();
     if (!code) return;
 
+    // Chỉ xác nhận khi nhân viên bấm nút thủ công — QR auto-check-in giữ tốc độ tại cổng.
+    if (event) {
+      const preview = ticketPreview;
+      const ok = await confirmAction({
+        title: 'Xác nhận soát vé',
+        message: 'Sau khi soát, vé sẽ được đánh dấu đã vào cổng và không thể hoàn tác.',
+        highlight: code,
+        detail: preview
+          ? `${preview.movieTitle || '—'} · Ghế ${(preview.seatLabels || []).join(', ') || '—'}`
+          : '',
+        confirmLabel: 'Soát vé',
+        variant: 'warning',
+      });
+      if (!ok) return;
+    }
+
     setCheckingIn(true);
     const scanSource = scanSourceRef.current === 'camera' ? 'CAMERA' : 'MANUAL';
     try {
@@ -183,7 +200,7 @@ export const useStaffTicketCheckIn = ({ audioEnabled = true, onCheckInComplete, 
     } finally {
       setCheckingIn(false);
     }
-  }, [audioEnabled, onCheckInComplete, pushHistory, ticketCode, gateShowtimeUuid]);
+  }, [audioEnabled, onCheckInComplete, pushHistory, ticketCode, ticketPreview, gateShowtimeUuid]);
 
   handleCheckInRef.current = handleCheckIn;
 

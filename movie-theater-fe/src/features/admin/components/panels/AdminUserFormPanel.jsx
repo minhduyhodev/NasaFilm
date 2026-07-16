@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminUserService } from '../../api/adminUserService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import { PrimaryButton, GhostButton } from '..';
 import { adminInputClass, adminLabelClass } from '../adminFormStyles';
 
@@ -29,6 +30,7 @@ const STAFF_PRESETS = [
 ];
 
 const AdminUserFormPanel = ({ mode = 'STAFF', initialPermissions, onSuccess, onCancel }) => {
+  const confirm = useConfirm();
   const isStaff = mode === 'STAFF';
   const [isSaving, setIsSaving] = useState(false);
   const [availablePermissions, setAvailablePermissions] = useState(initialPermissions || []);
@@ -87,6 +89,17 @@ const AdminUserFormPanel = ({ mode = 'STAFF', initialPermissions, onSuccess, onC
       notificationService.error('Mật khẩu nhân viên phải có ít nhất 8 ký tự');
       return;
     }
+
+    const ok = await confirm({
+      title: 'Tạo tài khoản',
+      message: isStaff
+        ? 'Tạo tài khoản nhân viên mới với quyền đã chọn?'
+        : 'Tạo tài khoản khách hàng? Hệ thống sẽ gửi thông tin kích hoạt qua email.',
+      highlight: `${form.fullName.trim()} · ${form.email.trim()}`,
+      confirmLabel: 'Tạo tài khoản',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     setIsSaving(true);
     try {

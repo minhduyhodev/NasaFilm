@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl, formatAgeRestrictionBadge, resolveAgeRestrictionClass } from '../utils/movieUtils';

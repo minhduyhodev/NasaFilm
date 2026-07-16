@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Level 2 — section layout (replaces nested cards).

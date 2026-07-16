@@ -4,6 +4,27 @@ import { resolveAvatarUrl } from '../../../shared/utils/avatarUrl';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
+/** Các API công khai — không redirect /login khi token hết hạn. */
+const PUBLIC_API_PREFIXES = [
+  '/api/movies',
+  '/api/showtimes',
+  '/api/genres',
+  '/api/countries',
+  '/api/actors',
+  '/api/cinemas',
+  '/api/combos/active',
+  '/api/system-config',
+  '/api/promotions/public',
+  '/api/promotions/validate',
+  '/api/review-vibe-tags',
+  '/api/search',
+  '/api/media/proxy',
+  '/api/orbit-rooms/feature-status',
+];
+
+const isPublicApiRequest = (url = '') =>
+  PUBLIC_API_PREFIXES.some((prefix) => url.includes(prefix));
+
 const mapBackendRoles = (roles = []) => {
   return roles.map((role) => {
     const normalized = role.toUpperCase();
@@ -92,16 +113,20 @@ class AuthService {
             isRefreshing = false;
             refreshSubscribers = [];
             tokenService.clear();
-            sessionStorage.setItem('auth_expired', 'true');
-            window.location.href = '/login';
+            if (!isPublicApiRequest(requestUrl)) {
+              sessionStorage.setItem('auth_expired', 'true');
+              window.location.href = '/login';
+            }
             return Promise.reject(refreshError);
           }
         }
 
         if (error.response?.status === 401 && !isAuthRequest) {
           tokenService.clear();
-          sessionStorage.setItem('auth_expired', 'true');
-          window.location.href = '/login';
+          if (!isPublicApiRequest(requestUrl)) {
+            sessionStorage.setItem('auth_expired', 'true');
+            window.location.href = '/login';
+          }
         }
 
         return Promise.reject(error);
@@ -310,6 +335,11 @@ class AuthService {
         if (firstFieldMessage) {
           return new Error(firstFieldMessage);
         }
+      }
+
+      // Không nhận được phản hồi từ server (mất kết nối / backend chưa chạy / CORS).
+      if (!error.response) {
+        return new Error('Không kết nối được máy chủ. Kiểm tra backend có đang chạy không rồi thử lại.');
       }
 
       return new Error('Đã xảy ra lỗi. Vui lòng thử lại.');

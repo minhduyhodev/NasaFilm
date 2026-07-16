@@ -1,15 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Plus, Film, Clock, ChevronDown, Clapperboard, PlayCircle, CalendarClock, Archive } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
 import VirtualGrid from '../../../shared/components/VirtualGrid';
+import TabTransition from '../../../shared/components/TabTransition';
 import {
   AdminPage,
   PageHeader,
   Section,
   GhostButton,
+  AdminKpiGrid,
+  FilterPills,
+  StatusBadge,
 } from '../components';
 import { getMovieStatusLabel } from '../utils/statusLabels';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
@@ -222,9 +226,6 @@ const MoviesPage = () => {
     ...countriesList.map((c) => ({ value: c.uuid, label: `${c.name} (${c.code})` })),
   ];
 
-  const inputClass =
-    'w-full rounded-xl bg-[#0f172a] border border-[#242d42] pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 transition-all duration-300';
-
   const kpiStats = [
     {
       label: 'Tổng số phim',
@@ -260,20 +261,20 @@ const MoviesPage = () => {
     },
   ];
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusVariant = (status) => {
     switch (status) {
       case 'NOW_SHOWING':
-        return 'text-emerald-400';
+        return 'success';
       case 'COMING_SOON':
-        return 'text-blue-400';
+        return 'info';
       case 'DRAFT':
-        return 'text-amber-400';
+        return 'warning';
       case 'ENDED':
-        return 'text-gray-500';
+        return 'muted';
       case 'INACTIVE':
-        return 'text-rose-400';
+        return 'danger';
       default:
-        return 'text-gray-500';
+        return 'muted';
     }
   };
 
@@ -291,29 +292,15 @@ const MoviesPage = () => {
         }}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiStats.map((kpi) => (
-          <div key={kpi.label} className={`kpi-card ${kpi.kpiClass}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">
-                {kpi.label}
-              </span>
-              <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
-            </div>
-            <p className={`text-xl font-black ${kpi.color} leading-none truncate font-heading`} title={String(kpi.value)}>
-              {kpi.value}
-            </p>
-            <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
-          </div>
-        ))}
-      </div>
+      <AdminKpiGrid items={kpiStats} />
 
-      <div className="relative z-30 overflow-visible bg-[#1c2333]/50 border border-[#242d42] rounded-2xl p-5 space-y-4 backdrop-blur-md shadow-2xl">
+      <div className="adm-panel overflow-visible relative z-30">
+        <div className="adm-panel__body space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 pointer-events-none" />
+          <div className="adm-toolbar__search flex-1 max-w-md">
+            <Search className="adm-toolbar__search-icon" />
             <input
-              className={`${inputClass} pl-10 pr-8`}
+              className="adm-input"
               placeholder="Tìm kiếm tên phim..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
@@ -322,7 +309,7 @@ const MoviesPage = () => {
               <button
                 type="button"
                 onClick={() => setKeyword('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 cursor-pointer bg-transparent border-none p-0"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--adm-text-dim)] hover:text-white cursor-pointer bg-transparent border-none p-0"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -352,101 +339,97 @@ const MoviesPage = () => {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#242d42]/60">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mr-1">Trạng thái</span>
-          {statusFilters.map((pill) => (
-            <button
-              key={pill.value}
-              type="button"
-              onClick={() => setStatusFilter(pill.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide transition cursor-pointer border ${
-                statusFilter === pill.value
-                  ? 'bg-red-500/15 text-red-400 border-red-500/30'
-                  : 'bg-transparent text-gray-500 border-[#242d42] hover:text-gray-300 hover:border-[#334155]'
-              }`}
-            >
-              {pill.label}
-            </button>
-          ))}
-          <span className="ml-auto text-xs font-medium text-gray-500">{totalMoviesCount} phim</span>
+        <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-[var(--adm-border)]">
+          <FilterPills
+            value={statusFilter}
+            onChange={setStatusFilter}
+            items={statusFilters.map((p) => ({ id: p.value, label: p.label }))}
+            ariaLabel="Lọc trạng thái phim"
+          />
+          <span className="ml-auto text-xs font-medium text-[var(--adm-text-dim)] adm-tabular">
+            {totalMoviesCount} phim
+          </span>
+        </div>
         </div>
       </div>
 
       <Section title="Danh sách phim" divided titleVariant="admin" className="relative z-0">
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="animate-pulse aspect-[2/3] rounded-lg bg-white/[0.04]" />
-            ))}
-          </div>
-        ) : movies.length > 0 ? (
-          <>
-            <VirtualGrid
-              items={movies}
-              threshold={100}
-              getItemKey={(movie) => movie.uuid}
-              renderItem={(movie) => (
-                <button
-                  key={movie.uuid}
-                  type="button"
-                  onClick={() => navigate(`/admin/movies/${movie.uuid}`)}
-                  className="group text-left cursor-pointer bg-transparent border-none p-0"
-                >
-                  <div className="relative aspect-[2/3] rounded-[20px] overflow-hidden bg-[#0f172a] mb-2 shadow-[0_15px_35px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-[1.02]">
-                    {movie.primaryMediaUrl ? (
-                      <img
-                        src={resolveMediaUrl(movie.primaryMediaUrl, 400)}
-                        data-original-url={movie.primaryMediaUrl}
-                        alt={movie.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-80"
-                        onError={handlePosterError}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Film className="w-8 h-8 text-gray-700" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm font-bold text-white uppercase tracking-wide truncate font-heading group-hover:text-red-400 transition-colors duration-200">
-                    {movie.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-2 font-medium">
-                    <span className={`font-bold uppercase tracking-wide ${getStatusBadgeClass(movie.status)}`}>
-                      {getMovieStatusLabel(movie.status)}
-                    </span>
-                    {movie.durationMinutes && (
-                      <>
-                        <span>·</span>
-                        <span className="inline-flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" />
-                          {movie.durationMinutes} phút
-                        </span>
-                      </>
-                    )}
-                  </p>
-                </button>
-              )}
-            />
-
-            {totalMoviesCount > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalItems={totalMoviesCount}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
+        <TabTransition activeKey={statusFilter}>
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="animate-pulse aspect-[2/3] rounded-lg bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : movies.length > 0 ? (
+            <>
+              <VirtualGrid
+                items={movies}
+                threshold={100}
+                getItemKey={(movie) => movie.uuid}
+                renderItem={(movie) => (
+                  <button
+                    key={movie.uuid}
+                    type="button"
+                    onClick={() => navigate(`/admin/movies/${movie.uuid}`)}
+                    className="group text-left cursor-pointer bg-transparent border-none p-0"
+                  >
+                    <div className="relative aspect-[2/3] rounded-[20px] overflow-hidden bg-[#0f172a] mb-2 shadow-[0_15px_35px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-[1.02]">
+                      {movie.primaryMediaUrl ? (
+                        <img
+                          src={resolveMediaUrl(movie.primaryMediaUrl, 400)}
+                          data-original-url={movie.primaryMediaUrl}
+                          alt={movie.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-80"
+                          onError={handlePosterError}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Film className="w-8 h-8 text-gray-700" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-white uppercase tracking-wide truncate font-heading group-hover:text-red-400 transition-colors duration-200">
+                      {movie.title}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-2 font-medium flex-wrap">
+                      <StatusBadge variant={getStatusVariant(movie.status)}>
+                        {getMovieStatusLabel(movie.status)}
+                      </StatusBadge>
+                      {movie.durationMinutes && (
+                        <>
+                          <span>·</span>
+                          <span className="inline-flex items-center gap-0.5">
+                            <Clock className="w-3 h-3" />
+                            {movie.durationMinutes} phút
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </button>
+                )}
               />
-            )}
-          </>
-        ) : (
-          <div className="py-16 text-center">
-            <Film className="w-8 h-8 text-gray-600 mx-auto mb-3" />
-            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider font-heading">Không tìm thấy phim nào</p>
-            <p className="text-xs text-gray-600 mt-1">Thử đổi từ khóa hoặc bộ lọc</p>
-          </div>
-        )}
+
+              {totalMoviesCount > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={totalMoviesCount}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
+            </>
+          ) : (
+            <div className="py-16 text-center">
+              <Film className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider font-heading">Không tìm thấy phim nào</p>
+              <p className="text-xs text-gray-600 mt-1">Thử đổi từ khóa hoặc bộ lọc</p>
+            </div>
+          )}
+        </TabTransition>
       </Section>
     </AdminPage>
   );

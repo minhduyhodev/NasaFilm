@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BadgeInfo,
   Headphones,
@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Trash2,
 } from 'lucide-react';
 import SupportStickerBubble from '../../../shared/components/SupportStickerBubble';
 import {
@@ -20,7 +21,8 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { getSupportMessageSenderLabel } from '../../../shared/utils/supportMessageUtils';
-import { AdminPage, PageHeader, PrimaryButton } from '../components';
+import { AdminPage, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminKpiGrid } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
@@ -59,15 +61,15 @@ function formatDateTime(value) {
 function getStatusMeta(status) {
   const normalized = (status || '').toUpperCase();
   if (normalized === 'OPEN' || normalized === 'NEW' || normalized === 'PENDING' || normalized === 'LIVE_REQUESTED') {
-    return { label: 'Mới', className: 'support-status support-status--open', bucket: 'open' };
+    return { label: 'Mới', variant: 'info', bucket: 'open' };
   }
   if (normalized === 'IN_PROGRESS') {
-    return { label: 'Đang xử lý', className: 'support-status support-status--progress', bucket: 'progress' };
+    return { label: 'Đang xử lý', variant: 'warning', bucket: 'progress' };
   }
   if (normalized === 'RESOLVED' || normalized === 'CLOSED' || normalized === 'DONE') {
-    return { label: 'Đã đóng', className: 'support-status support-status--resolved', bucket: 'resolved' };
+    return { label: 'Đã đóng', variant: 'success', bucket: 'resolved' };
   }
-  return { label: status || '—', className: 'support-status support-status--default', bucket: 'all' };
+  return { label: status || '—', variant: 'muted', bucket: 'all' };
 }
 
 /** Ticket chưa được admin/staff nhận — chỉ hiện ở hàng chờ gọn. */
@@ -85,6 +87,7 @@ function previewText(value = '', max = 72) {
 }
 
 const SupportInboxPage = () => {
+  const confirm = useConfirm();
   const [tickets, setTickets] = useState([]);
   const [selectedTicketCode, setSelectedTicketCode] = useState('');
   const [messages, setMessages] = useState([]);
@@ -254,6 +257,15 @@ const SupportInboxPage = () => {
   );
 
   const handleAcceptLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Nhận hỗ trợ trực tiếp',
+      message: 'Xác nhận nhận yêu cầu hỗ trợ trực tiếp? Bạn sẽ kết nối chat với khách hàng ngay.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.acceptLiveSupport(ticketCode);
@@ -276,6 +288,15 @@ const SupportInboxPage = () => {
       await handleAcceptLiveSupport(ticketCode);
       return;
     }
+    const ok = await confirm({
+      title: 'Nhận ticket hỗ trợ',
+      message: 'Xác nhận nhận ticket này? Trạng thái sẽ chuyển sang đang xử lý.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận ticket',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.updateAdminSupportStatus(ticketCode, { status: 'IN_PROGRESS' });
@@ -290,6 +311,15 @@ const SupportInboxPage = () => {
   };
 
   const handleRejectLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Từ chối yêu cầu hỗ trợ',
+      message: 'Xác nhận từ chối yêu cầu hỗ trợ trực tiếp này? Khách hàng sẽ được thông báo.',
+      highlight: ticketCode,
+      confirmLabel: 'Từ chối',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.rejectLiveSupport(ticketCode);
@@ -304,6 +334,15 @@ const SupportInboxPage = () => {
 
   const handleDeleteTicket = async () => {
     if (!selectedTicketCode) return;
+    const ok = await confirm({
+      title: 'Xóa ticket hỗ trợ',
+      message: 'Xác nhận xóa ticket đã hoàn tất? Hành động này không thể hoàn tác.',
+      highlight: selectedTicketCode,
+      confirmLabel: 'Xóa ticket',
+      cancelLabel: 'Giữ lại',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
@@ -338,6 +377,14 @@ const SupportInboxPage = () => {
 
   const handleFinishSupport = async () => {
     if (!selectedTicketCode) return;
+    const ok = await confirm({
+      title: 'Kết thúc hỗ trợ',
+      message: 'Gửi lời cảm ơn và đóng ticket? Khách sẽ không thể tiếp tục chat trên ticket này.',
+      highlight: selectedTicketCode,
+      confirmLabel: 'Kết thúc hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
     await handleSendSticker(DEFAULT_THANK_YOU_STICKER_ID, { markDone: true });
   };
 
@@ -438,7 +485,7 @@ const SupportInboxPage = () => {
             {!ticket.readByAdmin ? <span className="support-ticket-unread" aria-label="Chưa đọc" /> : null}
             <strong>{ticket.ticketCode}</strong>
           </div>
-          <span className={statusMeta.className}>{statusMeta.label}</span>
+          <StatusBadge variant={statusMeta.variant}>{statusMeta.label}</StatusBadge>
         </div>
 
         <div className="support-ticket-summary-line">
@@ -494,24 +541,35 @@ const SupportInboxPage = () => {
         ]}
       />
 
-      <div className="support-kpi-grid">
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Tổng ticket</div>
-          <div className="support-kpi-value">{ticketStats.total}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Chờ nhận</div>
-          <div className="support-kpi-value support-kpi-value--warn">{incomingTickets.length}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Đang xử lý</div>
-          <div className="support-kpi-value support-kpi-value--accent">{ticketStats.progress}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Đã đóng</div>
-          <div className="support-kpi-value support-kpi-value--success">{ticketStats.resolved}</div>
-        </div>
-      </div>
+      <AdminKpiGrid
+        columns={4}
+        items={[
+          {
+            label: 'Tổng ticket',
+            value: ticketStats.total,
+            icon: Inbox,
+            color: 'text-sky-400',
+          },
+          {
+            label: 'Chờ nhận',
+            value: incomingTickets.length,
+            icon: Headphones,
+            color: 'text-amber-400',
+          },
+          {
+            label: 'Đang xử lý',
+            value: ticketStats.progress,
+            icon: MessageSquare,
+            color: 'text-rose-400',
+          },
+          {
+            label: 'Đã đóng',
+            value: ticketStats.resolved,
+            icon: BadgeInfo,
+            color: 'text-emerald-400',
+          },
+        ]}
+      />
 
       <div className="support-incoming-panel">
         <div className="support-list-head">
@@ -560,18 +618,12 @@ const SupportInboxPage = () => {
                 className="support-search-input"
               />
             </div>
-            <div className="support-filter-tabs">
-              {STATUS_FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => setStatusFilter(filter.id)}
-                  className={`support-filter-tab ${statusFilter === filter.id ? 'support-filter-tab--active' : ''}`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              value={statusFilter}
+              onChange={setStatusFilter}
+              items={STATUS_FILTERS}
+              ariaLabel="Lọc trạng thái ticket"
+            />
           </div>
 
           <div className="support-ticket-list custom-scrollbar">
@@ -614,10 +666,20 @@ const SupportInboxPage = () => {
                     >
                       Gửi cảm ơn & kết thúc
                     </button>
-                  ) : null}
-                  <span className={getStatusMeta(selectedTicket.status).className}>
+                  ) : (
+                    <button
+                      type="button"
+                      className="support-filter-tab support-chat-delete-btn"
+                      onClick={handleDeleteTicket}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Xóa ticket
+                    </button>
+                  )}
+                  <StatusBadge variant={getStatusMeta(selectedTicket.status).variant}>
                     {getStatusMeta(selectedTicket.status).label}
-                  </span>
+                  </StatusBadge>
                 </div>
               </header>
 
@@ -629,26 +691,12 @@ const SupportInboxPage = () => {
               ) : null}
 
               {(selectedTicket.status === 'DONE' || selectedTicket.status === 'CLOSED' || selectedTicket.status === 'RESOLVED') && (
-                <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
-                  <p className="support-state-title">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Khách đã hủy yêu cầu'
-                      : selectedTicket.satisfactionRating
-                        ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
-                        : 'Hỗ trợ đã kết thúc'}
-                  </p>
-                  <p className="support-state-desc">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Ticket đã bị khách hủy. Bạn có thể xóa khỏi hộp thư nếu không cần giữ.'
-                      : selectedTicket.satisfactionRating
-                        ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
-                        : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
-                  </p>
-                  <div className="support-compose-footer" style={{ justifyContent: 'flex-end' }}>
-                    <button type="button" className="support-filter-tab" onClick={handleDeleteTicket}>
-                      Xóa ticket
-                    </button>
-                  </div>
+                <div className="support-closed-note">
+                  {selectedTicket.status === 'CLOSED'
+                    ? 'Khách đã hủy yêu cầu — có thể xóa ticket nếu không cần giữ.'
+                    : selectedTicket.satisfactionRating
+                      ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel} — hỗ trợ đã hoàn tất.`
+                      : 'Hỗ trợ đã kết thúc (DONE).'}
                 </div>
               )}
 

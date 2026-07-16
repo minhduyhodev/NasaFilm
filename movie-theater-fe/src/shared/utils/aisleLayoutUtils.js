@@ -169,6 +169,20 @@ export const countBookableSeats = (seats = []) =>
     (s) => s.status === 'ACTIVE' && s.customTypeName !== 'AISLE',
   ).length;
 
+/**
+ * Unique 1-based column numbers marked as aisle slots in a layout. Used to tell the
+ * backend generateSeats endpoint which grid columns must be created as non-bookable
+ * (status=DISABLED) so aisle cells never inflate the room's seat/capacity count.
+ */
+export const getAisleColumnsFromLayout = (layout) => {
+  const cols = new Set(
+    (layout?.slots || [])
+      .map((k) => Number(String(k).split(':')[1]))
+      .filter((n) => Number.isFinite(n) && n > 0),
+  );
+  return [...cols].sort((a, b) => a - b);
+};
+
 export const getRowIndex = (rowName, rowNames) => rowNames.indexOf(rowName);
 
 export const collectDiagonalGroups = (rowNames, seatsByRow) => {
