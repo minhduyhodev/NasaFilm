@@ -198,7 +198,7 @@ class BookingService {
     }
   }
 
-  async confirmOnlineBooking(movieUuid, promotionCode = null, paymentMethod = null) {
+  async confirmOnlineBooking(movieUuid, promotionCode = null, paymentMethod = null, paymentIntentId = null) {
     try {
       const payload = { movieUuid };
       if (promotionCode) {
@@ -206,6 +206,9 @@ class BookingService {
       }
       if (paymentMethod) {
         payload.paymentMethod = paymentMethod;
+      }
+      if (paymentIntentId) {
+        payload.paymentIntentId = paymentIntentId;
       }
       const response = await authService.api.post('/api/bookings/confirm-online', payload);
       return response.data.data ?? response.data;
