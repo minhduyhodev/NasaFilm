@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle2, Circle, Loader2, XCircle, Clock } from 'lucide-react';
 
 const statusIcon = (status) => {

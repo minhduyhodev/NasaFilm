@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Banner cảnh báo suất DRAFT chiếm phòng — tách khỏi ShowtimesPage để giảm merge conflict.

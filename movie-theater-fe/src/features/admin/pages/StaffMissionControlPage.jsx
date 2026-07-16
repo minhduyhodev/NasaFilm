@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Film,
@@ -8,7 +8,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { AdminPage, PageHeader } from '../components';
+import { AdminPage, PageHeader, StatusBadge } from '../components';
 import { staffMissionService } from '../api/staffMissionService';
 import { bookingService } from '../../../shared/services/bookingService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -164,7 +164,7 @@ const StaffMissionControlPage = () => {
     // Only auto-scroll on successful check-in / history growth — avoid loop on wrong QR rescans.
     if (checkIn.previewError) return;
     checkinFooterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [checkIn.displayResult, checkIn.scanHistory.length, checkIn.isResultPanelActive, checkIn.isHistoryActive, checkIn.previewError]);
+  }, [checkIn.displayResult?.code, checkIn.displayResult?.status, checkIn.scanHistory.length, checkIn.isResultPanelActive, checkIn.isHistoryActive, checkIn.previewError]);
 
   useEffect(() => {
     loadShowtimes();
@@ -407,7 +407,12 @@ const StaffMissionControlPage = () => {
                           <Users className="w-3 h-3 inline mr-1 opacity-60" />
                           {item.customerName ? `${item.customerName} · ` : ''}
                           {item.ticketCode} · {at}
-                          {isDuplicate ? ' · đã soát' : ''}
+                          {isDuplicate ? (
+                            <>
+                              {' · '}
+                              <StatusBadge variant="warning">đã soát</StatusBadge>
+                            </>
+                          ) : null}
                         </div>
                       );
                     })}

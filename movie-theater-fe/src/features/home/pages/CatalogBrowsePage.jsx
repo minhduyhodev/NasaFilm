@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Loader2, Search, Tags } from 'lucide-react';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';

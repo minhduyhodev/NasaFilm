@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Building2, Calendar, Clock, Film } from 'lucide-react';
 import { CounterSelectDropdown } from './CounterSelectDropdown';
 import CounterLocationToolbar from './CounterLocationToolbar';

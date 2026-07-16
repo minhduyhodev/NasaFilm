@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BadgeInfo,
   Headphones,
@@ -21,8 +21,8 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { getSupportMessageSenderLabel } from '../../../shared/utils/supportMessageUtils';
+import { AdminPage, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminKpiGrid } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
-import { AdminPage, PageHeader, PrimaryButton } from '../components';
 import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
@@ -61,15 +61,15 @@ function formatDateTime(value) {
 function getStatusMeta(status) {
   const normalized = (status || '').toUpperCase();
   if (normalized === 'OPEN' || normalized === 'NEW' || normalized === 'PENDING' || normalized === 'LIVE_REQUESTED') {
-    return { label: 'Mới', className: 'support-status support-status--open', bucket: 'open' };
+    return { label: 'Mới', variant: 'info', bucket: 'open' };
   }
   if (normalized === 'IN_PROGRESS') {
-    return { label: 'Đang xử lý', className: 'support-status support-status--progress', bucket: 'progress' };
+    return { label: 'Đang xử lý', variant: 'warning', bucket: 'progress' };
   }
   if (normalized === 'RESOLVED' || normalized === 'CLOSED' || normalized === 'DONE') {
-    return { label: 'Đã đóng', className: 'support-status support-status--resolved', bucket: 'resolved' };
+    return { label: 'Đã đóng', variant: 'success', bucket: 'resolved' };
   }
-  return { label: status || '—', className: 'support-status support-status--default', bucket: 'all' };
+  return { label: status || '—', variant: 'muted', bucket: 'all' };
 }
 
 /** Ticket chưa được admin/staff nhận — chỉ hiện ở hàng chờ gọn. */
@@ -87,6 +87,7 @@ function previewText(value = '', max = 72) {
 }
 
 const SupportInboxPage = () => {
+  const confirm = useConfirm();
   const [tickets, setTickets] = useState([]);
   const [selectedTicketCode, setSelectedTicketCode] = useState('');
   const [messages, setMessages] = useState([]);
@@ -257,6 +258,15 @@ const SupportInboxPage = () => {
   );
 
   const handleAcceptLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Nhận hỗ trợ trực tiếp',
+      message: 'Xác nhận nhận yêu cầu hỗ trợ trực tiếp? Bạn sẽ kết nối chat với khách hàng ngay.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.acceptLiveSupport(ticketCode);
@@ -279,6 +289,15 @@ const SupportInboxPage = () => {
       await handleAcceptLiveSupport(ticketCode);
       return;
     }
+    const ok = await confirm({
+      title: 'Nhận ticket hỗ trợ',
+      message: 'Xác nhận nhận ticket này? Trạng thái sẽ chuyển sang đang xử lý.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận ticket',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.updateAdminSupportStatus(ticketCode, { status: 'IN_PROGRESS' });
@@ -293,6 +312,15 @@ const SupportInboxPage = () => {
   };
 
   const handleRejectLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Từ chối yêu cầu hỗ trợ',
+      message: 'Xác nhận từ chối yêu cầu hỗ trợ trực tiếp này? Khách hàng sẽ được thông báo.',
+      highlight: ticketCode,
+      confirmLabel: 'Từ chối',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.rejectLiveSupport(ticketCode);
@@ -307,14 +335,15 @@ const SupportInboxPage = () => {
 
   const handleDeleteTicket = async () => {
     if (!selectedTicketCode) return;
-    const confirmed = await confirm({
-      title: 'Xóa ticket',
-      message: `Bạn có chắc chắn muốn xóa ticket "${selectedTicketCode}"? Toàn bộ nội dung trò chuyện sẽ bị xóa vĩnh viễn và không thể khôi phục.`,
+    const ok = await confirm({
+      title: 'Xóa ticket hỗ trợ',
+      message: 'Xác nhận xóa ticket đã hoàn tất? Hành động này không thể hoàn tác.',
+      highlight: selectedTicketCode,
       confirmLabel: 'Xóa ticket',
-      cancelLabel: 'Giữ lại',
       variant: 'danger',
     });
-    if (!confirmed) return;
+    if (!ok) return;
+
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
@@ -349,6 +378,14 @@ const SupportInboxPage = () => {
 
   const handleFinishSupport = async () => {
     if (!selectedTicketCode) return;
+    const ok = await confirm({
+      title: 'Kết thúc hỗ trợ',
+      message: 'Gửi lời cảm ơn và đóng ticket? Khách sẽ không thể tiếp tục chat trên ticket này.',
+      highlight: selectedTicketCode,
+      confirmLabel: 'Kết thúc hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
     await handleSendSticker(DEFAULT_THANK_YOU_STICKER_ID, { markDone: true });
   };
 
@@ -449,7 +486,7 @@ const SupportInboxPage = () => {
             {!ticket.readByAdmin ? <span className="support-ticket-unread" aria-label="Chưa đọc" /> : null}
             <strong>{ticket.ticketCode}</strong>
           </div>
-          <span className={statusMeta.className}>{statusMeta.label}</span>
+          <StatusBadge variant={statusMeta.variant}>{statusMeta.label}</StatusBadge>
         </div>
 
         <div className="support-ticket-summary-line">
@@ -505,24 +542,35 @@ const SupportInboxPage = () => {
         ]}
       />
 
-      <div className="support-kpi-grid">
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Tổng ticket</div>
-          <div className="support-kpi-value">{ticketStats.total}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Chờ nhận</div>
-          <div className="support-kpi-value support-kpi-value--warn">{incomingTickets.length}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Đang xử lý</div>
-          <div className="support-kpi-value support-kpi-value--accent">{ticketStats.progress}</div>
-        </div>
-        <div className="support-kpi-card">
-          <div className="support-kpi-label">Đã đóng</div>
-          <div className="support-kpi-value support-kpi-value--success">{ticketStats.resolved}</div>
-        </div>
-      </div>
+      <AdminKpiGrid
+        columns={4}
+        items={[
+          {
+            label: 'Tổng ticket',
+            value: ticketStats.total,
+            icon: Inbox,
+            color: 'text-sky-400',
+          },
+          {
+            label: 'Chờ nhận',
+            value: incomingTickets.length,
+            icon: Headphones,
+            color: 'text-amber-400',
+          },
+          {
+            label: 'Đang xử lý',
+            value: ticketStats.progress,
+            icon: MessageSquare,
+            color: 'text-rose-400',
+          },
+          {
+            label: 'Đã đóng',
+            value: ticketStats.resolved,
+            icon: BadgeInfo,
+            color: 'text-emerald-400',
+          },
+        ]}
+      />
 
       <div className="support-incoming-panel">
         <div className="support-list-head">
@@ -571,18 +619,12 @@ const SupportInboxPage = () => {
                 className="support-search-input"
               />
             </div>
-            <div className="support-filter-tabs">
-              {STATUS_FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => setStatusFilter(filter.id)}
-                  className={`support-filter-tab ${statusFilter === filter.id ? 'support-filter-tab--active' : ''}`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+            <FilterPills
+              value={statusFilter}
+              onChange={setStatusFilter}
+              items={STATUS_FILTERS}
+              ariaLabel="Lọc trạng thái ticket"
+            />
           </div>
 
           <div className="support-ticket-list custom-scrollbar">
@@ -636,9 +678,9 @@ const SupportInboxPage = () => {
                       Xóa ticket
                     </button>
                   )}
-                  <span className={getStatusMeta(selectedTicket.status).className}>
+                  <StatusBadge variant={getStatusMeta(selectedTicket.status).variant}>
                     {getStatusMeta(selectedTicket.status).label}
-                  </span>
+                  </StatusBadge>
                 </div>
               </header>
 

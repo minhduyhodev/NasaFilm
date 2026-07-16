@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -48,8 +48,10 @@ import {
 } from '../../../shared/utils/orbitRecentStorage';
 import './BookingPage.css';
 import './OrbitBookingPage.css';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const OrbitBookingPage = () => {
+  const confirm = useConfirm();
   const { roomUuid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -111,10 +113,15 @@ const OrbitBookingPage = () => {
     dedupeInFlight: true,
     lockTimerEnabled: canEditSeats,
     onLockTimeout: async () => {
-      await orbitService.updateMemberSeats(roomUuid, []);
+      if (!canEditSeats) return;
+      try {
+        await orbitService.updateMemberSeats(roomUuid, []);
+      } catch (err) {
+        console.error('Failed to release seats on lock timeout:', err);
+      }
       seatMapActionsRef.current.setSelectedSeats([]);
       await seatMapActionsRef.current.fetchSeatMap([], { silent: true });
-      notificationService.error('Hết thời gian giữ ghế.');
+      notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại ghế.');
     },
     onFetchError: () => notificationService.error('Không thể tải sơ đồ ghế'),
   });
@@ -173,6 +180,7 @@ const OrbitBookingPage = () => {
     if (!isValidUuid(roomUuid)) return null;
     const data = await orbitService.getRoom(roomUuid);
     if (ORBIT_TERMINAL_STATUSES.includes(data.status)) {
+      removeOrbitRoom(roomUuid);
       clearAllBookingSessions();
       notificationService.info('Phòng nhóm đã kết thúc.');
       navigate(resolvedMovieUuid ? `/movie/${resolvedMovieUuid}` : '/movies', { replace: true });
@@ -414,7 +422,13 @@ const OrbitBookingPage = () => {
   }, [isHostUser, canEditSeats, room?.members, allMembersReady, isGroupSeatLimitOk, hasGapViolation, maxSeatsPerBooking]);
 
   const handleLeave = async () => {
-    if (!window.confirm('Bạn có chắc muốn rời phòng nhóm?')) return;
+    const ok = await confirm({
+      title: 'Rời phòng nhóm',
+      message: 'Bạn có chắc muốn rời phòng nhóm? Ghế đang giữ của bạn sẽ được giải phóng.',
+      confirmLabel: 'Rời phòng',
+      variant: 'warning',
+    });
+    if (!ok) return;
     try {
       await orbitService.leaveRoom(roomUuid);
       if (room) {
@@ -430,7 +444,13 @@ const OrbitBookingPage = () => {
   };
 
   const handleCancelRoom = async () => {
-    if (!window.confirm('Hủy phòng nhóm? Mọi ghế đang giữ sẽ được giải phóng.')) return;
+    const ok = await confirm({
+      title: 'Hủy phòng nhóm',
+      message: 'Hủy phòng nhóm? Mọi ghế đang giữ sẽ được giải phóng và phòng sẽ bị đóng.',
+      confirmLabel: 'Hủy phòng',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await orbitService.cancelRoom(roomUuid);
       removeOrbitRoom(roomUuid);
@@ -449,6 +469,9 @@ const OrbitBookingPage = () => {
       notificationService.error('Vui lòng chọn ít nhất 1 ghế trước khi tiếp tục.');
       return;
     }
+    const lockExpiresAtMs = room?.expiresAt
+      ? new Date(room.expiresAt).getTime()
+      : null;
     const checkoutPayload = {
       showtimeUuid,
       theater: displayTheater,
@@ -462,6 +485,7 @@ const OrbitBookingPage = () => {
       showtime: displayShowtime,
       selectedSeats: selectedSeats,
       totalAmount: selectedSeats.reduce((acc, s) => acc + (s.price || 0), 0),
+      lockExpiresAt: lockExpiresAtMs,
       orbitRoomUuid: roomUuid,
       isOrbit: true,
       isHost: false,
@@ -490,6 +514,7 @@ const OrbitBookingPage = () => {
       lockExpiresAt: lockExpiresAtMs,
       orbitRoomUuid: roomUuid,
       isOrbit: true,
+      isHost: true,
       orbitMembers: room?.members || [],
     };
     writeBookingSession(BOOKING_SESSION_KEYS.ORBIT, { ...orbitMeta, ...metaFromRoom(room) });
@@ -499,6 +524,15 @@ const OrbitBookingPage = () => {
 
   const handleHostCheckout = async () => {
     if (!allMembersReady || !isGroupSeatLimitOk || hasGapViolation) return;
+    const ok = await confirm({
+      title: 'Bắt đầu thanh toán nhóm',
+      message: 'Mọi thành viên đã sẵn sàng. Chuyển sang bước bắp nước và thanh toán?',
+      detail: 'Các thành viên sẽ không thể đổi ghế cho đến khi bạn hủy checkout.',
+      confirmLabel: 'Tiếp tục thanh toán',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsPreparing(true);
     try {
       const prepared = await orbitService.prepareCheckout(roomUuid);
@@ -535,6 +569,14 @@ const OrbitBookingPage = () => {
 
   const handleAbortCheckout = async () => {
     if (!isCheckout || !isHostUser) return;
+    const ok = await confirm({
+      title: 'Hủy thanh toán nhóm',
+      message: 'Hủy bước thanh toán và quay lại chọn ghế? Các thành viên sẽ phải chọn lại.',
+      confirmLabel: 'Hủy checkout',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setIsPreparing(true);
     try {
       const updated = await orbitService.abortCheckout(roomUuid);

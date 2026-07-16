@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { movieService } from '../../../shared/services/movieService';
 import { mapApiMovies, filterOnlineMovies, sortMoviesByReleaseDate } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';

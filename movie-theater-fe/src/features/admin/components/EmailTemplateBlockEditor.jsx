@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Plus, Table2, Trash2, Type } from 'lucide-react';
 import {
   createFieldBlock,

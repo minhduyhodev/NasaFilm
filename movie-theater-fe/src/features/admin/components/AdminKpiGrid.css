@@ -36,14 +36,27 @@
 }
 
 .kpi-card {
-  background: rgba(11, 15, 25, 0.7);
-  border: 1px solid #1a2238;
-  border-radius: 12px;
+  background: var(--adm-bg-panel-solid, rgba(11, 15, 25, 0.7));
+  border: 1px solid var(--adm-border, #1a2238);
+  border-radius: var(--adm-radius-sm, 12px);
   padding: 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
 .kpi-card:hover {
   border-color: #334155;
   transform: translateY(-1px);
+}
+
+.kpi-card .adm-kpi-card__value {
+  margin-top: 6px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--adm-text, #f8fafc);
+  font-family: var(--font-heading, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -8,7 +8,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +21,8 @@ import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.response.AutoShowtimePreviewResponse;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
 
@@ -36,7 +37,13 @@ public class ShowtimeSchedulingEngine {
             List<Showtime> existingShowtimes,
             Function<Movie, String> posterResolver) {
 
+        if (!settings.getEndTime().isAfter(settings.getStartTime())) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Giờ đóng cửa phải sau giờ mở cửa (khung giờ hoạt động không hợp lệ)");
+        }
+
         ZoneOffset offset = OffsetDateTime.now().getOffset();
+        OffsetDateTime now = OffsetDateTime.now(offset);
         OffsetDateTime startRange = request.getStartDate().atStartOfDay().atOffset(offset);
         OffsetDateTime endRange = request.getEndDate().plusDays(1).atStartOfDay().atOffset(offset);
 
@@ -50,9 +57,18 @@ public class ShowtimeSchedulingEngine {
 
         LocalDate current = request.getStartDate();
         while (!current.isAfter(request.getEndDate())) {
+            boolean isToday = current.isEqual(now.toLocalDate());
             for (CinemaRoom room : selectedRooms) {
                 OffsetDateTime dayStart = current.atTime(settings.getStartTime()).atOffset(offset);
                 OffsetDateTime dayEnd = current.atTime(settings.getEndTime()).atOffset(offset);
+
+                // Skip slots already in the past when generating for today.
+                if (isToday && dayStart.isBefore(now)) {
+                    dayStart = now;
+                }
+                if (!dayStart.isBefore(dayEnd)) {
+                    continue;
+                }
 
                 List<TimeInterval> freeIntervals = new ArrayList<>();
                 freeIntervals.add(new TimeInterval(dayStart, dayEnd));

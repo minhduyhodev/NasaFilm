@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,10 +11,11 @@ import { orbitService } from '../../shared/services/orbitService';
 import { showMissionCompletionToasts } from '../../shared/services/missionService';
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../shared/utils/orbitRecentStorage';
+import { useConfirm } from '../../shared/context/ConfirmDialogContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-function CheckoutForm({ amount, checkoutState, onSuccess, onFail }) {
+function CheckoutForm({ amount, onSuccess, onFail }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -68,18 +69,26 @@ function CheckoutForm({ amount, checkoutState, onSuccess, onFail }) {
 }
 
 export default function PaymentFlow() {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
 
   // Full checkout state passed from CheckoutPage
   const checkoutState = location.state?.checkoutState || {};
   const [clientSecret, setClientSecret] = useState('');
-  const [amount, setAmount] = useState(location.state?.amount || 150000);
+  const [amount, _setAmount] = useState(location.state?.amount || 150000);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
   const handleBack = async () => {
     if (checkoutState.isOrbit && checkoutState.orbitRoomUuid) {
+      const ok = await confirm({
+        title: 'Rời trang thanh toán',
+        message: 'Quay lại sẽ hủy phiên thanh toán nhóm. Bạn có chắc muốn tiếp tục?',
+        confirmLabel: 'Quay lại',
+        variant: 'warning',
+      });
+      if (!ok) return;
       try {
         await orbitService.abortCheckout(checkoutState.orbitRoomUuid);
       } catch (err) {
@@ -120,8 +129,8 @@ export default function PaymentFlow() {
     try {
       const {
         isVod, movieUuid, showtimeUuid, selectedSeats,
-        selectedCombos, orbitRoomUuid, movie, theater,
-        date, showtime, moviePoster, voucherCode,
+        selectedCombos, orbitRoomUuid, movie,
+        moviePoster, voucherCode,
       } = checkoutState;
 
       let response;

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import {
-  Film, Search, Plus, Calendar, Tv, Play,
-  Ban, CheckCircle, MapPin, CreditCard,
+  Search, Plus, Calendar,
   Clock, ChevronDown, ChevronsDown, ChevronsUp,
   Layers, Building2, Eye, EyeOff, XCircle, Ticket,
   DoorOpen, CalendarDays, CalendarClock, AlignJustify, Trash2,
@@ -14,7 +13,7 @@ import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
 import { buildAutoFormFromConfig } from './showtimes/showtimesAutoUtils';
 import { notificationService } from '../../../shared/services/notificationService';
 import Pagination from '../../../shared/components/Pagination';
-import { AdminPage, PageHeader } from '../components';
+import { AdminPage, PageHeader, FilterPills } from '../components';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
 import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -29,6 +28,8 @@ import {
   formatDateShort,
   formatWeekday,
   isSameDay,
+  startOfVnDay,
+  addVnDays,
   isShowtimePlayingNow,
   getValidTransitions,
   getTransitionBtnClass,
@@ -296,10 +297,22 @@ const ShowtimesPage = () => {
       return;
     }
 
+    const now = Date.now();
+    const selectedPreviews = previewGenerated.filter((_, idx) => selectedPreviewUuids.has(idx));
+    const pastCount = selectedPreviews.filter(p => !p.startTime || new Date(p.startTime).getTime() <= now).length;
+    const futurePreviews = selectedPreviews.filter(p => p.startTime && new Date(p.startTime).getTime() > now);
+
+    if (futurePreviews.length === 0) {
+      notificationService.warning('Tất cả suất chiếu đã chọn đều ở thời điểm đã qua. Vui lòng chọn lại.');
+      return;
+    }
+    if (pastCount > 0) {
+      notificationService.warning(`Đã bỏ qua ${pastCount} suất chiếu có giờ bắt đầu đã qua.`);
+    }
+
     setIsSavingAuto(true);
     try {
-      const selectedRequests = previewGenerated
-        .filter((_, idx) => selectedPreviewUuids.has(idx))
+      const selectedRequests = futurePreviews
         .map(p => ({
           movieUuid: p.movieUuid,
           cinemaRoomUuid: p.cinemaRoomUuid,
@@ -523,14 +536,14 @@ const ShowtimesPage = () => {
   );
 
   // ---------- DERIVED DATA ----------
-  const today = useMemo(() => new Date(), []);
+  // Anchored to "today" in Asia/Ho_Chi_Minh, independent of the browser's local timezone.
+  const today = useMemo(() => startOfVnDay(), []);
 
   // Date nav items: today + 6 next days
   const dateNavItems = useMemo(() => {
     const items = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
+      const d = addVnDays(today, i);
       const dayShowtimes = showtimes.filter(s => s.startTime && isSameDay(new Date(s.startTime), d));
       const movieSet = new Set(dayShowtimes.map(s => s.movieUuid).filter(Boolean));
       const revenue = dayShowtimes.reduce((sum, s) => sum + (s.basePrice || 0), 0);
@@ -1005,38 +1018,38 @@ const ShowtimesPage = () => {
       </div>
 
       {/* ==================== TOOLBAR ==================== */}
-      <div className="st-toolbar">
-        <div className="st-toolbar__row">
-          <div className="st-toolbar__search">
-            <Search className="st-toolbar__search-icon" />
+      <div className="st-toolbar adm-toolbar">
+        <div className="st-toolbar__row adm-toolbar__row">
+          <div className="st-toolbar__search adm-toolbar__search">
+            <Search className="st-toolbar__search-icon adm-toolbar__search-icon" />
             <input
               id="showtime-search"
-              className="st-control st-control--search"
+              className="st-control st-control--search adm-input"
               placeholder="Tìm phim, rạp..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <select
-            id="showtime-status-filter"
-            className="st-control st-control--select"
+          <FilterPills
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="DRAFT">Nháp</option>
-            <option value="SCHEDULED">Sắp Chiếu</option>
-            <option value="OPEN_FOR_BOOKING">Đang Mở Bán</option>
-            <option value="PLAYING_NOW">Đang Chiếu (trong giờ)</option>
-            <option value="SOLD_OUT">Hết Ghế</option>
-            <option value="CANCELLED">Đã Hủy</option>
-            <option value="FINISHED">Đã Kết Thúc</option>
-          </select>
+            onChange={setStatusFilter}
+            items={[
+              { id: '', label: 'Tất cả' },
+              { id: 'OPEN_FOR_BOOKING', label: 'Đang mở bán' },
+              { id: 'SCHEDULED', label: 'Sắp chiếu' },
+              { id: 'PLAYING_NOW', label: 'Đang chiếu' },
+              { id: 'SOLD_OUT', label: 'Hết ghế' },
+              { id: 'DRAFT', label: 'Nháp' },
+              { id: 'FINISHED', label: 'Kết thúc' },
+              { id: 'CANCELLED', label: 'Đã hủy' },
+            ]}
+            ariaLabel="Lọc trạng thái suất chiếu"
+          />
 
           <select
             id="showtime-cinema-filter"
-            className="st-control st-control--select"
+            className="st-control st-control--select adm-select adm-filter-select"
             value={cinemaFilter}
             onChange={(e) => setCinemaFilter(e.target.value)}
           >

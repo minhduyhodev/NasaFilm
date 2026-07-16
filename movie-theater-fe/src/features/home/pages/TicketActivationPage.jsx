@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail, X } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
@@ -12,6 +12,7 @@ import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.png';
 import '../styles/home-premium.css';
 import './TicketActivationPage.css';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const STEPS = [
   {
@@ -51,6 +52,7 @@ const isExpiredTicketError = (message) =>
 const formatAccessKey = (value) => value.toUpperCase().replace(/\s+/g, '').slice(0, 40);
 
 const TicketActivationPage = () => {
+  const confirm = useConfirm();
   const { movieId } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthContext();
@@ -152,6 +154,15 @@ const TicketActivationPage = () => {
       navigate('/login', { state: { from: `/online/activate/${movieId}` } });
       return;
     }
+
+    const ok = await confirm({
+      title: 'Kích hoạt vé xem online',
+      message: 'Xác nhận kích hoạt mã vé? Sau khi kích hoạt, bạn có thể bắt đầu xem phim online.',
+      highlight: code,
+      confirmLabel: 'Kích hoạt vé',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     setIsActivating(true);
     try {

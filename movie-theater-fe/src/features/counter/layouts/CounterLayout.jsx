@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { Menu, LogOut, Ticket, QrCode, Building2, Milestone, User } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { CounterSelectDropdown } from '../components/CounterSelectDropdown';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
-import swal from 'sweetalert2';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import '../../admin/styles/admin-theme.css';
 import '../styles/counter-staff-theme.css';
 
 export default function CounterLayout() {
+  const confirm = useConfirm();
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
 
@@ -81,26 +82,16 @@ export default function CounterLayout() {
     window.dispatchEvent(new CustomEvent('counter-location-changed', { detail: { cinemaUuid: selectedCinemaUuid, roomUuid } }));
   };
 
-  const handleLogout = () => {
-    swal.fire({
+  const handleLogout = async () => {
+    const ok = await confirm({
       title: 'Đăng xuất',
-      text: 'Bạn có chắc chắn muốn đăng xuất?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Đăng xuất',
-      cancelButtonText: 'Hủy',
-      confirmButtonColor: '#ef4444',
-      background: '#0B0F19',
-      color: '#f3f4f6',
-      customClass: {
-        popup: 'border border-[#1E293B] rounded-xl shadow-2xl'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        logout();
-        navigate('/login');
-      }
+      message: 'Bạn có chắc chắn muốn đăng xuất?',
+      confirmLabel: 'Đăng xuất',
+      variant: 'warning',
     });
+    if (!ok) return;
+    logout();
+    navigate('/login');
   };
 
   const activeCinema = cinemas.find((c) => c.uuid === selectedCinemaUuid);

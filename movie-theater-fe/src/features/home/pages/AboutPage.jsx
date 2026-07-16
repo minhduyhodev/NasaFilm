@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Gem, Users } from 'lucide-react';
 import heroBg from '../../../shared/assets/about_hero_bg.png';

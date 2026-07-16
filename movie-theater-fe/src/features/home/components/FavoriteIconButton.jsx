@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart } from 'lucide-react';
 import { useMovieFavorite } from '../hooks/useMovieFavorite';
 import './FavoriteIconButton.css';

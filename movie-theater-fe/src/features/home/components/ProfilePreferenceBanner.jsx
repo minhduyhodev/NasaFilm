@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Clapperboard, Loader2 } from 'lucide-react';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { useShowtimeRadar } from '../context/ShowtimeRadarProvider';

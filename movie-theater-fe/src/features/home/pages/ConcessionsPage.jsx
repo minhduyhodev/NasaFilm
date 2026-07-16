@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, Loader2 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { comboService } from '../../../shared/services/comboService';
 import { movieService } from '../../../shared/services/movieService';
@@ -12,6 +12,11 @@ import {
   writeBookingSession,
 } from '../../../shared/utils/bookingSessionStorage';
 import { orbitService } from '../../../shared/services/orbitService';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { sameUuid } from '../../../shared/utils/orbitUtils';
 import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
 
 function getComboImageUrl(combo) {
@@ -25,6 +30,8 @@ function getComboDescription(combo) {
 }
 
 const ConcessionsPage = () => {
+  const confirm = useConfirm();
+  const { user } = useAuthContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -33,12 +40,12 @@ const ConcessionsPage = () => {
   );
 
   const {
-    showtimeUuid = '',
+    showtimeUuid: _showtimeUuid = '',
     theater = '',
     movie = '',
     movieUuid = '',
     moviePoster = '',
-    movieRating = null,
+    movieRating: _movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
     date = '',
@@ -51,8 +58,15 @@ const ConcessionsPage = () => {
   } = bookingState;
 
   const isOrbitBooking = isOrbit || Boolean(orbitRoomUuid);
-  const isHost = bookingState.isHost !== false;
+  const isHost = bookingState.isHost === true;
+  const [orbitRoomStatus, setOrbitRoomStatus] = useState(null);
+  const [memberCompleted, setMemberCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const expiryHandledRef = React.useRef(false);
+
+  const showBackToSeats = !isOrbitBooking
+    || isHost
+    || (orbitRoomStatus === 'OPEN' && !memberCompleted);
 
   const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
 
@@ -82,6 +96,59 @@ const ConcessionsPage = () => {
   const [quantities, setQuantities] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [lockExpiresMs, setLockExpiresMs] = useState(lockExpiresAt);
+
+  useRealtimeTopic(
+    isOrbitBooking && orbitRoomUuid ? REALTIME_TOPICS.orbitRoom(orbitRoomUuid) : null,
+    (updatedRoom) => {
+      if (!updatedRoom) return;
+      setOrbitRoomStatus(updatedRoom.status);
+      if (updatedRoom.expiresAt) {
+        const ms = new Date(updatedRoom.expiresAt).getTime();
+        setLockExpiresMs(ms);
+      }
+      if (updatedRoom.status === 'OPEN' && !isHost) {
+        notificationService.info('Host đã hủy thanh toán — bạn có thể chỉnh sửa lại.');
+        navigate(`/booking/orbit/${orbitRoomUuid}`);
+      }
+    },
+  );
+
+  const hydrateCombosFromRoom = useCallback(async (comboList) => {
+    if (!isOrbitBooking || !orbitRoomUuid || !user) return;
+    try {
+      const room = await orbitService.getRoom(orbitRoomUuid);
+      setOrbitRoomStatus(room?.status || null);
+      if (room?.expiresAt) {
+        setLockExpiresMs(new Date(room.expiresAt).getTime());
+      }
+      const member = (room?.members || []).find(
+        (m) => sameUuid(m.userUuid, user.id || user.uuid),
+      );
+      setMemberCompleted(Boolean(member?.completed));
+      if (!member?.combosJson) return;
+      let saved = [];
+      try {
+        saved = JSON.parse(member.combosJson);
+      } catch {
+        saved = [];
+      }
+      if (!Array.isArray(saved) || saved.length === 0) return;
+      const initial = {};
+      comboList.forEach((item) => {
+        initial[item.uuid] = 0;
+      });
+      saved.forEach((entry) => {
+        const key = entry.comboUuid;
+        if (key && initial[key] !== undefined) {
+          initial[key] = entry.quantity || 0;
+        }
+      });
+      setQuantities(initial);
+    } catch (err) {
+      console.error('Failed to hydrate orbit combos:', err);
+    }
+  }, [isOrbitBooking, orbitRoomUuid, user]);
 
   const scrollContainerRef = React.useRef(null);
 
@@ -99,26 +166,30 @@ const ConcessionsPage = () => {
 
   // Khởi tạo bộ đếm thời gian giữ ghế
   useEffect(() => {
-    if (lockExpiresAt) {
+    if (lockExpiresMs) {
       const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
+        const diff = Math.max(0, Math.floor((lockExpiresMs - Date.now()) / 1000));
         setTimeLeft(diff);
       };
       calculateTimeLeft();
       const interval = setInterval(calculateTimeLeft, 1000);
       return () => clearInterval(interval);
     }
-  }, [lockExpiresAt]);
+    return undefined;
+  }, [lockExpiresMs]);
 
   // Điều hướng khi hết hạn giữ ghế
   useEffect(() => {
-    if (timeLeft !== 0) return undefined;
+    if (timeLeft !== 0 || expiryHandledRef.current) return undefined;
 
     let cancelled = false;
+    expiryHandledRef.current = true;
     const redirectOnExpire = async () => {
       if (isOrbitBooking && orbitRoomUuid) {
         notificationService.error(
-          'Hết thời gian thanh toán nhóm. Vui lòng quay lại phòng.',
+          isHost
+            ? 'Hết thời gian thanh toán nhóm. Vui lòng quay lại phòng.'
+            : 'Hết thời gian giữ ghế. Vui lòng quay lại phòng Orbit.',
         );
         if (isHost) {
           try {
@@ -141,7 +212,27 @@ const ConcessionsPage = () => {
 
   const handleBackToSeats = async () => {
     if (isOrbitBooking && orbitRoomUuid) {
+      if (!isHost && (orbitRoomStatus === 'CHECKOUT' || orbitRoomStatus === null)) {
+        try {
+          const room = await orbitService.getRoom(orbitRoomUuid);
+          if (room?.status === 'CHECKOUT') {
+            notificationService.info(
+              'Host đã xác nhận ghế và đang thanh toán. Bạn không thể quay lại chọn ghế lúc này.',
+            );
+            return;
+          }
+        } catch {
+          /* continue */
+        }
+      }
       if (isHost) {
+        const ok = await confirm({
+          title: 'Quay lại chọn ghế',
+          message: 'Thao tác này sẽ hủy phiên checkout nhóm. Tiếp tục?',
+          confirmLabel: 'Quay lại',
+          variant: 'warning',
+        });
+        if (!ok) return;
         try {
           await orbitService.abortCheckout(orbitRoomUuid);
         } catch (err) {
@@ -161,12 +252,12 @@ const ConcessionsPage = () => {
         const data = await comboService.getActiveCombos();
         setCombos(data || []);
         
-        // Mặc định số lượng ban đầu của tất cả combo là 0
         const initialQuantities = {};
         data.forEach(item => {
           initialQuantities[item.uuid] = 0;
         });
         setQuantities(initialQuantities);
+        await hydrateCombosFromRoom(data || []);
       } catch (err) {
         console.error("Failed to load combos:", err);
         notificationService.error("Không thể tải danh sách bắp nước.");
@@ -175,7 +266,7 @@ const ConcessionsPage = () => {
       }
     };
     fetchCombos();
-  }, []);
+  }, [hydrateCombosFromRoom]);
 
   // Xử lý tăng số lượng combo
   const handleIncrease = (comboUuid) => {
@@ -216,6 +307,14 @@ const ConcessionsPage = () => {
   // Xử lý chuyển tiếp sang trang Checkout hoặc Hoàn tất cho Member Orbit
   const handleContinue = async () => {
     if (isOrbitBooking && !isHost) {
+      const ok = await confirm({
+        title: 'Hoàn tất chọn bắp nước',
+        message: 'Xác nhận lựa chọn bắp nước của bạn? Sau khi hoàn tất, bạn không thể thay đổi trừ khi chủ phòng hủy checkout.',
+        confirmLabel: 'Hoàn tất',
+        variant: 'warning',
+      });
+      if (!ok) return;
+
       setIsSubmitting(true);
       try {
         const payloadCombos = selectedCombosList.map((c) => ({
@@ -260,6 +359,7 @@ const ConcessionsPage = () => {
         {/* Cột trái: Danh sách Combo bắp nước */}
         <div className="lg:col-span-8 flex flex-col">
           {/* Nút quay lại chọn ghế */}
+          {showBackToSeats && (
           <button 
             onClick={handleBackToSeats}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group cursor-pointer w-fit"
@@ -267,6 +367,12 @@ const ConcessionsPage = () => {
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-semibold">Quay lại chọn ghế</span>
           </button>
+          )}
+          {!showBackToSeats && isOrbitBooking && (
+            <p className="text-xs text-amber-400/90 mb-6 font-semibold">
+              Host đã xác nhận ghế — bạn không thể quay lại chọn ghế lúc này.
+            </p>
+          )}
 
           <div className="flex justify-between items-end mb-6 gap-4">
             <div>
@@ -382,7 +488,7 @@ const ConcessionsPage = () => {
             {timeLeft !== null && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold mb-4 animate-pulse">
                 <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  <Clock className="w-4 h-4" />
                   <span>Thời gian giữ ghế:</span>
                 </div>
                 <span className="font-mono text-sm font-black">
@@ -465,7 +571,7 @@ const ConcessionsPage = () => {
                 {isSubmitting ? 'Đang xử lý...' : (isOrbitBooking && !isHost ? 'Hoàn tất đặt vé & bắp nước' : 'Tiếp tục')}
               </button>
 
-              {isOrbitBooking && (
+              {isOrbitBooking && showBackToSeats && (
                 <button
                   type="button"
                   onClick={handleBackToSeats}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Loader2, Wallet } from 'lucide-react';
 import { bookingService } from '../services/bookingService';

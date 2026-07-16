@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CalendarDays, Loader2, Plus, Trash2 } from 'lucide-react';
-import { AdminModal, PrimaryButton } from '../../components';
+import { AdminModal, PrimaryButton, AdminTableShell, AdminDatePicker } from '../../components';
 import { adminInputClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
@@ -89,8 +89,8 @@ const HolidaysTab = () => {
           <p>Chưa có ngày lễ nào trong năm {year}.</p>
         </div>
       ) : (
-        <div className="hr-table-wrap">
-          <table className="hr-table">
+        <AdminTableShell>
+          <table className="adm-table hr-table">
             <thead>
               <tr>
                 <th>Ngày</th>
@@ -127,7 +127,7 @@ const HolidaysTab = () => {
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableShell>
       )}
 
       {addOpen && (
@@ -187,8 +187,7 @@ function AddHolidayModal({ onClose, onSaved }) {
     >
       <div className="space-y-4">
         <div className="hr-field">
-          <label className="hr-field__label">Ngày</label>
-          <input type="date" className={adminInputClass} value={date} onChange={(e) => setDate(e.target.value)} />
+          <AdminDatePicker label="Ngày" value={date} onChange={setDate} />
         </div>
         <div className="hr-field">
           <label className="hr-field__label">Tên ngày lễ</label>

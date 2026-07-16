@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -8,12 +8,15 @@ import {
 } from '../utils/motionPresets';
 import './PageTransition.css';
 
+/**
+ * Soft fade between routes. AnimatePresence initial={false} skips the first paint;
+ * every subsequent pathname change fades out/in.
+ */
 const PageTransition = ({ children, className = '', scrollTarget }) => {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
-  const hasAnimated = useRef(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
     if (scrollTarget) {
@@ -28,13 +31,13 @@ const PageTransition = ({ children, className = '', scrollTarget }) => {
         key={location.pathname}
         className={`page-transition-root ${className}`.trim()}
         variants={pageTransition}
-        initial={hasAnimated.current ? false : 'initial'}
+        initial="initial"
         animate="animate"
         exit="exit"
-        onAnimationComplete={() => {
-          hasAnimated.current = true;
+        transition={{
+          duration: reduceMotion ? 0 : pageTransitionMs,
+          ease: smoothEase,
         }}
-        transition={{ duration: reduceMotion ? 0 : pageTransitionMs, ease: smoothEase }}
       >
         {children}
       </motion.div>

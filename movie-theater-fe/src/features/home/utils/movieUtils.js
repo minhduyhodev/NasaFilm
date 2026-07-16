@@ -15,10 +15,14 @@ export const isOnlineMovie = (movie) =>
 export const formatAgeRestrictionBadge = (ageRestriction) => {
   const age = (ageRestriction || '').trim().toUpperCase();
   if (!age) return '';
-  if (age === 'P') return '0+';
+  if (age === 'P') return '3+';
   if (age === 'K') return '<13';
   const match = age.match(/T?(\d{1,2})/);
-  if (match) return `${match[1]}+`;
+  if (match) {
+    const years = parseInt(match[1], 10);
+    if (years === 0) return '3+';
+    return `${years}+`;
+  }
   return age;
 };
 
@@ -415,7 +419,7 @@ export const getTemporaryVodToken = (movieUuid) => {
       return null;
     }
     return item.value;
-  } catch (e) {
+  } catch {
     localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
     return null;
   }

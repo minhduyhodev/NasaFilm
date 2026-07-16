@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Clock,
@@ -242,22 +242,10 @@ const WatchPage = () => {
         }
 
         if (canWatchOnlineDirectly(status)) {
-          const playSession = await vodService.activatePlay(id);
-          if (!active) return;
-          showMissionCompletionToasts(playSession?.missionCompletions);
-          const expiresAt = resolvePlayExpiresAt(
-            playSession,
-            movieDetail,
-            countdownSettings.lockMultiplier
-          );
-          setStreamData({
-            ...playSession,
-            streamingUrl: playSession.streamingUrl || resolvedStreamUrl.trim(),
-            expiresAt,
-          });
-          setVodExpiresAt(expiresAt);
-          setPreviewReady(false);
-          setIsPlaying(true);
+          setPreviewReady(true);
+          if (status.expiresAt) {
+            setVodExpiresAt(status.expiresAt);
+          }
           return;
         }
 
@@ -318,11 +306,6 @@ const WatchPage = () => {
     }
 
     let expiresAt = streamData?.expiresAt || vodExpiresAt;
-    if (!expiresAt && streamData?.streamToken && movie) {
-      expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
-      setVodExpiresAt(expiresAt);
-      setStreamData((prev) => (prev ? { ...prev, expiresAt } : prev));
-    }
     if (!expiresAt || !countdownSettings.enabled) {
       setRemainingTimeText('');
       setCountdownWarning(false);
@@ -360,11 +343,6 @@ const WatchPage = () => {
   const handlePlay = async () => {
     setVideoError('');
     if (streamData?.streamToken) {
-      if (!streamData.expiresAt && !vodExpiresAt && movie) {
-        const expiresAt = estimateVodExpiresAt(movie, countdownSettings.lockMultiplier);
-        setVodExpiresAt(expiresAt);
-        setStreamData((prev) => ({ ...prev, expiresAt }));
-      }
       setIsPlaying(true);
       return;
     }

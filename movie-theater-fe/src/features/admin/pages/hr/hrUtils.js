@@ -169,37 +169,37 @@ export const SHIFT_CATEGORY_META = {
 export const SHIFT_CATEGORY_ORDER = ['open', 'inProgress', 'done', 'upcoming', 'missed', 'cancelled'];
 
 export const ATTENDANCE_STATUS_META = {
-  IN_PROGRESS: { label: 'Đang làm', className: 'hr-badge hr-badge--info' },
-  ON_TIME: { label: 'Đúng giờ', className: 'hr-badge hr-badge--success' },
-  LATE: { label: 'Đi muộn', className: 'hr-badge hr-badge--warning' },
-  EARLY_LEAVE: { label: 'Về sớm', className: 'hr-badge hr-badge--warning' },
-  ABSENT: { label: 'Vắng', className: 'hr-badge hr-badge--danger' },
+  IN_PROGRESS: { label: 'Đang làm', variant: 'info', className: 'hr-badge hr-badge--info' },
+  ON_TIME: { label: 'Đúng giờ', variant: 'success', className: 'hr-badge hr-badge--success' },
+  LATE: { label: 'Đi muộn', variant: 'warning', className: 'hr-badge hr-badge--warning' },
+  EARLY_LEAVE: { label: 'Về sớm', variant: 'warning', className: 'hr-badge hr-badge--warning' },
+  ABSENT: { label: 'Vắng', variant: 'danger', className: 'hr-badge hr-badge--danger' },
 };
 
 export const APPROVAL_STATUS_META = {
-  PENDING: { label: 'Chờ duyệt', className: 'hr-badge hr-badge--warning' },
-  APPROVED: { label: 'Đã duyệt', className: 'hr-badge hr-badge--success' },
-  REJECTED: { label: 'Từ chối', className: 'hr-badge hr-badge--danger' },
+  PENDING: { label: 'Chờ duyệt', variant: 'warning', className: 'hr-badge hr-badge--warning' },
+  APPROVED: { label: 'Đã duyệt', variant: 'success', className: 'hr-badge hr-badge--success' },
+  REJECTED: { label: 'Từ chối', variant: 'danger', className: 'hr-badge hr-badge--danger' },
 };
 
 export const PAYROLL_STATUS_META = {
-  OPEN: { label: 'Đang mở', className: 'hr-badge hr-badge--info' },
-  GENERATED: { label: 'Đã sinh phiếu', className: 'hr-badge hr-badge--warning' },
-  APPROVED: { label: 'Đã duyệt', className: 'hr-badge hr-badge--success' },
-  PAID: { label: 'Đã chi trả', className: 'hr-badge hr-badge--paid' },
+  OPEN: { label: 'Đang mở', variant: 'info', className: 'hr-badge hr-badge--info' },
+  GENERATED: { label: 'Đã sinh phiếu', variant: 'warning', className: 'hr-badge hr-badge--warning' },
+  APPROVED: { label: 'Đã duyệt', variant: 'success', className: 'hr-badge hr-badge--success' },
+  PAID: { label: 'Đã chi trả', variant: 'success', className: 'hr-badge hr-badge--paid' },
 };
 
 export const PAYSLIP_STATUS_META = {
-  DRAFT: { label: 'Nháp', className: 'hr-badge hr-badge--info' },
-  APPROVED: { label: 'Đã duyệt', className: 'hr-badge hr-badge--success' },
-  PAID: { label: 'Đã chi trả', className: 'hr-badge hr-badge--paid' },
+  DRAFT: { label: 'Nháp', variant: 'info', className: 'hr-badge hr-badge--info' },
+  APPROVED: { label: 'Đã duyệt', variant: 'success', className: 'hr-badge hr-badge--success' },
+  PAID: { label: 'Đã chi trả', variant: 'success', className: 'hr-badge hr-badge--paid' },
 };
 
 export const REQUEST_STATUS_META = {
-  PENDING: { label: 'Chờ duyệt', className: 'hr-badge hr-badge--warning' },
-  APPROVED: { label: 'Đã duyệt', className: 'hr-badge hr-badge--success' },
-  REJECTED: { label: 'Từ chối', className: 'hr-badge hr-badge--danger' },
-  CANCELLED: { label: 'Đã hủy', className: 'hr-badge' },
+  PENDING: { label: 'Chờ duyệt', variant: 'warning', className: 'hr-badge hr-badge--warning' },
+  APPROVED: { label: 'Đã duyệt', variant: 'success', className: 'hr-badge hr-badge--success' },
+  REJECTED: { label: 'Từ chối', variant: 'danger', className: 'hr-badge hr-badge--danger' },
+  CANCELLED: { label: 'Đã hủy', variant: 'muted', className: 'hr-badge' },
 };
 
 export const LEAVE_TYPE_META = {
@@ -215,5 +215,9 @@ export function leaveTypeLabel(value) {
 
 export function statusBadge(meta, value) {
   const found = meta[value];
-  return found || { label: value || '—', className: 'hr-badge' };
+  return found || { label: value || '—', variant: 'muted', className: 'hr-badge' };
+}
+
+export function statusVariant(meta, value) {
+  return statusBadge(meta, value).variant || 'muted';
 }

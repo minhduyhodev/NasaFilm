@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -12,6 +12,7 @@ import { useRealtimeTopics } from '../hooks/useRealtimeTopics';
 import { notificationService } from '../services/notificationService';
 import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
+import { useConfirm } from '../context/ConfirmDialogContext';
 import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
 import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
@@ -277,7 +278,7 @@ const getCategoryByKey = (key = '') => CATEGORIES.find((item) => item.key === ke
 
 const getCategoryLabel = (key = '') => getCategoryByKey(key)?.label || key || 'Hỗ trợ chung';
 
-const resolveShortcutCategoryKey = (shortcut = {}) => {
+const _resolveShortcutCategoryKey = (shortcut = {}) => {
   const name = `${shortcut.shortcutName || ''}`.toLowerCase();
   if (name.includes('ticket')) return 'ticket';
   if (name.includes('payment')) return 'payment';
@@ -432,6 +433,7 @@ const renderRichText = (text, onLinkClick) => {
 };
 
 const NasaAiAssistantWidget = () => {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthContext();
@@ -458,7 +460,7 @@ const NasaAiAssistantWidget = () => {
   const [activeTicketCode, setActiveTicketCode] = useState('');
   const [ticketMessages, setTicketMessages] = useState([]);
   const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
-  const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
+  const [_nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
   const [chatFlow, setChatFlow] = useState(bootBotState.chatFlow);
   const [guidedChatActive, setGuidedChatActive] = useState(false);
   const [wizardCategory, setWizardCategory] = useState(bootBotState.category);
@@ -1087,8 +1089,14 @@ const NasaAiAssistantWidget = () => {
 
   const cancelActiveTicket = async (ticketCode = activeTicketCode) => {
     if (!ticketCode) return;
-    const confirmed = window.confirm(`Hủy yêu cầu ${ticketCode}? Bạn có thể tạo ticket mới sau khi hủy.`);
-    if (!confirmed) return;
+    const ok = await confirm({
+      title: 'Hủy yêu cầu hỗ trợ',
+      message: 'Bạn có thể tạo ticket mới sau khi hủy.',
+      highlight: ticketCode,
+      confirmLabel: 'Hủy yêu cầu',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await supportService.cancelSupportRequest(ticketCode);
       clearStaffTicketUnread(ticketCode);
@@ -1362,7 +1370,7 @@ const NasaAiAssistantWidget = () => {
     }
   };
 
-  const requestLiveSupport = async (options = {}) => {
+  const _requestLiveSupport = async (options = {}) => {
     const description = `${options.description || ticketDraft || activeTicket?.description || ''}`.trim()
       || 'Khách hàng cần hỗ trợ trực tiếp với admin hoặc staff.';
     const category = options.category || selectedCategory?.key || activeTicket?.category || detectCategory(description);

@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Loader2, Pencil, Users } from 'lucide-react';
-import { AdminModal, PrimaryButton } from '../../components';
+import { AdminModal, PrimaryButton, StatusBadge, AdminTableShell } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
 import { formatMoney } from './hrUtils';
 
 const EMPLOYMENT_TYPES = [
@@ -61,8 +62,8 @@ const EmployeeProfilesTab = () => {
         Cấu hình đơn giá theo giờ và hệ số OT cho từng nhân viên. Nhân viên chưa có hồ sơ sẽ dùng
         đơn giá 0đ khi tính lương.
       </p>
-      <div className="hr-table-wrap">
-        <table className="hr-table">
+      <AdminTableShell>
+        <table className="adm-table hr-table">
           <thead>
             <tr>
               <th>Nhân viên</th>
@@ -89,11 +90,11 @@ const EmployeeProfilesTab = () => {
                 <td className="hr-num">×{Number(p.otMultiplierHoliday).toFixed(2)}</td>
                 <td>
                   {!p.hasProfile ? (
-                    <span className="hr-badge">Chưa cấu hình</span>
+                    <StatusBadge variant="muted">Chưa cấu hình</StatusBadge>
                   ) : p.active ? (
-                    <span className="hr-badge hr-badge--success">Đang áp dụng</span>
+                    <StatusBadge variant="success">Đang áp dụng</StatusBadge>
                   ) : (
-                    <span className="hr-badge hr-badge--danger">Tạm ngưng</span>
+                    <StatusBadge variant="danger">Tạm ngưng</StatusBadge>
                   )}
                 </td>
                 <td>
@@ -112,7 +113,7 @@ const EmployeeProfilesTab = () => {
             ))}
           </tbody>
         </table>
-      </div>
+      </AdminTableShell>
 
       {editing && (
         <ProfileModal
@@ -155,6 +156,7 @@ const validateMultiplier = (value, label) => {
 };
 
 function ProfileModal({ profile, onClose, onSaved }) {
+  const confirm = useConfirm();
   const [hourlyRate, setHourlyRate] = useState(
     profile.hasProfile ? String(profile.hourlyRate ?? '') : '',
   );
@@ -187,6 +189,16 @@ function ProfileModal({ profile, onClose, onSaved }) {
       notificationService.warning('Vui lòng kiểm tra lại thông tin hồ sơ lương.');
       return;
     }
+    const ok = await confirm({
+      title: 'Lưu hồ sơ lương',
+      message: 'Cập nhật hồ sơ lương cho nhân viên này?',
+      highlight: profile.fullName || profile.email,
+      detail: !active ? 'Nhân viên sẽ không được tính lương theo hồ sơ này.' : '',
+      confirmLabel: 'Lưu hồ sơ',
+      variant: !active ? 'danger' : 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       await hrService.upsertEmployeeProfile(profile.userId, {

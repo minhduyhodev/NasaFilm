@@ -11,7 +11,8 @@ import { adminReviewService } from '../../../shared/services/adminReviewService'
 import { notificationService } from '../../../shared/services/notificationService';
 import { getVibeTagLabel, loadReviewVibeTags, clearReviewVibeTagsCache } from '../../../shared/constants/reviewVibeTags';
 import Pagination from '../../../shared/components/Pagination';
-import { AdminPage, PageHeader, PrimaryButton, GhostButton } from '../components';
+import TabTransition from '../../../shared/components/TabTransition';
+import { AdminPage, PageHeader, PrimaryButton, GhostButton, FilterPills, StatusBadge, AdminTableShell } from '../components';
 import AdminModal from '../components/AdminModal';
 import { adminInputClass, adminLabelClass } from '../components/adminFormStyles';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -47,11 +48,11 @@ function notifyReportsChanged() {
   window.dispatchEvent(new CustomEvent('admin-review-reports-changed'));
 }
 
-function reportStatusClass(status) {
+function reportStatusVariant(status) {
   const normalized = (status || '').toUpperCase();
-  if (normalized === 'PENDING') return 'feedback-status feedback-status--pending';
-  if (normalized === 'RESOLVED') return 'feedback-status feedback-status--resolved';
-  return 'feedback-status feedback-status--rejected';
+  if (normalized === 'PENDING') return 'warning';
+  if (normalized === 'RESOLVED') return 'success';
+  return 'muted';
 }
 
 const FeedbackReviewsPage = () => {
@@ -222,6 +223,15 @@ const FeedbackReviewsPage = () => {
   };
 
   const handleSaveBannedWords = async () => {
+    const ok = await confirm({
+      title: 'Lưu danh sách từ cấm',
+      message: 'Xác nhận cập nhật danh sách từ cấm? Các đánh giá chứa từ này sẽ bị lọc tự động.',
+      highlight: `${bannedWords.length} từ cấm`,
+      confirmLabel: 'Lưu danh sách',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsSavingBannedWords(true);
     try {
       const saved = await adminReviewService.updateBannedWords(bannedWords);
@@ -317,48 +327,31 @@ const FeedbackReviewsPage = () => {
         ]}
       />
 
-      <div className="feedback-tabs">
-        <button
-          type="button"
-          className={`feedback-tab${activeTab === 'reports' ? ' feedback-tab--active' : ''}`}
-          onClick={() => setActiveTab('reports')}
-        >
-          Đơn báo cáo
-        </button>
-        <button
-          type="button"
-          className={`feedback-tab${activeTab === 'banned-words' ? ' feedback-tab--active' : ''}`}
-          onClick={() => setActiveTab('banned-words')}
-        >
-          Từ cấm
-        </button>
-        <button
-          type="button"
-          className={`feedback-tab${activeTab === 'vibe-tags' ? ' feedback-tab--active' : ''}`}
-          onClick={() => setActiveTab('vibe-tags')}
-        >
-          Vibe tag
-        </button>
-      </div>
+      <FilterPills
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'reports', label: 'Đơn báo cáo' },
+          { id: 'banned-words', label: 'Từ cấm' },
+          { id: 'vibe-tags', label: 'Vibe tag' },
+        ]}
+        ariaLabel="Tab kiểm duyệt"
+        className="mb-4"
+      />
 
+      <TabTransition activeKey={activeTab}>
       {activeTab === 'reports' && (
         <>
-          <div className="feedback-subtabs">
-            <button
-              type="button"
-              className={`feedback-subtab${reportListTab === 'pending' ? ' feedback-subtab--active' : ''}`}
-              onClick={() => handleReportListTabChange('pending')}
-            >
-              Chờ xử lý
-            </button>
-            <button
-              type="button"
-              className={`feedback-subtab${reportListTab === 'history' ? ' feedback-subtab--active' : ''}`}
-              onClick={() => handleReportListTabChange('history')}
-            >
-              Đã xử lý
-            </button>
-          </div>
+          <FilterPills
+            value={reportListTab}
+            onChange={handleReportListTabChange}
+            items={[
+              { id: 'pending', label: 'Chờ xử lý' },
+              { id: 'history', label: 'Đã xử lý' },
+            ]}
+            ariaLabel="Lọc đơn báo cáo"
+            className="mb-4"
+          />
 
           {isReportsLoading ? (
             <div className="feedback-state">
@@ -375,8 +368,19 @@ const FeedbackReviewsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="feedback-table-wrap">
-              <table className="feedback-table">
+            <AdminTableShell
+              footer={
+                reportTotal > 0 ? (
+                  <Pagination
+                    currentPage={reportPage + 1}
+                    totalItems={reportTotal}
+                    itemsPerPage={REPORTS_PER_PAGE}
+                    onPageChange={(page) => setReportPage(page - 1)}
+                  />
+                ) : null
+              }
+            >
+              <table className="adm-table feedback-table">
                 <thead>
                   <tr>
                     <th>Người báo cáo</th>
@@ -421,9 +425,9 @@ const FeedbackReviewsPage = () => {
                         {item.reason}
                       </td>
                       <td>
-                        <span className={reportStatusClass(item.status)}>
+                        <StatusBadge variant={reportStatusVariant(item.status)}>
                           {reportStatusLabel(item.status)}
-                        </span>
+                        </StatusBadge>
                       </td>
                       <td>{formatDate(item.createdAt)}</td>
                       {reportListTab === 'history' && (
@@ -454,16 +458,7 @@ const FeedbackReviewsPage = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-
-          {reportTotal > 0 && (
-            <Pagination
-              currentPage={reportPage + 1}
-              totalItems={reportTotal}
-              itemsPerPage={REPORTS_PER_PAGE}
-              onPageChange={(page) => setReportPage(page - 1)}
-            />
+            </AdminTableShell>
           )}
         </>
       )}
@@ -622,6 +617,7 @@ const FeedbackReviewsPage = () => {
           )}
         </div>
       )}
+      </TabTransition>
 
       <AdminModal
         open={isCreateVibeTagModalOpen}
