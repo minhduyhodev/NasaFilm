@@ -7,11 +7,9 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.thdpv.movietheater.payment.entity.VietQRWebhookTransaction;
 
-@Repository
 public interface VietQRWebhookTransactionRepository extends JpaRepository<VietQRWebhookTransaction, Long> {
 
     Optional<VietQRWebhookTransaction> findByReferenceCode(String referenceCode);

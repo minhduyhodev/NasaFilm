@@ -3,7 +3,6 @@ package com.thdpv.movietheater.mission.dto.response;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-import com.thdpv.movietheater.mission.enums.MissionCampaignStatus;
 import com.thdpv.movietheater.mission.enums.MissionConditionType;
 import com.thdpv.movietheater.mission.enums.MissionRecurrence;
 

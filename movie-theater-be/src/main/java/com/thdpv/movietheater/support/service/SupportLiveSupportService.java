@@ -1,7 +1,6 @@
 package com.thdpv.movietheater.support.service;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

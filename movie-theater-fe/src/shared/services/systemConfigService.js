@@ -12,7 +12,7 @@ class SystemConfigService {
       const data = mergeSystemConfig(response.data.data ?? response.data);
       writeCachedSystemConfig(data);
       return data;
-    } catch (error) {
+    } catch {
       try {
         const cached = localStorage.getItem(SYSTEM_CONFIG_STORAGE_KEY);
         if (cached) {

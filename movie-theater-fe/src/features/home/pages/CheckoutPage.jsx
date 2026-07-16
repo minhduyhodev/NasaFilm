@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle, QrCode } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
@@ -39,7 +39,7 @@ const CheckoutPage = () => {
   const theater = checkoutState?.theater ?? '';
   const movie = checkoutState?.movie ?? '';
   const moviePoster = checkoutState?.moviePoster ?? '';
-  const movieRating = checkoutState?.movieRating ?? null;
+  const _movieRating = checkoutState?.movieRating ?? null;
   const movieFormat = checkoutState?.movieFormat ?? '';
   const movieAgeRestriction = checkoutState?.movieAgeRestriction ?? '';
   const date = checkoutState?.date ?? '';
@@ -61,7 +61,7 @@ const CheckoutPage = () => {
   const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [checkoutCombos, setCheckoutCombos] = useState(() => checkoutState?.selectedCombos || []);
+  const [checkoutCombos, _setCheckoutCombos] = useState(() => checkoutState?.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -72,7 +72,7 @@ const CheckoutPage = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [myVouchers, setMyVouchers] = useState([]);
-  const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [_loadingVouchers, setLoadingVouchers] = useState(true);
   const orbitAutoAbortRef = useRef(false);
 
   const [activeCombos, setActiveCombos] = useState([]);

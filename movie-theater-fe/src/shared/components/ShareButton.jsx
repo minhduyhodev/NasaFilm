@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Share2, Check, Link2 } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 

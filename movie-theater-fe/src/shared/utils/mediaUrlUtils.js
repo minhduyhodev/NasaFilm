@@ -140,7 +140,7 @@ export const handlePosterError = (event) => {
 
   const originalUrl = unwrapMediaUrl(img.dataset.originalUrl || '');
   const attempt = parseInt(img.dataset.loadAttempt || '0', 10);
-  const width = parseInt(img.dataset.width || '400', 10);
+  const _width = parseInt(img.dataset.width || '400', 10);
 
   if (!originalUrl) {
     img.onerror = null;

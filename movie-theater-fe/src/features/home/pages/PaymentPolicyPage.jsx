@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, ShieldCheck, Receipt, AlertCircle } from 'lucide-react';
 import './LegalPages.css';

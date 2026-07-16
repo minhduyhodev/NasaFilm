@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
-import { useNotification } from '../../../shared/context/NotificationContext';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useHomeCinemas, useNowShowingMovies, usePublicShowtimes } from '../hooks/useHomeQueries';
 
@@ -143,20 +142,18 @@ const TicketFilters = () => {
   const [showtime, setShowtime] = useState('');
   const [showtimesEnabled, setShowtimesEnabled] = useState(false);
 
-  const { data: moviesData, isLoading: moviesLoading } = useNowShowingMovies();
-  const { data: cinemasData, isLoading: cinemasLoading } = useHomeCinemas();
-  const { data: showtimesData, isLoading: showtimesLoading } = usePublicShowtimes({
+  const { data: moviesData } = useNowShowingMovies();
+  const { data: cinemasData } = useHomeCinemas();
+  const { data: showtimesData } = usePublicShowtimes({
     enabled: showtimesEnabled,
   });
 
   const moviesList = moviesData?.content || moviesData || [];
   const cinemasList = cinemasData?.content || cinemasData || [];
   const showtimesList = showtimesData || [];
-  const isLoading = moviesLoading || cinemasLoading || (showtimesEnabled && showtimesLoading);
   const [openDropdown, setOpenDropdown] = useState(null); // 'theater' | 'movie' | 'date' | 'showtime' | null
 
   const { user } = useAuthContext();
-  const { addNotification } = useNotification();
   const navigate = useNavigate();
 
   const formatShowtimeDate = (dateObj) => {

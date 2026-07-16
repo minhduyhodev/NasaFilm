@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** Served from /public — avoids fragile dynamic import + works with Vite dev & build */
 const HERO_TRAILER_SRC = '/Interstellar-Trailer.mp4';

@@ -419,7 +419,7 @@ export const getTemporaryVodToken = (movieUuid) => {
       return null;
     }
     return item.value;
-  } catch (e) {
+  } catch {
     localStorage.removeItem(VOD_VERIFIED_KEY(movieUuid));
     return null;
   }

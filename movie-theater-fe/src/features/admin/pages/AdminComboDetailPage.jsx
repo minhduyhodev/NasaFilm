@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Edit2, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
@@ -10,6 +10,7 @@ import {
   MetadataRow,
   PrimaryButton,
   GhostButton,
+  StatusBadge,
 } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
@@ -35,7 +36,7 @@ const AdminComboDetailPage = () => {
           return;
         }
         setCombo(found);
-      } catch (err) {
+      } catch {
         notificationService.error('Không thể tải combo');
         navigate('/admin/combos');
       } finally {
@@ -118,7 +119,14 @@ const AdminComboDetailPage = () => {
           <Section title="Thong tin co ban">
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <MetadataRow label="Gia ban" value={`${Number(combo.price || 0).toLocaleString('vi-VN')} VND`} />
-              <MetadataRow label="Trang thai" value={isActive ? 'Dang ban' : 'Tam ngung'} />
+              <MetadataRow
+                label="Trang thai"
+                value={
+                  <StatusBadge variant={isActive ? 'success' : 'danger'}>
+                    {isActive ? 'Dang ban' : 'Tam ngung'}
+                  </StatusBadge>
+                }
+              />
               <MetadataRow label="Mo ta" value={combo.description || 'Chua co mo ta'} className="md:col-span-2" />
             </dl>
           </Section>

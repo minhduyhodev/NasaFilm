@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CheckCheck, Loader2, Lock, Pencil, QrCode, ScanLine, X } from 'lucide-react';
 import QRCode from 'qrcode';
-import { AdminPage, AdminModal, PageHeader, PrimaryButton } from '../../components';
+import { AdminPage, AdminModal, PageHeader, PrimaryButton, StatusBadge, AdminTableShell, AdminDatePicker, AdminDateTimePicker } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
@@ -15,6 +15,7 @@ import {
   formatMinutes,
   monthRangeIso,
   statusBadge,
+  statusVariant,
 } from './hrUtils';
 import './hr.css';
 
@@ -232,13 +233,11 @@ const HrAttendancePage = () => {
       />
 
       <div className="hr-filters">
-        <div className="hr-field">
-          <label className="hr-field__label">Từ ngày</label>
-          <input type="date" className={adminInputClass} value={from} onChange={(e) => setFrom(e.target.value)} />
+        <div className="hr-field" style={{ minWidth: 170 }}>
+          <AdminDatePicker label="Từ ngày" value={from} onChange={setFrom} size="sm" max={to || undefined} />
         </div>
-        <div className="hr-field">
-          <label className="hr-field__label">Đến ngày</label>
-          <input type="date" className={adminInputClass} value={to} onChange={(e) => setTo(e.target.value)} />
+        <div className="hr-field" style={{ minWidth: 170 }}>
+          <AdminDatePicker label="Đến ngày" value={to} onChange={setTo} size="sm" min={from || undefined} />
         </div>
         <div className="hr-field" style={{ minWidth: 200 }}>
           <AdminSelectDropdown label="Nhân viên" value={userFilter} options={staffOptions} onChange={setUserFilter} size="sm" />
@@ -249,8 +248,8 @@ const HrAttendancePage = () => {
       </div>
 
       <div className="hr-inline" style={{ marginBottom: 14 }}>
-        <span className="hr-badge hr-badge--warning">{summary.pending} chờ duyệt</span>
-        <span className="hr-badge hr-badge--info">OT chưa duyệt: {formatMinutes(summary.otPending)}</span>
+        <StatusBadge variant="warning">{summary.pending} chờ duyệt</StatusBadge>
+        <StatusBadge variant="info">OT chưa duyệt: {formatMinutes(summary.otPending)}</StatusBadge>
       </div>
 
       {loading ? (
@@ -264,8 +263,8 @@ const HrAttendancePage = () => {
           <p>Không có bản ghi chấm công phù hợp bộ lọc.</p>
         </div>
       ) : (
-        <div className="hr-table-wrap">
-          <table className="hr-table">
+        <AdminTableShell>
+          <table className="adm-table hr-table">
             <thead>
               <tr>
                 <th>Nhân viên</th>
@@ -302,14 +301,14 @@ const HrAttendancePage = () => {
                     <td className="hr-num">{r.lateMinutes > 0 ? formatMinutes(r.lateMinutes) : '—'}</td>
                     <td className="hr-num">{r.earlyLeaveMinutes > 0 ? formatMinutes(r.earlyLeaveMinutes) : '—'}</td>
                     <td>
-                      <span className={statusBadge(ATTENDANCE_STATUS_META, r.attendanceStatus).className}>
+                      <StatusBadge variant={statusVariant(ATTENDANCE_STATUS_META, r.attendanceStatus)}>
                         {statusBadge(ATTENDANCE_STATUS_META, r.attendanceStatus).label}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td>
-                      <span className={statusBadge(APPROVAL_STATUS_META, r.approvalStatus).className}>
+                      <StatusBadge variant={statusVariant(APPROVAL_STATUS_META, r.approvalStatus)}>
                         {statusBadge(APPROVAL_STATUS_META, r.approvalStatus).label}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td>
                       {r.approvalStatus === 'APPROVED' ? (
@@ -363,7 +362,7 @@ const HrAttendancePage = () => {
               })}
             </tbody>
           </table>
-        </div>
+        </AdminTableShell>
       )}
 
       {editing && (
@@ -526,14 +525,18 @@ function EditModal({ record, onClose, onSaved }) {
       }
     >
       <div className="space-y-4">
-        <div className="hr-field">
-          <label className="hr-field__label">Giờ vào</label>
-          <input type="datetime-local" className={adminInputClass} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
-        </div>
-        <div className="hr-field">
-          <label className="hr-field__label">Giờ ra</label>
-          <input type="datetime-local" className={adminInputClass} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
-        </div>
+        <AdminDateTimePicker
+          label="Giờ vào"
+          value={checkIn}
+          onChange={setCheckIn}
+          size="sm"
+        />
+        <AdminDateTimePicker
+          label="Giờ ra"
+          value={checkOut}
+          onChange={setCheckOut}
+          size="sm"
+        />
         <div className="hr-field">
           <label className="hr-field__label">Số phút OT được duyệt</label>
           <input

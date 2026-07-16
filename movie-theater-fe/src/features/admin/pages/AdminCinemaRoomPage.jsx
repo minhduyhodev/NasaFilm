@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   X, Tv, Activity, Grid, Loader2, RefreshCw, Download, Upload,
-  Eye, Sliders, MousePointer, AlertTriangle, ChevronLeft,
+  Eye, Sliders, MousePointer, AlertTriangle,
 } from 'lucide-react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -55,6 +55,8 @@ import '../../../shared/components/seatmap/SeatMapGrid.css';
 import '../../../shared/components/aisle/AisleMapStyles.css';
 import AdminModal from '../components/AdminModal';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
+import { AdminPage, PageHeader, StatusBadge } from '../components';
+import { adminInputClass } from '../components/adminFormStyles';
 
 const deriveLayoutDimensions = (seats) => {
   if (!seats?.length) {
@@ -101,7 +103,7 @@ const AdminCinemaRoomPage = () => {
   const [builderRows, setBuilderRows] = useState(8);
   const [builderCols, setBuilderCols] = useState(12);
   const [aisleLayout, setAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
-  const [originalAisleLayout, setOriginalAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
+  const [_originalAisleLayout, setOriginalAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
   const [isDragSelecting, setIsDragSelecting] = useState(false);
   const [showBookingPreview, setShowBookingPreview] = useState(false); // Customer View Simulator
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
@@ -510,7 +512,7 @@ const AdminCinemaRoomPage = () => {
   }, [selectedSeatIds, selectedRoomSeats, getBackendDataForPaintType, syncAisleLayoutForSeats, aisleLayout, seatTypesMap]);
 
   // Bulk update status directly in selection
-  const handleBulkStatusChange = useCallback((status) => {
+  const _handleBulkStatusChange = useCallback((status) => {
     if (selectedSeatIds.size === 0) return;
 
     setSelectedRoomSeats(prev => prev.map(s => {
@@ -686,7 +688,7 @@ const AdminCinemaRoomPage = () => {
   };
 
   // Clone layout from another room
-  const handleCloneLayout = async (sourceRoomUuid) => {
+  const _handleCloneLayout = async (sourceRoomUuid) => {
     if (!room || !sourceRoomUuid) return;
     setIsLoadingSeats(true);
     try {
@@ -834,7 +836,7 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
-  const paintSingleSeat = useCallback((uuid, paintType, seatMeta) => {
+  const paintSingleSeat = useCallback((uuid, paintType, _seatMeta) => {
     const { seatTypeUuid, status } = getBackendDataForPaintType(paintType);
     const aisleCheck = (s) => s.customTypeName === 'AISLE'
       || hasAisleSlot(aisleLayout, s.rowName, s.seatNumber);
@@ -982,7 +984,7 @@ const AdminCinemaRoomPage = () => {
   );
 
   return (
-    <>
+    <AdminPage>
       <style>{`
         .premium-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
         .premium-scroll::-webkit-scrollbar-track { background: #0B0F19; }
@@ -997,63 +999,45 @@ const AdminCinemaRoomPage = () => {
         }
       `}</style>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={handleBackToCinemas}
-            className="mt-1 p-2 rounded-lg border border-[#1A2238] bg-[#0B0F19] text-gray-400 hover:text-white hover:border-[#2C3B5E] transition cursor-pointer"
-            title="Quay lại danh sách rạp"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-tight uppercase">Quản Lý Phòng Chiếu</h1>
-            <p className="text-xs text-gray-400 mt-1">
-              {cinema?.name || 'Đang tải...'} · {room?.name || '—'}
-            </p>
-          </div>
-        </div>
-        {room && (
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleDeleteRoom}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-400 hover:bg-red-500/20 transition cursor-pointer"
-            >
-              Xóa Phòng
-            </button>
-            <button
-              type="button"
-              onClick={handleEditRoomClick}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A2238] bg-[#0B0F19] px-4 py-2 text-xs text-gray-300 hover:border-[#2C3B5E] hover:text-white transition-colors cursor-pointer"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              Sửa Thông Tin Phòng
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Quản lý phòng chiếu"
+        description={`${cinema?.name || 'Đang tải...'} · ${room?.name || '—'}`}
+        backTo={undefined}
+        onBack={handleBackToCinemas}
+        primaryAction={room ? {
+          label: 'Sửa thông tin phòng',
+          icon: <Sliders className="w-3.5 h-3.5" />,
+          onClick: handleEditRoomClick,
+        } : undefined}
+        menuItems={room ? [
+          {
+            label: 'Xóa phòng',
+            onClick: handleDeleteRoom,
+            destructive: true,
+          },
+        ] : []}
+      />
 
       {isLoadingPage ? (
-        <div className="flex justify-center items-center py-24 text-gray-500 text-sm">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-          Đang tải phòng chiếu...
+        <div className="adm-loading min-h-[200px]">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <p className="text-sm text-[var(--adm-text-dim)]">Đang tải phòng chiếu...</p>
         </div>
       ) : cinema && room ? (
-        <div className="bg-[#0F1322] border border-[#1A2238] p-6 rounded-xl shadow-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-4 border-b border-[#1A2238]/60 text-left">
+        <div className="adm-panel">
+          <div className="adm-panel__body">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-4 border-b border-[var(--adm-border)] text-left">
             <div>
-              <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Mã phòng</span>
-              <p className="text-xs text-white font-mono">{room.roomCode}</p>
+              <span className="adm-eyebrow block mb-1">Mã phòng</span>
+              <p className="text-xs text-[var(--adm-text)] font-mono">{room.roomCode}</p>
             </div>
             <div>
-              <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Loại phòng</span>
-              <p className="text-xs text-white">{room.roomType}</p>
+              <span className="adm-eyebrow block mb-1">Loại phòng</span>
+              <p className="text-xs text-[var(--adm-text)]">{room.roomType}</p>
             </div>
             <div>
-              <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Sức chứa</span>
-              <p className="text-xs text-white">
+              <span className="adm-eyebrow block mb-1">Sức chứa</span>
+              <p className="text-xs text-[var(--adm-text)]">
                 {displayedCapacity} ghế
                 {activeSeatCount > 0 && room?.capacity != null && room.capacity !== activeSeatCount && (
                   <span className="text-amber-400/80 text-[10px] ml-1">(DB: {room.capacity})</span>
@@ -1061,34 +1045,36 @@ const AdminCinemaRoomPage = () => {
               </p>
             </div>
             <div>
-              <span className="text-[9px] font-bold uppercase text-gray-500 block mb-1">Trạng thái</span>
-              <p className={`text-xs font-bold ${room.status === 'ACTIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>{room.status}</p>
+              <span className="adm-eyebrow block mb-1">Trạng thái</span>
+              <StatusBadge variant={room.status === 'ACTIVE' ? 'success' : 'warning'}>
+                {room.status === 'ACTIVE' ? 'Đang mở' : room.status}
+              </StatusBadge>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h2 className="text-sm font-bold uppercase text-white tracking-wide">Sơ Đồ Ghế</h2>
-              <p className="text-xs text-gray-500 mt-1">
+              <h2 className="text-sm font-bold uppercase text-[var(--adm-text)] tracking-wide">Sơ đồ ghế</h2>
+              <p className="text-xs text-[var(--adm-text-dim)] mt-1">
                 {room.name} · {room.roomType} · {cinema.name}
               </p>
             </div>
           </div>
                 {/* Seating Layout Size Customization Controls Panel */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 p-4 bg-[#0B0F19] border border-[#1A2238] rounded-xl text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 p-4 bg-[var(--adm-bg-elevated)] border border-[var(--adm-border)] rounded-[var(--adm-radius-sm)] text-left">
                   <div className="md:col-span-2 space-y-3">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 font-mono">
-                      <Grid className="w-3.5 h-3.5 text-red-500" />
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--adm-text-muted)] flex items-center gap-1.5 font-mono">
+                      <Grid className="w-3.5 h-3.5 text-[var(--adm-accent)]" />
                       Cấu hình kích thước sơ đồ ghế
                     </h4>
                     <div className="flex flex-wrap items-end gap-3">
                       <div>
-                        <label className="block text-[9px] font-bold text-gray-500 uppercase mb-1 font-mono">Hàng ghế (A-Z)</label>
+                        <label className="block text-[9px] font-bold text-[var(--adm-text-dim)] uppercase mb-1 font-mono">Hàng ghế (A-Z)</label>
                         <input
                           type="number"
                           min="1"
                           max="26"
-                          className="w-20 bg-[#0B0F19] border border-[#1A2238] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50"
+                          className={`${adminInputClass} w-20`}
                           value={builderRows}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1102,7 +1088,7 @@ const AdminCinemaRoomPage = () => {
                           type="number"
                           min="1"
                           max="30"
-                          className="w-20 bg-[#0B0F19] border border-[#1A2238] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-red-500/50"
+                          className={`${adminInputClass} w-20`}
                           value={builderCols}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1586,6 +1572,7 @@ const AdminCinemaRoomPage = () => {
                     )}
                   </button>
                 </div>
+          </div>
         </div>
       ) : null}
 
@@ -1657,7 +1644,7 @@ const AdminCinemaRoomPage = () => {
           />
         )}
       </AdminModal>
-    </>
+    </AdminPage>
   );
 };
 

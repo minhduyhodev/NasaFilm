@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
@@ -14,6 +14,7 @@ import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
 import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
 import { CounterPageHeader, PrintTicketModal } from '../components/CounterStaffUI';
+import { AdminPage } from '../../admin/components';
 import VietQRPOSModal from '../components/VietQRPOSModal';
 import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
@@ -58,8 +59,6 @@ export default function CounterPOSPage() {
 
   // Promotion
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState(null);
-  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState('COUNTER_CASH');
@@ -479,7 +478,7 @@ export default function CounterPOSPage() {
   const getSeatLabel = (seat) => seat.id || seat.name || '';
 
   return (
-    <div className="adm-page staff-control counter-pos">
+    <AdminPage className="staff-control counter-pos">
       <CounterPageHeader
         eyebrow="Trung tâm vận hành rạp"
         title="Quầy bán vé POS"
@@ -763,6 +762,6 @@ export default function CounterPOSPage() {
         onPaymentSuccess={handleVietQRSuccess} 
         amount={finalTotal} 
       />
-    </div>
+    </AdminPage>
   );
 }

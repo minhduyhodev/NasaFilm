@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, ChevronDown, MessageSquare, Ticket, Award, RefreshCw, Key } from 'lucide-react';
+import { HelpCircle, ChevronDown, MessageSquare, Ticket, Award, Key } from 'lucide-react';
 import './LegalPages.css';
 
 export const FaqPage = () => {

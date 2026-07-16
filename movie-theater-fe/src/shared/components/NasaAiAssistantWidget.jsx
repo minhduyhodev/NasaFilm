@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, MessageCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -278,7 +278,7 @@ const getCategoryByKey = (key = '') => CATEGORIES.find((item) => item.key === ke
 
 const getCategoryLabel = (key = '') => getCategoryByKey(key)?.label || key || 'Hỗ trợ chung';
 
-const resolveShortcutCategoryKey = (shortcut = {}) => {
+const _resolveShortcutCategoryKey = (shortcut = {}) => {
   const name = `${shortcut.shortcutName || ''}`.toLowerCase();
   if (name.includes('ticket')) return 'ticket';
   if (name.includes('payment')) return 'payment';
@@ -460,7 +460,7 @@ const NasaAiAssistantWidget = () => {
   const [activeTicketCode, setActiveTicketCode] = useState('');
   const [ticketMessages, setTicketMessages] = useState([]);
   const [liveAvailability, setLiveAvailability] = useState({ anyOnline: false, agents: [] });
-  const [nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
+  const [_nasaBotRuntime, setNasaBotRuntime] = useState(DEFAULT_NASA_BOT_RUNTIME);
   const [chatFlow, setChatFlow] = useState(bootBotState.chatFlow);
   const [guidedChatActive, setGuidedChatActive] = useState(false);
   const [wizardCategory, setWizardCategory] = useState(bootBotState.category);
@@ -1370,7 +1370,7 @@ const NasaAiAssistantWidget = () => {
     }
   };
 
-  const requestLiveSupport = async (options = {}) => {
+  const _requestLiveSupport = async (options = {}) => {
     const description = `${options.description || ticketDraft || activeTicket?.description || ''}`.trim()
       || 'Khách hàng cần hỗ trợ trực tiếp với admin hoặc staff.';
     const category = options.category || selectedCategory?.key || activeTicket?.category || detectCategory(description);

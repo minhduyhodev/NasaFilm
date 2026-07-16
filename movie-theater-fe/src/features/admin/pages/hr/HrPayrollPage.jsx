@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { AdminPage, PageHeader } from '../../components';
+import { useCallback, useEffect, useState } from 'react';
+import TabTransition from '../../../../shared/components/TabTransition';
+import { AdminPage, PageHeader, FilterPills } from '../../components';
 import PayrollPeriodsTab from './PayrollPeriodsTab';
 import EmployeeProfilesTab from './EmployeeProfilesTab';
 import HolidaysTab from './HolidaysTab';
@@ -38,22 +39,19 @@ const HrPayrollPage = () => {
         variant="default"
       />
 
-      <div className="hr-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`hr-tab${tab === t.id ? ' hr-tab--active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <FilterPills
+        value={tab}
+        onChange={setTab}
+        items={TABS}
+        ariaLabel="Tab lương"
+        className="mb-4"
+      />
 
-      {tab === 'periods' && <PayrollPeriodsTab staff={staff} />}
-      {tab === 'profiles' && <EmployeeProfilesTab />}
-      {tab === 'holidays' && <HolidaysTab />}
+      <TabTransition activeKey={tab}>
+        {tab === 'periods' && <PayrollPeriodsTab staff={staff} />}
+        {tab === 'profiles' && <EmployeeProfilesTab />}
+        {tab === 'holidays' && <HolidaysTab />}
+      </TabTransition>
     </AdminPage>
   );
 };

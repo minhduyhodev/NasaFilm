@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  User,
   Search,
   Edit2,
   Users,
@@ -19,11 +18,17 @@ import {
 import { adminUserService } from "../api/adminUserService";
 import { notificationService } from "../../../shared/services/notificationService";
 import UserAvatar from "../../../shared/components/UserAvatar";
-import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
-import { AdminPage, PageHeader, AdminKpiGrid } from "../components";
+import {
+  AdminPage,
+  PageHeader,
+  AdminKpiGrid,
+  FilterPills,
+  StatusBadge,
+  AdminTableShell,
+} from "../components";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import "./UsersPage.css";
 
@@ -37,7 +42,7 @@ const UsersPage = () => {
   const [visiblePhoneUserIds, setVisiblePhoneUserIds] = useState(new Set());
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, _setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [openStatusDropdownId, setOpenStatusDropdownId] = useState(null);
@@ -229,24 +234,12 @@ const UsersPage = () => {
     return status;
   };
 
-  const getStatusCls = (status) => {
-    if (status === "ACTIVE")
-      return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
-    if (status === "SUSPENDED")
-      return "bg-rose-500/10 border-rose-500/25 text-rose-400";
-    if (status === "PENDING_VERIFICATION")
-      return "bg-amber-500/10 border-amber-500/25 text-amber-400";
-    if (status === "INACTIVE")
-      return "bg-zinc-500/10 border-zinc-500/25 text-zinc-400";
-    return "bg-zinc-500/10 border-zinc-500/25 text-zinc-400";
-  };
-
-  const getStatusDot = (status) => {
-    if (status === "ACTIVE") return "bg-emerald-400";
-    if (status === "SUSPENDED") return "bg-rose-400";
-    if (status === "PENDING_VERIFICATION") return "bg-amber-400";
-    if (status === "INACTIVE") return "bg-zinc-400";
-    return "bg-zinc-400";
+  const getStatusVariant = (status) => {
+    if (status === "ACTIVE") return "success";
+    if (status === "SUSPENDED") return "danger";
+    if (status === "PENDING_VERIFICATION") return "warning";
+    if (status === "INACTIVE") return "muted";
+    return "muted";
   };
 
   const formatDate = (createdAt) => {
@@ -271,23 +264,23 @@ const UsersPage = () => {
     const points = user.score || 0;
     if (points >= 10000)
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)] font-sans">
-          <Star className="w-2.5 h-2.5 fill-amber-400" />
+        <StatusBadge variant="warning">
+          <Star className="w-2.5 h-2.5 fill-current" />
           NASA VIP
-        </span>
+        </StatusBadge>
       );
     if (points >= 5000)
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-blue-500/10 border-blue-500/30 text-blue-400 font-sans">
-          <Star className="w-2.5 h-2.5 fill-blue-400" />
+        <StatusBadge variant="info">
+          <Star className="w-2.5 h-2.5 fill-current" />
           NASA FRIEND
-        </span>
+        </StatusBadge>
       );
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-gray-800/60 border-gray-700 text-gray-400 font-sans">
+      <StatusBadge variant="muted">
         <Star className="w-2.5 h-2.5" />
         NASA MEMBER
-      </span>
+      </StatusBadge>
     );
   };
 
@@ -342,63 +335,72 @@ const UsersPage = () => {
         ]}
       />
 
-      {/* FILTER TOOLBAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-1 font-sans">
-        <div className="relative w-full sm:w-72 font-sans">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5" />
-          <input
-            className="w-full rounded-lg bg-[#0B0F19] border border-[#1A2238] pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-amber-500/50 transition-colors font-sans"
-            placeholder="Tìm theo tên, email, SĐT..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap font-sans sm:ml-auto">
-          {/* Status Filter */}
-          <select
-            className={`${adminFilterSelectClass} font-mono`}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">Tất cả Trạng thái</option>
-            <option value="ACTIVE">Hoạt động</option>
-            <option value="PENDING_VERIFICATION">Chờ xác thực</option>
-            <option value="INACTIVE">Không hoạt động</option>
-            <option value="SUSPENDED">Bị khóa</option>
-          </select>
-        </div>
-      </div>
-
-      {/* USER TABLE */}
+      <AdminTableShell
+        toolbar={(
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+            <div className="adm-toolbar__search max-w-md w-full">
+              <Search className="adm-toolbar__search-icon" />
+              <input
+                className="adm-input"
+                placeholder="Tìm theo tên, email, SĐT..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <FilterPills
+              value={statusFilter}
+              onChange={setStatusFilter}
+              items={[
+                { id: "all", label: "Tất cả" },
+                { id: "ACTIVE", label: "Hoạt động" },
+                { id: "PENDING_VERIFICATION", label: "Chờ xác thực" },
+                { id: "INACTIVE", label: "Không hoạt động" },
+                { id: "SUSPENDED", label: "Bị khóa" },
+              ]}
+              ariaLabel="Lọc trạng thái khách hàng"
+            />
+          </div>
+        )}
+        footer={totalElements > 0 ? (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+            <span className="adm-tabular">
+              Trang {currentPage}/{totalPages}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        ) : null}
+      >
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-32 gap-4 bg-[#0F1322] border border-[#1A2238] rounded-xl">
-          <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-          <p className="text-gray-400 font-semibold text-[10px] uppercase tracking-widest font-sans">
-            Đang tải danh sách khách hàng...
-          </p>
+        <div className="adm-loading">
+          <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+          <p>Đang tải danh sách khách hàng...</p>
         </div>
       ) : paginatedUsers.length > 0 ? (
-        <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-lg">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse font-sans">
+            <table className="adm-table">
               <thead>
-                <tr className="border-b border-[#1A2238]">
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
-                    Khách Hàng
-                  </th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
-                    Hạng Hội Viên
-                  </th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
-                    Điểm Tích Lũy
-                  </th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
-                    Trạng Thái
-                  </th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center">
-                    Hành Động
-                  </th>
+                <tr>
+                  <th>Khách hàng</th>
+                  <th>Hạng hội viên</th>
+                  <th>Điểm tích lũy</th>
+                  <th>Trạng thái</th>
+                  <th className="text-center">Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,31 +408,23 @@ const UsersPage = () => {
                   const isLastRow =
                     index >= paginatedUsers.length - 2 && index > 0;
                   return (
-                    <tr
-                      key={row.id}
-                      className="border-b border-[#1A2238]/40 hover:bg-white/[0.01] transition-colors duration-150 font-sans"
-                    >
-                      {/* IDENTITY */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3 font-sans">
+                    <tr key={row.id}>
+                      <td>
+                        <div className="flex items-center gap-3">
                           <UserAvatar src={row.avatarUrl} name={row.fullName} />
-                          <div className="min-w-0 flex-1 font-sans">
-                            <div className="flex items-center gap-1.5 flex-wrap font-sans">
-                              <span className="text-xs font-bold text-white font-sans">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="adm-table__primary">
                                 {row.fullName || "--"}
                               </span>
                               {row.authProvider === "GOOGLE" && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] font-bold text-gray-400 shrink-0 font-mono">
-                                  G
-                                </span>
+                                <StatusBadge variant="muted">G</StatusBadge>
                               )}
                             </div>
-                            <div className="text-[11px] text-gray-400 break-all leading-tight font-sans">
-                              {row.email}
-                            </div>
+                            <span className="adm-table__secondary">{row.email}</span>
                             {row.phoneNumber ? (
-                              <div className="flex items-center gap-1.5 mt-0.5 font-sans">
-                                <span className="text-[11px] text-gray-500 font-sans">
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="adm-table__secondary !mt-0">
                                   {visiblePhoneUserIds.has(row.id)
                                     ? row.phoneNumber
                                     : row.phoneNumber.length >= 6
@@ -440,7 +434,7 @@ const UsersPage = () => {
                                 <button
                                   type="button"
                                   onClick={() => togglePhoneVisibility(row.id)}
-                                  className="text-gray-500 hover:text-white transition-colors focus:outline-none p-0.5 cursor-pointer flex items-center justify-center"
+                                  className="text-[var(--adm-text-dim)] hover:text-white transition-colors focus:outline-none p-0.5 cursor-pointer flex items-center justify-center bg-transparent border-0"
                                 >
                                   {visiblePhoneUserIds.has(row.id) ? (
                                     <EyeOff className="w-3 h-3" />
@@ -450,13 +444,11 @@ const UsersPage = () => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="text-[11px] text-gray-500 mt-0.5 font-sans">
-                                --
-                              </div>
+                              <span className="adm-table__secondary">--</span>
                             )}
-                            <div className="flex items-center gap-1 mt-1 text-gray-500 text-[9px] font-sans">
+                            <div className="flex items-center gap-1 mt-1 text-[var(--adm-text-dim)] text-[9px]">
                               <Calendar className="w-2.5 h-2.5 shrink-0" />
-                              <span className="font-mono">
+                              <span className="font-mono adm-tabular">
                                 Ngày tạo: {formatDate(row.createdAt)}
                               </span>
                             </div>
@@ -464,23 +456,20 @@ const UsersPage = () => {
                         </div>
                       </td>
 
-                      {/* TIER */}
-                      <td className="px-6 py-4">{getMemberTierBadge(row)}</td>
+                      <td>{getMemberTierBadge(row)}</td>
 
-                      {/* POINTS */}
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col font-sans">
-                          <span className="text-base font-extrabold text-amber-500 font-sans">
+                      <td>
+                        <div className="flex flex-col">
+                          <span className="text-base font-extrabold text-amber-500 adm-tabular">
                             {(row.score || 0).toLocaleString()}
                           </span>
-                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono">
-                            ĐIỂM
+                          <span className="text-[9px] text-[var(--adm-text-dim)] font-bold uppercase tracking-wider">
+                            Điểm
                           </span>
                         </div>
                       </td>
 
-                      {/* STATUS + QUICK TOGGLE */}
-                      <td className="px-6 py-4">
+                      <td>
                         <div className="relative inline-block text-left">
                           <button
                             type="button"
@@ -490,15 +479,14 @@ const UsersPage = () => {
                                 openStatusDropdownId === row.id ? null : row.id,
                               )
                             }
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border font-mono cursor-pointer transition-all duration-200 focus:outline-none hover:bg-white/[0.04] disabled:opacity-85 ${getStatusCls(row.status)}`}
+                            className="inline-flex items-center gap-1.5 cursor-pointer transition-opacity disabled:opacity-85 bg-transparent border-0 p-0"
                           >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${getStatusDot(row.status)}`}
-                            />
-                            <span>{getStatusLabel(row.status)}</span>
-                            <ChevronDown
-                              className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${openStatusDropdownId === row.id ? "rotate-180" : ""}`}
-                            />
+                            <StatusBadge variant={getStatusVariant(row.status)}>
+                              {getStatusLabel(row.status)}
+                              <ChevronDown
+                                className={`w-3 h-3 transition-transform duration-200 ${openStatusDropdownId === row.id ? "rotate-180" : ""}`}
+                              />
+                            </StatusBadge>
                           </button>
 
                           {openStatusDropdownId === row.id && (
@@ -508,32 +496,28 @@ const UsersPage = () => {
                                 onClick={() => setOpenStatusDropdownId(null)}
                               ></div>
                               <div
-                                className={`absolute left-0 w-36 bg-[#0B0F19] border border-[#1A2238] rounded-lg shadow-xl p-1 space-y-0.5 z-50 text-left ${isLastRow ? "bottom-full mb-1" : "mt-1 top-full"}`}
+                                className={`absolute left-0 w-40 adm-dropdown ${isLastRow ? "bottom-full mb-1" : "mt-1 top-full"}`}
                               >
                                 {[
                                   {
                                     value: "ACTIVE",
                                     label: "Hoạt động",
-                                    dot: "bg-emerald-400",
-                                    cls: "text-emerald-400 hover:bg-emerald-500/10",
+                                    variant: "success",
                                   },
                                   {
                                     value: "SUSPENDED",
                                     label: "Bị khóa",
-                                    dot: "bg-rose-400",
-                                    cls: "text-rose-400 hover:bg-rose-500/10",
+                                    variant: "danger",
                                   },
                                   {
                                     value: "PENDING_VERIFICATION",
                                     label: "Chờ xác thực",
-                                    dot: "bg-amber-400",
-                                    cls: "text-amber-400 hover:bg-amber-500/10",
+                                    variant: "warning",
                                   },
                                   {
                                     value: "INACTIVE",
                                     label: "Không hoạt động",
-                                    dot: "bg-zinc-400",
-                                    cls: "text-zinc-400 hover:bg-zinc-500/10",
+                                    variant: "muted",
                                   },
                                 ].map((opt) => (
                                   <button
@@ -547,12 +531,9 @@ const UsersPage = () => {
                                       );
                                       setOpenStatusDropdownId(null);
                                     }}
-                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[10px] font-bold transition-all duration-200 cursor-pointer ${opt.cls} ${row.status === opt.value ? "bg-[#0f172a]" : "border border-transparent"}`}
+                                    className={`adm-dropdown__item ${row.status === opt.value ? "adm-dropdown__item--active" : ""}`}
                                   >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${opt.dot}`}
-                                    />
-                                    <span>{opt.label}</span>
+                                    <StatusBadge variant={opt.variant}>{opt.label}</StatusBadge>
                                   </button>
                                 ))}
                               </div>
@@ -561,12 +542,11 @@ const UsersPage = () => {
                         </div>
                       </td>
 
-                      {/* ACTIONS */}
-                      <td className="px-6 py-4 text-center">
+                      <td className="text-center">
                         <button
                           type="button"
                           onClick={() => handleOpenDetailModal(row)}
-                          className="p-2 bg-[#1A2238] hover:bg-[#2C3B5E] text-gray-300 hover:text-white rounded-lg transition duration-200 cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold border-none font-mono"
+                          className="adm-btn adm-btn--ghost inline-flex items-center gap-1.5"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                           Chỉnh sửa
@@ -577,47 +557,18 @@ const UsersPage = () => {
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-28 gap-3 bg-[#0F1322] border border-[#1A2238] rounded-xl mb-4 font-sans">
-          <UserX className="w-14 h-14 text-gray-700" />
-          <p className="text-sm font-bold uppercase tracking-wider text-gray-400 font-sans">
+        <div className="adm-empty">
+          <UserX className="w-14 h-14 opacity-40" />
+          <p className="text-sm font-bold text-[var(--adm-text)]">
             Không tìm thấy khách hàng nào
           </p>
-          <p className="text-xs text-gray-600 font-sans">
+          <p className="text-xs">
             Thử thay đổi từ khóa hoặc bộ lọc của bạn.
           </p>
         </div>
       )}
-
-      {/* PAGINATION */}
-      {totalElements > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 mt-2 border-t border-[#1A2238]/60 font-sans">
-          <span className="text-[13px] text-gray-400 font-medium font-sans">
-            Trang {currentPage}/{totalPages}
-          </span>
-
-          <div className="flex items-center gap-1.5 font-sans">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              className="px-3 py-1 bg-[#0B0F19] hover:bg-[#1A2238] border border-[#1A2238] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center font-sans"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              className="px-3 py-1 bg-[#0B0F19] hover:bg-[#1A2238] border border-[#1A2238] text-gray-300 hover:text-white rounded-lg text-sm font-bold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer min-w-8 h-8 flex items-center justify-center font-sans"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      )}
+      </AdminTableShell>
 
       {/* ==================== DETAIL EDIT MODAL ==================== */}
       {isDetailModalOpen && selectedUser && (
