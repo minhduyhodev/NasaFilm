@@ -166,6 +166,19 @@ public class SupportAiService {
         if (!answerMode && isGuidedCategory(detectedCategory)) {
             return fallback(message, history);
         }
+        // Short confirm/edit replies ("ok", "sửa"…) from the guided buttons carry no
+        // category of their own — keep them in the guided flow (so "OK — Gửi ticket"
+        // finalizes the ticket) instead of routing to the free LLM, as long as the
+        // conversation history is already inside a ticket category.
+        if (!answerMode) {
+            String norm = normalize(message).trim();
+            if (CONFIRM_YES.contains(norm) || CONFIRM_EDIT.contains(norm)) {
+                String historyCategory = detectCategoryFromHistory(history);
+                if (historyCategory != null && isGuidedCategory(historyCategory)) {
+                    return fallback(message, history);
+                }
+            }
+        }
 
         try {
             List<SupportAiMessage> messages = buildMessages(message, history, answerMode, userEmail);
@@ -430,10 +443,17 @@ public class SupportAiService {
         int fieldsCollected = countCollectedFields(normalized, message, category, history);
         int totalFields = fields.length;
 
-        // Check if user is responding to a confirmation prompt
+        // Check if user is responding to a confirmation prompt. Match the ACTUAL
+        // confirmation replies produced below ("…kiểm tra lại thông tin rồi chọn bên dưới nhé:"
+        // and the ambiguous re-ask "Mình chưa rõ ý bạn…"), not only the old edit wording,
+        // so clicking "OK — Gửi ticket" (value "ok") actually finalizes the ticket.
         String lastBotMsg = getLastBotMessage(history);
         boolean wasConfirming = lastBotMsg != null && (
-            lastBotMsg.contains("muốn chỉnh sửa") || lastBotMsg.contains("muốn chỉnh sửa thông tin"));
+            lastBotMsg.contains("kiểm tra lại thông tin")
+            || lastBotMsg.contains("chọn bên dưới")
+            || lastBotMsg.contains("chưa rõ ý bạn")
+            || lastBotMsg.contains("OK — Gửi ticket")
+            || lastBotMsg.contains("muốn chỉnh sửa"));
 
         boolean wasFinalizing = lastBotMsg != null && lastBotMsg.contains("chốt ticket");
 
@@ -504,124 +524,144 @@ public class SupportAiService {
         return new SupportAiResult(sb.toString(), category, "collecting", choices);
     }
 
-    /** Return quick-reply choice buttons for the given category and field index. */
+    /** Return quick-reply choice buttons for the field at {@code fieldIndex}. The chips are
+     *  chosen by the FIELD NAME (not a hardcoded index) so the "issue type" buttons show up
+     *  on the right step for every category — account & membership put issueType at index 0,
+     *  payment puts paymentMethod at 1 and issueType at 2. */
     private List<ChoiceButton> getChoicesForField(String category, int fieldIndex) {
-        if (fieldIndex == 1) { // second question = issue type
-            return switch (category) {
-                case "ticket" -> List.of(
-                    new ChoiceButton("🎫 Sai ghế / suất / phim", "Sai ghế/suất/phim"),
-                    new ChoiceButton("📭 Chưa nhận được vé", "Chưa nhận vé"),
-                    new ChoiceButton("🔄 Cần đổi / hủy / hoàn vé", "Đổi/hủy vé"),
-                    new ChoiceButton("📱 Lỗi quét mã QR", "Lỗi QR"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "payment" -> List.of(
-                    new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
-                    new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
-                    new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "account" -> List.of(
-                    new ChoiceButton("🔑 Không đăng nhập được", "Không đăng nhập được"),
-                    new ChoiceButton("📱 Không nhận được OTP", "Không nhận OTP"),
-                    new ChoiceButton("🔒 Quên mật khẩu", "Quên mật khẩu"),
-                    new ChoiceButton("🚫 Tài khoản bị khóa", "Tài khoản bị khóa"),
-                    new ChoiceButton("✏️ Cập nhật thông tin", "Cập nhật thông tin"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "promo" -> List.of(
-                    new ChoiceButton("❌ Không áp dụng được", "Không áp dụng được"),
-                    new ChoiceButton("⏰ Mã đã hết hạn", "Mã hết hạn"),
-                    new ChoiceButton("📋 Không đúng điều kiện", "Không đúng điều kiện"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                case "membership" -> List.of(
-                    new ChoiceButton("⭐ Điểm thưởng bị sai", "Điểm thưởng sai"),
-                    new ChoiceButton("👑 Hạng thành viên không đúng", "Hạng thành viên sai"),
-                    new ChoiceButton("🎁 Quyền lợi không được áp dụng", "Quyền lợi không áp dụng"),
-                    new ChoiceButton("📝 Khác", "Khác")
-                );
-                default -> null;
-            };
+        String[] fields = CATEGORY_FLOW_FIELDS.get(category);
+        if (fields == null || fieldIndex < 0 || fieldIndex >= fields.length) {
+            return null;
         }
-        // Payment step 2 (paymentMethod) — show payment method choices
-        if ("payment".equals(category) && fieldIndex == 1) {
-            return List.of(
+        return switch (fields[fieldIndex]) {
+            case "issueType" -> issueTypeChoices(category);
+            case "paymentMethod" -> paymentMethodChoices();
+            default -> null;
+        };
+    }
+
+    /** Issue-type quick replies per category. */
+    private List<ChoiceButton> issueTypeChoices(String category) {
+        return switch (category) {
+            case "ticket" -> List.of(
+                new ChoiceButton("🎫 Sai ghế / suất / phim", "Sai ghế/suất/phim"),
+                new ChoiceButton("📭 Chưa nhận được vé", "Chưa nhận vé"),
+                new ChoiceButton("🔄 Cần đổi / hủy / hoàn vé", "Đổi/hủy vé"),
+                new ChoiceButton("📱 Lỗi quét mã QR", "Lỗi QR"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "payment" -> List.of(
                 new ChoiceButton("💸 Bị trừ tiền nhưng chưa nhận vé", "Trừ tiền chưa nhận vé"),
                 new ChoiceButton("↩️ Cần hoàn tiền / refund", "Hoàn tiền"),
                 new ChoiceButton("⏱️ Giao dịch bị lỗi / timeout", "Giao dịch lỗi"),
                 new ChoiceButton("📝 Khác", "Khác")
             );
-        }
-        return null;
+            case "account" -> List.of(
+                new ChoiceButton("🔑 Không đăng nhập được", "Không đăng nhập được"),
+                new ChoiceButton("📱 Không nhận được OTP", "Không nhận OTP"),
+                new ChoiceButton("🔒 Quên mật khẩu", "Quên mật khẩu"),
+                new ChoiceButton("🚫 Tài khoản bị khóa", "Tài khoản bị khóa"),
+                new ChoiceButton("✏️ Cập nhật thông tin", "Cập nhật thông tin"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "promo" -> List.of(
+                new ChoiceButton("❌ Không áp dụng được", "Không áp dụng được"),
+                new ChoiceButton("⏰ Mã đã hết hạn", "Mã hết hạn"),
+                new ChoiceButton("📋 Không đúng điều kiện", "Không đúng điều kiện"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            case "membership" -> List.of(
+                new ChoiceButton("⭐ Điểm thưởng bị sai", "Điểm thưởng sai"),
+                new ChoiceButton("👑 Hạng thành viên không đúng", "Hạng thành viên sai"),
+                new ChoiceButton("🎁 Quyền lợi không được áp dụng", "Quyền lợi không áp dụng"),
+                new ChoiceButton("📝 Khác", "Khác")
+            );
+            default -> null;
+        };
     }
 
-    /** Count how many fields have been collected from the conversation so far. */
+    /** Payment-method quick replies (payment flow, field "paymentMethod"). */
+    private List<ChoiceButton> paymentMethodChoices() {
+        return List.of(
+            new ChoiceButton("🟦 ZaloPay", "ZaloPay"),
+            new ChoiceButton("🟪 MoMo", "MoMo"),
+            new ChoiceButton("🏦 VNPay", "VNPay"),
+            new ChoiceButton("💳 Thẻ ngân hàng", "Thẻ ngân hàng"),
+            new ChoiceButton("🌐 Stripe / thẻ quốc tế", "Stripe"),
+            new ChoiceButton("📝 Khác", "Khác")
+        );
+    }
+
+    // Opening messages that merely SELECT a topic (guided-category chip labels and the
+    // generic seeds sent when a guided category is picked). They must never be counted as
+    // an answer to a flow field — otherwise the bot skips every question and jumps straight
+    // to the summary. Stored already-normalized (diacritics stripped, punctuation → space).
+    private static final java.util.Set<String> GUIDED_OPENERS = java.util.Set.of(
+        // Category chip labels
+        "ve suat chieu", "thanh toan", "tai khoan", "khuyen mai", "hoi vien", "khac",
+        // Guided seeds / quick-shortcut queries
+        "toi khong dang nhap duoc va can ho tro tai khoan",
+        "toi can ho tro ve voucher hoac khuyen mai",
+        "toi can ho tro ve hoi vien va diem thuong",
+        "toi can ho tro ve ve hoac suat chieu",
+        "toi can ho tro ve thanh toan",
+        "toi co van de khac can duoc ho tro"
+    );
+
+    /** True when a user message is a real answer to a flow question — i.e. not empty, not a
+     *  pure "ok"/"sửa" button click and not a topic-selection opener (category chip / seed). */
+    private boolean isFieldAnswer(String content) {
+        if (content == null) return false;
+        String norm = normalize(content)
+                .replaceAll("[^a-z0-9\\s]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        if (norm.length() < 2) return false;
+        if (CONFIRM_YES.contains(norm) || CONFIRM_EDIT.contains(norm)) return false;
+        return !GUIDED_OPENERS.contains(norm);
+    }
+
+    /** Ordered list of substantive user answers so far, used both to measure flow progress
+     *  and to fill the ticket summary/description. {@code history} already contains the
+     *  current message (the frontend appends it before sending); {@code message} is only
+     *  added as a fallback when it isn't already the last entry. */
+    private List<String> collectFieldAnswers(List<SupportAiMessage> history, String message) {
+        List<String> answers = new ArrayList<>();
+        if (history != null) {
+            for (SupportAiMessage m : history) {
+                if (m == null || !"user".equals(m.role()) || m.content() == null) continue;
+                if (isFieldAnswer(m.content())) {
+                    answers.add(m.content().replaceAll("\\s+", " ").trim());
+                }
+            }
+        }
+        if (message != null && isFieldAnswer(message)) {
+            String cleaned = message.replaceAll("\\s+", " ").trim();
+            if (answers.isEmpty() || !answers.get(answers.size() - 1).equals(cleaned)) {
+                answers.add(cleaned);
+            }
+        }
+        return answers;
+    }
+
+    /**
+     * Count how many flow fields the user has actually answered so far.
+     * Progress advances ONE field per substantive user turn — we intentionally do NOT use a
+     * "message length" heuristic (a single long opener/seed used to satisfy every field at
+     * once, making the bot jump straight to the summary without letting the user pick an
+     * issue type or describe anything).
+     */
     private int countCollectedFields(String normalized, String message, String category, List<SupportAiMessage> history) {
         String[] fields = CATEGORY_FLOW_FIELDS.get(category);
         if (fields == null) return 0;
-
-        int count = 0;
-        for (int i = 0; i < fields.length; i++) {
-            if (isFieldCollected(fields[i], normalized, message, category, history, i)) {
-                count++;
-            } else {
-                break; // Stop at first missing field (sequential)
-            }
-        }
-        return count;
+        return Math.min(collectFieldAnswers(history, message).size(), fields.length);
     }
 
-    /** Heuristic: has the user provided info for this field in the conversation? */
-    private boolean isFieldCollected(String fieldName, String normalized, String currentMsg, String category, List<SupportAiMessage> history, int fieldIndex) {
-        // For field 0 (ticketCode/orderCode/voucherCode): check if ticket/order code was extracted
-        if (fieldIndex == 0 && ("ticket".equals(category) || "payment".equals(category))) {
-            if (extractTicketOrOrderCode(currentMsg) != null) return true;
-            // Also check history
-            if (history != null) {
-                for (int i = history.size() - 1; i >= 0; i--) {
-                    SupportAiMessage m = history.get(i);
-                    if ("user".equals(m.role()) && extractTicketOrOrderCode(m.content()) != null) return true;
-                }
-            }
-            return false;
-        }
-
-        if (fieldIndex == 0 && "promo".equals(category)) {
-            // Promo: check for voucher code pattern or meaningful text
-            String v = normalized.replaceAll("[^a-z0-9]", "");
-            return v.length() >= 3; // Short code or name provided
-        }
-
-        // For other fields: check if the message is substantial enough
-        // (not just "ok", "yes", etc.)
-        if (currentMsg != null) {
-            String cleaned = currentMsg.replaceAll("\\s+", " ").trim();
-            // Message longer than 10 chars excluding common confirm words = probably answering the question
-            if (cleaned.length() > 10 && !CONFIRM_YES.contains(normalized) && !CONFIRM_EDIT.contains(normalized)) {
-                return true;
-            }
-        }
-
-        // For fields beyond the first: also check if a previous user message in history already answered this
-        if (history != null && fieldIndex > 0) {
-            int userMsgCount = 0;
-            for (int i = history.size() - 1; i >= 0; i--) {
-                SupportAiMessage m = history.get(i);
-                if ("user".equals(m.role())) {
-                    userMsgCount++;
-                    if (userMsgCount > fieldIndex) {
-                        String hNorm = normalize(m.content());
-                        String hCleaned = m.content().replaceAll("\\s+", " ").trim();
-                        if (hCleaned.length() > 10 && !CONFIRM_YES.contains(hNorm) && !CONFIRM_EDIT.contains(hNorm)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
+    /** Take the last {@code max} field answers (they align 1:1 with the flow fields in order). */
+    private List<String> fieldValues(List<SupportAiMessage> history, String message, int max) {
+        List<String> answers = collectFieldAnswers(history, message);
+        if (answers.size() <= max) return answers;
+        return new ArrayList<>(answers.subList(answers.size() - max, answers.size()));
     }
 
     /** Build a ticket summary from collected fields. */
@@ -633,23 +673,8 @@ public class SupportAiService {
         String[] fieldLabels = getFieldLabels(category);
         if (fieldLabels == null) return sb.toString();
 
-        // Gather all user messages from history + current message
-        List<String> userMessages = new ArrayList<>();
-        if (history != null) {
-            for (SupportAiMessage m : history) {
-                if ("user".equals(m.role())) userMessages.add(m.content());
-            }
-        }
-        userMessages.add(message);
-        // Keep only the most recent N messages that are substantial
-        List<String> substantial = new ArrayList<>();
-        for (int i = userMessages.size() - 1; i >= 0 && substantial.size() < fields.length; i--) {
-            String msg = userMessages.get(i);
-            String cleaned = msg.replaceAll("\\s+", " ").trim();
-            if (cleaned.length() > 3) {
-                substantial.add(0, cleaned);
-            }
-        }
+        // Field answers in order (openers / confirm clicks excluded, current message deduped)
+        List<String> substantial = fieldValues(history, message, fields.length);
 
         // Category name
         String catName = switch (category) {
@@ -682,23 +707,8 @@ public class SupportAiService {
             return sb.toString();
         }
 
-        // Gather all user messages
-        List<String> userMessages = new ArrayList<>();
-        if (history != null) {
-            for (SupportAiMessage m : history) {
-                if ("user".equals(m.role())) userMessages.add(m.content());
-            }
-        }
-        userMessages.add(message);
-
-        List<String> substantial = new ArrayList<>();
-        for (int i = userMessages.size() - 1; i >= 0 && substantial.size() < fieldLabels.length; i--) {
-            String msg = userMessages.get(i);
-            String cleaned = msg.replaceAll("\\s+", " ").trim();
-            if (cleaned.length() > 3) {
-                substantial.add(0, cleaned);
-            }
-        }
+        // Field answers in order (openers / confirm clicks excluded, current message deduped)
+        List<String> substantial = fieldValues(history, message, fieldLabels.length);
 
         for (int i = 0; i < fieldLabels.length; i++) {
             String value = i < substantial.size() ? substantial.get(i) : "(chưa cung cấp)";
@@ -893,6 +903,12 @@ public class SupportAiService {
         String normalized = normalize(text).replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
         if (normalized.isBlank()) {
             return true;
+        }
+        // Short confirm/edit replies from the guided-flow buttons ("ok", "edit", "sửa"…)
+        // are meaningful — never flag them as low-signal noise, otherwise the ticket
+        // confirmation ("OK — Gửi ticket") would be rejected as "chưa hiểu rõ".
+        if (CONFIRM_YES.contains(normalized) || CONFIRM_EDIT.contains(normalized)) {
+            return false;
         }
         if (hasSupportKeyword(normalized)) {
             return false;

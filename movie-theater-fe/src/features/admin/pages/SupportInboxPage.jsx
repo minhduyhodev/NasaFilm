@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Trash2,
 } from 'lucide-react';
 import SupportStickerBubble from '../../../shared/components/SupportStickerBubble';
 import {
@@ -338,10 +339,10 @@ const SupportInboxPage = () => {
       message: 'Xác nhận xóa ticket đã hoàn tất? Hành động này không thể hoàn tác.',
       highlight: selectedTicketCode,
       confirmLabel: 'Xóa ticket',
+      cancelLabel: 'Giữ lại',
       variant: 'danger',
     });
     if (!ok) return;
-
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
@@ -665,7 +666,17 @@ const SupportInboxPage = () => {
                     >
                       Gửi cảm ơn & kết thúc
                     </button>
-                  ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      className="support-filter-tab support-chat-delete-btn"
+                      onClick={handleDeleteTicket}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Xóa ticket
+                    </button>
+                  )}
                   <StatusBadge variant={getStatusMeta(selectedTicket.status).variant}>
                     {getStatusMeta(selectedTicket.status).label}
                   </StatusBadge>
@@ -680,26 +691,12 @@ const SupportInboxPage = () => {
               ) : null}
 
               {(selectedTicket.status === 'DONE' || selectedTicket.status === 'CLOSED' || selectedTicket.status === 'RESOLVED') && (
-                <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
-                  <p className="support-state-title">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Khách đã hủy yêu cầu'
-                      : selectedTicket.satisfactionRating
-                        ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
-                        : 'Hỗ trợ đã kết thúc'}
-                  </p>
-                  <p className="support-state-desc">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Ticket đã bị khách hủy. Bạn có thể xóa khỏi hộp thư nếu không cần giữ.'
-                      : selectedTicket.satisfactionRating
-                        ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
-                        : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
-                  </p>
-                  <div className="support-compose-footer" style={{ justifyContent: 'flex-end' }}>
-                    <button type="button" className="support-filter-tab" onClick={handleDeleteTicket}>
-                      Xóa ticket
-                    </button>
-                  </div>
+                <div className="support-closed-note">
+                  {selectedTicket.status === 'CLOSED'
+                    ? 'Khách đã hủy yêu cầu — có thể xóa ticket nếu không cần giữ.'
+                    : selectedTicket.satisfactionRating
+                      ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel} — hỗ trợ đã hoàn tất.`
+                      : 'Hỗ trợ đã kết thúc (DONE).'}
                 </div>
               )}
 

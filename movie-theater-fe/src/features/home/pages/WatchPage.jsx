@@ -756,7 +756,7 @@ const WatchPage = () => {
                         <div key={actor.uuid || actor.fullName} className="flex items-center gap-3">
                           <img
                             src={
-                              actor.avatarUrl ||
+                              resolveMediaUrl(actor.avatarUrl, 120) ||
                               'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100'
                             }
                             alt={actor.fullName}
