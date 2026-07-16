@@ -22,7 +22,7 @@ import Pagination from '../../../shared/components/Pagination';
 import { maskTicketCode, formatShowtimeDisplay } from '../utils/movieUtils';
 import './PurchaseHistoryPanel.css';
 
-const DEFAULT_PAGE_SIZE = 5;
+const DEFAULT_PAGE_SIZE = 2;
 
 const FILTERS = [
   { id: 'all', label: 'Tất cả' },
@@ -415,7 +415,7 @@ const PurchaseHistoryPanel = () => {
         </div>
       </div>
 
-      <div className="ph-body">
+      <div className="ph-body custom-scrollbar">
         {isLoading ? (
           <div className="ph-state">
             <div className="ph-spinner" />
@@ -496,7 +496,7 @@ const PurchaseHistoryPanel = () => {
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={setItemsPerPage}
-            itemsPerPageOptions={[5, 10, 20]}
+            itemsPerPageOptions={[2, 4, 6]}
           />
         </div>
       )}
