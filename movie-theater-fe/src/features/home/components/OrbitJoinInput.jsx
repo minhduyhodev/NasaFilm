@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Link, Loader2 } from 'lucide-react';
-import { notificationService } from '../../../shared/services/notificationService';
 import { orbitService } from '../../../shared/services/orbitService';
 
 const OrbitJoinInput = () => {
   const [linkInput, setLinkInput] = useState('');
+  const [joinError, setJoinError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -13,10 +13,11 @@ const OrbitJoinInput = () => {
     e.preventDefault();
     const input = linkInput.trim();
     if (!input) {
-      notificationService.error('Vui lòng nhập mã phòng hoặc dán link Orbit để tham gia.');
+      setJoinError('Vui lòng nhập mã phòng (8 ký tự) hoặc dán link Orbit để tham gia.');
       return;
     }
 
+    setJoinError('');
     setLoading(true);
     try {
       let code = input;
@@ -32,21 +33,27 @@ const OrbitJoinInput = () => {
         }
       }
 
+      const shortCodeRegex = /^[0-9a-f]{8}$/i;
+      if (!uuidRegex.test(code) && !shortCodeRegex.test(code)) {
+        setJoinError('Mã phòng không hợp lệ. Nhập 8 ký tự hoặc dán link mời Orbit.');
+        return;
+      }
+
       const res = await orbitService.resolveRoomCode(code);
       if (res && res.roomUuid) {
         navigate(`/booking/orbit/${res.roomUuid}`);
       } else {
-        notificationService.error('Không tìm thấy phòng Orbit.');
+        setJoinError('Không tìm thấy phòng Orbit hoặc phòng đã hết hạn.');
       }
     } catch (err) {
-      notificationService.error(err.message || 'Mã phòng hoặc đường dẫn Orbit không hợp lệ hoặc đã hết hạn.');
+      setJoinError(err.message || 'Mã phòng hoặc đường dẫn Orbit không hợp lệ hoặc đã hết hạn.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleJoin} className="orbit-join-bar flex items-center gap-2 bg-[#1f2937]/40 backdrop-blur-md p-2 rounded-2xl border border-white/10 max-w-md w-full shadow-lg">
+    <form onSubmit={handleJoin} className="orbit-join-bar relative flex items-center gap-2 bg-[#1f2937]/40 backdrop-blur-md p-2 pb-6 rounded-2xl border border-white/10 max-w-md w-full shadow-lg">
       <div className="flex items-center gap-2 pl-2 text-zinc-500 shrink-0">
         <Link className="w-3.5 h-3.5" />
       </div>
@@ -54,13 +61,19 @@ const OrbitJoinInput = () => {
         type="text"
         placeholder="Nhập mã (8 ký tự) hoặc dán link phòng để tham gia..."
         value={linkInput}
-        onChange={(e) => setLinkInput(e.target.value)}
+        onChange={(e) => {
+          setLinkInput(e.target.value);
+          if (joinError) setJoinError('');
+        }}
         disabled={loading}
         className="flex-grow bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none disabled:opacity-50"
       />
+      {joinError && (
+        <p className="absolute -bottom-5 left-2 text-[10px] text-red-400 font-semibold">{joinError}</p>
+      )}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !linkInput.trim()}
         className="bg-red-600 hover:bg-red-700 active:scale-95 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
       >
         {loading ? (

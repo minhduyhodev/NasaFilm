@@ -22,6 +22,7 @@ import AdminModal from '../components/AdminModal';
 import MissionFormPanel from '../components/panels/MissionFormPanel';
 import MissionCampaignFormPanel from '../components/panels/MissionCampaignFormPanel';
 import { AdminPage, PageHeader, PrimaryButton, AdminKpiGrid } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import {
   formatAdminDateRange,
   formatAdminDateTime,
@@ -229,6 +230,7 @@ const CampaignRow = ({ item, onEdit, onArchive, onDelete, isArchiving, isDeletin
 };
 
 const MissionsPage = () => {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('templates');
   const [templates, setTemplates] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
@@ -361,6 +363,17 @@ const MissionsPage = () => {
   };
 
   const handleToggleActive = async (template) => {
+    const ok = await confirm({
+      title: template.active ? 'Tắt nhiệm vụ' : 'Bật nhiệm vụ',
+      message: template.active
+        ? 'Khán giả sẽ không còn thấy nhiệm vụ này trên tab Nhiệm vụ.'
+        : 'Khán giả sẽ thấy nhiệm vụ này trên tab Nhiệm vụ.',
+      highlight: getMissionDisplayTitle(template),
+      confirmLabel: template.active ? 'Tắt nhiệm vụ' : 'Bật nhiệm vụ',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setTogglingCode(template.code);
     try {
       await adminMissionService.toggleTemplateActive(template);
@@ -393,10 +406,14 @@ const MissionsPage = () => {
   };
 
   const handleDeleteTemplate = async (template) => {
-    const confirmed = window.confirm(
-      `Xóa nhiệm vụ "${getMissionDisplayTitle(template)}"?\n\nNhiệm vụ sẽ ẩn khỏi khán giả và có thể khôi phục trong tab "Đã xóa".`,
-    );
-    if (!confirmed) return;
+    const ok = await confirm({
+      title: 'Xóa nhiệm vụ',
+      message: 'Nhiệm vụ sẽ ẩn khỏi khán giả và có thể khôi phục trong tab "Đã xóa".',
+      highlight: getMissionDisplayTitle(template),
+      confirmLabel: 'Xóa nhiệm vụ',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setDeletingCode(template.code);
     try {
@@ -411,6 +428,15 @@ const MissionsPage = () => {
   };
 
   const handleRestoreTemplate = async (template) => {
+    const ok = await confirm({
+      title: 'Khôi phục nhiệm vụ',
+      message: 'Khôi phục nhiệm vụ này? Bạn cần bật lại nếu muốn hiển thị với khán giả.',
+      highlight: getMissionDisplayTitle(template),
+      confirmLabel: 'Khôi phục',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setRestoringCode(template.code);
     try {
       const restored = await adminMissionService.restoreTemplate(template.code);
@@ -427,6 +453,15 @@ const MissionsPage = () => {
 
   const handleArchiveCampaign = async (campaign) => {
     if (!campaign?.uuid) return;
+    const ok = await confirm({
+      title: 'Lưu trữ chiến dịch',
+      message: 'Chiến dịch sẽ ngừng hiển thị với khán giả. Bạn có thể xem lại trong danh sách đã lưu trữ.',
+      highlight: campaign.title,
+      confirmLabel: 'Lưu trữ',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setArchivingUuid(campaign.uuid);
     try {
       const updated = await adminMissionService.archiveCampaign(campaign.uuid);
@@ -448,8 +483,14 @@ const MissionsPage = () => {
       notificationService.error('Gỡ nhiệm vụ khỏi chiến dịch trước khi xóa.');
       return;
     }
-    const confirmed = window.confirm(`Xóa vĩnh viễn chiến dịch "${campaign.title}"?`);
-    if (!confirmed) return;
+    const ok = await confirm({
+      title: 'Xóa vĩnh viễn chiến dịch',
+      message: 'Chiến dịch sẽ bị xóa hoàn toàn và không thể khôi phục.',
+      highlight: campaign.title,
+      confirmLabel: 'Xóa vĩnh viễn',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setDeletingUuid(campaign.uuid);
     try {

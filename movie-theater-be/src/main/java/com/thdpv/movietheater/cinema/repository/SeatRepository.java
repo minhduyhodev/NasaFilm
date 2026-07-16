@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.thdpv.movietheater.cinema.entity.Seat;
+import com.thdpv.movietheater.cinema.enums.SeatStatus;
 
 @Repository
 public interface SeatRepository extends JpaRepository<Seat, UUID> {
@@ -18,6 +19,9 @@ public interface SeatRepository extends JpaRepository<Seat, UUID> {
     List<Seat> findByCinemaRoom_UuidAndIsActiveTrueOrderByRowNameAscSeatNumberAsc(UUID cinemaRoomUuid);
 
     long countByCinemaRoom_Uuid(UUID cinemaRoomUuid);
+
+    /** Bookable seats = active + status ACTIVE (excludes DISABLED aisle/access seats and MAINTENANCE). */
+    long countByCinemaRoom_UuidAndIsActiveTrueAndStatus(UUID cinemaRoomUuid, SeatStatus status);
 
     @Modifying
     @Query("DELETE FROM Seat s WHERE s.cinemaRoom.uuid = :cinemaRoomUuid")

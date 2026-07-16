@@ -169,6 +169,15 @@ const EmailTemplatesPage = () => {
       return;
     }
 
+    const ok = await confirm({
+      title: editingId === 'new' ? 'Tạo mẫu email' : 'Lưu mẫu email',
+      message: 'Email hệ thống sẽ dùng nội dung mới cho các thông báo gửi đi.',
+      highlight: `${code} · ${form.name.trim()}`,
+      confirmLabel: editingId === 'new' ? 'Tạo mẫu' : 'Lưu thay đổi',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsSaving(true);
     try {
       const payload = {

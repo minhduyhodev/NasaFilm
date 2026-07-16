@@ -34,6 +34,11 @@ export function useSeatMapState(showtimeUuid, options = {}) {
   const inFlightRef = useRef(null);
   const onLockTimeoutRef = useRef(onLockTimeout);
   const lockTimerEnabledRef = useRef(lockTimerEnabled);
+  const lockTimeoutHandledRef = useRef(false);
+
+  useEffect(() => {
+    lockTimeoutHandledRef.current = false;
+  }, [showtimeUuid, lockTimerEnabled]);
 
   useEffect(() => {
     selectedSeatsRef.current = selectedSeats;
@@ -107,10 +112,15 @@ export function useSeatMapState(showtimeUuid, options = {}) {
       return undefined;
     }
     if (timeLeft === 0) {
+      if (lockTimeoutHandledRef.current) {
+        return undefined;
+      }
+      lockTimeoutHandledRef.current = true;
       const handler = onLockTimeoutRef.current;
       if (handler) {
         Promise.resolve(handler()).catch(console.error);
       }
+      setTimeLeft(null);
       return undefined;
     }
     const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);

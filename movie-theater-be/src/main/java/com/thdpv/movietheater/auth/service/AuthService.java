@@ -490,8 +490,10 @@ public class AuthService {
         String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
         user.setVerificationCode(passwordEncoder.encode(otpCode));
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
-        user.setVerificationAttempts(0);
-        user.setVerificationLockTime(null);
+        if (existingUserOpt.isEmpty()) {
+            user.setVerificationAttempts(0);
+            user.setVerificationLockTime(null);
+        }
 
         userRepository.save(user);
 
@@ -548,7 +550,7 @@ public class AuthService {
 
         if (!otpValid) {
             int attempts = (user.getVerificationAttempts() != null ? user.getVerificationAttempts() : 0) + 1;
-            final int maxAttempts = 10;
+            final int maxAttempts = 5;
             if (attempts >= maxAttempts) {
                 user.setVerificationLockTime(LocalDateTime.now().plusMinutes(15));
                 user.setVerificationAttempts(0);

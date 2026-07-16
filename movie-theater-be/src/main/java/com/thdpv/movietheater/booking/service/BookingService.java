@@ -906,9 +906,33 @@ public class BookingService {
         return totalPrice.divide(BigDecimal.valueOf(10000), 0, RoundingMode.DOWN).intValue();
     }
 
+    private static final String TICKET_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int TICKET_CODE_RANDOM_LENGTH = 10;
+    private static final int TICKET_CODE_MAX_ATTEMPTS = 5;
+
+    /**
+     * Short, human-friendly ticket code: "TK" + 10 random uppercase alphanumeric chars (ambiguous
+     * characters like 0/O/1/I/L excluded). Retries a few times on the rare collision with the
+     * DB-level unique constraint before giving up, so callers still fail loudly instead of silently
+     * saving a duplicate.
+     */
     private String generateTicketCode() {
-        return "TK" + OffsetDateTime.now(ZoneOffset.UTC).toInstant().toEpochMilli()
-                + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        for (int attempt = 0; attempt < TICKET_CODE_MAX_ATTEMPTS; attempt++) {
+            String candidate = "TK" + randomTicketSuffix();
+            if (!ticketRepository.existsByTicketCode(candidate)) {
+                return candidate;
+            }
+        }
+        throw new AppException(ErrorCode.CONFLICT, "Không thể tạo mã vé, vui lòng thử lại");
+    }
+
+    private String randomTicketSuffix() {
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(TICKET_CODE_RANDOM_LENGTH);
+        for (int i = 0; i < TICKET_CODE_RANDOM_LENGTH; i++) {
+            sb.append(TICKET_CODE_ALPHABET.charAt(random.nextInt(TICKET_CODE_ALPHABET.length())));
+        }
+        return sb.toString();
     }
 
     private void sendOrbitMemberTicketEmails(
@@ -1572,7 +1596,7 @@ public class BookingService {
                 true,
                 playbackState,
                 booking.getFirstPlayedAt(),
-                booking.getExpiresAt(),
+                booking.getFirstPlayedAt() != null ? booking.getExpiresAt() : null,
                 streamingUrl);
         response.setPositionSeconds(booking.getVodPositionSeconds());
         response.setDurationSeconds(booking.getVodDurationSeconds());

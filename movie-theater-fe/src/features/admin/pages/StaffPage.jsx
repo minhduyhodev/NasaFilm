@@ -11,8 +11,10 @@ import AdminModal from '../components/AdminModal';
 import AdminUserFormPanel from '../components/panels/AdminUserFormPanel';
 import { adminFilterSelectClass } from '../components/adminFormStyles';
 import { AdminPage, PageHeader, AdminKpiGrid } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const StaffPage = () => {
+  const confirm = useConfirm();
   const { user: currentUser } = useAuthContext();
   const [usersList, setUsersList] = useState([]);
   const [availablePermissions, setAvailablePermissions] = useState([]);
@@ -90,6 +92,22 @@ const StaffPage = () => {
       notificationService.warning('Bạn không thể tự khóa tài khoản của chính mình!');
       return;
     }
+    const statusLabels = {
+      ACTIVE: 'Hoạt động',
+      SUSPENDED: 'Bị khóa',
+    };
+    const ok = await confirm({
+      title: 'Thay đổi trạng thái nhân viên',
+      message: `Xác nhận đổi trạng thái tài khoản sang "${statusLabels[newStatus] || newStatus}"?`,
+      highlight: userEmail,
+      detail: newStatus === 'SUSPENDED'
+        ? 'Nhân viên sẽ không thể đăng nhập cho đến khi được mở khóa.'
+        : '',
+      confirmLabel: 'Xác nhận thay đổi',
+      variant: newStatus === 'SUSPENDED' ? 'danger' : 'warning',
+    });
+    if (!ok) return;
+
     setUpdatingUserId(userId);
     try {
       await adminUserService.updateUserStatus(userId, newStatus);
@@ -148,6 +166,25 @@ const StaffPage = () => {
       }
 
       if (hasChanges) {
+        const roleChanged = !normalizeRoles(selectedUser.roles).includes(roleForm);
+        const statusChanged = statusForm !== normalizeStatus(selectedUser.status);
+        const permissionsChanged = roleForm === 'STAFF'
+          && [...(selectedUser.permissions || [])].sort().join('|') !== [...permissionForm].sort().join('|');
+
+        const ok = await confirm({
+          title: 'Lưu thay đổi nhân viên',
+          message: 'Xác nhận cập nhật vai trò, quyền hạn hoặc trạng thái tài khoản?',
+          highlight: selectedUser.fullName || selectedUser.email,
+          detail: [
+            roleChanged ? `Vai trò → ${roleForm}` : null,
+            statusChanged ? `Trạng thái → ${statusForm === 'SUSPENDED' ? 'Bị khóa' : 'Hoạt động'}` : null,
+            permissionsChanged ? 'Cập nhật danh sách quyền chi tiết' : null,
+          ].filter(Boolean).join(' · '),
+          confirmLabel: 'Lưu thay đổi',
+          variant: statusForm === 'SUSPENDED' || roleChanged ? 'danger' : 'warning',
+        });
+        if (!ok) return;
+
         await Promise.all(promises);
         notificationService.success(`Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`);
         fetchUsers();
@@ -348,11 +385,11 @@ const StaffPage = () => {
             <table className="w-full text-left border-collapse font-sans">
               <thead>
                 <tr className="border-b border-[#1A2238]">
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Nhân Sự</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Số Điện Thoại</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Quyền Hạn</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">Trạng Thái</th>
-                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center">Hành Động</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono align-middle">Nhân Sự</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono align-middle">Số Điện Thoại</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono align-middle">Quyền Hạn</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono align-middle">Trạng Thái</th>
+                  <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center align-middle">Hành Động</th>
                 </tr>
               </thead>
               <tbody>
@@ -362,7 +399,7 @@ const StaffPage = () => {
                   return (
                     <tr key={row.id} className="border-b border-[#1A2238]/40 hover:bg-white/[0.01] transition-colors duration-150 font-sans">
                       {/* IDENTITY */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle">
                         <div className="flex items-center gap-3 font-sans">
                           <UserAvatar src={row.avatarUrl} name={row.fullName} />
                           <div className="min-w-0 flex-1 font-sans">
@@ -384,12 +421,12 @@ const StaffPage = () => {
                       </td>
 
                       {/* PHONE */}
-                      <td className="px-6 py-4 text-xs text-gray-300 font-mono">
+                      <td className="px-6 py-4 text-xs text-gray-300 font-mono align-middle">
                         {row.phoneNumber || '--'}
                       </td>
 
                       {/* ROLE */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle">
                         {row.roles?.includes('ADMIN') ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-rose-500/10 border-rose-500/20 text-rose-400 font-mono">
                             ADMINISTRATOR
@@ -407,7 +444,7 @@ const StaffPage = () => {
                       </td>
 
                       {/* STATUS + QUICK TOGGLE */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle">
                         <div className="relative inline-block text-left">
                           <button
                             type="button"
@@ -448,15 +485,17 @@ const StaffPage = () => {
                       </td>
 
                       {/* ACTIONS */}
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDetailModal(row)}
-                          className="p-2 bg-[#1A2238] hover:bg-[#2C3B5E] text-gray-300 hover:text-white rounded-lg transition duration-200 cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold border-none font-mono"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Sửa quyền
-                        </button>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetailModal(row)}
+                            className="h-9 px-3 bg-[#1A2238] hover:bg-[#2C3B5E] text-gray-300 hover:text-white rounded-lg transition duration-200 cursor-pointer inline-flex items-center justify-center gap-1.5 text-xs font-bold border-none font-mono"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Sửa quyền
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -513,8 +552,8 @@ const StaffPage = () => {
       {isDetailModalOpen && selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsDetailModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl p-6 text-left transform scale-100 transition-all duration-300 font-sans">
-            <div className="flex justify-between items-center mb-5 border-b border-[#1A2238]/60 pb-3">
+          <div className="relative w-full max-w-md max-h-[85vh] bg-[#0F1322] border border-[#1A2238] rounded-xl overflow-hidden shadow-2xl text-left transform scale-100 transition-all duration-300 font-sans flex flex-col">
+            <div className="flex justify-between items-center px-6 pt-6 pb-3 border-b border-[#1A2238]/60 shrink-0">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
                 <Shield className="w-4 h-4 text-amber-500" />
                 Cập nhật Quyền & Trạng Thái Nhân Sự
@@ -527,8 +566,8 @@ const StaffPage = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
-            <div className="space-y-4">
+
+            <div className="space-y-4 px-6 py-4 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
               <div className="flex items-center gap-3 p-3 bg-[#0B0F19] border border-[#1A2238] rounded-lg">
                 <UserAvatar src={selectedUser.avatarUrl} name={selectedUser.fullName} />
                 <div>
@@ -594,25 +633,25 @@ const StaffPage = () => {
                   </div>
                 </div>
               )}
+            </div>
 
-              <div className="pt-4 border-t border-[#1A2238]/60 flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-[#0F1322] border border-[#1A2238] hover:bg-[#1a2238]/40 text-gray-300 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-mono"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveUserDetail}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase transition-all hover:bg-amber-600 cursor-pointer border-none font-mono flex items-center gap-1.5"
-                >
-                  {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
-                  Lưu Thay Đổi
-                </button>
-              </div>
+            <div className="px-6 py-4 border-t border-[#1A2238]/60 flex gap-2 justify-end shrink-0 bg-[#0F1322]">
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="h-9 px-4 rounded-lg bg-[#0F1322] border border-[#1A2238] hover:bg-[#1a2238]/40 text-gray-300 hover:text-white text-[10px] font-bold uppercase transition-all cursor-pointer font-mono flex items-center justify-center"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveUserDetail}
+                disabled={isSubmitting}
+                className="h-9 px-4 rounded-lg bg-amber-500 text-black text-[10px] font-bold uppercase transition-all hover:bg-amber-600 cursor-pointer border-none font-mono flex items-center justify-center gap-1.5 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" />}
+                Lưu Thay Đổi
+              </button>
             </div>
           </div>
         </div>

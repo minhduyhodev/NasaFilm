@@ -29,6 +29,8 @@ import {
   formatDateShort,
   formatWeekday,
   isSameDay,
+  startOfVnDay,
+  addVnDays,
   isShowtimePlayingNow,
   getValidTransitions,
   getTransitionBtnClass,
@@ -296,10 +298,22 @@ const ShowtimesPage = () => {
       return;
     }
 
+    const now = Date.now();
+    const selectedPreviews = previewGenerated.filter((_, idx) => selectedPreviewUuids.has(idx));
+    const pastCount = selectedPreviews.filter(p => !p.startTime || new Date(p.startTime).getTime() <= now).length;
+    const futurePreviews = selectedPreviews.filter(p => p.startTime && new Date(p.startTime).getTime() > now);
+
+    if (futurePreviews.length === 0) {
+      notificationService.warning('Tất cả suất chiếu đã chọn đều ở thời điểm đã qua. Vui lòng chọn lại.');
+      return;
+    }
+    if (pastCount > 0) {
+      notificationService.warning(`Đã bỏ qua ${pastCount} suất chiếu có giờ bắt đầu đã qua.`);
+    }
+
     setIsSavingAuto(true);
     try {
-      const selectedRequests = previewGenerated
-        .filter((_, idx) => selectedPreviewUuids.has(idx))
+      const selectedRequests = futurePreviews
         .map(p => ({
           movieUuid: p.movieUuid,
           cinemaRoomUuid: p.cinemaRoomUuid,
@@ -523,14 +537,14 @@ const ShowtimesPage = () => {
   );
 
   // ---------- DERIVED DATA ----------
-  const today = useMemo(() => new Date(), []);
+  // Anchored to "today" in Asia/Ho_Chi_Minh, independent of the browser's local timezone.
+  const today = useMemo(() => startOfVnDay(), []);
 
   // Date nav items: today + 6 next days
   const dateNavItems = useMemo(() => {
     const items = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
+      const d = addVnDays(today, i);
       const dayShowtimes = showtimes.filter(s => s.startTime && isSameDay(new Date(s.startTime), d));
       const movieSet = new Set(dayShowtimes.map(s => s.movieUuid).filter(Boolean));
       const revenue = dayShowtimes.reduce((sum, s) => sum + (s.basePrice || 0), 0);

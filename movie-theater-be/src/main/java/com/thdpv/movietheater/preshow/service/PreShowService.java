@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -19,6 +21,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.booking.entity.BookingSeat;
 import com.thdpv.movietheater.booking.entity.Ticket;
 import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
@@ -32,6 +35,9 @@ import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.orbit.repository.OrbitMemberRepository;
+import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
+import com.thdpv.movietheater.orbit.util.OrbitSeatJson;
 import com.thdpv.movietheater.preshow.dto.TheaterBoardingContext;
 import com.thdpv.movietheater.preshow.dto.response.BoardingPassResponse;
 import com.thdpv.movietheater.preshow.enums.PreShowRitualStatus;
@@ -57,18 +63,24 @@ public class PreShowService {
     private final TicketRepository ticketRepository;
     private final BookingSeatRepository bookingSeatRepository;
     private final UserRepository userRepository;
+    private final OrbitRoomRepository orbitRoomRepository;
+    private final OrbitMemberRepository orbitMemberRepository;
 
     public PreShowService(
             BookingRepository bookingRepository,
             MovieRepository movieRepository,
             TicketRepository ticketRepository,
             BookingSeatRepository bookingSeatRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            OrbitRoomRepository orbitRoomRepository,
+            OrbitMemberRepository orbitMemberRepository) {
         this.bookingRepository = bookingRepository;
         this.movieRepository = movieRepository;
         this.ticketRepository = ticketRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.userRepository = userRepository;
+        this.orbitRoomRepository = orbitRoomRepository;
+        this.orbitMemberRepository = orbitMemberRepository;
     }
 
     @Transactional(readOnly = true)
@@ -83,8 +95,15 @@ public class PreShowService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy đơn đặt vé"));
 
         if (!context.userUuid().equals(user.getId())) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền xem thẻ lên máy bay này");
+            boolean orbitMemberAllowed = orbitRoomRepository.findByBookingUuid(bookingUuid)
+                    .flatMap(room -> orbitMemberRepository.findByRoomUuidAndUserUuid(room.getUuid(), user.getId()))
+                    .isPresent();
+            if (!orbitMemberAllowed) {
+                throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền xem thẻ lên máy bay này");
+            }
         }
+
+        Set<UUID> memberSeatUuids = resolveOrbitMemberSeatFilter(bookingUuid, user.getId(), context.userUuid());
 
         if (isOnlineBooking(context.bookingType())) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Thẻ lên máy bay chỉ áp dụng cho vé rạp chiếu");
@@ -98,8 +117,9 @@ public class PreShowService {
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
 
-        List<Ticket> tickets = ticketRepository.findByBookingUuid(bookingUuid);
-        List<String> seatLabels = loadSeatLabels(bookingUuid);
+        List<Ticket> tickets = filterTicketsForMember(
+                ticketRepository.findByBookingUuid(bookingUuid), bookingUuid, memberSeatUuids);
+        List<String> seatLabels = loadSeatLabels(bookingUuid, memberSeatUuids);
         String primaryTicketCode = tickets.stream()
                 .map(Ticket::getTicketCode)
                 .filter(Objects::nonNull)
@@ -192,8 +212,37 @@ public class PreShowService {
     }
 
     private List<String> loadSeatLabels(UUID bookingUuid) {
+        return loadSeatLabels(bookingUuid, null);
+    }
+
+    private List<String> loadSeatLabels(UUID bookingUuid, Set<UUID> allowedSeatUuids) {
         return bookingSeatRepository.findSeatsByBookingUuid(bookingUuid).stream()
+                .filter(seat -> allowedSeatUuids == null || allowedSeatUuids.contains(seat.getUuid()))
                 .map(seat -> seat.getRowName() + seat.getSeatNumber())
+                .toList();
+    }
+
+    private Set<UUID> resolveOrbitMemberSeatFilter(UUID bookingUuid, UUID viewerUuid, UUID bookingOwnerUuid) {
+        if (viewerUuid.equals(bookingOwnerUuid)) {
+            return null;
+        }
+        return orbitRoomRepository.findByBookingUuid(bookingUuid)
+                .flatMap(room -> orbitMemberRepository.findByRoomUuidAndUserUuid(room.getUuid(), viewerUuid))
+                .map(member -> new HashSet<>(OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson())))
+                .orElse(new HashSet<>());
+    }
+
+    private List<Ticket> filterTicketsForMember(
+            List<Ticket> tickets, UUID bookingUuid, Set<UUID> memberSeatUuids) {
+        if (memberSeatUuids == null) {
+            return tickets;
+        }
+        Set<UUID> allowedBookingSeatUuids = bookingSeatRepository.findByBookingUuid(bookingUuid).stream()
+                .filter(bs -> memberSeatUuids.contains(bs.getSeatUuid()))
+                .map(BookingSeat::getUuid)
+                .collect(Collectors.toSet());
+        return tickets.stream()
+                .filter(ticket -> allowedBookingSeatUuids.contains(ticket.getBookingSeatUuid()))
                 .toList();
     }
 

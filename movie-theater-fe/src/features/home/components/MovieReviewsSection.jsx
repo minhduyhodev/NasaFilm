@@ -20,6 +20,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import MovieReviewPagination from './MovieReviewPagination';
 import StarRating from './StarRating';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import {
   MAX_VIBE_TAGS_PER_REVIEW,
   VIBE_TAG_CLOUD_COLLAPSED_LIMIT,
@@ -70,6 +71,7 @@ const MovieReviewsSection = ({
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
+  const confirm = useConfirm();
 
   const [internalExpanded, setInternalExpanded] = useState(false);
   const isExpanded = controlledExpanded ?? internalExpanded;
@@ -293,6 +295,14 @@ const MovieReviewsSection = ({
   };
 
   const handleDeleteReview = async (reviewUuid) => {
+    const ok = await confirm({
+      title: 'Xóa đánh giá',
+      message: 'Bạn có chắc muốn xóa đánh giá của mình? Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa đánh giá',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setIsSubmitting(true);
     try {
       await movieReviewService.deleteReview(movieUuid, reviewUuid);

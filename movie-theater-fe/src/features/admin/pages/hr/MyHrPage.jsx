@@ -690,6 +690,15 @@ function LeaveTab({ leaves, onChanged, confirm }) {
       notificationService.error('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
       return;
     }
+    const ok = await confirm({
+      title: 'Gửi đơn nghỉ phép',
+      message: 'Xác nhận gửi đơn nghỉ phép cho quản lý duyệt?',
+      highlight: `${formatDate(fromDate)} → ${formatDate(toDate)}`,
+      confirmLabel: 'Gửi đơn',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       await hrService.createLeaveRequest({ leaveType, fromDate, toDate, reason: reason.trim() || null });
@@ -868,6 +877,14 @@ function SwapTab({ swaps, onChanged, confirm }) {
       notificationService.error('Vui lòng chọn ca của bạn và ca của đồng nghiệp.');
       return;
     }
+    const ok = await confirm({
+      title: 'Gửi yêu cầu đổi ca',
+      message: 'Xác nhận gửi yêu cầu đổi ca cho quản lý duyệt?',
+      confirmLabel: 'Gửi yêu cầu',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       await hrService.createSwapRequest({

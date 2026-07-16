@@ -19,6 +19,7 @@ import {
   buildDefaultLayout,
   expandColsForDefaultAisles,
   buildLayoutFromAisleCols,
+  getAisleColumnsFromLayout,
   slotKey,
   hasAisleSlot,
   addAisleSlots,
@@ -359,6 +360,16 @@ const AdminCinemaRoomPage = () => {
   // Combined master configuration save handler (used by Save Configuration button)
   const handleSaveAllConfiguration = async () => {
     if (!room) return;
+
+    const invalidCouples = findInvalidCoupleSeats(selectedRoomSeats);
+    if (invalidCouples.length > 0) {
+      const sample = invalidCouples.slice(0, 3).map((s) => `${s.rowName}${s.seatNumber}`).join(', ');
+      notificationService.error(
+        `Không thể lưu: ${invalidCouples.length} ghế sofa thiếu cặp (cần 2 slot liền kề). VD: ${sample}`,
+      );
+      return;
+    }
+
     setIsSavingSeats(true);
     try {
       // 1. Save Seat Layout modifications
@@ -474,21 +485,29 @@ const AdminCinemaRoomPage = () => {
       );
     }
 
-    setSelectedRoomSeats((prev) => prev.map((s) => {
-      if (targetSet.has(s.uuid)) {
-        return {
-          ...s,
-          seatTypeUuid,
-          status,
-          customTypeName: paintType,
-        };
-      }
-      return s;
-    }));
+    const previouslyInvalid = new Set(findInvalidCoupleSeats(selectedRoomSeats).map((s) => s.uuid));
+    const repainted = selectedRoomSeats.map((s) => (targetSet.has(s.uuid)
+      ? { ...s, seatTypeUuid, status, customTypeName: paintType }
+      : s));
 
+    // Repainting one half of a couple pair away from COUPLE leaves its partner orphaned
+    // (invalid, unsellable) — auto-convert that partner back to a standalone Standard seat
+    // instead of silently blocking the whole save later (this was the root cause of
+    // "can't save maintenance/broken" whenever the repainted seat used to be a Couple seat).
+    const nowInvalidUuids = new Set(
+      findInvalidCoupleSeats(repainted)
+        .map((s) => s.uuid)
+        .filter((uuid) => !previouslyInvalid.has(uuid) && !targetSet.has(uuid)),
+    );
+    const standardSeatTypeUuid = seatTypesMap['STANDARD'];
+    const finalSeats = repainted.map((s) => (nowInvalidUuids.has(s.uuid)
+      ? { ...s, seatTypeUuid: standardSeatTypeUuid, status: 'ACTIVE', customTypeName: 'STANDARD' }
+      : s));
+
+    setSelectedRoomSeats(finalSeats);
     setSelectedSeatIds(new Set());
     notificationService.success(`Đã tô màu ${targetSet.size} ghế thành loại: ${SEAT_TYPE_CONFIGS[paintType]?.label || paintType}`);
-  }, [selectedSeatIds, selectedRoomSeats, getBackendDataForPaintType, syncAisleLayoutForSeats, aisleLayout]);
+  }, [selectedSeatIds, selectedRoomSeats, getBackendDataForPaintType, syncAisleLayoutForSeats, aisleLayout, seatTypesMap]);
 
   // Bulk update status directly in selection
   const handleBulkStatusChange = useCallback((status) => {
@@ -516,80 +535,29 @@ const AdminCinemaRoomPage = () => {
     notificationService.success(`Đã cập nhật trạng thái hoạt động cho ${selectedSeatIds.size} ghế`);
   }, [selectedSeatIds]);
 
-  // Perform backend updates to save the painted grid layout in batch
-  const handleSaveSeatLayout = async () => {
-    if (!room) return;
-
-    const invalidCouples = findInvalidCoupleSeats(selectedRoomSeats);
-    if (invalidCouples.length > 0) {
-      const sample = invalidCouples.slice(0, 3).map((s) => `${s.rowName}${s.seatNumber}`).join(', ');
-      notificationService.error(
-        `Không thể lưu: ${invalidCouples.length} ghế sofa thiếu cặp (cần 2 slot liền kề). VD: ${sample}`,
-      );
-      return;
-    }
-
-    setIsSavingSeats(true);
-    try {
-      const modifiedSeats = [];
-      for (const seat of selectedRoomSeats) {
-        const original = originalSeats.find(o => o.uuid === seat.uuid);
-        if (original && (original.seatTypeUuid !== seat.seatTypeUuid || original.status !== seat.status)) {
-          modifiedSeats.push(seat);
-        }
-      }
-
-      if (modifiedSeats.length > 0) {
-        const promises = modifiedSeats.map(seat =>
-          cinemaService.updateSeat(seat.uuid, {
-            seatTypeUuid: seat.seatTypeUuid,
-            status: seat.status
-          })
-        );
-        await Promise.all(promises);
-      }
-
-      // Always persist aisle layout + bookable capacity with seat saves.
-      await cinemaService.updateRoom(room.uuid, {
-        roomCode: room.roomCode,
-        name: room.name,
-        roomType: room.roomType,
-        capacity: countBookableSeats(selectedRoomSeats) || room.capacity,
-        status: room.status,
-        layoutConfig: serializeLayoutConfig(aisleLayout),
-      });
-
-      setOriginalAisleLayout(JSON.parse(JSON.stringify(aisleLayout)));
-      notificationService.success(
-        modifiedSeats.length > 0
-          ? `Đã cập nhật sơ đồ: ${modifiedSeats.length} ghế và cấu hình lối đi.`
-          : 'Đã lưu cấu hình lối đi / sức chứa phòng.',
-      );
-      await refreshRoomMeta();
-      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
-    } catch (error) {
-      console.error('Failed to save layout:', error);
-      notificationService.error(error.message || 'Lỗi khi lưu sơ đồ ghế');
-    } finally {
-      setIsSavingSeats(false);
-    }
-  };
-
-  // Re-generate layout mapping based on rows & columns settings
+  // Re-generate layout mapping based on rows & columns settings.
+  // Works symmetrically for both growing AND shrinking the grid — shrinking just means
+  // more cells get soft-disabled by the backend instead of created as new ACTIVE seats.
   const handleGenerateBaseLayout = async () => {
     if (!room) return;
-    
+
     const finalRows = parseInt(builderRows) || 8;
     const finalCols = parseInt(builderCols) || 12;
-    
+
     if (finalRows < 1 || finalRows > 26 || finalCols < 1 || finalCols > 30) {
       notificationService.error('Số hàng ghế phải từ 1 đến 26, số cột ghế phải từ 1 đến 30!');
       return;
     }
 
+    const nextExpectedSeats = finalRows * finalCols;
+    const isShrinking = activeSeatCount > 0 && nextExpectedSeats < activeSeatCount;
+    const shrinkNote = isShrinking
+      ? ` Sơ đồ mới (${nextExpectedSeats} ghế) ít hơn hiện tại (${activeSeatCount} ghế) — ${activeSeatCount - nextExpectedSeats} ghế thừa sẽ bị vô hiệu hóa (soft-disable).`
+      : '';
+
     const confirmRegen = await confirm({
       title: 'Khởi tạo lại sơ đồ ghế',
-      message: `Cảnh báo: Việc khởi tạo lại sơ đồ ghế sẽ xóa sạch toàn bộ bố cục hiện tại của phòng "${room.name}". Bạn có chắc chắn muốn tiếp tục?`,
+      message: `Cảnh báo: Việc khởi tạo lại sơ đồ ghế sẽ xóa sạch toàn bộ bố cục hiện tại của phòng "${room.name}".${shrinkNote} Bạn có chắc chắn muốn tiếp tục?`,
       confirmLabel: 'Khởi tạo lại',
       variant: 'warning',
     });
@@ -598,7 +566,7 @@ const AdminCinemaRoomPage = () => {
     setIsLoadingSeats(true);
     try {
       const { gridCols, aisleCols } = expandColsForDefaultAisles(finalCols);
-      await cinemaService.generateSeats(room.uuid, finalRows, gridCols);
+      await cinemaService.generateSeats(room.uuid, finalRows, gridCols, aisleCols);
 
       const tempRowNames = Array.from({ length: finalRows }, (_, i) =>
         String.fromCharCode(65 + i)
@@ -629,6 +597,10 @@ const AdminCinemaRoomPage = () => {
       );
       fetchSeats(room.uuid, layoutJson);
     } catch (error) {
+      // Surface the backend's block reason verbatim (e.g. future selling showtimes /
+      // confirmed bookings) instead of only a generic message, so shrink failures are
+      // never silent — the builder inputs are left untouched here on failure, matching
+      // the room's real (unchanged) size.
       notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
     } finally {
       setIsLoadingSeats(false);
@@ -646,16 +618,14 @@ const AdminCinemaRoomPage = () => {
       return false;
     }
 
-    setBuilderRows(finalRows);
-    setBuilderCols(finalCols);
-    if (presetLayout) {
-      setAisleLayout(presetLayout);
-    }
-
+    // Don't touch builderRows/builderCols/aisleLayout until the backend call actually
+    // succeeds — previously they were set optimistically up-front, so a blocked shrink
+    // (e.g. future bookings) left the inputs showing the *target* size while the room's
+    // real size never changed, making the failure look like a silent no-op.
     setIsLoadingSeats(true);
     try {
       const { gridCols, aisleCols } = expandColsForDefaultAisles(finalCols, presetId);
-      await cinemaService.generateSeats(room.uuid, finalRows, gridCols);
+      await cinemaService.generateSeats(room.uuid, finalRows, gridCols, aisleCols);
       const tempRowNames = Array.from({ length: finalRows }, (_, i) =>
         String.fromCharCode(65 + i),
       );
@@ -670,6 +640,8 @@ const AdminCinemaRoomPage = () => {
         status: room.status,
         layoutConfig: layoutJson,
       });
+      setBuilderRows(finalRows);
+      setBuilderCols(finalCols);
       setAisleLayout(nextLayout);
       setOriginalAisleLayout(nextLayout);
       await refreshRoomMeta();
@@ -677,6 +649,8 @@ const AdminCinemaRoomPage = () => {
       await fetchSeats(room.uuid, layoutJson);
       return true;
     } catch (error) {
+      // Surface the backend's block reason (e.g. future selling showtimes / paid
+      // bookings) verbatim so a blocked shrink is never mistaken for a silent no-op.
       notificationService.error(error.message || 'Lỗi khi thiết lập lại sơ đồ');
       return false;
     } finally {
@@ -716,7 +690,10 @@ const AdminCinemaRoomPage = () => {
     if (!room || !sourceRoomUuid) return;
     setIsLoadingSeats(true);
     try {
-      const sourceSeats = await cinemaService.getSeatsByRoom(sourceRoomUuid);
+      const [sourceSeats, cinemaRooms] = await Promise.all([
+        cinemaService.getSeatsByRoom(sourceRoomUuid),
+        cinemaService.getRoomsByCinema(cinemaUuid),
+      ]);
       if (sourceSeats.length === 0) {
         notificationService.warning('Phòng nguồn chưa có sơ đồ ghế.');
         setIsLoadingSeats(false);
@@ -725,11 +702,26 @@ const AdminCinemaRoomPage = () => {
 
       // First generate identical base dimensions
       const { rows, cols } = deriveLayoutDimensions(sourceSeats);
-      await cinemaService.generateSeats(room.uuid, rows, cols);
-      setBuilderRows(rows);
-      setBuilderCols(cols);
       const sourceRowNames = [...new Set(sourceSeats.map((s) => s.rowName))].filter(Boolean).sort();
-      setAisleLayout(buildDefaultLayout(cols, sourceRowNames));
+
+      // Reuse the source room's actual aisle columns (from its saved layoutConfig) so the
+      // clone excludes the exact same walkway columns from bookable capacity, instead of
+      // guessing a brand-new default aisle placement that may not match the source at all.
+      const sourceRoomMeta = (cinemaRooms || []).find((r) => r.uuid === sourceRoomUuid);
+      const sourceLayout = sourceRoomMeta?.layoutConfig
+        ? parseLayoutConfig(sourceRoomMeta.layoutConfig)
+        : null;
+      const aisleCols = sourceLayout
+        ? getAisleColumnsFromLayout(sourceLayout)
+        : [];
+      const newLayout = aisleCols.length
+        ? buildLayoutFromAisleCols(aisleCols, sourceRowNames)
+        : buildDefaultLayout(cols, sourceRowNames);
+
+      await cinemaService.generateSeats(room.uuid, rows, cols, aisleCols);
+      setBuilderRows(rows);
+      setBuilderCols(Math.max(1, cols - aisleCols.length));
+      setAisleLayout(newLayout);
       
       // Load the freshly generated seats to copy details into
       const freshSeats = await cinemaService.getSeatsByRoom(room.uuid);
@@ -751,8 +743,23 @@ const AdminCinemaRoomPage = () => {
       }
       
       await Promise.all(clonePromises);
+
+      // Persist the cloned aisle layout + recomputed bookable capacity on the room itself
+      // (previously only kept in local state, so it was silently lost on next reload).
+      const newLayoutJson = serializeLayoutConfig(newLayout);
+      await cinemaService.updateRoom(room.uuid, {
+        roomCode: room.roomCode,
+        name: room.name,
+        roomType: room.roomType,
+        capacity: rows * (cols - aisleCols.length),
+        status: room.status,
+        layoutConfig: newLayoutJson,
+      });
+      setOriginalAisleLayout(newLayout);
+      await refreshRoomMeta();
+
       notificationService.success('Sao chép sơ đồ bố cục thành công!');
-      fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
+      fetchSeats(room.uuid, newLayoutJson);
     } catch (error) {
       console.error('Failed to clone layout:', error);
       notificationService.error('Có lỗi xảy ra khi sao chép sơ đồ phòng.');
@@ -861,18 +868,25 @@ const AdminCinemaRoomPage = () => {
       );
     }
 
-    setSelectedRoomSeats((prev) => prev.map((s) => {
-      if (targetSet.has(s.uuid)) {
-        return {
-          ...s,
-          seatTypeUuid,
-          status,
-          customTypeName: paintType,
-        };
-      }
-      return s;
-    }));
-  }, [getBackendDataForPaintType, syncAisleLayoutForSeats, selectedRoomSeats, aisleLayout]);
+    const previouslyInvalid = new Set(findInvalidCoupleSeats(selectedRoomSeats).map((s) => s.uuid));
+    const repainted = selectedRoomSeats.map((s) => (targetSet.has(s.uuid)
+      ? { ...s, seatTypeUuid, status, customTypeName: paintType }
+      : s));
+
+    // See handlePaintSelection: repainting away from COUPLE can orphan the partner seat.
+    // Auto-heal it back to a standalone Standard seat so save never gets silently blocked.
+    const nowInvalidUuids = new Set(
+      findInvalidCoupleSeats(repainted)
+        .map((s) => s.uuid)
+        .filter((seatUuid) => !previouslyInvalid.has(seatUuid) && !targetSet.has(seatUuid)),
+    );
+    const standardSeatTypeUuid = seatTypesMap['STANDARD'];
+    const finalSeats = repainted.map((s) => (nowInvalidUuids.has(s.uuid)
+      ? { ...s, seatTypeUuid: standardSeatTypeUuid, status: 'ACTIVE', customTypeName: 'STANDARD' }
+      : s));
+
+    setSelectedRoomSeats(finalSeats);
+  }, [getBackendDataForPaintType, syncAisleLayoutForSeats, selectedRoomSeats, aisleLayout, seatTypesMap]);
 
   const handleCoupleMouseDown = (seats) => {
     setIsDragSelecting(true);

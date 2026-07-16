@@ -21,6 +21,7 @@ import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { getSupportMessageSenderLabel } from '../../../shared/utils/supportMessageUtils';
 import { AdminPage, PageHeader, PrimaryButton } from '../components';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
@@ -85,6 +86,7 @@ function previewText(value = '', max = 72) {
 }
 
 const SupportInboxPage = () => {
+  const confirm = useConfirm();
   const [tickets, setTickets] = useState([]);
   const [selectedTicketCode, setSelectedTicketCode] = useState('');
   const [messages, setMessages] = useState([]);
@@ -254,6 +256,15 @@ const SupportInboxPage = () => {
   );
 
   const handleAcceptLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Nhận hỗ trợ trực tiếp',
+      message: 'Xác nhận nhận yêu cầu hỗ trợ trực tiếp? Bạn sẽ kết nối chat với khách hàng ngay.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.acceptLiveSupport(ticketCode);
@@ -276,6 +287,15 @@ const SupportInboxPage = () => {
       await handleAcceptLiveSupport(ticketCode);
       return;
     }
+    const ok = await confirm({
+      title: 'Nhận ticket hỗ trợ',
+      message: 'Xác nhận nhận ticket này? Trạng thái sẽ chuyển sang đang xử lý.',
+      highlight: ticketCode,
+      confirmLabel: 'Nhận ticket',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.updateAdminSupportStatus(ticketCode, { status: 'IN_PROGRESS' });
@@ -290,6 +310,15 @@ const SupportInboxPage = () => {
   };
 
   const handleRejectLiveSupport = async (ticketCode) => {
+    const ok = await confirm({
+      title: 'Từ chối yêu cầu hỗ trợ',
+      message: 'Xác nhận từ chối yêu cầu hỗ trợ trực tiếp này? Khách hàng sẽ được thông báo.',
+      highlight: ticketCode,
+      confirmLabel: 'Từ chối',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setProcessingLiveTicket(ticketCode);
     try {
       await supportService.rejectLiveSupport(ticketCode);
@@ -304,6 +333,15 @@ const SupportInboxPage = () => {
 
   const handleDeleteTicket = async () => {
     if (!selectedTicketCode) return;
+    const ok = await confirm({
+      title: 'Xóa ticket hỗ trợ',
+      message: 'Xác nhận xóa ticket đã hoàn tất? Hành động này không thể hoàn tác.',
+      highlight: selectedTicketCode,
+      confirmLabel: 'Xóa ticket',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
@@ -338,6 +376,14 @@ const SupportInboxPage = () => {
 
   const handleFinishSupport = async () => {
     if (!selectedTicketCode) return;
+    const ok = await confirm({
+      title: 'Kết thúc hỗ trợ',
+      message: 'Gửi lời cảm ơn và đóng ticket? Khách sẽ không thể tiếp tục chat trên ticket này.',
+      highlight: selectedTicketCode,
+      confirmLabel: 'Kết thúc hỗ trợ',
+      variant: 'warning',
+    });
+    if (!ok) return;
     await handleSendSticker(DEFAULT_THANK_YOU_STICKER_ID, { markDone: true });
   };
 

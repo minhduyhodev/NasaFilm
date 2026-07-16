@@ -24,9 +24,11 @@ import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
 import { AdminPage, PageHeader, AdminKpiGrid } from "../components";
+import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import "./UsersPage.css";
 
 const UsersPage = () => {
+  const confirm = useConfirm();
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,6 +117,23 @@ const UsersPage = () => {
   }, [fetchUsers, fetchStats]);
 
   const handleStatusChange = async (userId, userEmail, newStatus) => {
+    const statusLabels = {
+      ACTIVE: 'Hoạt động',
+      SUSPENDED: 'Bị khóa',
+      INACTIVE: 'Không hoạt động',
+    };
+    const ok = await confirm({
+      title: 'Thay đổi trạng thái tài khoản',
+      message: `Xác nhận đổi trạng thái tài khoản khách hàng sang "${statusLabels[newStatus] || newStatus}"?`,
+      highlight: userEmail,
+      detail: newStatus === 'SUSPENDED'
+        ? 'Khách hàng sẽ không thể đăng nhập cho đến khi được mở khóa.'
+        : '',
+      confirmLabel: 'Xác nhận thay đổi',
+      variant: newStatus === 'SUSPENDED' ? 'danger' : 'warning',
+    });
+    if (!ok) return;
+
     setUpdatingUserId(userId);
     try {
       await adminUserService.updateUserStatus(userId, newStatus);
@@ -167,6 +186,23 @@ const UsersPage = () => {
       }
 
       if (hasChanges) {
+        const ok = await confirm({
+          title: 'Lưu thay đổi tài khoản',
+          message: 'Xác nhận cập nhật thông tin tài khoản khách hàng?',
+          highlight: selectedUser.fullName || selectedUser.email,
+          detail: [
+            !isNaN(parsedScore) && parsedScore !== (selectedUser.score || 0)
+              ? `Điểm thành viên: ${selectedUser.score || 0} → ${parsedScore}`
+              : null,
+            statusForm !== selectedUser.status
+              ? `Trạng thái: ${getStatusLabel(selectedUser.status)} → ${getStatusLabel(statusForm)}`
+              : null,
+          ].filter(Boolean).join(' · '),
+          confirmLabel: 'Lưu thay đổi',
+          variant: statusForm === 'SUSPENDED' ? 'danger' : 'warning',
+        });
+        if (!ok) return;
+
         await Promise.all(promises);
         notificationService.success(
           `Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`,
@@ -188,6 +224,8 @@ const UsersPage = () => {
     if (status === "SUSPENDED") return "Bị khóa";
     if (status === "INACTIVE") return "Không hoạt động";
     if (status === "PENDING_VERIFICATION") return "Chờ xác thực";
+    if (status === "BANNED") return "Bị cấm";
+    if (status === "DELETED") return "Đã xóa";
     return status;
   };
 

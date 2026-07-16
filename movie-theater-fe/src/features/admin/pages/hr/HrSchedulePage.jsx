@@ -638,6 +638,7 @@ const HrSchedulePage = () => {
 };
 
 function AssignModal({ staff, shifts, assignments = [], requiredForShift, fallbackRequired, permLabel = {}, defaultFrom, defaultTo, onClose, onSaved }) {
+  const confirm = useConfirm();
   const today = todayIso();
   const [selectedStaff, setSelectedStaff] = useState([]);
   const [selectedShifts, setSelectedShifts] = useState([]);
@@ -736,6 +737,15 @@ function AssignModal({ staff, shifts, assignments = [], requiredForShift, fallba
       notificationService.warning('Vui lòng chọn nhân viên, ca và khoảng ngày hợp lệ (từ hôm nay trở đi).');
       return;
     }
+    const ok = await confirm({
+      title: 'Xếp ca hàng loạt',
+      message: 'Xác nhận tạo lịch ca cho nhân viên đã chọn? Ca trùng lịch sẽ tự bỏ qua.',
+      highlight: `${willCreate}/${totalCombos} lượt ca sẽ được tạo`,
+      confirmLabel: 'Xếp ca',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       const created = await hrService.createAssignmentsBulk({
@@ -942,6 +952,7 @@ function AssignModal({ staff, shifts, assignments = [], requiredForShift, fallba
 }
 
 function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
+  const confirm = useConfirm();
   const groups = useMemo(() => {
     const m = new Map();
     allPerms.forEach((p) => {
@@ -981,6 +992,15 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
   };
 
   const saveShift = async (sh) => {
+    const ok = await confirm({
+      title: 'Lưu cấu hình ca',
+      message: 'Lưu thay đổi quyền và số nhân viên tối thiểu cho ca này?',
+      highlight: sh.name,
+      confirmLabel: 'Lưu cấu hình',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSavingId(sh.uuid);
     try {
       const res = await hrService.updateShiftConfig(sh.uuid, {
@@ -1000,6 +1020,15 @@ function ShiftPermissionConfigModal({ shifts, allPerms, onClose, onSaved }) {
   };
 
   const resetShift = async (sh) => {
+    const ok = await confirm({
+      title: 'Khôi phục quyền mặc định',
+      message: 'Đặt lại quyền vận hành của ca về bộ mặc định?',
+      highlight: sh.name,
+      confirmLabel: 'Khôi phục',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSavingId(sh.uuid);
     try {
       const res = await hrService.updateShiftConfig(sh.uuid, { permissions: [], minStaff: minStaff[sh.uuid] ?? 1 });

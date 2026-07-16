@@ -5,6 +5,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import Pagination from '../../../shared/components/Pagination';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { AdminPage, PageHeader, PrimaryButton } from '../components';
 import './RefundsPage.css';
 
@@ -61,6 +62,7 @@ function NoteCell({ item }) {
 }
 
 const RefundsPage = () => {
+  const confirm = useConfirm();
   const [listTab, setListTab] = useState('pending');
   const [refunds, setRefunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,10 +108,20 @@ const RefundsPage = () => {
 
   const displayedRefunds = listTab === 'history' ? paginatedHistory : refunds;
 
-  const handleApprove = async (refundUuid) => {
-    setApprovingId(refundUuid);
+  const handleApprove = async (item) => {
+    const ok = await confirm({
+      title: 'Duyệt hoàn tiền',
+      message: 'Xác nhận duyệt hoàn tiền cho khách hàng? Số tiền sẽ được cộng vào Ví NASA hoặc hoàn qua cổng thanh toán.',
+      highlight: `${item.customerEmail || 'Khách hàng'} · ${formatMoney(item.amount)}`,
+      detail: item.movieTitle ? `Phim: ${item.movieTitle}` : '',
+      confirmLabel: 'Duyệt hoàn tiền',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
+    setApprovingId(item.refundUuid);
     try {
-      await bookingService.approveRefund(refundUuid);
+      await bookingService.approveRefund(item.refundUuid);
       notificationService.success('Duyệt hoàn tiền thành công.');
       await loadRefunds();
     } catch (err) {
@@ -216,7 +228,7 @@ const RefundsPage = () => {
                       <PrimaryButton
                         type="button"
                         disabled={approvingId === item.refundUuid}
-                        onClick={() => handleApprove(item.refundUuid)}
+                        onClick={() => handleApprove(item)}
                       >
                         {approvingId === item.refundUuid ? 'Đang duyệt...' : 'Duyệt hoàn tiền'}
                       </PrimaryButton>
