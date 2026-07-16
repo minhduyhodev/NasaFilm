@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import {
-  Film, Search, Plus, Calendar, Tv, Play,
-  Ban, CheckCircle, MapPin, CreditCard,
+  Search, Plus, Calendar,
   Clock, ChevronDown, ChevronsDown, ChevronsUp,
   Layers, Building2, Eye, EyeOff, XCircle, Ticket,
   DoorOpen, CalendarDays, CalendarClock, AlignJustify, Trash2,

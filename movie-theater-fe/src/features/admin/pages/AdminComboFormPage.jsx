@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
@@ -48,7 +48,7 @@ const AdminComboFormPage = () => {
           isActive: combo.status === 'ACTIVE',
         });
         setPreviewUrl(combo.imageUrl || '');
-      } catch (err) {
+      } catch {
         notificationService.error('Không thể tải combo');
         navigate('/admin/combos');
       } finally {

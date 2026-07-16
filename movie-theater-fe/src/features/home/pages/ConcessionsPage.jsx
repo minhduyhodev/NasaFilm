@@ -40,12 +40,12 @@ const ConcessionsPage = () => {
   );
 
   const {
-    showtimeUuid = '',
+    showtimeUuid: _showtimeUuid = '',
     theater = '',
     movie = '',
     movieUuid = '',
     moviePoster = '',
-    movieRating = null,
+    movieRating: _movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
     date = '',

@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X, CalendarDays, Clock, Film, Settings2, Sparkles, ChevronRight, ChevronLeft,
+  X, CalendarDays, Clock, Settings2, Sparkles, ChevronRight, ChevronLeft,
   CheckCircle2, Building2, Ticket,
 } from 'lucide-react';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
-import { formatDateShort, formatWeekday } from './showtimesConstants';
+import { formatWeekday } from './showtimesConstants';
 import {
   PUBLISH_MODES,
   getPreviewScoreClass,

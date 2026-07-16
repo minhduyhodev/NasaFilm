@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { movieService } from '../../../../shared/services/movieService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';

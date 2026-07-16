@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
@@ -59,8 +59,6 @@ export default function CounterPOSPage() {
 
   // Promotion
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState(null);
-  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState('COUNTER_CASH');

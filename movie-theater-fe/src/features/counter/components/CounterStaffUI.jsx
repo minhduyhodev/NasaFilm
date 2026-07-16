@@ -1,4 +1,3 @@
-import React from 'react';
 import { Printer, QrCode, X } from 'lucide-react';
 
 export const CounterPageHeader = ({ eyebrow, title, description, actions }) => (

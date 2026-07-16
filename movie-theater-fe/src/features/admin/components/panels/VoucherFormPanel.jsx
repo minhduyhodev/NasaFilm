@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adminPromotionService } from '../../api/adminPromotionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';

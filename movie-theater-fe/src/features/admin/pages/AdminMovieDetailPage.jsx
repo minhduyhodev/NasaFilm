@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, Edit2, Trash2, Loader2, Film } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';

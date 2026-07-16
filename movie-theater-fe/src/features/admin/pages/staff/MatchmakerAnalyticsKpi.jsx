@@ -1,4 +1,3 @@
-import React from 'react';
 import { BarChart3, Sparkles, User, Users } from 'lucide-react';
 import AdminKpiGrid from '../../components/AdminKpiGrid';
 

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  User,
   Search,
   Edit2,
   Users,
@@ -19,7 +18,6 @@ import {
 import { adminUserService } from "../api/adminUserService";
 import { notificationService } from "../../../shared/services/notificationService";
 import UserAvatar from "../../../shared/components/UserAvatar";
-import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
@@ -44,7 +42,7 @@ const UsersPage = () => {
   const [visiblePhoneUserIds, setVisiblePhoneUserIds] = useState(new Set());
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, _setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [openStatusDropdownId, setOpenStatusDropdownId] = useState(null);

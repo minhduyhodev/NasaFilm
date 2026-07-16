@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ import { useConfirm } from '../../shared/context/ConfirmDialogContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-function CheckoutForm({ amount, checkoutState, onSuccess, onFail }) {
+function CheckoutForm({ amount, onSuccess, onFail }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ export default function PaymentFlow() {
   // Full checkout state passed from CheckoutPage
   const checkoutState = location.state?.checkoutState || {};
   const [clientSecret, setClientSecret] = useState('');
-  const [amount, setAmount] = useState(location.state?.amount || 150000);
+  const [amount, _setAmount] = useState(location.state?.amount || 150000);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -129,8 +129,8 @@ export default function PaymentFlow() {
     try {
       const {
         isVod, movieUuid, showtimeUuid, selectedSeats,
-        selectedCombos, orbitRoomUuid, movie, theater,
-        date, showtime, moviePoster, voucherCode,
+        selectedCombos, orbitRoomUuid, movie,
+        moviePoster, voucherCode,
       } = checkoutState;
 
       let response;

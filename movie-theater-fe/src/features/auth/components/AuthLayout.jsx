@@ -7,7 +7,7 @@ import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 export const AuthLayout = ({
   children,
   showHero = true,
-  heroTitle = 'NASAFILM',
+  heroTitle: _heroTitle = 'NASAFILM',
   heroDescription = 'Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn.',
 }) => {
   const [logoSrc, setLogoSrc] = React.useState(nasaLogo);

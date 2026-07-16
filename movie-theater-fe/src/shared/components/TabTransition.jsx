@@ -1,4 +1,3 @@
-import React from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   tabTransition,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapPin, Search, Plus, Tv, Activity, Grid, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -40,7 +40,7 @@ const CinemasPage = () => {
   const [isLoadingCinemas, setIsLoadingCinemas] = useState(false);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, _setStatusFilter] = useState('');
   const [cinemaModal, setCinemaModal] = useState({ open: false, mode: 'create', cinema: null });
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const roomsSectionRef = useRef(null);

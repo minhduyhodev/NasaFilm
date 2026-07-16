@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, MessageCircleMore, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Bot, MessageCircleMore, Save, Sparkles } from 'lucide-react';
 import { AdminPage, PageHeader } from '../components';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
@@ -58,35 +58,35 @@ const NasaBotConfigPage = () => {
     setBotConfig((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateOpeningQuestion = (index, value) => {
+  const _updateOpeningQuestion = (index, value) => {
     setBotConfig((prev) => ({
       ...prev,
       openingQuestions: prev.openingQuestions.map((item, idx) => (idx === index ? value : item)),
     }));
   };
 
-  const addOpeningQuestion = () => {
+  const _addOpeningQuestion = () => {
     setBotConfig((prev) => ({
       ...prev,
       openingQuestions: [...prev.openingQuestions, 'Câu hỏi mở mới'],
     }));
   };
 
-  const removeOpeningQuestion = (index) => {
+  const _removeOpeningQuestion = (index) => {
     setBotConfig((prev) => ({
       ...prev,
       openingQuestions: prev.openingQuestions.filter((_, idx) => idx !== index),
     }));
   };
 
-  const updateShortcut = (index, field, value) => {
+  const _updateShortcut = (index, field, value) => {
     setBotConfig((prev) => ({
       ...prev,
       shortcuts: prev.shortcuts.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)),
     }));
   };
 
-  const addShortcut = () => {
+  const _addShortcut = () => {
     setBotConfig((prev) => ({
       ...prev,
       shortcuts: [...prev.shortcuts, createShortcut(prev.shortcuts.length)],
@@ -110,7 +110,7 @@ const NasaBotConfigPage = () => {
       bannedWords: value.split(',').map((word) => word.trim()).filter(Boolean),
     }));
   };
-  const removeShortcut = (index) => {
+  const _removeShortcut = (index) => {
     setBotConfig((prev) => ({
       ...prev,
       shortcuts: prev.shortcuts.filter((_, idx) => idx !== index),

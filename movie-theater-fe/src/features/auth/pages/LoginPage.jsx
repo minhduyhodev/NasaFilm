@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -145,7 +145,7 @@ export const LoginPage = () => {
     };
   }, [googleClientId, loginWithGoogle]);
 
-  const handleQuickLogin = (email, password) => {
+  const _handleQuickLogin = (email, password) => {
     setValue('email', email);
     setValue('password', password);
     handleSubmit(onSubmit)();

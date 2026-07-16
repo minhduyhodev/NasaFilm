@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Panel wrapper for list/table pages: optional toolbar + scroll body + footer.

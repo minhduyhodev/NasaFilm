@@ -264,7 +264,7 @@ const MissionsPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [templatePage, setTemplatePage] = useState(1);
   const [campaignPage, setCampaignPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [templateTotal, setTemplateTotal] = useState(0);
   const [campaignTotal, setCampaignTotal] = useState(0);
   const [templateModal, setTemplateModal] = useState({ open: false, template: null });

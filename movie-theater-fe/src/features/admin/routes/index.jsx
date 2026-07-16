@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import { ProtectedRoute } from "../../auth/components/ProtectedRoute";
@@ -59,7 +59,7 @@ const AdminPageLoader = () => (
   </div>
 );
 
-const PlaceholderPage = ({ title }) => (
+const _PlaceholderPage = ({ title }) => (
   <div className="bg-[#0F1322] border border-[#1A2238] rounded-xl p-8 text-center max-w-lg mx-auto my-12">
     <h2 className="text-lg font-bold text-white uppercase tracking-wider mb-2 font-mono">
       {title}

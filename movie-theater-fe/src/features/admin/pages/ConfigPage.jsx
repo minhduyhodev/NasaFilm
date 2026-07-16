@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   RotateCcw,
   Plus,
@@ -163,7 +163,7 @@ const ConfigTypeList = ({ title, description, items, onChange, valuePlaceholder,
   );
 };
 
-const NasaBotShortcutList = ({ items = [], onChange }) => {
+const _NasaBotShortcutList = ({ items = [], onChange }) => {
   const updateItem = (index, field, value) => {
     onChange(items.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
   };
@@ -238,7 +238,7 @@ const NasaBotShortcutList = ({ items = [], onChange }) => {
   );
 };
 
-const NasaBotQuestionList = ({ items = [], onChange }) => {
+const _NasaBotQuestionList = ({ items = [], onChange }) => {
   const updateItem = (index, value) => {
     onChange(items.map((item, idx) => (idx === index ? value : item)));
   };

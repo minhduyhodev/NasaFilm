@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Edit2, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
@@ -36,7 +36,7 @@ const AdminComboDetailPage = () => {
           return;
         }
         setCombo(found);
-      } catch (err) {
+      } catch {
         notificationService.error('Không thể tải combo');
         navigate('/admin/combos');
       } finally {

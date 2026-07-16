@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -38,7 +38,7 @@ const AdminCinemaFormPage = () => {
           latitude: detail.latitude ?? '',
           longitude: detail.longitude ?? '',
         });
-      } catch (err) {
+      } catch {
         notificationService.error('Không thể tải chi nhánh');
         navigate('/admin/cinemas');
       } finally {

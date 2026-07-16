@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Mail, Plus, Trash2, Eye } from 'lucide-react';
 import { adminEmailTemplateService } from '../api/adminEmailTemplateService';
 import { notificationService } from '../../../shared/services/notificationService';

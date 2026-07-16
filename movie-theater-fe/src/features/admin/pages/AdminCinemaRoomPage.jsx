@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   X, Tv, Activity, Grid, Loader2, RefreshCw, Download, Upload,
   Eye, Sliders, MousePointer, AlertTriangle,
@@ -103,7 +103,7 @@ const AdminCinemaRoomPage = () => {
   const [builderRows, setBuilderRows] = useState(8);
   const [builderCols, setBuilderCols] = useState(12);
   const [aisleLayout, setAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
-  const [originalAisleLayout, setOriginalAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
+  const [_originalAisleLayout, setOriginalAisleLayout] = useState(EMPTY_AISLE_LAYOUT);
   const [isDragSelecting, setIsDragSelecting] = useState(false);
   const [showBookingPreview, setShowBookingPreview] = useState(false); // Customer View Simulator
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
@@ -512,7 +512,7 @@ const AdminCinemaRoomPage = () => {
   }, [selectedSeatIds, selectedRoomSeats, getBackendDataForPaintType, syncAisleLayoutForSeats, aisleLayout, seatTypesMap]);
 
   // Bulk update status directly in selection
-  const handleBulkStatusChange = useCallback((status) => {
+  const _handleBulkStatusChange = useCallback((status) => {
     if (selectedSeatIds.size === 0) return;
 
     setSelectedRoomSeats(prev => prev.map(s => {
@@ -688,7 +688,7 @@ const AdminCinemaRoomPage = () => {
   };
 
   // Clone layout from another room
-  const handleCloneLayout = async (sourceRoomUuid) => {
+  const _handleCloneLayout = async (sourceRoomUuid) => {
     if (!room || !sourceRoomUuid) return;
     setIsLoadingSeats(true);
     try {
@@ -836,7 +836,7 @@ const AdminCinemaRoomPage = () => {
     }
   };
 
-  const paintSingleSeat = useCallback((uuid, paintType, seatMeta) => {
+  const paintSingleSeat = useCallback((uuid, paintType, _seatMeta) => {
     const { seatTypeUuid, status } = getBackendDataForPaintType(paintType);
     const aisleCheck = (s) => s.customTypeName === 'AISLE'
       || hasAisleSlot(aisleLayout, s.rowName, s.seatNumber);

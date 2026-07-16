@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Loader2, TrendingUp, ShoppingBag, Package, DollarSign } from 'lucide-react';
 import { comboService } from '../../../shared/services/comboService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -90,7 +90,7 @@ const DonutChart = ({ segments }) => {
   const displayTotal = segments.length === 1 && segments[0].isFallback ? 0 : segments.reduce((s, seg) => s + seg.value, 0);
   let angle = -90;
 
-  const arcs = segments.map((seg, i) => {
+  const arcs = segments.map((seg, _i) => {
     const pct = seg.value / computedTotal;
     const sweep = pct * 360;
     const start = angle;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Search, Loader2, Image as ImageIcon, Edit2, Trash2,
 } from 'lucide-react';

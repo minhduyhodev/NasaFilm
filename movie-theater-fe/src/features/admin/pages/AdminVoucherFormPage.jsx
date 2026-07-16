@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { adminPromotionService } from '../api/adminPromotionService';
@@ -66,7 +66,7 @@ const AdminVoucherFormPage = () => {
         };
         setForm(loadedForm);
         setInitialForm(loadedForm);
-      } catch (err) {
+      } catch {
         notificationService.error('Khong the tai voucher');
         navigate('/admin/vouchers');
       } finally {

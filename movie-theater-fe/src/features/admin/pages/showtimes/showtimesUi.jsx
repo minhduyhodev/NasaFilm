@@ -1,4 +1,3 @@
-import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import StatusBadgeShared from '../../components/StatusBadge';
 import { STATUS_CONFIG } from './showtimesConstants';

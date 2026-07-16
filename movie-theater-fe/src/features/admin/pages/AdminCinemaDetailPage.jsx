@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Edit2, Loader2, MapPin, Plus, Tv, LayoutGrid, Trash2 } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
@@ -70,7 +70,7 @@ const AdminCinemaDetailPage = () => {
         if (!isMounted) return;
         setCinema(detail);
         setRooms(roomList || []);
-      } catch (err) {
+      } catch {
         notificationService.error('Không thể tải chi nhánh');
         navigate('/admin/cinemas');
       } finally {

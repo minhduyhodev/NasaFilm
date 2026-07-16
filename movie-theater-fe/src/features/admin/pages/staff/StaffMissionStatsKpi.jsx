@@ -1,4 +1,3 @@
-import React from 'react';
 import { Ticket, Armchair, Crown, UserCheck } from 'lucide-react';
 import AdminKpiGrid from '../../components/AdminKpiGrid';
 

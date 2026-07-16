@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import {
   Outlet,
   Link,

@@ -1,4 +1,3 @@
-import React from 'react';
 
 const VARIANT_MAP = {
   success: 'adm-badge--success',

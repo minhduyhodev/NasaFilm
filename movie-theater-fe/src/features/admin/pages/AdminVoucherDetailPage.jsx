@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Edit2, Trash2, Loader2, Ticket } from "lucide-react";
 import { adminPromotionService } from "../api/adminPromotionService";
@@ -51,7 +51,7 @@ const AdminVoucherDetailPage = () => {
           return;
         }
         setVoucher(found);
-      } catch (err) {
+      } catch {
         notificationService.error("Không thể tải voucher");
         navigate("/admin/vouchers");
       } finally {

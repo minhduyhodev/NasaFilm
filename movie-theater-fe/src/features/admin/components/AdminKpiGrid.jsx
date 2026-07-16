@@ -1,4 +1,3 @@
-import React from 'react';
 import './AdminKpiGrid.css';
 
 const GRID_CLASS = {

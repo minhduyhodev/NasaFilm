@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Radar, RefreshCw, Save } from 'lucide-react';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';

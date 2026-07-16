@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, Armchair, Ticket, Coffee, MapPin, CalendarClock, Film } from 'lucide-react';
 import { orbitService } from '../../../shared/services/orbitService';
@@ -177,7 +177,7 @@ const OrbitWaitingPage = () => {
 
   const mySeats = myMemberInfo?.seatUuids || [];
   const myCombosJson = myMemberInfo?.combosJson || '[]';
-  let myCombos = [];
+  let myCombos;
   try {
     myCombos = JSON.parse(myCombosJson);
   } catch {

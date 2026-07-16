@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { showtimeRadarService } from '../../../shared/services/showtimeRadarService';
 import { favoriteService } from '../../../shared/services/favoriteService';

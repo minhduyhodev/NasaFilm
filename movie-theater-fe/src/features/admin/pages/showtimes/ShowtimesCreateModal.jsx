@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Search, ChevronDown } from 'lucide-react';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../../shared/utils/mediaUrlUtils';
@@ -34,7 +34,6 @@ const ShowtimesCreateModal = ({
   cinemas,
   rooms,
   isLoadingRooms,
-  movies,
   filteredMovies,
   selectedMovie,
   isLoadingMovies,

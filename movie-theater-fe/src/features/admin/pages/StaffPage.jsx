@@ -23,7 +23,7 @@ const StaffPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, _setItemsPerPage] = useState(10);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   
   // Modals and drop-downs

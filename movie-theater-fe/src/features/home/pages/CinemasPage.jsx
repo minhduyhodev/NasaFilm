@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Search, Map as MapIcon, Calendar, Film, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Level 3 — label + value field pair (16px internal spacing via parent grid gap-4).

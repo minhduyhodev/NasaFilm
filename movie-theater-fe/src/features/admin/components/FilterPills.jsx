@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Status / tab filter pills. Each item: { id, label, count? }.

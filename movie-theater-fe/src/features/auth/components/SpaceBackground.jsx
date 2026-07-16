@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import spaceAuthBg from '../../../shared/assets/space_auth_bg.png';
 
 export const SpaceBackground = () => {

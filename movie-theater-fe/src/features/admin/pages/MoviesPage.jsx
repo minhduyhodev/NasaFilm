@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Plus, Film, Clock, ChevronDown, Clapperboard, PlayCircle, CalendarClock, Archive } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';

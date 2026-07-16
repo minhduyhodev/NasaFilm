@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import TabTransition from '../../../../shared/components/TabTransition';
 import { AdminPage, PageHeader, FilterPills } from '../../components';
 import PayrollPeriodsTab from './PayrollPeriodsTab';
