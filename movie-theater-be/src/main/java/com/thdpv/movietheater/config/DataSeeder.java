@@ -40,13 +40,6 @@ import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.ActorRepository;
-import com.thdpv.movietheater.cinema.entity.Cinema;
-import com.thdpv.movietheater.cinema.entity.CinemaRoom;
-import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
-import com.thdpv.movietheater.cinema.enums.RoomType;
-import com.thdpv.movietheater.cinema.enums.SeatStatus;
-import com.thdpv.movietheater.cinema.repository.CinemaRepository;
-import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 
 import java.io.InputStream;
@@ -57,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.ArrayList;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -74,8 +66,6 @@ public class DataSeeder implements CommandLineRunner {
     private final GenreRepository genreRepository;
     private final CountryRepository countryRepository;
     private final JdbcTemplate jdbcTemplate;
-    private final CinemaRepository cinemaRepository;
-    private final CinemaRoomRepository cinemaRoomRepository;
     private final CinemaService cinemaService;
     private final ReferenceMetadataSeeder referenceMetadataSeeder;
     private final ActorRepository actorRepository;
@@ -124,8 +114,6 @@ public class DataSeeder implements CommandLineRunner {
             GenreRepository genreRepository,
             CountryRepository countryRepository,
             JdbcTemplate jdbcTemplate,
-            CinemaRepository cinemaRepository,
-            CinemaRoomRepository cinemaRoomRepository,
             CinemaService cinemaService,
             ReferenceMetadataSeeder referenceMetadataSeeder,
             ActorRepository actorRepository,
@@ -143,8 +131,6 @@ public class DataSeeder implements CommandLineRunner {
         this.genreRepository = genreRepository;
         this.countryRepository = countryRepository;
         this.jdbcTemplate = jdbcTemplate;
-        this.cinemaRepository = cinemaRepository;
-        this.cinemaRoomRepository = cinemaRoomRepository;
         this.cinemaService = cinemaService;
         this.referenceMetadataSeeder = referenceMetadataSeeder;
         this.actorRepository = actorRepository;
@@ -539,236 +525,6 @@ public class DataSeeder implements CommandLineRunner {
                     java.time.OffsetDateTime.now());
         } catch (Exception e) {
             logger.error("Failed to migrate voucher/score schema", e);
-        }
-    }
-
-    private void seedBookingData() {
-        try {
-            java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
-
-            // 1. Seed Cinema Rooms (JDBC Seed)
-            java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class,
-                    cinemaUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
-                        cinemaUuid, "NASA Landmark 81 JDBC", "Landmark 81, HCM", "19001080");
-            }
-
-            java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-            java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                    room1Uuid) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                    room2Uuid) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
-            }
-
-            // 2. Seed Seat Types
-            java.util.UUID stdType = java.util.UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-            java.util.UUID vipType = java.util.UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-            java.util.UUID cplType = java.util.UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    stdType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        stdType, "STANDARD", java.math.BigDecimal.valueOf(85000), java.math.BigDecimal.valueOf(1.0));
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    vipType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        vipType, "VIP", java.math.BigDecimal.valueOf(120000), java.math.BigDecimal.valueOf(1.0));
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    cplType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        cplType, "COUPLE", java.math.BigDecimal.valueOf(160000), java.math.BigDecimal.valueOf(1.0));
-            }
-
-            // 3. Seed Seats for Room 1 and Room 2
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat WHERE cinema_room_uuid = ?", Integer.class,
-                    room1Uuid) == 0) {
-                String[] rows = { "A", "B", "C", "D", "E", "F", "G", "H" };
-                for (String rowName : rows) {
-                    java.util.UUID seatTypeUuid;
-                    if ("G".equals(rowName) || "H".equals(rowName)) {
-                        seatTypeUuid = cplType;
-                    } else if ("E".equals(rowName) || "F".equals(rowName)) {
-                        seatTypeUuid = vipType;
-                    } else {
-                        seatTypeUuid = stdType;
-                    }
-
-                    int maxSeats = ("G".equals(rowName) || "H".equals(rowName)) ? 6 : 12;
-                    for (int num = 1; num <= maxSeats; num++) {
-                        java.util.UUID seat1Uuid = java.util.UUID
-                                .nameUUIDFromBytes((room1Uuid.toString() + "_" + rowName + "_" + num)
-                                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        java.util.UUID seat2Uuid = java.util.UUID
-                                .nameUUIDFromBytes((room2Uuid.toString() + "_" + rowName + "_" + num)
-                                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                seat1Uuid, room1Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
-                        jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                seat2Uuid, room2Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
-                    }
-                }
-            }
-
-            // 4. Seed Combos
-            java.util.UUID comboUuid = java.util.UUID.fromString("55555555-5555-5555-5555-555555555555");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboUuid, "Combo Bắp Nước", java.math.BigDecimal.valueOf(90000), "ACTIVE");
-            }
-
-            java.util.UUID comboSoloUuid = java.util.UUID.fromString("55555555-5555-5555-5555-666666666666");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboSoloUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboSoloUuid, "Combo Solo (1 Bắp + 1 Nước)", java.math.BigDecimal.valueOf(70000), "ACTIVE");
-            }
-
-            java.util.UUID comboFamilyUuid = java.util.UUID.fromString("55555555-5555-5555-5555-777777777777");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboFamilyUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboFamilyUuid, "Combo Gia Đình (2 Bắp + 4 Nước)", java.math.BigDecimal.valueOf(160000),
-                        "ACTIVE");
-            }
-
-            // 5. Seed Showtimes for movies
-            List<Movie> dbMovies = movieRepository.findAll();
-            if (!dbMovies.isEmpty()) {
-                java.util.UUID movie1 = dbMovies.get(0).getUuid();
-                java.util.UUID movie2 = dbMovies.size() > 1 ? dbMovies.get(1).getUuid() : movie1;
-                java.util.UUID movie3 = dbMovies.size() > 2 ? dbMovies.get(2).getUuid() : movie1;
-                java.util.UUID movie4 = dbMovies.size() > 3 ? dbMovies.get(3).getUuid() : movie1;
-
-                java.util.UUID showtime1Uuid = java.util.UUID.fromString("11111111-1111-1111-1111-111111111111");
-                java.util.UUID showtime2Uuid = java.util.UUID.fromString("22222222-2222-2222-2222-222222222222");
-                java.util.UUID showtime3Uuid = java.util.UUID.fromString("33333333-3333-3333-3333-333333333333");
-                java.util.UUID showtime4Uuid = java.util.UUID.fromString("44444444-4444-4444-4444-444444444444");
-
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime1Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime1Uuid, movie1, room1Uuid,
-                            now.withHour(19).withMinute(30).withSecond(0).withNano(0),
-                            now.withHour(21).withMinute(30).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime2Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime2Uuid, movie2, room1Uuid,
-                            now.withHour(21).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(23).withMinute(0).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime3Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime3Uuid, movie3, room2Uuid,
-                            now.withHour(18).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(20).withMinute(0).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime4Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime4Uuid, movie4, room2Uuid,
-                            now.withHour(20).withMinute(45).withSecond(0).withNano(0),
-                            now.withHour(22).withMinute(45).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-            }
-
-            // 6. Seed Vouchers
-            java.util.UUID promo1Uuid = java.util.UUID.fromString("11111111-1111-1111-1111-aaaaaaaaaaaa");
-            java.util.UUID promo2Uuid = java.util.UUID.fromString("22222222-2222-2222-2222-bbbbbbbbbbbb");
-            java.util.UUID promo3Uuid = java.util.UUID.fromString("33333333-3333-3333-3333-cccccccccccc");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo1Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo1Uuid,
-                        "THDPV50",
-                        java.math.BigDecimal.valueOf(0.50),
-                        "PERCENTAGE",
-                        100,
-                        0,
-                        false,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo2Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo2Uuid,
-                        "CINELUXE",
-                        java.math.BigDecimal.valueOf(30000.00),
-                        "FIXED_AMOUNT",
-                        200,
-                        0,
-                        false,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo3Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo3Uuid,
-                        "NASAFIRST",
-                        java.math.BigDecimal.valueOf(50000.00),
-                        "FIXED_AMOUNT",
-                        500,
-                        0,
-                        true,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-
-            logger.info("Successfully seeded cinema rooms, seats, showtimes, combos, and promotions.");
-        } catch (Exception e) {
-            logger.error("Failed to seed booking database data", e);
         }
     }
 
@@ -1735,6 +1491,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private static class MovieJsonData {
+        @SuppressWarnings("unused")
         public String uuid;
         public String title;
         public String description;
@@ -1752,6 +1509,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private static class ActorJsonData {
+        @SuppressWarnings("unused")
         public String uuid;
         public String fullName;
         public String avatarUrl;
@@ -1762,6 +1520,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private static class MediaJsonData {
+        @SuppressWarnings("unused")
         public String uuid;
         public String mediaUrl;
         public String mediaType;

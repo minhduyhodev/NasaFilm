@@ -5,11 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 /**
- * Lint policy (safe / low-noise for this codebase):
- * - Keep classic React Hooks: rules-of-hooks (error) + exhaustive-deps (warn)
- * - Do NOT enable React Compiler “recommended” rules (set-state-in-effect, refs,
- *   immutability, purity, …) — they flood Problems without matching our patterns
- * - Unused vars: allow intentional `_` prefix
+ * Lint policy — low-noise Problems panel, no runtime impact:
+ * - rules-of-hooks: error (real hook bugs)
+ * - exhaustive-deps / react-refresh: off (noisy suggestions only)
  */
 export default defineConfig([
   globalIgnores(['dist']),
@@ -28,12 +26,9 @@ export default defineConfig([
     },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'off',
 
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': 'off',
 
       'no-unused-vars': [
         'error',

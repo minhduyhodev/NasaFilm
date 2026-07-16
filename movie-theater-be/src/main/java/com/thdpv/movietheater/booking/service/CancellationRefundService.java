@@ -54,7 +54,6 @@ import lombok.RequiredArgsConstructor;
 public class CancellationRefundService {
 
     private static final String BOOKING_STATUS_CONFIRMED = "CONFIRMED";
-    private static final String TICKET_ISSUED = "ISSUED";
     private static final String TICKET_CANCELLED = "CANCELLED";
     private static final String TICKET_USED = "USED";
 
@@ -80,6 +79,7 @@ public class CancellationRefundService {
     private final MissionService missionService;
     private final OrbitRoomRepository orbitRoomRepository;
 
+    /** Lazy field injection breaks circular dependency with OrbitRoomService. */
     @Lazy
     @Autowired
     private OrbitRoomService orbitRoomService;

@@ -88,7 +88,6 @@ public class ComboRevenueService {
                 + " where b.status = 'CONFIRMED' and b.created_at >= :from and b.created_at < :to"
                 + " group by 1";
 
-        @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery(sql)
                 .setParameter("from", period.from)
                 .setParameter("to", period.to)
@@ -181,7 +180,6 @@ public class ComboRevenueService {
         return toLong(query.getSingleResult());
     }
 
-    @SuppressWarnings("unchecked")
     private List<ComboRevenueResponse.ComboRevenueItem> loadRevenueByCombo(OffsetDateTime from, OffsetDateTime to) {
         StringBuilder sql = new StringBuilder("""
                 select
@@ -222,7 +220,6 @@ public class ComboRevenueService {
         return items;
     }
 
-    @SuppressWarnings("unchecked")
     private List<ComboRevenueResponse.DailyRevenueItem> loadDailyRevenue(OffsetDateTime from) {
         List<Object[]> rows = entityManager.createNativeQuery("""
                 select

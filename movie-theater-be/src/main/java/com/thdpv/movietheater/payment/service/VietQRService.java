@@ -2,7 +2,6 @@ package com.thdpv.movietheater.payment.service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.Normalizer;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -106,23 +105,6 @@ public class VietQRService {
         url.append("&accountName=").append(urlEncode(accountName));
 
         return url.toString();
-    }
-
-    private String buildTransferContent(String description) {
-        if (description != null && !description.isBlank()) {
-            // Remove Vietnamese diacritics for bank compatibility
-            return removeDiacritics(description.trim());
-        }
-        return "NASAFILM " + System.currentTimeMillis();
-    }
-
-    private String removeDiacritics(String input) {
-        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
-        // Remove combining diacritical marks
-        String noDiacritics = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        // Handle special Vietnamese characters not covered by NFD
-        noDiacritics = noDiacritics.replace("đ", "d").replace("Đ", "D");
-        return noDiacritics;
     }
 
     private String urlEncode(String value) {
