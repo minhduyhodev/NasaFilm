@@ -42,7 +42,10 @@ public class PaymentService {
         return paymentProvider;
     }
 
-    /** True when the booking payment gateway is the always-succeeds mock (demo/local), not a real provider. */
+    /**
+     * True when the booking payment gateway is the always-succeeds mock
+     * (demo/local), not a real provider.
+     */
     public boolean isMockProvider() {
         return paymentProvider == null || "mock".equalsIgnoreCase(paymentProvider.trim());
     }
@@ -166,6 +169,15 @@ public class PaymentService {
             return paymentRepository.save(payment);
         }
 
+        if ("VIETQR".equals(normalizedMethod)) {
+            payment.setStatus(PaymentStatus.COMPLETED.name());
+            payment.setGatewayProvider("VIETQR");
+            payment.setGatewayTransactionId("VIETQR-" + payment.getUuid().toString().substring(0, 8).toUpperCase());
+            payment.setPaidAt(now);
+            payment.setUpdatedAt(now);
+            return paymentRepository.save(payment);
+        }
+
         PaymentGatewayService.GatewayChargeResult gatewayResult = paymentGatewayService.charge(
                 payment.getUuid(), payment.getAmount(), payment.getIdempotencyKey());
 
@@ -209,6 +221,7 @@ public class PaymentService {
         return switch (method.toLowerCase()) {
             case "wallet" -> "WALLET";
             case "card" -> "CARD";
+            case "vietqr" -> "VIETQR";
             case "momo", "apple" -> method.toUpperCase();
             default -> method.toUpperCase();
         };
