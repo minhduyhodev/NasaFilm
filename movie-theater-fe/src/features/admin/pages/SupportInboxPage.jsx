@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Trash2,
 } from 'lucide-react';
 import SupportStickerBubble from '../../../shared/components/SupportStickerBubble';
 import {
@@ -20,6 +21,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { getSupportMessageSenderLabel } from '../../../shared/utils/supportMessageUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { AdminPage, PageHeader, PrimaryButton } from '../components';
 import './SupportInboxPage.css';
 
@@ -97,6 +99,7 @@ const SupportInboxPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTicketDetail, setSelectedTicketDetail] = useState(null);
   const messagesEndRef = useRef(null);
+  const confirm = useConfirm();
 
   const selectedTicket = useMemo(() => {
     const fromList = tickets.find((item) => item.ticketCode === selectedTicketCode) || null;
@@ -304,6 +307,14 @@ const SupportInboxPage = () => {
 
   const handleDeleteTicket = async () => {
     if (!selectedTicketCode) return;
+    const confirmed = await confirm({
+      title: 'Xóa ticket',
+      message: `Bạn có chắc chắn muốn xóa ticket "${selectedTicketCode}"? Toàn bộ nội dung trò chuyện sẽ bị xóa vĩnh viễn và không thể khôi phục.`,
+      confirmLabel: 'Xóa ticket',
+      cancelLabel: 'Giữ lại',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     setLoading(true);
     try {
       await supportService.deleteSupportTicket(selectedTicketCode);
@@ -614,7 +625,17 @@ const SupportInboxPage = () => {
                     >
                       Gửi cảm ơn & kết thúc
                     </button>
-                  ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      className="support-filter-tab support-chat-delete-btn"
+                      onClick={handleDeleteTicket}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Xóa ticket
+                    </button>
+                  )}
                   <span className={getStatusMeta(selectedTicket.status).className}>
                     {getStatusMeta(selectedTicket.status).label}
                   </span>
@@ -629,26 +650,12 @@ const SupportInboxPage = () => {
               ) : null}
 
               {(selectedTicket.status === 'DONE' || selectedTicket.status === 'CLOSED' || selectedTicket.status === 'RESOLVED') && (
-                <div className="support-state" style={{ minHeight: 'auto', marginBottom: '0.75rem' }}>
-                  <p className="support-state-title">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Khách đã hủy yêu cầu'
-                      : selectedTicket.satisfactionRating
-                        ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel}`
-                        : 'Hỗ trợ đã kết thúc'}
-                  </p>
-                  <p className="support-state-desc">
-                    {selectedTicket.status === 'CLOSED'
-                      ? 'Ticket đã bị khách hủy. Bạn có thể xóa khỏi hộp thư nếu không cần giữ.'
-                      : selectedTicket.satisfactionRating
-                        ? 'Bạn có thể xóa ticket này vì hỗ trợ đã hoàn tất.'
-                        : 'Ticket đã được đánh dấu DONE. Nếu không cần giữ lại, bạn có thể xóa ngay.'}
-                  </p>
-                  <div className="support-compose-footer" style={{ justifyContent: 'flex-end' }}>
-                    <button type="button" className="support-filter-tab" onClick={handleDeleteTicket}>
-                      Xóa ticket
-                    </button>
-                  </div>
+                <div className="support-closed-note">
+                  {selectedTicket.status === 'CLOSED'
+                    ? 'Khách đã hủy yêu cầu — có thể xóa ticket nếu không cần giữ.'
+                    : selectedTicket.satisfactionRating
+                      ? `Khách đã đánh giá: ${selectedTicket.satisfactionLabel} — hỗ trợ đã hoàn tất.`
+                      : 'Hỗ trợ đã kết thúc (DONE).'}
                 </div>
               )}
 

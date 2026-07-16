@@ -12,7 +12,6 @@ import { useRealtimeTopics } from '../hooks/useRealtimeTopics';
 import { notificationService } from '../services/notificationService';
 import { supportService } from '../services/supportService';
 import { systemConfigService } from '../services/systemConfigService';
-import { DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../constants/systemConfig';
 import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
 import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
@@ -42,9 +41,11 @@ const LIVE_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
 const MIN_DESCRIPTION_LENGTH = 15;
 const MIN_SEND_GAP_MS = 1200;
 
-const CATEGORY_GUIDED_KEYS = new Set(['account', 'promo', 'membership']);
+const CATEGORY_GUIDED_KEYS = new Set(['ticket', 'payment', 'account', 'promo', 'membership']);
 
 const CATEGORY_GUIDED_SEEDS = {
+  ticket: 'Tôi cần hỗ trợ về vé hoặc suất chiếu.',
+  payment: 'Tôi cần hỗ trợ về thanh toán.',
   account: 'Tôi không đăng nhập được và cần hỗ trợ tài khoản.',
   promo: 'Tôi cần hỗ trợ về voucher hoặc khuyến mãi.',
   membership: 'Tôi cần hỗ trợ về hội viên và điểm thưởng.',
@@ -838,10 +839,20 @@ const NasaAiAssistantWidget = () => {
 
   const openStaffAlertTopics = useMemo(() => {
     if (!isLoggedInCustomer || shouldHideOnRoute) return [];
-    return myTickets
-      .filter((item) => item?.ticketCode && !isClosedSupportStatus(item.status))
-      .map((item) => REALTIME_TOPICS.supportTicket(item.ticketCode));
-  }, [isLoggedInCustomer, myTickets, shouldHideOnRoute]);
+    const codes = new Set(
+      myTickets
+        .filter((item) => item?.ticketCode && !isClosedSupportStatus(item.status))
+        .map((item) => item.ticketCode),
+    );
+    // Always keep the ticket the user is currently viewing subscribed — even after it
+    // flips to DONE/RESOLVED. The admin's closing "thank-you" sticker is sent together
+    // with the status change in one broadcast; without this the topic would be dropped
+    // as the status turns closed and the message would only appear after a manual reload.
+    if (activeTicketCode) {
+      codes.add(activeTicketCode);
+    }
+    return [...codes].map((code) => REALTIME_TOPICS.supportTicket(code));
+  }, [isLoggedInCustomer, myTickets, shouldHideOnRoute, activeTicketCode]);
 
   const markStaffTicketUnread = (ticketCode) => {
     if (!ticketCode) return;
@@ -1171,17 +1182,6 @@ const NasaAiAssistantWidget = () => {
     ensureCategoryChips();
   };
 
-  const pushFaqGuide = (categoryKey) => {
-    const group = DEFAULT_NASA_BOT_SUPPORT_FAQS.find((item) => item.key === categoryKey);
-    if (!group) return;
-    pushMessage({
-      role: 'bot',
-      type: 'faq',
-      categoryKey,
-      group,
-    });
-  };
-
   const startGuidedSupportChat = async (category) => {
     const seed = CATEGORY_GUIDED_SEEDS[category?.key];
     if (!seed || !category) return;
@@ -1237,7 +1237,10 @@ const NasaAiAssistantWidget = () => {
     setMessages((prev) => prev.filter((item) => item.type !== 'categories'));
 
     if (CATEGORY_GUIDED_KEYS.has(category.key)) {
-      pushFaqGuide(category.key);
+      // Guided categories collect info one question at a time (like "Vé"). We intentionally do
+      // NOT push the quick-FAQ card here anymore: showing it alongside the first guided question
+      // made the bot appear to ask two things at once, and clicking a FAQ chip pushed a local
+      // Q&A into the history that derailed the step-by-step ticket flow.
       void startGuidedSupportChat(category);
       return;
     }
@@ -1279,7 +1282,9 @@ const NasaAiAssistantWidget = () => {
     const category = getCategoryByKey(categoryKey);
     if (category) {
       selectSupportCategory(category);
-      if (seededDescription.trim()) {
+      // Guided categories collect the description through their own step-by-step flow, so
+      // don't also push a confirm card here (that would fork into two conflicting flows).
+      if (!CATEGORY_GUIDED_KEYS.has(category.key) && seededDescription.trim()) {
         handleDescriptionSubmit(seededDescription);
       }
       return;

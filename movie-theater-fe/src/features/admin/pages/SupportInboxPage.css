@@ -182,6 +182,34 @@
   word-break: break-word;
 }
 
+/* Slim inline note shown when a ticket is closed — replaces the old full-height banner
+   that used to expand (flex:1) and cover the whole conversation. */
+.support-closed-note {
+  margin: 0.5rem 1.25rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--adm-radius-xs, 8px);
+  border: 1px solid var(--adm-border, #1a2238);
+  background: rgba(239, 68, 68, 0.06);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--adm-text-dim, #94a3b8);
+  flex-shrink: 0;
+}
+
+/* Compact "delete ticket" button placed in the chat header actions. */
+.support-chat-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.support-chat-delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+}
+
 /* Admin Support Inbox */
 
 .support-inbox-layout {
