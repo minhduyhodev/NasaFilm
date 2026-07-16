@@ -246,11 +246,13 @@
 }
 
 .mc-row--template {
-  grid-template-columns: minmax(0, 1fr) minmax(100px, auto) auto;
+  /* Fixed widths for the metric + action columns so every card lines the buttons
+     up at the same x-position (each card is its own grid; "auto" made them ragged). */
+  grid-template-columns: minmax(0, 1fr) 128px 156px;
 }
 
 .mc-row--campaign {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 156px;
 }
 
 .mc-row__signal {
@@ -439,6 +441,15 @@
   align-items: flex-end;
   gap: 0.45rem;
   flex-shrink: 0;
+}
+
+/* Uniform-width action buttons so the stacked group is aligned on both edges
+   instead of each button hugging its own text width. */
+.mc-row__actions > button {
+  width: 100%;
+  max-width: 160px;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .mc-row__actions--campaign {
@@ -745,10 +756,17 @@
     grid-column: auto;
     grid-row: auto;
     flex-direction: row;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     width: 100%;
     padding-top: 0.35rem;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Back to content-width buttons once they wrap into a horizontal row. */
+  .mc-row__actions > button {
+    width: auto;
+    max-width: none;
   }
 
   .mc-toolbar {
