@@ -295,7 +295,7 @@
 }
 
 .nasabot-preview__bubble--user {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
   color: #fff;
   justify-self: end;
 }

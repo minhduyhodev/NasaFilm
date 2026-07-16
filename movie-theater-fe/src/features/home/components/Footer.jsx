@@ -1,4 +1,3 @@
-import React from 'react';
 import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';

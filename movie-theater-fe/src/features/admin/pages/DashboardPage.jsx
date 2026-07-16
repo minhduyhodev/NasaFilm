@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, TrendingUp, Ticket, DollarSign, Percent, Film, Building2, Tags } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
 import { adminMissionService } from '../api/adminMissionService';
-import { TopMissionsPanel } from '../components';
+import { TopMissionsPanel, AdminPage, PageHeader, FilterPills, AdminDatePicker } from '../components';
 import TabTransition from '../../../shared/components/TabTransition';
 import PosterImage from '../../../shared/components/PosterImage';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -10,7 +10,7 @@ import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { shiftPeriod, todayYmd } from '../utils/revenueSeriesNav';
 import './DashboardPage.css';
 
-const CHART_COLORS = ['#a855f7', '#ec4899', '#f97316', '#06b6d4', '#10b981', '#6366f1'];
+const CHART_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#38bdf8', '#f97316', '#94a3b8'];
 
 const GRANULARITIES = [
   { id: 'day', label: 'Ngày', subtitle: 'Chi tiết theo giờ' },
@@ -18,38 +18,7 @@ const GRANULARITIES = [
   { id: 'month', label: 'Tháng', subtitle: 'Chi tiết theo ngày trong tháng' },
 ];
 
-const generateSparkline = (seed, count = 14) => {
-  const base = Math.max(Number(seed) || 1, 1);
-  return Array.from({ length: count }, (_, i) => {
-    const wave = Math.sin(i * 0.65 + base * 0.01) * 0.12;
-    const trend = 0.55 + (i / (count - 1)) * 0.45;
-    return base * trend * (1 + wave);
-  });
-};
-
-const Sparkline = ({ data, color = '#ef4444', className = '' }) => {
-  const width = 120;
-  const height = 36;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - ((v - min) / range) * (height - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(' ');
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className={`dashboard-sparkline ${className}`} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-};
-
-const AreaChart = ({ labels, values, color = '#a855f7' }) => {
+const AreaChart = ({ labels, values, color = '#ef4444' }) => {
   const width = 560;
   const height = 220;
   const pad = { top: 16, right: 16, bottom: 36, left: 48 };
@@ -534,18 +503,14 @@ const DashboardPage = () => {
       suffix: 'đ',
       change: growthLabel,
       positive: isGrowthPositive,
-      sparkColor: '#ef4444',
-      spark: generateSparkline(Number(stats?.totalRevenue) || 100),
       icon: DollarSign,
     },
     {
       id: 'transactions',
       label: 'Giao dịch',
       value: transactionVal,
-      change: isGrowthPositive ? growthLabel : `${Math.abs(growthVal).toFixed(1)}%`,
-      positive: (stats?.totalTransactions || 0) > 0,
-      sparkColor: '#ef4444',
-      spark: generateSparkline(stats?.totalTransactions || 50),
+      change: growthLabel,
+      positive: isGrowthPositive,
       icon: Ticket,
     },
     {
@@ -553,10 +518,8 @@ const DashboardPage = () => {
       label: 'Tỷ lệ chuyển đổi',
       value: conversionVal.toFixed(1),
       suffix: '%',
-      change: `${conversionVal >= 10 ? '+' : ''}${(conversionVal * 0.1).toFixed(1)}%`,
+      change: null,
       positive: conversionVal >= 5,
-      sparkColor: '#ef4444',
-      spark: generateSparkline(conversionVal * 100 || 20),
       icon: Percent,
     },
     {
@@ -566,8 +529,6 @@ const DashboardPage = () => {
       suffix: '%',
       change: growthLabel,
       positive: isGrowthPositive,
-      sparkColor: '#ef4444',
-      spark: generateSparkline(Math.abs(growthVal) * 1000 || 30),
       icon: TrendingUp,
     },
   ];
@@ -608,38 +569,38 @@ const DashboardPage = () => {
   const maxCinemaRevenue = Math.max(...cinemasList.map((c) => Number(c.revenue) || 0), 1);
 
   return (
-    <div className="dashboard-page">
-      <header className="dashboard-page-header">
-        <div className="dashboard-page-header-main">
-          <span className="dashboard-page-eyebrow">NASAFilm · Operations</span>
-          <h1 className="dashboard-page-title">Bảng điều khiển</h1>
-          <p className="dashboard-page-desc">Tổng quan vận hành và phân tích hệ thống rạp chiếu phim</p>
-        </div>
-      </header>
+    <AdminPage className="dashboard-page">
+      <PageHeader
+        eyebrow="NASAFilm · Operations"
+        title="Bảng điều khiển"
+        description="Tổng quan vận hành và phân tích hệ thống rạp chiếu phim"
+        variant="display"
+      />
 
-      <div className="dashboard-kpi-grid">
+      <div className="dashboard-kpi-grid adm-kpi-grid adm-kpi-grid--4">
         {kpis.map((kpi, index) => (
           <div
             key={kpi.id}
-            className={`dashboard-kpi-card${index === 0 ? ' dashboard-kpi-card--featured' : ''}`}
+            className={`dashboard-kpi-card adm-kpi-card${index === 0 ? ' dashboard-kpi-card--featured' : ''}`}
           >
             <div className="dashboard-kpi-top">
-              <span className="dashboard-kpi-label">{kpi.label}</span>
+              <span className="dashboard-kpi-label adm-kpi-card__label">{kpi.label}</span>
               <span className="dashboard-kpi-icon-wrap">
                 <kpi.icon className="dashboard-kpi-icon" />
               </span>
             </div>
             <div className="dashboard-kpi-body">
               <div className="dashboard-kpi-values">
-                <span className="dashboard-kpi-value">
+                <span className="dashboard-kpi-value adm-tabular">
                   {kpi.value}
                   {kpi.suffix && <span className="dashboard-kpi-suffix">{kpi.suffix}</span>}
                 </span>
-                <span className={`dashboard-kpi-change ${kpi.positive ? 'is-positive' : 'is-negative'}`}>
-                  {kpi.change}
-                </span>
+                {kpi.change != null && (
+                  <span className={`dashboard-kpi-change ${kpi.positive ? 'is-positive' : 'is-negative'}`}>
+                    {kpi.change}
+                  </span>
+                )}
               </div>
-              <Sparkline data={kpi.spark} color={kpi.sparkColor} />
             </div>
           </div>
         ))}
@@ -662,20 +623,12 @@ const DashboardPage = () => {
               {activeGranularityMeta.subtitle} · doanh thu đơn đã xác nhận
             </p>
           </div>
-          <div className="dashboard-granularity-toggle" role="tablist" aria-label="Khoảng thời gian">
-            {GRANULARITIES.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                role="tab"
-                aria-selected={revenueGranularity === g.id}
-                className={`dashboard-granularity-btn ${revenueGranularity === g.id ? 'is-active' : ''}`}
-                onClick={() => setRevenueGranularity(g.id)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
+          <FilterPills
+            value={revenueGranularity}
+            onChange={setRevenueGranularity}
+            items={GRANULARITIES.map((g) => ({ id: g.id, label: g.label }))}
+            ariaLabel="Khoảng thời gian"
+          />
         </div>
 
         <div className="dashboard-period-nav">
@@ -699,13 +652,14 @@ const DashboardPage = () => {
           >
             ▶
           </button>
-          <input
-            type="date"
-            className="dashboard-period-date"
+          <AdminDatePicker
             value={revenueSeries?.periodStartDate || revenueAnchor}
+            onChange={(v) => v && setRevenueAnchor(v)}
             max={todayYmd()}
-            onChange={(e) => e.target.value && setRevenueAnchor(e.target.value)}
-            aria-label="Chọn ngày"
+            clearable={false}
+            size="sm"
+            className="dashboard-period-datepicker"
+            placeholder="Chọn ngày"
           />
         </div>
 
@@ -805,7 +759,7 @@ const DashboardPage = () => {
         </div>
       </TabTransition>
       </section>
-    </div>
+    </AdminPage>
   );
 };
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { MapPin, Tv, Clock } from 'lucide-react';
 import { handlePosterError } from '../../../../shared/utils/mediaUrlUtils';
 import { StatusBadge } from './showtimesUi';

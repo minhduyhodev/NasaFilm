@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, Edit2, Trash2, Loader2, Globe } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
@@ -35,7 +35,7 @@ const AdminActorDetailPage = () => {
           return;
         }
         setActor(found);
-      } catch (err) {
+      } catch {
         notificationService.error('Khong the tai thong tin dien vien');
         navigate('/admin/media');
       } finally {

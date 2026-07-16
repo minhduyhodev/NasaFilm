@@ -168,7 +168,7 @@ export function parseContentDocument(raw) {
 export function serializeContentDocument(doc) {
   const payload = {
     version: 1,
-    blocks: (doc?.blocks || []).map(({ id, ...block }) => block),
+    blocks: (doc?.blocks || []).map(({ id: _id, ...block }) => block),
   };
   return JSON.stringify(payload);
 }

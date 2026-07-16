@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { cinemaService } from '../../../../shared/services/cinemaService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';

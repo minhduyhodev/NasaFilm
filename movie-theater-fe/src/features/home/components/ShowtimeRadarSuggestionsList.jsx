@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, Film, Loader2, MapPin, Sparkles, Ticket } from 'lucide-react';

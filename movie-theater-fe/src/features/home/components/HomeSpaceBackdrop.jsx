@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import './HomeSpaceBackdrop.css';
 
 const buildTwinkleStars = (count) =>

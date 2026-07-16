@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play, Film } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -419,7 +419,7 @@ const NotificationBell = () => {
         year: 'numeric'
       });
       return `${timeStr} - ${dateStr}`;
-    } catch (e) {
+    } catch {
       return '';
     }
   };

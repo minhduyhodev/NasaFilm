@@ -3,24 +3,56 @@ import { Link } from 'react-router-dom';
 import {
   Search, DollarSign, CheckCircle2, XCircle, Ticket, Calendar, Film,
   MapPin, Clock, Loader2, AlertCircle, Sparkles,
-  X, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal
-} from 'lucide-react';
-import { bookingService } from '../../../shared/services/bookingService';
+  X, ChevronDown, SlidersHorizontal, CalendarDays
+} from 'lucide-react';import { bookingService } from '../../../shared/services/bookingService';
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import Pagination from '../../../shared/components/Pagination';
+import TabTransition from '../../../shared/components/TabTransition';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import PosterImage from '../../../shared/components/PosterImage';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
-import { AdminPage, PageHeader, GhostButton } from '../components';
+import {
+  AdminPage,
+  PageHeader,
+  FilterPills,
+  StatusBadge,
+  AdminTableShell,
+  AdminDatePicker,
+  AdminMonthCalendar,
+} from '../components';
+import { toIsoDate } from '../components/calendar/dateUtils';
 import {
   getAdminBookingArchiveLabel,
   partitionAdminBookings,
 } from '../utils/adminBookingUtils';
 import './BookingsPage.css';
+
+const BOOKING_STATUS_COLOR = {
+  CONFIRMED: '#34d399',
+  CANCELLED: '#f87171',
+  PENDING: '#fbbf24',
+  REFUND_PENDING: '#fbbf24',
+  REFUND_PROCESSING: '#38bdf8',
+  REFUNDED: '#94a3b8',
+};
+
+const CALENDAR_LEGEND = [
+  { label: 'Thành công', color: '#34d399' },
+  { label: 'Chờ / hoàn tiền', color: '#fbbf24' },
+  { label: 'Đã hủy', color: '#f87171' },
+];
+
+function bookingDayIso(booking) {
+  const raw = booking?.showtimeStartTime || booking?.createdAt;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return null;
+  return toIsoDate(d.getFullYear(), d.getMonth(), d.getDate());
+}
 
 const BookingsPage = () => {
   useMediaUrlRouting();
@@ -29,6 +61,7 @@ const BookingsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [listTab, setListTab] = useState('active');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [moviesMap, setMoviesMap] = useState({});
@@ -40,178 +73,11 @@ const BookingsPage = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedCinema, setSelectedCinema] = useState('');
   const [selectedShowtime, setSelectedShowtime] = useState('');
-
-  const [activeDatePickerField, setActiveDatePickerField] = useState(null); // 'startDate', 'endDate', or null
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
-
-  const openDatePicker = (field) => {
-    const currentValue = field === 'startDate' ? startDate : endDate;
-    if (currentValue) {
-      const parts = currentValue.split('-');
-      if (parts.length === 3) {
-        setCalendarYear(parseInt(parts[0], 10));
-        setCalendarMonth(parseInt(parts[1], 10) - 1);
-      }
-    } else {
-      const today = new Date();
-      setCalendarMonth(today.getMonth());
-      setCalendarYear(today.getFullYear());
-    }
-    setActiveDatePickerField(field);
-    setActiveDropdown(null);
-  };
-
-  const handlePrevMonth = () => {
-    setCalendarMonth(prev => {
-      if (prev === 0) {
-        setCalendarYear(y => y - 1);
-        return 11;
-      }
-      return prev - 1;
-    });
-  };
-
-  const handleNextMonth = () => {
-    setCalendarMonth(prev => {
-      if (prev === 11) {
-        setCalendarYear(y => y + 1);
-        return 0;
-      }
-      return prev + 1;
-    });
-  };
-
-  const handleSelectDay = (dayObj) => {
-    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
-    if (activeDatePickerField === 'startDate') {
-      setStartDate(dateStr);
-    } else {
-      setEndDate(dateStr);
-    }
-    setActiveDatePickerField(null);
-  };
-
-  const getDaysInMonth = (year, month) => {
-    const date = new Date(year, month, 1);
-    const days = [];
-    const firstDayIndex = date.getDay();
-    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // start from Monday
-
-    const prevMonthDate = new Date(year, month, 0);
-    const prevMonthDaysCount = prevMonthDate.getDate();
-    for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
-      days.push({
-        day: prevMonthDaysCount - i,
-        month: month === 0 ? 11 : month - 1,
-        year: month === 0 ? year - 1 : year,
-        isCurrentMonth: false,
-      });
-    }
-
-    const currentMonthDaysCount = new Date(year, month + 1, 0).getDate();
-    for (let i = 1; i <= currentMonthDaysCount; i++) {
-      days.push({
-        day: i,
-        month,
-        year,
-        isCurrentMonth: true,
-      });
-    }
-
-    const remainingSlots = 42 - days.length; // 6 rows * 7 columns = 42
-    for (let i = 1; i <= remainingSlots; i++) {
-      days.push({
-        day: i,
-        month: month === 11 ? 0 : month + 1,
-        year: month === 11 ? year + 1 : year,
-        isCurrentMonth: false,
-      });
-    }
-
-    return days;
-  };
-
-  const renderCalendarContent = (field) => {
-    const currentValue = field === 'startDate' ? startDate : endDate;
-    return (
-      <div className="space-y-3 font-sans text-left">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-            {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
-          </span>
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition cursor-pointer border-0 bg-transparent flex items-center justify-center"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
-          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-            <div key={d} className="py-1">{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {getDaysInMonth(calendarYear, calendarMonth).map((dayObj, idx) => {
-            const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
-            const isSelected = currentValue === dateStr;
-            const today = new Date();
-            const isToday = today.getDate() === dayObj.day && today.getMonth() === dayObj.month && today.getFullYear() === dayObj.year;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectDay(dayObj)}
-                className={`py-1 text-xs rounded-lg font-medium transition-all duration-200 cursor-pointer border-0 ${
-                  isSelected
-                    ? 'bg-red-600 text-white font-bold shadow-lg shadow-red-600/20'
-                    : isToday
-                    ? 'border border-red-500/50 bg-red-500/10 text-red-500 hover:bg-red-500/20'
-                    : dayObj.isCurrentMonth
-                    ? 'text-gray-800 hover:bg-gray-100'
-                    : 'text-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {dayObj.day}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={() => {
-              if (field === 'startDate') setStartDate('');
-              else setEndDate('');
-              setActiveDatePickerField(null);
-            }}
-            className="text-[10px] text-gray-400 hover:text-gray-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
-          >
-            Xóa
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveDatePickerField(null)}
-            className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition cursor-pointer border-0 bg-transparent p-0"
-          >
-            Đóng
-          </button>
-        </div>
-      </div>
-    );
-  };
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const t = new Date();
+    return { year: t.getFullYear(), monthIndex: t.getMonth() };
+  });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [archivedPage, setArchivedPage] = useState(1);
@@ -403,6 +269,25 @@ const BookingsPage = () => {
   const tabCurrentPage = listTab === 'archived' ? archivedPage : currentPage;
   const tabPageCount = Math.max(1, Math.ceil(displayedBookings.length / itemsPerPage) || 1);
 
+  const calendarEvents = React.useMemo(() => {
+    return filteredBookings
+      .map((b) => {
+        const date = bookingDayIso(b);
+        if (!date) return null;
+        const status = (b.status || '').toUpperCase();
+        const timeLabel = getBookingShowtimeTime(b);
+        return {
+          id: b.bookingUuid,
+          date,
+          label: b.customerName || b.movieTitle || 'Đơn',
+          color: BOOKING_STATUS_COLOR[status] || '#94a3b8',
+          meta: [b.movieTitle, timeLabel, formatPrice(b.totalPrice)].filter(Boolean).join(' · '),
+          raw: b,
+        };
+      })
+      .filter(Boolean);
+  }, [filteredBookings, showtimes]);
+
   const hasActiveFilters = startDate || endDate || selectedCinema || selectedShowtime || statusFilter !== 'ALL' || searchTerm;
 
   const kpiActive = (label) => {
@@ -418,60 +303,44 @@ const BookingsPage = () => {
       const activity = (row?.activityStatus || '').toLowerCase();
       if (activity === 'expired') return {
         label: 'Đã qua suất',
-        accentBg: 'bg-slate-500',
         accentBorder: 'bk-order-row--confirmed',
-        badgeCls: 'bg-slate-500/15 border border-slate-500/30 text-slate-300',
-        dot: 'bg-slate-400',
+        badgeVariant: 'muted',
       };
       if (activity === 'used') return {
         label: 'Đã sử dụng',
-        accentBg: 'bg-sky-500',
         accentBorder: 'bk-order-row--confirmed',
-        badgeCls: 'bg-sky-500/15 border border-sky-500/30 text-sky-300',
-        dot: 'bg-sky-400',
+        badgeVariant: 'info',
       };
       return {
         label: 'Thành công',
-        accentBg: 'bg-emerald-500',
         accentBorder: 'bk-order-row--confirmed',
-        badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
-        dot: 'bg-emerald-400 animate-pulse',
+        badgeVariant: 'success',
       };
     }
     if (s === 'CANCELLED') return {
       label: 'Đã hủy',
-      accentBg: 'bg-rose-500',
       accentBorder: 'bk-order-row--cancelled',
-      badgeCls: 'bg-rose-500/15 border border-rose-500/30 text-rose-400',
-      dot: 'bg-rose-400',
+      badgeVariant: 'danger',
     };
     if (s === 'REFUND_PENDING') return {
       label: 'Chờ duyệt hoàn tiền',
-      accentBg: 'bg-amber-500',
       accentBorder: 'bk-order-row--pending',
-      badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
-      dot: 'bg-amber-400 animate-pulse',
+      badgeVariant: 'warning',
     };
     if (s === 'REFUND_PROCESSING') return {
       label: 'Đang hoàn tiền',
-      accentBg: 'bg-sky-500',
       accentBorder: 'bk-order-row--pending',
-      badgeCls: 'bg-sky-500/15 border border-sky-500/30 text-sky-400',
-      dot: 'bg-sky-400 animate-pulse',
+      badgeVariant: 'info',
     };
     if (s === 'REFUNDED') return {
       label: 'Đã hoàn tiền',
-      accentBg: 'bg-emerald-500',
       accentBorder: 'bk-order-row--confirmed',
-      badgeCls: 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400',
-      dot: 'bg-emerald-400',
+      badgeVariant: 'success',
     };
     return {
       label: 'Chờ xử lý',
-      accentBg: 'bg-amber-500',
       accentBorder: 'bk-order-row--pending',
-      badgeCls: 'bg-amber-500/15 border border-amber-500/30 text-amber-400',
-      dot: 'bg-amber-400',
+      badgeVariant: 'warning',
     };
   };
 
@@ -567,10 +436,7 @@ const BookingsPage = () => {
         </div>
 
         <div className="bk-order-cell bk-order-cell--actions gap-2">
-          <span className={`bk-status-badge ${statusCfg.badgeCls}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-            {statusCfg.label}
-          </span>
+          <StatusBadge variant={statusCfg.badgeVariant}>{statusCfg.label}</StatusBadge>
           {isRefundPending && (
             <Link to="/admin/refunds" className="bk-action-btn bk-action-btn--checkin no-underline">
               <DollarSign className="w-3 h-3" />
@@ -625,34 +491,42 @@ const BookingsPage = () => {
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="bk-toolbar">
-        <div className="bk-toolbar__row">
-          <div className="bk-toolbar__search">
-            <Search className="bk-toolbar__search-icon" />
+      <div className="bk-toolbar adm-toolbar">
+        <div className="bk-toolbar__row adm-toolbar__row">
+          <div className="bk-toolbar__search adm-toolbar__search">
+            <Search className="bk-toolbar__search-icon adm-toolbar__search-icon" />
             <input
-              className="bk-control bk-control--search"
+              className="bk-control bk-control--search adm-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên khách, email, phim..."
             />
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[{ key: 'ALL', label: 'Tất cả', chip: 'muted' }, { key: 'CONFIRMED', label: 'Thành công', chip: 'success' }, { key: 'CANCELLED', label: 'Đã hủy', chip: 'danger' }].map(({ key, label, chip }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setStatusFilter(key);
-                  if (key === 'CANCELLED') setListTab('archived');
-                  else setListTab('active');
-                }}
-                className={`bk-chip ${statusFilter === key ? `bk-chip--active ${chip === 'success' ? 'bk-chip--success' : chip === 'muted' ? 'bk-chip--muted' : ''}` : ''}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <FilterPills
+            value={statusFilter}
+            onChange={(key) => {
+              setStatusFilter(key);
+              if (key === 'CANCELLED') setListTab('archived');
+              else setListTab('active');
+            }}
+            items={[
+              { id: 'ALL', label: 'Tất cả' },
+              { id: 'CONFIRMED', label: 'Thành công' },
+              { id: 'CANCELLED', label: 'Đã hủy' },
+            ]}
+            ariaLabel="Lọc trạng thái đơn"
+          />
+
+          <FilterPills
+            value={viewMode}
+            onChange={setViewMode}
+            items={[
+              { id: 'list', label: 'Danh sách' },
+              { id: 'calendar', label: 'Lịch' },
+            ]}
+            ariaLabel="Chế độ xem"
+          />
 
           <button
             type="button"
@@ -668,40 +542,26 @@ const BookingsPage = () => {
         {advancedOpen && (
           <div className="bk-toolbar__row bk-toolbar__row--advanced">
 
-            <div className="bk-filter-field">
-              <label>Từ ngày mua</label>
-              <div className="relative">
-                <button type="button" onClick={() => openDatePicker('startDate')} className="bk-filter-trigger">
-                  <Calendar className="bk-filter-trigger__icon" />
-                  <span className={startDate ? 'text-white' : 'text-gray-600'}>{startDate || 'yyyy-mm-dd'}</span>
-                </button>
-                {activeDatePickerField === 'startDate' && (
-                  <>
-                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
-                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
-                      {renderCalendarContent('startDate')}
-                    </div>
-                  </>
-                )}
-              </div>
+            <div className="bk-filter-field" style={{ minWidth: 180 }}>
+              <AdminDatePicker
+                label="Từ ngày mua"
+                value={startDate}
+                onChange={setStartDate}
+                max={endDate || undefined}
+                size="sm"
+                placeholder="Chọn ngày"
+              />
             </div>
 
-            <div className="bk-filter-field">
-              <label>Đến ngày mua</label>
-              <div className="relative">
-                <button type="button" onClick={() => openDatePicker('endDate')} className="bk-filter-trigger">
-                  <Calendar className="bk-filter-trigger__icon" />
-                  <span className={endDate ? 'text-white' : 'text-gray-600'}>{endDate || 'yyyy-mm-dd'}</span>
-                </button>
-                {activeDatePickerField === 'endDate' && (
-                  <>
-                    <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDatePickerField(null)} />
-                    <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 text-left animate-dropdown-fade-in">
-                      {renderCalendarContent('endDate')}
-                    </div>
-                  </>
-                )}
-              </div>
+            <div className="bk-filter-field" style={{ minWidth: 180 }}>
+              <AdminDatePicker
+                label="Đến ngày mua"
+                value={endDate}
+                onChange={setEndDate}
+                min={startDate || undefined}
+                size="sm"
+                placeholder="Chọn ngày"
+              />
             </div>
 
             <div className="bk-filter-field">
@@ -709,7 +569,7 @@ const BookingsPage = () => {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => { setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema'); setActiveDatePickerField(null); }}
+                  onClick={() => { setActiveDropdown(activeDropdown === 'cinema' ? null : 'cinema'); }}
                   className="bk-filter-trigger"
                 >
                   <MapPin className="bk-filter-trigger__icon" />
@@ -751,7 +611,7 @@ const BookingsPage = () => {
                   </div>
                 </>
               )}
-            </div>
+              </div>
             </div>
 
             <div className="bk-filter-field">
@@ -759,7 +619,7 @@ const BookingsPage = () => {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => { setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime'); setActiveDatePickerField(null); }}
+                  onClick={() => { setActiveDropdown(activeDropdown === 'showtime' ? null : 'showtime'); }}
                   className="bk-filter-trigger"
                 >
                   <Clock className="bk-filter-trigger__icon" />
@@ -801,7 +661,7 @@ const BookingsPage = () => {
                   </div>
                 </>
               )}
-            </div>
+              </div>
             </div>
           </div>
         )}
@@ -822,78 +682,125 @@ const BookingsPage = () => {
         </div>
       </div>
 
-      {/* BOOKING CARDS LIST */}
-      <div className="bk-list-panel">
-        <div className="bk-list-header">
-          <div className="bk-list-tabs">
-            <button
-              type="button"
-              className={`bk-list-tab${listTab === 'active' ? ' bk-list-tab--active' : ''}`}
-              onClick={() => setListTab('active')}
-            >
-              Đơn đang hoạt động
-              <span className="bk-list-tab__count">{activeBookings.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`bk-list-tab${listTab === 'archived' ? ' bk-list-tab--active' : ''}`}
-              onClick={() => setListTab('archived')}
-            >
-              Đơn đã qua / đóng
-              <span className="bk-list-tab__count">{archivedBookings.length}</span>
-            </button>
+      <TabTransition activeKey={viewMode}>
+      {viewMode === 'calendar' ? (
+        isLoading ? (
+          <div className="adm-loading">
+            <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+            <p>Đang tải lịch đơn đặt vé...</p>
           </div>
-          {!isLoading && displayedBookings.length > 0 && (
-            <span className="text-[10px] text-gray-600 font-mono">
-              Trang {tabCurrentPage} / {tabPageCount}
-            </span>
-          )}
-        </div>
-
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[320px]">
-            <div className="relative w-14 h-14">
-              <div className="absolute inset-0 w-14 h-14 rounded-full border-2 border-[#1A2238]" />
-              <Loader2 className="w-14 h-14 text-red-500 animate-spin absolute inset-0" />
-            </div>
-            <p className="text-sm text-gray-500 font-medium">Đang tải dữ liệu đơn đặt vé...</p>
-          </div>
-        ) : filteredBookings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[320px]">
-            <Ticket className="w-16 h-16 text-zinc-700" />
-            <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-wider text-white mb-1">Không tìm thấy đơn đặt vé nào</p>
-              <p className="text-xs text-gray-500">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
-            </div>
-            {hasActiveFilters && (<button onClick={handleClearFilters} className="px-4 py-2 rounded-lg bg-red-600/10 border border-red-600/20 text-red-400 text-xs font-bold cursor-pointer hover:bg-red-600/20 transition-all">Xóa bộ lọc</button>)}
-          </div>
-        ) : displayedBookings.length === 0 ? (
-          <p className="bk-section-empty">
-            {listTab === 'archived'
-              ? 'Không có đơn đã qua / đóng phù hợp bộ lọc.'
-              : 'Không có đơn đang hoạt động phù hợp bộ lọc.'}
-          </p>
         ) : (
-          <div>
-            {paginatedBookings.map((row) => renderOrderRow(row, listTab === 'archived'))}
+          <AdminMonthCalendar
+            year={calendarMonth.year}
+            monthIndex={calendarMonth.monthIndex}
+            onMonthChange={setCalendarMonth}
+            selectedDate={calendarSelectedDate}
+            onSelectDate={setCalendarSelectedDate}
+            events={calendarEvents}
+            legend={CALENDAR_LEGEND}
+            emptyTitle="Chọn một ngày"
+            emptyDescription="Nhấp vào ô lịch để xem đơn đặt vé theo ngày suất chiếu."
+            renderDetail={(date, dayEvents) => {
+              if (!dayEvents.length) {
+                return (
+                  <div className="adm-month-cal__empty">
+                    <CalendarDays className="adm-month-cal__empty-icon" />
+                    <div className="adm-month-cal__empty-title">Không có đơn</div>
+                    <p className="adm-month-cal__empty-desc">Ngày này chưa có đơn đặt vé phù hợp bộ lọc.</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="adm-month-cal__list">
+                  {dayEvents.map((ev) => {
+                    const row = ev.raw;
+                    const statusCfg = getStatusConfig(row);
+                    return (
+                      <div key={ev.id} className="adm-month-cal__list-item">
+                        <span className="adm-month-cal__dot mt-1.5" style={{ background: ev.color }} />
+                        <div className="adm-month-cal__list-item-main">
+                          <div className="adm-month-cal__list-item-title">{ev.label}</div>
+                          <div className="adm-month-cal__list-item-meta">{ev.meta}</div>
+                          <div className="mt-2">
+                            <StatusBadge variant={statusCfg.badgeVariant}>{statusCfg.label}</StatusBadge>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }}
+          />
+        )
+      ) : (
+      <AdminTableShell
+        toolbar={(
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+            <FilterPills
+              value={listTab}
+              onChange={setListTab}
+              items={[
+                { id: 'active', label: 'Đơn đang hoạt động', count: activeBookings.length },
+                { id: 'archived', label: 'Đơn đã qua / đóng', count: archivedBookings.length },
+              ]}
+              ariaLabel="Nhóm danh sách đơn"
+            />
+            {!isLoading && displayedBookings.length > 0 && (
+              <span className="text-[10px] text-[var(--adm-text-dim)] font-mono adm-tabular">
+                Trang {tabCurrentPage} / {tabPageCount}
+              </span>
+            )}
           </div>
         )}
-      </div>
-
-      {/* Pagination Section */}
-      {displayedBookings.length > 0 && (
-        <Pagination
-          currentPage={tabCurrentPage}
-          totalItems={displayedBookings.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={listTab === 'archived' ? setArchivedPage : setCurrentPage}
-          onItemsPerPageChange={(size) => {
-            setItemsPerPage(size);
-            setCurrentPage(1);
-            setArchivedPage(1);
-          }}
-        />
+        footer={displayedBookings.length > 0 ? (
+          <Pagination
+            currentPage={tabCurrentPage}
+            totalItems={displayedBookings.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={listTab === 'archived' ? setArchivedPage : setCurrentPage}
+            onItemsPerPageChange={(size) => {
+              setItemsPerPage(size);
+              setCurrentPage(1);
+              setArchivedPage(1);
+            }}
+          />
+        ) : null}
+      >
+        <TabTransition activeKey={listTab}>
+          {isLoading ? (
+            <div className="adm-loading">
+              <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+              <p>Đang tải dữ liệu đơn đặt vé...</p>
+            </div>
+          ) : filteredBookings.length === 0 ? (
+            <div className="adm-empty">
+              <Ticket className="w-14 h-14 opacity-40" />
+              <div>
+                <p className="text-sm font-bold text-[var(--adm-text)] mb-1">Không tìm thấy đơn đặt vé nào</p>
+                <p className="text-xs">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
+              </div>
+              {hasActiveFilters && (
+                <button type="button" onClick={handleClearFilters} className="adm-btn adm-btn--ghost">
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+          ) : displayedBookings.length === 0 ? (
+            <p className="adm-empty">
+              {listTab === 'archived'
+                ? 'Không có đơn đã qua / đóng phù hợp bộ lọc.'
+                : 'Không có đơn đang hoạt động phù hợp bộ lọc.'}
+            </p>
+          ) : (
+            <div>
+              {paginatedBookings.map((row) => renderOrderRow(row, listTab === 'archived'))}
+            </div>
+          )}
+        </TabTransition>
+      </AdminTableShell>
       )}
+      </TabTransition>
     </AdminPage>
   );
 };

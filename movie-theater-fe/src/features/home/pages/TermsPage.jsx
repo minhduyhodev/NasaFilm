@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, FileText, Scale, HelpCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import './LegalPages.css';

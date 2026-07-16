@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { orbitService } from '../../../shared/services/orbitService';
@@ -113,7 +113,7 @@ const OrbitChatBox = ({ roomUuid }) => {
 
     try {
       await orbitService.sendChatMessage(roomUuid, text);
-    } catch (err) {
+    } catch {
       notificationService.error('Không thể gửi tin nhắn. Vui lòng thử lại.');
       setInputText(text); // Restore text on failure
     }

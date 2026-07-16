@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './features/auth/store/AuthContext';
 import { AuthRoutes } from './features/auth/routes/index.jsx';

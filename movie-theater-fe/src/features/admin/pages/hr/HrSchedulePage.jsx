@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CalendarPlus,
@@ -15,9 +15,10 @@ import {
   UserX,
   Users,
 } from 'lucide-react';
-import { AdminPage, AdminModal, PageHeader, PrimaryButton } from '../../components';
-import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
+import { AdminPage, AdminModal, PageHeader, PrimaryButton, AdminDatePicker, AdminMonthCalendar, FilterPills } from '../../components';
+import { adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
+import { toIsoDate, parseIsoDate } from '../../components/calendar/dateUtils';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
@@ -42,6 +43,22 @@ const ATTENDANCE_DOT = {
   EARLY_LEAVE: '#fbbf24',
   ABSENT: '#f87171',
 };
+
+const SCHEDULE_LEGEND = [
+  { label: 'Đúng giờ', color: '#34d399' },
+  { label: 'Đang làm', color: '#38bdf8' },
+  { label: 'Muộn / về sớm', color: '#fbbf24' },
+  { label: 'Vắng', color: '#f87171' },
+  { label: 'Chưa chấm', color: '#94a3b8' },
+];
+
+function monthBounds(year, monthIndex) {
+  const last = new Date(year, monthIndex + 1, 0).getDate();
+  return {
+    from: toIsoDate(year, monthIndex, 1),
+    to: toIsoDate(year, monthIndex, last),
+  };
+}
 
 function datesBetween(fromIso, toIso) {
   const out = [];
@@ -130,6 +147,12 @@ function scheduleViolation(existing, cand) {
 
 const HrSchedulePage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeekIso());
+  const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const t = new Date();
+    return { year: t.getFullYear(), monthIndex: t.getMonth() };
+  });
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(null);
   const [staff, setStaff] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [requiredPerms, setRequiredPerms] = useState([]);
@@ -143,6 +166,12 @@ const HrSchedulePage = () => {
   const confirm = useConfirm();
 
   const weekEnd = useMemo(() => addDaysIso(weekStart, 6), [weekStart]);
+  const monthRange = useMemo(
+    () => monthBounds(calendarMonth.year, calendarMonth.monthIndex),
+    [calendarMonth.year, calendarMonth.monthIndex],
+  );
+  const rangeFrom = viewMode === 'month' ? monthRange.from : weekStart;
+  const rangeTo = viewMode === 'month' ? monthRange.to : weekEnd;
 
   const loadRefData = useCallback(async () => {
     try {
@@ -164,8 +193,8 @@ const HrSchedulePage = () => {
     setLoading(true);
     try {
       const data = await hrService.getAssignments({
-        from: weekStart,
-        to: weekEnd,
+        from: rangeFrom,
+        to: rangeTo,
         userId: userFilter || undefined,
       });
       setAssignments(Array.isArray(data) ? data : []);
@@ -175,7 +204,7 @@ const HrSchedulePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEnd, userFilter]);
+  }, [rangeFrom, rangeTo, userFilter]);
 
   useEffect(() => {
     loadRefData();
@@ -213,6 +242,17 @@ const HrSchedulePage = () => {
 
   const days = useMemo(() => datesBetween(weekStart, weekEnd), [weekStart, weekEnd]);
   const today = todayIso();
+
+  const monthEvents = useMemo(() => {
+    return assignments.map((a) => ({
+      id: a.uuid,
+      date: a.workDate,
+      label: a.fullName || a.email || 'NV',
+      color: ATTENDANCE_DOT[a.attendanceStatus] || '#94a3b8',
+      meta: `${a.shiftName || 'Ca'} · ${formatTime(a.startTime)}–${formatTime(a.endTime)}`,
+      raw: a,
+    }));
+  }, [assignments]);
 
   const staffById = useMemo(() => {
     const m = new Map();
@@ -359,6 +399,25 @@ const HrSchedulePage = () => {
       />
 
       <div className="hr-filters">
+        <FilterPills
+          value={viewMode}
+          onChange={(mode) => {
+            setViewMode(mode);
+            if (mode === 'month') {
+              const p = parseIsoDate(weekStart) || parseIsoDate(todayIso());
+              if (p) setCalendarMonth({ year: p.year, monthIndex: p.monthIndex });
+            } else {
+              const bounds = monthBounds(calendarMonth.year, calendarMonth.monthIndex);
+              setWeekStart(startOfWeekIso(bounds.from));
+            }
+          }}
+          items={[
+            { id: 'week', label: 'Tuần' },
+            { id: 'month', label: 'Tháng' },
+          ]}
+          ariaLabel="Chế độ lịch"
+        />
+        {viewMode === 'week' && (
         <div className="hr-inline">
           <button
             type="button"
@@ -387,6 +446,7 @@ const HrSchedulePage = () => {
             Tuần này
           </button>
         </div>
+        )}
         <div className="hr-field" style={{ minWidth: 220 }}>
           <AdminSelectDropdown
             label="Nhân viên"
@@ -400,7 +460,7 @@ const HrSchedulePage = () => {
           type="button"
           className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-xs font-semibold inline-flex items-center gap-1.5"
           onClick={handleCopyWeek}
-          disabled={copying}
+          disabled={copying || viewMode !== 'week'}
           title="Sao chép lịch của tuần trước sang tuần đang xem"
         >
           {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CopyPlus className="h-4 w-4" />}
@@ -422,6 +482,67 @@ const HrSchedulePage = () => {
           <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
           <p>Đang tải lịch ca...</p>
         </div>
+      ) : viewMode === 'month' ? (
+        <AdminMonthCalendar
+          year={calendarMonth.year}
+          monthIndex={calendarMonth.monthIndex}
+          onMonthChange={setCalendarMonth}
+          selectedDate={calendarSelectedDate}
+          onSelectDate={setCalendarSelectedDate}
+          events={monthEvents}
+          legend={SCHEDULE_LEGEND}
+          emptyTitle="Chọn một ngày"
+          emptyDescription="Nhấp vào ô lịch để xem ca làm việc trong ngày."
+          renderDetail={(_date, dayEvents) => {
+            if (!dayEvents.length) {
+              return (
+                <div className="adm-month-cal__empty">
+                  <Users className="adm-month-cal__empty-icon" />
+                  <div className="adm-month-cal__empty-title">Chưa xếp ca</div>
+                  <p className="adm-month-cal__empty-desc">Ngày này chưa có phân ca nào.</p>
+                </div>
+              );
+            }
+            return (
+              <div className="adm-month-cal__list">
+                {dayEvents.map((ev) => {
+                  const a = ev.raw;
+                  const meta = a.attendanceStatus
+                    ? statusBadge(ATTENDANCE_STATUS_META, a.attendanceStatus)
+                    : null;
+                  const locked = isAssignmentLocked(a);
+                  return (
+                    <div key={ev.id} className="adm-month-cal__list-item">
+                      <span className="adm-month-cal__dot mt-1.5" style={{ background: ev.color }} />
+                      <div className="adm-month-cal__list-item-main">
+                        <div className="adm-month-cal__list-item-title">{ev.label}</div>
+                        <div className="adm-month-cal__list-item-meta">{ev.meta}</div>
+                        {meta?.label ? (
+                          <div className="adm-month-cal__list-item-meta mt-1">{meta.label}</div>
+                        ) : null}
+                      </div>
+                      {!locked && (
+                        <button
+                          type="button"
+                          className="adm-btn adm-btn--ghost p-1.5 rounded-md cursor-pointer"
+                          disabled={deletingId === a.uuid}
+                          onClick={() => handleDelete(a)}
+                          title="Xóa phân ca"
+                        >
+                          {deletingId === a.uuid ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }}
+        />
       ) : (
         <>
           {hasWeekWarnings ? (
@@ -612,8 +733,8 @@ const HrSchedulePage = () => {
           requiredForShift={requiredForShift}
           fallbackRequired={requiredPerms}
           permLabel={permLabel}
-          defaultFrom={weekStart}
-          defaultTo={weekEnd}
+          defaultFrom={rangeFrom}
+          defaultTo={rangeTo}
           onClose={() => setModalOpen(false)}
           onSaved={async () => {
             setModalOpen(false);
@@ -926,13 +1047,11 @@ function AssignModal({ staff, shifts, assignments = [], requiredForShift, fallba
         </div>
 
         <div className="hr-inline" style={{ alignItems: 'flex-end' }}>
-          <div className="hr-field">
-            <label className="hr-field__label">Từ ngày</label>
-            <input type="date" className={adminInputClass} min={today} value={from} onChange={(e) => setFrom(e.target.value)} />
+          <div className="hr-field" style={{ minWidth: 170 }}>
+            <AdminDatePicker label="Từ ngày" value={from} onChange={setFrom} min={today} size="sm" max={to || undefined} />
           </div>
-          <div className="hr-field">
-            <label className="hr-field__label">Đến ngày</label>
-            <input type="date" className={adminInputClass} min={today} value={to} onChange={(e) => setTo(e.target.value)} />
+          <div className="hr-field" style={{ minWidth: 170 }}>
+            <AdminDatePicker label="Đến ngày" value={to} onChange={setTo} min={from || today} size="sm" />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Copy, Check, Clock, Loader2, QrCode } from 'lucide-react';
 import { authService } from '../../auth/api/authService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -110,7 +110,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
+    } catch {
       notificationService.error('Không thể copy. Vui lòng thử lại.');
     }
   }, []);
@@ -218,11 +218,11 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
                   </div>
                 </div>
 
-                {process.env.NODE_ENV === 'development' && (
+                {import.meta.env.DEV && (
                   <button
                     type="button"
                     onClick={handleDevMockPayment}
-                    className="w-full flex items-center justify-center gap-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 py-3 rounded-xl border border-purple-500/30 transition-all font-medium text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-red-500/15 text-red-300 hover:bg-red-500/25 py-3 rounded-xl border border-red-500/30 transition-all font-medium text-sm"
                   >
                     <QrCode className="w-4 h-4" />
                     🚀 [DEV] Giả lập Khách chuyển khoản thành công
