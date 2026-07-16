@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle, QrCode } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
@@ -17,8 +17,10 @@ import PosterImage from '../../../shared/components/PosterImage';
 import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
 import { orbitService } from '../../../shared/services/orbitService';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const CheckoutPage = () => {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -71,6 +73,7 @@ const CheckoutPage = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [myVouchers, setMyVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const orbitAutoAbortRef = useRef(false);
 
   const [activeCombos, setActiveCombos] = useState([]);
   useEffect(() => {
@@ -216,6 +219,19 @@ const CheckoutPage = () => {
     }
   }, [isStateValid, isVod, lockExpiresAt]);
 
+  useEffect(() => {
+    if (!isExpired || !isOrbit || !orbitRoomUuid || orbitAutoAbortRef.current) return;
+    orbitAutoAbortRef.current = true;
+    (async () => {
+      try {
+        await orbitService.abortCheckout(orbitRoomUuid);
+        notificationService.info('Hết thời gian thanh toán — phòng Orbit đã mở lại cho cả nhóm.');
+      } catch (err) {
+        console.error('Auto abort checkout on expiry failed:', err);
+      }
+    })();
+  }, [isExpired, isOrbit, orbitRoomUuid]);
+
   const memberDiscountRate = getMemberDiscountRate(userScore);
   const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
@@ -306,6 +322,24 @@ const CheckoutPage = () => {
       navigate('/wallet');
       return;
     }
+
+    const paymentLabel = paymentMethod === 'wallet'
+      ? 'Số dư ví NASA'
+      : paymentMethod === 'card'
+        ? 'Thẻ Visa/Mastercard'
+        : 'Apple Pay';
+    const seatLabel = isVod
+      ? 'Xem phim Online'
+      : `Ghế: ${selectedSeats.map((s) => s.id).join(', ')}`;
+    const ok = await confirm({
+      title: 'Xác nhận thanh toán',
+      message: 'Bạn có chắc muốn hoàn tất đặt vé và thanh toán?',
+      highlight: `${finalTotal.toLocaleString('vi-VN')} đ · ${paymentLabel}`,
+      detail: `${isVod ? movie : `${movie} · ${theater}`} · ${seatLabel}`,
+      confirmLabel: 'Thanh toán ngay',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     // Send only the host's own combos. For Orbit group bookings the server merges in each member's combos
     // authoritatively from the room (BookingService.confirmBooking), so pre-merging them here would
@@ -412,6 +446,13 @@ const CheckoutPage = () => {
 
   const handleBackToBooking = async () => {
     if (isOrbit && orbitRoomUuid) {
+      const ok = await confirm({
+        title: 'Quay lại phòng nhóm',
+        message: 'Phiên thanh toán nhóm sẽ bị hủy. Bạn có chắc muốn quay lại?',
+        confirmLabel: 'Quay lại',
+        variant: 'warning',
+      });
+      if (!ok) return;
       try {
         await orbitService.abortCheckout(orbitRoomUuid);
       } catch (err) {

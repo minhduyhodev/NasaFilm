@@ -415,6 +415,7 @@ public class OrbitRoomService {
         List<OrbitMember> members = orbitMemberRepository.findByRoomUuidOrderByJoinedAtAsc(roomUuid);
         OffsetDateTime renewExpiresAt = now.plusMinutes(resolveRoomTtlMinutes());
         for (OrbitMember member : members) {
+            member.setCompleted(false);
             List<UUID> seatUuids = OrbitSeatJson.readSeatUuids(member.getSeatUuidsJson());
             if (seatUuids.isEmpty()) {
                 continue;
@@ -435,6 +436,7 @@ public class OrbitRoomService {
         room.setStatus(OrbitRoomStatus.OPEN);
         room.setExpiresAt(renewExpiresAt);
         room.setUpdatedAt(now);
+        orbitMemberRepository.saveAll(members);
         orbitRoomRepository.save(room);
         seatMapEventPublisher.notifySeatMapUpdated(room.getShowtimeUuid());
         OrbitRoomResponse response = toRoomResponse(room, hostUuid);

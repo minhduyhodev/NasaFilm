@@ -305,6 +305,14 @@ const ConfigPage = () => {
   }, []);
 
   const handleSave = async () => {
+    const ok = await confirm({
+      title: 'Lưu cấu hình hệ thống',
+      message: 'Xác nhận lưu các thay đổi cấu hình? Thay đổi sẽ có hiệu lực ngay trên toàn hệ thống.',
+      confirmLabel: 'Lưu cấu hình',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsSaving(true);
     try {
       const saved = await systemConfigService.saveConfig(config);

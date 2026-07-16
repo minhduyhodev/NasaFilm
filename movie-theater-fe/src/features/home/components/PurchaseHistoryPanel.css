@@ -432,6 +432,24 @@
   border-bottom: none;
 }
 
+/* Scrollable body so long seat lists / many sections never push the page down;
+   only the header + top perforation stay outside the scroll area. */
+.ph-invoice__scroll {
+  max-height: min(58vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 38, 38, 0.35) transparent;
+}
+
+.ph-invoice__scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ph-invoice__scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.35);
+}
+
 .ph-invoice__hero {
   display: flex;
   align-items: center;
@@ -550,6 +568,54 @@
   color: #f1f5f9;
   text-align: right;
   line-height: 1.4;
+}
+
+.ph-invoice__item--seats {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.ph-invoice__item--seats dd {
+  width: 100%;
+  text-align: left;
+}
+
+.ph-seat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ph-seat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.4;
+}
+
+.ph-seat-chip--more,
+.ph-seat-chip--collapse {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.14);
+  border: 1px dashed rgba(220, 38, 38, 0.35);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ph-seat-chip--more:hover,
+.ph-seat-chip--collapse:hover {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(220, 38, 38, 0.5);
 }
 
 .ph-invoice__promo {

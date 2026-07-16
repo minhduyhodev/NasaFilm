@@ -18,10 +18,12 @@ import VietQRPOSModal from '../components/VietQRPOSModal';
 import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
 import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
 
 export default function CounterPOSPage() {
+  const confirm = useConfirm();
   const { user } = useAuthContext();
   const canCreateBooking = hasPermission(user, PERMISSIONS.COUNTER_BOOKING_CREATE);
   const canAddCombos = hasPermission(user, PERMISSIONS.COUNTER_COMBO_CREATE);
@@ -418,6 +420,25 @@ export default function CounterPOSPage() {
       notificationService.error('Lỗi khoảng trống ghế — vui lòng chọn lại');
       return;
     }
+
+    const paymentLabel = paymentMethod === 'COUNTER_CASH'
+      ? 'Tiền mặt'
+      : paymentMethod === 'COUNTER_CARD'
+        ? 'Thẻ tại quầy'
+        : paymentMethod === 'COUNTER_VIETQR'
+          ? 'VietQR'
+          : paymentMethod;
+    const ok = await confirm({
+      title: 'Xác nhận bán vé tại quầy',
+      message: paymentMethod === 'COUNTER_VIETQR'
+        ? 'Mở mã VietQR để khách thanh toán?'
+        : 'Xác nhận xuất vé và thanh toán cho khách hàng?',
+      highlight: `${selectedCustomer.fullName || selectedCustomer.email} · ${finalTotal.toLocaleString('vi-VN')} đ`,
+      detail: `Ghế: ${selectedSeats.map((s) => s.id || s.name).join(', ')} · Thanh toán: ${paymentLabel}`,
+      confirmLabel: paymentMethod === 'COUNTER_VIETQR' ? 'Mở VietQR' : 'Xác nhận bán vé',
+      variant: 'warning',
+    });
+    if (!ok) return;
 
     if (paymentMethod === 'COUNTER_VIETQR') {
       setIsVietQRModalOpen(true);

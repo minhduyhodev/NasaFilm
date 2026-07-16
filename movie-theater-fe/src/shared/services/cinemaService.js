@@ -95,11 +95,12 @@ class CinemaService {
     }
   }
 
-  async generateSeats(roomUuid, rowCount = 8, seatsPerRow = 12) {
+  async generateSeats(roomUuid, rowCount = 8, seatsPerRow = 12, aisleCols = []) {
     try {
       const response = await authService.api.post(`/api/admin/rooms/${roomUuid}/seats/generate`, {
         rowCount,
-        seatsPerRow
+        seatsPerRow,
+        aisleCols,
       });
       return response.data.data ?? response.data;
     } catch (error) {

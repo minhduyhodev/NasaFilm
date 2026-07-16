@@ -7,6 +7,7 @@ import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import { notificationService } from '../../../shared/services/notificationService';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { useNotification } from '../../../shared/context/NotificationContext';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
@@ -335,6 +336,7 @@ const Navbar = () => {
 };
 
 const NotificationBell = () => {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
@@ -386,7 +388,14 @@ const NotificationBell = () => {
     markAllAsRead();
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
+    const ok = await confirm({
+      title: 'Xóa tất cả thông báo',
+      message: 'Bạn có chắc muốn xóa toàn bộ thông báo? Hành động này không thể hoàn tác.',
+      confirmLabel: 'Xóa tất cả',
+      variant: 'danger',
+    });
+    if (!ok) return;
     clearAll();
   };
 
@@ -506,6 +515,7 @@ const NotificationBell = () => {
 };
 
 const AuthControls = () => {
+  const confirm = useConfirm();
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -544,6 +554,14 @@ const AuthControls = () => {
   };
 
   const handleLogout = async () => {
+    const ok = await confirm({
+      title: 'Đăng xuất',
+      message: 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
+      confirmLabel: 'Đăng xuất',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setIsOpen(false);
     setIsLoggingOut(true);
     try {

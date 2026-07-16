@@ -49,6 +49,13 @@ const countSeats = (seats) => {
   return seats.split(',').map((s) => s.trim()).filter(Boolean).length;
 };
 
+const parseSeatList = (seats) => {
+  if (!seats || !seats.trim()) return [];
+  return seats.split(',').map((s) => s.trim()).filter(Boolean);
+};
+
+const SEAT_CHIP_LIMIT = 8;
+
 const statusMeta = (item) => {
   const normalized = (item?.bookingStatus || '').toUpperCase();
   // Terminal cancel/refund states take priority over the time-based status.
@@ -104,6 +111,10 @@ const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
   const status = statusMeta(order);
   const payStatus = paymentStatusMeta(order.paymentStatus);
   const seatCount = online ? 1 : Math.max(countSeats(order.seats), 1);
+  const seatList = useMemo(() => parseSeatList(order.seats), [order.seats]);
+  const [showAllSeats, setShowAllSeats] = useState(false);
+  const visibleSeats = showAllSeats ? seatList : seatList.slice(0, SEAT_CHIP_LIMIT);
+  const hiddenSeatCount = seatList.length - visibleSeats.length;
 
   return (
     <div className="ph-invoice-wrap">
@@ -125,113 +136,141 @@ const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
 
         <div className="ph-invoice__perforation" aria-hidden="true" />
 
-        <section className="ph-invoice__hero">
-          <div className={`ph-invoice__type${online ? ' ph-invoice__type--online' : ''}`}>
-            {online ? <MonitorPlay size={22} /> : <Ticket size={22} />}
-          </div>
-          <div className="ph-invoice__hero-text">
-            <h3>{order.movieTitle}</h3>
-            <p>{online ? 'Vé xem trực tuyến' : 'Vé rạp chiếu'}</p>
-          </div>
-        </section>
-
-        <div className="ph-invoice__code">
-          <span>Mã giao dịch</span>
-          <strong className="ph-mono">{maskTicketCode(order.ticketCode)}</strong>
-        </div>
-
-        <section className="ph-invoice__section">
-          <h4>Thông tin đặt vé</h4>
-          <dl className="ph-invoice__grid">
-            <div className="ph-invoice__item">
-              <dt><Building2 size={14} /> Rạp / Nền tảng</dt>
-              <dd>{order.cinemaName}</dd>
+        <div className="ph-invoice__scroll">
+          <section className="ph-invoice__hero">
+            <div className={`ph-invoice__type${online ? ' ph-invoice__type--online' : ''}`}>
+              {online ? <MonitorPlay size={22} /> : <Ticket size={22} />}
             </div>
-            {!online && order.roomName && (
-              <div className="ph-invoice__item">
-                <dt><MapPin size={14} /> Phòng chiếu</dt>
-                <dd>{order.roomName}</dd>
-              </div>
-            )}
-            <div className="ph-invoice__item">
-              <dt><Calendar size={14} /> {online ? 'Ngày mua' : 'Suất chiếu'}</dt>
-              <dd>{order.showtime || order.purchasedAt || '—'}</dd>
-            </div>
-            <div className="ph-invoice__item">
-              <dt><Clock size={14} /> Thời gian giao dịch</dt>
-              <dd>{order.purchasedAt || '—'}</dd>
-            </div>
-            {!online && (
-              <div className="ph-invoice__item">
-                <dt><Armchair size={14} /> Ghế ({seatCount})</dt>
-                <dd>{order.seats || '—'}</dd>
-              </div>
-            )}
-            <div className="ph-invoice__item">
-              <dt><Popcorn size={14} /> Đồ ăn & nước</dt>
-              <dd>{order.combo || 'Không kèm bắp nước'}</dd>
-            </div>
-          </dl>
-        </section>
-
-        {order.promotionCode && (
-          <section className="ph-invoice__promo">
-            <Gift size={16} />
-            <div>
-              <span className="ph-invoice__promo-label">Ưu đãi đã áp dụng</span>
-              <strong>{order.promotionCode}</strong>
-              {order.promotionDescription && (
-                <p>{order.promotionDescription}</p>
-              )}
+            <div className="ph-invoice__hero-text">
+              <h3>{order.movieTitle}</h3>
+              <p>{online ? 'Vé xem trực tuyến' : 'Vé rạp chiếu'}</p>
             </div>
           </section>
-        )}
 
-        <div className="ph-invoice__perforation ph-invoice__perforation--dashed" aria-hidden="true" />
+          <div className="ph-invoice__code">
+            <span>Mã giao dịch</span>
+            <strong className="ph-mono">{maskTicketCode(order.ticketCode)}</strong>
+          </div>
 
-        <section className="ph-invoice__section">
-          <h4>Thanh toán</h4>
-          <dl className="ph-invoice__grid">
-            <div className="ph-invoice__item">
-              <dt><CreditCard size={14} /> Phương thức</dt>
-              <dd>{order.paymentMethod || 'Ví NASA'}</dd>
-            </div>
-            {payStatus && (
+          <section className="ph-invoice__section">
+            <h4>Thông tin đặt vé</h4>
+            <dl className="ph-invoice__grid">
               <div className="ph-invoice__item">
-                <dt>Trạng thái TT</dt>
-                <dd>
-                  <span className={`ph-pay-badge ${payStatus.className}`}>
-                    {payStatus.label}
-                  </span>
-                </dd>
+                <dt><Building2 size={14} /> Rạp / Nền tảng</dt>
+                <dd>{order.cinemaName}</dd>
               </div>
-            )}
-            <div className="ph-invoice__item ph-invoice__item--qty">
-              <dt>Số lượng vé</dt>
-              <dd>{seatCount}</dd>
-            </div>
-          </dl>
-        </section>
+              {!online && order.roomName && (
+                <div className="ph-invoice__item">
+                  <dt><MapPin size={14} /> Phòng chiếu</dt>
+                  <dd>{order.roomName}</dd>
+                </div>
+              )}
+              <div className="ph-invoice__item">
+                <dt><Calendar size={14} /> {online ? 'Ngày mua' : 'Suất chiếu'}</dt>
+                <dd>{order.showtime || order.purchasedAt || '—'}</dd>
+              </div>
+              <div className="ph-invoice__item">
+                <dt><Clock size={14} /> Thời gian giao dịch</dt>
+                <dd>{order.purchasedAt || '—'}</dd>
+              </div>
+              {!online && (
+                <div className="ph-invoice__item ph-invoice__item--seats">
+                  <dt><Armchair size={14} /> Ghế ({seatCount})</dt>
+                  <dd>
+                    {seatList.length > 0 ? (
+                      <div className="ph-seat-chips">
+                        {visibleSeats.map((seat, idx) => (
+                          <span key={`${seat}-${idx}`} className="ph-seat-chip">{seat}</span>
+                        ))}
+                        {hiddenSeatCount > 0 && (
+                          <button
+                            type="button"
+                            className="ph-seat-chip ph-seat-chip--more"
+                            onClick={() => setShowAllSeats(true)}
+                          >
+                            +{hiddenSeatCount} ghế
+                          </button>
+                        )}
+                        {showAllSeats && seatList.length > SEAT_CHIP_LIMIT && (
+                          <button
+                            type="button"
+                            className="ph-seat-chip ph-seat-chip--collapse"
+                            onClick={() => setShowAllSeats(false)}
+                          >
+                            Thu gọn
+                          </button>
+                        )}
+                      </div>
+                    ) : '—'}
+                  </dd>
+                </div>
+              )}
+              <div className="ph-invoice__item">
+                <dt><Popcorn size={14} /> Đồ ăn & nước</dt>
+                <dd>{order.combo || 'Không kèm bắp nước'}</dd>
+              </div>
+            </dl>
+          </section>
 
-        <footer className="ph-invoice__total">
-          <span>Tổng thanh toán</span>
-          <strong>{order.totalPrice}</strong>
-        </footer>
+          {order.promotionCode && (
+            <section className="ph-invoice__promo">
+              <Gift size={16} />
+              <div>
+                <span className="ph-invoice__promo-label">Ưu đãi đã áp dụng</span>
+                <strong>{order.promotionCode}</strong>
+                {order.promotionDescription && (
+                  <p>{order.promotionDescription}</p>
+                )}
+              </div>
+            </section>
+          )}
 
-        <p className="ph-invoice__note">
-          Cảm ơn bạn đã sử dụng dịch vụ NASA Cinema. Hóa đơn này có giá trị tra cứu giao dịch.
-        </p>
-        {['CANCELLED', 'REFUNDED', 'REFUND_PENDING', 'REFUND_PROCESSING'].includes(
-          (order.bookingStatus || '').toUpperCase()
-        ) && order.bookingUuid && (
-          <button
-            type="button"
-            className="ph-refund-btn"
-            onClick={() => onViewRefund?.(order.bookingUuid)}
-          >
-            Xem trạng thái hoàn tiền
-          </button>
-        )}
+          <div className="ph-invoice__perforation ph-invoice__perforation--dashed" aria-hidden="true" />
+
+          <section className="ph-invoice__section">
+            <h4>Thanh toán</h4>
+            <dl className="ph-invoice__grid">
+              <div className="ph-invoice__item">
+                <dt><CreditCard size={14} /> Phương thức</dt>
+                <dd>{order.paymentMethod || 'Ví NASA'}</dd>
+              </div>
+              {payStatus && (
+                <div className="ph-invoice__item">
+                  <dt>Trạng thái TT</dt>
+                  <dd>
+                    <span className={`ph-pay-badge ${payStatus.className}`}>
+                      {payStatus.label}
+                    </span>
+                  </dd>
+                </div>
+              )}
+              <div className="ph-invoice__item ph-invoice__item--qty">
+                <dt>Số lượng vé</dt>
+                <dd>{seatCount}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <footer className="ph-invoice__total">
+            <span>Tổng thanh toán</span>
+            <strong>{order.totalPrice}</strong>
+          </footer>
+
+          <p className="ph-invoice__note">
+            Cảm ơn bạn đã sử dụng dịch vụ NASA Cinema. Hóa đơn này có giá trị tra cứu giao dịch.
+          </p>
+          {['CANCELLED', 'REFUNDED', 'REFUND_PENDING', 'REFUND_PROCESSING'].includes(
+            (order.bookingStatus || '').toUpperCase()
+          ) && order.bookingUuid && (
+            <button
+              type="button"
+              className="ph-refund-btn"
+              onClick={() => onViewRefund?.(order.bookingUuid)}
+            >
+              Xem trạng thái hoàn tiền
+            </button>
+          )}
+        </div>
       </article>
     </div>
   );

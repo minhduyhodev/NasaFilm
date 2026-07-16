@@ -164,7 +164,7 @@ const StaffMissionControlPage = () => {
     // Only auto-scroll on successful check-in / history growth — avoid loop on wrong QR rescans.
     if (checkIn.previewError) return;
     checkinFooterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [checkIn.displayResult, checkIn.scanHistory.length, checkIn.isResultPanelActive, checkIn.isHistoryActive, checkIn.previewError]);
+  }, [checkIn.displayResult?.code, checkIn.displayResult?.status, checkIn.scanHistory.length, checkIn.isResultPanelActive, checkIn.isHistoryActive, checkIn.previewError]);
 
   useEffect(() => {
     loadShowtimes();

@@ -133,7 +133,7 @@ const OnlineMoviesPage = () => {
             <div className="online-catalog-search">
               <Search className="online-catalog-search-icon" aria-hidden="true" />
               <input
-                type="search"
+                type="text"
                 value={titleSearch}
                 onChange={(e) => setTitleSearch(e.target.value)}
                 placeholder="Tìm theo tên phim..."

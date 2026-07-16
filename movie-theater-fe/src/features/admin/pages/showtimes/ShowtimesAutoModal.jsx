@@ -68,7 +68,44 @@ const ShowtimesAutoModal = ({
 
   const canGoParams = autoFormData.roomUuids.length > 0 && autoFormData.movieUuids.length > 0
     && autoFormData.startDate && autoFormData.endDate;
-  const canAnalyze = canGoParams && autoFormData.startTime && autoFormData.endTime;
+
+  const toMinutes = (hhmm) => {
+    if (!hhmm) return null;
+    const [h, m] = hhmm.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h * 60 + m;
+  };
+
+  /** Validates the open window (step "Giờ & giá") and returns a clear Vietnamese
+   *  error message, or null when everything is valid. */
+  const analyzeValidationError = useMemo(() => {
+    if (!canGoParams) return null;
+    if (!autoFormData.startTime || !autoFormData.endTime) {
+      return 'Vui lòng nhập giờ mở cửa và giờ đóng cửa';
+    }
+    const startMin = toMinutes(autoFormData.startTime);
+    const endMin = toMinutes(autoFormData.endTime);
+    if (startMin === null || endMin === null) {
+      return 'Giờ mở cửa / đóng cửa không hợp lệ';
+    }
+    if (endMin <= startMin) {
+      return 'Giờ đóng cửa phải sau giờ mở cửa';
+    }
+
+    const windowMinutes = endMin - startMin;
+    const trailerBuffer = Number(autoFormData.trailerBuffer) || 0;
+    const selectedMovies = movies.filter((m) => autoFormData.movieUuids.includes(m.uuid));
+    const fitsWindow = selectedMovies.some((m) => {
+      const duration = m.durationMinutes || 0;
+      return duration > 0 && (duration + trailerBuffer) <= windowMinutes;
+    });
+    if (selectedMovies.length > 0 && !fitsWindow) {
+      return `Khung giờ mở bán (${Math.floor(windowMinutes / 60)}h${windowMinutes % 60}) quá ngắn — không có phim nào (kể cả thời gian trailer) vừa với khung giờ này. Hãy mở rộng giờ hoạt động hoặc chọn phim ngắn hơn.`;
+    }
+    return null;
+  }, [canGoParams, autoFormData.startTime, autoFormData.endTime, autoFormData.trailerBuffer, autoFormData.movieUuids, movies]);
+
+  const canAnalyze = canGoParams && !analyzeValidationError;
 
   const handleMovieSelectionChange = (movieUuids) => {
     setAutoFormData((prev) => ({ ...prev, movieUuids }));
@@ -260,6 +297,13 @@ const ShowtimesAutoModal = ({
                     onChange={(e) => setAutoFormData((prev) => ({ ...prev, couplePrice: parseInt(e.target.value, 10) || prev.couplePrice }))} />
                 </div>
               </div>
+
+              {analyzeValidationError && (
+                <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-300">
+                  <span className="mt-0.5 shrink-0">⚠</span>
+                  <span>{analyzeValidationError}</span>
+                </div>
+              )}
 
               <div className="st-auto-config-panel">
                 <button

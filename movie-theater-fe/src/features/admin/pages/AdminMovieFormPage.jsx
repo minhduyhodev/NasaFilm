@@ -20,6 +20,7 @@ import {
 import { adminInputClass } from '../components/adminFormStyles';
 import PosterImage from '../../../shared/components/PosterImage';
 import { unwrapMediaUrl, isAwsMovieStreamingUrl } from '../../../shared/utils/mediaUrlUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '');
@@ -54,6 +55,7 @@ const mapDetailToFormData = (detail, genresList, countriesList) => {
 };
 
 const AdminMovieFormPage = () => {
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const { movieUuid } = useParams();
   const isEditing = Boolean(movieUuid);
@@ -308,11 +310,15 @@ const AdminMovieFormPage = () => {
 
   const isDirty = initialFormData && JSON.stringify(formData) !== JSON.stringify(initialFormData);
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (isDirty) {
-      if (!window.confirm('Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.')) {
-        return;
-      }
+      const ok = await confirm({
+        title: 'Hủy chỉnh sửa',
+        message: 'Bạn có chắc chắn muốn hủy? Mọi thay đổi chưa lưu sẽ bị mất.',
+        confirmLabel: 'Hủy bỏ',
+        variant: 'warning',
+      });
+      if (!ok) return;
     }
     if (isEditing) {
       navigate(`/admin/movies/${movieUuid}`);
@@ -471,7 +477,7 @@ const AdminMovieFormPage = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
                     required
                   />
-                  <p className="text-xs text-gray-600 mt-1">Anh xem truoc cap nhat khi ban nhap URL.</p>
+                  <p className="text-xs text-gray-600 mt-1">Ảnh xem trước cập nhật khi bạn nhập URL.</p>
                 </div>
                 <div>
                   <label className={labelClass}>Mô tả phim</label>
@@ -486,7 +492,7 @@ const AdminMovieFormPage = () => {
             </div>
           </Section>
 
-          <Section title="Phat hanh & trang thai" divided>
+          <Section title="Phát hành & trạng thái" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Thời lượng (phút) *</label>
@@ -520,7 +526,7 @@ const AdminMovieFormPage = () => {
                           <ChevronLeft className="w-4 h-4" />
                         </button>
                         <span className="text-xs font-bold text-white uppercase tracking-wider">
-                          {`Thang ${calendarMonth + 1}, ${calendarYear}`}
+                          {`Tháng ${calendarMonth + 1}, ${calendarYear}`}
                         </span>
                         <button type="button" onClick={handleNextMonth} className="p-1.5 hover:bg-white/[0.04] rounded-lg text-gray-400 transition cursor-pointer">
                           <ChevronRight className="w-4 h-4" />
@@ -549,8 +555,8 @@ const AdminMovieFormPage = () => {
                         })}
                       </div>
                       <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#1A2238]">
-                        <button type="button" onClick={() => { setFormData(prev => ({ ...prev, releaseDate: '' })); setIsDatePickerOpen(false); }} className="text-[10px] text-gray-500 hover:text-white font-bold uppercase transition cursor-pointer">Xoa</button>
-                        <button type="button" onClick={() => setIsDatePickerOpen(false)} className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase transition cursor-pointer">Dong</button>
+                        <button type="button" onClick={() => { setFormData(prev => ({ ...prev, releaseDate: '' })); setIsDatePickerOpen(false); }} className="text-[10px] text-gray-500 hover:text-white font-bold uppercase transition cursor-pointer">Xóa</button>
+                        <button type="button" onClick={() => setIsDatePickerOpen(false)} className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase transition cursor-pointer">Đóng</button>
                       </div>
                     </div>
                   </>
@@ -569,7 +575,7 @@ const AdminMovieFormPage = () => {
               />
 
               <AdminSelectDropdown
-                label="Gioi han do tuoi (Age Rating) *"
+                label="Giới hạn độ tuổi (Age Rating) *"
                 labelClassName={labelClass}
                 size="sm"
                 value={formData.ageRestriction}
@@ -580,7 +586,7 @@ const AdminMovieFormPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <AdminSelectDropdown
-                label="Hinh thuc phat hanh *"
+                label="Hình thức phát hành *"
                 labelClassName={labelClass}
                 size="sm"
                 value={formData.screeningMode}
@@ -616,7 +622,7 @@ const AdminMovieFormPage = () => {
             </div>
           </Section>
 
-          <Section title="Phan loai & phuong tien" divided>
+          <Section title="Phân loại & phương tiện" divided>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Thể loại phim *</label>
@@ -659,7 +665,7 @@ const AdminMovieFormPage = () => {
             divided
             action={
               <GhostButton type="button" onClick={handleAddActorToCast}>
-                <Plus className="w-3.5 h-3.5" /> Them vai
+                <Plus className="w-3.5 h-3.5" /> Thêm vai
               </GhostButton>
             }
           >
@@ -681,7 +687,7 @@ const AdminMovieFormPage = () => {
                       </div>
                       <label className="flex items-center gap-1 cursor-pointer select-none">
                         <input type="checkbox" className="rounded text-red-600 focus:ring-red-500 cursor-pointer" checked={cast.isMain} onChange={(e) => handleCastFieldChange(index, 'isMain', e.target.checked)} />
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Chinh</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Chính</span>
                       </label>
                       <button type="button" onClick={() => handleRemoveActorFromCast(index)} className="p-1 hover:bg-red-500/10 hover:text-red-400 rounded text-gray-500 transition cursor-pointer" title="Xóa vai diễn">
                         <X className="w-4 h-4" />
@@ -695,7 +701,7 @@ const AdminMovieFormPage = () => {
 
           <div className="flex justify-end gap-2 pt-8 border-t border-white/[0.06]">
             <GhostButton type="button" onClick={handleCancel} disabled={isSaving}>
-              Huy
+              Hủy
             </GhostButton>
             <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
               Lưu phim
@@ -768,9 +774,9 @@ const AdminMovieFormPage = () => {
                         </div>
                       </div>
                       {isAlreadySelected ? (
-                        <span className="text-[9px] bg-red-500/10 border border-red-500/25 px-2 py-0.5 rounded text-red-400 font-bold uppercase">Da chon</span>
+                        <span className="text-[9px] bg-red-500/10 border border-red-500/25 px-2 py-0.5 rounded text-red-400 font-bold uppercase">Đã chọn</span>
                       ) : (
-                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded text-emerald-400 font-bold uppercase">Chon</span>
+                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded text-emerald-400 font-bold uppercase">Chọn</span>
                       )}
                     </div>
                   );

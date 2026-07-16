@@ -11,6 +11,7 @@ import { orbitService } from '../../shared/services/orbitService';
 import { showMissionCompletionToasts } from '../../shared/services/missionService';
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../shared/utils/orbitRecentStorage';
+import { useConfirm } from '../../shared/context/ConfirmDialogContext';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -68,6 +69,7 @@ function CheckoutForm({ amount, checkoutState, onSuccess, onFail }) {
 }
 
 export default function PaymentFlow() {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -80,6 +82,13 @@ export default function PaymentFlow() {
 
   const handleBack = async () => {
     if (checkoutState.isOrbit && checkoutState.orbitRoomUuid) {
+      const ok = await confirm({
+        title: 'Rời trang thanh toán',
+        message: 'Quay lại sẽ hủy phiên thanh toán nhóm. Bạn có chắc muốn tiếp tục?',
+        confirmLabel: 'Quay lại',
+        variant: 'warning',
+      });
+      if (!ok) return;
       try {
         await orbitService.abortCheckout(checkoutState.orbitRoomUuid);
       } catch (err) {

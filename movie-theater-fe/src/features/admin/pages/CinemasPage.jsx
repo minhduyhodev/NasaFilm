@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapPin, Search, Plus, Tv, Activity, Grid } from 'lucide-react';
+import { MapPin, Search, Plus, Tv, Activity, Grid, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -223,6 +223,28 @@ const CinemasPage = () => {
     navigate(`/admin/cinemas/${selectedCinema.uuid}/rooms/${room.uuid}`);
   };
 
+  const handleDeleteRoom = async (room, e) => {
+    e.stopPropagation();
+    const ok = await confirm({
+      title: 'Xóa phòng chiếu',
+      message: `Xóa phòng "${room.name}"? Hành động này không thể hoàn tác.`,
+      detail: 'Chỉ xóa được khi phòng không còn suất chiếu tương lai và không có vé đã xác nhận.',
+      confirmLabel: 'Xóa phòng',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await cinemaService.deleteRoom(room.uuid);
+      notificationService.success('Đã xóa phòng chiếu.');
+      if (selectedCinema) {
+        await fetchRooms(selectedCinema.uuid);
+        await fetchCinemasAndGlobalStats(true);
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể xóa phòng chiếu.');
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 text-left">
@@ -389,14 +411,23 @@ const CinemasPage = () => {
           ) : rooms.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {rooms.map((room) => (
-                <button
-                  key={room.uuid}
-                  type="button"
-                  onClick={() => handleSelectRoom(room)}
-                  className="px-4 py-2 rounded-lg text-xs uppercase font-bold tracking-wider transition-all cursor-pointer border bg-[#0B0F19] border-[#1A2238] text-gray-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5"
-                >
-                  {room.name} ({room.roomType})
-                </button>
+                <div key={room.uuid} className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectRoom(room)}
+                    className="px-4 py-2 rounded-lg text-xs uppercase font-bold tracking-wider transition-all cursor-pointer border bg-[#0B0F19] border-[#1A2238] text-gray-400 hover:text-white hover:border-red-500/40 hover:bg-red-500/5"
+                  >
+                    {room.name} ({room.roomType})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteRoom(room, e)}
+                    className="p-2 rounded-lg border border-[#1A2238] text-gray-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition cursor-pointer"
+                    title="Xóa phòng"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           ) : (

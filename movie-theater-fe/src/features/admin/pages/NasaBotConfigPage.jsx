@@ -5,6 +5,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { DEFAULT_NASA_BOT_CONFIG, DEFAULT_NASA_BOT_SUPPORT_FAQS } from '../../../shared/constants/systemConfig';
 import { normalizeNasaBotConfig, normalizeNasaBotShortcut } from '../../../shared/utils/systemConfig';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import './NasaBotConfigPage.css';
 
 const cloneBotConfig = (config) => JSON.parse(JSON.stringify(normalizeNasaBotConfig(config || DEFAULT_NASA_BOT_CONFIG)));
@@ -24,6 +25,7 @@ const createShortcut = (index) => ({
 });
 
 const NasaBotConfigPage = () => {
+  const confirm = useConfirm();
   const [fullConfig, setFullConfig] = useState(null);
   const [botConfig, setBotConfig] = useState(cloneBotConfig(DEFAULT_NASA_BOT_CONFIG));
   const [loading, setLoading] = useState(true);
@@ -116,6 +118,14 @@ const NasaBotConfigPage = () => {
   };
 
   const handleSave = async () => {
+    const ok = await confirm({
+      title: 'Lưu cấu hình NASA Bot',
+      message: 'Thay đổi sẽ áp dụng ngay cho widget và luồng chat AI. Tiếp tục?',
+      confirmLabel: 'Lưu cấu hình',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
     setSaving(true);
     try {
       const normalizedBotConfig = normalizeNasaBotConfig(botConfig);

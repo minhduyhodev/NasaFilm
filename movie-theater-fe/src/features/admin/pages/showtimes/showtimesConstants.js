@@ -114,6 +114,26 @@ export const isSameDay = (d1, d2) => {
     === fmt.format(d2 instanceof Date ? d2 : new Date(d2));
 };
 
+/**
+ * Anchors a moment to "noon VN time" on its VN calendar day. Used as a stable
+ * reference for day-level navigation/arithmetic so it never shifts to the
+ * previous/next day when formatted or compared in the VN timezone, regardless
+ * of the browser's local timezone (Vietnam has no DST, offset is fixed +07:00).
+ */
+export const startOfVnDay = (d = new Date()) => {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: VN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const [y, m, day] = fmt.format(d instanceof Date ? d : new Date(d)).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, day, 12 - 7, 0, 0));
+};
+
+/** Adds whole VN calendar days to a date produced by `startOfVnDay`. */
+export const addVnDays = (d, days) => new Date(d.getTime() + days * 86400000);
+
 export const getValidTransitions = (status) => {
   switch (status) {
     case 'DRAFT': return [

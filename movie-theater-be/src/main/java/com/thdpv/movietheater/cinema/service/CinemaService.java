@@ -2,8 +2,10 @@ package com.thdpv.movietheater.cinema.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -159,11 +161,19 @@ public class CinemaService {
             throw new AppException(ErrorCode.CONFLICT, "Ma phong chieu da ton tai trong rap");
         }
 
+        // No seats exist yet for a brand-new room, so the provided capacity is only an
+        // informational placeholder. It will be overwritten with the real bookable seat
+        // count as soon as generateSeats()/updateSeat() run (see refreshRoomBookableCapacity).
+        Integer requestedCapacity = request.getCapacity();
+        if (requestedCapacity != null && requestedCapacity < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suc chua phong khong duoc am");
+        }
+
         CinemaRoom room = new CinemaRoom();
         room.setCinema(cinema);
         room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
-        room.setCapacity(request.getCapacity() != null ? request.getCapacity() : 0);
+        room.setCapacity(requestedCapacity != null ? requestedCapacity : 0);
         room.setRoomType(request.getRoomType());
         room.setStatus(request.getStatus() != null ? request.getStatus() : CinemaRoomStatus.ACTIVE);
 
@@ -201,7 +211,23 @@ public class CinemaService {
 
         room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
-        room.setCapacity(request.getCapacity() != null ? request.getCapacity() : room.getCapacity());
+
+        // Capacity must always mirror reality. Once the room has a generated seat map,
+        // the client-provided capacity is silently overridden with the actual bookable
+        // (ACTIVE, non-aisle) seat count instead of trusting an arbitrary number — this is
+        // what prevents "capacity=1 while 100 seats exist" (or a stale/too-high value that
+        // no longer matches the real, sellable seat count) from ever being persisted.
+        long totalSeatCount = seatRepository.countByCinemaRoom_Uuid(roomUuid);
+        if (totalSeatCount > 0) {
+            long bookableSeatCount = seatRepository.countByCinemaRoom_UuidAndIsActiveTrueAndStatus(roomUuid, SeatStatus.ACTIVE);
+            room.setCapacity((int) bookableSeatCount);
+        } else if (request.getCapacity() != null) {
+            if (request.getCapacity() < 0) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Suc chua phong khong duoc am");
+            }
+            room.setCapacity(request.getCapacity());
+        }
+
         if (request.getRoomType() != null) {
             room.setRoomType(request.getRoomType());
         }
@@ -265,6 +291,20 @@ public class CinemaService {
             throw new AppException(ErrorCode.BAD_REQUEST, "So hang (1-26) hoac so ghe moi hang (1-30) khong hop le");
         }
 
+        // Aisle columns (1-based seatNumber within the generated grid) are walkways, not
+        // sellable seats. Mark them DISABLED at creation time so they never inflate the
+        // room's bookable capacity (previously every grid cell — including aisle columns —
+        // was created as an ACTIVE seat, so a 20-row room with aisles ended up with a wrong,
+        // too-high seat/capacity count).
+        Set<Integer> aisleColSet = new HashSet<>();
+        if (request != null && request.getAisleCols() != null) {
+            for (Integer col : request.getAisleCols()) {
+                if (col != null && col >= 1 && col <= seatsPerRow) {
+                    aisleColSet.add(col);
+                }
+            }
+        }
+
         List<Seat> seatsToSave = new ArrayList<>();
 
         // Proportional layout configuration:
@@ -292,14 +332,18 @@ public class CinemaService {
             }
 
             for (int i = 1; i <= count; i++) {
+                boolean isAisleCol = aisleColSet.contains(i);
                 String posKey = rowStr + "_" + i;
                 if (existingSeatMap.containsKey(posKey)) {
                     Seat seat = existingSeatMap.get(posKey);
                     seat.setActive(true);
-                    if (seat.getStatus() == SeatStatus.DISABLED) {
+                    seat.setSeatType(type);
+                    if (isAisleCol) {
+                        // Aisle position: never a sellable seat, regardless of its previous status.
+                        seat.setStatus(SeatStatus.DISABLED);
+                    } else if (seat.getStatus() == SeatStatus.DISABLED) {
                         seat.setStatus(SeatStatus.ACTIVE);
                     }
-                    seat.setSeatType(type);
                     seatsToSave.add(seat);
                     existingSeatMap.remove(posKey);
                 } else {
@@ -311,7 +355,7 @@ public class CinemaService {
                     seat.setSeatType(type);
                     seat.setRowName(rowStr);
                     seat.setSeatNumber(i);
-                    seat.setStatus(SeatStatus.ACTIVE);
+                    seat.setStatus(isAisleCol ? SeatStatus.DISABLED : SeatStatus.ACTIVE);
                     seat.setActive(true);
                     seatsToSave.add(seat);
                 }

@@ -340,7 +340,20 @@ public class ShowtimeService {
         } else {
             showtimes = showtimeRepository.findUpcomingPublic(statuses, now);
         }
+        showtimes = filterActiveRoomShowtimes(showtimes);
         return mapShowtimesToResponses(showtimes);
+    }
+
+    private List<Showtime> filterActiveRoomShowtimes(List<Showtime> showtimes) {
+        if (showtimes.isEmpty()) {
+            return showtimes;
+        }
+        Set<UUID> roomUuids = showtimes.stream().map(Showtime::getCinemaRoomUuid).collect(Collectors.toSet());
+        Map<UUID, CinemaRoomStatus> roomStatusMap = cinemaRoomRepository.findAllById(roomUuids).stream()
+                .collect(Collectors.toMap(CinemaRoom::getUuid, CinemaRoom::getStatus));
+        return showtimes.stream()
+                .filter(st -> CinemaRoomStatus.ACTIVE.equals(roomStatusMap.get(st.getCinemaRoomUuid())))
+                .toList();
     }
 
     /**
