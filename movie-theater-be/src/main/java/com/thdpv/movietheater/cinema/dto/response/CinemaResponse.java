@@ -10,6 +10,7 @@ public class CinemaResponse {
     private String address;
     private String phoneNumber;
     private String entranceNote;
+    private String imageUrl;
     private Double latitude;
     private Double longitude;
     private int totalRooms; // Helper field to show how many rooms this cinema has
@@ -73,6 +74,14 @@ public class CinemaResponse {
 
     public void setEntranceNote(String entranceNote) {
         this.entranceNote = entranceNote;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Double getLatitude() {

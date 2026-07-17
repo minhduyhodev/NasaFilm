@@ -140,25 +140,30 @@ public class UserService {
         return mapToResponse(user);
     }
 
-    @Transactional
     public UserProfileResponse uploadAvatar(String email, MultipartFile file) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         try {
-            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
-                String publicId = extractPublicId(user.getAvatarUrl());
-                if (publicId != null) {
-                    cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-                }
-            }
-
+            String previousAvatarUrl = user.getAvatarUrl();
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap("folder", "avatars"));
             String avatarUrl = (String) uploadResult.get("secure_url");
             user.setAvatarUrl(avatarUrl);
             userRepository.save(user);
 
+            // Chỉ xóa ảnh cũ sau khi ảnh mới đã upload và URL mới đã lưu thành công. Cloudinary I/O nằm ngoài
+            // transaction DB để không giữ connection trong lúc chờ mạng; lỗi xóa ảnh cũ không làm hỏng avatar mới.
+            if (previousAvatarUrl != null && !previousAvatarUrl.isBlank()) {
+                String publicId = extractPublicId(previousAvatarUrl);
+                if (publicId != null) {
+                    try {
+                        cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+                    } catch (Exception ignored) {
+                        // Ảnh cũ mồ côi có thể được dọn bằng maintenance; không rollback URL avatar mới.
+                    }
+                }
+            }
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {

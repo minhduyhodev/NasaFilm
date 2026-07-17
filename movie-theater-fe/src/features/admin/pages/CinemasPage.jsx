@@ -323,6 +323,16 @@ const CinemasPage = () => {
                       : 'bg-[var(--adm-bg-panel-solid)] border-[var(--adm-border)] hover:border-[#2C3B5E]'
                   }`}
                 >
+                  {cinema.imageUrl && (
+                    <div className="-m-4 mb-3 h-24 overflow-hidden rounded-t-[var(--adm-radius-sm)]">
+                      <img
+                        src={cinema.imageUrl}
+                        alt={cinema.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mb-1 gap-2">
                     <h3 className="text-xs text-white font-black truncate">{cinema.name}</h3>
                     <StatusBadge variant={cinemaStatusVariant(cinema.status)}>

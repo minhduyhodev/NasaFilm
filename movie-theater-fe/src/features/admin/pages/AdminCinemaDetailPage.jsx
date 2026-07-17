@@ -99,7 +99,11 @@ const AdminCinemaDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 flex flex-col gap-3">
           <div className="w-full max-w-xs rounded-xl bg-white/[0.03] border border-white/[0.06] p-6 flex flex-col items-center gap-3">
-            <MapPin className="w-10 h-10 text-red-500" />
+            {cinema.imageUrl ? (
+              <img src={cinema.imageUrl} alt={cinema.name} className="w-full h-36 rounded-lg object-cover" />
+            ) : (
+              <MapPin className="w-10 h-10 text-red-500" />
+            )}
             <p className="text-sm text-gray-400 text-center">{cinema.address}</p>
             {cinema.entranceNote && (
               <p className="text-xs text-amber-300/90 text-center">{cinema.entranceNote}</p>

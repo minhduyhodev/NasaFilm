@@ -44,6 +44,10 @@
   grid-column: span 2;
 }
 
+.staff-control__filters--pos {
+  gap: 0.625rem;
+}
+
 .counter-location-toolbar--in-grid .counter-pos__field-select {
   flex: 1 1 200px;
   max-width: 320px;

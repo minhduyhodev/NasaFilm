@@ -149,3 +149,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_movie_slug
     ON movie (slug)
     WHERE slug IS NOT NULL;
 
+-- ── Cinema image (ảnh đại diện rạp do admin upload) ───────────────────────────
+
+ALTER TABLE cinema ADD COLUMN IF NOT EXISTS image_url varchar(1000);
+

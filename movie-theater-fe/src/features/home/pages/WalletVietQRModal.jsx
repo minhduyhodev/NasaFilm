@@ -83,6 +83,7 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
     let intervalId;
 
     const poll = async () => {
+      if (document.hidden) return;
       try {
         const resp = await walletService.checkVietQRTopUp(qrData.transferCode, amount);
         if (resp?.data !== null && resp?.data !== undefined && !confirmFired.current) {
@@ -94,8 +95,16 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    poll();
     intervalId = setInterval(poll, 2500);
-    return () => clearInterval(intervalId);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
   }, [qrData, isConfirming, amount, doCredit]);
 
   const handleCopy = useCallback(async (text, field) => {
@@ -187,7 +196,7 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
                 <button
                   onClick={async () => {
                     try {
-                      const res = await fetch('http://localhost:8080/v1/webhooks/vietqr', {
+                      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',

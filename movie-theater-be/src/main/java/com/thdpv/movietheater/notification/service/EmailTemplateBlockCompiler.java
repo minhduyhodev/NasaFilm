@@ -17,14 +17,17 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 final class EmailTemplateBlockCompiler {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Set<String> URL_FIELDS = Set.of("ACTIVATION_URL", "PROFILE_URL", "RESET_LINK", "BOARDING_URL", "ACTIVATION_LINK");
-    private static final Map<String, String> SUBTITLE_BY_CODE = Map.of(
-            EmailTemplateService.CODE_VOD_TICKET, "Vé xem phim trực tuyến",
-            EmailTemplateService.CODE_THEATER_TICKET, "Vé xem phim tại rạp",
-            EmailTemplateService.CODE_OTP_REGISTER, "Xác thực tài khoản",
-            EmailTemplateService.CODE_PASSWORD_RESET, "Đặt lại mật khẩu",
-            EmailTemplateService.CODE_ACCOUNT_ACTIVATION, "Chào mừng hội viên mới",
-            EmailTemplateService.CODE_STAFF_ACTIVATION, "Tài khoản Nhân sự");
+    private static final Set<String> URL_FIELDS = Set.of(
+            "ACTIVATION_URL", "PROFILE_URL", "RESET_LINK", "BOARDING_URL", "ACTIVATION_LINK", "WALLET_URL");
+    private static final Map<String, String> SUBTITLE_BY_CODE = Map.ofEntries(
+            Map.entry(EmailTemplateService.CODE_VOD_TICKET, "Vé xem phim trực tuyến"),
+            Map.entry(EmailTemplateService.CODE_THEATER_TICKET, "Vé xem phim tại rạp"),
+            Map.entry(EmailTemplateService.CODE_OTP_REGISTER, "Xác thực tài khoản"),
+            Map.entry(EmailTemplateService.CODE_PASSWORD_RESET, "Đặt lại mật khẩu"),
+            Map.entry(EmailTemplateService.CODE_ACCOUNT_ACTIVATION, "Chào mừng hội viên mới"),
+            Map.entry(EmailTemplateService.CODE_STAFF_ACTIVATION, "Tài khoản Nhân sự"),
+            Map.entry(EmailTemplateService.CODE_WALLET_TOP_UP, "Nạp tiền Ví NASA"),
+            Map.entry(EmailTemplateService.CODE_WALLET_WITHDRAW, "Rút tiền Ví NASA"));
 
     private EmailTemplateBlockCompiler() {
     }

@@ -3,6 +3,8 @@ export const SYSTEM_TEMPLATE_CODES = [
   'THEATER_TICKET',
   'OTP_REGISTER',
   'PASSWORD_RESET',
+  'WALLET_TOP_UP',
+  'WALLET_WITHDRAW',
 ];
 
 /** Metadata for each merge field — shown in Vietnamese in the admin UI. */
@@ -23,6 +25,10 @@ export const TEMPLATE_FIELD_META = {
   QR_CHECKIN_SECTION: { label: 'Khối mã QR check-in', group: 'Rạp', style: 'html_block' },
   OTP_CODE: { label: 'Mã OTP', group: 'Xác thực', style: 'highlight' },
   RESET_LINK: { label: 'Liên kết đặt lại mật khẩu', group: 'Xác thực', style: 'link' },
+  AMOUNT: { label: 'Số tiền giao dịch', group: 'Ví', style: 'inline' },
+  BALANCE_AFTER: { label: 'Số dư sau giao dịch', group: 'Ví', style: 'inline' },
+  METHOD: { label: 'Phương thức', group: 'Ví', style: 'inline' },
+  WALLET_URL: { label: 'Liên kết trang Ví NASA', group: 'Liên kết', style: 'link' },
 };
 
 export const TEMPLATE_VARIABLES = {
@@ -34,6 +40,8 @@ export const TEMPLATE_VARIABLES = {
   ],
   OTP_REGISTER: ['OTP_CODE'],
   PASSWORD_RESET: ['RESET_LINK'],
+  WALLET_TOP_UP: ['CUSTOMER_NAME', 'AMOUNT', 'BALANCE_AFTER', 'METHOD', 'WALLET_URL'],
+  WALLET_WITHDRAW: ['CUSTOMER_NAME', 'AMOUNT', 'BALANCE_AFTER', 'METHOD', 'WALLET_URL'],
 };
 
 export const BLOCK_PRESETS = {
@@ -111,6 +119,44 @@ export const BLOCK_PRESETS = {
       { type: 'text', value: 'Liên kết có hiệu lực trong thời gian giới hạn.' },
     ],
   },
+  WALLET_TOP_UP: {
+    name: 'Nạp tiền ví',
+    purpose: 'Gửi thông báo khi khách hàng nạp tiền vào Ví NASA thành công',
+    subject: 'NASA FILM - Nạp {{AMOUNT}} vào Ví NASA thành công',
+    blocks: [
+      { type: 'paragraph', parts: [{ type: 'text', value: 'Xin chào ' }, { type: 'field', key: 'CUSTOMER_NAME' }, { type: 'text', value: '!' }] },
+      { type: 'text', value: 'Giao dịch nạp tiền vào Ví NASA của bạn đã thành công.' },
+      {
+        type: 'info_table',
+        rows: [
+          { label: 'Số tiền nạp', key: 'AMOUNT' },
+          { label: 'Số dư sau giao dịch', key: 'BALANCE_AFTER' },
+          { label: 'Phương thức', key: 'METHOD' },
+        ],
+      },
+      { type: 'field', key: 'WALLET_URL' },
+      { type: 'text', value: 'Trân trọng,\nĐội ngũ NASA FILM' },
+    ],
+  },
+  WALLET_WITHDRAW: {
+    name: 'Rút tiền ví',
+    purpose: 'Gửi thông báo khi khách hàng rút tiền từ Ví NASA thành công',
+    subject: 'NASA FILM - Rút {{AMOUNT}} từ Ví NASA thành công',
+    blocks: [
+      { type: 'paragraph', parts: [{ type: 'text', value: 'Xin chào ' }, { type: 'field', key: 'CUSTOMER_NAME' }, { type: 'text', value: '!' }] },
+      { type: 'text', value: 'Giao dịch rút tiền từ Ví NASA của bạn đã thành công.' },
+      {
+        type: 'info_table',
+        rows: [
+          { label: 'Số tiền rút', key: 'AMOUNT' },
+          { label: 'Số dư sau giao dịch', key: 'BALANCE_AFTER' },
+          { label: 'Phương thức', key: 'METHOD' },
+        ],
+      },
+      { type: 'field', key: 'WALLET_URL' },
+      { type: 'text', value: 'Nếu bạn không thực hiện giao dịch này, vui lòng liên hệ hỗ trợ ngay.\nTrân trọng,\nĐội ngũ NASA FILM' },
+    ],
+  },
 };
 
 const SAMPLE_VALUES = {
@@ -130,6 +176,10 @@ const SAMPLE_VALUES = {
   QR_CHECKIN_SECTION: '[Mã QR check-in]',
   OTP_CODE: '482916',
   RESET_LINK: 'https://nasafilm.vn/reset-password?token=xxx',
+  AMOUNT: '200.000 đ',
+  BALANCE_AFTER: '600.000 đ',
+  METHOD: 'VietQR',
+  WALLET_URL: 'https://nasafilm.vn/wallet',
 };
 
 const SUBTITLE_BY_CODE = {
@@ -137,6 +187,8 @@ const SUBTITLE_BY_CODE = {
   THEATER_TICKET: 'Vé xem phim tại rạp',
   OTP_REGISTER: 'Xác thực tài khoản',
   PASSWORD_RESET: 'Đặt lại mật khẩu',
+  WALLET_TOP_UP: 'Nạp tiền Ví NASA',
+  WALLET_WITHDRAW: 'Rút tiền Ví NASA',
 };
 
 let blockIdCounter = 0;

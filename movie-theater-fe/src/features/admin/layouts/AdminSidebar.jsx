@@ -76,8 +76,8 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
 
   const loadPendingRefundCount = useCallback(async () => {
     try {
-      const data = await bookingService.getAdminPendingRefunds();
-      setPendingRefundCount(Array.isArray(data) ? data.length : 0);
+      const count = await bookingService.getAdminPendingRefundCount();
+      setPendingRefundCount(Number.isFinite(count) ? count : 0);
     } catch {
       setPendingRefundCount(0);
     }
