@@ -10,9 +10,16 @@ class WalletService {
     }
   }
 
-  async getTransactions() {
+  async getTransactions(page = 0, size = 10, type = null, date = null) {
     try {
-      const response = await authService.api.get('/api/wallet/transactions');
+      const response = await authService.api.get('/api/wallet/transactions', {
+        params: {
+          page,
+          size,
+          ...(type ? { type } : {}),
+          ...(date ? { date } : {}),
+        },
+      });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

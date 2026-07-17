@@ -153,16 +153,8 @@
   transition: transform 300ms var(--nsf-ease);
 }
 
-.my-movies-card:nth-child(3n + 2) {
-  transform: translateY(1.75rem);
-}
-
 .my-movies-card:hover {
   transform: translateY(-0.3rem);
-}
-
-.my-movies-card:nth-child(3n + 2):hover {
-  transform: translateY(1.45rem);
 }
 
 .my-movies-poster {
@@ -256,6 +248,14 @@
   to { background-position: -200% 0; }
 }
 
+.my-movies-pagination {
+  margin-top: 2rem;
+  border: 1px solid var(--nsf-line-1, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(10, 12, 16, 0.55);
+}
+
 @media (max-width: 640px) {
   .my-movies-page {
     padding: 6.75rem 0.625rem 4rem;
@@ -272,11 +272,6 @@
 
   .my-movies-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .my-movies-card:nth-child(3n + 2),
-  .my-movies-card:nth-child(3n + 2):hover {
-    transform: none;
   }
 }
 

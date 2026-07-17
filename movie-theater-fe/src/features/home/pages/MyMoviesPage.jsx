@@ -5,6 +5,7 @@ import { favoriteService } from '../../../shared/services/favoriteService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import PosterImage from '../../../shared/components/PosterImage';
 import PageMeta from '../../../shared/components/PageMeta';
+import Pagination from '../../../shared/components/Pagination';
 import { getMovieDetailPath } from '../utils/movieUtils';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import { readGuestFavorites } from '../hooks/useMovieFavorite';
@@ -14,6 +15,8 @@ const MyMoviesPage = () => {
   const { isAuthenticated } = useAuthContext();
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +37,11 @@ const MyMoviesPage = () => {
     };
     load();
   }, [isAuthenticated]);
+
+  const pagedMovies = movies.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   return (
     <div className="my-movies-page">
@@ -71,31 +79,48 @@ const MyMoviesPage = () => {
           </section>
         )}
 
-        {!isLoading && movies.length > 0 && <div className="my-movies-grid">
-          {movies.map((movie) => (
-            <Link
-              key={movie.movieUuid}
-              to={getMovieDetailPath(movie.movieUuid)}
-              className="my-movies-card"
-            >
-              <div className="my-movies-poster">
-                <PosterImage
-                  src={resolveMediaUrl(movie.primaryMediaUrl)}
-                  alt={`Poster phim ${movie.title || 'đã lưu'}`}
-                  width={360}
-                  className="h-full w-full object-cover"
+        {!isLoading && movies.length > 0 && (
+          <>
+            <div className="my-movies-grid">
+              {pagedMovies.map((movie) => (
+                <Link
+                  key={movie.movieUuid}
+                  to={getMovieDetailPath(movie.movieUuid)}
+                  className="my-movies-card"
+                >
+                  <div className="my-movies-poster">
+                    <PosterImage
+                      src={resolveMediaUrl(movie.primaryMediaUrl)}
+                      alt={`Poster phim ${movie.title || 'đã lưu'}`}
+                      width={360}
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="my-movies-poster__mark" aria-hidden>
+                      <Heart />
+                    </span>
+                  </div>
+                  <div className="my-movies-info">
+                    <h3>{movie.title}</h3>
+                    {movie.ageRestriction && <span>{movie.ageRestriction}</span>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {movies.length > itemsPerPage && (
+              <div className="my-movies-pagination">
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={movies.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                  itemsPerPageOptions={[12, 24, 48]}
                 />
-                <span className="my-movies-poster__mark" aria-hidden>
-                  <Heart />
-                </span>
               </div>
-              <div className="my-movies-info">
-                <h3>{movie.title}</h3>
-                {movie.ageRestriction && <span>{movie.ageRestriction}</span>}
-              </div>
-            </Link>
-          ))}
-        </div>}
+            )}
+          </>
+        )}
       </main>
     </div>
   );

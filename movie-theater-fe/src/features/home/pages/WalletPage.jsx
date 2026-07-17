@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowDownCircle, ArrowUpCircle, Loader2, RefreshCw, Wallet,
-  X, QrCode, CreditCard, Zap, CheckCircle2,
+  X, QrCode, CreditCard, Zap, CheckCircle2, CalendarDays,
 } from 'lucide-react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { walletService } from '../../../shared/services/walletService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { useWalletSummary, useInvalidateWallet } from '../../../shared/hooks/queries/useWalletQuery';
+import {
+  useWalletSummary,
+  useWalletTransactions,
+  useInvalidateWallet,
+} from '../../../shared/hooks/queries/useWalletQuery';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import Pagination from '../../../shared/components/Pagination';
 import WalletVietQRModal from './WalletVietQRModal';
 import './AccountUtilityPages.css';
 
@@ -17,7 +22,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 const FALLBACK_QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 const FALLBACK_MIN = 10000;
 
-const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
+const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')}\u00A0đ`;
 
 const formatBookingRef = (bookingUuid) => {
   if (!bookingUuid) return null;
@@ -34,6 +39,14 @@ const txLabel = (type) => {
     default:         return type || 'Giao dịch';
   }
 };
+
+const TX_FILTERS = [
+  { id: null,       label: 'Tất cả' },
+  { id: 'TOP_UP',   label: 'Nạp' },
+  { id: 'PAYMENT',  label: 'Thanh toán' },
+  { id: 'REFUND',   label: 'Hoàn' },
+  { id: 'WITHDRAW', label: 'Rút' },
+];
 
 /* ─── Stripe form ─── */
 function StripeTopUpForm({ amount, onSuccess, onCancel }) {
@@ -144,6 +157,27 @@ const WalletPage = () => {
   const [clientSecret,  setClientSecret]  = useState('');
   const [pendingAmount, setPendingAmount] = useState(null);
   const [showVietQR,    setShowVietQR]    = useState(false);
+  const [txPage,        setTxPage]        = useState(1);
+  const [txPageSize,    setTxPageSize]    = useState(10);
+  const [txType,        setTxType]        = useState(null);
+  const [txDate,        setTxDate]        = useState('');
+
+  const { data: txData, isLoading: isTxLoading } = useWalletTransactions(
+    txPage - 1,
+    txPageSize,
+    txType,
+    txDate || null,
+  );
+
+  const handleTxTypeChange = (type) => {
+    setTxType(type);
+    setTxPage(1);
+  };
+
+  const handleTxDateChange = (date) => {
+    setTxDate(date);
+    setTxPage(1);
+  };
 
   const minTopUp    = Number(summary?.minTopUp ?? FALLBACK_MIN);
   const maxTopUp    = Number(summary?.maxTopUp ?? 10_000_000);
@@ -260,7 +294,8 @@ const WalletPage = () => {
     }
   };
 
-  const transactions = summary?.recentTransactions || [];
+  const transactions = txData?.content || [];
+  const totalTransactions = Number(txData?.totalElements || 0);
 
   /* Build available methods */
   const methods = [
@@ -283,7 +318,7 @@ const WalletPage = () => {
 
   return (
     <div className="account-page">
-      <main className="account-page__main">
+      <main className="account-page__main account-page__main--wide">
         <header className="account-page__header">
           <div>
             <span className="account-page__eyebrow">Tài khoản / Ví</span>
@@ -304,23 +339,8 @@ const WalletPage = () => {
           </button>
         </header>
 
-        <div className="wallet-layout">
-          <section className="wallet-balance" aria-labelledby="wallet-balance-title">
-            <div className="wallet-balance__label" id="wallet-balance-title">
-              <Wallet className="h-5 w-5" />
-              Số dư khả dụng
-            </div>
-            {isLoading ? (
-              <div className="account-loading-line" aria-label="Đang tải số dư" />
-            ) : (
-              <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
-            )}
-            <p className="wallet-balance__provider">
-              {mockMode ? 'Mock Gateway' : 'Live Gateway'} / {summary?.provider || (mockMode ? 'mock' : 'stripe')}
-            </p>
-          </section>
-
-          <div>
+        <div className="wallet-workspace">
+          <div className="wallet-primary">
             <section className="account-panel" aria-labelledby="wallet-action-title">
               <h2 className="account-panel__heading" id="wallet-action-title">Nạp tiền vào ví</h2>
 
@@ -356,20 +376,22 @@ const WalletPage = () => {
                     ))}
                   </div>
                   <input
-                    type="number"
-                    min={minTopUp}
-                    max={maxTopUp}
-                    step="10000"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      setAmount(digits.slice(0, 9));
+                    }}
                     className="account-input"
                     aria-label="Số tiền giao dịch"
-                    placeholder={`Tối thiểu ${formatMoney(minTopUp)}`}
+                    placeholder={`Nhập số tiền bất kỳ, tối thiểu ${formatMoney(minTopUp)}`}
                   />
 
                   <div className="mb-5">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Chọn phương thức nạp tiền</p>
-                    <div className="flex flex-col gap-2">
+                    <div className="wallet-method-grid">
                       {methods.map((m) => (
                         <MethodCard
                           key={m.id}
@@ -407,47 +429,145 @@ const WalletPage = () => {
               )}
             </section>
           </div>
+
+          <aside className="wallet-balance wallet-secondary" aria-labelledby="wallet-balance-title">
+            <div className="wallet-balance__label" id="wallet-balance-title">
+              <Wallet className="h-5 w-5" />
+              Số dư khả dụng
+            </div>
+            {isLoading ? (
+              <div className="account-loading-line" aria-label="Đang tải số dư" />
+            ) : (
+              <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
+            )}
+            <p className="wallet-balance__provider">
+              {mockMode ? 'Mock Gateway' : 'Live Gateway'} / {summary?.provider || (mockMode ? 'mock' : 'stripe')}
+            </p>
+          </aside>
         </div>
 
-        <section className="account-panel wallet-history" aria-labelledby="wallet-history-title">
-          <h2 className="account-panel__heading" id="wallet-history-title">Lịch sử giao dịch</h2>
-          {transactions.length === 0 ? (
-            <p className="account-panel__copy">Chưa có giao dịch. Biến động số dư sẽ xuất hiện tại đây.</p>
+        <section className="account-panel wallet-history wallet-history--table" aria-labelledby="wallet-history-title">
+          <div className="wallet-history__head">
+            <div>
+              <span className="account-page__eyebrow">Dòng tiền</span>
+              <h2 className="account-panel__heading" id="wallet-history-title">Lịch sử giao dịch</h2>
+            </div>
+
+            <div className="wallet-date-filter">
+              <CalendarDays aria-hidden />
+              <label htmlFor="wallet-transaction-date">Ngày giao dịch</label>
+              <input
+                id="wallet-transaction-date"
+                type="date"
+                value={txDate}
+                onClick={(event) => event.target.showPicker?.()}
+                onChange={(event) => handleTxDateChange(event.target.value)}
+              />
+              {txDate && (
+                <button
+                  type="button"
+                  onClick={() => handleTxDateChange('')}
+                  aria-label="Xóa ngày đã chọn"
+                  title="Xem tất cả ngày"
+                >
+                  <X aria-hidden />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="wallet-tx-filters" role="tablist" aria-label="Lọc theo loại giao dịch">
+            {TX_FILTERS.map((filter) => (
+              <button
+                key={filter.id ?? 'all'}
+                type="button"
+                role="tab"
+                aria-selected={txType === filter.id}
+                onClick={() => handleTxTypeChange(filter.id)}
+                className={`wallet-tx-filter${txType === filter.id ? ' is-active' : ''}`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          {isTxLoading && transactions.length === 0 ? (
+            <div className="account-loading-line" aria-label="Đang tải lịch sử giao dịch" />
+          ) : transactions.length === 0 ? (
+            <p className="wallet-table-empty">
+              Không có giao dịch phù hợp với trạng thái và ngày đã chọn.
+            </p>
           ) : (
-            <ul className="transaction-list">
-              {transactions.map((tx) => {
-                const signed = Number(tx.amount || 0);
-                const positive = signed >= 0;
-                const isOrderRelated = tx.type === 'REFUND' || tx.type === 'PAYMENT';
-                const bookingRef = formatBookingRef(tx.bookingUuid);
-                return (
-                  <li key={tx.uuid} className="transaction-row">
-                    <div className="min-w-0">
-                      <p className="transaction-row__title">{txLabel(tx.type)}</p>
-                      <p className="transaction-row__meta">{tx.description || 'Không có mô tả'}</p>
-                      {isOrderRelated && (bookingRef || tx.movieTitle) && (
-                        <p className="transaction-row__meta" title={tx.movieTitle || bookingRef}>
-                          {tx.type === 'REFUND' ? 'Hoàn cho đơn' : 'Thanh toán đơn'}
-                          {bookingRef ? ` ${bookingRef}` : ''}
-                          {tx.movieTitle ? ` · ${tx.movieTitle}` : ''}
-                        </p>
-                      )}
-                      {tx.createdAt && (
-                        <time className="transaction-row__date" dateTime={tx.createdAt}>
-                          {new Date(tx.createdAt).toLocaleString('vi-VN')}
-                        </time>
-                      )}
-                    </div>
-                    <div>
-                      <p className={`transaction-row__amount ${positive ? 'is-positive' : 'is-negative'}`}>
-                        {positive ? '+' : ''}{formatMoney(signed)}
-                      </p>
-                      <p className="transaction-row__balance">Sau GD: {formatMoney(tx.balanceAfter)}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="wallet-table-wrap">
+              <table className="wallet-table">
+                <thead>
+                  <tr>
+                    <th>Loại giao dịch</th>
+                    <th>Chi tiết</th>
+                    <th>Thời gian</th>
+                    <th>Số tiền</th>
+                    <th>Số dư sau giao dịch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => {
+                    const signed = Number(tx.amount || 0);
+                    const positive = signed >= 0;
+                    const isOrderRelated = tx.type === 'REFUND' || tx.type === 'PAYMENT';
+                    const bookingRef = formatBookingRef(tx.bookingUuid);
+                    return (
+                      <tr key={tx.uuid}>
+                        <td>
+                          <span className="wallet-table__type">
+                            <i
+                              className={`wallet-tx-dot wallet-tx-dot--${(tx.type || 'other').toLowerCase()}`}
+                              aria-hidden
+                            />
+                            {txLabel(tx.type)}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{tx.description || 'Không có mô tả'}</strong>
+                          {isOrderRelated && (bookingRef || tx.movieTitle) && (
+                            <span title={tx.movieTitle || bookingRef}>
+                              {bookingRef || ''}
+                              {bookingRef && tx.movieTitle ? ' · ' : ''}
+                              {tx.movieTitle || ''}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {tx.createdAt ? (
+                            <time dateTime={tx.createdAt}>
+                              {new Date(tx.createdAt).toLocaleString('vi-VN')}
+                            </time>
+                          ) : '—'}
+                        </td>
+                        <td>
+                          <strong className={`transaction-row__amount ${positive ? 'is-positive' : 'is-negative'}`}>
+                            {positive ? '+' : ''}{formatMoney(signed)}
+                          </strong>
+                        </td>
+                        <td>{formatMoney(tx.balanceAfter)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {totalTransactions > 0 && (
+            <div className="wallet-history__pagination">
+              <Pagination
+                currentPage={txPage}
+                totalItems={totalTransactions}
+                itemsPerPage={txPageSize}
+                onPageChange={setTxPage}
+                onItemsPerPageChange={setTxPageSize}
+                itemsPerPageOptions={[10, 20, 50]}
+              />
+            </div>
           )}
         </section>
       </main>
