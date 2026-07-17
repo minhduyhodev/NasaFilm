@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 import { normalizeAvatarUrl } from '../utils/avatarUrl';
 

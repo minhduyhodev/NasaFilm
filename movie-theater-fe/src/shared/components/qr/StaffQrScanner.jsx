@@ -73,8 +73,6 @@ const listPhysicalCameras = async () => {
   let tempStream = null;
   try {
     tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-  } catch (err) {
-    throw err;
   } finally {
     stopMediaStream(tempStream);
   }

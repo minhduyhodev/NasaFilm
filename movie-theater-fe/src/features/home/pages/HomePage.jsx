@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import Hero from '../components/Hero';
 import TicketFilters from '../components/TicketFilters';
 import OrbitJoinInput from '../components/OrbitJoinInput';

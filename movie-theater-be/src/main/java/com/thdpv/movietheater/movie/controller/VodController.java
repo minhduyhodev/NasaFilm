@@ -20,6 +20,7 @@ import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.movie.service.MovieService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +31,13 @@ import lombok.RequiredArgsConstructor;
 public class VodController {
 
     private final BookingService bookingService;
+    private final MovieService movieService;
 
-    @GetMapping("/status/{movieUuid}")
+    @GetMapping("/status/{movieRef}")
     public ResponseEntity<ApiResponse<VodStatusResponse>> getVodStatus(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable("movieUuid") UUID movieUuid) {
+            @PathVariable("movieRef") String movieRef) {
+        UUID movieUuid = movieService.resolveMovieUuid(movieRef);
         VodStatusResponse response = bookingService.getVodStatus(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid);
@@ -51,11 +54,12 @@ public class VodController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PostMapping("/play/{movieUuid}")
+    @PostMapping("/play/{movieRef}")
     public ResponseEntity<ApiResponse<VodPlayResponse>> activateVodPlay(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable("movieUuid") UUID movieUuid,
+            @PathVariable("movieRef") String movieRef,
             @RequestParam(value = "bookingUuid", required = false) UUID bookingUuid) {
+        UUID movieUuid = movieService.resolveMovieUuid(movieRef);
         VodPlayResponse response = bookingService.activateVodPlay(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid,
@@ -63,13 +67,14 @@ public class VodController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PostMapping("/heartbeat/{movieUuid}")
+    @PostMapping("/heartbeat/{movieRef}")
     public ResponseEntity<ApiResponse<Void>> vodHeartbeat(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable("movieUuid") UUID movieUuid,
+            @PathVariable("movieRef") String movieRef,
             @RequestParam("streamToken") String streamToken,
             @RequestParam(value = "positionSeconds", required = false) Integer positionSeconds,
             @RequestParam(value = "durationSeconds", required = false) Integer durationSeconds) {
+        UUID movieUuid = movieService.resolveMovieUuid(movieRef);
         bookingService.vodHeartbeat(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid,
@@ -87,10 +92,11 @@ public class VodController {
                         userDetails != null ? userDetails.getUsername() : null)));
     }
 
-    @PostMapping("/resend-ticket/{movieUuid}")
+    @PostMapping("/resend-ticket/{movieRef}")
     public ResponseEntity<ApiResponse<Void>> resendVodTicket(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable("movieUuid") UUID movieUuid) {
+            @PathVariable("movieRef") String movieRef) {
+        UUID movieUuid = movieService.resolveMovieUuid(movieRef);
         bookingService.resendVodTicketEmail(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid);

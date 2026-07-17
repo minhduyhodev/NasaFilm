@@ -28,7 +28,6 @@ import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 import com.thdpv.movietheater.booking.repository.TicketRepository;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
-import com.thdpv.movietheater.cinema.entity.Seat;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.cache.CacheNames;
@@ -209,10 +208,6 @@ public class PreShowService {
 
     private boolean isOnlineBooking(String bookingType) {
         return bookingType != null && "ONLINE".equalsIgnoreCase(bookingType);
-    }
-
-    private List<String> loadSeatLabels(UUID bookingUuid) {
-        return loadSeatLabels(bookingUuid, null);
     }
 
     private List<String> loadSeatLabels(UUID bookingUuid, Set<UUID> allowedSeatUuids) {

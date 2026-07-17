@@ -10,6 +10,7 @@ public class MovieDetailResponse {
 
     private UUID uuid;
     private String title;
+    private String slug;
     private String description;
     private Integer durationMinutes;
     private LocalDate releaseDate;
@@ -70,6 +71,14 @@ public class MovieDetailResponse {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {

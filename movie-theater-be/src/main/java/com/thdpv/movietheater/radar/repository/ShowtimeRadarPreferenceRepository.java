@@ -5,11 +5,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.thdpv.movietheater.radar.entity.ShowtimeRadarPreference;
 
-@Repository
 public interface ShowtimeRadarPreferenceRepository extends JpaRepository<ShowtimeRadarPreference, UUID> {
 
     Optional<ShowtimeRadarPreference> findByUserUuidAndDeletedAtIsNull(UUID userUuid);

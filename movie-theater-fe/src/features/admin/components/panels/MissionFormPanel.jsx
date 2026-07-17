@@ -8,7 +8,7 @@ import {
 } from '../../api/adminMissionService';
 import { getFeatureLabel, getMissionDisplayTitle } from '../../utils/missionAdminUtils';
 import { notificationService } from '../../../../shared/services/notificationService';
-import { PrimaryButton, GhostButton } from '..';
+import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
 
 const CUSTOM_OPTION = '__CUSTOM__';
@@ -375,22 +375,20 @@ const MissionFormPanel = ({
             onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
           />
         </div>
-        <div className="mc-form-field">
-          <label className={adminLabelClass}>Bắt đầu (tuỳ chọn)</label>
-          <input
-            type="datetime-local"
-            className={adminInputClass}
+        <div className="mc-form-field mc-form-field--full">
+          <AdminDateTimePicker
+            label="Bắt đầu (tuỳ chọn)"
+            timeLabel={null}
             value={form.startsAt}
-            onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+            onChange={(v) => setForm({ ...form, startsAt: v })}
           />
         </div>
-        <div className="mc-form-field">
-          <label className={adminLabelClass}>Kết thúc (tuỳ chọn)</label>
-          <input
-            type="datetime-local"
-            className={adminInputClass}
+        <div className="mc-form-field mc-form-field--full">
+          <AdminDateTimePicker
+            label="Kết thúc (tuỳ chọn)"
+            timeLabel={null}
             value={form.endsAt}
-            onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
+            onChange={(v) => setForm({ ...form, endsAt: v })}
           />
         </div>
         <div className="mc-form-field">
@@ -402,7 +400,7 @@ const MissionFormPanel = ({
             placeholder="EXPLORER_BADGE"
           />
         </div>
-        <div className="mc-form-field mc-form-field--full">
+        <div className="mc-form-field">
           <label className={adminLabelClass}>Tên huy hiệu (tuỳ chọn)</label>
           <input
             className={adminInputClass}

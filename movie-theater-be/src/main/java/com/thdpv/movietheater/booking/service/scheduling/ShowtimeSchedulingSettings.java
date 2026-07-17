@@ -213,7 +213,6 @@ public final class ShowtimeSchedulingSettings {
         return fallback;
     }
 
-    @SuppressWarnings("unchecked")
     private static List<String> readStringList(Object value, List<String> fallback) {
         if (!(value instanceof List<?> raw) || raw.isEmpty()) {
             return fallback;

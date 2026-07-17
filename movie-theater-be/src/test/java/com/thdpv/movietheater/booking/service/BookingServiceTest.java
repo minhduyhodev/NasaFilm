@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -28,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
-import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
@@ -48,7 +46,6 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.booking.repository.PromotionRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
-import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
 import com.thdpv.movietheater.config.service.SystemConfigService;
@@ -328,7 +325,9 @@ class BookingServiceTest {
         VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
 
         org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
-        assertEquals("/api/media/border?key=movie%2Fdemo-stream.mp4", response.getStreamingUrl());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                response.getStreamingUrl().startsWith("/api/media/stream?key=movie%2Fdemo-stream.mp4&token="),
+                () -> "expected stream URL with token but was: " + response.getStreamingUrl());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
     }

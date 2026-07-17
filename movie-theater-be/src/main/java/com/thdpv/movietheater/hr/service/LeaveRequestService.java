@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.hr.service;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;

@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react';
-import { X, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { X, AlertTriangle } from 'lucide-react';
 import {
   buildRowPlacedItems,
   getCoupleLabel,

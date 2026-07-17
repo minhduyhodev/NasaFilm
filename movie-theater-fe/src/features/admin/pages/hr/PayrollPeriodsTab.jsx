@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BadgeCheck,
@@ -23,7 +23,9 @@ import {
   formatMinutes,
   formatMoney,
   statusBadge,
+  statusVariant,
 } from './hrUtils';
+import { StatusBadge, AdminTableShell } from '../../components';
 
 const now = new Date();
 
@@ -283,7 +285,9 @@ const PayrollPeriodsTab = ({ staff }) => {
                             : `${p.pendingAttendanceCount} chấm công chưa duyệt`;
                         return <AlertTriangle className="h-4 w-4" style={{ color }} title={title} />;
                       })()}
-                      <span className={meta.className}>{meta.label}</span>
+                      <StatusBadge variant={statusVariant(PAYROLL_STATUS_META, p.status)}>
+                        {meta.label}
+                      </StatusBadge>
                     </span>
                   </div>
                   <p className="hr-muted" style={{ fontSize: 12, marginTop: 4 }}>
@@ -423,8 +427,8 @@ const PayrollPeriodsTab = ({ staff }) => {
                         <p>Chưa có phiếu lương. Nhấn “Sinh phiếu lương” để tính từ công đã duyệt.</p>
                       </div>
                     ) : (
-                      <div className="hr-table-wrap" style={{ marginBottom: 20 }}>
-                        <table className="hr-table">
+                      <AdminTableShell>
+                        <table className="adm-table hr-table">
                           <thead>
                             <tr>
                               <th>Nhân viên</th>
@@ -481,16 +485,16 @@ const PayrollPeriodsTab = ({ staff }) => {
                                     {formatMoney(slip.netPay)}
                                   </td>
                                   <td>
-                                    <span className={statusBadge(PAYSLIP_STATUS_META, slip.status).className}>
+                                    <StatusBadge variant={statusVariant(PAYSLIP_STATUS_META, slip.status)}>
                                       {statusBadge(PAYSLIP_STATUS_META, slip.status).label}
-                                    </span>
+                                    </StatusBadge>
                                   </td>
                                 </tr>
                               );
                             })}
                           </tbody>
                         </table>
-                      </div>
+                      </AdminTableShell>
                     )}
 
                     {/* Thưởng / khấu trừ */}
@@ -510,8 +514,8 @@ const PayrollPeriodsTab = ({ staff }) => {
                     {adjustments.length === 0 ? (
                       <p className="hr-muted" style={{ fontSize: 13 }}>Chưa có khoản thưởng/khấu trừ nào.</p>
                     ) : (
-                      <div className="hr-table-wrap">
-                        <table className="hr-table">
+                      <AdminTableShell>
+                        <table className="adm-table hr-table">
                           <thead>
                             <tr>
                               <th>Nhân viên</th>
@@ -527,9 +531,9 @@ const PayrollPeriodsTab = ({ staff }) => {
                                 <td>{staffName(adj.userId)}</td>
                                 <td>
                                   {adj.type === 'BONUS' ? (
-                                    <span className="hr-badge hr-badge--success">Thưởng</span>
+                                    <StatusBadge variant="success">Thưởng</StatusBadge>
                                   ) : (
-                                    <span className="hr-badge hr-badge--danger">Khấu trừ</span>
+                                    <StatusBadge variant="danger">Khấu trừ</StatusBadge>
                                   )}
                                 </td>
                                 <td className="hr-num">{formatMoney(adj.amount)}</td>
@@ -554,7 +558,7 @@ const PayrollPeriodsTab = ({ staff }) => {
                             ))}
                           </tbody>
                         </table>
-                      </div>
+                      </AdminTableShell>
                     )}
                   </>
                 )}

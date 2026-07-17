@@ -1,8 +1,8 @@
 .sys-config {
-  --sc-accent: #ef4444;
-  --sc-line: rgba(255, 255, 255, 0.08);
-  --sc-frame: rgba(148, 163, 184, 0.14);
-  --sc-frame-bg: rgba(12, 16, 28, 0.55);
+  --sc-accent: var(--adm-accent, #ef4444);
+  --sc-line: var(--adm-border, rgba(255, 255, 255, 0.08));
+  --sc-frame: rgba(148, 163, 184, 0.12);
+  --sc-frame-bg: rgba(15, 19, 34, 0.92);
   --sc-frame-inner: rgba(0, 0, 0, 0.22);
   --sc-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
   display: flex;
@@ -145,17 +145,31 @@
 /* workspace — khung tab + nội dung, full width */
 .sys-config__workspace {
   border: 1px solid var(--sc-frame);
-  border-radius: 12px;
+  border-radius: 1rem;
   background: var(--sc-frame-bg);
   overflow: hidden;
   width: 100%;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
 }
 
-.sys-config__workspace-stats {
+.sys-config__workspace-toolbar {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--sc-line);
+  background: rgba(0, 0, 0, 0.18);
+  overflow-x: auto;
+}
+
+.sys-config__workspace-toolbar .adm-filter-pills {
+  flex-wrap: nowrap;
+  min-width: max-content;
+}
+
+.sys-config__workspace-stats,
+.sys-config__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-bottom: 1px solid var(--sc-line);
-  background: rgba(0, 0, 0, 0.12);
+  gap: 0;
 }
 
 .sys-config__workspace-stats .sys-config__stat {
@@ -382,17 +396,18 @@
   width: 100%;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--sc-line);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.28);
-  color: #f1f5f9;
+  border-radius: var(--adm-radius-xs, 8px);
+  background: var(--adm-bg-input, rgba(0, 0, 0, 0.28));
+  color: var(--adm-text, #f1f5f9);
   font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sys-config__input:focus {
   outline: none;
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: var(--adm-accent-border, rgba(239, 68, 68, 0.45));
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
   background: rgba(0, 0, 0, 0.38);
 }
 

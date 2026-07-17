@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
   useEffect,
   useCallback,
@@ -11,7 +11,6 @@ import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { movieService } from "../../../../shared/services/movieService";
 import {
   getOnlineMoviePath,
-  getMoviePosterUrl,
   getHeroTrailerUrl,
   preloadHeroBackground,
   pickPosterMediaUrl,
@@ -94,7 +93,7 @@ const OnlineHero = ({
 
     const enrich = async () => {
       const targetMovies = movies.slice(0, HERO_LIMIT);
-      let summaries = [];
+      let summaries;
       try {
         summaries = await movieService.getMovieSummaries(targetMovies.map((m) => m.uuid));
       } catch {

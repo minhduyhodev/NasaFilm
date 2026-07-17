@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
-
-const inputClass =
-  'w-full rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white/20 transition border border-white/[0.06]';
-const labelClass = 'block text-xs font-medium text-gray-500 mb-1';
+import { adminInputClass, adminLabelClass, adminSelectClass } from '../components/adminFormStyles';
 
 const AdminActorFormPage = () => {
   const navigate = useNavigate();
@@ -111,10 +108,10 @@ const AdminActorFormPage = () => {
         <Section title="Thong tin dien vien">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
             <div className="md:col-span-2">
-              <label className={labelClass}>Ho va ten *</label>
+              <label className={adminLabelClass}>Ho va ten *</label>
               <input
                 type="text"
-                className={inputClass}
+                className={adminInputClass}
                 placeholder="Nhap ten dien vien..."
                 value={formData.fullName}
                 onChange={(e) => setFormData((p) => ({ ...p, fullName: e.target.value }))}
@@ -122,10 +119,10 @@ const AdminActorFormPage = () => {
               />
             </div>
             <div className="md:col-span-2">
-              <label className={labelClass}>URL anh chan dung</label>
+              <label className={adminLabelClass}>URL anh chan dung</label>
               <input
                 type="url"
-                className={inputClass}
+                className={adminInputClass}
                 placeholder="https://..."
                 value={formData.avatarUrl}
                 onChange={(e) => setFormData((p) => ({ ...p, avatarUrl: e.target.value }))}
@@ -140,9 +137,9 @@ const AdminActorFormPage = () => {
               )}
             </div>
             <div>
-              <label className={labelClass}>Quoc tich *</label>
+              <label className={adminLabelClass}>Quoc tich *</label>
               <select
-                className={`${inputClass} app-select`}
+                className={adminSelectClass}
                 value={formData.countryUuid}
                 onChange={(e) => setFormData((p) => ({ ...p, countryUuid: e.target.value }))}
                 required

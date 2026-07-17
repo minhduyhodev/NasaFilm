@@ -285,11 +285,13 @@
 
 /* Home: Radar bar — no container chrome, hidden horizontal scrollbar */
 .home-upcoming-radar-bar .showtime-radar-widget--bar {
-  padding: 1.25rem 0 0;
+  padding: 1.25rem 0.25rem 0.5rem;
   border: none;
   background: transparent;
   backdrop-filter: none;
   box-shadow: none;
+  overflow: visible;
+  border-radius: 0;
 }
 
 .home-upcoming-radar-bar .showtime-radar-widget__glow {
@@ -346,6 +348,11 @@
 
 .showtime-radar-widget--bar .showtime-radar-widget__empty {
   margin-top: 0;
+  padding-left: 0.15rem;
+}
+
+.showtime-radar-widget--bar .showtime-radar-widget__subtitle {
+  padding-left: 0.15rem;
 }
 
 /* ── Suggestions strip ── */
@@ -568,6 +575,7 @@
   position: relative;
   z-index: 1;
   margin-top: 1rem;
+  padding-left: 0.15rem;
   font-size: 0.8rem;
   line-height: 1.55;
   color: #64748b;

@@ -3,20 +3,31 @@ package com.thdpv.movietheater.movie.util;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
+import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.movie.entity.MovieMedia;
+
 /**
- * Đổi Object URL S3 public thành link border của BE: {@code /api/media/border?key=...}.
- * FE chỉ gọi domain NasaFilm; BE redirect sang S3 (bucket public + time-window ở lớp VOD).
+ * Đổi S3 key / Object URL thành link border/stream của BE.
+ * DB nên lưu key ({@code movie/avatar2009.mp4}); FE chỉ gọi domain NasaFilm.
  */
 public final class S3MediaBorderUtils {
 
     public static final String BORDER_PATH = "/api/media/border";
+    /** Same-origin Range stream — dùng cho &lt;video&gt; để tránh kẹt 302 cross-origin. */
+    public static final String STREAM_PATH = "/api/media/stream";
     public static final String DEFAULT_BUCKET_HOST = "java-06.s3.ap-southeast-1.amazonaws.com";
     public static final String DEFAULT_PUBLIC_BASE = "https://" + DEFAULT_BUCKET_HOST;
 
     private static final Set<String> ALLOWED_PREFIXES = Set.of("movie/", "poster/", "trailer/");
+    private static final Set<String> PRIMARY_STREAM_MEDIA_TYPES = Set.of(
+            "STREAM", "FULL_MOVIE", "VIDEO", "ONLINE", "MOVIE");
 
     private S3MediaBorderUtils() {
     }
@@ -33,6 +44,49 @@ public final class S3MediaBorderUtils {
         return BORDER_PATH + "?key=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
     }
 
+    /**
+     * URL phát video same-origin (hỗ trợ HTTP Range). Poster/trailer vẫn dùng {@link #toBorderUrl}.
+     */
+    public static String toStreamUrl(String mediaUrl) {
+        return toStreamUrl(mediaUrl, DEFAULT_BUCKET_HOST);
+    }
+
+    public static String toStreamUrl(String mediaUrl, String allowedHost) {
+        String key = extractS3Key(mediaUrl, allowedHost);
+        if (key == null) {
+            return toBorderUrl(mediaUrl, allowedHost);
+        }
+        if (!key.toLowerCase(Locale.ROOT).startsWith("movie/")) {
+            return toBorderUrl(mediaUrl, allowedHost);
+        }
+        return STREAM_PATH + "?key=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
+    }
+
+    /** Stream URL kèm token vé VOD — FE/player phải gửi token khi gọi /api/media/stream. */
+    public static String toStreamUrlWithToken(String mediaUrl, String streamToken) {
+        String base = toStreamUrl(mediaUrl);
+        if (streamToken == null || streamToken.isBlank() || base == null || !base.contains(STREAM_PATH)) {
+            return base;
+        }
+        return base + "&token=" + URLEncoder.encode(streamToken.trim(), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Chuẩn hóa về key để lưu DB. Nhận key thô, Object URL S3, hoặc border URL.
+     * Không phải media AWS → trả nguyên (YouTube, Cloudinary…).
+     */
+    public static String toStoredKey(String mediaUrl) {
+        return toStoredKey(mediaUrl, DEFAULT_BUCKET_HOST);
+    }
+
+    public static String toStoredKey(String mediaUrl, String allowedHost) {
+        if (mediaUrl == null || mediaUrl.isBlank()) {
+            return mediaUrl;
+        }
+        String key = extractS3Key(mediaUrl, allowedHost);
+        return key != null ? key : mediaUrl.trim();
+    }
+
     public static String extractS3Key(String mediaUrl) {
         return extractS3Key(mediaUrl, DEFAULT_BUCKET_HOST);
     }
@@ -42,7 +96,15 @@ public final class S3MediaBorderUtils {
             return null;
         }
         String trimmed = mediaUrl.trim();
-        if (trimmed.startsWith(BORDER_PATH)) {
+
+        // 1) Đã là key: movie/... | poster/... | trailer/...
+        String asKey = sanitizeKey(trimmed);
+        if (asKey != null && !trimmed.contains("://") && !trimmed.startsWith(BORDER_PATH)) {
+            return asKey;
+        }
+
+        // 2) Border / stream URL của BE
+        if (trimmed.contains(BORDER_PATH) || trimmed.contains(STREAM_PATH)) {
             int idx = trimmed.indexOf("key=");
             if (idx < 0) {
                 return null;
@@ -55,6 +117,7 @@ public final class S3MediaBorderUtils {
             return sanitizeKey(java.net.URLDecoder.decode(raw, StandardCharsets.UTF_8));
         }
 
+        // 3) Object URL S3
         try {
             URI uri = URI.create(trimmed);
             String host = uri.getHost();
@@ -88,10 +151,6 @@ public final class S3MediaBorderUtils {
         return allowed ? normalized : null;
     }
 
-    public static String buildPublicObjectUrl(String key) {
-        return buildPublicObjectUrl(key, DEFAULT_PUBLIC_BASE);
-    }
-
     public static String buildPublicObjectUrl(String key, String publicBaseUrl) {
         String safeKey = sanitizeKey(key);
         if (safeKey == null) {
@@ -117,12 +176,71 @@ public final class S3MediaBorderUtils {
         return key.toLowerCase(Locale.ROOT).startsWith("movie/");
     }
 
-    /** Poster / trailer / movie trên đúng host S3 được phép. */
-    public static boolean isAwsMediaUrl(String mediaUrl) {
-        return isAwsMediaUrl(mediaUrl, DEFAULT_BUCKET_HOST);
+    /** Resolve URL phát từ field streamingUrl hoặc media S3 movie/ của phim. */
+    public static String resolveStreamingUrl(Movie movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        String directUrl = trimToNull(movie.getStreamingUrl());
+        if (isAwsMovieStreamingUrl(directUrl)) {
+            return directUrl;
+        }
+
+        List<MovieMedia> medias = movie.getMovieMedias();
+        if (medias == null || medias.isEmpty()) {
+            return null;
+        }
+
+        return medias.stream()
+                .filter(Objects::nonNull)
+                .filter(media -> matchesMediaType(media.getMediaType(), PRIMARY_STREAM_MEDIA_TYPES)
+                        || looksLikeMovieKey(media.getMediaUrl()))
+                .sorted(Comparator.comparingInt(media -> media.getSortOrder() != null ? media.getSortOrder() : 0))
+                .map(MovieMedia::getMediaUrl)
+                .map(S3MediaBorderUtils::trimToNull)
+                .filter(S3MediaBorderUtils::isAwsMovieStreamingUrl)
+                .findFirst()
+                .orElse(null);
     }
 
-    public static boolean isAwsMediaUrl(String mediaUrl, String allowedHost) {
-        return extractS3Key(mediaUrl, allowedHost) != null;
+    public static String resolveFromMediaRequests(List<MovieMediaRequest> medias) {
+        if (medias == null || medias.isEmpty()) {
+            return null;
+        }
+
+        return medias.stream()
+                .filter(Objects::nonNull)
+                .filter(media -> matchesMediaType(media.getMediaType(), PRIMARY_STREAM_MEDIA_TYPES)
+                        || looksLikeMovieKey(media.getMediaUrl()))
+                .sorted(Comparator.comparingInt(media -> media.getSortOrder() != null ? media.getSortOrder() : 0))
+                .map(MovieMediaRequest::getMediaUrl)
+                .map(S3MediaBorderUtils::trimToNull)
+                .filter(S3MediaBorderUtils::isAwsMovieStreamingUrl)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static boolean looksLikeMovieKey(String mediaUrl) {
+        if (mediaUrl == null || mediaUrl.isBlank()) {
+            return false;
+        }
+        String lower = mediaUrl.trim().toLowerCase(Locale.ROOT);
+        return lower.startsWith("movie/") || lower.contains("/movie/");
+    }
+
+    private static boolean matchesMediaType(String mediaType, Set<String> allowedTypes) {
+        if (mediaType == null || mediaType.isBlank()) {
+            return false;
+        }
+        return allowedTypes.contains(mediaType.trim().toUpperCase(Locale.ROOT));
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

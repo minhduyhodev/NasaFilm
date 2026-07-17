@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Ban, CheckCircle, Clock, MessageCircle } from 'lucide-react';
 import './LegalPages.css';

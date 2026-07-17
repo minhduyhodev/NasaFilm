@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Film, Ticket, CalendarClock, Play, Eye, Ban, CreditCard,
 } from 'lucide-react';

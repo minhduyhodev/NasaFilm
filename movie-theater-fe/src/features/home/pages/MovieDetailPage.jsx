@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Clock,
   Calendar,
@@ -16,7 +16,6 @@ import { movieService } from "../../../shared/services/movieService";
 import { showtimeService } from "../../../shared/services/showtimeService";
 
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
-import { bookingService } from "../../../shared/services/bookingService";
 import { orbitService } from "../../../shared/services/orbitService";
 import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
 import OrbitJoinInput from "../components/OrbitJoinInput";
@@ -27,7 +26,6 @@ import {
   getRecentOrbitRoomForShowtime,
   rememberOrbitRoom,
 } from "../../../shared/utils/orbitRecentStorage";
-import { getMaxSeatsPerBooking } from "../../../shared/utils/systemConfig";
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
@@ -44,7 +42,7 @@ import "./MovieDetailPage.css";
 const getEmbedUrl = (url) => {
   if (!url) return null;
   const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   if (match && match[2].length === 11) {
     return `https://www.youtube.com/embed/${match[2]}?autoplay=1&rel=0`;
@@ -110,6 +108,9 @@ const MovieDetailPage = () => {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
         setIsVideoActive(false);
+        if (data?.slug && id && data.slug !== id) {
+          navigate(`/movie/${data.slug}${window.location.search}`, { replace: true });
+        }
 
         try {
           const allShowtimes = await showtimeService.getPublicShowtimes();
@@ -485,14 +486,18 @@ const MovieDetailPage = () => {
     backdropRaw,
     poster: getMoviePosterUrl(dbMovie),
     backdrop: backdropRaw || posterRaw,
-    trailer:
-      dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "",
+    trailer: (() => {
+      const raw =
+        dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "";
+      // S3 key trailer/... → /api/media/border; YouTube giữ nguyên.
+      return resolveMediaUrl(raw) || raw;
+    })(),
     cast:
       dbMovie.actors?.map((act) => ({
         name: act.fullName,
         role: act.characterName || "Diễn viên",
         avatar:
-          act.avatarUrl ||
+          resolveMediaUrl(act.avatarUrl, 120) ||
           "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100",
       })) || [],
   };
@@ -555,7 +560,7 @@ const MovieDetailPage = () => {
                 movie.trailer.includes("youtu.be");
               if (isYouTube) {
                 const regExp =
-                  /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                  /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
                 const match = movie.trailer.match(regExp);
                 const videoId = match && match[2].length === 11 ? match[2] : "";
                 const bgYoutubeUrl = videoId

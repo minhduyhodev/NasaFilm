@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, BellRing, Calendar, Trash2 } from 'lucide-react';
 import PosterImage from '../../../shared/components/PosterImage';

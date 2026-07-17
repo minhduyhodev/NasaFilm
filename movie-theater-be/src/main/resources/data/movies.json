@@ -73,7 +73,7 @@
     "medias": [
       {
         "uuid": "16c72e6a-8be7-4cfc-a2b4-aa342111524b",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg",
+        "mediaUrl": "poster/KeAnDanh_Poster.jpg",
         "mediaType": "POSTER",
         "title": "KeAnDanh Poster",
         "isPrimary": true,
@@ -83,7 +83,7 @@
       },
       {
         "uuid": "330e20bb-1ca9-49bb-a40d-70f22ad0ce11",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
+        "mediaUrl": "trailer/KeAnDanh_Trailer.mp4",
         "mediaType": "TRAILER",
         "title": "KeAnDanh Trailer",
         "isPrimary": false,
@@ -204,7 +204,7 @@
     "medias": [
       {
         "uuid": "66ca5452-ec1c-481a-b242-323ffa6e08e0",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg",
+        "mediaUrl": "poster/MuaDo_Poster.jpg",
         "mediaType": "POSTER",
         "title": "MuaDo Poster",
         "isPrimary": true,
@@ -214,7 +214,7 @@
       },
       {
         "uuid": "fe47736f-7127-4ec1-81a0-645ea3f6fe37",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
+        "mediaUrl": "trailer/MuaDo_Trailer.mp4",
         "mediaType": "TRAILER",
         "title": "MuaDo Trailer",
         "isPrimary": false,
@@ -284,7 +284,7 @@
       },
       {
         "uuid": "69ad2bdf-4a9d-4e6c-b069-052e6f4c2974",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
+        "mediaUrl": "trailer/ThanhGuongDietQuy_Trailer.mp4",
         "mediaType": "TRAILER",
         "title": "ThanhGuongDietQuy Trailer",
         "isPrimary": false,
@@ -335,7 +335,7 @@
     "medias": [
       {
         "uuid": "48306047-df3d-4a29-a46f-5a8c4ffdefc9",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg",
+        "mediaUrl": "poster/TruyTimLongDienHuong_Poster.jpg",
         "mediaType": "POSTER",
         "title": "TruyTimLongDienHuong Poster",
         "isPrimary": true,
@@ -345,7 +345,7 @@
       },
       {
         "uuid": "ba81ea01-bdd8-43e6-a0b6-19708bb3d6c5",
-        "mediaUrl": "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
+        "mediaUrl": "trailer/TruyTimLongDienHuong_Trailer.mp4",
         "mediaType": "TRAILER",
         "title": "TruyTimLongDienHuong Trailer",
         "isPrimary": false,

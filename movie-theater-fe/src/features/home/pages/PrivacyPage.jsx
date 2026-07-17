@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, CheckSquare, Users, Mail } from 'lucide-react';
 import './LegalPages.css';

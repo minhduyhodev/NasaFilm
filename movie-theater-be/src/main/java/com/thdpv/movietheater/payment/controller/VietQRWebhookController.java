@@ -16,7 +16,6 @@ import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.payment.dto.SePayWebhookPayload;
 import com.thdpv.movietheater.payment.service.VietQRService;
 
-import lombok.RequiredArgsConstructor;
 
 @RestController
 public class VietQRWebhookController {

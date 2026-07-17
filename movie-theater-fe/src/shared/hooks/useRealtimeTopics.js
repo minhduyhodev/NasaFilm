@@ -43,6 +43,5 @@ export const useRealtimeTopics = (topics, onUpdate, debounceMs = 400) => {
       timers.clear();
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- topicsKey mirrors normalizedTopics
   }, [topicsKey, debounceMs]);
 };

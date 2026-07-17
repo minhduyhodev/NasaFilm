@@ -1,11 +1,12 @@
-.page-transition-root {
+.page-transition-root,
+.tab-transition-root {
   width: 100%;
   will-change: opacity, transform;
 }
 
+/* Soft veil while content swaps — keeps layout from jumping harshly */
 .tab-transition-root {
-  width: 100%;
-  will-change: opacity, transform;
+  min-height: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -13,5 +14,7 @@
   .tab-transition-root {
     animation: none !important;
     transition: none !important;
+    transform: none !important;
+    filter: none !important;
   }
 }

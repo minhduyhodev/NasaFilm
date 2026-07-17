@@ -30,6 +30,7 @@ import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.dto.response.ActorAvatarEnrichmentResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
@@ -37,6 +38,7 @@ import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
+import com.thdpv.movietheater.movie.service.ActorAvatarEnrichmentService;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import jakarta.validation.Valid;
@@ -48,6 +50,7 @@ import lombok.RequiredArgsConstructor;
 public class MovieController {
 
     private final MovieService movieService;
+    private final ActorAvatarEnrichmentService actorAvatarEnrichmentService;
 
     @PostMapping("/admin/movies")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
@@ -92,9 +95,9 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/movies/{movieUuid}")
-    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable UUID movieUuid) {
-        MovieDetailResponse response = movieService.getMovieDetail(movieUuid);
+    @GetMapping("/movies/{movieRef}")
+    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable("movieRef") String movieRef) {
+        MovieDetailResponse response = movieService.getMovieDetailByRef(movieRef);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -175,6 +178,13 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
     }
 
+    @PostMapping("/admin/actors/enrich-avatars")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<ActorAvatarEnrichmentResponse>> enrichActorAvatars() {
+        ActorAvatarEnrichmentResponse response = actorAvatarEnrichmentService.enrichMissingAvatars();
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PostMapping("/admin/genres")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Genre>> createGenre(@Valid @RequestBody GenreRequest request) {
@@ -221,12 +231,4 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa quoc gia thanh cong"));
     }
 
-    @GetMapping("/movies/{movieUuid}/stream")
-    public ResponseEntity<ApiResponse<String>> getMovieStream(
-            @PathVariable UUID movieUuid,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String streamUrl = movieService.getMovieStreamUrl(movieUuid,
-                userDetails != null ? userDetails.getUsername() : null);
-        return ResponseEntity.ok(ApiResponse.success(streamUrl));
-    }
 }

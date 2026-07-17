@@ -1,9 +1,9 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
-import { VOD_PLAYBACK_STATE, calcVodTicketWindowMinutes } from '../../../shared/constants/vod';
+import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { mapApiMovies, isOnlineBooking, pickPosterMediaUrl, getOnlineMoviePath } from '../utils/movieUtils';
 import PosterImage from '../../../shared/components/PosterImage';
@@ -12,11 +12,13 @@ import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 const formatMeta = (movie, watched) => {
   const parts = [];
   if (movie.genres?.[0]) parts.push(movie.genres[0]);
-  if (movie.durationMinutes) parts.push(`${movie.durationMinutes} phút`);
-  const meta = parts.join(' · ');
-  const duration = movie.durationMinutes || 120;
-  const windowMinutes = calcVodTicketWindowMinutes(duration);
-  return meta ? `${meta} · ${watched}/${windowMinutes} phút` : `${watched}/${windowMinutes} phút`;
+  const duration = movie.durationMinutes
+    || (movie.vodStatus?.durationSeconds
+      ? Math.round(movie.vodStatus.durationSeconds / 60)
+      : null);
+  if (duration) parts.push(`${watched}/${duration} phút`);
+  else parts.push(`${watched} phút đã xem`);
+  return parts.join(' · ');
 };
 
 const calcWatchProgress = (firstPlayedAt, expiresAt, durationMinutes) => {

@@ -78,7 +78,6 @@ final class EmailTemplateBlockCompiler {
                 + formatInline(text).replace("\n", "<br>") + "</p>";
     }
 
-    @SuppressWarnings("unchecked")
     private static String paragraphPartsHtml(Object partsObj) {
         if (!(partsObj instanceof List<?> parts) || parts.isEmpty()) {
             return "";
@@ -150,7 +149,6 @@ final class EmailTemplateBlockCompiler {
                 + "letter-spacing:2px;color:#ff3b47;\">" + token + "</span></div></div>";
     }
 
-    @SuppressWarnings("unchecked")
     private static String infoTableHtml(Object rowsObj) {
         if (!(rowsObj instanceof List<?> rows) || rows.isEmpty()) {
             return "";

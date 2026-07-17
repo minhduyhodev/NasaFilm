@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Copy, Check, Clock, AlertTriangle, Building2, CreditCard, QrCode, Loader2, ArrowLeft } from 'lucide-react';
 import { authService } from '../auth/api/authService';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowDownCircle, ArrowUpCircle, Loader2, RefreshCw, Wallet,
   X, QrCode, CreditCard, Zap, CheckCircle2,

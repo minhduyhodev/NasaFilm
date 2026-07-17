@@ -36,6 +36,10 @@ public class Movie {
     @Column(name = "title", nullable = false)
     private String title;
 
+    /** URL-friendly id (vd: ngoi-den-ky-quai). API vẫn chấp nhận UUID. */
+    @Column(name = "slug", length = 160, unique = true)
+    private String slug;
+
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
@@ -146,6 +150,14 @@ public class Movie {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {
