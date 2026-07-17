@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -68,16 +68,18 @@ const RefundsPage = () => {
   const [refunds, setRefunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [approvingId, setApprovingId] = useState(null);
-  const [historyPage, setHistoryPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
 
   const loadRefunds = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = listTab === 'history'
-        ? await bookingService.getAdminRefundHistory()
-        : await bookingService.getAdminPendingRefunds();
-      setRefunds(Array.isArray(data) ? data : []);
+        ? await bookingService.getAdminRefundHistory({ page: currentPage - 1, size: itemsPerPage })
+        : await bookingService.getAdminPendingRefunds({ page: currentPage - 1, size: itemsPerPage });
+      setRefunds(Array.isArray(data?.content) ? data.content : []);
+      setTotalItems(Number(data?.totalElements ?? 0));
     } catch (err) {
       console.error('Failed to load refunds:', err);
       notificationService.error(
@@ -86,28 +88,21 @@ const RefundsPage = () => {
           : 'Không thể tải danh sách hoàn tiền chờ duyệt.',
       );
       setRefunds([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
-  }, [listTab]);
+  }, [listTab, currentPage, itemsPerPage]);
 
   useEffect(() => {
     loadRefunds();
   }, [loadRefunds]);
 
   useEffect(() => {
-    setHistoryPage(1);
+    setCurrentPage(1);
   }, [listTab]);
 
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, loadRefunds);
-
-  const paginatedHistory = useMemo(() => {
-    if (listTab !== 'history') return refunds;
-    const start = (historyPage - 1) * itemsPerPage;
-    return refunds.slice(start, start + itemsPerPage);
-  }, [refunds, listTab, historyPage, itemsPerPage]);
-
-  const displayedRefunds = listTab === 'history' ? paginatedHistory : refunds;
 
   const handleApprove = async (item) => {
     const ok = await confirm({
@@ -158,21 +153,21 @@ const RefundsPage = () => {
             value={listTab}
             onChange={setListTab}
             items={[
-              { id: 'pending', label: 'Chờ duyệt', count: listTab === 'pending' ? refunds.length : undefined },
-              { id: 'history', label: 'Lịch sử duyệt', count: listTab === 'history' ? refunds.length : undefined },
+              { id: 'pending', label: 'Chờ duyệt', count: listTab === 'pending' ? totalItems : undefined },
+              { id: 'history', label: 'Lịch sử duyệt', count: listTab === 'history' ? totalItems : undefined },
             ]}
             ariaLabel="Nhóm hoàn tiền"
           />
         )}
-        footer={listTab === 'history' && refunds.length > 0 ? (
+        footer={totalItems > 0 ? (
           <Pagination
-            currentPage={historyPage}
-            totalItems={refunds.length}
+            currentPage={currentPage}
+            totalItems={totalItems}
             itemsPerPage={itemsPerPage}
-            onPageChange={setHistoryPage}
+            onPageChange={setCurrentPage}
             onItemsPerPageChange={(size) => {
               setItemsPerPage(size);
-              setHistoryPage(1);
+              setCurrentPage(1);
             }}
           />
         ) : null}
@@ -207,7 +202,7 @@ const RefundsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {displayedRefunds.map((item) => (
+              {refunds.map((item) => (
                 <tr key={item.refundUuid}>
                   <td>{item.customerEmail || '—'}</td>
                   <td>{item.movieTitle || '—'}</td>

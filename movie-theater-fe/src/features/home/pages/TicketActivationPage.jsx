@@ -10,7 +10,7 @@ import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
 import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
-import projectorImg from '../../../shared/assets/about_projector.png';
+import projectorImg from '../../../shared/assets/about_projector.webp';
 import '../styles/home-premium.css';
 import './TicketActivationPage.css';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';

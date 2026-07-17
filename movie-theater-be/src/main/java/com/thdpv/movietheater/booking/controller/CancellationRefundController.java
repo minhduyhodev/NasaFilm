@@ -1,8 +1,11 @@
 package com.thdpv.movietheater.booking.controller;
 
-import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -70,14 +73,22 @@ public class CancellationRefundController {
 
     @GetMapping("/admin/refunds")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<AdminRefundListItemResponse>>> listPendingRefunds() {
-        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listPendingRefunds()));
+    public ResponseEntity<ApiResponse<Page<AdminRefundListItemResponse>>> listPendingRefunds(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listPendingRefunds(pageable)));
     }
 
     @GetMapping("/admin/refunds/history")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<AdminRefundListItemResponse>>> listRefundHistory() {
-        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listRefundHistory()));
+    public ResponseEntity<ApiResponse<Page<AdminRefundListItemResponse>>> listRefundHistory(
+            @PageableDefault(size = 10, sort = "completedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listRefundHistory(pageable)));
+    }
+
+    @GetMapping("/admin/refunds/pending-count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Long>> countPendingRefunds() {
+        return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.countPendingRefunds()));
     }
 
     @PostMapping("/admin/refunds/{id}/approve")

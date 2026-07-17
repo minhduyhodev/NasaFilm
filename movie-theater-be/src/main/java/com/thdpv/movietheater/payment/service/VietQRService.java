@@ -51,6 +51,10 @@ public class VietQRService {
     @Value("${app.vietqr.webhook-token:}")
     private String webhookToken;
 
+    /** Khi bật (prod), webhook thiếu token cấu hình sẽ bị từ chối (fail-closed) thay vì chấp nhận vô điều kiện. */
+    @Value("${app.vietqr.webhook-require-token:false}")
+    private boolean webhookRequireToken;
+
     private static final Logger log = LoggerFactory.getLogger(VietQRService.class);
     private final VietQRWebhookTransactionRepository webhookRepo;
 
@@ -112,11 +116,16 @@ public class VietQRService {
     }
 
     public boolean processWebhook(SePayWebhookPayload payload, String authHeader) {
-        if (webhookToken != null && !webhookToken.isBlank()) {
+        boolean tokenConfigured = webhookToken != null && !webhookToken.isBlank();
+        if (tokenConfigured) {
             if (authHeader == null || !authHeader.contains(webhookToken)) {
                 log.warn("Invalid webhook token received");
                 return false;
             }
+        } else if (webhookRequireToken) {
+            // Fail-closed: từ chối webhook không xác thực khi cấu hình yêu cầu token (tránh nạp/thanh toán khống).
+            log.error("VietQR webhook token is required but not configured — rejecting unauthenticated webhook");
+            return false;
         }
 
         if (webhookRepo.existsByReferenceCode(payload.getReferenceCode())) {

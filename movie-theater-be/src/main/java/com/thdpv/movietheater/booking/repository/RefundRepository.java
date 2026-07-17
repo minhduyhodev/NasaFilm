@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +23,12 @@ public interface RefundRepository extends JpaRepository<Refund, UUID> {
     List<Refund> findByStatusOrderByCreatedAtDesc(String status);
 
     List<Refund> findByStatusInOrderByCompletedAtDesc(Collection<String> statuses);
+
+    Page<Refund> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    Page<Refund> findByStatusInOrderByCompletedAtDesc(Collection<String> statuses, Pageable pageable);
+
+    long countByStatus(String status);
 
     /**
      * Atomic guard against double-approval: only one caller can flip the row

@@ -9,8 +9,8 @@ import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
 import UserAvatar from '../../../shared/components/UserAvatar';
-import Pagination from '../../../shared/components/Pagination';
 import TabTransition from '../../../shared/components/TabTransition';
+import VirtualTableBody from '../../../shared/components/VirtualTableBody';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { useMediaUrlRouting } from '../../../shared/hooks/useMediaUrlRouting';
 import PosterImage from '../../../shared/components/PosterImage';
@@ -79,10 +79,6 @@ const BookingsPage = () => {
     return { year: t.getFullYear(), monthIndex: t.getMonth() };
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [archivedPage, setArchivedPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
   const fetchAuxiliaryData = async () => {
     try {
       const moviesData = await movieService.getMovies({ size: 100 });
@@ -111,6 +107,7 @@ const BookingsPage = () => {
   const fetchBookings = useCallback(async (keyword = '') => {
     setIsLoading(true);
     try {
+      // Soft-capped working set for KPI/calendar/filters. Server still paginates internally (max 500).
       const data = await bookingService.getAdminBookings(keyword, {
         unpaged: true,
         status: statusFilter,
@@ -118,7 +115,7 @@ const BookingsPage = () => {
         startDate,
         endDate,
       });
-      setBookings(data || []);
+      setBookings(Array.isArray(data?.content) ? data.content : []);
     } catch (err) {
       console.error('Failed to load bookings:', err);
       notificationService.error('Không thể tải danh sách đơn đặt vé từ máy chủ.');
@@ -135,11 +132,6 @@ const BookingsPage = () => {
   }, [searchTerm, fetchBookings]);
 
   useRealtimeTopic(REALTIME_TOPICS.ADMIN_BOOKINGS, () => fetchBookings(searchTerm));
-
-  useEffect(() => {
-    setCurrentPage(1);
-    setArchivedPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCinema, selectedShowtime]);
 
   useEffect(() => {
     if (statusFilter === 'CANCELLED') {
@@ -168,8 +160,6 @@ const BookingsPage = () => {
       setStatusFilter('ALL');
       setListTab('active');
     }
-    setCurrentPage(1);
-    setArchivedPage(1);
   };
 
   const formatDateTime = (dateStr) => {
@@ -254,20 +244,7 @@ const BookingsPage = () => {
     return { totalRevenue: revenue, confirmedCount: confirmed, cancelledCount: cancelled, totalCount: baseListForStats.length, avgOrderValue };
   }, [bookings, selectedShowtime, showtimes]);
 
-  const paginatedActiveBookings = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return activeBookings.slice(startIndex, startIndex + itemsPerPage);
-  }, [activeBookings, currentPage, itemsPerPage]);
-
-  const paginatedArchivedBookings = React.useMemo(() => {
-    const startIndex = (archivedPage - 1) * itemsPerPage;
-    return archivedBookings.slice(startIndex, startIndex + itemsPerPage);
-  }, [archivedBookings, archivedPage, itemsPerPage]);
-
   const displayedBookings = listTab === 'archived' ? archivedBookings : activeBookings;
-  const paginatedBookings = listTab === 'archived' ? paginatedArchivedBookings : paginatedActiveBookings;
-  const tabCurrentPage = listTab === 'archived' ? archivedPage : currentPage;
-  const tabPageCount = Math.max(1, Math.ceil(displayedBookings.length / itemsPerPage) || 1);
 
   const calendarEvents = React.useMemo(() => {
     return filteredBookings
@@ -748,23 +725,15 @@ const BookingsPage = () => {
             />
             {!isLoading && displayedBookings.length > 0 && (
               <span className="text-[10px] text-[var(--adm-text-dim)] font-mono adm-tabular">
-                Trang {tabCurrentPage} / {tabPageCount}
+                {displayedBookings.length} đơn
               </span>
             )}
           </div>
         )}
         footer={displayedBookings.length > 0 ? (
-          <Pagination
-            currentPage={tabCurrentPage}
-            totalItems={displayedBookings.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={listTab === 'archived' ? setArchivedPage : setCurrentPage}
-            onItemsPerPageChange={(size) => {
-              setItemsPerPage(size);
-              setCurrentPage(1);
-              setArchivedPage(1);
-            }}
-          />
+          <span className="text-[10px] text-[var(--adm-text-dim)] font-mono adm-tabular">
+            Cuộn để xem thêm · {displayedBookings.length} đơn trong tab này
+          </span>
         ) : null}
       >
         <TabTransition activeKey={listTab}>
@@ -793,9 +762,14 @@ const BookingsPage = () => {
                 : 'Không có đơn đang hoạt động phù hợp bộ lọc.'}
             </p>
           ) : (
-            <div>
-              {paginatedBookings.map((row) => renderOrderRow(row, listTab === 'archived'))}
-            </div>
+            <VirtualTableBody
+              items={displayedBookings}
+              estimateRowHeight={118}
+              threshold={20}
+              maxHeight="68vh"
+              getRowKey={(row) => row.bookingUuid}
+              renderRow={(row) => renderOrderRow(row, listTab === 'archived')}
+            />
           )}
         </TabTransition>
       </AdminTableShell>

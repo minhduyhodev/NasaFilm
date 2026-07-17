@@ -25,6 +25,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.request.ShowtimeRequest;
@@ -48,6 +50,7 @@ import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.booking.service.scheduling.ShowtimeSchedulingEngine;
 import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -81,6 +84,10 @@ public class ShowtimeServiceTest {
     private EntityManager entityManager;
     @Mock
     private ShowtimeOverlapSupport showtimeOverlapSupport;
+    @Mock
+    private CatalogCacheEvictor catalogCacheEvictor;
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine = new ShowtimeSchedulingEngine();
 
@@ -97,6 +104,7 @@ public class ShowtimeServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(showtimeService, "entityManager", entityManager);
         ReflectionTestUtils.setField(showtimeService, "showtimeSchedulingEngine", showtimeSchedulingEngine);
+        when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         when(systemConfigService.getConfig()).thenReturn(Map.of());
         when(showtimeOverlapSupport.findOverlaps(any(), any(), any(), any(), anyInt()))
                 .thenReturn(Collections.emptyList());

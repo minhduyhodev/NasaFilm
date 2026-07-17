@@ -17,7 +17,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { sameUuid } from '../../../shared/utils/orbitUtils';
-import comboFallbackImg from '../../../shared/assets/offer_family_combo.png';
+import comboFallbackImg from '../../../shared/assets/offer_family_combo.webp';
 
 function getComboImageUrl(combo) {
   const raw = combo?.imageUrl?.trim();

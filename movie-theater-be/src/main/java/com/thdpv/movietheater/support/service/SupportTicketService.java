@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,6 +87,11 @@ public class SupportTicketService {
                 .stream()
                 .map(this::map)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SupportTicketResponse> listAll(Pageable pageable) {
+        return supportTicketRepository.findAllByOrderByCreatedAtDesc(pageable).map(this::map);
     }
 
     @Transactional(readOnly = true)

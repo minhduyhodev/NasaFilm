@@ -177,6 +177,7 @@ export default function VietQRPage() {
     let intervalId;
     if (qrData && !isConfirming && !isExpired && !confirmFired.current) {
       const checkPayment = async () => {
+        if (document.hidden) return;
         try {
           const response = await authService.api.get('/api/payments/vietqr/check', {
             params: {
@@ -197,7 +198,17 @@ export default function VietQRPage() {
       };
 
       // Poll every 2.5 seconds
+      const handleVisibilityChange = () => {
+        if (!document.hidden) checkPayment();
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      checkPayment();
       intervalId = setInterval(checkPayment, 2500);
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        clearInterval(intervalId);
+      };
     }
 
     return () => {
@@ -323,7 +334,7 @@ export default function VietQRPage() {
                   <button 
                     onClick={async () => {
                       try {
-                        const res = await fetch('http://localhost:8080/v1/webhooks/vietqr', {
+                        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
                           method: 'POST',
                           headers: { 
                             'Content-Type': 'application/json',

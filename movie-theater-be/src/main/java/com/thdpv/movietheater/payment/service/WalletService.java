@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,6 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 @Service
 public class WalletService {
 
-    private static final int WALLET_WRITE_RETRIES = 4;
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public static final String TYPE_TOP_UP = "TOP_UP";
@@ -353,28 +351,44 @@ public class WalletService {
             return getSummary(userUuid);
         }
 
+        BigDecimal expectedAmount = pendingTx.getAmount();
+        if (amount == null || expectedAmount == null || amount.compareTo(expectedAmount) != 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền kiểm tra không khớp với yêu cầu nạp ví");
+        }
+
         // Kiểm tra webhook VietQR đã nhận chưa
         java.util.List<VietQRWebhookTransaction> matches =
-                vietQRWebhookRepo.findMatchingUnusedTransaction(transferCode.trim(), amount);
+                vietQRWebhookRepo.findMatchingUnusedTransaction(transferCode.trim(), expectedAmount);
         if (matches.isEmpty()) {
             return null; // Chưa có giao dịch — FE tiếp tục polling
         }
 
-        // Credit ví
+        // Claim the bank transaction first. This prevents the same transfer from being consumed concurrently by
+        // either a booking or another wallet top-up.
+        boolean webhookClaimed = false;
+        for (VietQRWebhookTransaction candidate : matches) {
+            if (vietQRWebhookRepo.markUsed(candidate.getId()) == 1) {
+                webhookClaimed = true;
+                break;
+            }
+        }
+        if (!webhookClaimed) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Chuyển khoản VietQR này vừa được sử dụng cho giao dịch khác");
+        }
+
+        // Atomically claim this top-up (PENDING → SUCCESS). Only the winner may credit the wallet. If the claim
+        // loses, throwing rolls back the webhook claim above in the same transaction.
+        int claimed = paymentTransactionRepository.transitionStatus(
+                pendingTx.getUuid(), "PENDING", "SUCCESS", OffsetDateTime.now());
+        if (claimed == 0) {
+            throw new AppException(ErrorCode.CONFLICT, "Yêu cầu nạp ví đang được xử lý");
+        }
+
+        // Credit ví (reference_uuid là pendingTx.uuid — được unique index chống trùng ở tầng DB)
         ensureWalletInitialized(findUser(userUuid));
-        BigDecimal creditAmount = pendingTx.getAmount();
         runWalletWriteWithRetry(userUuid, user ->
-                credit(user, creditAmount, pendingTx.getUuid(), "Nạp tiền qua VietQR · " + transferCode));
-
-        // Đánh dấu PaymentTransaction thành công
-        pendingTx.setStatus("SUCCESS");
-        pendingTx.setUpdatedAt(OffsetDateTime.now());
-        paymentTransactionRepository.save(pendingTx);
-
-        // Đánh dấu webhook transaction USED (lấy record đầu tiên khớp)
-        VietQRWebhookTransaction webhookTx = matches.get(0);
-        webhookTx.setStatus("USED");
-        vietQRWebhookRepo.save(webhookTx);
+                credit(user, expectedAmount, pendingTx.getUuid(), "Nạp tiền qua VietQR · " + transferCode));
 
         return getSummary(userUuid);
     }
@@ -394,6 +408,9 @@ public class WalletService {
     @Transactional
     public void debitForPayment(UUID userUuid, BigDecimal amount, UUID paymentUuid, String description) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        if (paymentUuid != null && walletTransactionRepository.existsByReferenceUuid(paymentUuid)) {
             return;
         }
         ensureWalletInitialized(findUser(userUuid));
@@ -505,21 +522,18 @@ public class WalletService {
         void apply(User user);
     }
 
+    /**
+     * Wallet balance changes must stay inside the caller's transaction (booking charge / refund). Use a
+     * pessimistic lock so concurrent writers serialize instead of relying on optimistic-lock retry that only
+     * fires after flush/commit and cannot safely retry in the same transaction.
+     */
     private void runWalletWriteWithRetry(UUID userUuid, WalletMutation mutation) {
-        for (int attempt = 0; attempt < WALLET_WRITE_RETRIES; attempt++) {
-            User user = findUser(userUuid);
-            if (user.getWalletBalance() == null) {
-                user.setWalletBalance(BigDecimal.ZERO);
-            }
-            try {
-                mutation.apply(user);
-                return;
-            } catch (ObjectOptimisticLockingFailureException ex) {
-                if (attempt == WALLET_WRITE_RETRIES - 1) {
-                    throw new AppException(ErrorCode.CONFLICT, "Giao dịch ví đang bận, vui lòng thử lại.");
-                }
-            }
+        User user = userRepository.findByIdForUpdate(userUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy người dùng"));
+        if (user.getWalletBalance() == null) {
+            user.setWalletBalance(BigDecimal.ZERO);
         }
+        mutation.apply(user);
     }
 
     private WalletTransactionResponse mapTransaction(WalletTransaction tx) {
