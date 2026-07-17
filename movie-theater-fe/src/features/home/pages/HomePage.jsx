@@ -24,14 +24,8 @@ const HomePage = () => {
 				<Hero />
 
 				<section id="quick-booking" className="-mt-16 md:-mt-24 relative z-20 px-4 md:px-8 lg:px-20">
-					<div className="max-w-6xl mx-auto space-y-4 flex flex-col items-center">
-						<div className="w-full">
-							<TicketFilters />
-						</div>
-						<OrbitJoinInput />
-						<div className="w-full">
-							<OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
-						</div>
+					<div className="max-w-6xl mx-auto">
+						<TicketFilters />
 					</div>
 				</section>
 
@@ -43,9 +37,18 @@ const HomePage = () => {
 					</LazySection>
 
 					<div className="home-space-zone__content">
+						<section className="px-4 pt-8 md:px-8 md:pt-10 lg:px-20">
+							<div className="mx-auto flex max-w-6xl flex-col items-center gap-4">
+								<OrbitJoinInput />
+								<div className="w-full">
+									<OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+								</div>
+							</div>
+						</section>
+
 						<LazySection
 							as="section"
-							className="mt-12 px-4 md:px-8 lg:px-20 home-section"
+							className="mt-10 px-4 md:px-8 lg:px-20 home-section"
 							fallback={<SectionPlaceholder minHeight="16rem" />}
 						>
 							<div className="max-w-7xl mx-auto">
