@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.booking.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,4 +13,6 @@ public interface CancellationRequestRepository extends JpaRepository<Cancellatio
     Optional<CancellationRequest> findFirstByBookingUuidOrderByCreatedAtDesc(UUID bookingUuid);
 
     List<CancellationRequest> findByStatusOrderByCreatedAtDesc(String status);
+
+    List<CancellationRequest> findByBookingUuidInOrderByCreatedAtDesc(Collection<UUID> bookingUuids);
 }

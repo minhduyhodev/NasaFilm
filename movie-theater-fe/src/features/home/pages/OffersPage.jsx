@@ -15,13 +15,13 @@ import { comboService } from '../../../shared/services/comboService';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import { cinemaService } from '../../../shared/services/cinemaService';
 
-import heroBg from '../../../shared/assets/offers_hero_bg.png';
-import familyComboImg from '../../../shared/assets/offer_family_combo.png';
+import heroBg from '../../../shared/assets/offers_hero_bg.webp';
+import familyComboImg from '../../../shared/assets/offer_family_combo.webp';
 import imaxWeekImg from '../../../shared/assets/hero3.jpg';
 import vipMemberImg from '../../../shared/assets/MemberRating.jpg';
-import landmark81Img from '../../../shared/assets/cinema_landmark81.png';
-import cityCenterImg from '../../../shared/assets/cinema_citycenter.png';
-import sunsetMallImg from '../../../shared/assets/cinema_sunsetmall.png';
+import landmark81Img from '../../../shared/assets/cinema_landmark81.webp';
+import cityCenterImg from '../../../shared/assets/cinema_citycenter.webp';
+import sunsetMallImg from '../../../shared/assets/cinema_sunsetmall.webp';
 import './OffersPage.css';
 
 const TABS = ['Combo Bắp Nước', 'Loại Phòng', 'Hệ Thống Rạp'];

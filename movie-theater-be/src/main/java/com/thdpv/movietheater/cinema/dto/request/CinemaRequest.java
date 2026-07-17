@@ -19,6 +19,9 @@ public class CinemaRequest {
     @Size(max = 500, message = "Huong dan vao cong vuot qua ky tu cho phep")
     private String entranceNote;
 
+    @Size(max = 1000, message = "Duong dan anh vuot qua ky tu cho phep")
+    private String imageUrl;
+
     private Double latitude;
 
     private Double longitude;
@@ -65,6 +68,14 @@ public class CinemaRequest {
 
     public void setEntranceNote(String entranceNote) {
         this.entranceNote = entranceNote;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Double getLatitude() {

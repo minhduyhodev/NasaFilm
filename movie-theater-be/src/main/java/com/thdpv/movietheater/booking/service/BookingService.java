@@ -413,9 +413,11 @@ public class BookingService {
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
         List<BookingResponse.TicketLine> ticketLines = new ArrayList<>();
         try {
+            List<BookingSeat> bookingSeats = new ArrayList<>();
+            List<Ticket> tickets = new ArrayList<>();
             for (LockedSeat seat : lockedSeats) {
                 UUID bookingSeatUuid = UUID.randomUUID();
-                bookingSeatRepository.save(new BookingSeat(
+                bookingSeats.add(new BookingSeat(
                         bookingSeatUuid, bookingUuid, request.getShowtimeUuid(), seat.seatUuid(), seat.price()));
                 seatLines.add(new BookingResponse.SeatLine(
                         seat.seatUuid(), seat.rowName(), seat.seatNumber(), seat.price()));
@@ -423,20 +425,26 @@ public class BookingService {
                 UUID ticketUuid = UUID.randomUUID();
                 String ticketCode = generateTicketCode();
                 String qrCode = ticketCode;
-                ticketRepository.save(new Ticket(
+                tickets.add(new Ticket(
                         ticketUuid, bookingUuid, bookingSeatUuid, ticketCode, qrCode, TICKET_STATUS_ISSUED, now));
                 ticketLines.add(new BookingResponse.TicketLine(ticketUuid, bookingSeatUuid, ticketCode, qrCode));
             }
+            bookingSeatRepository.saveAll(bookingSeats);
+            ticketRepository.saveAll(tickets);
         } catch (DataIntegrityViolationException | PersistenceException ex) {
             throw new AppException(ErrorCode.CONFLICT, "Co ghe da duoc dat boi giao dich khac");
         }
 
         List<BookingResponse.ComboLine> comboLines = new ArrayList<>();
+        List<BookingCombo> bookingCombos = new ArrayList<>();
         for (ResolvedCombo combo : discountedResolvedCombos) {
-            bookingComboRepository.save(new BookingCombo(
+            bookingCombos.add(new BookingCombo(
                     UUID.randomUUID(), bookingUuid, combo.comboUuid(), combo.quantity(), combo.lineTotal()));
             comboLines.add(new BookingResponse.ComboLine(
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
+        }
+        if (!bookingCombos.isEmpty()) {
+            bookingComboRepository.saveAll(bookingCombos);
         }
 
         // Charge after seats/tickets persist; same @Transactional rolls back booking if charge fails
@@ -666,9 +674,11 @@ public class BookingService {
         List<BookingResponse.SeatLine> seatLines = new ArrayList<>();
         List<BookingResponse.TicketLine> ticketLines = new ArrayList<>();
         try {
+            List<BookingSeat> bookingSeats = new ArrayList<>();
+            List<Ticket> tickets = new ArrayList<>();
             for (LockedSeat seat : lockedSeats) {
                 UUID bookingSeatUuid = UUID.randomUUID();
-                bookingSeatRepository.save(new BookingSeat(
+                bookingSeats.add(new BookingSeat(
                         bookingSeatUuid, bookingUuid, request.getShowtimeUuid(), seat.seatUuid(), seat.price()));
                 seatLines.add(new BookingResponse.SeatLine(
                         seat.seatUuid(), seat.rowName(), seat.seatNumber(), seat.price()));
@@ -676,20 +686,26 @@ public class BookingService {
                 UUID ticketUuid = UUID.randomUUID();
                 String ticketCode = generateTicketCode();
                 String qrCode = ticketCode;
-                ticketRepository.save(new Ticket(
+                tickets.add(new Ticket(
                         ticketUuid, bookingUuid, bookingSeatUuid, ticketCode, qrCode, TICKET_STATUS_ISSUED, now));
                 ticketLines.add(new BookingResponse.TicketLine(ticketUuid, bookingSeatUuid, ticketCode, qrCode));
             }
+            bookingSeatRepository.saveAll(bookingSeats);
+            ticketRepository.saveAll(tickets);
         } catch (DataIntegrityViolationException | PersistenceException ex) {
             throw new AppException(ErrorCode.CONFLICT, "Có ghế đã được đặt bởi giao dịch khác");
         }
 
         List<BookingResponse.ComboLine> comboLines = new ArrayList<>();
+        List<BookingCombo> bookingCombos = new ArrayList<>();
         for (ResolvedCombo combo : discountedResolvedCombos) {
-            bookingComboRepository.save(new BookingCombo(
+            bookingCombos.add(new BookingCombo(
                     UUID.randomUUID(), bookingUuid, combo.comboUuid(), combo.quantity(), combo.lineTotal()));
             comboLines.add(new BookingResponse.ComboLine(
                     combo.comboUuid(), combo.name(), combo.quantity(), combo.lineTotal()));
+        }
+        if (!bookingCombos.isEmpty()) {
+            bookingComboRepository.saveAll(bookingCombos);
         }
 
         paymentService.chargeBooking(
@@ -913,11 +929,19 @@ public class BookingService {
                     "Hệ thống chưa ghi nhận được chuyển khoản hoặc số tiền chuyển khoản không khớp. Vui lòng chờ 1-2 phút hoặc bấm kiểm tra lại.");
         }
 
-        // Mark transaction as used
-        VietQRWebhookTransaction tx = txs.get(0);
-        tx.setStatus("USED");
-        tx.setUsedByBookingUuid(bookingUuid);
-        vietQRWebhookTransactionRepository.save(tx);
+        // Atomically claim one unused transfer for this booking so two concurrent bookings can't share a single
+        // transfer (each candidate is claimed via a conditional UPDATE that only succeeds while it is still UNUSED).
+        boolean claimed = false;
+        for (VietQRWebhookTransaction candidate : txs) {
+            if (vietQRWebhookTransactionRepository.claimForBooking(candidate.getId(), bookingUuid) == 1) {
+                claimed = true;
+                break;
+            }
+        }
+        if (!claimed) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Chuyển khoản VietQR này đã được sử dụng cho đơn khác. Vui lòng kiểm tra lại.");
+        }
     }
 
 
@@ -1553,7 +1577,6 @@ public class BookingService {
                 checkedInAt);
     }
 
-    @Transactional
     public void cancelBooking(UUID bookingUuid, String email) {
         UUID actorUuid = email != null && !email.isBlank() ? resolveRequiredUserUuid(email) : null;
         cancellationRefundService.cancelBooking(bookingUuid, actorUuid, "CUSTOMER", false, null, false);
@@ -1618,7 +1641,7 @@ public class BookingService {
         String streamingUrl = null;
 
         if (booking.getFirstPlayedAt() != null) {
-            if (now.isAfter(booking.getExpiresAt())) {
+            if (booking.getExpiresAt() != null && now.isAfter(booking.getExpiresAt())) {
                 playbackState = "EXPIRED";
             } else {
                 playbackState = "STREAMING";
@@ -1734,10 +1757,9 @@ public class BookingService {
 
         OffsetDateTime now = OffsetDateTime.now();
         String streamToken = UUID.randomUUID().toString();
-        boolean isFirstPlay = booking.getFirstPlayedAt() == null;
 
-        if (!isFirstPlay) {
-            if (now.isAfter(booking.getExpiresAt())) {
+        if (booking.getFirstPlayedAt() != null) {
+            if (booking.getExpiresAt() != null && now.isAfter(booking.getExpiresAt())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
             }
             booking.setStreamToken(streamToken);
@@ -1752,16 +1774,24 @@ public class BookingService {
         OffsetDateTime firstPlayedAt = now;
         OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(Math.round(durationMinutes * lockMultiplier));
 
-        booking.setFirstPlayedAt(firstPlayedAt);
-        booking.setExpiresAt(expiresAt);
-        booking.setStreamToken(streamToken);
-        bookingJpaRepository.save(booking);
-
-        List<MissionCompletionResponse> missionCompletions = List.of();
-        if (isFirstPlay) {
-            missionCompletions = missionService.handleEvent(MissionEventPayload.vodFirstPlay(
-                    userUuid, booking.getUuid(), movieUuid, now));
+        int claimed = bookingJpaRepository.claimFirstPlay(
+                booking.getUuid(), firstPlayedAt, expiresAt, streamToken, now);
+        if (claimed == 0) {
+            // Another concurrent activate won first play — resume that watch window without firing missions again.
+            Booking latest = bookingJpaRepository.findById(booking.getUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+            if (latest.getExpiresAt() != null && now.isAfter(latest.getExpiresAt())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
+            }
+            latest.setStreamToken(streamToken);
+            bookingJpaRepository.save(latest);
+            return new VodPlayResponse(streamToken,
+                    S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
+                    latest.getExpiresAt());
         }
+
+        List<MissionCompletionResponse> missionCompletions = missionService.handleEvent(
+                MissionEventPayload.vodFirstPlay(userUuid, booking.getUuid(), movieUuid, now));
 
         VodPlayResponse response = new VodPlayResponse(streamToken,
                 S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),

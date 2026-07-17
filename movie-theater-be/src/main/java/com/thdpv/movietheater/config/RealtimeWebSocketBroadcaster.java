@@ -28,7 +28,7 @@ public class RealtimeWebSocketBroadcaster {
         this.messagingTemplate = messagingTemplate;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onBookingActivity(BookingActivityEvent event) {
         BookingActivityMessage message = new BookingActivityMessage(
                 event.eventType(),

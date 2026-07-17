@@ -4,13 +4,20 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.thdpv.movietheater.booking.dto.response.AdminRefundListItemResponse;
 import com.thdpv.movietheater.booking.dto.response.CancelBookingResponse;
@@ -78,6 +85,7 @@ public class CancellationRefundService {
     private final MovieRepository movieRepository;
     private final MissionService missionService;
     private final OrbitRoomRepository orbitRoomRepository;
+    private final PlatformTransactionManager transactionManager;
 
     /** Lazy field injection breaks circular dependency with OrbitRoomService. */
     @Lazy
@@ -134,9 +142,39 @@ public class CancellationRefundService {
         return preview;
     }
 
-    @Transactional
     public CancelBookingResponse cancelBooking(UUID bookingUuid, UUID actorUuid, String actorRole, boolean adminOverride,
             String reason, boolean showtimeCancelled) {
+        TransactionTemplate transaction = requiresNewTransaction();
+        CancelBookingResponse response = transaction.execute(status ->
+                cancelBookingInTransaction(
+                        bookingUuid, actorUuid, actorRole, adminOverride, reason, showtimeCancelled));
+        if (response == null) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Không thể xử lý hủy đặt vé");
+        }
+
+        if (response.getRefundUuid() != null
+                && RefundStatus.PROCESSING.name().equals(response.getRefundStatus())) {
+            try {
+                Refund processed = processApprovedRefund(response.getRefundUuid(), actorUuid, actorRole);
+                response.setRefundStatus(processed.getStatus());
+                response.setBookingStatus(BookingStatus.REFUNDED.name());
+            } catch (AppException ex) {
+                // Cancellation already committed successfully. Keep the refund retryable instead of reporting the
+                // entire cancellation as failed after a transient gateway error.
+                response.setRefundStatus(RefundStatus.PENDING.name());
+                response.setMessage("Hủy vé thành công. Hoàn tiền tạm thời chưa hoàn tất và đã được đưa về chờ xử lý lại.");
+            }
+        }
+        return response;
+    }
+
+    private CancelBookingResponse cancelBookingInTransaction(
+            UUID bookingUuid,
+            UUID actorUuid,
+            String actorRole,
+            boolean adminOverride,
+            String reason,
+            boolean showtimeCancelled) {
         Booking booking = bookingRepository.findById(bookingUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
@@ -185,7 +223,9 @@ public class CancellationRefundService {
         List<Ticket> tickets = ticketRepository.findByBookingUuid(bookingUuid);
         for (Ticket ticket : tickets) {
             ticket.setStatus(TICKET_CANCELLED);
-            ticketRepository.save(ticket);
+        }
+        if (!tickets.isEmpty()) {
+            ticketRepository.saveAll(tickets);
         }
 
         int scoreDeducted = calculateScore(booking.getTotalPrice());
@@ -263,28 +303,31 @@ public class CancellationRefundService {
         return response;
     }
 
-    @Transactional
     public Refund approveRefund(UUID refundUuid, UUID adminUuid) {
-        Refund refund = refundRepository.findById(refundUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+        TransactionTemplate transaction = requiresNewTransaction();
+        UUID claimedRefundUuid = transaction.execute(status -> {
+            Refund refund = refundRepository.findById(refundUuid)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
 
-        if (!RefundStatus.PENDING.name().equals(refund.getStatus())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Yêu cầu hoàn tiền không ở trạng thái chờ duyệt");
+            if (!RefundStatus.PENDING.name().equals(refund.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Yêu cầu hoàn tiền không ở trạng thái chờ duyệt");
+            }
+
+            int claimed = refundRepository.transitionStatus(
+                    refundUuid,
+                    RefundStatus.PENDING.name(),
+                    RefundStatus.PROCESSING.name(),
+                    OffsetDateTime.now());
+            if (claimed == 0) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn tất");
+            }
+            return refundUuid;
+        });
+        if (claimedRefundUuid == null) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Không thể khóa yêu cầu hoàn tiền");
         }
-
-        int claimed = refundRepository.transitionStatus(
-                refundUuid,
-                RefundStatus.PENDING.name(),
-                RefundStatus.PROCESSING.name(),
-                OffsetDateTime.now());
-        if (claimed == 0) {
-            throw new AppException(ErrorCode.CONFLICT,
-                    "Yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn tất");
-        }
-
-        Refund claimedRefund = refundRepository.findById(refundUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
-        return processRefund(claimedRefund, adminUuid, "ADMIN");
+        return processApprovedRefund(claimedRefundUuid, adminUuid, "ADMIN");
     }
 
     @Transactional(readOnly = true)
@@ -319,41 +362,99 @@ public class CancellationRefundService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminRefundListItemResponse> listPendingRefunds() {
-        List<Refund> refunds = refundRepository.findByStatusOrderByCreatedAtDesc(RefundStatus.PENDING.name());
-        List<AdminRefundListItemResponse> items = new ArrayList<>();
-        for (Refund refund : refunds) {
-            items.add(buildAdminRefundItem(refund));
-        }
-        return items;
+    public Page<AdminRefundListItemResponse> listPendingRefunds(Pageable pageable) {
+        Page<Refund> refunds = refundRepository.findByStatusOrderByCreatedAtDesc(
+                RefundStatus.PENDING.name(), pageable);
+        return buildAdminRefundPage(refunds);
     }
 
     @Transactional(readOnly = true)
-    public List<AdminRefundListItemResponse> listRefundHistory() {
-        List<Refund> refunds = refundRepository.findByStatusInOrderByCompletedAtDesc(
-                List.of(RefundStatus.COMPLETED.name(), RefundStatus.FAILED.name()));
-        List<AdminRefundListItemResponse> items = new ArrayList<>();
-        for (Refund refund : refunds) {
-            items.add(buildAdminRefundItem(refund));
-        }
-        return items;
+    public Page<AdminRefundListItemResponse> listRefundHistory(Pageable pageable) {
+        Page<Refund> refunds = refundRepository.findByStatusInOrderByCompletedAtDesc(
+                List.of(RefundStatus.COMPLETED.name(), RefundStatus.FAILED.name()), pageable);
+        return buildAdminRefundPage(refunds);
     }
 
-    private AdminRefundListItemResponse buildAdminRefundItem(Refund refund) {
-        Booking booking = bookingRepository.findById(refund.getBookingUuid()).orElse(null);
-        User customer = booking != null ? userRepository.findById(booking.getUserUuid()).orElse(null) : null;
-        String movieTitle = null;
-        if (booking != null && booking.getMovieUuid() != null) {
-            movieTitle = movieRepository.findById(booking.getMovieUuid()).map(Movie::getTitle).orElse(null);
+    @Transactional(readOnly = true)
+    public long countPendingRefunds() {
+        return refundRepository.countByStatus(RefundStatus.PENDING.name());
+    }
+
+    /**
+     * Enrich one refund page with a fixed number of batch queries instead of 4-6 repository calls per row.
+     */
+    private Page<AdminRefundListItemResponse> buildAdminRefundPage(Page<Refund> refunds) {
+        if (refunds.isEmpty()) {
+            return refunds.map(refund -> new AdminRefundListItemResponse());
         }
-        CancellationRequest cancelReq = null;
-        if (refund.getCancellationRequestUuid() != null) {
-            cancelReq = cancellationRequestRepository.findById(refund.getCancellationRequestUuid()).orElse(null);
+
+        Map<UUID, Booking> bookings = new HashMap<>();
+        bookingRepository.findAllById(refunds.stream().map(Refund::getBookingUuid).distinct().toList())
+                .forEach(booking -> bookings.put(booking.getUuid(), booking));
+
+        List<UUID> userUuids = new ArrayList<>();
+        List<UUID> movieUuids = new ArrayList<>();
+        List<UUID> cancellationRequestUuids = new ArrayList<>();
+        for (Refund refund : refunds) {
+            Booking booking = bookings.get(refund.getBookingUuid());
+            if (booking != null) {
+                userUuids.add(booking.getUserUuid());
+                if (booking.getMovieUuid() != null) {
+                    movieUuids.add(booking.getMovieUuid());
+                }
+            }
+            if (refund.getApprovedByUuid() != null) {
+                userUuids.add(refund.getApprovedByUuid());
+            }
+            if (refund.getCancellationRequestUuid() != null) {
+                cancellationRequestUuids.add(refund.getCancellationRequestUuid());
+            }
         }
-        if (cancelReq == null && booking != null) {
-            cancelReq = cancellationRequestRepository.findFirstByBookingUuidOrderByCreatedAtDesc(booking.getUuid())
-                    .orElse(null);
+
+        Map<UUID, User> users = new HashMap<>();
+        userRepository.findAllById(userUuids.stream().distinct().toList())
+                .forEach(user -> users.put(user.getId(), user));
+
+        Map<UUID, Movie> movies = new HashMap<>();
+        movieRepository.findAllById(movieUuids.stream().distinct().toList())
+                .forEach(movie -> movies.put(movie.getUuid(), movie));
+
+        Map<UUID, CancellationRequest> cancellationRequests = new HashMap<>();
+        cancellationRequestRepository.findAllById(cancellationRequestUuids.stream().distinct().toList())
+                .forEach(request -> cancellationRequests.put(request.getUuid(), request));
+
+        // Legacy refunds may not have cancellation_request_uuid. Load latest requests for those bookings in one query.
+        List<UUID> legacyBookingUuids = refunds.stream()
+                .filter(refund -> refund.getCancellationRequestUuid() == null)
+                .map(Refund::getBookingUuid)
+                .distinct()
+                .toList();
+        Map<UUID, CancellationRequest> latestRequestByBooking = new HashMap<>();
+        if (!legacyBookingUuids.isEmpty()) {
+            cancellationRequestRepository
+                    .findByBookingUuidInOrderByCreatedAtDesc(legacyBookingUuids)
+                    .forEach(request -> latestRequestByBooking.putIfAbsent(request.getBookingUuid(), request));
         }
+
+        return refunds.map(refund -> buildAdminRefundItem(
+                refund, bookings, users, movies, cancellationRequests, latestRequestByBooking));
+    }
+
+    private AdminRefundListItemResponse buildAdminRefundItem(
+            Refund refund,
+            Map<UUID, Booking> bookings,
+            Map<UUID, User> users,
+            Map<UUID, Movie> movies,
+            Map<UUID, CancellationRequest> cancellationRequests,
+            Map<UUID, CancellationRequest> latestRequestByBooking) {
+        Booking booking = bookings.get(refund.getBookingUuid());
+        User customer = booking != null ? users.get(booking.getUserUuid()) : null;
+        Movie movie = booking != null && booking.getMovieUuid() != null
+                ? movies.get(booking.getMovieUuid())
+                : null;
+        CancellationRequest cancelReq = refund.getCancellationRequestUuid() != null
+                ? cancellationRequests.get(refund.getCancellationRequestUuid())
+                : latestRequestByBooking.get(refund.getBookingUuid());
         String cancellationReason = cancelReq != null && cancelReq.getReason() != null
                 && !cancelReq.getReason().isBlank() ? cancelReq.getReason().trim() : null;
         BigDecimal cancellationFee = cancelReq != null ? cancelReq.getCancellationFee() : null;
@@ -364,16 +465,17 @@ public class CancellationRefundService {
                 refund.getAmount(),
                 refund.getStatus(),
                 customer != null ? customer.getEmail() : null,
-                movieTitle,
+                movie != null ? movie.getTitle() : null,
                 refund.getCreatedAt() != null ? refund.getCreatedAt().toString() : null,
                 cancellationReason,
                 cancellationFee);
 
         if (refund.getApprovedByUuid() != null) {
-            userRepository.findById(refund.getApprovedByUuid()).ifPresent(approver -> {
+            User approver = users.get(refund.getApprovedByUuid());
+            if (approver != null) {
                 item.setApprovedByEmail(approver.getEmail());
                 item.setApprovedByName(approver.getFullName());
-            });
+            }
         }
         item.setApprovedByRole(refund.getApprovedByRole());
         if (refund.getCompletedAt() != null) {
@@ -392,10 +494,7 @@ public class CancellationRefundService {
         String idempotencyKey = "refund-" + booking.getUuid();
         Refund existing = refundRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
         if (existing != null) {
-            if (RefundStatus.COMPLETED.name().equals(existing.getStatus())) {
-                return existing;
-            }
-            return processRefund(existing, actorUuid, actorRole);
+            return existing;
         }
 
         OffsetDateTime now = OffsetDateTime.now();
@@ -419,81 +518,139 @@ public class CancellationRefundService {
 
         if (systemConfigService.isRefundManualApprovalRequired()) {
             auditLogService.log("REFUND", refund.getUuid(), "REFUND_PENDING_APPROVAL", actorUuid, actorRole, null);
-            return refund;
         }
-        return processRefund(refund, actorUuid, actorRole);
+        // Automatic refunds are processed by the outer orchestrator only after this cancellation transaction
+        // commits, so gateway latency never holds the cancellation transaction open.
+        return refund;
     }
 
-    private Refund processRefund(Refund refund, UUID actorUuid, String actorRole) {
-        OffsetDateTime now = OffsetDateTime.now();
-        refund.setStatus(RefundStatus.PROCESSING.name());
-        refund.setUpdatedAt(now);
-        refundRepository.save(refund);
+    /**
+     * Processes an admin-approved refund without holding a database transaction while waiting for the payment
+     * gateway. Claim and completion use short transactions; the external call happens between them.
+     */
+    private Refund processApprovedRefund(UUID refundUuid, UUID actorUuid, String actorRole) {
+        TransactionTemplate transaction = requiresNewTransaction();
+        RefundExecutionContext context = transaction.execute(status -> {
+            Refund refund = refundRepository.findById(refundUuid)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+            if (!RefundStatus.PROCESSING.name().equals(refund.getStatus())) {
+                throw new AppException(ErrorCode.CONFLICT, "Yêu cầu hoàn tiền không còn ở trạng thái xử lý");
+            }
 
-        Booking booking = bookingRepository.findById(refund.getBookingUuid()).orElseThrow();
-        booking.setStatus(BookingStatus.REFUND_PROCESSING.name());
-        booking.setUpdatedAt(now);
-        bookingRepository.save(booking);
+            Booking booking = bookingRepository.findById(refund.getBookingUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+            Payment payment = paymentRepository.findById(refund.getPaymentUuid())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy giao dịch thanh toán"));
 
-        Payment payment = paymentRepository.findById(refund.getPaymentUuid()).orElse(null);
-        boolean walletPayment = payment != null && "WALLET".equalsIgnoreCase(payment.getMethod());
+            booking.setStatus(BookingStatus.REFUND_PROCESSING.name());
+            booking.setUpdatedAt(OffsetDateTime.now());
+            bookingRepository.save(booking);
 
-        if (walletPayment) {
-            walletService.creditRefund(
-                    booking.getUserUuid(),
-                    refund.getAmount(),
+            return new RefundExecutionContext(
                     refund.getUuid(),
-                    "Hoàn tiền hủy vé");
-            refund.setGatewayRefundId("WALLET-CREDIT");
-        } else {
-            PaymentGatewayService.GatewayRefundResult gatewayResult;
-            try {
-                gatewayResult = paymentGatewayService.refund(
-                        refund.getPaymentUuid(), refund.getAmount(), refund.getIdempotencyKey());
-            } catch (RuntimeException ex) {
-                // A thrown gateway error (e.g. network timeout) is ambiguous — the refund may already have gone
-                // through. The stable idempotency key ("refund-<bookingUuid>") makes a retry safe (the gateway
-                // dedupes), so we fail this attempt deterministically and audit it instead of letting an opaque
-                // error escape. The surrounding @Transactional rolls back, leaving the booking CONFIRMED and the
-                // refund retryable. (Durable async refund via the Stripe refund webhook is the full solution once
-                // the real gateway is wired.)
-                auditLogService.log("REFUND", refund.getUuid(), "REFUND_GATEWAY_ERROR", actorUuid, actorRole,
-                        ex.getMessage());
-                throw new AppException(ErrorCode.INTERNAL_ERROR,
-                        "Hoàn tiền qua cổng thanh toán gặp sự cố. Vui lòng thử lại sau.");
-            }
-
-            if (!gatewayResult.success()) {
-                refund.setStatus(RefundStatus.FAILED.name());
-                refund.setFailureReason(gatewayResult.failureReason());
-                refund.setUpdatedAt(now);
-                refundRepository.save(refund);
-                auditLogService.log("REFUND", refund.getUuid(), "REFUND_FAILED", actorUuid, actorRole, gatewayResult);
-                throw new AppException(ErrorCode.INTERNAL_ERROR, "Hoàn tiền thất bại. Vui lòng thử lại sau.");
-            }
-            refund.setGatewayRefundId(gatewayResult.gatewayRefundId());
+                    booking.getUuid(),
+                    booking.getUserUuid(),
+                    payment.getUuid(),
+                    payment.getMethod(),
+                    refund.getAmount(),
+                    refund.getIdempotencyKey());
+        });
+        if (context == null) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Không thể chuẩn bị hoàn tiền");
         }
 
+        if ("WALLET".equalsIgnoreCase(context.paymentMethod())) {
+            return transaction.execute(status -> completeWalletRefund(context, actorUuid, actorRole));
+        }
+
+        PaymentGatewayService.GatewayRefundResult gatewayResult;
+        try {
+            // No active database transaction here: a slow gateway cannot occupy a connection from the pool.
+            gatewayResult = paymentGatewayService.refund(
+                    context.paymentUuid(), context.amount(), context.idempotencyKey());
+        } catch (RuntimeException ex) {
+            transaction.executeWithoutResult(status ->
+                    returnApprovedRefundToPending(context, actorUuid, actorRole, ex.getMessage()));
+            throw new AppException(ErrorCode.INTERNAL_ERROR,
+                    "Hoàn tiền qua cổng thanh toán gặp sự cố. Yêu cầu đã được đưa về chờ duyệt để thử lại.");
+        }
+
+        if (!gatewayResult.success()) {
+            transaction.executeWithoutResult(status ->
+                    returnApprovedRefundToPending(
+                            context, actorUuid, actorRole, gatewayResult.failureReason()));
+            throw new AppException(ErrorCode.INTERNAL_ERROR,
+                    "Hoàn tiền thất bại. Yêu cầu đã được đưa về chờ duyệt để thử lại.");
+        }
+
+        return transaction.execute(status ->
+                completeApprovedRefund(context, gatewayResult.gatewayRefundId(), actorUuid, actorRole));
+    }
+
+    private Refund completeWalletRefund(RefundExecutionContext context, UUID actorUuid, String actorRole) {
+        walletService.creditRefund(
+                context.userUuid(),
+                context.amount(),
+                context.refundUuid(),
+                "Hoàn tiền hủy vé");
+        return completeApprovedRefund(context, "WALLET-CREDIT", actorUuid, actorRole);
+    }
+
+    private Refund completeApprovedRefund(
+            RefundExecutionContext context,
+            String gatewayRefundId,
+            UUID actorUuid,
+            String actorRole) {
+        OffsetDateTime now = OffsetDateTime.now();
+        Refund refund = refundRepository.findById(context.refundUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+        Booking booking = bookingRepository.findById(context.bookingUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+        Payment payment = paymentRepository.findById(context.paymentUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy giao dịch thanh toán"));
+
         refund.setStatus(RefundStatus.COMPLETED.name());
+        refund.setGatewayRefundId(gatewayRefundId);
         refund.setApprovedByUuid(actorUuid);
         refund.setApprovedByRole(actorRole);
         refund.setCompletedAt(now);
         refund.setUpdatedAt(now);
         refundRepository.save(refund);
 
-        paymentRepository.findById(refund.getPaymentUuid()).ifPresent(pay -> {
-            pay.setStatus(PaymentStatus.REFUNDED.name());
-            pay.setUpdatedAt(now);
-            paymentRepository.save(pay);
-        });
+        payment.setStatus(PaymentStatus.REFUNDED.name());
+        payment.setUpdatedAt(now);
+        paymentRepository.save(payment);
 
         booking.setStatus(BookingStatus.REFUNDED.name());
         booking.setUpdatedAt(now);
         bookingRepository.save(booking);
 
-        auditLogService.log("REFUND", refund.getUuid(), "REFUND_COMPLETED", actorUuid, actorRole,
-                walletPayment ? "WALLET" : refund.getGatewayRefundId());
+        auditLogService.log("REFUND", refund.getUuid(), "REFUND_COMPLETED", actorUuid, actorRole, gatewayRefundId);
         return refund;
+    }
+
+    private void returnApprovedRefundToPending(
+            RefundExecutionContext context,
+            UUID actorUuid,
+            String actorRole,
+            String failureReason) {
+        OffsetDateTime now = OffsetDateTime.now();
+        Refund refund = refundRepository.findById(context.refundUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy yêu cầu hoàn tiền"));
+        Booking booking = bookingRepository.findById(context.bookingUuid())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        refund.setStatus(RefundStatus.PENDING.name());
+        refund.setFailureReason(failureReason);
+        refund.setUpdatedAt(now);
+        refundRepository.save(refund);
+
+        booking.setStatus(BookingStatus.REFUND_PENDING.name());
+        booking.setUpdatedAt(now);
+        bookingRepository.save(booking);
+
+        auditLogService.log("REFUND", refund.getUuid(), "REFUND_GATEWAY_ERROR", actorUuid, actorRole,
+                failureReason != null ? failureReason : "Unknown gateway error");
     }
 
     private List<String> validateCancellationRules(Booking booking, boolean showtimeCancelled) {
@@ -607,7 +764,7 @@ public class CancellationRefundService {
 
     private void restorePromotionAndVoucher(Booking booking) {
         if (booking.getPromotionUuid() != null) {
-            promotionRepository.findById(booking.getPromotionUuid()).ifPresent(promotion -> {
+            promotionRepository.findByIdForUpdate(booking.getPromotionUuid()).ifPresent(promotion -> {
                 int used = promotion.getUsedCount() != null ? promotion.getUsedCount() : 0;
                 if (used > 0) {
                     promotion.setUsedCount(used - 1);
@@ -619,5 +776,21 @@ public class CancellationRefundService {
     }
 
     private record RefundCalculation(BigDecimal fee, BigDecimal refundAmount) {
+    }
+
+    private TransactionTemplate requiresNewTransaction() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transaction;
+    }
+
+    private record RefundExecutionContext(
+            UUID refundUuid,
+            UUID bookingUuid,
+            UUID userUuid,
+            UUID paymentUuid,
+            String paymentMethod,
+            BigDecimal amount,
+            String idempotencyKey) {
     }
 }

@@ -15,6 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRoomRequest;
@@ -53,6 +57,20 @@ public class CinemaService {
     private final SeatRepository seatRepository;
     private final ShowtimeRepository showtimeRepository;
     private final ShowtimeService showtimeService;
+    private final Cloudinary cloudinary;
+
+    public String uploadImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "File ảnh rỗng");
+        }
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap("folder", "cinemas"));
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Tải hình ảnh lên Cloudinary thất bại: " + e.getMessage());
+        }
+    }
 
     @Transactional
     public CinemaResponse createCinema(CinemaRequest request) {
@@ -66,6 +84,7 @@ public class CinemaService {
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
         cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setImageUrl(trimOrNull(request.getImageUrl()));
         cinema.setLatitude(request.getLatitude());
         cinema.setLongitude(request.getLongitude());
         cinema.setStatus(request.getStatus() != null ? request.getStatus() : CinemaStatus.ACTIVE);
@@ -88,6 +107,7 @@ public class CinemaService {
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
         cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setImageUrl(trimOrNull(request.getImageUrl()));
         cinema.setLatitude(request.getLatitude());
         cinema.setLongitude(request.getLongitude());
         cinema.setStatus(request.getStatus() != null ? request.getStatus() : cinema.getStatus());
@@ -505,6 +525,7 @@ public class CinemaService {
                 cinema.getPhoneNumber(),
                 totalRooms);
         response.setEntranceNote(cinema.getEntranceNote());
+        response.setImageUrl(cinema.getImageUrl());
         response.setLatitude(cinema.getLatitude());
         response.setLongitude(cinema.getLongitude());
         response.setStatus(cinema.getStatus());

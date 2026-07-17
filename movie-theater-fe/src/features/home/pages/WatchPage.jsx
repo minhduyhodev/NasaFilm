@@ -444,6 +444,13 @@ const WatchPage = () => {
     }
   };
 
+  // Tự động gọi handlePlay khi load xong preview
+  useEffect(() => {
+    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamToken) {
+      handlePlay();
+    }
+  }, [previewReady, isPlaying, isStartingPlay, streamData]);
+
   // Chỉ phát sau activatePlay — không dùng movie.streamingUrl công khai (thiếu token)
   const streamUrl = streamData?.streamingUrl || '';
   const videoSource = getVideoSource(streamUrl);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Upload, Image as ImageIcon } from 'lucide-react';
 import { cinemaService } from '../../../../shared/services/cinemaService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton } from '..';
@@ -7,11 +8,15 @@ import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminForm
 const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
   const isEditing = Boolean(cinema?.uuid);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [form, setForm] = useState({
     name: '',
     address: '',
     phoneNumber: '',
     entranceNote: '',
+    imageUrl: '',
     latitude: '',
     longitude: '',
     status: 'ACTIVE',
@@ -23,11 +28,23 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
       address: cinema?.address || '',
       phoneNumber: cinema?.phoneNumber || '',
       entranceNote: cinema?.entranceNote || '',
+      imageUrl: cinema?.imageUrl || '',
       latitude: cinema?.latitude ?? '',
       longitude: cinema?.longitude ?? '',
       status: cinema?.status || 'ACTIVE',
     });
+    setSelectedFile(null);
+    setPreviewUrl(cinema?.imageUrl || '');
   }, [cinema]);
+
+  const handleFileSelection = (file) => {
+    if (!file.type.startsWith('image/')) {
+      notificationService.error('Vui lòng chọn tệp hình ảnh');
+      return;
+    }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,11 +54,18 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
     }
     setIsSaving(true);
     try {
+      let finalImageUrl = form.imageUrl || '';
+      if (selectedFile) {
+        setIsUploading(true);
+        finalImageUrl = await cinemaService.uploadCinemaImage(selectedFile);
+        setIsUploading(false);
+      }
       const payload = {
         name: form.name.trim(),
         address: form.address.trim(),
         phoneNumber: form.phoneNumber.trim(),
         entranceNote: form.entranceNote.trim() || null,
+        imageUrl: finalImageUrl || null,
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
         status: form.status,
@@ -59,6 +83,7 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
       notificationService.error(err.message || 'Lưu thất bại');
     } finally {
       setIsSaving(false);
+      setIsUploading(false);
     }
   };
 
@@ -93,6 +118,29 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
           placeholder="028xxxxxxx"
           required
         />
+      </div>
+      <div>
+        <label className={adminLabelClass}>Ảnh đại diện rạp</label>
+        <div className="border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center border-white/[0.1] bg-white/[0.02]">
+          {previewUrl ? (
+            <div className="relative w-full max-w-xs h-32 rounded-lg overflow-hidden">
+              <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <ImageIcon className="w-8 h-8 text-gray-600 mb-1" />
+          )}
+          <label htmlFor="cinema-panel-file" className="mt-2.5 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.08]">
+            <Upload className="w-3.5 h-3.5" />
+            Chọn ảnh
+          </label>
+          <input
+            id="cinema-panel-file"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && handleFileSelection(e.target.files[0])}
+          />
+        </div>
       </div>
       <div>
         <label className={adminLabelClass}>Hướng dẫn vào cổng</label>
@@ -141,8 +189,8 @@ const CinemaFormPanel = ({ cinema, onSuccess, onCancel }) => {
       </div>
       <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
         <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
-        <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
-          {isEditing ? 'Cập nhật' : 'Thêm chi nhánh'}
+        <PrimaryButton type="submit" loading={isSaving || isUploading} disabled={isSaving || isUploading}>
+          {isUploading ? 'Đang tải ảnh...' : isEditing ? 'Cập nhật' : 'Thêm chi nhánh'}
         </PrimaryButton>
       </div>
     </form>

@@ -121,4 +121,44 @@ final class EmailTemplateBlockPresets {
                 ]}
                 """;
     }
+
+    static String walletTopUpBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"CUSTOMER_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Giao dịch nạp tiền vào Ví NASA của bạn đã thành công."},
+                  {"type":"info_table","rows":[
+                    {"label":"Số tiền nạp","key":"AMOUNT"},
+                    {"label":"Số dư sau giao dịch","key":"BALANCE_AFTER"},
+                    {"label":"Phương thức","key":"METHOD"}
+                  ]},
+                  {"type":"field","key":"WALLET_URL"},
+                  {"type":"text","value":"Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
+
+    static String walletWithdrawBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"CUSTOMER_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Giao dịch rút tiền từ Ví NASA của bạn đã thành công."},
+                  {"type":"info_table","rows":[
+                    {"label":"Số tiền rút","key":"AMOUNT"},
+                    {"label":"Số dư sau giao dịch","key":"BALANCE_AFTER"},
+                    {"label":"Phương thức","key":"METHOD"}
+                  ]},
+                  {"type":"field","key":"WALLET_URL"},
+                  {"type":"text","value":"Nếu bạn không thực hiện giao dịch này, vui lòng liên hệ hỗ trợ ngay.\\nTrân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
 }
