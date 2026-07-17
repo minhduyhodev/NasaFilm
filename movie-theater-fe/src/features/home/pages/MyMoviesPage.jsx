@@ -39,20 +39,39 @@ const MyMoviesPage = () => {
     <div className="my-movies-page">
       <PageMeta title="Phim của tôi" description="Danh sách phim yêu thích trên NASAFILM" />
       <main className="my-movies-main">
-        <div className="my-movies-header">
-          <Heart className="w-6 h-6 text-red-500" />
+        <header className="my-movies-header">
           <div>
+            <span className="my-movies-eyebrow">Thư viện cá nhân</span>
             <h1>Phim của tôi</h1>
-            <p>Danh sách phim bạn đã lưu để xem sau.</p>
+            <p>Lưu lại những bộ phim đáng nhớ và quay lại khi bạn sẵn sàng xem.</p>
           </div>
-        </div>
+          <div className="my-movies-count" aria-label={`${movies.length} phim đã lưu`}>
+            <Heart aria-hidden />
+            <strong>{isLoading ? '—' : movies.length}</strong>
+            <span>đã lưu</span>
+          </div>
+        </header>
 
-        {isLoading && <p className="my-movies-empty">Đang tải...</p>}
+        {isLoading && (
+          <div className="my-movies-grid" aria-label="Đang tải phim đã lưu">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div className="my-movies-skeleton" key={index} aria-hidden>
+                <span />
+                <i />
+              </div>
+            ))}
+          </div>
+        )}
         {!isLoading && movies.length === 0 && (
-          <p className="my-movies-empty">Chưa có phim nào được lưu. Hãy bấm &quot;Lưu phim&quot; trên trang chi tiết.</p>
+          <section className="my-movies-empty">
+            <Heart aria-hidden />
+            <h2>Thư viện đang trống</h2>
+            <p>Chọn biểu tượng yêu thích trên poster hoặc trang chi tiết để lưu phim vào đây.</p>
+            <Link to="/movies">Khám phá phim</Link>
+          </section>
         )}
 
-        <div className="my-movies-grid">
+        {!isLoading && movies.length > 0 && <div className="my-movies-grid">
           {movies.map((movie) => (
             <Link
               key={movie.movieUuid}
@@ -62,10 +81,13 @@ const MyMoviesPage = () => {
               <div className="my-movies-poster">
                 <PosterImage
                   src={resolveMediaUrl(movie.primaryMediaUrl)}
-                  alt={movie.title}
-                  width={240}
+                  alt={`Poster phim ${movie.title || 'đã lưu'}`}
+                  width={360}
                   className="h-full w-full object-cover"
                 />
+                <span className="my-movies-poster__mark" aria-hidden>
+                  <Heart />
+                </span>
               </div>
               <div className="my-movies-info">
                 <h3>{movie.title}</h3>
@@ -73,7 +95,7 @@ const MyMoviesPage = () => {
               </div>
             </Link>
           ))}
-        </div>
+        </div>}
       </main>
     </div>
   );

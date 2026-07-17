@@ -6,6 +6,7 @@ import { walletService } from '../../../shared/services/walletService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useWalletSummary, useInvalidateWallet } from '../../../shared/hooks/queries/useWalletQuery';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import './AccountUtilityPages.css';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -74,15 +75,15 @@ function StripeTopUpForm({ amount, onSuccess, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-xl border border-white/10 overflow-hidden bg-white p-3">
+    <form onSubmit={handleSubmit}>
+      <div className="stripe-element-shell">
         <PaymentElement />
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="account-actions">
         <button
           type="submit"
           disabled={!stripe || loading}
-          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-6 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
+          className="account-action account-action--primary"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
           Thanh toán {formatMoney(amount)}
@@ -91,13 +92,13 @@ function StripeTopUpForm({ amount, onSuccess, onCancel }) {
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
+          className="account-action account-action--secondary"
         >
           <X className="h-4 w-4" />
           Hủy
         </button>
       </div>
-      {message && <p className="text-sm text-amber-300/90">{message}</p>}
+      {message && <p className="account-form-message" role="status">{message}</p>}
     </form>
   );
 }
@@ -212,165 +213,162 @@ const WalletPage = () => {
   const transactions = summary?.recentTransactions || [];
 
   return (
-    <div className="text-white min-h-screen bg-[#0b0f19]">
-      <main className="pt-28 pb-16 px-4 md:px-8 lg:px-20">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-start justify-between gap-4 mb-8">
-            <div>
-              <span className="text-xs font-black uppercase tracking-[0.3em] text-red-500">Tài khoản</span>
-              <h1 className="mt-2 text-3xl md:text-4xl font-black uppercase font-heading">Ví NASA</h1>
-              <p className="mt-3 text-sm text-gray-400">
-                {mockMode
-                  ? 'Chế độ mock — nạp/rút mô phỏng tức thì (cấu hình app.wallet.top-up-provider).'
-                  : 'Nạp tiền qua Stripe. Số tiền nhanh và hạn mức lấy từ cấu hình máy chủ.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={refreshWallet}
-              disabled={isLoading}
-              className="rounded-full border border-white/10 p-3 hover:bg-white/5 transition-colors disabled:opacity-50"
-              aria-label="Làm mới"
-            >
-              <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+    <div className="account-page">
+      <main className="account-page__main">
+        <header className="account-page__header">
+          <div>
+            <span className="account-page__eyebrow">Tài khoản / Ví</span>
+            <h1 className="account-page__title">Ví NASA</h1>
+            <p className="account-page__intro">
+              {mockMode
+                ? 'Không gian mô phỏng giao dịch để kiểm thử nạp và rút tiền tức thì.'
+                : 'Nạp tiền qua Stripe và theo dõi toàn bộ biến động số dư trong một nơi.'}
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={refreshWallet}
+            disabled={isLoading}
+            className="account-icon-button"
+            aria-label="Làm mới số dư ví"
+          >
+            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </header>
 
-          <div className="rounded-[28px] border border-white/5 bg-gradient-to-br from-red-600/20 via-[#111216]/80 to-[#111216]/80 p-8 mb-8">
-            <div className="flex items-center gap-3 text-gray-300 text-sm mb-2">
-              <Wallet className="h-5 w-5 text-red-400" />
+        <div className="wallet-layout">
+          <section className="wallet-balance" aria-labelledby="wallet-balance-title">
+            <div className="wallet-balance__label" id="wallet-balance-title">
+              <Wallet className="h-5 w-5" />
               Số dư khả dụng
             </div>
             {isLoading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-red-500 mt-2" />
+              <div className="account-loading-line" aria-label="Đang tải số dư" />
             ) : (
-              <p className="text-4xl md:text-5xl font-black font-heading">{formatMoney(summary?.balance)}</p>
+              <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
             )}
-            <p className="mt-3 text-xs text-amber-400/90 font-semibold">
-              {mockMode ? 'Mock Gateway' : 'Stripe'} · {summary?.provider || (mockMode ? 'mock' : 'stripe')}
+            <p className="wallet-balance__provider">
+              {mockMode ? 'Mock Gateway' : 'Stripe'} / {summary?.provider || (mockMode ? 'mock' : 'stripe')}
             </p>
-          </div>
+          </section>
 
-          <div className="rounded-[24px] border border-white/5 bg-[#111216]/60 p-6 mb-8">
-            <h2 className="text-sm font-black uppercase tracking-wider mb-4">
-              {mockMode ? 'Nạp / Rút tiền' : 'Nạp tiền qua thẻ'}
-            </h2>
+          <div>
+            <section className="account-panel" aria-labelledby="wallet-action-title">
+              <h2 className="account-panel__heading" id="wallet-action-title">
+                {mockMode ? 'Nạp hoặc rút tiền' : 'Nạp tiền qua thẻ'}
+              </h2>
 
-            {clientSecret ? (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-400">
-                  Thanh toán {formatMoney(pendingAmount)} để cộng vào ví.
-                </p>
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <StripeTopUpForm
-                    amount={pendingAmount}
-                    onSuccess={handleStripeSuccess}
-                    onCancel={() => {
-                      setClientSecret('');
-                      setPendingAmount(null);
-                    }}
+              {clientSecret ? (
+                <>
+                  <p className="account-panel__copy">
+                    Hoàn tất thanh toán {formatMoney(pendingAmount)} để cộng tiền vào ví.
+                  </p>
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <StripeTopUpForm
+                      amount={pendingAmount}
+                      onSuccess={handleStripeSuccess}
+                      onCancel={() => {
+                        setClientSecret('');
+                        setPendingAmount(null);
+                      }}
+                    />
+                  </Elements>
+                </>
+              ) : (
+                <>
+                  <div className="account-chip-list" aria-label="Chọn nhanh số tiền">
+                    {quickAmounts.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setAmount(String(value))}
+                        className={`account-chip${Number(amount) === value ? ' is-active' : ''}`}
+                        aria-pressed={Number(amount) === value}
+                      >
+                        {formatMoney(value)}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    min={minTopUp}
+                    max={maxTopUp}
+                    step="10000"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="account-input"
+                    aria-label="Số tiền giao dịch"
+                    placeholder={`Tối thiểu ${formatMoney(minTopUp)}`}
                   />
-                </Elements>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {quickAmounts.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setAmount(String(value))}
-                      className={`rounded-full px-4 py-2 text-xs font-bold border transition-colors ${
-                        Number(amount) === value
-                          ? 'border-red-500 bg-red-500/10 text-red-300'
-                          : 'border-white/10 text-gray-400 hover:border-white/20'
-                      }`}
-                    >
-                      {formatMoney(value)}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="number"
-                  min={minTopUp}
-                  max={maxTopUp}
-                  step="10000"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full rounded-xl bg-[#0f172a] border border-[#242d42] px-4 py-3 text-white mb-4 focus:outline-none focus:border-red-500/40"
-                  placeholder={`Tối thiểu ${formatMoney(minTopUp)}`}
-                />
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={handleTopUp}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-6 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
-                    Nạp tiền
-                  </button>
-                  {mockMode && (
+                  <div className="account-actions">
                     <button
                       type="button"
                       disabled={isSubmitting}
-                      onClick={handleWithdraw}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
+                      onClick={handleTopUp}
+                      className="account-action account-action--primary"
                     >
-                      <ArrowUpCircle className="h-4 w-4" />
-                      Rút tiền
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
+                      Nạp tiền
                     </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="rounded-[24px] border border-white/5 bg-[#111216]/60 p-6">
-            <h2 className="text-sm font-black uppercase tracking-wider mb-4">Lịch sử giao dịch</h2>
-            {transactions.length === 0 ? (
-              <p className="text-sm text-gray-500">Chưa có giao dịch.</p>
-            ) : (
-              <ul className="space-y-3">
-                {transactions.map((tx) => {
-                  const signed = Number(tx.amount || 0);
-                  const positive = signed >= 0;
-                  const isOrderRelated = tx.type === 'REFUND' || tx.type === 'PAYMENT';
-                  const bookingRef = formatBookingRef(tx.bookingUuid);
-                  return (
-                    <li
-                      key={tx.uuid}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-[#0f172a]/60 px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold">{txLabel(tx.type)}</p>
-                        <p className="text-xs text-gray-500 truncate">{tx.description || '—'}</p>
-                        {isOrderRelated && (bookingRef || tx.movieTitle) && (
-                          <p className="text-xs text-gray-400 mt-1 truncate" title={tx.movieTitle || bookingRef}>
-                            {tx.type === 'REFUND' ? 'Hoàn cho đơn' : 'Thanh toán đơn'}
-                            {bookingRef ? ` ${bookingRef}` : ''}
-                            {tx.movieTitle ? ` · ${tx.movieTitle}` : ''}
-                          </p>
-                        )}
-                        {tx.createdAt && (
-                          <p className="text-[10px] text-gray-600 mt-1">
-                            {new Date(tx.createdAt).toLocaleString('vi-VN')}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={`text-sm font-black ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {positive ? '+' : ''}{formatMoney(signed)}
-                        </p>
-                        <p className="text-[10px] text-gray-500">Sau GD: {formatMoney(tx.balanceAfter)}</p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                    {mockMode && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={handleWithdraw}
+                        className="account-action account-action--secondary"
+                      >
+                        <ArrowUpCircle className="h-4 w-4" />
+                        Rút tiền
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
           </div>
         </div>
+
+        <section className="account-panel wallet-history" aria-labelledby="wallet-history-title">
+          <h2 className="account-panel__heading" id="wallet-history-title">Lịch sử giao dịch</h2>
+          {transactions.length === 0 ? (
+            <p className="account-panel__copy">Chưa có giao dịch. Biến động số dư sẽ xuất hiện tại đây.</p>
+          ) : (
+            <ul className="transaction-list">
+              {transactions.map((tx) => {
+                const signed = Number(tx.amount || 0);
+                const positive = signed >= 0;
+                const isOrderRelated = tx.type === 'REFUND' || tx.type === 'PAYMENT';
+                const bookingRef = formatBookingRef(tx.bookingUuid);
+                return (
+                  <li key={tx.uuid} className="transaction-row">
+                    <div className="min-w-0">
+                      <p className="transaction-row__title">{txLabel(tx.type)}</p>
+                      <p className="transaction-row__meta">{tx.description || 'Không có mô tả'}</p>
+                      {isOrderRelated && (bookingRef || tx.movieTitle) && (
+                        <p className="transaction-row__meta" title={tx.movieTitle || bookingRef}>
+                          {tx.type === 'REFUND' ? 'Hoàn cho đơn' : 'Thanh toán đơn'}
+                          {bookingRef ? ` ${bookingRef}` : ''}
+                          {tx.movieTitle ? ` · ${tx.movieTitle}` : ''}
+                        </p>
+                      )}
+                      {tx.createdAt && (
+                        <time className="transaction-row__date" dateTime={tx.createdAt}>
+                          {new Date(tx.createdAt).toLocaleString('vi-VN')}
+                        </time>
+                      )}
+                    </div>
+                    <div>
+                      <p className={`transaction-row__amount ${positive ? 'is-positive' : 'is-negative'}`}>
+                        {positive ? '+' : ''}{formatMoney(signed)}
+                      </p>
+                      <p className="transaction-row__balance">Sau GD: {formatMoney(tx.balanceAfter)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </main>
     </div>
   );

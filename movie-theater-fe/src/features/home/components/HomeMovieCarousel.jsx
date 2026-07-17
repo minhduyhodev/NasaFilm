@@ -1,16 +1,16 @@
-import { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import MovieCard from './MovieCard';
-import MovieCardSkeleton from './MovieCardSkeleton';
-import './HomeMovieCarousel.css';
+import { useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import MovieCard from "./MovieCard";
+import MovieCardSkeleton from "./MovieCardSkeleton";
+import "./HomeMovieCarousel.css";
 
 const HomeMovieCarousel = ({
   title,
   viewAllTo,
   moviesList = [],
   isLoading = false,
-  actionLabel = 'Chi tiết',
+  actionLabel = "Chi tiết",
   priorityCount = 4,
 }) => {
   const scrollerRef = useRef(null);
@@ -33,22 +33,29 @@ const HomeMovieCarousel = ({
 
     const scrollAmount = getScrollAmount();
     const gap = 24;
-    const visibleCards = Math.max(1, Math.floor((el.clientWidth + gap) / scrollAmount));
+    const visibleCards = Math.max(
+      1,
+      Math.floor((el.clientWidth + gap) / scrollAmount),
+    );
 
     if (visibleCards >= 4) {
       const currentPageIndex = Math.round(el.scrollLeft / (scrollAmount * 4));
-      const targetPageIndex = direction === 'right' ? currentPageIndex + 1 : currentPageIndex - 1;
-      const nextPageIndex = Math.max(0, Math.min(targetPageIndex, totalPages - 1));
+      const targetPageIndex =
+        direction === "right" ? currentPageIndex + 1 : currentPageIndex - 1;
+      const nextPageIndex = Math.max(
+        0,
+        Math.min(targetPageIndex, totalPages - 1),
+      );
 
       el.scrollTo({
         left: nextPageIndex * scrollAmount * 4,
-        behavior: 'smooth',
+        behavior: "smooth",
       });
     } else {
       const totalScroll = scrollAmount * visibleCards;
       el.scrollBy({
-        left: direction === 'right' ? totalScroll : -totalScroll,
-        behavior: 'smooth',
+        left: direction === "right" ? totalScroll : -totalScroll,
+        behavior: "smooth",
       });
     }
   };
@@ -68,7 +75,7 @@ const HomeMovieCarousel = ({
     const scrollAmount = getScrollAmount();
     el.scrollTo({
       left: index * scrollAmount * 4,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
@@ -94,8 +101,8 @@ const HomeMovieCarousel = ({
 
       <button
         type="button"
-        onClick={() => scroll('left')}
-        style={{ left: '-48px' }}
+        onClick={() => scroll("left")}
+        style={{ left: "-48px" }}
         className="home-movie-carousel__nav hidden md:flex"
         aria-label={`${title} — trang trước`}
       >
@@ -103,8 +110,8 @@ const HomeMovieCarousel = ({
       </button>
       <button
         type="button"
-        onClick={() => scroll('right')}
-        style={{ right: '-48px' }}
+        onClick={() => scroll("right")}
+        style={{ right: "-48px" }}
         className="home-movie-carousel__nav hidden md:flex"
         aria-label={`${title} — trang tiếp`}
       >
@@ -116,29 +123,27 @@ const HomeMovieCarousel = ({
         onScroll={handleScroll}
         className="home-movie-carousel__track no-scrollbar flex gap-6 overflow-x-auto pb-4 pr-1 snap-x snap-mandatory"
       >
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`skeleton-${index}`}
-              className="home-movie-carousel__item flex flex-col gap-4"
-            >
-              <MovieCardSkeleton />
-            </div>
-          ))
-        ) : (
-          moviesList.map((movie, index) => (
-            <div
-              key={movie.uuid || movie.title}
-              className={`home-movie-carousel__item ${index % 4 === 0 ? 'md:snap-start snap-center' : 'md:snap-none snap-center'} flex flex-col`}
-            >
-              <MovieCard
-                {...movie}
-                actionLabel={actionLabel}
-                posterLoading={index < priorityCount ? 'eager' : 'lazy'}
-              />
-            </div>
-          ))
-        )}
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="home-movie-carousel__item flex flex-col gap-4"
+              >
+                <MovieCardSkeleton />
+              </div>
+            ))
+          : moviesList.map((movie, index) => (
+              <div
+                key={movie.uuid || movie.title}
+                className={`home-movie-carousel__item ${index % 4 === 0 ? "md:snap-start snap-center" : "md:snap-none snap-center"} flex flex-col`}
+              >
+                <MovieCard
+                  {...movie}
+                  actionLabel={actionLabel}
+                  posterLoading={index < priorityCount ? "eager" : "lazy"}
+                />
+              </div>
+            ))}
       </div>
 
       {moviesList.length > 4 && (
@@ -149,7 +154,9 @@ const HomeMovieCarousel = ({
               type="button"
               onClick={() => goToPage(index)}
               className={`home-movie-carousel__dot h-2 rounded-full transition-all duration-300 ${
-                currentPage === index ? 'is-active w-5 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'
+                currentPage === index
+                  ? "is-active w-5 bg-white"
+                  : "w-2 bg-white/30 hover:bg-white/50"
               }`}
               aria-label={`Trang ${index + 1}`}
             />

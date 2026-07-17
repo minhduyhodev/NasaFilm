@@ -1,0 +1,562 @@
+.account-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(229, 9, 20, 0.08), transparent 26rem),
+    var(--nsf-bg);
+  color: var(--nsf-text);
+}
+
+.account-page__main {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 8rem 0 5rem;
+}
+
+.account-page__main--narrow {
+  width: min(100% - 2rem, 54rem);
+}
+
+.account-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.account-page__eyebrow {
+  display: block;
+  margin-bottom: 0.7rem;
+  color: var(--nsf-accent);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.account-page__title {
+  max-width: 14ch;
+  margin: 0;
+  color: var(--nsf-text);
+  font-size: clamp(2.25rem, 7vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.account-page__intro {
+  max-width: 58ch;
+  margin: 1rem 0 0;
+  color: var(--nsf-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+
+.account-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-surface-1);
+  color: var(--nsf-text-muted);
+  transition: border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.account-icon-button:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--nsf-text);
+  transform: translateY(-1px);
+}
+
+.account-icon-button:focus-visible,
+.account-action:focus-visible,
+.account-chip:focus-visible,
+.reminder-card a:focus-visible {
+  outline: 2px solid var(--nsf-accent);
+  outline-offset: 3px;
+}
+
+.account-icon-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.wallet-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 1.1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.wallet-balance {
+  position: sticky;
+  top: 6.5rem;
+  min-height: 22rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  overflow: hidden;
+  border: 1px solid rgba(229, 9, 20, 0.22);
+  border-radius: var(--nsf-radius-xl);
+  background:
+    linear-gradient(145deg, rgba(229, 9, 20, 0.16), transparent 48%),
+    var(--nsf-surface-1);
+}
+
+.wallet-balance::after {
+  content: '';
+  position: absolute;
+  right: -4rem;
+  bottom: -5rem;
+  width: 15rem;
+  height: 15rem;
+  border: 1px solid rgba(229, 9, 20, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.5rem rgba(229, 9, 20, 0.025);
+}
+
+.wallet-balance__label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.wallet-balance__label svg {
+  color: var(--nsf-accent);
+}
+
+.wallet-balance__value {
+  position: relative;
+  z-index: 1;
+  margin: 1.25rem 0 0;
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.wallet-balance__provider {
+  position: absolute;
+  left: clamp(1.5rem, 4vw, 2.5rem);
+  bottom: 2rem;
+  z-index: 1;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.account-panel {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-lg);
+  background: var(--nsf-surface-1);
+}
+
+.account-panel + .account-panel {
+  margin-top: 1rem;
+}
+
+.account-panel__heading {
+  margin: 0 0 1.25rem;
+  color: var(--nsf-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-panel__copy {
+  margin: 0 0 1rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.account-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.account-chip {
+  padding: 0.58rem 0.85rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--nsf-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.account-chip:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--nsf-text);
+}
+
+.account-chip.is-active {
+  border-color: rgba(229, 9, 20, 0.5);
+  background: var(--nsf-accent-soft);
+  color: #fda4af;
+}
+
+.account-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-bg);
+  color: var(--nsf-text);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.account-input:focus {
+  border-color: rgba(229, 9, 20, 0.65);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+  outline: none;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.account-action {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--nsf-radius-sm);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.account-action:hover {
+  transform: translateY(-1px);
+}
+
+.account-action:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.account-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.account-action--primary {
+  background: var(--nsf-accent);
+  color: #fff;
+}
+
+.account-action--primary:hover {
+  background: var(--nsf-accent-hover);
+}
+
+.account-action--secondary {
+  border-color: var(--nsf-border);
+  background: var(--nsf-surface-2);
+  color: var(--nsf-text-muted);
+}
+
+.account-action--secondary:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--nsf-text);
+}
+
+.wallet-history {
+  margin-top: 1rem;
+}
+
+.transaction-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--nsf-border);
+}
+
+.transaction-row:first-child {
+  border-top: 0;
+}
+
+.transaction-row__title {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.transaction-row__meta,
+.transaction-row__date,
+.transaction-row__balance {
+  margin: 0.3rem 0 0;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.transaction-row__amount {
+  margin: 0;
+  font-size: 0.83rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.transaction-row__amount.is-positive {
+  color: #6ee7b7;
+}
+
+.transaction-row__amount.is-negative {
+  color: #fb7185;
+}
+
+.account-empty {
+  padding: clamp(3rem, 8vw, 6rem) 1.5rem;
+  border-top: 1px solid var(--nsf-border);
+  border-bottom: 1px solid var(--nsf-border);
+  text-align: center;
+}
+
+.account-empty__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 1.25rem;
+  color: var(--nsf-text-dim);
+}
+
+.account-empty__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+}
+
+.account-empty__copy {
+  max-width: 48ch;
+  margin: 0.65rem auto 1.5rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.reminder-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--nsf-border);
+}
+
+.reminder-card {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--nsf-border);
+}
+
+.reminder-card__poster {
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-surface-2);
+}
+
+.reminder-card__poster img {
+  transition: transform 350ms var(--nsf-ease);
+}
+
+.reminder-card__poster:hover img {
+  transform: scale(1.035);
+}
+
+.reminder-card__title {
+  color: var(--nsf-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.reminder-card__title:hover {
+  color: #fda4af;
+}
+
+.reminder-card__schedule {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+  color: var(--nsf-text-muted);
+  font-size: 0.74rem;
+}
+
+.reminder-card__remove {
+  align-self: center;
+  color: var(--nsf-text-dim);
+}
+
+.reminder-card__remove:hover {
+  border-color: rgba(229, 9, 20, 0.35);
+  color: #fb7185;
+}
+
+.account-subsection {
+  margin-top: 4rem;
+}
+
+.account-subsection__title {
+  margin: 0 0 1rem;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.past-reminder-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  opacity: 0.65;
+}
+
+.past-reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--nsf-border);
+  font-size: 0.78rem;
+}
+
+.past-reminder-row span:first-child {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.past-reminder-row time {
+  flex: 0 0 auto;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+}
+
+.stripe-element-shell {
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  overflow: hidden;
+  border-radius: var(--nsf-radius-sm);
+  background: #fff;
+}
+
+.account-form-message {
+  margin: 0.85rem 0 0;
+  color: #fbbf24;
+  font-size: 0.78rem;
+}
+
+.account-loading-line {
+  width: min(100%, 18rem);
+  height: 3.5rem;
+  margin-top: 1.25rem;
+  border-radius: var(--nsf-radius-sm);
+  background: linear-gradient(90deg, var(--nsf-surface-2), var(--nsf-surface-3), var(--nsf-surface-2));
+  background-size: 200% 100%;
+  animation: account-shimmer 1.4s linear infinite;
+}
+
+@keyframes account-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 800px) {
+  .wallet-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-balance {
+    position: relative;
+    top: auto;
+    min-height: 16rem;
+  }
+
+  .reminder-card {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .reminder-card__remove {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .account-page__main {
+    width: min(100% - 1.25rem, 72rem);
+    padding-top: 6.75rem;
+  }
+
+  .account-page__header {
+    align-items: flex-start;
+  }
+
+  .account-page__title {
+    font-size: clamp(2rem, 12vw, 3.25rem);
+  }
+
+  .transaction-row {
+    gap: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-loading-line {
+    animation: none;
+  }
+
+  .account-icon-button,
+  .account-action,
+  .reminder-card__poster img {
+    transition: none;
+  }
+}
