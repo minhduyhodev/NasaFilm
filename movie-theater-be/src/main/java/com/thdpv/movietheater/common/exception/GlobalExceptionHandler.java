@@ -76,6 +76,21 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.CONFLICT, detailMessage));
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<?>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        log.warn("[ResponseStatusException] status={} msg={}", ex.getStatusCode(), ex.getReason());
+        ErrorCode ec = ErrorCode.BAD_REQUEST;
+        if (ex.getStatusCode() == org.springframework.http.HttpStatus.UNAUTHORIZED) {
+            ec = ErrorCode.UNAUTHORIZED;
+        } else if (ex.getStatusCode() == org.springframework.http.HttpStatus.FORBIDDEN) {
+            ec = ErrorCode.FORBIDDEN;
+        } else if (ex.getStatusCode() == org.springframework.http.HttpStatus.NOT_FOUND) {
+            ec = ErrorCode.NOT_FOUND;
+        }
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ApiResponse.error(ec, ex.getReason()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleAll(Exception ex) {
         log.error("[UnexpectedException]", ex);

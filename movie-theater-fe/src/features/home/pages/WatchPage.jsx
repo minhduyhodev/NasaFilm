@@ -275,7 +275,15 @@ const WatchPage = () => {
           return;
         }
 
-        // Đã mua vé (WAITING_FOR_PLAY): cho vào trang xem — lần đầu bấm Play sẽ kích hoạt.
+        // Vé chưa kích hoạt (WAITING_FOR_PLAY): bắt buộc qua trang kích hoạt nhập mã vé.
+        // Ngoại lệ: vừa kích hoạt xong ở trang activate (có temporary token) — cho vào luôn.
+        const justActivated =
+          getTemporaryVodToken(movieDetail?.uuid || id) || getTemporaryVodToken(id);
+        if (!justActivated) {
+          navigate(getOnlineActivatePath(movieDetail?.uuid || id), { replace: true });
+          return;
+        }
+
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
@@ -446,6 +454,13 @@ const WatchPage = () => {
       playLockRef.current = false;
     }
   };
+
+  // Tự động gọi handlePlay khi load xong preview
+  useEffect(() => {
+    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamToken) {
+      handlePlay();
+    }
+  }, [previewReady, isPlaying, isStartingPlay, streamData]);
 
   // Chỉ phát sau activatePlay — không dùng movie.streamingUrl công khai (thiếu token)
   const streamUrl = streamData?.streamingUrl || '';
