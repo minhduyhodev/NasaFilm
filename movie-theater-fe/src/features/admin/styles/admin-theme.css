@@ -384,6 +384,27 @@ select.adm-filter-select:focus {
   animation: adm-dropdown-in 0.15s ease-out;
 }
 
+.adm-dropdown--portal {
+  position: fixed;
+  margin-top: 0;
+}
+
+/* Portaled menu — no absolute/in-flow positioning from .adm-dropdown */
+.adm-dropdown-portal {
+  position: fixed;
+  z-index: 20100;
+  min-width: 160px;
+  max-height: min(280px, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--adm-radius-sm);
+  border: 1px solid var(--adm-border-strong);
+  background: var(--adm-bg-elevated, #151b2e);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  animation: adm-dropdown-in 0.15s ease-out;
+}
+
 @keyframes adm-dropdown-in {
   from {
     opacity: 0;

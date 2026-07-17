@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
   WEEKDAY_SHORT,
@@ -10,6 +11,7 @@ import {
   shiftMonth,
   todayIso,
 } from './dateUtils';
+import { useFloatingPanelPosition, ADMIN_FLOATING_BACKDROP_Z } from '../useFloatingPanelPosition';
 import './AdminCalendar.css';
 
 /**
@@ -31,8 +33,17 @@ export default function AdminDatePicker({
   id,
 }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
   const selected = parseIsoDate(value);
   const today = todayIso();
+  const panelStyle = useFloatingPanelPosition(open, triggerRef, {
+    width: 288,
+    maxHeight: 420,
+    estimatedHeight: 380,
+    align: panelAlign,
+  });
 
   const initial = useMemo(() => {
     if (selected) return { year: selected.year, monthIndex: selected.monthIndex };
@@ -45,6 +56,30 @@ export default function AdminDatePicker({
   useEffect(() => {
     if (open) setView(initial);
   }, [open, initial]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (rootRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [open]);
 
   const days = useMemo(() => getMonthGrid(view.year, view.monthIndex), [view.year, view.monthIndex]);
 
@@ -60,13 +95,14 @@ export default function AdminDatePicker({
   };
 
   return (
-    <div className={`adm-datepicker ${className}`}>
+    <div ref={rootRef} className={`adm-datepicker ${className}`}>
       {label ? (
         <label className="adm-datepicker__label" htmlFor={id}>
           {label}
         </label>
       ) : null}
       <button
+        ref={triggerRef}
         id={id}
         type="button"
         disabled={disabled}
@@ -97,14 +133,31 @@ export default function AdminDatePicker({
         ) : null}
       </button>
 
-      {open && (
-        <>
-          <div className="adm-datepicker__backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div
-            className={`adm-datepicker__panel${panelAlign === 'right' ? ' adm-datepicker__panel--right' : ''}`}
-            role="dialog"
-            aria-label="Chọn ngày"
-          >
+      {open && createPortal(
+        <div
+          className="adm-datepicker__backdrop"
+          style={{ zIndex: ADMIN_FLOATING_BACKDROP_Z }}
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />,
+        document.body,
+      )}
+
+      {open && panelStyle && createPortal(
+        <div
+          ref={panelRef}
+          className="adm-datepicker__panel adm-datepicker__panel--portal"
+          style={{
+            ...panelStyle,
+            top: panelStyle.top,
+            left: panelStyle.left,
+            width: panelStyle.width,
+            maxHeight: panelStyle.maxHeight,
+            overflowY: 'auto',
+          }}
+          role="dialog"
+          aria-label="Chọn ngày"
+        >
             <div className="adm-cal-nav">
               <button
                 type="button"
@@ -187,8 +240,8 @@ export default function AdminDatePicker({
                 </button>
               </div>
             </div>
-          </div>
-        </>
+        </div>,
+        document.body,
       )}
     </div>
   );
