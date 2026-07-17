@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.payment.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,11 +11,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.response.ApiResponse;
+import com.thdpv.movietheater.payment.dto.VietQRGenerateResponse;
 import com.thdpv.movietheater.payment.dto.WalletAmountRequest;
 import com.thdpv.movietheater.payment.dto.WalletSummaryResponse;
 import com.thdpv.movietheater.payment.dto.WalletTopUpConfirmRequest;
@@ -77,6 +80,29 @@ public class WalletController {
         UUID userUuid = resolveUserUuid(userDetails);
         WalletSummaryResponse summary = walletService.confirmTopUp(userUuid, request.getPaymentIntentId());
         return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền thành công"));
+    }
+
+    @PostMapping("/top-up/vietqr")
+    public ResponseEntity<ApiResponse<VietQRGenerateResponse>> createVietQRTopUp(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody WalletAmountRequest request) {
+        UUID userUuid = resolveUserUuid(userDetails);
+        VietQRGenerateResponse qrData = walletService.createVietQRTopUp(userUuid, request.getAmount());
+        return ResponseEntity.ok(ApiResponse.success(qrData, "Tạo mã QR nạp ví thành công"));
+    }
+
+    @GetMapping("/top-up/vietqr/check")
+    public ResponseEntity<ApiResponse<WalletSummaryResponse>> checkVietQRTopUp(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam String code,
+            @RequestParam BigDecimal amount) {
+        UUID userUuid = resolveUserUuid(userDetails);
+        WalletSummaryResponse summary = walletService.checkAndCreditVietQRTopUp(userUuid, code, amount);
+        if (summary == null) {
+            // Chưa nhận được thanh toán — FE tiếp tục polling
+            return ResponseEntity.ok(ApiResponse.success(null, "Chưa nhận được thanh toán"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền qua VietQR thành công"));
     }
 
     @PostMapping("/withdraw")

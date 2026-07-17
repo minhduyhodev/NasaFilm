@@ -25,9 +25,12 @@ import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.payment.dto.WalletSummaryResponse;
 import com.thdpv.movietheater.payment.dto.WalletTopUpIntentResponse;
 import com.thdpv.movietheater.payment.dto.WalletTransactionResponse;
+import com.thdpv.movietheater.payment.dto.VietQRGenerateResponse;
 import com.thdpv.movietheater.payment.entity.PaymentTransaction;
+import com.thdpv.movietheater.payment.entity.VietQRWebhookTransaction;
 import com.thdpv.movietheater.payment.entity.WalletTransaction;
 import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
+import com.thdpv.movietheater.payment.repository.VietQRWebhookTransactionRepository;
 import com.thdpv.movietheater.payment.repository.WalletTransactionRepository;
 import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
 import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentInput;
@@ -56,6 +59,8 @@ public class WalletService {
     private final MovieRepository movieRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final StripeGateway stripeGateway;
+    private final VietQRService vietQRService;
+    private final VietQRWebhookTransactionRepository vietQRWebhookRepo;
 
     @Value("${app.wallet.top-up-provider:mock}")
     private String topUpProvider;
@@ -83,7 +88,9 @@ public class WalletService {
             BookingRepository bookingRepository,
             MovieRepository movieRepository,
             PaymentTransactionRepository paymentTransactionRepository,
-            StripeGateway stripeGateway) {
+            StripeGateway stripeGateway,
+            VietQRService vietQRService,
+            VietQRWebhookTransactionRepository vietQRWebhookRepo) {
         this.userRepository = userRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.refundRepository = refundRepository;
@@ -92,6 +99,8 @@ public class WalletService {
         this.movieRepository = movieRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.stripeGateway = stripeGateway;
+        this.vietQRService = vietQRService;
+        this.vietQRWebhookRepo = vietQRWebhookRepo;
     }
 
     public boolean isMockTopUp() {
@@ -247,6 +256,90 @@ public class WalletService {
         tx.setStatus("SUCCESS");
         tx.setUpdatedAt(OffsetDateTime.now());
         paymentTransactionRepository.save(tx);
+    }
+
+    /**
+     * Tạo mã QR VietQR để nạp tiền vào ví. Lưu PaymentTransaction với gateway=VIETQR
+     * để tracking; credit sẽ được thực hiện khi checkAndCreditVietQRTopUp() polling thành công.
+     */
+    @Transactional
+    public VietQRGenerateResponse createVietQRTopUp(UUID userUuid, BigDecimal amount) {
+        validateAmount(amount);
+        ensureWalletInitialized(findUser(userUuid));
+
+        long amountVnd = amount.longValue();
+        VietQRGenerateResponse qrData = vietQRService.generateQR(amountVnd, "WALLET TOPUP");
+
+        OffsetDateTime now = OffsetDateTime.now();
+        PaymentTransaction tx = new PaymentTransaction();
+        tx.setUuid(UUID.randomUUID());
+        tx.setUserUuid(userUuid);
+        tx.setPaymentGateway("VIETQR");
+        tx.setGatewayTransactionId(qrData.getTransferCode());
+        tx.setAmount(amount);
+        tx.setCurrency("VND");
+        tx.setStatus("PENDING");
+        tx.setPurpose(PURPOSE_WALLET_TOP_UP);
+        tx.setCreatedAt(now);
+        tx.setUpdatedAt(now);
+        paymentTransactionRepository.save(tx);
+
+        return qrData;
+    }
+
+    /**
+     * Polling endpoint: kiểm tra webhook VietQR đã nhận chưa.
+     * Nếu có → credit ví, đánh dấu giao dịch USED và trả về WalletSummaryResponse.
+     * Trả về null nếu chưa có giao dịch phù hợp.
+     */
+    @Transactional
+    public WalletSummaryResponse checkAndCreditVietQRTopUp(UUID userUuid, String transferCode, BigDecimal amount) {
+        if (transferCode == null || transferCode.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "transferCode là bắt buộc");
+        }
+
+        // Tìm PaymentTransaction được tạo khi gọi createVietQRTopUp
+        PaymentTransaction pendingTx = paymentTransactionRepository
+                .findByGatewayTransactionId(transferCode.trim())
+                .orElse(null);
+
+        if (pendingTx == null || !PURPOSE_WALLET_TOP_UP.equals(pendingTx.getPurpose())
+                || !"VIETQR".equals(pendingTx.getPaymentGateway())) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy giao dịch nạp ví VietQR");
+        }
+        if (!userUuid.equals(pendingTx.getUserUuid())) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Giao dịch không thuộc tài khoản của bạn");
+        }
+
+        // Đã credit trước đó (idempotent)
+        if ("SUCCESS".equalsIgnoreCase(pendingTx.getStatus())) {
+            return getSummary(userUuid);
+        }
+
+        // Kiểm tra webhook VietQR đã nhận chưa
+        java.util.List<VietQRWebhookTransaction> matches =
+                vietQRWebhookRepo.findMatchingUnusedTransaction(transferCode.trim(), amount);
+        if (matches.isEmpty()) {
+            return null; // Chưa có giao dịch — FE tiếp tục polling
+        }
+
+        // Credit ví
+        ensureWalletInitialized(findUser(userUuid));
+        BigDecimal creditAmount = pendingTx.getAmount();
+        runWalletWriteWithRetry(userUuid, user ->
+                credit(user, creditAmount, pendingTx.getUuid(), "Nạp tiền qua VietQR · " + transferCode));
+
+        // Đánh dấu PaymentTransaction thành công
+        pendingTx.setStatus("SUCCESS");
+        pendingTx.setUpdatedAt(OffsetDateTime.now());
+        paymentTransactionRepository.save(pendingTx);
+
+        // Đánh dấu webhook transaction USED (lấy record đầu tiên khớp)
+        VietQRWebhookTransaction webhookTx = matches.get(0);
+        webhookTx.setStatus("USED");
+        vietQRWebhookRepo.save(webhookTx);
+
+        return getSummary(userUuid);
     }
 
     @Transactional

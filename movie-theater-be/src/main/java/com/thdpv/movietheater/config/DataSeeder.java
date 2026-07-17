@@ -154,17 +154,21 @@ public class DataSeeder implements CommandLineRunner {
         healMovieMediaUrlColumns();
         referenceMetadataSeeder.healCatalogEncoding();
         healMojibakeMovies();
-        if (!seedEnabled) {
-            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
-            backfillMovieSlugs();
-            return;
-        }
+
+        // These are idempotent (INSERT IF NOT EXISTS) and must always run
+        // so that user accounts and their permissions are always up to date,
+        // regardless of whether bulk seed data is enabled.
         seedRoles();
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
         seedPermissions();
         seedRolePermissions();
+        if (!seedEnabled) {
+            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
+            backfillMovieSlugs();
+            return;
+        }
         seedGuestAccount();
         seedUsersFromJson();
         referenceMetadataSeeder.seedAll();
@@ -1478,8 +1482,8 @@ public class DataSeeder implements CommandLineRunner {
                         uuid) == 0) {
                     jdbcTemplate.update(
                             """
-                                        INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at, points_cost, min_score)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
                                     """,
                             uuid, code, discountValue, discountType, maxUsage, 0,
                             oncePerUser != null ? oncePerUser : false,

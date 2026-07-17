@@ -66,7 +66,8 @@ public class ShowtimeService {
             CancellationRefundService cancellationRefundService,
             SystemConfigService systemConfigService,
             ShowtimeSchedulingEngine showtimeSchedulingEngine,
-            ShowtimeOverlapSupport showtimeOverlapSupport) {
+            ShowtimeOverlapSupport showtimeOverlapSupport,
+            CatalogCacheEvictor catalogCacheEvictor) {
         this.showtimeRepository = showtimeRepository;
         this.movieRepository = movieRepository;
         this.cinemaRoomRepository = cinemaRoomRepository;
@@ -75,6 +76,7 @@ public class ShowtimeService {
         this.systemConfigService = systemConfigService;
         this.showtimeSchedulingEngine = showtimeSchedulingEngine;
         this.showtimeOverlapSupport = showtimeOverlapSupport;
+        this.catalogCacheEvictor = catalogCacheEvictor;
     }
 
     @Transactional
