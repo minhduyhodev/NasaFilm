@@ -176,7 +176,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -200,7 +200,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -234,7 +234,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);

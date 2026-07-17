@@ -268,7 +268,15 @@ const WatchPage = () => {
           return;
         }
 
-        // Đã mua vé (WAITING_FOR_PLAY): cho vào trang xem — lần đầu bấm Play sẽ kích hoạt.
+        // Vé chưa kích hoạt (WAITING_FOR_PLAY): bắt buộc qua trang kích hoạt nhập mã vé.
+        // Ngoại lệ: vừa kích hoạt xong ở trang activate (có temporary token) — cho vào luôn.
+        const justActivated =
+          getTemporaryVodToken(movieDetail?.uuid || id) || getTemporaryVodToken(id);
+        if (!justActivated) {
+          navigate(getOnlineActivatePath(movieDetail?.uuid || id), { replace: true });
+          return;
+        }
+
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
