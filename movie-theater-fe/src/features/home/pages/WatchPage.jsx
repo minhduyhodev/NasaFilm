@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
+import tokenService from '../../auth/utils/tokenService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -72,6 +73,8 @@ const WatchPage = () => {
   const [vodExpiresAt, setVodExpiresAt] = useState(null);
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const heartbeatIntervalRef = useRef(null);
+  // Vị trí xem gần nhất — dùng để flush heartbeat cuối khi rời trang.
+  const lastPositionRef = useRef({ position: 0, duration: null });
   const cinemaUiTimerRef = useRef(null);
   // Prevent double-click races that can rotate token twice.
   const playLockRef = useRef(false);
@@ -285,13 +288,23 @@ const WatchPage = () => {
   useEffect(() => {
     if (!streamData?.streamToken) return;
 
+    const readVideoPosition = () => {
+      const video = videoRef.current;
+      const position = video?.currentTime;
+      const duration = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
+      // Bỏ qua các giá trị ~0 lúc video vừa mount/chưa seek để không ghi đè vị trí đã lưu.
+      if (Number.isFinite(position) && position > 1) {
+        lastPositionRef.current = { position, duration };
+        return { position, duration };
+      }
+      return { position: null, duration };
+    };
+
     const sendHeartbeat = async () => {
       try {
-        const video = videoRef.current;
-        const positionSeconds = video?.currentTime ?? null;
-        const durationSeconds = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
+        const { position, duration } = readVideoPosition();
         const movieRef = movie?.uuid || id;
-        await vodService.heartbeat(movieRef, streamData.streamToken, positionSeconds, durationSeconds);
+        await vodService.heartbeat(movieRef, streamData.streamToken, position, duration);
       } catch (err) {
         const moviePath = movie?.slug || movie?.uuid || id;
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
@@ -306,18 +319,43 @@ const WatchPage = () => {
 
     sendHeartbeat();
     heartbeatIntervalRef.current = setInterval(sendHeartbeat, 15000);
+
+    const streamToken = streamData.streamToken;
+    const movieRef = movie?.uuid || id;
+
+    // Flush khi đóng tab/reload — fetch keepalive vẫn gửi được lúc trang unload.
+    const flushOnPageHide = () => {
+      readVideoPosition();
+      const { position, duration } = lastPositionRef.current;
+      if (!(position > 1)) return;
+      const params = new URLSearchParams({
+        streamToken,
+        positionSeconds: String(Math.floor(position)),
+      });
+      if (duration > 0) params.set('durationSeconds', String(Math.floor(duration)));
+      const token = tokenService.getToken();
+      fetch(`${import.meta.env.VITE_API_URL || ''}/api/vod/heartbeat/${movieRef}?${params.toString()}`, {
+        method: 'POST',
+        keepalive: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }).catch(() => {});
+    };
+    window.addEventListener('pagehide', flushOnPageHide);
+
     return () => {
+      window.removeEventListener('pagehide', flushOnPageHide);
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      // Flush vị trí cuối khi rời trang (điều hướng SPA) để không mất tối đa 15s tiến độ.
+      readVideoPosition();
+      const { position, duration } = lastPositionRef.current;
+      if (position > 1) {
+        vodService.heartbeat(movieRef, streamToken, position, duration).catch(() => {});
+      }
     };
   }, [streamData, id, movie, navigate]);
 
   useEffect(() => {
-    if (!isPlaying) {
-      setRemainingTimeText('');
-      setCountdownWarning(false);
-      return undefined;
-    }
-
+    // Đếm ngược chạy ngay khi vé đã kích hoạt (có expiresAt từ BE), không chờ bấm Play.
     let expiresAt = streamData?.expiresAt || vodExpiresAt;
     if (!expiresAt || !countdownSettings.enabled) {
       setRemainingTimeText('');
@@ -351,7 +389,7 @@ const WatchPage = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [streamData, vodExpiresAt, countdownSettings, isPlaying, movie, id, navigate]);
+  }, [streamData, vodExpiresAt, countdownSettings, movie, id, navigate]);
 
   const handlePlay = async () => {
     setVideoError('');
@@ -608,7 +646,7 @@ const WatchPage = () => {
     );
   };
 
-  const showCountdown = countdownSettings.enabled && Boolean(isPlaying && streamData?.streamToken);
+  const showCountdown = countdownSettings.enabled && Boolean(streamData?.expiresAt || vodExpiresAt);
   const timerBadgeClass = `watch-timer-badge${countdownWarning ? ' watch-timer-badge--warning' : ''}`;
 
   const renderTimerBadge = () => (
