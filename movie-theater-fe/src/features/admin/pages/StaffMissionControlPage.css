@@ -56,6 +56,17 @@
   width: 100%;
 }
 
+.staff-control__filter-step .counter-header__select,
+.staff-control__filter-step .counter-header__dropdown,
+.staff-control__filter-step .counter-header__dropdown-trigger {
+  width: 100%;
+}
+
+.staff-control__filter-step .counter-header__dropdown-trigger {
+  max-width: none;
+  min-height: 2.5rem;
+}
+
 @media (max-width: 1100px) {
   .staff-control__filters {
     grid-template-columns: repeat(3, minmax(0, 1fr));

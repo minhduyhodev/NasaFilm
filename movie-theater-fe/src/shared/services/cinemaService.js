@@ -50,6 +50,21 @@ class CinemaService {
     }
   }
 
+  async uploadCinemaImage(file) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await authService.api.post('/api/admin/cinemas/upload', formData, {
+        headers: {
+          'Content-Type': undefined,
+        },
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getRoomsByCinema(cinemaUuid) {
     try {
       const response = await authService.api.get(`/api/cinemas/${cinemaUuid}/rooms`);

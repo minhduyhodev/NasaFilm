@@ -38,6 +38,9 @@ public class Cinema {
     @Column(name = "entrance_note", length = 500)
     private String entranceNote;
 
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
     @Column(name = "latitude")
     private Double latitude;
 
@@ -99,6 +102,14 @@ public class Cinema {
 
     public void setEntranceNote(String entranceNote) {
         this.entranceNote = entranceNote;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Double getLatitude() {

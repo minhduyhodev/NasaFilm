@@ -38,6 +38,7 @@ import com.thdpv.movietheater.payment.repository.WalletTransactionRepository;
 import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
 import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentInput;
 import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentResult;
+import com.thdpv.movietheater.notification.service.WalletNotificationService;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -64,6 +65,7 @@ public class WalletService {
     private final StripeGateway stripeGateway;
     private final VietQRService vietQRService;
     private final VietQRWebhookTransactionRepository vietQRWebhookRepo;
+    private final WalletNotificationService walletNotificationService;
 
     @Value("${app.wallet.top-up-provider:mock}")
     private String topUpProvider;
@@ -93,7 +95,8 @@ public class WalletService {
             PaymentTransactionRepository paymentTransactionRepository,
             StripeGateway stripeGateway,
             VietQRService vietQRService,
-            VietQRWebhookTransactionRepository vietQRWebhookRepo) {
+            VietQRWebhookTransactionRepository vietQRWebhookRepo,
+            WalletNotificationService walletNotificationService) {
         this.userRepository = userRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.refundRepository = refundRepository;
@@ -104,6 +107,7 @@ public class WalletService {
         this.stripeGateway = stripeGateway;
         this.vietQRService = vietQRService;
         this.vietQRWebhookRepo = vietQRWebhookRepo;
+        this.walletNotificationService = walletNotificationService;
     }
 
     public boolean isMockTopUp() {
@@ -174,6 +178,8 @@ public class WalletService {
         validateAmount(amount);
         ensureWalletInitialized(findUser(userUuid));
         runWalletWriteWithRetry(userUuid, user -> credit(user, amount, null, "Nạp tiền mô phỏng (Mock Gateway)"));
+        walletNotificationService.notifyTopUpAfterCommit(
+                userUuid, amount, findUser(userUuid).getWalletBalance(), "Mock Gateway");
         return getSummary(userUuid);
     }
 
@@ -291,6 +297,9 @@ public class WalletService {
         tx.setStatus("SUCCESS");
         tx.setUpdatedAt(OffsetDateTime.now());
         paymentTransactionRepository.save(tx);
+
+        walletNotificationService.notifyTopUpAfterCommit(
+                userUuid, amount, findUser(userUuid).getWalletBalance(), "Stripe");
     }
 
     /**
@@ -390,6 +399,9 @@ public class WalletService {
         runWalletWriteWithRetry(userUuid, user ->
                 credit(user, expectedAmount, pendingTx.getUuid(), "Nạp tiền qua VietQR · " + transferCode));
 
+        walletNotificationService.notifyTopUpAfterCommit(
+                userUuid, expectedAmount, findUser(userUuid).getWalletBalance(), "VietQR");
+
         return getSummary(userUuid);
     }
 
@@ -402,6 +414,8 @@ public class WalletService {
         validateAmount(amount);
         ensureWalletInitialized(findUser(userUuid));
         runWalletWriteWithRetry(userUuid, user -> debit(user, amount, null, "Rút tiền mô phỏng (Mock Gateway)"));
+        walletNotificationService.notifyWithdrawAfterCommit(
+                userUuid, amount, findUser(userUuid).getWalletBalance(), "Mock Gateway");
         return getSummary(userUuid);
     }
 
