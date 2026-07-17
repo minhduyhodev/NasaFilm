@@ -18,7 +18,11 @@ import { AdminPage } from '../../admin/components';
 import VietQRPOSModal from '../components/VietQRPOSModal';
 import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
-import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
+import {
+  applyShowtimeFilters,
+  formatDateLabel,
+  toDateKey,
+} from '../../../shared/utils/showtimeFilterUtils';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
@@ -505,11 +509,11 @@ export default function CounterPOSPage() {
         />
 
         <div className="staff-control__field staff-control__field--wide">
-          <label className="staff-control__field-label">Xác nhận suất chiếu</label>
+          <label className="staff-control__field-label">
+            {filters.date ? 'Xác nhận suất chiếu' : 'Tất cả suất chiếu theo ngày'}
+          </label>
           <div className="staff-control__showtime-pills">
-            {!filters.date ? (
-              <span className="staff-control__empty-inline">Chọn ngày chiếu để xem suất</span>
-            ) : matchingShowtimes.length === 0 ? (
+            {matchingShowtimes.length === 0 ? (
               <span className="staff-control__empty-inline">Không có suất phù hợp với bộ lọc</span>
             ) : (
               matchingShowtimes.map((st, index) => (
@@ -521,7 +525,10 @@ export default function CounterPOSPage() {
                   className={`staff-control__pill counter-pos__pill ${selectedShowtime?.uuid === st.uuid ? 'staff-control__pill--active counter-pos__pill--active' : ''}`}
                 >
                   {new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  <span className="staff-control__pill-room">{st.movieTitle}</span>
+                  <span className="staff-control__pill-room">
+                    {!filters.date && `${formatDateLabel(toDateKey(st.startTime))} - `}
+                    {st.movieTitle}
+                  </span>
                 </button>
               ))
             )}

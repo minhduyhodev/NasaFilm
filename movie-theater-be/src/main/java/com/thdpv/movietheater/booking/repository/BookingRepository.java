@@ -84,6 +84,26 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("newStatus") String newStatus,
             @Param("now") OffsetDateTime now);
 
+    /**
+     * Atomically starts the VOD watch window. Returns 1 when this request owns first play, 0 when another
+     * concurrent activate already set firstPlayedAt.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Booking b
+            SET b.firstPlayedAt = :firstPlayedAt,
+                b.expiresAt = :expiresAt,
+                b.streamToken = :streamToken,
+                b.updatedAt = :now
+            WHERE b.uuid = :uuid
+              AND b.firstPlayedAt IS NULL
+            """)
+    int claimFirstPlay(@Param("uuid") UUID uuid,
+            @Param("firstPlayedAt") OffsetDateTime firstPlayedAt,
+            @Param("expiresAt") OffsetDateTime expiresAt,
+            @Param("streamToken") String streamToken,
+            @Param("now") OffsetDateTime now);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE Booking b

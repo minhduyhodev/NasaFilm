@@ -4,6 +4,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import org.springframework.http.HttpStatus;
@@ -54,9 +58,15 @@ public class ShowtimeController {
 
     @GetMapping("/api/admin/showtimes")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('SHOWTIME_WRITE')")
-    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getAdminShowtimes() {
-        List<ShowtimeResponse> response = showtimeService.getAdminShowtimes();
-        return ResponseEntity.ok(ApiResponse.success(response));
+    public ResponseEntity<ApiResponse<?>> getAdminShowtimes(
+            @RequestParam(value = "unpaged", required = false, defaultValue = "true") boolean unpaged,
+            @PageableDefault(size = 50, sort = "startTime", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (unpaged) {
+            // Soft-capped list for filter UIs that still need the working set in memory.
+            return ResponseEntity.ok(ApiResponse.success(showtimeService.getAdminShowtimes()));
+        }
+        Page<ShowtimeResponse> page = showtimeService.getAdminShowtimes(pageable);
+        return ResponseEntity.ok(ApiResponse.success(page));
     }
 
     @PostMapping("/api/admin/showtimes/cleanup-drafts")

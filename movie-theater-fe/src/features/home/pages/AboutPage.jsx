@@ -9,8 +9,8 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import heroBg from '../../../shared/assets/about_hero_bg.png';
-import projectorImg from '../../../shared/assets/about_projector.png';
+import heroBg from '../../../shared/assets/about_hero_bg.webp';
+import projectorImg from '../../../shared/assets/about_projector.webp';
 import './AboutPage.css';
 
 const capabilities = [

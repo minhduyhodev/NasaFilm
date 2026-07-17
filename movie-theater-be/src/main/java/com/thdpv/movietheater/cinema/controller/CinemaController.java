@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
@@ -52,6 +53,13 @@ public class CinemaController {
             @Valid @RequestBody CinemaRequest request) {
         CinemaResponse response = cinemaService.updateCinema(cinemaUuid, request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/admin/cinemas/upload")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<String>> uploadCinemaImage(@RequestParam("file") MultipartFile file) {
+        String imageUrl = cinemaService.uploadImage(file);
+        return ResponseEntity.ok(ApiResponse.success(imageUrl));
     }
 
     @GetMapping("/cinemas")

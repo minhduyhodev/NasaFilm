@@ -19,6 +19,8 @@ import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
 @Service
 public class AdminBookingQueryService {
 
+    private static final int UNPAGED_SOFT_CAP = 500;
+
     private final BookingNativeRepository bookingRepository;
 
     public AdminBookingQueryService(BookingNativeRepository bookingRepository) {
@@ -34,24 +36,16 @@ public class AdminBookingQueryService {
             OffsetDateTime endAt,
             Pageable pageable) {
         Pageable effectivePageable = pageable == null || pageable.isUnpaged()
-                ? Pageable.unpaged()
+                ? PageRequest.of(0, UNPAGED_SOFT_CAP)
                 : pageable;
 
         long total = bookingRepository.countAdminBookings(keyword, status, cinema, startAt, endAt);
-        Integer offset = null;
-        Integer limit = null;
-        if (effectivePageable.isPaged()) {
-            offset = (int) effectivePageable.getOffset();
-            limit = effectivePageable.getPageSize();
-        }
+        int offset = (int) effectivePageable.getOffset();
+        int limit = effectivePageable.getPageSize();
 
         List<Object[]> rows = bookingRepository.loadAdminBookings(
                 keyword, status, cinema, startAt, endAt, offset, limit);
         List<AdminBookingListResponse> responses = mapAdminBookingRows(rows);
-        if (effectivePageable.isUnpaged()) {
-            int pageSize = Math.max(responses.size(), 1);
-            return new PageImpl<>(responses, PageRequest.of(0, pageSize), responses.size());
-        }
         return new PageImpl<>(responses, effectivePageable, total);
     }
 

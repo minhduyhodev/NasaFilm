@@ -77,6 +77,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
     let intervalId;
     if (isOpen && qrData && !isExpired && !confirmFired.current) {
       const checkPayment = async () => {
+        if (document.hidden) return;
         try {
           const response = await authService.api.get('/api/payments/vietqr/check', {
             params: {
@@ -96,7 +97,17 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
         }
       };
 
+      const handleVisibilityChange = () => {
+        if (!document.hidden) checkPayment();
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      checkPayment();
       intervalId = setInterval(checkPayment, 2500);
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        clearInterval(intervalId);
+      };
     }
 
     return () => {
@@ -117,7 +128,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
   const handleDevMockPayment = async () => {
     if (!qrData) return;
     try {
-      await fetch('http://localhost:8080/v1/webhooks/vietqr', {
+      await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

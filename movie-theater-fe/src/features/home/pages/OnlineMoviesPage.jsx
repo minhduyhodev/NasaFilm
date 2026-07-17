@@ -14,7 +14,7 @@ import { useOnlineSpotlightMovies, useOnlineCatalog } from '../../../shared/hook
 import { mapApiMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import { useMovieListFilters } from '../hooks/useMovieListFilters';
-import heroBg from '../../../shared/assets/cinema_hero_bg.png';
+import heroBg from '../../../shared/assets/cinema_hero_bg.webp';
 import '../styles/home-premium.css';
 import './OnlineMoviesPage.css';
 import './MoviesPage.css';

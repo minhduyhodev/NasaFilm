@@ -10,6 +10,7 @@ public class CinemaWithRoomsResponse {
     private String name;
     private String address;
     private String phoneNumber;
+    private String imageUrl;
     private int totalRooms;
     private List<CinemaRoomResponse> rooms;
     private CinemaStatus status;
@@ -22,6 +23,7 @@ public class CinemaWithRoomsResponse {
         this.name = cinema.getName();
         this.address = cinema.getAddress();
         this.phoneNumber = cinema.getPhoneNumber();
+        this.imageUrl = cinema.getImageUrl();
         this.totalRooms = cinema.getTotalRooms();
         this.rooms = rooms;
         this.status = cinema.getStatus();
@@ -57,6 +59,14 @@ public class CinemaWithRoomsResponse {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public int getTotalRooms() {

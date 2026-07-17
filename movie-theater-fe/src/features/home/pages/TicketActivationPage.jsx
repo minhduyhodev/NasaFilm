@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail, X } from 'lucide-react';
+import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail, Ticket, X } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -10,7 +10,7 @@ import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
 import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
-import projectorImg from '../../../shared/assets/about_projector.png';
+import projectorImg from '../../../shared/assets/about_projector.webp';
 import '../styles/home-premium.css';
 import './TicketActivationPage.css';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -273,13 +273,33 @@ const TicketActivationPage = () => {
               <span className="text-white font-semibold">{movie.title}</span> với chất lượng 4K
               và nội dung độc quyền trên NASAFilm.
             </p>
-            {poster && (
-              <div className="mt-6 flex items-center gap-4">
-                <img src={poster} alt={movie.title} className="h-20 w-14 object-cover rounded border border-white/10" />
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-white/40">Phim đang kích hoạt</p>
-                  <p className="font-bold text-white uppercase">{movie.title}</p>
-                </div>
+            {(poster || showBuyButton) && (
+              <div className="activation-movie-row">
+                {poster && (
+                  <div className="activation-movie-info">
+                    <img src={poster} alt={movie.title} className="h-20 w-14 object-cover rounded border border-white/10" />
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-white/40">Phim đang kích hoạt</p>
+                      <p className="font-bold text-white uppercase">{movie.title}</p>
+                    </div>
+                  </div>
+                )}
+                {showBuyButton && (
+                  <button
+                    type="button"
+                    onClick={handleBuyOnline}
+                    className="activation-btn-buy"
+                  >
+                    <span className="activation-btn-buy__icon" aria-hidden>
+                      <Ticket />
+                    </span>
+                    <span className="activation-btn-buy__content">
+                      <span className="activation-btn-buy__label">Vé xem online</span>
+                      <span className="activation-btn-buy__hint">Mua vé và xem phim tại nhà</span>
+                    </span>
+                    <ArrowRight className="activation-btn-buy__arrow" aria-hidden />
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -320,14 +340,6 @@ const TicketActivationPage = () => {
                           Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên — hoặc vào xem trực tiếp nếu đã xác nhận mua vé.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => navigate(getOnlineWatchPath(movieId))}
-                            className="inline-flex items-center gap-2 rounded-lg border border-red-400/40 bg-red-500/15 px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-200 hover:bg-red-500/25"
-                          >
-                            Vào xem phim
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
                           <button
                             type="button"
                             onClick={handleResendTicketEmail}
@@ -383,18 +395,6 @@ const TicketActivationPage = () => {
                   ))}
                 </div>
               </form>
-
-              {showBuyButton && (
-              <div className="activation-btn-buy-wrap">
-                <button
-                  type="button"
-                  onClick={handleBuyOnline}
-                  className="activation-btn-buy"
-                >
-                  Vé xem online
-                </button>
-              </div>
-              )}
 
             </div>
 
