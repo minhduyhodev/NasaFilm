@@ -1,0 +1,1063 @@
+.account-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(229, 9, 20, 0.08), transparent 26rem),
+    var(--nsf-bg);
+  color: var(--nsf-text);
+}
+
+.account-page__main {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 8rem 0 5rem;
+}
+
+.account-page__main--narrow {
+  width: min(100% - 2rem, 54rem);
+}
+
+.account-page__main--wide {
+  width: min(100% - 2rem, 84rem);
+}
+
+.account-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.account-page__eyebrow {
+  display: block;
+  margin-bottom: 0.7rem;
+  color: var(--nsf-accent);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.account-page__title {
+  max-width: 14ch;
+  margin: 0;
+  color: var(--nsf-text);
+  font-size: clamp(2.25rem, 7vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.account-page__intro {
+  max-width: 58ch;
+  margin: 1rem 0 0;
+  color: var(--nsf-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+
+.account-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-surface-1);
+  color: var(--nsf-text-muted);
+  transition: border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.account-icon-button:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--nsf-text);
+  transform: translateY(-1px);
+}
+
+.account-icon-button:focus-visible,
+.account-action:focus-visible,
+.account-chip:focus-visible,
+.reminder-card a:focus-visible,
+.reminders-history__item:focus-visible,
+.reminders-history__detail a:focus-visible {
+  outline: 2px solid var(--nsf-accent);
+  outline-offset: 3px;
+}
+
+.account-icon-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.wallet-workspace {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+.wallet-primary {
+  display: grid;
+  grid-column: span 7;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.wallet-secondary {
+  grid-column: span 3;
+}
+
+.wallet-balance {
+  position: relative;
+  min-height: 15rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  overflow: hidden;
+  border: 1px solid rgba(229, 9, 20, 0.22);
+  border-radius: var(--nsf-radius-xl);
+  background:
+    linear-gradient(145deg, rgba(229, 9, 20, 0.16), transparent 48%),
+    var(--nsf-surface-1);
+}
+
+.wallet-balance::after {
+  content: '';
+  position: absolute;
+  right: -4rem;
+  bottom: -5rem;
+  width: 15rem;
+  height: 15rem;
+  border: 1px solid rgba(229, 9, 20, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.5rem rgba(229, 9, 20, 0.025);
+}
+
+.wallet-balance__label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.wallet-balance__label svg {
+  color: var(--nsf-accent);
+}
+
+.wallet-balance__value {
+  position: relative;
+  z-index: 1;
+  margin: 1.25rem 0 0;
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(1.65rem, 2.2vw, 2.5rem);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.wallet-balance__provider {
+  position: absolute;
+  left: clamp(1.5rem, 4vw, 2.5rem);
+  bottom: 2rem;
+  z-index: 1;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.account-panel {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-lg);
+  background: var(--nsf-surface-1);
+}
+
+.account-panel + .account-panel {
+  margin-top: 1rem;
+}
+
+.account-panel__heading {
+  margin: 0 0 1.25rem;
+  color: var(--nsf-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-panel__copy {
+  margin: 0 0 1rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.account-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.account-chip {
+  padding: 0.58rem 0.85rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--nsf-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.account-chip:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--nsf-text);
+}
+
+.account-chip.is-active {
+  border-color: rgba(229, 9, 20, 0.5);
+  background: var(--nsf-accent-soft);
+  color: #fda4af;
+}
+
+.account-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-bg);
+  color: var(--nsf-text);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.account-input:focus {
+  border-color: rgba(229, 9, 20, 0.65);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+  outline: none;
+}
+
+.wallet-method-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.account-action {
+  display: inline-flex;
+  min-height: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--nsf-radius-sm);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.account-action:hover {
+  transform: translateY(-1px);
+}
+
+.account-action:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.account-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.account-action--primary {
+  background: var(--nsf-accent);
+  color: #fff;
+}
+
+.account-action--primary:hover {
+  background: var(--nsf-accent-hover);
+}
+
+.account-action--secondary {
+  border-color: var(--nsf-border);
+  background: var(--nsf-surface-2);
+  color: var(--nsf-text-muted);
+}
+
+.account-action--secondary:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--nsf-text);
+}
+
+.wallet-history {
+  min-width: 0;
+  margin-top: 1.5rem;
+}
+
+.wallet-history__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.wallet-history__head .account-panel__heading {
+  margin: 0;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.wallet-date-filter {
+  display: flex;
+  min-height: 2.65rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-bg);
+  color: var(--nsf-text-muted);
+}
+
+.wallet-date-filter > svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--nsf-accent);
+}
+
+.wallet-date-filter label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wallet-date-filter input {
+  border: 0;
+  background: transparent;
+  color: var(--nsf-text);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  color-scheme: dark;
+}
+
+.wallet-date-filter button {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 0.35rem;
+  color: var(--nsf-text-dim);
+}
+
+.wallet-date-filter button:hover {
+  background: var(--nsf-surface-2);
+  color: var(--nsf-text);
+}
+
+.wallet-date-filter button svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.wallet-history__pagination {
+  margin-top: 1.25rem;
+}
+
+.wallet-tx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.wallet-table-wrap {
+  overflow-x: auto;
+  border-top: 1px solid var(--nsf-border);
+  border-bottom: 1px solid var(--nsf-border);
+}
+
+.wallet-table {
+  width: 100%;
+  min-width: 58rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-table th {
+  padding: 0.85rem 1rem;
+  color: var(--nsf-text-dim);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.wallet-table td {
+  padding: 1rem;
+  border-top: 1px solid var(--nsf-border);
+  color: var(--nsf-text-muted);
+  font-size: 0.76rem;
+  vertical-align: middle;
+}
+
+.wallet-table tbody tr {
+  transition: background 180ms ease;
+}
+
+.wallet-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.wallet-table td:nth-child(2) {
+  width: 34%;
+}
+
+.wallet-table td:nth-child(4),
+.wallet-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.wallet-table td strong,
+.wallet-table td span {
+  display: block;
+}
+
+.wallet-table td > span {
+  margin-top: 0.3rem;
+  color: var(--nsf-text-dim);
+  font-size: 0.67rem;
+}
+
+.wallet-table__type {
+  display: inline-flex !important;
+  align-items: center;
+  color: var(--nsf-text);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.wallet-table-empty {
+  margin: 0;
+  padding: 3.5rem 1rem;
+  border-top: 1px solid var(--nsf-border);
+  border-bottom: 1px solid var(--nsf-border);
+  color: var(--nsf-text-dim);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.wallet-tx-filter {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nsf-text-dim);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.wallet-tx-filter:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--nsf-text);
+}
+
+.wallet-tx-filter.is-active {
+  border-color: rgba(229, 9, 20, 0.55);
+  background: var(--nsf-accent-soft);
+  color: #fda4af;
+}
+
+.wallet-tx-filter:focus-visible {
+  outline: 2px solid var(--nsf-accent);
+  outline-offset: 2px;
+}
+
+.wallet-tx-dot {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: var(--nsf-text-dim);
+  vertical-align: middle;
+}
+
+.wallet-tx-dot--top_up   { background: #6ee7b7; }
+.wallet-tx-dot--refund   { background: #7dd3fc; }
+.wallet-tx-dot--payment  { background: #fb7185; }
+.wallet-tx-dot--withdraw { background: #fbbf24; }
+
+.transaction-list {
+  max-height: 29rem;
+  margin: 0;
+  padding: 0 0.4rem 0 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.transaction-list::-webkit-scrollbar,
+.reminder-list::-webkit-scrollbar,
+.reminders-history__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.transaction-list::-webkit-scrollbar-track,
+.reminder-list::-webkit-scrollbar-track,
+.reminders-history__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transaction-list::-webkit-scrollbar-thumb,
+.reminder-list::-webkit-scrollbar-thumb,
+.reminders-history__list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.transaction-list::-webkit-scrollbar-thumb:hover,
+.reminder-list::-webkit-scrollbar-thumb:hover,
+.reminders-history__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 9, 20, 0.5);
+}
+
+.transaction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--nsf-border);
+}
+
+.transaction-row:first-child {
+  border-top: 0;
+}
+
+.transaction-row__title {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.transaction-row__meta,
+.transaction-row__date,
+.transaction-row__balance {
+  margin: 0.3rem 0 0;
+  color: var(--nsf-text-dim);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.transaction-row__meta {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.transaction-row__amount {
+  margin: 0;
+  font-size: 0.83rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.transaction-row__amount.is-positive {
+  color: #6ee7b7;
+}
+
+.transaction-row__amount.is-negative {
+  color: #fb7185;
+}
+
+.account-empty {
+  padding: clamp(3rem, 8vw, 6rem) 1.5rem;
+  border-top: 1px solid var(--nsf-border);
+  border-bottom: 1px solid var(--nsf-border);
+  text-align: center;
+}
+
+.account-empty__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 1.25rem;
+  color: var(--nsf-text-dim);
+}
+
+.account-empty__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+}
+
+.account-empty__copy {
+  max-width: 48ch;
+  margin: 0.65rem auto 1.5rem;
+  color: var(--nsf-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.reminder-list {
+  display: grid;
+  max-height: 38rem;
+  gap: 0;
+  margin: 0;
+  padding: 0 0.5rem 0 0;
+  overflow-y: auto;
+  list-style: none;
+  border-top: 1px solid var(--nsf-border);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.reminder-card {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--nsf-border);
+}
+
+.reminder-card__poster {
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: var(--nsf-radius-sm);
+  background: var(--nsf-surface-2);
+}
+
+.reminder-card__poster img {
+  transition: transform 350ms var(--nsf-ease);
+}
+
+.reminder-card__poster:hover img {
+  transform: scale(1.035);
+}
+
+.reminder-card__title {
+  color: var(--nsf-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.reminder-card__title:hover {
+  color: #fda4af;
+}
+
+.reminder-card__schedule {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+  color: var(--nsf-text-muted);
+  font-size: 0.74rem;
+}
+
+.reminder-card__remove {
+  align-self: center;
+  color: var(--nsf-text-dim);
+}
+
+.reminder-card__remove:hover {
+  border-color: rgba(229, 9, 20, 0.35);
+  color: #fb7185;
+}
+
+.reminders-workspace {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+.reminders-primary {
+  grid-column: span 7;
+  min-width: 0;
+}
+
+.reminders-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.reminders-section-head span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--nsf-text-dim);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.reminders-section-head h2 {
+  margin: 0;
+  color: var(--nsf-text);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.reminders-section-head > strong {
+  color: var(--nsf-text-dim);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reminders-history {
+  position: sticky;
+  top: 6.5rem;
+  grid-column: span 3;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--nsf-border);
+  border-radius: var(--nsf-radius-lg);
+  background: var(--nsf-surface-1);
+}
+
+.reminders-section-head--compact {
+  align-items: center;
+  min-height: auto;
+  margin-bottom: 0.8rem;
+}
+
+.reminders-history__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--nsf-text-dim);
+}
+
+.reminders-history__count svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.reminders-history__count strong {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reminders-history__table-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-top: 1px solid var(--nsf-border);
+  color: var(--nsf-text-dim);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reminders-history__empty {
+  margin: 0;
+  padding: 2rem 0;
+  border-top: 1px solid var(--nsf-border);
+  color: var(--nsf-text-dim);
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.reminders-history__list {
+  display: grid;
+  max-height: 15rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--nsf-border);
+  border-bottom: 1px solid var(--nsf-border);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.reminders-history__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--nsf-border);
+  background: transparent;
+  color: var(--nsf-text-muted);
+  text-align: left;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.reminders-history__item:hover {
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--nsf-text);
+}
+
+.reminders-history__item.is-selected {
+  background: linear-gradient(90deg, var(--nsf-accent-soft), transparent);
+  color: var(--nsf-text);
+}
+
+.reminders-history__item-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminders-history__item-title i {
+  width: 0.35rem;
+  height: 0.35rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--nsf-text-dim);
+}
+
+.reminders-history__item.is-selected .reminders-history__item-title i {
+  background: var(--nsf-accent);
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.12);
+}
+
+.reminders-history__item time {
+  color: var(--nsf-text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.reminders-history__detail {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--nsf-radius-md);
+  background:
+    linear-gradient(135deg, rgba(229, 9, 20, 0.07), transparent 55%),
+    var(--nsf-bg);
+}
+
+.reminders-history__detail-poster {
+  display: grid;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: var(--nsf-surface-2);
+  color: var(--nsf-text-dim);
+}
+
+.reminders-history__detail-poster > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.reminders-history__status {
+  color: #6ee7b7;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.reminders-history__detail h3 {
+  margin: 0.35rem 0 0;
+  color: var(--nsf-text);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.reminders-history__detail p {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+  color: var(--nsf-text-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.reminders-history__detail p svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+}
+
+.reminders-history__detail time {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--nsf-text-dim);
+  font-size: 0.6rem;
+  line-height: 1.4;
+}
+
+.reminders-history__detail a {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.7rem;
+  color: #fda4af;
+  font-size: 0.65rem;
+  font-weight: 700;
+  transition: color 180ms ease;
+}
+
+.reminders-history__detail a:hover {
+  color: #fff;
+}
+
+.stripe-element-shell {
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  overflow: hidden;
+  border-radius: var(--nsf-radius-sm);
+  background: #fff;
+}
+
+.account-form-message {
+  margin: 0.85rem 0 0;
+  color: #fbbf24;
+  font-size: 0.78rem;
+}
+
+.account-loading-line {
+  width: min(100%, 18rem);
+  height: 3.5rem;
+  margin-top: 1.25rem;
+  border-radius: var(--nsf-radius-sm);
+  background: linear-gradient(90deg, var(--nsf-surface-2), var(--nsf-surface-3), var(--nsf-surface-2));
+  background-size: 200% 100%;
+  animation: account-shimmer 1.4s linear infinite;
+}
+
+@keyframes account-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 800px) {
+  .wallet-workspace,
+  .reminders-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-primary,
+  .wallet-secondary,
+  .wallet-history,
+  .reminders-primary,
+  .reminders-history {
+    grid-column: 1 / -1;
+  }
+
+  .wallet-balance {
+    position: relative;
+    top: auto;
+    min-height: 16rem;
+  }
+
+  .wallet-method-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-history__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reminder-card {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .reminder-card__remove {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .wallet-history,
+  .reminders-history {
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .account-page__main {
+    width: min(100% - 1.25rem, 72rem);
+    padding-top: 6.75rem;
+  }
+
+  .account-page__header {
+    align-items: flex-start;
+  }
+
+  .account-page__title {
+    font-size: clamp(2rem, 12vw, 3.25rem);
+  }
+
+  .transaction-row {
+    gap: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-loading-line {
+    animation: none;
+  }
+
+  .account-icon-button,
+  .account-action,
+  .reminder-card__poster img {
+    transition: none;
+  }
+}

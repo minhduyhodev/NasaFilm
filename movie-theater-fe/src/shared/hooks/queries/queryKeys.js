@@ -1,5 +1,13 @@
 export const queryKeys = {
   wallet: ['wallet', 'summary'],
+  walletTransactions: (page, size, type, date) => [
+    'wallet',
+    'transactions',
+    page,
+    size,
+    type ?? 'all',
+    date ?? 'all-dates',
+  ],
   myBookings: ['bookings', 'mine'],
   movies: (params) => ['movies', 'list', params],
   movieFilterOptions: ['movies', 'filterOptions'],

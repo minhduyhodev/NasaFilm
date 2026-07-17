@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BellRing, Calendar, Trash2 } from 'lucide-react';
+import { Bell, BellRing, Calendar, History, Trash2 } from 'lucide-react';
 import PosterImage from '../../../shared/components/PosterImage';
 import { notificationService } from '../../../shared/services/notificationService';
 import {
@@ -10,10 +10,12 @@ import {
   REMINDERS_UPDATED_EVENT,
 } from '../utils/movieReminderUtils';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import './AccountUtilityPages.css';
 
 const RemindersPage = () => {
   const confirm = useConfirm();
   const [reminders, setReminders] = useState(loadMovieReminders);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(null);
 
   const refresh = useCallback(() => {
     setReminders(loadMovieReminders());
@@ -43,71 +45,75 @@ const RemindersPage = () => {
 
   const activeReminders = reminders.filter((item) => !item.notified);
   const pastReminders = reminders.filter((item) => item.notified);
+  const selectedHistory = pastReminders.find((item) => item.movieUuid === selectedHistoryId)
+    || pastReminders[0]
+    || null;
 
   return (
-    <div className="text-white min-h-screen bg-[#0b0f19]">
-
-      <main className="pt-28 pb-16 px-4 md:px-8 lg:px-20">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-10">
-            <span className="text-xs font-black uppercase tracking-[0.3em] text-red-500">Tài khoản</span>
-            <h1 className="mt-2 text-3xl md:text-4xl font-black uppercase font-heading">Nhắc Hẹn Suất Chiếu</h1>
-            <p className="mt-3 text-sm text-gray-400">
-              Danh sách phim bạn đã đặt nhắc. Hệ thống sẽ thông báo khi đến giờ công chiếu hoặc suất sớm nhất.
+    <div className="account-page">
+      <main className="account-page__main">
+        <header className="account-page__header">
+          <div>
+            <span className="account-page__eyebrow">Tài khoản / Lịch phim</span>
+            <h1 className="account-page__title">Nhắc hẹn suất chiếu</h1>
+            <p className="account-page__intro">
+              Theo dõi phim sắp công chiếu. NASAFILM sẽ nhắc bạn khi đến lịch phát hành hoặc suất chiếu gần nhất.
             </p>
           </div>
+        </header>
 
-          {activeReminders.length === 0 ? (
-            <div className="rounded-[28px] border border-white/5 bg-[#111216]/60 p-10 text-center">
-              <Bell className="mx-auto h-12 w-12 text-gray-600 mb-4" />
-              <h2 className="text-lg font-black uppercase">Chưa có nhắc hẹn</h2>
-              <p className="mt-2 text-sm text-gray-400">
-                Bấm &quot;Nhắc Tôi&quot; tại mục Phim Sắp Chiếu trên trang chủ để thêm nhắc nhở.
-              </p>
-              <Link
-                to="/"
-                className="inline-block mt-6 rounded-full bg-red-600 hover:bg-red-700 px-6 py-3 text-xs font-black uppercase tracking-wider transition-colors"
-              >
-                Về trang chủ
-              </Link>
+        <div className="reminders-workspace">
+          <section className="reminders-primary" aria-labelledby="active-reminders-title">
+            <div className="reminders-section-head">
+              <div>
+                <span>Danh sách chính</span>
+                <h2 id="active-reminders-title">Đang nhắc hẹn</h2>
+              </div>
+              <strong>{activeReminders.length}</strong>
             </div>
-          ) : (
-            <ul className="space-y-4">
-              {activeReminders.map((item) => (
-                <li
-                  key={item.movieUuid}
-                  className="flex gap-4 rounded-[24px] border border-white/5 bg-[#111216]/60 p-4 md:p-5"
-                >
-                  <Link
-                    to={`/movie/${item.movieUuid}`}
-                    className="shrink-0 w-20 md:w-24 aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1d24]"
-                  >
-                    {item.posterUrl ? (
-                      <PosterImage
-                        src={item.posterUrl}
-                        alt={item.title}
-                        width={120}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-gray-600">
-                        <BellRing className="h-8 w-8" />
-                      </div>
-                    )}
-                  </Link>
 
-                  <div className="flex-1 min-w-0 flex flex-col justify-between gap-3">
-                    <div>
-                      <Link
-                        to={`/movie/${item.movieUuid}`}
-                        className="text-lg font-black uppercase hover:text-red-400 transition-colors line-clamp-2"
-                      >
+            {activeReminders.length === 0 ? (
+              <div className="account-empty">
+                <Bell className="account-empty__icon" />
+                <h2 className="account-empty__title">Chưa có lịch nhắc</h2>
+                <p className="account-empty__copy">
+                  Chọn “Nhắc tôi” ở khu vực phim sắp chiếu để không bỏ lỡ thời điểm mở bán vé.
+                </p>
+                <Link to="/" className="account-action account-action--primary">
+                  Khám phá phim
+                </Link>
+              </div>
+            ) : (
+              <ul className="reminder-list">
+                {activeReminders.map((item) => (
+                  <li key={item.movieUuid} className="reminder-card">
+                    <Link
+                      to={`/movie/${item.movieUuid}`}
+                      className="reminder-card__poster"
+                      aria-label={`Xem chi tiết ${item.title || 'phim sắp chiếu'}`}
+                    >
+                      {item.posterUrl ? (
+                        <PosterImage
+                          src={item.posterUrl}
+                          alt={`Poster phim ${item.title || 'sắp chiếu'}`}
+                          width={180}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-gray-600">
+                          <BellRing className="h-8 w-8" />
+                        </div>
+                      )}
+                    </Link>
+
+                    <div className="min-w-0">
+                      <Link to={`/movie/${item.movieUuid}`} className="reminder-card__title">
                         {item.title || 'Phim sắp chiếu'}
                       </Link>
                       {item.remindLabel && (
-                        <p className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+                        <p className="reminder-card__schedule">
                           <Calendar className="h-3.5 w-3.5 shrink-0" />
-                          <span>Nhắc lúc: {item.remindLabel}</span>
+                          <span>Nhắc lúc {item.remindLabel}</span>
                         </p>
                       )}
                     </div>
@@ -115,33 +121,93 @@ const RemindersPage = () => {
                     <button
                       type="button"
                       onClick={() => handleRemove(item.movieUuid, item.title)}
-                      className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-gray-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                      className="account-action account-action--secondary reminder-card__remove"
+                      aria-label={`Hủy nhắc phim ${item.title || ''}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Hủy nhắc
                     </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {pastReminders.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-xs font-black uppercase tracking-[0.25em] text-gray-500 mb-4">Đã thông báo</h2>
-              <ul className="space-y-3 opacity-60">
-                {pastReminders.map((item) => (
-                  <li
-                    key={`past-${item.movieUuid}`}
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-[#111216]/40 px-4 py-3 text-sm"
-                  >
-                    <span className="font-bold truncate">{item.title || item.movieUuid}</span>
-                    <span className="text-xs text-gray-500 shrink-0">{item.remindLabel || '—'}</span>
                   </li>
                 ))}
               </ul>
+            )}
+          </section>
+
+          <aside className="reminders-history" aria-labelledby="past-reminders-title">
+            <div className="reminders-section-head reminders-section-head--compact">
+              <div>
+                <span>Lịch sử</span>
+                <h2 id="past-reminders-title">Đã thông báo</h2>
+              </div>
+              <div className="reminders-history__count" aria-label={`${pastReminders.length} thông báo`}>
+                <History aria-hidden />
+                <strong>{pastReminders.length}</strong>
+              </div>
             </div>
-          )}
+
+            {pastReminders.length === 0 ? (
+              <p className="reminders-history__empty">Các nhắc hẹn đã gửi sẽ được lưu tại đây.</p>
+            ) : (
+              <>
+                <div className="reminders-history__table-head" aria-hidden>
+                  <span>Phim</span>
+                  <span>Lịch nhắc</span>
+                </div>
+                <div className="reminders-history__list" role="list">
+                  {pastReminders.map((item) => {
+                    const isSelected = selectedHistory?.movieUuid === item.movieUuid;
+                    return (
+                      <button
+                        key={`past-${item.movieUuid}`}
+                        type="button"
+                        role="listitem"
+                        className={`reminders-history__item${isSelected ? ' is-selected' : ''}`}
+                        onClick={() => setSelectedHistoryId(item.movieUuid)}
+                        aria-pressed={isSelected}
+                      >
+                        <span className="reminders-history__item-title">
+                          <i aria-hidden />
+                          {item.title || item.movieUuid}
+                        </span>
+                        <time>{item.remindLabel || 'Không có thời gian'}</time>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedHistory && (
+                  <article className="reminders-history__detail" aria-live="polite">
+                    <div className="reminders-history__detail-poster">
+                      {selectedHistory.posterUrl ? (
+                        <PosterImage
+                          src={selectedHistory.posterUrl}
+                          alt={`Poster phim ${selectedHistory.title || 'đã nhắc'}`}
+                          width={180}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <BellRing aria-hidden />
+                      )}
+                    </div>
+                    <div>
+                      <span className="reminders-history__status">Đã gửi thông báo</span>
+                      <h3>{selectedHistory.title || 'Phim đã nhắc'}</h3>
+                      <p>
+                        <Calendar aria-hidden />
+                        {selectedHistory.remindLabel || 'Không có thời gian'}
+                      </p>
+                      {selectedHistory.createdAt && (
+                        <time dateTime={selectedHistory.createdAt}>
+                          Đã tạo {new Date(selectedHistory.createdAt).toLocaleString('vi-VN')}
+                        </time>
+                      )}
+                      <Link to={`/movie/${selectedHistory.movieUuid}`}>Xem thông tin phim</Link>
+                    </div>
+                  </article>
+                )}
+              </>
+            )}
+          </aside>
         </div>
       </main>
     </div>

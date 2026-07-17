@@ -1,9 +1,13 @@
 package com.thdpv.movietheater.payment.controller;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -46,10 +50,14 @@ public class WalletController {
     }
 
     @GetMapping("/transactions")
-    public ResponseEntity<ApiResponse<List<WalletTransactionResponse>>> getTransactions(
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ApiResponse<Page<WalletTransactionResponse>>> getTransactions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PageableDefault(size = 10) Pageable pageable) {
         UUID userUuid = resolveUserUuid(userDetails);
-        return ResponseEntity.ok(ApiResponse.success(walletService.getRecentTransactions(userUuid)));
+        return ResponseEntity.ok(ApiResponse.success(walletService.getTransactions(userUuid, type, date, pageable)));
     }
 
     @PostMapping("/top-up")

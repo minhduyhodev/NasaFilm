@@ -1,6 +1,6 @@
 package com.thdpv.movietheater.movie.controller;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/s3")
 @RequiredArgsConstructor
-@ConditionalOnBean(S3MediaUploadService.class)
+@ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${app.s3.access-key-id:}') && T(org.springframework.util.StringUtils).hasText('${app.s3.secret-access-key:}')")
 @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
 public class S3AdminController {
 

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 /** Served from /public — avoids fragile dynamic import + works with Vite dev & build */
-const HERO_TRAILER_SRC = '/Interstellar-Trailer.mp4';
+const HERO_TRAILER_SRC = "/Interstellar-Trailer.mp4";
 
 const Hero = () => {
   const videoRef = useRef(null);
@@ -26,16 +26,16 @@ const Hero = () => {
 
     const onError = () => setVideoFailed(true);
 
-    video.addEventListener('canplay', onCanPlay);
-    video.addEventListener('error', onError);
+    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("error", onError);
 
     if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
       onCanPlay();
     }
 
     return () => {
-      video.removeEventListener('canplay', onCanPlay);
-      video.removeEventListener('error', onError);
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("error", onError);
     };
   }, []);
 
@@ -53,7 +53,7 @@ const Hero = () => {
             preload="metadata"
             aria-hidden="true"
             className={`w-full h-full object-cover transition-opacity duration-700 ${
-              videoReady ? 'opacity-100' : 'opacity-0'
+              videoReady ? "opacity-100" : "opacity-0"
             }`}
           />
         )}
@@ -75,7 +75,8 @@ const Hero = () => {
           </h1>
 
           <p className="text-sm md:text-base text-gray-300 max-w-lg leading-relaxed font-medium">
-            Trải nghiệm điện ảnh đỉnh cao với hệ thống rạp hiện đại, đặt vé nhanh chóng và thưởng thức phim bom tấn mới nhất.
+            Trải nghiệm điện ảnh đỉnh cao với hệ thống rạp hiện đại, đặt vé
+            nhanh chóng và thưởng thức phim bom tấn mới nhất.
           </p>
         </div>
       </div>

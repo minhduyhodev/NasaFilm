@@ -1,13 +1,17 @@
 package com.thdpv.movietheater.payment.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +46,7 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 public class WalletService {
 
     private static final int WALLET_WRITE_RETRIES = 4;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public static final String TYPE_TOP_UP = "TOP_UP";
     public static final String TYPE_WITHDRAW = "WITHDRAW";
@@ -128,6 +133,38 @@ public class WalletService {
         return walletTransactionRepository.findTop20ByUserUuidOrderByCreatedAtDesc(userUuid).stream()
                 .map(this::mapTransaction)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<WalletTransactionResponse> getTransactions(
+            UUID userUuid, String type, LocalDate date, Pageable pageable) {
+        String normalizedType = type != null && !type.isBlank()
+                ? type.trim().toUpperCase()
+                : null;
+
+        if (date != null) {
+            OffsetDateTime start = date.atStartOfDay(BUSINESS_ZONE).toOffsetDateTime();
+            OffsetDateTime end = date.plusDays(1).atStartOfDay(BUSINESS_ZONE).toOffsetDateTime();
+            if (normalizedType != null) {
+                return walletTransactionRepository
+                        .findByUserUuidAndTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+                                userUuid, normalizedType, start, end, pageable)
+                        .map(this::mapTransaction);
+            }
+            return walletTransactionRepository
+                    .findByUserUuidAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+                            userUuid, start, end, pageable)
+                    .map(this::mapTransaction);
+        }
+
+        if (normalizedType != null) {
+            return walletTransactionRepository
+                    .findByUserUuidAndTypeOrderByCreatedAtDesc(userUuid, normalizedType, pageable)
+                    .map(this::mapTransaction);
+        }
+
+        return walletTransactionRepository.findByUserUuidOrderByCreatedAtDesc(userUuid, pageable)
+                .map(this::mapTransaction);
     }
 
     @Transactional
