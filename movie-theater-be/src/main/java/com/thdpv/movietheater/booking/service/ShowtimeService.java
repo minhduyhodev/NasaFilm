@@ -104,12 +104,16 @@ public class ShowtimeService {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
-        if (request.getStartTime() == null || !request.getStartTime().isAfter(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ được tạo suất chiếu cho thời gian sắp tới");
+        ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.fromConfig(systemConfigService.getConfig());
+        int minLeadMinutes = settings.getMinLeadMinutes();
+        OffsetDateTime earliestStart = now.plusMinutes(minLeadMinutes);
+        if (request.getStartTime() == null || request.getStartTime().isBefore(earliestStart)) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Suất chiếu mới phải bắt đầu sau thời điểm hiện tại ít nhất "
+                            + minLeadMinutes + " phút");
         }
 
         // Calculate end time from movie duration + trailer buffer (system config)
-        ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.fromConfig(systemConfigService.getConfig());
         int duration = movie.getDurationMinutes() != null
                 ? movie.getDurationMinutes()
                 : settings.getDefaultDurationMinutes();

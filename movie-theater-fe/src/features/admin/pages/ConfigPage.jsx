@@ -486,6 +486,19 @@ const ConfigPage = () => {
                   <ConfigField label="Trailer buffer (phút)">
                     <input type="number" min="0" max="60" className="sys-config__input" value={config.trailerBuffer} onChange={(e) => updateField('trailerBuffer', parseInt(e.target.value, 10) || 0)} />
                   </ConfigField>
+                  <ConfigField
+                    label="Cách hiện tại tối thiểu (phút)"
+                    hint="Suất chiếu mới phải bắt đầu sau thời điểm hiện tại ít nhất khoảng này (thường 15–30 phút)."
+                  >
+                    <input
+                      type="number"
+                      min="0"
+                      max="180"
+                      className="sys-config__input"
+                      value={config.minLeadMinutes}
+                      onChange={(e) => updateField('minLeadMinutes', parseInt(e.target.value, 10) || 0)}
+                    />
+                  </ConfigField>
                 </div>
               </ConfigSection>
 

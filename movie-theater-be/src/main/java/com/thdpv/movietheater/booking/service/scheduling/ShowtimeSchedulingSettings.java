@@ -13,6 +13,8 @@ public final class ShowtimeSchedulingSettings {
     private final LocalTime endTime;
     private final int intervalMinutes;
     private final int trailerBuffer;
+    /** Minimum minutes from now before a new showtime may start. */
+    private final int minLeadMinutes;
     private final int slotStepMinutes;
     private final int gridAlignMinutes;
     private final double fairnessPenalty;
@@ -48,6 +50,7 @@ public final class ShowtimeSchedulingSettings {
         this.endTime = builder.endTime;
         this.intervalMinutes = builder.intervalMinutes;
         this.trailerBuffer = builder.trailerBuffer;
+        this.minLeadMinutes = builder.minLeadMinutes;
         this.slotStepMinutes = builder.slotStepMinutes;
         this.gridAlignMinutes = builder.gridAlignMinutes;
         this.fairnessPenalty = builder.fairnessPenalty;
@@ -127,6 +130,7 @@ public final class ShowtimeSchedulingSettings {
                 .endTime(parseTime(config.get("endTime"), LocalTime.of(23, 30)))
                 .intervalMinutes(readInt(config.get("intervalMinutes"), 15, 0, 120))
                 .trailerBuffer(readInt(config.get("trailerBuffer"), 10, 0, 60))
+                .minLeadMinutes(readInt(config.get("minLeadMinutes"), 30, 0, 180))
                 .slotStepMinutes(readInt(config.get("slotStepMinutes"), 30, 15, 120))
                 .gridAlignMinutes(readInt(config.get("gridAlignMinutes"), 15, 5, 60))
                 .fairnessPenalty(readDouble(config.get("fairnessPenalty"), 25.0, 0, 100))
@@ -243,6 +247,7 @@ public final class ShowtimeSchedulingSettings {
     public LocalTime getEndTime() { return endTime; }
     public int getIntervalMinutes() { return intervalMinutes; }
     public int getTrailerBuffer() { return trailerBuffer; }
+    public int getMinLeadMinutes() { return minLeadMinutes; }
     public int getSlotStepMinutes() { return slotStepMinutes; }
     public int getGridAlignMinutes() { return gridAlignMinutes; }
     public double getFairnessPenalty() { return fairnessPenalty; }
@@ -278,6 +283,7 @@ public final class ShowtimeSchedulingSettings {
         private LocalTime endTime = LocalTime.of(23, 30);
         private int intervalMinutes = 15;
         private int trailerBuffer = 10;
+        private int minLeadMinutes = 30;
         private int slotStepMinutes = 30;
         private int gridAlignMinutes = 15;
         private double fairnessPenalty = 25.0;
@@ -312,6 +318,7 @@ public final class ShowtimeSchedulingSettings {
         Builder endTime(LocalTime v) { endTime = v; return this; }
         Builder intervalMinutes(int v) { intervalMinutes = v; return this; }
         Builder trailerBuffer(int v) { trailerBuffer = v; return this; }
+        Builder minLeadMinutes(int v) { minLeadMinutes = v; return this; }
         Builder slotStepMinutes(int v) { slotStepMinutes = v; return this; }
         Builder gridAlignMinutes(int v) { gridAlignMinutes = v; return this; }
         Builder fairnessPenalty(double v) { fairnessPenalty = v; return this; }

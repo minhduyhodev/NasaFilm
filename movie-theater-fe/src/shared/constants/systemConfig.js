@@ -224,6 +224,7 @@ export const DEFAULT_SYSTEM_CONFIG = {
   endTime: '23:30',
   intervalMinutes: 15,
   trailerBuffer: 10,
+  minLeadMinutes: 30,
   slotStepMinutes: 30,
   gridAlignMinutes: 15,
   fairnessPenalty: 25,

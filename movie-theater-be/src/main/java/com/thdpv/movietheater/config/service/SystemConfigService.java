@@ -216,6 +216,7 @@ public class SystemConfigService {
         defaults.put("endTime", "23:30");
         defaults.put("intervalMinutes", 15);
         defaults.put("trailerBuffer", 10);
+        defaults.put("minLeadMinutes", 30);
         defaults.put("slotStepMinutes", 30);
         defaults.put("gridAlignMinutes", 15);
         defaults.put("fairnessPenalty", 25);

@@ -145,6 +145,19 @@ public class ShowtimeServiceTest {
     }
 
     @Test
+    void testCreateShowtime_RejectsWhenTooSoon() {
+        ShowtimeRequest request = new ShowtimeRequest(
+                movieUuid, roomUuid, OffsetDateTime.now().plusMinutes(10), BigDecimal.valueOf(90000));
+
+        when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(mockMovie));
+        when(cinemaRoomRepository.findById(roomUuid)).thenReturn(Optional.of(mockRoom));
+        when(systemConfigService.getConfig()).thenReturn(Map.of("minLeadMinutes", 30));
+
+        AppException ex = assertThrows(AppException.class, () -> showtimeService.createShowtime(request));
+        assertTrue(ex.getMessage().contains("ít nhất 30 phút"));
+    }
+
+    @Test
     void testCreateShowtime_OverlappingConflict() {
         ShowtimeRequest request = new ShowtimeRequest(movieUuid, roomUuid, OffsetDateTime.now().plusDays(1), BigDecimal.valueOf(90000));
         
