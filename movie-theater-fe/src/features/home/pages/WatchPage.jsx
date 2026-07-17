@@ -259,8 +259,24 @@ const WatchPage = () => {
           );
         }
 
-        // Align develop: Đã vào trang watch là tự động phát (và tự động kích hoạt nếu chưa kích hoạt)
-        // Không bắt người dùng phải bấm nút Play thủ công nữa.
+        // Align develop: đã STREAMING → chỉ preview, bấm Play mới activatePlay (tránh đổi token/kick tab khác)
+        if (canWatchOnlineDirectly(status)) {
+          setPreviewReady(true);
+          if (status.expiresAt) {
+            setVodExpiresAt(status.expiresAt);
+          }
+          return;
+        }
+
+        // Vé chưa kích hoạt (WAITING_FOR_PLAY): bắt buộc qua trang kích hoạt nhập mã vé.
+        // Ngoại lệ: vừa kích hoạt xong ở trang activate (có temporary token) — cho vào luôn.
+        const justActivated =
+          getTemporaryVodToken(movieDetail?.uuid || id) || getTemporaryVodToken(id);
+        if (!justActivated) {
+          navigate(getOnlineActivatePath(movieDetail?.uuid || id), { replace: true });
+          return;
+        }
+
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
