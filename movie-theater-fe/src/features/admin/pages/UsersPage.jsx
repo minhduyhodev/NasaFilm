@@ -30,10 +30,15 @@ import {
   AdminTableShell,
 } from "../components";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
+import { useAuthContext } from "../../auth/hooks/useAuthContext";
+import { hasPermission, isAdmin, PERMISSIONS } from "../../../shared/utils/permissions";
 import "./UsersPage.css";
 
 const UsersPage = () => {
   const confirm = useConfirm();
+  const { user } = useAuthContext();
+  const canEdit = isAdmin(user);
+  const canCreateCustomer = hasPermission(user, PERMISSIONS.COUNTER_CUSTOMER_CREATE);
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -291,11 +296,11 @@ const UsersPage = () => {
         title="Danh sách khách hàng"
         description="Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy và cập nhật trạng thái hoạt động."
         variant="display"
-        primaryAction={{
+        primaryAction={canCreateCustomer ? {
           label: "Tạo khách hàng",
           onClick: () => setIsCreateModalOpen(true),
           icon: <UserPlus className="w-4 h-4" />,
-        }}
+        } : undefined}
       />
 
       <AdminKpiGrid
@@ -400,7 +405,7 @@ const UsersPage = () => {
                   <th>Hạng hội viên</th>
                   <th>Điểm tích lũy</th>
                   <th>Trạng thái</th>
-                  <th className="text-center">Hành động</th>
+                  {canEdit && <th className="text-center">Hành động</th>}
                 </tr>
               </thead>
               <tbody>
@@ -469,7 +474,9 @@ const UsersPage = () => {
                         </div>
                       </td>
 
+                      {/* STATUS + QUICK TOGGLE */}
                       <td>
+                        {canEdit ? (
                         <div className="relative inline-block text-left">
                           <button
                             type="button"
@@ -499,36 +506,16 @@ const UsersPage = () => {
                                 className={`absolute left-0 w-40 adm-dropdown ${isLastRow ? "bottom-full mb-1" : "mt-1 top-full"}`}
                               >
                                 {[
-                                  {
-                                    value: "ACTIVE",
-                                    label: "Hoạt động",
-                                    variant: "success",
-                                  },
-                                  {
-                                    value: "SUSPENDED",
-                                    label: "Bị khóa",
-                                    variant: "danger",
-                                  },
-                                  {
-                                    value: "PENDING_VERIFICATION",
-                                    label: "Chờ xác thực",
-                                    variant: "warning",
-                                  },
-                                  {
-                                    value: "INACTIVE",
-                                    label: "Không hoạt động",
-                                    variant: "muted",
-                                  },
+                                  { value: "ACTIVE", label: "Hoạt động", variant: "success" },
+                                  { value: "SUSPENDED", label: "Bị khóa", variant: "danger" },
+                                  { value: "PENDING_VERIFICATION", label: "Chờ xác thực", variant: "warning" },
+                                  { value: "INACTIVE", label: "Không hoạt động", variant: "muted" },
                                 ].map((opt) => (
                                   <button
                                     key={opt.value}
                                     type="button"
                                     onClick={() => {
-                                      handleStatusChange(
-                                        row.id,
-                                        row.email,
-                                        opt.value,
-                                      );
+                                      handleStatusChange(row.id, row.email, opt.value);
                                       setOpenStatusDropdownId(null);
                                     }}
                                     className={`adm-dropdown__item ${row.status === opt.value ? "adm-dropdown__item--active" : ""}`}
@@ -540,8 +527,15 @@ const UsersPage = () => {
                             </>
                           )}
                         </div>
+                        ) : (
+                          <StatusBadge variant={getStatusVariant(row.status)}>
+                            {getStatusLabel(row.status)}
+                          </StatusBadge>
+                        )}
                       </td>
 
+                      {/* ACTIONS */}
+                      {canEdit && (
                       <td className="text-center">
                         <button
                           type="button"
@@ -552,6 +546,7 @@ const UsersPage = () => {
                           Chỉnh sửa
                         </button>
                       </td>
+                      )}
                     </tr>
                   );
                 })}

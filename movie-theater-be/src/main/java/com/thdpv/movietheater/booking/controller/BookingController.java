@@ -43,6 +43,7 @@ public class BookingController {
     private final AdminBookingQueryService adminBookingQueryService;
 
     @PostMapping("/confirm")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ConfirmBookingRequest request) {
@@ -53,6 +54,7 @@ public class BookingController {
     }
 
     @PostMapping("/confirm-online")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmOnlineBooking(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ConfirmOnlineBookingRequest request) {
