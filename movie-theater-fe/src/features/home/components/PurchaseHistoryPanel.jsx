@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   History,
   Search,
@@ -106,7 +107,7 @@ const paymentStatusMeta = (status) => {
   return null;
 };
 
-const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
+const InvoiceDetail = ({ order, onBack, onViewRefund, preview = false }) => {
   const online = isOnlineOrder(order);
   const status = statusMeta(order);
   const payStatus = paymentStatusMeta(order.paymentStatus);
@@ -117,10 +118,12 @@ const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
   const hiddenSeatCount = seatList.length - visibleSeats.length;
 
   return (
-    <div className="ph-invoice-wrap">
-      <button type="button" className="ph-back" onClick={onBack}>
-        ← Quay lại danh sách
-      </button>
+    <div className={`ph-invoice-wrap${preview ? ' ph-invoice-wrap--preview' : ''}`}>
+      {!preview && (
+        <button type="button" className="ph-back" onClick={onBack}>
+          ← Quay lại danh sách
+        </button>
+      )}
 
       <article className={`ph-invoice${online ? ' ph-invoice--online' : ''}`}>
         <header className="ph-invoice__header">
@@ -276,6 +279,19 @@ const InvoiceDetail = ({ order, onBack, onViewRefund }) => {
   );
 };
 
+const TicketHoverPreview = ({ order }) => {
+  if (!order || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="ph-invoice-hover-overlay" aria-hidden="true">
+      <aside className="ph-invoice-hover-preview">
+        <InvoiceDetail order={order} preview />
+      </aside>
+    </div>,
+    document.body,
+  );
+};
+
 const PurchaseHistoryPanel = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -286,6 +302,22 @@ const PurchaseHistoryPanel = () => {
   const [refundBookingUuid, setRefundBookingUuid] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const [hoverPreview, setHoverPreview] = useState(null);
+  const previewTimerRef = useRef(null);
+
+  const showTicketPreview = (order) => {
+    window.clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = window.setTimeout(() => {
+      setHoverPreview(order);
+    }, 180);
+  };
+
+  const hideTicketPreview = () => {
+    window.clearTimeout(previewTimerRef.current);
+    setHoverPreview(null);
+  };
+
+  useEffect(() => () => window.clearTimeout(previewTimerRef.current), []);
 
   useEffect(() => {
     let active = true;
@@ -446,7 +478,12 @@ const PurchaseHistoryPanel = () => {
                   key={item.bookingUuid || item.ticketCode}
                   type="button"
                   className="ph-card"
-                  onClick={() => setSelected(item)}
+                  onClick={() => {
+                    hideTicketPreview();
+                    setSelected(item);
+                  }}
+                  onMouseEnter={() => showTicketPreview(item)}
+                  onMouseLeave={hideTicketPreview}
                 >
                   <div className={`ph-card__icon${online ? ' ph-card__icon--online' : ''}`}>
                     {online ? <MonitorPlay size={18} /> : <Ticket size={18} />}
@@ -478,7 +515,7 @@ const PurchaseHistoryPanel = () => {
                   <div className="ph-card__side">
                     <strong>{item.totalPrice}</strong>
                     <span className="ph-card__cta">
-                      Chi tiết <ChevronRight size={14} />
+                      Xem vé <ChevronRight size={14} />
                     </span>
                   </div>
                 </button>
@@ -505,6 +542,9 @@ const PurchaseHistoryPanel = () => {
         open={Boolean(refundBookingUuid)}
         onClose={() => setRefundBookingUuid(null)}
       />
+      {hoverPreview && (
+        <TicketHoverPreview order={hoverPreview} />
+      )}
     </div>
   );
 };

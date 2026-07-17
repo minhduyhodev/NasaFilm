@@ -445,7 +445,7 @@ export const ProfilePage = () => {
         <Gift size={24} className="text-amber-500" />
       </div>
       <div className="voucher-body text-left">
-        <div className="flex justify-between items-center mb-1 gap-2">
+        <div className="voucher-card__header">
           <span className="voucher-code">{item.code}</span>
           <span className="text-[10px] font-bold text-amber-400">
             {item.pointsCost} điểm
@@ -461,7 +461,7 @@ export const ProfilePage = () => {
             ? ` · Còn ${item.remainingGlobal ?? item.maxUsage} suất hệ thống`
             : ""}
         </p>
-        <div className="flex justify-between items-center mt-3 gap-2">
+        <div className="voucher-card__footer">
           <span className="text-[10px] text-gray-400">
             {item.endDate
               ? `Hạn: ${new Date(item.endDate).toLocaleDateString("vi-VN")}`
@@ -477,7 +477,7 @@ export const ProfilePage = () => {
           </button>
         </div>
         {!item.eligible && item.ineligibleReason && (
-          <p className="text-[10px] text-rose-400 mt-2">
+          <p className="voucher-card__reason">
             {item.ineligibleReason}
           </p>
         )}
@@ -1636,11 +1636,19 @@ export const ProfilePage = () => {
                     transition={{ duration: 0.2 }}
                     className="tab-panel-body"
                   >
-                    <div className="panel-header">
-                      <h2>Vé của tôi</h2>
+                    <div className="panel-header tickets-page-header">
+                      <div className="tickets-page-heading">
+                        <span className="tickets-page-heading__icon">
+                          <Ticket size={20} />
+                        </span>
+                        <div>
+                          <h2>Vé của tôi</h2>
+                          <p>Quản lý vé đang hiệu lực và xem lại những chuyến đi đã qua</p>
+                        </div>
+                      </div>
                       <button
                         onClick={() => selectProfileTab("history")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 font-bold text-xs rounded-lg transition duration-200"
+                        className="tickets-history-button"
                       >
                         <History size={14} />
                         <span>Lịch sử mua hàng</span>
@@ -1664,17 +1672,29 @@ export const ProfilePage = () => {
                         <>
                           <section className="tickets-section">
                             <div className="tickets-section__header">
-                              <h3 className="tickets-section__title">
-                                Vé đang hiệu lực
-                              </h3>
+                              <div className="tickets-section__heading">
+                                <span className="tickets-section__status-dot" />
+                                <div>
+                                  <h3 className="tickets-section__title">
+                                    Vé đang hiệu lực
+                                  </h3>
+                                  <p>Sẵn sàng sử dụng cho lịch chiếu sắp tới</p>
+                                </div>
+                              </div>
                               <span className="tickets-section__count">
                                 {liveBookings.length} vé
                               </span>
                             </div>
                             {liveBookings.length === 0 ? (
-                              <p className="tickets-section__empty">
-                                Không có vé nào đang hiệu lực.
-                              </p>
+                              <div className="tickets-section__empty">
+                                <span className="tickets-section__empty-icon">
+                                  <Ticket size={26} />
+                                </span>
+                                <div>
+                                  <strong>Chưa có vé đang hiệu lực</strong>
+                                  <p>Vé mới của bạn sẽ xuất hiện tại đây sau khi đặt thành công.</p>
+                                </div>
+                              </div>
                             ) : (
                               <>
                                 <div className="tickets-section__grid">
@@ -1833,7 +1853,7 @@ export const ProfilePage = () => {
                                       />
                                     </div>
                                     <div className="voucher-body text-left">
-                                      <div className="flex justify-between items-center mb-1 gap-2">
+                                      <div className="voucher-card__header">
                                         <span className="voucher-code">
                                           {voucher.code}
                                         </span>
@@ -1860,7 +1880,7 @@ export const ProfilePage = () => {
                                           ? " · Dùng trực tiếp khi thanh toán"
                                           : " · Đã đổi điểm"}
                                       </p>
-                                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                      <div className="voucher-card__footer voucher-card__footer--bordered">
                                         <span className="voucher-expiry">
                                           {formattedExpiry}
                                         </span>
@@ -1919,7 +1939,7 @@ export const ProfilePage = () => {
                                         />
                                       </div>
                                       <div className="voucher-body text-left">
-                                        <div className="flex justify-between items-center mb-1">
+                                        <div className="voucher-card__header">
                                           <span className="voucher-code">
                                             {voucher.code}
                                           </span>
@@ -1930,7 +1950,7 @@ export const ProfilePage = () => {
                                         <h4 className="voucher-title text-gray-500">
                                           {voucher.description}
                                         </h4>
-                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5 text-[10px] text-gray-400">
+                                        <div className="voucher-card__footer voucher-card__footer--bordered">
                                           <span className="voucher-expiry">
                                             {formattedExpiry}
                                           </span>
