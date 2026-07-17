@@ -309,7 +309,7 @@ function ProfileModal({ profile, onClose, onSaved }) {
             </div>
           </div>
         </div>
-        <div className="hr-field">
+        <div className="hr-field" style={{ marginBottom: 4 }}>
           <AdminSelectDropdown
             label="Loại hợp đồng"
             value={employmentType}

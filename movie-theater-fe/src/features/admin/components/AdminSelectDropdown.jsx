@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import {
   adminLabelClass,
   adminSelectTriggerClass,
-  adminDropdownMenuClass,
+  adminDropdownPortalMenuClass,
   getAdminDropdownItemClass,
 } from './adminFormStyles';
+import { useFloatingPanelPosition, ADMIN_FLOATING_BACKDROP_Z } from './useFloatingPanelPosition';
 
 export default function AdminSelectDropdown({
   label,
@@ -20,15 +22,83 @@ export default function AdminSelectDropdown({
   disabled = false,
 }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const selected = options.find((o) => o.value === value);
   const sizeClass = size === 'sm' ? 'min-h-[38px] py-2 text-xs' : 'min-h-[42px]';
+  const estimatedHeight = useMemo(
+    () => Math.min(220, Math.max(80, options.length * 38 + 16)),
+    [options.length],
+  );
+  const menuStyle = useFloatingPanelPosition(open, triggerRef, {
+    maxHeight: 220,
+    estimatedHeight,
+  });
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [open]);
+
+  const menu = open && menuStyle && createPortal(
+    <div
+      ref={menuRef}
+      className={`${adminDropdownPortalMenuClass} ${menuClassName}`}
+      style={{
+        ...menuStyle,
+        overflowY: 'auto',
+      }}
+      role="listbox"
+    >
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          role="option"
+          aria-selected={value === opt.value}
+          onClick={() => {
+            onChange(opt.value);
+            setOpen(false);
+          }}
+          className={getAdminDropdownItemClass(value === opt.value)}
+        >
+          {opt.icon}
+          <span className="truncate">{opt.label}</span>
+        </button>
+      ))}
+    </div>,
+    document.body,
+  );
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative ${className}`}>
       {label && <label className={labelClassName}>{label}</label>}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         onClick={() => !disabled && setOpen((v) => !v)}
         className={`${adminSelectTriggerClass} ${sizeClass} ${
           open ? 'ring-1 ring-red-500/40 border-red-500/30' : ''
@@ -44,27 +114,16 @@ export default function AdminSelectDropdown({
           }`}
         />
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className={`${adminDropdownMenuClass} ${menuClassName}`}>
-            {options.map((opt) => (
-              <button
-                key={String(opt.value)}
-                type="button"
-                onClick={() => {
-                  onChange(opt.value);
-                  setOpen(false);
-                }}
-                className={getAdminDropdownItemClass(value === opt.value)}
-              >
-                {opt.icon}
-                <span className="truncate">{opt.label}</span>
-              </button>
-            ))}
-          </div>
-        </>
+      {open && createPortal(
+        <div
+          className="fixed inset-0"
+          style={{ zIndex: ADMIN_FLOATING_BACKDROP_Z }}
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />,
+        document.body,
       )}
+      {menu}
     </div>
   );
 }

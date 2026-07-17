@@ -9,6 +9,9 @@ export const adminSelectTriggerClass = 'adm-select-trigger admin-select-trigger'
 export const adminDropdownMenuClass =
   'adm-dropdown admin-dropdown-menu animate-dropdown-fade-in';
 
+export const adminDropdownPortalMenuClass =
+  'adm-dropdown-portal admin-dropdown-menu animate-dropdown-fade-in';
+
 export const getAdminDropdownItemClass = (isSelected) =>
   `adm-dropdown__item admin-dropdown-item ${
     isSelected ? 'adm-dropdown__item--active admin-dropdown-item--selected' : ''
