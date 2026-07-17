@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
+import WatchedOnlineMovies from '../components/WatchedOnlineMovies';
 import NewReleases from '../components/NewReleases';
 import ExclusiveCollection from '../components/ExclusiveCollection';
 import MovieCard from '../components/MovieCard';
@@ -107,6 +108,7 @@ const OnlineMoviesPage = () => {
 
       <main className="online-page-container">
         {!isSpotlightLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isSpotlightLoading && <WatchedOnlineMovies />}
         {!isSpotlightLoading && (
           <NewReleases
             onlineOnly

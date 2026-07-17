@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.movie.repository;
 
-import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,12 +52,11 @@ public interface MovieReviewRepository extends JpaRepository<MovieReview, UUID> 
 
     Optional<MovieReview> findByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
 
+    Optional<MovieReview> findByMovieUuidAndUserUuid(UUID movieUuid, UUID userUuid);
+
     void deleteByUuidAndMovieUuidAndUserUuid(UUID uuid, UUID movieUuid, UUID userUuid);
 
     long countByMovieUuidAndStatus(UUID movieUuid, MovieReviewStatus status);
-
-    boolean existsByMovieUuidAndUserUuidAndCreatedAtAfter(
-            UUID movieUuid, UUID userUuid, OffsetDateTime createdAt);
 
     @Query("select coalesce(avg(r.rating), 0) from MovieReview r where r.movieUuid = :movieUuid and r.status = :status")
     double averageRatingByMovieUuidAndStatus(

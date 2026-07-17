@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.movie.service;
 
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,10 +45,7 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 public class MovieReviewService {
 
     private static final String REVIEW_ELIGIBILITY_MESSAGE =
-            "Chi khach hang da mua ve rap hoac ve online moi co the danh gia phim nay.";
-    private static final String REVIEW_COOLDOWN_MESSAGE =
-            "Ban vua gui danh gia cho phim nay. Vui long doi 24 gio truoc khi gui danh gia moi.";
-    private static final Duration REVIEW_COOLDOWN = Duration.ofHours(24);
+            "Khach hang can mua ve rap hoac bat dau xem phim online truoc khi danh gia.";
 
     private final MovieReviewRepository movieReviewRepository;
     private final MovieReviewReportRepository movieReviewReportRepository;
@@ -137,14 +134,22 @@ public class MovieReviewService {
         summary.setBestOnBigScreen(vibeStats.isBestOnBigScreen());
 
         if (currentUserUuid != null) {
+            MovieReview myReview = movieReviewRepository
+                    .findByMovieUuidAndUserUuid(movieUuid, currentUserUuid)
+                    .orElse(null);
+            if (myReview != null) {
+                Map<UUID, User> currentUser = loadUsersById(Set.of(currentUserUuid));
+                summary.setMyReview(toResponse(myReview, currentUserUuid, currentUser, Set.of()));
+                summary.setCanReview(false);
+                summary.setReviewEligibilityMessage(
+                        "Bạn đã đánh giá phim này. Hãy xóa đánh giá cũ nếu muốn gửi lại.");
+                return summary;
+            }
+
             boolean hasPurchased = hasConfirmedPurchase(currentUserUuid, movieUuid);
             if (!hasPurchased) {
                 summary.setCanReview(false);
                 summary.setReviewEligibilityMessage(REVIEW_ELIGIBILITY_MESSAGE);
-            } else if (isInCooldown(movieUuid, currentUserUuid)) {
-                summary.setCanReview(false);
-                summary.setReviewCooldownActive(true);
-                summary.setReviewEligibilityMessage(REVIEW_COOLDOWN_MESSAGE);
             } else {
                 summary.setCanReview(true);
             }
@@ -165,7 +170,11 @@ public class MovieReviewService {
             throw new AppException(ErrorCode.REVIEW_PURCHASE_REQUIRED, REVIEW_ELIGIBILITY_MESSAGE);
         }
 
-        assertReviewCooldown(movieUuid, user.getId());
+        if (movieReviewRepository.findByMovieUuidAndUserUuid(movieUuid, user.getId()).isPresent()) {
+            throw new AppException(
+                    ErrorCode.REVIEW_ALREADY_EXISTS,
+                    "Ban da danh gia phim nay. Vui long cap nhat danh gia hien tai.");
+        }
 
         String normalizedComment = normalizeComment(request.getComment());
         List<String> vibeTags = reviewVibeTagService.normalizeAndValidate(request.getVibeTags());
@@ -178,7 +187,14 @@ public class MovieReviewService {
         review.setVibeTags(ReviewVibeTagUtil.toJson(vibeTags));
         review.setStatus(MovieReviewStatus.VISIBLE);
 
-        MovieReview saved = movieReviewRepository.save(review);
+        MovieReview saved;
+        try {
+            saved = movieReviewRepository.saveAndFlush(review);
+        } catch (DataIntegrityViolationException exception) {
+            throw new AppException(
+                    ErrorCode.REVIEW_ALREADY_EXISTS,
+                    "Ban da danh gia phim nay. Vui long cap nhat danh gia hien tai.");
+        }
         movieReviewCacheEvictor.evictSummary(movieUuid);
 
         MovieReviewResponse response = toResponse(saved, user.getId(), Map.of(user.getId(), user), Set.of());
@@ -232,18 +248,6 @@ public class MovieReviewService {
             mapped = mapped.and(Sort.by(order.getDirection(), column));
         }
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), mapped);
-    }
-
-    private void assertReviewCooldown(UUID movieUuid, UUID userUuid) {
-        if (isInCooldown(movieUuid, userUuid)) {
-            throw new AppException(ErrorCode.REVIEW_COOLDOWN_ACTIVE, REVIEW_COOLDOWN_MESSAGE);
-        }
-    }
-
-    private boolean isInCooldown(UUID movieUuid, UUID userUuid) {
-        OffsetDateTime cooldownSince = OffsetDateTime.now().minus(REVIEW_COOLDOWN);
-        return movieReviewRepository.existsByMovieUuidAndUserUuidAndCreatedAtAfter(
-                movieUuid, userUuid, cooldownSince);
     }
 
     private Map<UUID, User> loadUsersById(Set<UUID> userIds) {
