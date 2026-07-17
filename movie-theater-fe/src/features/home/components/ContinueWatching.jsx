@@ -114,6 +114,12 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
             ) {
               return null;
             }
+            const watchedPercent = status.durationSeconds > 0
+              ? (Number(status.positionSeconds || 0) / status.durationSeconds) * 100
+              : 0;
+            if (watchedPercent >= 90) {
+              return null;
+            }
 
             const mapped = mapApiMovies([{
               uuid: summary.uuid,
@@ -141,7 +147,10 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
     scrollerRef.current?.scrollBy({ left: dir === 'right' ? 340 : -340, behavior: 'smooth' });
   };
 
-  if (!isLoading && movies.length === 0) return null;
+  // Chỉ hiển thị section (kèm trạng thái rỗng) trên trang phim online.
+  if (!onlineOnly) return null;
+
+  const isEmpty = !isLoading && movies.length === 0;
 
   return (
     <section>
@@ -149,6 +158,20 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
         <h2 className="section-heading">Tiếp tục xem</h2>
       </div>
 
+      {isEmpty ? (
+        <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-center">
+          <p className="text-sm font-semibold text-white/60">
+            {isAuthenticated
+              ? 'Bạn chưa có phim nào đang xem dở.'
+              : 'Đăng nhập để xem danh sách phim đang xem dở của bạn.'}
+          </p>
+          <p className="mt-1 text-xs text-white/35">
+            {isAuthenticated
+              ? 'Kích hoạt vé online và bấm phát — phim sẽ xuất hiện tại đây để xem tiếp.'
+              : 'Phim đã kích hoạt và đang xem dở sẽ hiển thị tại đây.'}
+          </p>
+        </div>
+      ) : (
       <div className="relative">
         <button type="button" onClick={() => scroll('left')} className="hidden md:flex absolute -left-3 top-[38%] -translate-y-1/2 z-10 h-9 w-9 items-center justify-center text-white/50 hover:text-white transition-colors" aria-label="Trước">
           <ChevronLeft size={28} />
@@ -198,6 +221,7 @@ const ContinueWatching = ({ onlineOnly = false, getOnlinePath: getOnlinePathProp
               })}
         </div>
       </div>
+      )}
     </section>
   );
 };

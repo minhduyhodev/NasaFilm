@@ -24,6 +24,17 @@
   transform: scale(0.98);
 }
 
+.watch-reviews-section {
+  margin-top: 3rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.875rem;
+}
+
+.watch-reviews-section .movie-reviews-section {
+  border-top: 0;
+}
+
 .watch-player-slot {
   width: 100%;
   aspect-ratio: 16 / 9;

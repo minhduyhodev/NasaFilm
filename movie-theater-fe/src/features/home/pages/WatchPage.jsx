@@ -19,6 +19,7 @@ import { showMissionCompletionToasts } from '../../../shared/services/missionSer
 import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getTemporaryVodToken, removeTemporaryVodToken, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
 import { resolveMediaUrl, resolvePlayableMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
+import MovieReviewsSection from '../components/MovieReviewsSection';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import { useHomeChrome } from '../context/HomeChromeContext';
@@ -72,6 +73,8 @@ const WatchPage = () => {
   const [countdownSettings, setCountdownSettings] = useState(() => getOnlineCountdownSettings());
   const [vodExpiresAt, setVodExpiresAt] = useState(null);
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
+  const [ticketExpired, setTicketExpired] = useState(false);
+  const [reviewsExpanded, setReviewsExpanded] = useState(true);
   const heartbeatIntervalRef = useRef(null);
   // Vị trí xem gần nhất — dùng để flush heartbeat cuối khi rời trang.
   const lastPositionRef = useRef({ position: 0, duration: null });
@@ -242,8 +245,12 @@ const WatchPage = () => {
         if (!status.hasPurchased) {
           throw new Error('Bạn chưa mua vé xem trực tuyến phim này.');
         }
+        // Vé hết hạn: vẫn cho vào trang để xem thông tin và đánh giá phim,
+        // chỉ khóa phần phát video.
         if (status.playbackState === 'EXPIRED') {
-          throw new Error('Vé xem phim trực tuyến của bạn đã hết hạn.');
+          setTicketExpired(true);
+          setPreviewReady(true);
+          return;
         }
         if (status.expiresAt) {
           setVodExpiresAt(status.expiresAt);
@@ -392,6 +399,10 @@ const WatchPage = () => {
   }, [streamData, vodExpiresAt, countdownSettings, movie, id, navigate]);
 
   const handlePlay = async () => {
+    if (ticketExpired) {
+      notificationService.error('Vé xem phim trực tuyến của bạn đã hết hạn.');
+      return;
+    }
     setVideoError('');
     if (streamData?.streamToken) {
       setIsPlaying(true);
@@ -712,14 +723,35 @@ const WatchPage = () => {
                         <ShieldAlert className="w-3.5 h-3.5" /> Bảo mật VOD
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={handlePlay}
-                      className="watch-play-btn"
-                      aria-label="Phát phim"
-                    >
-                      <Play className="h-7 w-7 fill-current ml-1" />
-                    </button>
+                    {ticketExpired ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 p-6 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-300">
+                          <Clock className="h-7 w-7" />
+                        </div>
+                        <p className="text-sm font-bold uppercase tracking-wider text-amber-300">
+                          Vé xem online đã hết hạn
+                        </p>
+                        <p className="max-w-sm text-xs leading-relaxed text-white/60">
+                          Bạn không thể phát lại phim, nhưng vẫn có thể xem thông tin và gửi đánh giá bên dưới.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/movie/${movie.slug || movie.uuid}?from=online`)}
+                          className="mt-1 rounded-lg border border-red-500/40 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/10"
+                        >
+                          Mua vé xem lại
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePlay}
+                        className="watch-play-btn"
+                        aria-label="Phát phim"
+                      >
+                        <Play className="h-7 w-7 fill-current ml-1" />
+                      </button>
+                    )}
                   </>
                 )}
 
@@ -898,6 +930,17 @@ const WatchPage = () => {
               </Link>
               )}
             </aside>
+          </div>
+
+          <div id="movie-reviews" className="watch-reviews-section">
+            <MovieReviewsSection
+              movieUuid={movie.uuid}
+              movieTitle={movie.title}
+              showTheaterCta={false}
+              showOnlineCta={false}
+              isExpanded={reviewsExpanded}
+              onExpandedChange={setReviewsExpanded}
+            />
           </div>
         </div>
       </main>
