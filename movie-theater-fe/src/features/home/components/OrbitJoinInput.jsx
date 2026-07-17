@@ -4,7 +4,7 @@ import { ArrowRight, Link2, Loader2 } from 'lucide-react';
 import { orbitService } from '../../../shared/services/orbitService';
 import './OrbitJoinInput.css';
 
-const OrbitJoinInput = () => {
+const OrbitJoinInput = ({ autoFocus = false }) => {
   const [linkInput, setLinkInput] = useState('');
   const [joinError, setJoinError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,7 @@ const OrbitJoinInput = () => {
           className="orbit-join-bar__input"
           placeholder="Mã phòng hoặc link mời..."
           value={linkInput}
+          autoFocus={autoFocus}
           onChange={(e) => {
             setLinkInput(e.target.value);
             if (joinError) setJoinError('');

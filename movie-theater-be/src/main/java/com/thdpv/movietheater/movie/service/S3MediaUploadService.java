@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import com.thdpv.movietheater.common.exception.AppException;
@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.UploadPartPresignRequest;
 
 @Service
-@ConditionalOnBean(S3Presigner.class)
+@ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${app.s3.access-key-id:}') && T(org.springframework.util.StringUtils).hasText('${app.s3.secret-access-key:}')")
 public class S3MediaUploadService {
 
     private static final Pattern SAFE_NAME = Pattern.compile("[^a-zA-Z0-9._-]+");
