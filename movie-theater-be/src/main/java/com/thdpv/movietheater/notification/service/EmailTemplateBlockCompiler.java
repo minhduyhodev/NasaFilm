@@ -17,12 +17,14 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 final class EmailTemplateBlockCompiler {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Set<String> URL_FIELDS = Set.of("ACTIVATION_URL", "PROFILE_URL", "RESET_LINK", "BOARDING_URL");
+    private static final Set<String> URL_FIELDS = Set.of("ACTIVATION_URL", "PROFILE_URL", "RESET_LINK", "BOARDING_URL", "ACTIVATION_LINK");
     private static final Map<String, String> SUBTITLE_BY_CODE = Map.of(
             EmailTemplateService.CODE_VOD_TICKET, "Vé xem phim trực tuyến",
             EmailTemplateService.CODE_THEATER_TICKET, "Vé xem phim tại rạp",
             EmailTemplateService.CODE_OTP_REGISTER, "Xác thực tài khoản",
-            EmailTemplateService.CODE_PASSWORD_RESET, "Đặt lại mật khẩu");
+            EmailTemplateService.CODE_PASSWORD_RESET, "Đặt lại mật khẩu",
+            EmailTemplateService.CODE_ACCOUNT_ACTIVATION, "Chào mừng hội viên mới",
+            EmailTemplateService.CODE_STAFF_ACTIVATION, "Tài khoản Nhân sự");
 
     private EmailTemplateBlockCompiler() {
     }
@@ -112,6 +114,7 @@ final class EmailTemplateBlockCompiler {
             String label = switch (key) {
                 case "RESET_LINK" -> "Đặt lại mật khẩu";
                 case "ACTIVATION_URL" -> "Kích hoạt xem phim";
+                case "ACTIVATION_LINK" -> "Kích hoạt tài khoản";
                 case "PROFILE_URL" -> "Xem vé trong tài khoản";
                 case "BOARDING_URL" -> "Thẻ lên máy bay";
                 default -> "Mở liên kết";
@@ -121,6 +124,13 @@ final class EmailTemplateBlockCompiler {
                     + "color:#fff;padding:13px 34px;text-decoration:none;border-radius:8px;font-weight:700;\">"
                     + label + "</a></div>"
                     + "<p style=\"word-break:break-all;font-size:12px;color:#ff3b47;margin:0 0 14px;\">" + token + "</p>";
+        }
+        if ("TEMP_PASSWORD".equals(key)) {
+            return "<div style=\"text-align:center;margin:16px 0;padding:14px 20px;background:#1e293b;"
+                    + "border-radius:10px;border:1px solid #334155;\">"
+                    + "<span style=\"color:#94a3b8;font-size:12px;display:block;margin-bottom:6px;\">Mật khẩu tạm thời</span>"
+                    + "<span style=\"font-family:'Courier New',monospace;font-size:20px;font-weight:800;"
+                    + "letter-spacing:2px;color:#ff3b47;\">" + token + "</span></div>";
         }
         if ("OTP_CODE".equals(key)) {
             return "<div style=\"text-align:center;margin:24px 0;\"><div style=\"display:inline-block;"

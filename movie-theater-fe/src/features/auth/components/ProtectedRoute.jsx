@@ -9,6 +9,7 @@ import { hasAnyPermission } from '../../../shared/utils/permissions';
 export const ProtectedRoute = ({
   children,
   allowedRoles,
+  blockedRoles,
   requiredPermissions,
 }) => {
   const { isAuthenticated, loading, user } = useAuthContext();
@@ -33,6 +34,15 @@ export const ProtectedRoute = ({
     const userRoles = user?.roles ?? [];
     const hasRequiredRole = allowedRoles.some((role) => userRoles.includes(role));
     if (!hasRequiredRole) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
+  // Đã đăng nhập nhưng có role bị chặn (ví dụ: admin/staff không được mua vé) → về trang unauthorized
+  if (blockedRoles && blockedRoles.length > 0) {
+    const userRoles = user?.roles ?? [];
+    const isBlocked = blockedRoles.some((role) => userRoles.includes(role));
+    if (isBlocked) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

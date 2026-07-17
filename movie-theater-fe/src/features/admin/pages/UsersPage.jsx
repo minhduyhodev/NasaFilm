@@ -25,10 +25,15 @@ import AdminUserFormPanel from "../components/panels/AdminUserFormPanel";
 import { adminFilterSelectClass } from "../components/adminFormStyles";
 import { AdminPage, PageHeader, AdminKpiGrid } from "../components";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
+import { useAuthContext } from "../../auth/hooks/useAuthContext";
+import { hasPermission, isAdmin, PERMISSIONS } from "../../../shared/utils/permissions";
 import "./UsersPage.css";
 
 const UsersPage = () => {
   const confirm = useConfirm();
+  const { user } = useAuthContext();
+  const canEdit = isAdmin(user);
+  const canCreateCustomer = hasPermission(user, PERMISSIONS.COUNTER_CUSTOMER_CREATE);
   const [usersList, setUsersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -298,11 +303,11 @@ const UsersPage = () => {
         title="Danh sách khách hàng"
         description="Quản lý tài khoản khách hàng hội viên, giám sát điểm thưởng tích lũy và cập nhật trạng thái hoạt động."
         variant="display"
-        primaryAction={{
+        primaryAction={canCreateCustomer ? {
           label: "Tạo khách hàng",
           onClick: () => setIsCreateModalOpen(true),
           icon: <UserPlus className="w-4 h-4" />,
-        }}
+        } : undefined}
       />
 
       <AdminKpiGrid
@@ -396,9 +401,11 @@ const UsersPage = () => {
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
                     Trạng Thái
                   </th>
+                  {canEdit && (
                   <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono text-center">
                     Hành Động
                   </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -481,6 +488,7 @@ const UsersPage = () => {
 
                       {/* STATUS + QUICK TOGGLE */}
                       <td className="px-6 py-4">
+                        {canEdit ? (
                         <div className="relative inline-block text-left">
                           <button
                             type="button"
@@ -559,9 +567,16 @@ const UsersPage = () => {
                             </>
                           )}
                         </div>
+                        ) : (
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border font-mono select-none ${getStatusCls(row.status)}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(row.status)}`} />
+                          <span>{getStatusLabel(row.status)}</span>
+                        </span>
+                        )}
                       </td>
 
                       {/* ACTIONS */}
+                      {canEdit && (
                       <td className="px-6 py-4 text-center">
                         <button
                           type="button"
@@ -572,6 +587,7 @@ const UsersPage = () => {
                           Chỉnh sửa
                         </button>
                       </td>
+                      )}
                     </tr>
                   );
                 })}

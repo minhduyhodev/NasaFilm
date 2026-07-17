@@ -81,4 +81,44 @@ final class EmailTemplateBlockPresets {
                 ]}
                 """;
     }
+
+    static String accountActivationBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"FULL_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Chào mừng bạn trở thành hội viên của NASA FILM! Tài khoản của bạn đã được tạo với thông tin đăng nhập sau:"},
+                  {"type":"info_table","rows":[
+                    {"label":"Email đăng nhập","key":"LOGIN_EMAIL"},
+                    {"label":"Mật khẩu tạm thời","key":"TEMP_PASSWORD"}
+                  ]},
+                  {"type":"text","value":"Vui lòng nhấn nút bên dưới để đặt mật khẩu mới và kích hoạt tài khoản:"},
+                  {"type":"field","key":"ACTIVATION_LINK"},
+                  {"type":"text","value":"Liên kết có hiệu lực trong 72 giờ. Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
+
+    static String staffActivationBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"FULL_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Tài khoản nhân sự NASA FILM của bạn đã được tạo. Dưới đây là thông tin đăng nhập:"},
+                  {"type":"info_table","rows":[
+                    {"label":"Email đăng nhập","key":"LOGIN_EMAIL"},
+                    {"label":"Mật khẩu tạm thời","key":"TEMP_PASSWORD"}
+                  ]},
+                  {"type":"text","value":"Vui lòng nhấn nút bên dưới để đặt mật khẩu mới và kích hoạt tài khoản:"},
+                  {"type":"field","key":"ACTIVATION_LINK"},
+                  {"type":"text","value":"Liên kết có hiệu lực trong 72 giờ. Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
 }

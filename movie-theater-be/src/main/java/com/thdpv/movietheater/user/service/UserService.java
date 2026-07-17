@@ -319,12 +319,13 @@ public class UserService {
 
         boolean activationEmailSent = false;
         String message;
+        String staffPlainPassword = null;
 
         if (roleName == RoleName.STAFF) {
-            if (request.getPassword() == null || request.getPassword().isBlank()) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mật khẩu không được để trống khi tạo nhân viên");
-            }
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            staffPlainPassword = (request.getPassword() != null && !request.getPassword().isBlank())
+                    ? request.getPassword()
+                    : generateSecureTemporaryPassword();
+            user.setPassword(passwordEncoder.encode(staffPlainPassword));
             user.setStatus(UserStatus.INACTIVE);
             message = "Tạo tài khoản nhân viên thành công. Email kích hoạt đã được gửi.";
         } else if (roleName == RoleName.CUSTOMER) {
@@ -359,7 +360,9 @@ public class UserService {
             String activationToken = jwtUtils.generateActivationToken(email, user.getPassword());
             String activationLink = frontendUrl + "/activate-account?token=" + activationToken;
             emailService.sendStaffActivationEmail(
-                    email, fullName, email, request.getPassword(), activationLink);
+                    email, fullName, email,
+                    staffPlainPassword != null ? staffPlainPassword : "(Mật khẩu được tạo tự động — dùng link bên dưới để đặt mật khẩu mới)",
+                    activationLink);
             activationEmailSent = true;
         }
         if (roleName == RoleName.ADMIN) {
@@ -377,6 +380,7 @@ public class UserService {
                 message,
                 activationEmailSent);
     }
+
 
     @Transactional(readOnly = true)
     public List<PermissionResponse> getAvailablePermissions() {
@@ -519,7 +523,9 @@ public class UserService {
         userRole.setRole(customerRole);
         userRoleRepository.save(userRole);
 
-        passwordResetService.requestPasswordReset(email);
+        String activationToken = jwtUtils.generateActivationToken(email, user.getPassword());
+        String activationLink = frontendUrl + "/activate-account?token=" + activationToken;
+        emailService.sendAccountActivationEmail(email, fullName, email, temporaryPassword, activationLink);
 
         return new CounterCreateCustomerResponse(
                 user.getId(),
@@ -527,7 +533,7 @@ public class UserService {
                 user.getFullName(),
                 user.getPhoneNumber(),
                 user.getStatus(),
-                "Tạo tài khoản khách hàng thành công. Email đặt mật khẩu đã được gửi.",
+                "Tạo tài khoản khách hàng thành công. Email chào mừng hội viên đã được gửi.",
                 false);
     }
 

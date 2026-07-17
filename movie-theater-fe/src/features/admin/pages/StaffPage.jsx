@@ -25,7 +25,7 @@ const StaffPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [updatingUserId, setUpdatingUserId] = useState(null);
-  
+
   // Modals and drop-downs
   const [openStatusDropdownId, setOpenStatusDropdownId] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -186,8 +186,13 @@ const StaffPage = () => {
         if (!ok) return;
 
         await Promise.all(promises);
+
+        const updatedPermissions = permissionsChanged ? permissionForm : (selectedUser.permissions || []);
+
+        setSelectedUser((prev) => prev ? { ...prev, permissions: updatedPermissions } : prev);
+
         notificationService.success(`Đã lưu thay đổi cho tài khoản: ${selectedUser.fullName || selectedUser.email}`);
-        fetchUsers();
+        await fetchUsers();
       }
       setIsDetailModalOpen(false);
     } catch (error) {
@@ -266,7 +271,7 @@ const StaffPage = () => {
   const formatDate = (createdAt) => {
     if (!createdAt) return '--';
     const date = new Date(createdAt);
-    return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
   };
 
   const togglePermission = (permissionName) => {
