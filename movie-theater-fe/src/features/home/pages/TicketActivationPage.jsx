@@ -4,6 +4,7 @@ import { KeyRound, ArrowRight, Check, HelpCircle, Loader2, Mail, X } from 'lucid
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
 import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket } from '../utils/movieUtils';
@@ -162,7 +163,7 @@ const TicketActivationPage = () => {
 
     const ok = await confirm({
       title: 'Kích hoạt vé xem online',
-      message: 'Xác nhận kích hoạt mã vé? Sau khi kích hoạt, bạn có thể bắt đầu xem phim online.',
+      message: 'Xác nhận kích hoạt mã vé? Thời gian xem sẽ bắt đầu tính ngay sau khi kích hoạt.',
       highlight: code,
       confirmLabel: 'Kích hoạt vé',
       variant: 'warning',
@@ -199,9 +200,14 @@ const TicketActivationPage = () => {
         return;
       }
 
+      // Kích hoạt thật trên BE: set firstPlayedAt/expiresAt để thời gian xem bắt đầu chạy ngay,
+      // không chờ tới lúc người dùng bấm Play trên trang xem.
+      const playSession = await vodService.activatePlay(movieId, matched.bookingUuid);
+      showMissionCompletionToasts(playSession?.missionCompletions);
+
       setTemporaryVodToken(movieId, matched.bookingUuid);
       invalidateVodStatus(movieId);
-      notificationService.success('Xác thực mã vé thành công! Nhấn Play để bắt đầu xem.');
+      notificationService.success('Kích hoạt vé thành công! Thời gian xem đã bắt đầu tính.');
       navigate(getOnlineWatchPath(movieId));
     } catch (err) {
       setError(
