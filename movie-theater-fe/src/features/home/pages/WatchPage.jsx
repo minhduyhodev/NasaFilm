@@ -259,16 +259,8 @@ const WatchPage = () => {
           );
         }
 
-        // Align develop: đã STREAMING → chỉ preview, bấm Play mới activatePlay (tránh đổi token/kick tab khác)
-        if (canWatchOnlineDirectly(status)) {
-          setPreviewReady(true);
-          if (status.expiresAt) {
-            setVodExpiresAt(status.expiresAt);
-          }
-          return;
-        }
-
-        // Đã mua vé (WAITING_FOR_PLAY): cho vào trang xem — lần đầu bấm Play sẽ kích hoạt.
+        // Align develop: Đã vào trang watch là tự động phát (và tự động kích hoạt nếu chưa kích hoạt)
+        // Không bắt người dùng phải bấm nút Play thủ công nữa.
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
@@ -435,6 +427,13 @@ const WatchPage = () => {
       playLockRef.current = false;
     }
   };
+
+  // Tự động gọi handlePlay khi load xong preview
+  useEffect(() => {
+    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamToken) {
+      handlePlay();
+    }
+  }, [previewReady, isPlaying, isStartingPlay, streamData]);
 
   // Chỉ phát sau activatePlay — không dùng movie.streamingUrl công khai (thiếu token)
   const streamUrl = streamData?.streamingUrl || '';
