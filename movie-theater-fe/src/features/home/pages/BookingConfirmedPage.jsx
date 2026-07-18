@@ -102,8 +102,8 @@ export const BookingConfirmedPage = () => {
                     <span className="text-sm font-bold text-white truncate">{movie}</span>
                     {movieRating && (
                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                        movieRating.toUpperCase() === 'P' ? 'bg-emerald-600 text-white'
-                          : movieRating.toUpperCase().includes('T18') ? 'bg-red-600 text-white'
+                        String(movieRating || '').toUpperCase() === 'P' ? 'bg-emerald-600 text-white'
+                          : String(movieRating || '').toUpperCase().includes('T18') ? 'bg-red-600 text-white'
                             : 'bg-amber-600 text-white'
                       }`}
                       >
