@@ -23,6 +23,9 @@ export const applyShowtimeFilters = (list, filters, keys = []) => {
   if (keys.includes('room') && filters.roomUuid) {
     pool = pool.filter((s) => s.cinemaRoomUuid === filters.roomUuid);
   }
+  if (keys.includes('roomName') && filters.roomName) {
+    pool = pool.filter((s) => s.roomName === filters.roomName);
+  }
   if (keys.includes('cinema') && filters.cinemaName) {
     pool = pool.filter((s) => s.cinemaName === filters.cinemaName);
   }

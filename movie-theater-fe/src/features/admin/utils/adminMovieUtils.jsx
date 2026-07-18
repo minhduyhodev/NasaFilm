@@ -41,14 +41,34 @@ export const getDaysInMonth = (year, month) => {
 export const getScreeningModeLabel = (mode) => {
   switch (mode) {
     case 'BOTH':
-      return 'Ca rap & Xem Online';
+      return 'Cả rạp & Xem Online';
     case 'THEATER_ONLY':
-      return 'Chi chieu rap';
+      return 'Chỉ chiếu rạp';
     case 'ONLINE_ONLY':
-      return 'Chi xem Online';
+      return 'Chỉ xem Online';
     case 'NONE':
-      return 'Ngung chieu';
+      return 'Ngừng chiếu';
     default:
       return mode || 'N/A';
+  }
+};
+
+/** Nhãn độ tuổi admin — khớp options form chỉnh sửa phim. */
+export const getAgeRestrictionLabel = (ageRestriction) => {
+  const code = (ageRestriction || '').trim().toUpperCase();
+  if (!code) return '—';
+  switch (code) {
+    case 'P':
+      return 'P — Mọi lứa tuổi';
+    case 'K':
+      return 'K — Dưới 13 (có người giám hộ)';
+    case 'T13':
+      return 'T13 — Từ 13 tuổi';
+    case 'T16':
+      return 'T16 — Từ 16 tuổi';
+    case 'T18':
+      return 'T18 — Từ 18 tuổi';
+    default:
+      return code;
   }
 };

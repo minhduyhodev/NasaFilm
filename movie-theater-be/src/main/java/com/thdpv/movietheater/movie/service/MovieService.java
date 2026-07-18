@@ -1005,16 +1005,19 @@ public class MovieService {
     private ActorSummaryResponse toActorSummaryResponse(Actor actor) {
         UUID countryUuid = null;
         String countryName = null;
+        String countryCode = null;
         if (actor.getCountry() != null) {
             countryUuid = actor.getCountry().getUuid();
             countryName = actor.getCountry().getName();
+            countryCode = actor.getCountry().getCode();
         }
         return new ActorSummaryResponse(
                 actor.getUuid(),
                 actor.getFullName(),
                 actor.getAvatarUrl(),
                 countryUuid,
-                countryName);
+                countryName,
+                countryCode);
     }
 
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {

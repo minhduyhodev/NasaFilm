@@ -22,7 +22,8 @@ import {
   StaffTicketScanResult,
 } from './staff/StaffTicketCheckInPanel';
 import StaffCheckInSessionHistory from './staff/StaffCheckInSessionHistory';
-import StaffShowtimePicker, { toDateKey } from './staff/StaffShowtimePicker';
+import StaffShowtimePicker from './staff/StaffShowtimePicker';
+import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
 import './StaffMissionControlPage.css';
 
 const formatShowtime = (iso) => {
@@ -71,7 +72,7 @@ const StaffMissionControlPage = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [selectedUuid, setSelectedUuid] = useState('');
   const [filters, setFilters] = useState({
-    cinema: '', room: '', date: '', timeSlot: '', movie: '',
+    cinema: '', room: '', date: '', timeSlot: '', movieUuid: '',
   });
   const [stats, setStats] = useState(null);
   const [seatMap, setSeatMap] = useState(null);
@@ -213,24 +214,19 @@ const StaffMissionControlPage = () => {
 
   const selectedShowtime = showtimes.find((s) => s.showtimeUuid === selectedUuid);
 
-  const filteredShowtimes = useMemo(() => showtimes.filter((s) => {
-    if (filters.cinema && s.cinemaName !== filters.cinema) return false;
-    if (filters.room && s.roomName !== filters.room) return false;
-    if (filters.date && toDateKey(s.startTime) !== filters.date) return false;
-    if (filters.timeSlot) {
-      const time = new Date(s.startTime).toLocaleTimeString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      if (time !== filters.timeSlot) return false;
-    }
-    const movieTerm = filters.movie.trim().toLowerCase();
-    if (movieTerm && !`${s.movieTitle || ''}`.toLowerCase().includes(movieTerm)) return false;
-    return true;
-  }), [showtimes, filters]);
-
-  const hasActiveFilters = Boolean(
-    filters.cinema || filters.room || filters.date || filters.timeSlot || filters.movie.trim(),
+  const filteredShowtimes = useMemo(
+    () => applyShowtimeFilters(
+      showtimes,
+      {
+        cinemaName: filters.cinema,
+        roomName: filters.room,
+        date: filters.date,
+        timeSlot: filters.timeSlot,
+        movieUuid: filters.movieUuid,
+      },
+      ['cinema', 'roomName', 'date', 'timeSlot', 'movieUuid'],
+    ),
+    [showtimes, filters],
   );
 
   const showtimesWithSales = showtimes.filter((s) => (s.soldSeats ?? 0) > 0).length;
@@ -242,23 +238,19 @@ const StaffMissionControlPage = () => {
         next.room = '';
         next.date = '';
         next.timeSlot = '';
-        next.movie = '';
+        next.movieUuid = '';
       } else if (key === 'room') {
         next.date = '';
         next.timeSlot = '';
-        next.movie = '';
+        next.movieUuid = '';
       } else if (key === 'date') {
         next.timeSlot = '';
-        next.movie = '';
+        next.movieUuid = '';
       } else if (key === 'timeSlot') {
-        next.movie = '';
+        next.movieUuid = '';
       }
       return next;
     });
-  }, []);
-
-  const handleClearFilters = useCallback(() => {
-    setFilters({ cinema: '', room: '', date: '', timeSlot: '', movie: '' });
   }, []);
 
   return (
@@ -287,8 +279,6 @@ const StaffMissionControlPage = () => {
               showtimesWithSales={showtimesWithSales}
               filters={filters}
               onFilterChange={handleFilterChange}
-              onClearFilters={handleClearFilters}
-              hasActiveFilters={hasActiveFilters}
               ShowtimePoster={ShowtimePoster}
             />
 

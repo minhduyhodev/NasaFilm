@@ -314,14 +314,18 @@
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.5rem;
   max-height: 140px;
+  overflow-x: hidden;
   overflow-y: auto;
+  background: rgba(15, 15, 18, 0.92);
 }
 
 .staff-control__search-result {
   display: flex;
   width: 100%;
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.625rem 0.75rem;
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -329,12 +333,44 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+  font-family: var(--font-body, 'Be Vietnam Pro', sans-serif);
   transition: background 0.22s ease, transform 0.22s ease;
+  box-sizing: border-box;
+}
+
+.staff-control__search-result:last-child {
+  border-bottom: none;
 }
 
 .staff-control__search-result:hover {
   background: rgba(255, 255, 255, 0.04);
   transform: translateX(2px);
+}
+
+.staff-control__search-result-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.staff-control__search-result-name {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  font-family: var(--font-body, 'Be Vietnam Pro', sans-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-control__search-result-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-family: var(--font-body, 'Be Vietnam Pro', sans-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .staff-control__link-btn {
@@ -347,6 +383,19 @@
   font-size: 0.65rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.staff-control__link-btn--static {
+  cursor: default;
+  margin: 0.15rem 0 0;
+  pointer-events: none;
+}
+
+.staff-control__quick-register {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .staff-control__quick-form {
@@ -1371,10 +1420,23 @@
 }
 
 .counter-pos .staff-control__input {
+  font-family: var(--font-body, 'Be Vietnam Pro', sans-serif);
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease,
     background 0.25s ease;
+}
+
+/* Chrome autofill làm nền trắng khi gõ Gmail — ép về theme tối */
+.counter-pos .staff-control__input:-webkit-autofill,
+.counter-pos .staff-control__input:-webkit-autofill:hover,
+.counter-pos .staff-control__input:-webkit-autofill:focus,
+.counter-pos .staff-control__input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #0f0f12 inset !important;
+  transition: background-color 99999s ease-out;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .counter-pos .staff-control__input:hover {
@@ -1382,8 +1444,15 @@
 }
 
 .counter-pos .staff-control__input:focus {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  border-color: rgba(225, 29, 72, 0.5);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+
+.counter-pos .staff-control__input:-webkit-autofill:focus {
+  border-color: rgba(225, 29, 72, 0.5) !important;
+  box-shadow:
+    0 0 0 1000px #0f0f12 inset,
+    0 0 0 3px rgba(225, 29, 72, 0.12) !important;
 }
 
 .counter-pos .staff-control__link-btn {
@@ -1501,70 +1570,102 @@
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* Sidebar: b? thanh cu?n ngo?i ? ch? list b?p n??c cu?n n?i b? */
+/* Sidebar POS: không cuộn — 3 panel hiện đủ nội dung */
 .counter-pos .staff-control__sidebar {
-  overflow: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  max-height: none !important;
+  position: static !important;
+  align-items: stretch;
+  overflow: visible !important;
+  box-sizing: border-box;
 }
 
-.counter-pos .staff-control__sidebar::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+.counter-pos .staff-control__sidebar > .staff-control__panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-self: stretch;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+  max-height: none !important;
 }
 
-.counter-pos .staff-control__sidebar > .staff-control__panel:first-of-type {
-  flex: 1 1 auto;
-  min-height: 0;
+.counter-pos .staff-control__panel--combos {
   display: flex;
   flex-direction: column;
+  overflow: visible !important;
+  max-height: none !important;
 }
 
+/* Hiện ~4 combo; phần còn lại cuộn — thanh kéo chỉ hiện khi hover */
+.counter-pos .staff-control__panel--combos .staff-control__combo-list,
 .counter-pos .staff-control__combo-list {
-  flex: 1 1 auto;
+  flex: none !important;
   min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-  /* Gi? ch? thanh d?c ? ?n thumb, hi?n khi hover */
+  max-height: 14.5rem !important; /* ~4 hàng poster */
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list::-webkit-scrollbar,
 .counter-pos .staff-control__combo-list::-webkit-scrollbar {
   width: 5px;
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list::-webkit-scrollbar-track,
 .counter-pos .staff-control__combo-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list::-webkit-scrollbar-thumb,
 .counter-pos .staff-control__combo-list::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 999px;
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list:hover,
 .counter-pos .staff-control__combo-list:hover {
-  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list:hover::-webkit-scrollbar-thumb,
 .counter-pos .staff-control__combo-list:hover::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(148, 163, 184, 0.5);
 }
 
+.counter-pos .staff-control__panel--combos .staff-control__combo-list:hover::-webkit-scrollbar-thumb:hover,
 .counter-pos .staff-control__combo-list:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.65);
+  background: rgba(148, 163, 184, 0.7);
 }
 
-@media (max-width: 960px) {
-  .counter-pos .staff-control__sidebar {
-    overflow: visible;
-    max-height: none;
-  }
+.counter-pos .staff-control__panel--customer,
+.counter-pos .staff-control__panel--payment {
+  overflow: visible !important;
+  max-height: none !important;
+}
 
-  .counter-pos .staff-control__combo-list {
-    max-height: 220px;
-  }
+.counter-pos .staff-control__search-results {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.counter-pos .staff-control__checkin-form,
+.counter-pos .staff-control__quick-form,
+.counter-pos .staff-control__quick-register {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.counter-pos .staff-control__quick-form .staff-control__input,
+.counter-pos .staff-control__checkin-form .staff-control__input,
+.counter-pos .staff-control__btn {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @media (prefers-reduced-motion: reduce) {

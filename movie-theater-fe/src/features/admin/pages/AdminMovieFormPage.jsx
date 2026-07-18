@@ -660,16 +660,23 @@ const AdminMovieFormPage = () => {
             <div className="amf-card">
               <h3 className="amf-card__title">Dàn diễn viên</h3>
               <div className="amf-cast-box">
-                <button type="button" className="amf-cast-add" onClick={handleAddActorToCast}>
-                  <Plus className="w-3.5 h-3.5" /> Thêm vai
-                </button>
+                {!isEditing && (
+                  <button type="button" className="amf-cast-add" onClick={handleAddActorToCast}>
+                    <Plus className="w-3.5 h-3.5" /> Thêm vai
+                  </button>
+                )}
 
                 {formData.actors.length === 0 ? (
-                  <div className="amf-cast-placeholders">
+                  <button
+                    type="button"
+                    className="amf-cast-placeholders"
+                    onClick={handleAddActorToCast}
+                    aria-label="Thêm diễn viên vào dàn cast"
+                  >
                     <span className="amf-cast-placeholder" />
                     <span className="amf-cast-placeholder" />
                     <span className="amf-cast-placeholder" />
-                  </div>
+                  </button>
                 ) : (
                   <div className="amf-cast-list custom-scrollbar">
                     {formData.actors.map((cast, index) => {
@@ -709,6 +716,16 @@ const AdminMovieFormPage = () => {
                         </div>
                       );
                     })}
+                    {isEditing && (
+                      <button
+                        type="button"
+                        className="amf-cast-add amf-cast-add--inline"
+                        onClick={handleAddActorToCast}
+                        aria-label="Thêm vai diễn"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -30,8 +30,10 @@ import {
   formatAdminDateRange,
   formatAdminDateTime,
   getCampaignStatusLabel,
+  getCampaignPosterSrc,
   getConditionLabel,
   getMissionDisplayTitle,
+  getMissionPosterSrc,
   getRecurrenceLabel,
   resolveCampaignTitle,
 } from '../utils/missionAdminUtils';
@@ -81,26 +83,24 @@ const TemplateRow = ({
     ? Math.min(100, Math.round((completedCount / enrolledCount) * 1000) / 10)
     : 0;
   const deletedLabel = isDeletedView && item.deletedAt ? formatAdminDateTime(item.deletedAt) : null;
-  const initial = (displayTitle || '?').trim().charAt(0).toUpperCase();
+  const posterSrc = getMissionPosterSrc(item);
 
   return (
     <article
       className={`mc-card ${isDeletedView ? 'is-deleted' : item.active ? 'is-on' : 'is-off'}`}
     >
-      <div className="mc-card__thumb" aria-hidden="true">
-        <span>{initial}</span>
+      <div className="mc-card__media">
+        <img src={posterSrc} alt="" className="mc-card__media-img" loading="lazy" />
+        <div className="mc-card__points">
+          <strong>+{item.rewardPoints ?? 0}</strong>
+          <span>điểm</span>
+        </div>
       </div>
 
       <div className="mc-card__body">
-        <div className="mc-card__top">
-          <div className="mc-card__copy">
-            <h3 className="mc-card__title">{displayTitle}</h3>
-            <p className="mc-card__desc">{item.description}</p>
-          </div>
-          <div className="mc-card__points">
-            <strong>+{item.rewardPoints ?? 0}</strong>
-            <span>điểm</span>
-          </div>
+        <div className="mc-card__copy">
+          <h3 className="mc-card__title">{displayTitle}</h3>
+          <p className="mc-card__desc">{item.description}</p>
         </div>
 
         <div className="mc-card__meta">
@@ -119,76 +119,66 @@ const TemplateRow = ({
 
         {!isDeletedView && (
           <div className="mc-card__progress">
+            <span className="mc-card__progress-pct">{completionPct}%</span>
             <div className="mc-card__progress-track">
               <div
                 className="mc-card__progress-fill"
                 style={{ width: `${completionPct}%` }}
               />
             </div>
-            <span className="mc-card__progress-pct">{completionPct}%</span>
-          </div>
-        )}
-
-        <div className="mc-card__foot">
-          <div className="mc-card__badges">
-            {!isDeletedView && (
-              <span className={`mc-status ${item.active ? 'is-live' : 'is-off'}`}>
-                {item.active ? 'Đang bật' : 'Đã tắt'}
-              </span>
-            )}
-            <span className="mc-status is-muted">
+            <span className="mc-card__progress-hint">
               {completedCount}/{enrolledCount} hoàn thành
             </span>
           </div>
+        )}
 
-          <div className="mc-card__actions">
-            {isDeletedView ? (
+        <div className="mc-card__actions">
+          {isDeletedView ? (
+            <button
+              type="button"
+              className="mc-btn mc-btn--ghost"
+              onClick={() => onRestore(item)}
+              disabled={isRestoring}
+            >
+              <RotateCcw size={14} />
+              {isRestoring ? 'Đang khôi phục...' : 'Khôi phục'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`mc-btn ${item.active ? 'mc-btn--live' : 'mc-btn--ghost'}`}
+                onClick={() => onToggle(item)}
+                disabled={isToggling}
+                aria-pressed={item.active}
+              >
+                <Power size={12} />
+                {isToggling ? 'Đang lưu...' : item.active ? 'Tắt' : 'Bật'}
+              </button>
+              <button type="button" className="mc-btn" onClick={() => onEdit(item)}>
+                <Pencil size={14} />
+                Sửa
+              </button>
               <button
                 type="button"
                 className="mc-btn mc-btn--ghost"
-                onClick={() => onRestore(item)}
-                disabled={isRestoring}
+                onClick={() => onDuplicate(item)}
+                disabled={isDuplicating}
               >
-                <RotateCcw size={14} />
-                {isRestoring ? 'Đang khôi phục...' : 'Khôi phục'}
+                <Copy size={14} />
+                {isDuplicating ? '...' : 'Sao chép'}
               </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={`mc-btn ${item.active ? 'mc-btn--live' : 'mc-btn--ghost'}`}
-                  onClick={() => onToggle(item)}
-                  disabled={isToggling}
-                  aria-pressed={item.active}
-                >
-                  <Power size={12} />
-                  {isToggling ? 'Đang lưu...' : item.active ? 'Tắt' : 'Bật'}
-                </button>
-                <button type="button" className="mc-btn" onClick={() => onEdit(item)}>
-                  <Pencil size={14} />
-                  Sửa
-                </button>
-                <button
-                  type="button"
-                  className="mc-btn mc-btn--ghost"
-                  onClick={() => onDuplicate(item)}
-                  disabled={isDuplicating}
-                >
-                  <Copy size={14} />
-                  {isDuplicating ? '...' : 'Sao'}
-                </button>
-                <button
-                  type="button"
-                  className="mc-btn mc-btn--danger"
-                  onClick={() => onDelete(item)}
-                  disabled={isDeleting}
-                >
-                  <Trash2 size={14} />
-                  {isDeleting ? '...' : 'Xóa'}
-                </button>
-              </>
-            )}
-          </div>
+              <button
+                type="button"
+                className="mc-btn mc-btn--danger"
+                onClick={() => onDelete(item)}
+                disabled={isDeleting}
+              >
+                <Trash2 size={14} />
+                {isDeleting ? '...' : 'Xóa'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </article>
@@ -198,22 +188,21 @@ const TemplateRow = ({
 const CampaignRow = ({ item, onEdit, onArchive, onDelete, isArchiving, isDeleting }) => {
   const canDelete = (item.templateCount ?? 0) === 0;
   const canArchive = item.status !== 'ARCHIVED';
-  const initial = (item.title || '?').trim().charAt(0).toUpperCase();
   const statusVariant =
     item.status === 'ACTIVE' ? 'success' : item.status === 'ARCHIVED' ? 'muted' : 'info';
 
   return (
     <article className={`mc-card mc-card--campaign is-${(item.status || 'DRAFT').toLowerCase()}`}>
-      <div className="mc-card__thumb mc-card__thumb--campaign" aria-hidden="true">
-        <span>{initial}</span>
+      <div className="mc-card__media mc-card__media--campaign">
+        <img src={getCampaignPosterSrc()} alt="" className="mc-card__media-img" loading="lazy" />
+        <div className="mc-card__points mc-card__points--status">
+          <StatusBadge variant={statusVariant}>{getCampaignStatusLabel(item.status)}</StatusBadge>
+        </div>
       </div>
       <div className="mc-card__body">
-        <div className="mc-card__top">
-          <div className="mc-card__copy">
-            <h3 className="mc-card__title">{item.title}</h3>
-            <p className="mc-card__desc">{item.description}</p>
-          </div>
-          <StatusBadge variant={statusVariant}>{getCampaignStatusLabel(item.status)}</StatusBadge>
+        <div className="mc-card__copy">
+          <h3 className="mc-card__title">{item.title}</h3>
+          <p className="mc-card__desc">{item.description}</p>
         </div>
         <div className="mc-card__meta">
           <span className="mc-chip mc-chip--amber">
@@ -222,39 +211,36 @@ const CampaignRow = ({ item, onEdit, onArchive, onDelete, isArchiving, isDeletin
           </span>
           <span className="mc-chip mc-chip--muted">{item.templateCount ?? 0} nhiệm vụ</span>
         </div>
-        <div className="mc-card__foot">
-          <div className="mc-card__badges" />
-          <div className="mc-card__actions">
-            <button type="button" className="mc-btn" onClick={() => onEdit(item)}>
-              <Pencil size={14} />
-              Sửa
-            </button>
-            {canArchive && (
-              <button
-                type="button"
-                className="mc-btn mc-btn--ghost"
-                onClick={() => onArchive(item)}
-                disabled={isArchiving}
-              >
-                <Archive size={14} />
-                {isArchiving ? '...' : 'Lưu trữ'}
-              </button>
-            )}
+        <div className="mc-card__actions">
+          <button type="button" className="mc-btn" onClick={() => onEdit(item)}>
+            <Pencil size={14} />
+            Sửa
+          </button>
+          {canArchive && (
             <button
               type="button"
-              className="mc-btn mc-btn--danger"
-              onClick={() => onDelete(item)}
-              disabled={!canDelete || isDeleting}
-              title={
-                canDelete
-                  ? 'Xóa vĩnh viễn chiến dịch'
-                  : 'Gỡ nhiệm vụ khỏi chiến dịch trước khi xóa'
-              }
+              className="mc-btn mc-btn--ghost"
+              onClick={() => onArchive(item)}
+              disabled={isArchiving}
             >
-              <Trash2 size={14} />
-              {isDeleting ? '...' : 'Xóa'}
+              <Archive size={14} />
+              {isArchiving ? '...' : 'Lưu trữ'}
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            className="mc-btn mc-btn--danger"
+            onClick={() => onDelete(item)}
+            disabled={!canDelete || isDeleting}
+            title={
+              canDelete
+                ? 'Xóa vĩnh viễn chiến dịch'
+                : 'Gỡ nhiệm vụ khỏi chiến dịch trước khi xóa'
+            }
+          >
+            <Trash2 size={14} />
+            {isDeleting ? '...' : 'Xóa'}
+          </button>
         </div>
       </div>
     </article>
@@ -308,6 +294,7 @@ const MissionsPage = () => {
         analyticsData,
         campaignOptionsData,
         formTemplateData,
+        deletedFormTemplateData,
       ] = await Promise.all([
         adminMissionService.getTemplates({
           deleted: templateView === 'deleted',
@@ -323,6 +310,7 @@ const MissionsPage = () => {
         adminMissionService.getAnalytics(),
         adminMissionService.getCampaigns({ page: 0, size: 100 }),
         adminMissionService.getTemplates({ deleted: false, page: 0, size: 500 }),
+        adminMissionService.getTemplates({ deleted: true, page: 0, size: 500 }),
       ]);
       setTemplates(templateData.items);
       setTemplateTotal(templateData.total);
@@ -330,7 +318,13 @@ const MissionsPage = () => {
       setCampaignTotal(campaignData.total);
       setAnalytics(analyticsData);
       setCampaignOptions(campaignOptionsData.items);
-      setFormTemplates(formTemplateData.items);
+      const activeCodes = formTemplateData.items || [];
+      const deletedCodes = deletedFormTemplateData.items || [];
+      const byCode = new Map();
+      [...activeCodes, ...deletedCodes].forEach((item) => {
+        if (item?.code) byCode.set(String(item.code).toUpperCase(), item);
+      });
+      setFormTemplates([...byCode.values()]);
     } catch (error) {
       const message = error.message || 'Không thể tải dữ liệu nhiệm vụ.';
       setLoadError(message);
@@ -741,6 +735,7 @@ const MissionsPage = () => {
       <AdminModal
         open={templateModal.open}
         title={templateModal.template ? 'Sửa nhiệm vụ' : 'Thêm nhiệm vụ'}
+        size="xl"
         onClose={() => setTemplateModal({ open: false, template: null })}
       >
         <MissionFormPanel
@@ -758,6 +753,7 @@ const MissionsPage = () => {
       <AdminModal
         open={campaignModal.open}
         title={campaignModal.campaign ? 'Sửa chiến dịch' : 'Thêm chiến dịch'}
+        size="lg"
         onClose={() => setCampaignModal({ open: false, campaign: null })}
       >
         <MissionCampaignFormPanel

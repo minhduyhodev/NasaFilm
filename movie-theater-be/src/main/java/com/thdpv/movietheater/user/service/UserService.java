@@ -515,7 +515,8 @@ public class UserService {
         user.setPhoneNumber(phoneNumber);
         user.setPassword(passwordEncoder.encode(temporaryPassword));
         user.setAuthProvider(AuthProvider.LOCAL);
-        user.setStatus(UserStatus.ACTIVE);
+        // INACTIVE: khách phải kích hoạt qua email (đặt mật khẩu mới) trước khi đăng nhập web
+        user.setStatus(UserStatus.INACTIVE);
         user.setCreatedBy(staffId);
         user.setUpdatedBy(staffId);
         user = userRepository.save(user);

@@ -154,6 +154,7 @@ public class DataSeeder implements CommandLineRunner {
         healMovieMediaUrlColumns();
         referenceMetadataSeeder.healCatalogEncoding();
         healMojibakeMovies();
+        healMojibakeActors();
 
         // These are idempotent (INSERT IF NOT EXISTS) and must always run
         // so that user accounts and their permissions are always up to date,
@@ -787,53 +788,171 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedActors() {
-        List<Map<String, String>> actorsToSeed = null;
+        List<Map<String, String>> actorsToSeed = loadActorsJson();
+        if (actorsToSeed == null || actorsToSeed.isEmpty()) {
+            return;
+        }
+
+        List<Actor> allActors = actorRepository.findAll();
+        Map<String, Actor> byName = new java.util.HashMap<>();
+        Map<String, Actor> byAvatar = new java.util.HashMap<>();
+        for (Actor actor : allActors) {
+            if (actor.getFullName() != null) {
+                byName.putIfAbsent(actor.getFullName().toLowerCase(java.util.Locale.ROOT), actor);
+            }
+            if (actor.getAvatarUrl() != null && !actor.getAvatarUrl().isBlank()) {
+                byAvatar.putIfAbsent(actor.getAvatarUrl(), actor);
+            }
+        }
+
+        for (Map<String, String> actorData : actorsToSeed) {
+            String fullName = actorData.get("fullName");
+            String avatarUrl = actorData.get("avatarUrl");
+            String countryName = actorData.get("countryName");
+
+            if (fullName == null || MojibakeUtils.looksCorrupt(fullName)) {
+                continue;
+            }
+
+            Actor existing = byName.get(fullName.toLowerCase(java.util.Locale.ROOT));
+            if (existing == null && avatarUrl != null && !avatarUrl.isBlank()) {
+                existing = byAvatar.get(avatarUrl);
+            }
+
+            Country country = null;
+            if (countryName != null) {
+                country = countryRepository.findByNameIgnoreCase(countryName).orElse(null);
+            }
+
+            if (existing != null) {
+                boolean dirty = false;
+                if (!fullName.equals(existing.getFullName())) {
+                    existing.setFullName(fullName);
+                    dirty = true;
+                }
+                if (avatarUrl != null && !avatarUrl.isBlank()
+                        && (existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank())) {
+                    existing.setAvatarUrl(avatarUrl);
+                    dirty = true;
+                }
+                if (country != null && existing.getCountry() == null) {
+                    existing.setCountry(country);
+                    dirty = true;
+                }
+                if (dirty) {
+                    actorRepository.save(existing);
+                    logger.info("Synced actor from JSON: {}", fullName);
+                }
+            } else {
+                Actor actor = new Actor();
+                actor.setFullName(fullName);
+                actor.setAvatarUrl(avatarUrl);
+                actor.setCountry(country);
+                actorRepository.save(actor);
+                byName.put(fullName.toLowerCase(java.util.Locale.ROOT), actor);
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    byAvatar.put(avatarUrl, actor);
+                }
+                logger.info("Seeded actor from JSON: {}", fullName);
+            }
+        }
+    }
+
+    private List<Map<String, String>> loadActorsJson() {
         try {
             Resource resource = resourceLoader.getResource("classpath:data/actors.json");
-            if (resource.exists()) {
-                try (InputStream is = resource.getInputStream()) {
-                    actorsToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, String>>>() {
-                    });
-                }
+            if (!resource.exists()) {
+                return List.of();
+            }
+            try (InputStream is = resource.getInputStream()) {
+                return objectMapper.readValue(is, new TypeReference<List<Map<String, String>>>() {
+                });
             }
         } catch (Exception e) {
             logger.error("Failed to load actors.json", e);
+            return List.of();
         }
+    }
 
-        if (actorsToSeed != null) {
-            for (Map<String, String> actorData : actorsToSeed) {
-                String fullName = actorData.get("fullName");
-                String avatarUrl = actorData.get("avatarUrl");
-                String countryName = actorData.get("countryName");
-                String uuidStr = actorData.get("uuid");
-
-                if (fullName == null)
-                    continue;
-
-                boolean exists = actorRepository.existsByFullNameIgnoreCase(fullName);
-
-                if (!exists) {
-                    Actor actor = new Actor();
-                    actor.setFullName(fullName);
-                    actor.setAvatarUrl(avatarUrl);
-                    if (countryName != null) {
-                        Country country = countryRepository.findByNameIgnoreCase(countryName)
-                                .orElse(null);
-                        actor.setCountry(country);
+    /**
+     * Sửa tên diễn viên lỗi font (vd. {@code PhÆ°Æ¡ng Anh ĐÃ o} → {@code Phương Anh Đào}).
+     */
+    private void healMojibakeActors() {
+        try {
+            int healed = 0;
+            int merged = 0;
+            List<Actor> all = actorRepository.findAll();
+            List<String> goodNames = new java.util.ArrayList<>(all.stream()
+                    .map(Actor::getFullName)
+                    .filter(n -> n != null && !MojibakeUtils.looksCorrupt(n))
+                    .toList());
+            Map<String, String> avatarToCanonical = new java.util.HashMap<>();
+            for (Map<String, String> row : loadActorsJson()) {
+                String name = row.get("fullName");
+                String avatar = row.get("avatarUrl");
+                if (name != null && !MojibakeUtils.looksCorrupt(name)) {
+                    goodNames.add(name);
+                    if (avatar != null && !avatar.isBlank()) {
+                        avatarToCanonical.put(avatar, name);
                     }
-                    actorRepository.save(actor);
-                    logger.info("Seeded actor from JSON: {}", fullName);
-                } else if (avatarUrl != null && !avatarUrl.isBlank()) {
-                    actorRepository.findByFullNameIgnoreCase(fullName).ifPresent(existing -> {
-                        if (existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank()) {
-                            existing.setAvatarUrl(avatarUrl);
-                            actorRepository.save(existing);
-                            logger.info("Backfilled actor avatar from JSON: {}", fullName);
-                        }
-                    });
                 }
             }
+
+            for (Actor actor : all) {
+                String name = actor.getFullName();
+                if (!MojibakeUtils.looksCorrupt(name)) {
+                    continue;
+                }
+
+                String fixed = MojibakeUtils.tryFix(name);
+                if (fixed == null || fixed.equals(name)) {
+                    fixed = MojibakeUtils.matchCanonical(name, goodNames);
+                }
+                if ((fixed == null || fixed.equals(name))
+                        && actor.getAvatarUrl() != null
+                        && !actor.getAvatarUrl().isBlank()) {
+                    fixed = avatarToCanonical.get(actor.getAvatarUrl());
+                }
+                if (fixed == null || fixed.isBlank() || fixed.equals(name)) {
+                    logger.warn("Skip corrupt actor (no canonical match): '{}'", name);
+                    continue;
+                }
+
+                Optional<Actor> existing = actorRepository.findByFullNameIgnoreCase(fixed);
+                if (existing.isPresent() && !existing.get().getUuid().equals(actor.getUuid())) {
+                    mergeActorInto(actor.getUuid(), existing.get().getUuid());
+                    actorRepository.delete(actor);
+                    merged++;
+                    logger.info("Merged corrupt actor '{}' into '{}'", name, fixed);
+                } else {
+                    actor.setFullName(fixed);
+                    actorRepository.save(actor);
+                    healed++;
+                    logger.info("Renamed mojibake actor '{}' -> '{}'", name, fixed);
+                }
+            }
+            if (healed > 0 || merged > 0) {
+                logger.info("Healed corrupt actors: renamed={}, merged={}", healed, merged);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to heal mojibake actors", e);
         }
+    }
+
+    private void mergeActorInto(UUID fromActorUuid, UUID toActorUuid) {
+        jdbcTemplate.update("""
+                DELETE FROM movie_actor ma
+                WHERE ma.actor_uuid = ?
+                  AND EXISTS (
+                      SELECT 1 FROM movie_actor ok
+                      WHERE ok.movie_uuid = ma.movie_uuid
+                        AND ok.actor_uuid = ?
+                        AND COALESCE(ok.character_name, '') = COALESCE(ma.character_name, '')
+                  )
+                """, fromActorUuid, toActorUuid);
+        jdbcTemplate.update(
+                "UPDATE movie_actor SET actor_uuid = ? WHERE actor_uuid = ?",
+                toActorUuid, fromActorUuid);
     }
 
     private void seedMovies() {

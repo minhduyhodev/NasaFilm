@@ -14,5 +14,6 @@ export { default as AdminTableShell } from './AdminTableShell';
 export {
   AdminDatePicker,
   AdminDateTimePicker,
+  AdminTimePicker,
   AdminMonthCalendar,
 } from './calendar';

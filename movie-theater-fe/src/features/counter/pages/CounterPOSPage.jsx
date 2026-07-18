@@ -88,7 +88,6 @@ export default function CounterPOSPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isWalkIn, setIsWalkIn] = useState(false);
-  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ fullName: '', email: '', phoneNumber: '' });
 
   // Promotion
@@ -358,16 +357,26 @@ export default function CounterPOSPage() {
     }
     try {
       const res = await counterService.createCustomer(newCustomer);
+      const existing = Boolean(res?.existingAccount);
       setSelectedCustomer({
         id: res.id,
         fullName: res.fullName,
         email: res.email,
-        phoneNumber: res.phoneNumber
+        phoneNumber: res.phoneNumber,
       });
+      setCustomerSearch(res.email || '');
+      setSearchResults([]);
       setIsWalkIn(false);
-      setShowQuickAddCustomer(false);
       setNewCustomer({ fullName: '', email: '', phoneNumber: '' });
-      notificationService.success('Đăng ký khách hàng thành công');
+      if (existing) {
+        notificationService.warning(
+          res.message || 'Email đã tồn tại — đã gán giao dịch cho tài khoản có sẵn (không tạo mới).',
+        );
+      } else {
+        notificationService.success(
+          res.message || 'Đăng ký khách hàng thành công. Tài khoản đã lưu vào hệ thống.',
+        );
+      }
     } catch (err) {
       notificationService.error(err.message || 'Lỗi đăng ký khách hàng');
     }
@@ -665,7 +674,7 @@ export default function CounterPOSPage() {
 
         <div className="staff-control__sidebar">
 
-          <aside className="staff-control__panel">
+          <aside className="staff-control__panel staff-control__panel--combos">
             <h2 className="staff-control__panel-title">
               <Popcorn className="w-3.5 h-3.5" />
               Bắp nước & Phụ kiện
@@ -708,7 +717,7 @@ export default function CounterPOSPage() {
             </div>
           </aside>
 
-          <aside className="staff-control__panel">
+          <aside className="staff-control__panel staff-control__panel--customer">
             <div className="staff-control__panel-head">
               <h2 className="staff-control__panel-title">
                 <User className="w-3.5 h-3.5" />
@@ -724,7 +733,17 @@ export default function CounterPOSPage() {
               <div className="staff-control__checkin-form">
                 <div className="staff-control__search-wrap">
                   <Search className="w-4 h-4" />
-                  <input type="text" className="staff-control__input" value={customerSearch} onChange={handleCustomerSearch} placeholder="Tìm theo Email..." />
+                  <input
+                    type="text"
+                    className="staff-control__input"
+                    value={customerSearch}
+                    onChange={handleCustomerSearch}
+                    placeholder="Tìm tên, SĐT hoặc email..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    name="counter-customer-search"
+                  />
                 </div>
 
                 {searchResults.length > 0 && (
@@ -740,11 +759,13 @@ export default function CounterPOSPage() {
                         }}
                         className="staff-control__search-result"
                       >
-                        <div>
-                          <p className="font-semibold text-white">{cust.fullName}</p>
-                          <p className="text-[0.65rem] text-slate-500">{cust.phoneNumber} · {cust.email}</p>
+                        <div className="staff-control__search-result-text">
+                          <p className="staff-control__search-result-name">{cust.fullName}</p>
+                          <p className="staff-control__search-result-meta">
+                            {[cust.phoneNumber, cust.email].filter(Boolean).join(' · ')}
+                          </p>
                         </div>
-                        {selectedCustomer?.id === cust.id && <Check className="w-4 h-4 text-emerald-400" />}
+                        {selectedCustomer?.id === cust.id && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
                       </button>
                     ))}
                   </div>
@@ -767,18 +788,17 @@ export default function CounterPOSPage() {
                 )}
 
                 {canCreateCustomer && (
-                  <button type="button" className="staff-control__link-btn" onClick={() => setShowQuickAddCustomer(!showQuickAddCustomer)}>
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Đăng ký nhanh hội viên mới
-                  </button>
-                )}
-
-                {canCreateCustomer && showQuickAddCustomer && (
-                  <div className="staff-control__quick-form">
-                    <input className="staff-control__input" placeholder="Họ và tên..." value={newCustomer.fullName} onChange={(e) => setNewCustomer((p) => ({ ...p, fullName: e.target.value }))} />
-                    <input className="staff-control__input" placeholder="Email..." value={newCustomer.email} onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))} />
-                    <input className="staff-control__input" placeholder="Số điện thoại..." value={newCustomer.phoneNumber} onChange={(e) => setNewCustomer((p) => ({ ...p, phoneNumber: e.target.value }))} />
-                    <button type="button" className="staff-control__btn staff-control__btn--primary w-full" onClick={handleQuickRegisterCustomer}>Hoàn thành đăng ký</button>
+                  <div className="staff-control__quick-register">
+                    <p className="staff-control__link-btn staff-control__link-btn--static">
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Đăng ký nhanh hội viên mới
+                    </p>
+                    <div className="staff-control__quick-form">
+                      <input className="staff-control__input" placeholder="Họ và tên..." value={newCustomer.fullName} onChange={(e) => setNewCustomer((p) => ({ ...p, fullName: e.target.value }))} />
+                      <input className="staff-control__input" placeholder="Email..." value={newCustomer.email} onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))} />
+                      <input className="staff-control__input" placeholder="Số điện thoại..." value={newCustomer.phoneNumber} onChange={(e) => setNewCustomer((p) => ({ ...p, phoneNumber: e.target.value }))} />
+                      <button type="button" className="staff-control__btn staff-control__btn--primary w-full" onClick={handleQuickRegisterCustomer}>Hoàn thành đăng ký</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -792,7 +812,7 @@ export default function CounterPOSPage() {
             )}
           </aside>
 
-          <aside className="staff-control__panel">
+          <aside className="staff-control__panel staff-control__panel--payment">
             <h2 className="staff-control__panel-title">
               <ShoppingCart className="w-3.5 h-3.5" />
               Chi tiết thanh toán

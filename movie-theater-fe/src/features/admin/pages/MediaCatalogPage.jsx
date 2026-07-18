@@ -25,6 +25,7 @@ import {
 } from "../components";
 import "./MediaCatalogPage.css";
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
+import CountryFlag from "../../../shared/components/CountryFlag";
 
 const TABS = [
   { id: "actors", label: "Diễn viên", icon: User },
@@ -333,12 +334,17 @@ const MediaCatalogPage = () => {
           {
             key: "country",
             label: "Quốc tịch",
-            render: (actor) => (
-              <span className="catalog-badge">
-                <Globe className="w-3 h-3 text-gray-400" />
-                {actor.countryName || "Không xác định"}
-              </span>
-            ),
+            render: (actor) => {
+              const code =
+                actor.countryCode ||
+                countriesList.find((c) => c.uuid === actor.countryUuid)?.code;
+              return (
+                <span className="catalog-badge">
+                  <CountryFlag code={code} name={actor.countryName} size={14} />
+                  {actor.countryName || "Không xác định"}
+                </span>
+              );
+            },
           },
         ],
         paginatedActors.map((actor) => ({
@@ -358,7 +364,12 @@ const MediaCatalogPage = () => {
             key: "code",
             label: "Mã",
             className: "w-28",
-            render: (item) => <span className="catalog-code">{item.code}</span>,
+            render: (item) => (
+              <span className="catalog-code catalog-code--with-flag">
+                <CountryFlag code={item.code} name={item.name} size={14} />
+                {item.code}
+              </span>
+            ),
           },
           {
             key: "name",

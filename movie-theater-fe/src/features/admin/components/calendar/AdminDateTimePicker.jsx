@@ -1,10 +1,10 @@
 import AdminDatePicker from './AdminDatePicker';
-import { adminInputClass } from '../adminFormStyles';
+import AdminTimePicker from './AdminTimePicker';
 import { joinDateTimeLocal, splitDateTimeLocal } from './dateUtils';
 import './AdminCalendar.css';
 
 /**
- * Date + time field using AdminDatePicker + styled time input.
+ * Date + time field using AdminDatePicker + AdminTimePicker (24h).
  * Value format matches <input type="datetime-local">: YYYY-MM-DDTHH:mm
  */
 export default function AdminDateTimePicker({
@@ -32,8 +32,15 @@ export default function AdminDateTimePicker({
   };
 
   const setTime = (nextTime) => {
+    if (!nextTime) {
+      if (!date) {
+        onChange?.('');
+        return;
+      }
+      onChange?.(joinDateTimeLocal(date, '00:00'));
+      return;
+    }
     if (!date) {
-      // Keep empty until a date is chosen; still allow typing time after.
       onChange?.(joinDateTimeLocal('', nextTime));
       return;
     }
@@ -59,19 +66,17 @@ export default function AdminDateTimePicker({
           placeholder="Chọn ngày"
           panelAlign="left"
         />
-        <div className="adm-datetime__time">
-          {resolvedTimeLabel ? (
-            <label className="adm-datepicker__label">{resolvedTimeLabel}</label>
-          ) : null}
-          <input
-            type="time"
-            className={`${adminInputClass} adm-datetime__time-input${size === 'sm' ? ' adm-datetime__time-input--sm' : ''}`}
-            value={time}
-            disabled={disabled || !date}
-            required={required}
-            onChange={(e) => setTime(e.target.value)}
-          />
-        </div>
+        <AdminTimePicker
+          label={resolvedTimeLabel}
+          value={time}
+          onChange={setTime}
+          disabled={disabled || !date}
+          clearable={false}
+          size={size}
+          required={required}
+          placeholder="HH:mm"
+          panelAlign="right"
+        />
       </div>
     </div>
   );

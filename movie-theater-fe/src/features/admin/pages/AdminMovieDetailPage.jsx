@@ -1,30 +1,20 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { User, Edit2, Trash2, Loader2, Film } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { User, Edit2, Trash2, Loader2, Film, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
-import { formatDateDisplay, getScreeningModeLabel } from '../utils/adminMovieUtils.jsx';
-import { getMovieStreamingUrl, formatAgeRestrictionBadge } from '../../home/utils/movieUtils';
+import { formatDateDisplay, getScreeningModeLabel, getAgeRestrictionLabel } from '../utils/adminMovieUtils.jsx';
 import { getMovieStatusLabel } from '../utils/statusLabels';
-import {
-  AdminPage,
-  PageHeader,
-  Section,
-  MetadataRow,
-  GhostButton,
-  PrimaryButton,
-  StatusBadge,
-} from '../components';
+import { resolveMediaUrl, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import { AdminPage, GhostButton, PrimaryButton } from '../components';
 import PosterImage from '../../../shared/components/PosterImage';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
-import './AdminMovieFormPage.css';
+import './AdminMovieDetailPage.css';
 
-function movieStatusVariant(status) {
-  const s = (status || '').toUpperCase();
-  if (s === 'NOW_SHOWING' || s === 'SHOWING') return 'success';
-  if (s === 'COMING_SOON' || s === 'UPCOMING') return 'info';
-  if (s === 'ENDED' || s === 'ARCHIVED') return 'muted';
-  return 'warning';
+/** Raw poster URL — cùng nguồn với ảnh poster sắc nét bên trái. */
+function pickPosterRaw(movie) {
+  const fromMedias = movie?.medias?.find((m) => m.mediaType === 'POSTER')?.mediaUrl;
+  return unwrapMediaUrl(fromMedias || movie?.primaryMediaUrl || movie?.posterUrl || '');
 }
 
 const AdminMovieDetailPage = () => {
@@ -51,7 +41,9 @@ const AdminMovieDetailPage = () => {
       }
     };
     loadMovie();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [movieUuid, navigate]);
 
   const handleDelete = async () => {
@@ -80,11 +72,15 @@ const AdminMovieDetailPage = () => {
     }
   };
 
-  const posterUrl = movie?.medias?.find((m) => m.mediaType === 'POSTER')?.mediaUrl;
+  const posterRaw = useMemo(() => pickPosterRaw(movie), [movie]);
+  const bgPosterSrc = useMemo(
+    () => (posterRaw ? resolveMediaUrl(posterRaw, 800) : null),
+    [posterRaw],
+  );
 
   if (isLoading) {
     return (
-      <AdminPage className="amf-page">
+      <AdminPage className="amd-page">
         <div className="adm-loading">
           <Loader2 className="w-4 h-4 animate-spin text-red-500" />
           <p>Đang tải thông tin phim...</p>
@@ -95,148 +91,180 @@ const AdminMovieDetailPage = () => {
 
   if (!movie) return null;
 
+  const statusLabel = getMovieStatusLabel(movie.status);
+  const onlinePrice =
+    movie.onlinePrice != null
+      ? `${Number(movie.onlinePrice).toLocaleString('vi-VN')} VND`
+      : 'Giá mặc định hệ thống';
+
   return (
-    <AdminPage className="amf-page">
-      <PageHeader
-        eyebrow="Quản lý nội dung"
-        title={movie.title}
-        description={[
-          getMovieStatusLabel(movie.status),
-          movie.releaseDate ? formatDateDisplay(movie.releaseDate) : null,
-        ].filter(Boolean).join(' · ')}
-        backTo="/admin/movies"
-      />
+    <AdminPage className="amd-page" softEnter={false}>
+      {bgPosterSrc ? (
+        <div className="amd-bg" aria-hidden>
+          <img
+            className="amd-bg__img"
+            src={bgPosterSrc}
+            alt=""
+            decoding="async"
+            loading="eager"
+          />
+        </div>
+      ) : null}
+      <div className="amd-bg-scrim" aria-hidden />
 
-      <div className="amd-layout">
-        <aside className="amd-aside">
-          {posterUrl ? (
-            <PosterImage
-              src={posterUrl}
-              alt={movie.title}
-              width={400}
-              className="amd-poster"
-            />
-          ) : (
-            <div className="amd-poster amd-poster--empty">
-              <Film className="w-12 h-12" />
-            </div>
-          )}
+      <div className="amd-shell">
+        <nav className="amd-breadcrumb" aria-label="Breadcrumb">
+          <Link to="/admin/movies" className="amd-breadcrumb__link">
+            Movie overview
+          </Link>
+          <ChevronRight className="amd-breadcrumb__sep" aria-hidden />
+          <span className="amd-breadcrumb__current">{movie.title}</span>
+        </nav>
 
-          <div className="amd-aside__actions">
-            <PrimaryButton
-              type="button"
-              className="w-full justify-center py-2.5"
-              onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              Chỉnh sửa
-            </PrimaryButton>
+        <h1 className="amd-title">{movie.title}</h1>
 
-            <GhostButton
-              type="button"
-              className="w-full justify-center py-2.5 text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              {isDeleting ? 'Đang xóa...' : 'Xóa phim'}
-            </GhostButton>
-          </div>
-        </aside>
-
-        <div className="amd-panel space-y-6">
-          <Section title="Thông tin cơ bản">
-            <dl className="amd-meta">
-              <MetadataRow
-                label="Trạng thái"
-                value={
-                  <StatusBadge variant={movieStatusVariant(movie.status)}>
-                    {getMovieStatusLabel(movie.status)}
-                  </StatusBadge>
-                }
+        <div className="amd-layout">
+          <aside className="amd-aside">
+            {posterRaw ? (
+              <PosterImage
+                src={posterRaw}
+                alt={movie.title}
+                width={480}
+                className="amd-poster"
               />
-              <MetadataRow label="Thời lượng" value={`${movie.durationMinutes} phút`} />
-              <MetadataRow label="Độ tuổi" value={formatAgeRestrictionBadge(movie.ageRestriction || 'P')} />
-              <MetadataRow
-                label="Ngày khởi chiếu"
-                value={movie.releaseDate ? formatDateDisplay(movie.releaseDate) : '—'}
-              />
-              <MetadataRow label="Hình thức" value={getScreeningModeLabel(movie.screeningMode)} />
-              <MetadataRow
-                label="Giá vé Online"
-                value={
-                  movie.onlinePrice != null
-                    ? `${Number(movie.onlinePrice).toLocaleString('vi-VN')} VND`
-                    : 'Giá mặc định hệ thống'
-                }
-              />
-              <MetadataRow
-                label="Stream"
-                value={getMovieStreamingUrl(movie) ? 'Sẵn sàng' : 'Chưa tích hợp'}
-              />
-            </dl>
-          </Section>
-
-          <Section title="Mô tả" divided>
-            <p className="amd-desc">
-              {movie.description || 'Chưa có mô tả chi tiết cho phim này.'}
-            </p>
-          </Section>
-
-          <Section title="Phân loại" divided>
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <MetadataRow
-                label="Thể loại"
-                value={movie.genres?.length ? movie.genres.join(', ') : '—'}
-              />
-              <MetadataRow
-                label="Quốc gia"
-                value={movie.countries?.length ? movie.countries.join(', ') : '—'}
-              />
-            </dl>
-          </Section>
-
-          <Section
-            title="Dàn diễn viên"
-            description={movie.actors?.length ? `${movie.actors.length} diễn viên` : undefined}
-            divided
-          >
-            {movie.actors?.length ? (
-              <ul className="amd-cast">
-                {movie.actors.map((actor, idx) => (
-                  <li key={idx} className="amd-cast__item">
-                    <div className="amd-cast__avatar">
-                      {actor.avatarUrl ? (
-                        <img src={actor.avatarUrl} alt={actor.fullName} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-4 h-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="amd-cast__name">
-                        {actor.fullName}
-                        {actor.isMain && (
-                          <span className="ml-2 text-xs text-[var(--adm-text-dim)] font-medium">· Vai chính</span>
-                        )}
-                      </p>
-                      <p className="amd-cast__role">vai {actor.characterName || 'N/A'}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             ) : (
-              <p className="amd-desc">
-                Chưa có thông tin diễn viên.{' '}
-                <GhostButton
-                  type="button"
-                  className="inline px-0 py-0 text-sm"
-                  onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
-                >
-                  Thêm trong form chỉnh sửa
-                </GhostButton>
-              </p>
+              <div className="amd-poster amd-poster--empty">
+                <Film className="w-12 h-12" />
+              </div>
             )}
-          </Section>
+          </aside>
+
+          <div className="amd-panels">
+            <section className="amd-glass">
+              <h2 className="amd-glass__title">Thông tin phim</h2>
+              <dl className="amd-meta">
+                <div className="amd-meta__item">
+                  <dt>Trạng thái</dt>
+                  <dd className="amd-meta__value amd-meta__value--status">{statusLabel}</dd>
+                </div>
+                <div className="amd-meta__item">
+                  <dt>Ngày khởi chiếu</dt>
+                  <dd className="amd-meta__value">
+                    {movie.releaseDate ? formatDateDisplay(movie.releaseDate) : '—'}
+                  </dd>
+                </div>
+                <div className="amd-meta__item">
+                  <dt>Thời lượng</dt>
+                  <dd className="amd-meta__value">
+                    {movie.durationMinutes != null ? `${movie.durationMinutes} phút` : '—'}
+                  </dd>
+                </div>
+                <div className="amd-meta__item">
+                  <dt>Hình thức</dt>
+                  <dd className="amd-meta__value">{getScreeningModeLabel(movie.screeningMode)}</dd>
+                </div>
+                <div className="amd-meta__item">
+                  <dt>Độ tuổi</dt>
+                  <dd className="amd-meta__value amd-meta__value--age">
+                    {getAgeRestrictionLabel(movie.ageRestriction)}
+                  </dd>
+                </div>
+                <div className="amd-meta__item">
+                  <dt>Giá vé online</dt>
+                  <dd className="amd-meta__value amd-meta__value--price">{onlinePrice}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="amd-glass">
+              <h2 className="amd-glass__title">Nội dung</h2>
+              <p className="amd-desc">
+                {movie.description || 'Chưa có mô tả chi tiết cho phim này.'}
+              </p>
+            </section>
+
+            <section className="amd-glass">
+              <h2 className="amd-glass__title">Diễn viên &amp; đoàn làm phim</h2>
+              <dl className="amd-classify">
+                <div className="amd-classify__item">
+                  <dt>Phân loại</dt>
+                  <dd>
+                    {movie.genres?.length ? (
+                      <div className="amd-tags">
+                        {movie.genres.map((g) => (
+                          <span key={g} className="amd-tag">
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </div>
+                <div className="amd-classify__item">
+                  <dt>Quốc gia</dt>
+                  <dd className="amd-meta__value">
+                    {movie.countries?.length ? movie.countries.join(', ') : '—'}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="amd-cast-block">
+                <p className="amd-cast-block__label">Dàn diễn viên</p>
+                {movie.actors?.length ? (
+                  <ul className="amd-cast">
+                    {movie.actors.map((actor, idx) => (
+                      <li key={actor.uuid || idx} className="amd-cast__item">
+                        <div className="amd-cast__avatar">
+                          {actor.avatarUrl ? (
+                            <img
+                              src={actor.avatarUrl}
+                              alt={actor.fullName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="amd-cast__name">
+                            {actor.fullName}
+                            {actor.isMain ? (
+                              <span className="amd-cast__main"> · Vai chính</span>
+                            ) : null}
+                          </p>
+                          <p className="amd-cast__role">vai {actor.characterName || 'N/A'}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="amd-desc amd-desc--muted">Chưa có thông tin diễn viên.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div className="amd-footer">
+          <PrimaryButton
+            type="button"
+            className="amd-btn-edit"
+            onClick={() => navigate(`/admin/movies/${movie.uuid}/edit`)}
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            Chỉnh sửa
+          </PrimaryButton>
+          <GhostButton
+            type="button"
+            className="amd-btn-delete"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {isDeleting ? 'Đang xóa...' : 'Xóa phim'}
+          </GhostButton>
         </div>
       </div>
     </AdminPage>

@@ -51,10 +51,6 @@ public class AccountActivationService {
             User user = userRepository.findByEmailIgnoreCase(email)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-            if (user.getStatus() == UserStatus.ACTIVE) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Tài khoản đã được kích hoạt trước đó");
-            }
-
             String oldPasswordHash = claims.get("pass", String.class);
             if (user.getPassword() == null || !user.getPassword().equals(oldPasswordHash)) {
                 throw new AppException(ErrorCode.TOKEN_INVALID,
@@ -63,6 +59,19 @@ public class AccountActivationService {
 
             if (!passwordEncoder.matches(temporaryPassword, user.getPassword())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Mật khẩu tạm thời không đúng");
+            }
+
+            // ACTIVE + mật khẩu tạm còn khớp: tài khoản tạo từ quầy (bug cũ) — vẫn cho đặt mật khẩu mới
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                user.setPassword(passwordEncoder.encode(newPassword));
+                userRepository.save(user);
+                logger.info("[AccountActivationService] Password set for already-active account: {}", email);
+                return;
+            }
+
+            if (user.getStatus() != UserStatus.INACTIVE && user.getStatus() != UserStatus.PENDING_VERIFICATION) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản không thể kích hoạt với trạng thái hiện tại");
             }
 
             user.setPassword(passwordEncoder.encode(newPassword));

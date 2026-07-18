@@ -7,30 +7,15 @@ import {
   Film,
   MapPin,
   Milestone,
-  Search,
-  X,
 } from 'lucide-react';
 import { CounterSelectDropdown } from '../../../counter/components/CounterSelectDropdown';
-
-const toDateKey = (iso) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
-const toTimeSlot = (iso) => {
-  if (!iso) return '';
-  return new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatDateLabel = (dateKey) => {
-  if (!dateKey) return '';
-  const [y, m, d] = dateKey.split('-');
-  return `${d}/${m}/${y}`;
-};
+import { resolveMediaUrl } from '../../../../shared/utils/mediaUrlUtils';
+import {
+  applyShowtimeFilters,
+  formatDateLabel,
+  toDateKey,
+  toTimeSlot,
+} from '../../../../shared/utils/showtimeFilterUtils';
 
 const formatShowtimeParts = (iso) => {
   if (!iso) return { time: '—', date: '—' };
@@ -41,22 +26,13 @@ const formatShowtimeParts = (iso) => {
   };
 };
 
-const applyFilters = (list, filters, keys) => {
-  let pool = list;
-  if (keys.includes('cinema') && filters.cinema) {
-    pool = pool.filter((s) => s.cinemaName === filters.cinema);
-  }
-  if (keys.includes('room') && filters.room) {
-    pool = pool.filter((s) => s.roomName === filters.room);
-  }
-  if (keys.includes('date') && filters.date) {
-    pool = pool.filter((s) => toDateKey(s.startTime) === filters.date);
-  }
-  if (keys.includes('timeSlot') && filters.timeSlot) {
-    pool = pool.filter((s) => toTimeSlot(s.startTime) === filters.timeSlot);
-  }
-  return pool;
-};
+const staffFilterShape = (filters) => ({
+  cinemaName: filters.cinema,
+  roomName: filters.room,
+  date: filters.date,
+  timeSlot: filters.timeSlot,
+  movieUuid: filters.movieUuid,
+});
 
 const StaffShowtimePicker = ({
   showtimes = [],
@@ -67,179 +43,160 @@ const StaffShowtimePicker = ({
   showtimesWithSales = 0,
   filters,
   onFilterChange,
-  onClearFilters,
-  hasActiveFilters = false,
   ShowtimePoster,
 }) => {
+  const hasCinema = Boolean(filters.cinema);
+
   const cinemaOptions = useMemo(() => {
     const names = [...new Set(showtimes.map((s) => s.cinemaName).filter(Boolean))];
     return names.sort((a, b) => a.localeCompare(b, 'vi'));
   }, [showtimes]);
 
+  // Chỉ hiện phòng sau khi chọn rạp (giống CounterLocationToolbar)
   const roomOptions = useMemo(() => {
-    const pool = applyFilters(showtimes, filters, ['cinema']);
+    if (!filters.cinema) return [];
+    const pool = applyShowtimeFilters(showtimes, staffFilterShape(filters), ['cinema']);
     const names = [...new Set(pool.map((s) => s.roomName).filter(Boolean))];
     return names.sort((a, b) => a.localeCompare(b, 'vi'));
   }, [showtimes, filters.cinema]);
 
+  // Ngày / suất / phim chỉ mở sau khi chọn rạp
   const dateOptions = useMemo(() => {
-    const pool = applyFilters(showtimes, filters, ['cinema', 'room']);
+    if (!filters.cinema) return [];
+    const pool = applyShowtimeFilters(showtimes, staffFilterShape(filters), ['cinema', 'roomName']);
     const keys = [...new Set(pool.map((s) => toDateKey(s.startTime)).filter(Boolean))];
     return keys.sort();
   }, [showtimes, filters.cinema, filters.room]);
 
   const timeSlotOptions = useMemo(() => {
-    const pool = applyFilters(showtimes, filters, ['cinema', 'room', 'date']);
+    if (!filters.cinema) return [];
+    const pool = applyShowtimeFilters(showtimes, staffFilterShape(filters), ['cinema', 'roomName', 'date']);
     const slots = [...new Set(pool.map((s) => toTimeSlot(s.startTime)).filter(Boolean))];
     return slots.sort((a, b) => a.localeCompare(b, 'vi'));
   }, [showtimes, filters.cinema, filters.room, filters.date]);
 
-  const movieSuggestions = useMemo(() => {
-    const pool = applyFilters(showtimes, filters, ['cinema', 'room', 'date', 'timeSlot']);
-    const titles = [...new Set(pool.map((s) => s.movieTitle).filter(Boolean))];
-    return titles.sort((a, b) => a.localeCompare(b, 'vi'));
+  const movieOptions = useMemo(() => {
+    if (!filters.cinema) {
+      return [{ value: '', label: 'Phim' }];
+    }
+    const pool = applyShowtimeFilters(
+      showtimes,
+      staffFilterShape(filters),
+      ['cinema', 'roomName', 'date', 'timeSlot'],
+    );
+    const byUuid = new Map();
+    pool.forEach((s) => {
+      if (!s.movieUuid || byUuid.has(s.movieUuid)) return;
+      byUuid.set(s.movieUuid, {
+        value: s.movieUuid,
+        label: s.movieTitle || 'Phim',
+        image: s.posterUrl ? resolveMediaUrl(s.posterUrl, 120) : '',
+      });
+    });
+    return [
+      { value: '', label: 'Phim' },
+      ...[...byUuid.values()].sort((a, b) => a.label.localeCompare(b.label, 'vi')),
+    ];
   }, [showtimes, filters.cinema, filters.room, filters.date, filters.timeSlot]);
 
   return (
-    <section className="staff-control__panel staff-control__panel--showtimes-top">
-      <div className="staff-control__panel-head">
-        <h2 className="staff-control__panel-title">
-          <Film className="w-3.5 h-3.5" />
-          Suất đang vận hành
-        </h2>
-        <div className="staff-control__panel-head-actions">
+    <section className="staff-control__panel staff-control__panel--showtimes-top staff-control__panel--showtimes-daily">
+      <div className="counter-pos__daily-head staff-control__daily-head">
+        <div className="staff-control__daily-title-wrap">
+          <div className="staff-control__daily-title-row">
+            <h2 className="counter-pos__daily-title staff-control__daily-title">Suất đang vận hành</h2>
+            {showtimesWithSales > 0 && (
+              <span className="staff-control__panel-badge">{showtimesWithSales} suất có vé</span>
+            )}
+          </div>
           {showtimesWithSales > 0 && (
-            <span className="staff-control__panel-badge">{showtimesWithSales} suất có vé</span>
+            <p className="staff-control__sales-hint staff-control__sales-hint--inline">
+              Chọn suất có vé để xem sơ đồ ghế trực tiếp bên dưới.
+            </p>
           )}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              className="staff-control__filter-clear"
-              onClick={onClearFilters}
-            >
-              <X className="w-3 h-3" />
-              Xóa lọc
-            </button>
+        </div>
+        <div className="counter-pos__daily-head-actions staff-control__daily-head-actions">
+          {showtimes.length > 0 && (
+            <div className="counter-pos__daily-filters staff-control__daily-filters">
+              <CounterSelectDropdown
+                id="staff-control-cinema"
+                variant="header"
+                leadingIcon={Building2}
+                iconClassName="counter-header__dropdown-icon--cinema"
+                value={filters.cinema}
+                options={[
+                  { value: '', label: 'Rạp' },
+                  ...cinemaOptions.map((name) => ({ value: name, label: name })),
+                ]}
+                placeholder="Rạp"
+                emptyMessage="Chưa có rạp"
+                onChange={(value) => onFilterChange('cinema', value)}
+              />
+
+              <CounterSelectDropdown
+                id="staff-control-room"
+                variant="header"
+                leadingIcon={Milestone}
+                iconClassName="counter-header__dropdown-icon--room"
+                value={filters.room}
+                options={[
+                  { value: '', label: 'Phòng chiếu' },
+                  ...roomOptions.map((name) => ({ value: name, label: name })),
+                ]}
+                placeholder="Phòng chiếu"
+                emptyMessage="Không có phòng"
+                disabled={!hasCinema || roomOptions.length === 0}
+                onChange={(value) => onFilterChange('room', value)}
+              />
+
+              <CounterSelectDropdown
+                id="staff-control-date"
+                variant="header"
+                leadingIcon={Calendar}
+                iconClassName="counter-header__dropdown-icon--date"
+                value={filters.date}
+                options={[
+                  { value: '', label: 'Ngày' },
+                  ...dateOptions.map((key) => ({ value: key, label: formatDateLabel(key) })),
+                ]}
+                placeholder="Ngày"
+                emptyMessage="Không có ngày"
+                disabled={!hasCinema || dateOptions.length === 0}
+                onChange={(value) => onFilterChange('date', value)}
+              />
+
+              <CounterSelectDropdown
+                id="staff-control-timeslot"
+                variant="header"
+                leadingIcon={Clock}
+                iconClassName="counter-header__dropdown-icon--time"
+                value={filters.timeSlot}
+                options={[
+                  { value: '', label: 'Suất' },
+                  ...timeSlotOptions.map((slot) => ({ value: slot, label: slot })),
+                ]}
+                placeholder="Suất"
+                emptyMessage="Không có suất"
+                disabled={!hasCinema || timeSlotOptions.length === 0}
+                onChange={(value) => onFilterChange('timeSlot', value)}
+              />
+
+              <CounterSelectDropdown
+                id="staff-control-movie"
+                variant="header"
+                leadingIcon={Film}
+                iconClassName="counter-header__dropdown-icon--movie"
+                value={filters.movieUuid}
+                options={movieOptions}
+                placeholder="Phim"
+                emptyMessage="Không có phim"
+                disabled={!hasCinema || !movieOptions.some((o) => o.value)}
+                onChange={(value) => onFilterChange('movieUuid', value)}
+              />
+            </div>
           )}
         </div>
       </div>
-
-      {showtimesWithSales > 0 && (
-        <p className="staff-control__sales-hint">
-          Chọn suất có vé để xem sơ đồ ghế trực tiếp bên dưới.
-        </p>
-      )}
-
-      {showtimes.length > 0 && (
-        <div className="staff-control__filters staff-control__filters--cascade">
-          <div className="staff-control__filter-step">
-            <span className="staff-control__filter-label">
-              <Building2 className="w-3 h-3 staff-control__filter-label-icon--cinema" />
-              Rạp
-            </span>
-            <CounterSelectDropdown
-              id="staff-control-cinema"
-              variant="header"
-              leadingIcon={Building2}
-              iconClassName="counter-header__dropdown-icon--cinema"
-              value={filters.cinema}
-              options={[
-                { value: '', label: 'Tất cả rạp' },
-                ...cinemaOptions.map((name) => ({ value: name, label: name })),
-              ]}
-              placeholder="Tất cả rạp"
-              emptyMessage="Chưa có rạp"
-              onChange={(value) => onFilterChange('cinema', value)}
-            />
-          </div>
-
-          <div className="staff-control__filter-step">
-            <span className="staff-control__filter-label">
-              <Milestone className="w-3 h-3 staff-control__filter-label-icon--room" />
-              Phòng
-            </span>
-            <CounterSelectDropdown
-              id="staff-control-room"
-              variant="header"
-              leadingIcon={Milestone}
-              iconClassName="counter-header__dropdown-icon--room"
-              value={filters.room}
-              options={[
-                { value: '', label: 'Tất cả phòng' },
-                ...roomOptions.map((name) => ({ value: name, label: name })),
-              ]}
-              placeholder="Tất cả phòng"
-              emptyMessage="Không có phòng"
-              disabled={!roomOptions.length}
-              onChange={(value) => onFilterChange('room', value)}
-            />
-          </div>
-
-          <div className="staff-control__filter-step">
-            <span className="staff-control__filter-label">
-              <Calendar className="w-3 h-3 staff-control__filter-label-icon--date" />
-              Ngày chiếu
-            </span>
-            <CounterSelectDropdown
-              id="staff-control-date"
-              variant="header"
-              leadingIcon={Calendar}
-              iconClassName="counter-header__dropdown-icon--date"
-              value={filters.date}
-              options={[
-                { value: '', label: 'Tất cả ngày' },
-                ...dateOptions.map((key) => ({ value: key, label: formatDateLabel(key) })),
-              ]}
-              placeholder="Tất cả ngày"
-              emptyMessage="Không có ngày"
-              disabled={!dateOptions.length}
-              onChange={(value) => onFilterChange('date', value)}
-            />
-          </div>
-
-          <div className="staff-control__filter-step">
-            <span className="staff-control__filter-label">
-              <Clock className="w-3 h-3 staff-control__filter-label-icon--time" />
-              Suất chiếu
-            </span>
-            <CounterSelectDropdown
-              id="staff-control-timeslot"
-              variant="header"
-              leadingIcon={Clock}
-              iconClassName="counter-header__dropdown-icon--time"
-              value={filters.timeSlot}
-              options={[
-                { value: '', label: 'Tất cả suất' },
-                ...timeSlotOptions.map((slot) => ({ value: slot, label: slot })),
-              ]}
-              placeholder="Tất cả suất"
-              emptyMessage="Không có suất"
-              disabled={!timeSlotOptions.length}
-              onChange={(value) => onFilterChange('timeSlot', value)}
-            />
-          </div>
-
-          <label className="staff-control__filter-step staff-control__filter-step--movie">
-            <span className="staff-control__filter-label">
-              <Search className="w-3 h-3 staff-control__filter-label-icon--search" />
-              Phim
-            </span>
-            <input
-              type="search"
-              className="staff-control__input"
-              placeholder="Nhập tên phim..."
-              value={filters.movie}
-              onChange={(e) => onFilterChange('movie', e.target.value)}
-              list="staff-showtime-movies"
-            />
-            <datalist id="staff-showtime-movies">
-              {movieSuggestions.map((title) => (
-                <option key={title} value={title} />
-              ))}
-            </datalist>
-          </label>
-        </div>
-      )}
 
       {showtimes.length === 0 ? (
         <div className="staff-control__empty">
@@ -251,7 +208,7 @@ const StaffShowtimePicker = ({
         </div>
       ) : filteredShowtimes.length === 0 ? (
         <div className="staff-control__empty">
-          <p>Không có suất khớp bộ lọc. Thử đổi rạp, phòng, ngày hoặc khung giờ.</p>
+          <p>Không có suất khớp bộ lọc. Thử đổi rạp, phòng, ngày, suất hoặc phim.</p>
         </div>
       ) : (
         <div className="staff-control__showtime-strip">
@@ -322,5 +279,5 @@ const StaffShowtimePicker = ({
   );
 };
 
-export { toDateKey, toTimeSlot };
+export { toDateKey, toTimeSlot } from '../../../../shared/utils/showtimeFilterUtils';
 export default StaffShowtimePicker;
