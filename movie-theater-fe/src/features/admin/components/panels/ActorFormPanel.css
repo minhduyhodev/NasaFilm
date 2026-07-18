@@ -61,13 +61,26 @@
   padding-top: 0.35rem;
 }
 
-.actor-form .adm-select-trigger {
-  border-radius: 10px;
-  background: #0f172a;
-  border-color: #3d4f6f;
+/* Đồng bộ trigger quốc tịch với adm-input / popup charcoal */
+.actor-form .adm-select-trigger,
+.actor-form .admin-select-trigger {
+  border-radius: var(--adm-radius-sm, 8px);
+  background: var(--adm-bg-input, #0f0f12);
+  border: 1px solid var(--adm-border-strong, rgba(255, 255, 255, 0.1));
+  color: var(--adm-text, #ededef);
 }
 
-.actor-form .adm-select-trigger:hover {
-  border-color: rgba(225, 29, 72, 0.4);
-  background: rgba(15, 23, 42, 0.95);
+.actor-form .adm-select-trigger:hover,
+.actor-form .admin-select-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.actor-form .adm-select-trigger:focus,
+.actor-form .adm-select-trigger[aria-expanded='true'],
+.actor-form .admin-select-trigger:focus,
+.actor-form .admin-select-trigger[aria-expanded='true'] {
+  outline: none;
+  border-color: rgba(225, 29, 72, 0.55);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.45);
 }

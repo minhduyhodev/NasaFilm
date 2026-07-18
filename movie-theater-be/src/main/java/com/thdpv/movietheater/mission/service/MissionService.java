@@ -277,7 +277,16 @@ public class MissionService {
 
         MissionTemplate template = missionTemplateRepository
                 .findByCodeIgnoreCase(request.getCode().trim())
-                .orElseGet(MissionTemplate::new);
+                .orElse(null);
+
+        if (template != null && template.isDeleted()) {
+            throw new AppException(
+                    ErrorCode.CONFLICT,
+                    "Mã nhiệm vụ đã tồn tại trong mục đã xóa. Hãy khôi phục hoặc chọn mã khác.");
+        }
+        if (template == null) {
+            template = new MissionTemplate();
+        }
 
         boolean isNew = template.getUuid() == null;
         MissionConditionType previousConditionType = template.getConditionType();
@@ -301,7 +310,6 @@ public class MissionService {
         template.setTargetValue(Math.max(request.getTargetValue(), 1));
         template.setActive(request.isActive());
         template.setSortOrder(request.getSortOrder());
-        template.setDeletedAt(null);
         if (isNew || previousVersion <= 0) {
             template.setVersion(1);
         } else if (hasMaterialTemplateChange(
@@ -437,6 +445,8 @@ public class MissionService {
 
     @Transactional
     public MissionCampaign upsertCampaign(AdminMissionCampaignRequest request) {
+        validateCampaignRequest(request);
+
         MissionCampaign campaign = missionCampaignRepository
                 .findByCodeIgnoreCase(request.getCode().trim())
                 .orElseGet(MissionCampaign::new);
@@ -568,8 +578,11 @@ public class MissionService {
                 .findByCodeIgnoreCaseAndDeletedAtIsNull(sourceCode.trim())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhiệm vụ nguồn"));
         String newCode = request.getNewCode().trim().toUpperCase();
-        if (missionTemplateRepository.findByCodeIgnoreCaseAndDeletedAtIsNull(newCode).isPresent()) {
-            throw new AppException(ErrorCode.CONFLICT, "Mã nhiệm vụ đã tồn tại");
+        validateMissionCodeFormat(newCode);
+        if (missionTemplateRepository.findByCodeIgnoreCase(newCode).isPresent()) {
+            throw new AppException(
+                    ErrorCode.CONFLICT,
+                    "Mã nhiệm vụ đã tồn tại (kể cả bản đã xóa). Hãy chọn mã khác hoặc khôi phục bản cũ.");
         }
 
         AdminMissionTemplateRequest copy = new AdminMissionTemplateRequest();
@@ -678,6 +691,7 @@ public class MissionService {
     }
 
     private void validateTemplateRequest(AdminMissionTemplateRequest request) {
+        validateMissionCodeFormat(request.getCode());
         MissionConditionValidator.validate(request.getConditionType(), request.getConditionJson());
         if (request.getCampaignUuid() != null) {
             missionCampaignRepository
@@ -688,6 +702,31 @@ public class MissionService {
                 && request.getEndsAt() != null
                 && request.getEndsAt().isBefore(request.getStartsAt())) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Thời gian kết thúc phải sau thời gian bắt đầu.");
+        }
+    }
+
+    private void validateCampaignRequest(AdminMissionCampaignRequest request) {
+        validateMissionCodeFormat(request.getCode());
+        MissionCampaignStatus status =
+                request.getStatus() != null ? request.getStatus() : MissionCampaignStatus.DRAFT;
+        if (status == MissionCampaignStatus.ACTIVE
+                && (request.getStartsAt() == null || request.getEndsAt() == null)) {
+            throw new AppException(
+                    ErrorCode.BAD_REQUEST,
+                    "Chiến dịch Đang chạy cần có thời gian bắt đầu và kết thúc.");
+        }
+        if (request.getStartsAt() != null
+                && request.getEndsAt() != null
+                && request.getEndsAt().isBefore(request.getStartsAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Thời gian kết thúc phải sau thời gian bắt đầu.");
+        }
+    }
+
+    private void validateMissionCodeFormat(String code) {
+        if (code == null || !code.trim().matches("^[A-Za-z0-9_]+$")) {
+            throw new AppException(
+                    ErrorCode.BAD_REQUEST,
+                    "Mã chỉ gồm chữ, số và dấu gạch dưới.");
         }
     }
 

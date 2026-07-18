@@ -489,6 +489,12 @@
   color: #fb7185;
 }
 
+.amf-cast-add--inline {
+  align-self: center;
+  margin-top: 0.25rem;
+  padding: 0.25rem;
+}
+
 .amf-cast-placeholders {
   display: flex;
   align-items: center;
@@ -496,6 +502,16 @@
   gap: 0.75rem;
   padding: 0.75rem 0 0.25rem;
   flex: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+}
+
+.amf-cast-placeholders:hover .amf-cast-placeholder {
+  border-color: rgba(225, 29, 72, 0.45);
+  background: rgba(225, 29, 72, 0.08);
 }
 
 .amf-cast-placeholder {

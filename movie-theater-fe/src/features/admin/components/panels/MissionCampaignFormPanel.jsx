@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { adminMissionService, MISSION_CAMPAIGN_STATUSES } from '../../api/adminMissionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { PrimaryButton, GhostButton, AdminDateTimePicker, AdminSelectDropdown } from '..';
 import { adminInputClass, adminTextareaClass } from '../adminFormStyles';
+import {
+  formatMissionDateForBackend,
+  formatMissionDateForInput,
+  MISSION_CODE_PATTERN,
+} from '../../utils/missionAdminUtils';
 
 const emptyForm = {
   code: '',
@@ -11,6 +17,7 @@ const emptyForm = {
   status: 'DRAFT',
   startsAt: '',
   endsAt: '',
+  sortOrder: 0,
 };
 
 const STATUS_HINTS = {
@@ -40,26 +47,44 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
       title: campaign.title || '',
       description: campaign.description || '',
       status: campaign.status || 'DRAFT',
-      startsAt: campaign.startsAt ? campaign.startsAt.slice(0, 16) : '',
-      endsAt: campaign.endsAt ? campaign.endsAt.slice(0, 16) : '',
+      startsAt: campaign.startsAt ? formatMissionDateForInput(campaign.startsAt) : '',
+      endsAt: campaign.endsAt ? formatMissionDateForInput(campaign.endsAt) : '',
+      sortOrder: campaign.sortOrder ?? 0,
     });
   }, [campaign]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.code.trim() || !form.title.trim()) {
+    const code = form.code.trim().toUpperCase();
+    if (!code || !form.title.trim()) {
       notificationService.error('Mã và tên chiến dịch không được để trống.');
+      return;
+    }
+    if (!MISSION_CODE_PATTERN.test(code)) {
+      notificationService.error('Mã chỉ gồm chữ in hoa, số và dấu gạch dưới.');
+      return;
+    }
+    if (form.status === 'ACTIVE' && (!form.startsAt || !form.endsAt)) {
+      notificationService.error('Chiến dịch Đang chạy cần có thời gian bắt đầu và kết thúc.');
+      return;
+    }
+    if (
+      form.startsAt
+      && form.endsAt
+      && new Date(form.endsAt).getTime() < new Date(form.startsAt).getTime()
+    ) {
+      notificationService.error('Thời gian kết thúc phải sau thời gian bắt đầu.');
       return;
     }
     setIsSaving(true);
     try {
       await adminMissionService.upsertCampaign({
         ...form,
-        code: form.code.trim().toUpperCase(),
+        code,
         title: form.title.trim(),
-        sortOrder: campaign?.sortOrder ?? 0,
-        startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
-        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+        sortOrder: Number(form.sortOrder) || 0,
+        startsAt: formatMissionDateForBackend(form.startsAt),
+        endsAt: formatMissionDateForBackend(form.endsAt),
       });
       notificationService.success('Đã lưu chiến dịch.');
       onSuccess?.();
@@ -71,66 +96,94 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mc-form mc-form--compact">
-      <div className="mc-form-grid">
-        <div className="mc-form-field">
-          <label className={fieldLabelClass}>Mã</label>
-          <input
-            className={`${adminInputClass} mc-form__input`}
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
-            placeholder="MUA_HE_2026"
-            disabled={Boolean(campaign)}
-          />
+    <form onSubmit={handleSubmit} className="mc-form mc-form--campaign">
+      <section className="mc-form-section">
+        <h3 className="mc-form-section__title">Thông tin chung</h3>
+        <div className="mc-form-grid">
+          <div className="mc-form-field">
+            <label className={fieldLabelClass}>Mã</label>
+            <input
+              className={`${adminInputClass} mc-form__input mc-form__input--line`}
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+              placeholder="MUA_HE_2026"
+              disabled={Boolean(campaign)}
+            />
+          </div>
+          <div className="mc-form-field">
+            <label className={fieldLabelClass}>Tên</label>
+            <input
+              className={`${adminInputClass} mc-form__input mc-form__input--line`}
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Mùa hè NASA 2026"
+            />
+          </div>
+          <div className="mc-form-field mc-form-field--full">
+            <label className={fieldLabelClass}>Mô tả</label>
+            <textarea
+              className={`${adminTextareaClass} mc-form__textarea`}
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Tùy chọn"
+            />
+          </div>
         </div>
-        <div className="mc-form-field">
-          <label className={fieldLabelClass}>Tên</label>
-          <input
-            className={`${adminInputClass} mc-form__input`}
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="Mùa hè NASA 2026"
-          />
-        </div>
-        <div className="mc-form-field mc-form-field--full">
-          <label className={fieldLabelClass}>Mô tả</label>
-          <textarea
-            className={`${adminTextareaClass} mc-form__textarea`}
-            rows={2}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Tùy chọn"
-          />
-        </div>
-        <div className="mc-form-field">
-          <AdminSelectDropdown
-            label="Trạng thái"
-            labelClassName={fieldLabelClass}
-            value={form.status}
-            options={statusOptions}
-            onChange={(val) => setForm({ ...form, status: val })}
-          />
-          <p className="mc-form-note">{STATUS_HINTS[form.status]}</p>
-        </div>
-        <div className="mc-form-field">
-          <AdminDateTimePicker
-            label="Bắt đầu"
-            timeLabel={null}
-            value={form.startsAt}
-            onChange={(v) => setForm({ ...form, startsAt: v })}
-          />
-        </div>
-        <div className="mc-form-field">
-          <AdminDateTimePicker
-            label="Kết thúc"
-            timeLabel={null}
-            value={form.endsAt}
-            onChange={(v) => setForm({ ...form, endsAt: v })}
-          />
-        </div>
-      </div>
+      </section>
 
-      <div className="mc-form-actions">
+      <section className="mc-form-section">
+        <h3 className="mc-form-section__title">Lịch trình</h3>
+        <div className="mc-form-grid">
+          <div className="mc-form-field">
+            <AdminSelectDropdown
+              label="Trạng thái"
+              labelClassName={fieldLabelClass}
+              value={form.status}
+              options={statusOptions}
+              onChange={(val) => setForm({ ...form, status: val })}
+            />
+          </div>
+          <div className="mc-form-field">
+            <label className={fieldLabelClass}>Thứ tự hiển thị</label>
+            <input
+              type="number"
+              min="0"
+              className={`${adminInputClass} mc-form__input`}
+              value={form.sortOrder}
+              onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
+            />
+          </div>
+
+          {STATUS_HINTS[form.status] && (
+            <div className="mc-form-field mc-form-field--full">
+              <p className={`mc-form-hint mc-form-hint--${form.status.toLowerCase()}`}>
+                <AlertTriangle size={14} aria-hidden="true" />
+                <span>{STATUS_HINTS[form.status]}</span>
+              </p>
+            </div>
+          )}
+
+          <div className="mc-form-field">
+            <AdminDateTimePicker
+              dateLabel="Bắt đầu"
+              timeLabel="Giờ"
+              value={form.startsAt}
+              onChange={(v) => setForm({ ...form, startsAt: v })}
+            />
+          </div>
+          <div className="mc-form-field">
+            <AdminDateTimePicker
+              dateLabel="Kết thúc"
+              timeLabel="Giờ"
+              value={form.endsAt}
+              onChange={(v) => setForm({ ...form, endsAt: v })}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="mc-form-actions mc-form-actions--campaign">
         <PrimaryButton type="submit" className="mc-form__submit" disabled={isSaving} loading={isSaving}>
           {isSaving ? 'Đang lưu...' : 'Lưu'}
         </PrimaryButton>

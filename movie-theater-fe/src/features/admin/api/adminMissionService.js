@@ -246,5 +246,7 @@ export const buildTemplatePayload = (template, overrides = {}) => ({
   targetValue: template.targetValue ?? 1,
   active: template.active !== false,
   sortOrder: template.sortOrder ?? 0,
+  startsAt: template.startsAt ?? null,
+  endsAt: template.endsAt ?? null,
   ...overrides,
 });

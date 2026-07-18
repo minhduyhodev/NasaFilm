@@ -103,10 +103,9 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
 
     let pointsCost = 0;
     if (isDirectType) {
-      if (!form.maxUsage) {
-        notificationService.error(
-          'Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống',
-        );
+      const maxUsage = Number.parseInt(form.maxUsage, 10);
+      if (!form.maxUsage || Number.isNaN(maxUsage) || maxUsage <= 0) {
+        notificationService.error('Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng lớn hơn 0');
         return;
       }
     } else {
@@ -115,8 +114,15 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
         notificationService.error('Voucher đổi điểm phải có số điểm lớn hơn 0');
         return;
       }
-      if (!form.maxUsage && !form.maxUsagePerUser) {
-        notificationService.error('Chọn ít nhất một giới hạn: toàn hệ thống hoặc mỗi tài khoản');
+      const maxUsage = form.maxUsage ? Number.parseInt(form.maxUsage, 10) : null;
+      const maxUsagePerUser = form.maxUsagePerUser
+        ? Number.parseInt(form.maxUsagePerUser, 10)
+        : null;
+      if (
+        (maxUsage == null || Number.isNaN(maxUsage) || maxUsage <= 0)
+        && (maxUsagePerUser == null || Number.isNaN(maxUsagePerUser) || maxUsagePerUser <= 0)
+      ) {
+        notificationService.error('Chọn ít nhất một giới hạn (> 0): toàn hệ thống hoặc mỗi tài khoản');
         return;
       }
     }
@@ -182,29 +188,29 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.REDEEM)}
-            className={`voucher-type-option${!isDirectType ? ' is-active' : ''}`}
+            className={`voucher-type-option voucher-type-option--redeem${!isDirectType ? ' is-active' : ''}`}
             aria-pressed={!isDirectType}
           >
-            <span className="voucher-type-option__icon">
-              <Coins size={18} />
+            <span className="voucher-type-option__icon" aria-hidden="true">
+              <Coins size={18} strokeWidth={2} />
             </span>
             <span className="voucher-type-option__content">
-              <strong>Đổi điểm</strong>
-              <small>Khách dùng điểm tích lũy để nhận voucher</small>
+              <strong className="voucher-type-option__title">Đổi điểm</strong>
+              <span className="voucher-type-option__desc">Khách dùng điểm tích lũy để nhận voucher</span>
             </span>
           </button>
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.DIRECT)}
-            className={`voucher-type-option${isDirectType ? ' is-active' : ''}`}
+            className={`voucher-type-option voucher-type-option--direct${isDirectType ? ' is-active' : ''}`}
             aria-pressed={isDirectType}
           >
-            <span className="voucher-type-option__icon">
-              <Zap size={18} />
+            <span className="voucher-type-option__icon" aria-hidden="true">
+              <Zap size={18} strokeWidth={2} />
             </span>
             <span className="voucher-type-option__content">
-              <strong>Dùng trực tiếp</strong>
-              <small>Voucher miễn phí, áp dụng ngay khi thanh toán</small>
+              <strong className="voucher-type-option__title">Dùng trực tiếp</strong>
+              <span className="voucher-type-option__desc">Voucher miễn phí, áp dụng ngay khi thanh toán</span>
             </span>
           </button>
         </div>
@@ -275,9 +281,7 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       <div className="voucher-form__grid voucher-form__grid--3">
         <div className="voucher-form__field">
           <label className="voucher-form__label">
-            {isDirectType
-              ? 'Giới hạn lượt sử dụng toàn hệ thống'
-              : 'Giới hạn lượt đổi toàn hệ thống'}
+            Giới hạn lượt sử dụng hệ thống
             {isDirectType ? <span className="voucher-form__req"> *</span> : null}
           </label>
           <input

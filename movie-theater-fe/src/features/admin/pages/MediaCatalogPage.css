@@ -183,6 +183,10 @@
   letter-spacing: 0.04em;
 }
 
+.catalog-code--with-flag {
+  gap: 0.4rem;
+}
+
 .catalog-badge {
   display: inline-flex;
   align-items: center;
@@ -193,6 +197,18 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.7rem;
   color: #cbd5e1;
+}
+
+.catalog-flag {
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.catalog-flag-fallback {
+  flex-shrink: 0;
+  color: #94a3b8;
 }
 
 .catalog-tag {
