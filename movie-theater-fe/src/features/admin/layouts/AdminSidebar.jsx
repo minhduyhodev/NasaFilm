@@ -41,7 +41,7 @@ import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
-import { hasPermission, hasAnyPermission, PERMISSIONS } from '../../../shared/utils/permissions';
+import { hasPermission, hasAnyPermission, isAdmin, PERMISSIONS } from '../../../shared/utils/permissions';
 import { canAccessAdminDashboard, OPERATIONS_PERMISSIONS } from '../../../shared/utils/adminNavigation';
 
 const getRoleDisplayLabel = (roles = []) => {
@@ -76,8 +76,8 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
 
   const loadPendingRefundCount = useCallback(async () => {
     try {
-      const data = await bookingService.getAdminPendingRefunds();
-      setPendingRefundCount(Array.isArray(data) ? data.length : 0);
+      const count = await bookingService.getAdminPendingRefundCount();
+      setPendingRefundCount(Number.isFinite(count) ? count : 0);
     } catch {
       setPendingRefundCount(0);
     }
@@ -428,12 +428,11 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 "text-cyan-400",
                 { permission: PERMISSIONS.USER_VIEW },
               )}
-              {renderLink(
+              {isAdmin(user) && renderLink(
                 "/admin/staff",
                 UserCheck,
                 "Quản lý nhân sự",
                 "text-indigo-400",
-                { permission: PERMISSIONS.USER_VIEW }
               )}
             </div>
           )}
@@ -486,13 +485,13 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         </div>
 
         {/* System Settings Group (Collapsible) */}
-        {hasAnyPermission(user, [PERMISSIONS.USER_VIEW]) && (
+        {isAdmin(user) && (
         <div className="space-y-1 text-left">
           {renderGroupHeader("Cấu hình & Bảo mật", "security", Shield)}
           {(!isOpen || openGroups.security) && (
             <div className={`${isOpen ? 'adm-nav-group-items adm-nav-group-items--nested' : 'adm-nav-group-items'}`}>
-              {renderLink('/admin/config', Sliders, 'Cấu hình hệ thống', 'text-amber-400', { permission: PERMISSIONS.USER_VIEW })}
-              {renderLink('/admin/email-templates', Mail, 'Cấu hình mẫu email', 'text-sky-400', { permission: PERMISSIONS.USER_VIEW })}
+              {renderLink('/admin/config', Sliders, 'Cấu hình hệ thống', 'text-amber-400')}
+              {renderLink('/admin/email-templates', Mail, 'Cấu hình mẫu email', 'text-sky-400')}
             </div>
           )}
         </div>

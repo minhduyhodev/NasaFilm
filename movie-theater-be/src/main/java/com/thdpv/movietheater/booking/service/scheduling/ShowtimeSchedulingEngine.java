@@ -62,9 +62,12 @@ public class ShowtimeSchedulingEngine {
                 OffsetDateTime dayStart = current.atTime(settings.getStartTime()).atOffset(offset);
                 OffsetDateTime dayEnd = current.atTime(settings.getEndTime()).atOffset(offset);
 
-                // Skip slots already in the past when generating for today.
-                if (isToday && dayStart.isBefore(now)) {
-                    dayStart = now;
+                // Skip slots inside the minimum lead window when generating for today.
+                if (isToday) {
+                    OffsetDateTime earliestStart = now.plusMinutes(settings.getMinLeadMinutes());
+                    if (dayStart.isBefore(earliestStart)) {
+                        dayStart = earliestStart;
+                    }
                 }
                 if (!dayStart.isBefore(dayEnd)) {
                     continue;

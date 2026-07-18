@@ -330,13 +330,8 @@ public class AuthService {
         }
 
         if (!roleIds.isEmpty()) {
-            List<UUID> adminRoleIds = userRoles.stream()
-                .filter(ur -> ur.getRole().getName() == RoleName.ADMIN)
-                .map(ur -> ur.getRole().getId())
-                .toList();
-            if (!adminRoleIds.isEmpty()) {
-                authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(adminRoleIds));
-            }
+            // Load permissions for ALL roles the user has (ADMIN, STAFF, etc.)
+            authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(roleIds));
         }
         authorities.addAll(userPermissionRepository.findPermissionNamesByUserId(user.getId()));
 

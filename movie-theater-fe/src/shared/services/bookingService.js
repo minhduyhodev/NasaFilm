@@ -97,9 +97,9 @@ class BookingService {
   }
 
   async getAdminBookings(keyword = '', {
-    page,
-    size,
-    unpaged = true,
+    page = 0,
+    size = 50,
+    unpaged = false,
     status,
     cinema,
     startDate,
@@ -121,9 +121,15 @@ class BookingService {
       const response = await authService.api.get('/api/bookings/admin', { params });
       const data = response.data.data ?? response.data;
       if (Array.isArray(data)) {
-        return data;
+        return { content: data, totalElements: data.length };
       }
-      return data?.content ?? [];
+      return {
+        content: data?.content ?? [],
+        totalElements: Number(data?.totalElements ?? 0),
+        number: Number(data?.number ?? page),
+        size: Number(data?.size ?? size),
+        totalPages: Number(data?.totalPages ?? 1),
+      };
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -157,19 +163,28 @@ class BookingService {
     }
   }
 
-  async getAdminPendingRefunds() {
+  async getAdminPendingRefunds({ page = 0, size = 10 } = {}) {
     try {
-      const response = await authService.api.get('/api/admin/refunds');
+      const response = await authService.api.get('/api/admin/refunds', { params: { page, size } });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
     }
   }
 
-  async getAdminRefundHistory() {
+  async getAdminRefundHistory({ page = 0, size = 10 } = {}) {
     try {
-      const response = await authService.api.get('/api/admin/refunds/history');
+      const response = await authService.api.get('/api/admin/refunds/history', { params: { page, size } });
       return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getAdminPendingRefundCount() {
+    try {
+      const response = await authService.api.get('/api/admin/refunds/pending-count');
+      return Number(response.data.data ?? response.data ?? 0);
     } catch (error) {
       throw authService.handleError(error);
     }
@@ -179,20 +194,6 @@ class BookingService {
     try {
       const response = await authService.api.post(`/api/admin/refunds/${refundUuid}/approve`);
       return response.data.data ?? response.data;
-    } catch (error) {
-      throw authService.handleError(error);
-    }
-  }
-
-  async checkInTicket(ticketCode) {
-    try {
-      const response = await authService.api.put(
-        `/api/staff/tickets/${encodeURIComponent(ticketCode)}/check-in`,
-      );
-      return {
-        data: response.data.data ?? response.data,
-        message: response.data.message,
-      };
     } catch (error) {
       throw authService.handleError(error);
     }

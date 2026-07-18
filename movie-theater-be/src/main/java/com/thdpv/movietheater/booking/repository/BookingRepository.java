@@ -43,6 +43,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findByUserUuidAndMovieUuidAndBookingTypeAndStatus(UUID userUuid, UUID movieUuid, String bookingType, String status);
     List<Booking> findByUserUuidAndBookingTypeAndStatus(UUID userUuid, String bookingType, String status);
 
+    /** Token phiên phát VOD đang active (dùng cho /api/media/stream). */
+    java.util.Optional<Booking> findFirstByStreamTokenAndExpiresAtAfter(String streamToken, OffsetDateTime now);
+
     @Query("""
             SELECT b FROM Booking b
             WHERE b.userUuid = :userUuid
@@ -61,7 +64,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             WHERE b.userUuid = :userUuid
               AND UPPER(b.status) = 'CONFIRMED'
               AND (
-                (UPPER(b.bookingType) = 'ONLINE' AND b.movieUuid = :movieUuid)
+                (
+                  UPPER(b.bookingType) = 'ONLINE'
+                  AND b.movieUuid = :movieUuid
+                  AND b.firstPlayedAt IS NOT NULL
+                )
                 OR (
                   (b.bookingType IS NULL OR UPPER(b.bookingType) = 'THEATER')
                   AND b.showtimeUuid IN (
@@ -79,6 +86,26 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     int updateStatusIf(@Param("uuid") UUID uuid,
             @Param("expectedStatus") String expectedStatus,
             @Param("newStatus") String newStatus,
+            @Param("now") OffsetDateTime now);
+
+    /**
+     * Atomically starts the VOD watch window. Returns 1 when this request owns first play, 0 when another
+     * concurrent activate already set firstPlayedAt.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Booking b
+            SET b.firstPlayedAt = :firstPlayedAt,
+                b.expiresAt = :expiresAt,
+                b.streamToken = :streamToken,
+                b.updatedAt = :now
+            WHERE b.uuid = :uuid
+              AND b.firstPlayedAt IS NULL
+            """)
+    int claimFirstPlay(@Param("uuid") UUID uuid,
+            @Param("firstPlayedAt") OffsetDateTime firstPlayedAt,
+            @Param("expiresAt") OffsetDateTime expiresAt,
+            @Param("streamToken") String streamToken,
             @Param("now") OffsetDateTime now);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -101,12 +128,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
               AND b.firstPlayedAt IS NOT NULL
               AND b.vodPositionSeconds IS NOT NULL
               AND b.vodPositionSeconds > 0
-              AND (b.expiresAt IS NULL OR b.expiresAt > :now)
             ORDER BY b.vodLastWatchedAt DESC NULLS LAST, b.updatedAt DESC
             """)
-    List<Booking> findVodWatchHistory(
-            @Param("userUuid") UUID userUuid,
-            @Param("now") OffsetDateTime now);
+    List<Booking> findVodWatchHistory(@Param("userUuid") UUID userUuid);
 
     @Query("""
             SELECT b FROM Booking b

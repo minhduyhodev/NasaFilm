@@ -18,7 +18,6 @@ import { showtimeService } from "../../../shared/services/showtimeService";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { orbitService } from "../../../shared/services/orbitService";
 import { ORBIT_DEFAULT_MAX_MEMBERS } from "../../../shared/utils/orbitUtils";
-import OrbitJoinInput from "../components/OrbitJoinInput";
 import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
 import { useOrbitAccessibleRooms } from "../../../shared/hooks/useOrbitAccessibleRooms";
 import {
@@ -108,6 +107,9 @@ const MovieDetailPage = () => {
         const data = await movieService.getMovieDetail(id);
         setDbMovie(data);
         setIsVideoActive(false);
+        if (data?.slug && id && data.slug !== id) {
+          navigate(`/movie/${data.slug}${window.location.search}`, { replace: true });
+        }
 
         try {
           const allShowtimes = await showtimeService.getPublicShowtimes();
@@ -483,8 +485,12 @@ const MovieDetailPage = () => {
     backdropRaw,
     poster: getMoviePosterUrl(dbMovie),
     backdrop: backdropRaw || posterRaw,
-    trailer:
-      dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "",
+    trailer: (() => {
+      const raw =
+        dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "";
+      // S3 key trailer/... → /api/media/border; YouTube giữ nguyên.
+      return resolveMediaUrl(raw) || raw;
+    })(),
     cast:
       dbMovie.actors?.map((act) => ({
         name: act.fullName,
@@ -770,16 +776,11 @@ const MovieDetailPage = () => {
           {!isFromOnline && canBookTheater && (
           <div className={`movie-detail-showtimes-col${movie.cast.length === 0 ? ' movie-detail-showtimes-col--full' : ''}`}>
             {orbitFeatureEnabled && (
-              <div className="mb-5 space-y-3 flex flex-col items-center">
-                <div className="w-full">
-                  <OrbitJoinInput />
-                </div>
-                <div className="w-full">
-                  <OrbitActiveRoomsPanel
-                    title="Phòng Orbit của bạn"
-                    enabled={orbitFeatureEnabled}
-                  />
-                </div>
+              <div className="mb-5 w-full">
+                <OrbitActiveRoomsPanel
+                  title="Phòng Orbit của bạn"
+                  enabled={orbitFeatureEnabled}
+                />
               </div>
             )}
             <div className="movie-detail-showtimes-head">

@@ -49,8 +49,8 @@ export const HomeRoutes = () => {
     return <PageLoader />;
   }
 
-  // Admin/staff may browse the customer site (e.g. to test booking flows).
-  // Login still lands them on /admin via PublicRoute / LoginPage.
+  // Admin/staff may browse the customer site (e.g. to view movies/cinemas).
+  // However, they are blocked from the purchase flow pages below.
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -76,7 +76,7 @@ export const HomeRoutes = () => {
           <Route
             path="booking"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <BookingPage />
               </ProtectedRoute>
             }
@@ -84,7 +84,7 @@ export const HomeRoutes = () => {
           <Route
             path="booking/orbit/:roomUuid"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <OrbitBookingPage />
               </ProtectedRoute>
             }
@@ -92,7 +92,7 @@ export const HomeRoutes = () => {
           <Route
             path="booking/orbit/:roomUuid/waiting"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <OrbitWaitingPage />
               </ProtectedRoute>
             }
@@ -100,7 +100,7 @@ export const HomeRoutes = () => {
           <Route
             path="concessions"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <ConcessionsPage />
               </ProtectedRoute>
             }
@@ -108,7 +108,7 @@ export const HomeRoutes = () => {
           <Route
             path="checkout"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <CheckoutPage />
               </ProtectedRoute>
             }
@@ -116,7 +116,7 @@ export const HomeRoutes = () => {
           <Route
             path="booking-confirmed"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <BookingConfirmedPage />
               </ProtectedRoute>
             }
@@ -164,7 +164,7 @@ export const HomeRoutes = () => {
           <Route
             path="payment"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <PaymentFlow />
               </ProtectedRoute>
             }
@@ -172,7 +172,7 @@ export const HomeRoutes = () => {
           <Route
             path="payment/vietqr"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <VietQRPage />
               </ProtectedRoute>
             }
@@ -180,7 +180,7 @@ export const HomeRoutes = () => {
           <Route
             path="payment-success"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute blockedRoles={['admin', 'staff']}>
                 <PaymentSuccess />
               </ProtectedRoute>
             }

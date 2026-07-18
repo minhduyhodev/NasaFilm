@@ -176,7 +176,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -200,7 +200,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -234,7 +234,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -325,7 +325,9 @@ class BookingServiceTest {
         VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
 
         org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
-        assertEquals("/api/media/border?key=movie%2Fdemo-stream.mp4", response.getStreamingUrl());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                response.getStreamingUrl().startsWith("/api/media/stream?key=movie%2Fdemo-stream.mp4&token="),
+                () -> "expected stream URL with token but was: " + response.getStreamingUrl());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
         org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
     }

@@ -1,60 +1,109 @@
 import { motion } from 'framer-motion';
-import { Zap, Gem, Users } from 'lucide-react';
-import heroBg from '../../../shared/assets/about_hero_bg.png';
-import projectorImg from '../../../shared/assets/about_projector.png';
-import julianAvatar from '../../../shared/assets/avatar_julian.png';
-import elenaAvatar from '../../../shared/assets/avatar_elena.png';
-import marcusAvatar from '../../../shared/assets/avatar_marcus.png';
-import sashaAvatar from '../../../shared/assets/avatar_sasha.png';
+import {
+  ArrowRight,
+  Bot,
+  CreditCard,
+  Radio,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import heroBg from '../../../shared/assets/about_hero_bg.webp';
+import projectorImg from '../../../shared/assets/about_projector.webp';
 import './AboutPage.css';
 
+const capabilities = [
+  {
+    icon: Radio,
+    number: '01',
+    title: 'Đặt ghế theo thời gian thực',
+    description: 'Sơ đồ ghế được đồng bộ trực tiếp, giúp hạn chế trùng chỗ và giữ trạng thái xuyên suốt quá trình đặt vé.',
+  },
+  {
+    icon: Users,
+    number: '02',
+    title: 'Orbit — đặt vé cùng nhau',
+    description: 'Tạo phòng, mời bạn bè chọn ghế và hoàn tất một hành trình chung mà không cần chia sẻ tài khoản.',
+  },
+  {
+    icon: CreditCard,
+    number: '03',
+    title: 'Thanh toán linh hoạt',
+    description: 'Hỗ trợ Stripe, VietQR, ví thành viên và quy trình kiểm tra trạng thái thanh toán rõ ràng.',
+  },
+  {
+    icon: Bot,
+    number: '04',
+    title: 'Hỗ trợ đúng ngữ cảnh',
+    description: 'NASA Bot, thông báo và trung tâm hỗ trợ kết nối thông tin vé, thanh toán và tài khoản tại một nơi.',
+  },
+];
+
+const journey = [
+  ['Khám phá', 'Tìm phim theo lịch chiếu, thể loại, quốc gia hoặc trải nghiệm xem trực tuyến.'],
+  ['Chọn trải nghiệm', 'Xem suất chiếu, phòng chiếu và sơ đồ ghế trước khi quyết định.'],
+  ['Hoàn tất an toàn', 'Xác nhận vé, combo và phương thức thanh toán trong một luồng nhất quán.'],
+  ['Tiếp tục sau suất chiếu', 'Quản lý vé, nhắc lịch, lịch sử mua và các quyền lợi thành viên.'],
+];
+
+const principles = [
+  {
+    icon: ShieldCheck,
+    title: 'Tin cậy trước tiên',
+    description: 'Trạng thái ghế, giao dịch và quyền truy cập được kiểm tra ở cả giao diện lẫn hệ thống nghiệp vụ.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Ít thao tác hơn',
+    description: 'Mỗi tính năng được thiết kế để rút ngắn quãng đường từ lúc chọn phim đến khi nhận vé.',
+  },
+  {
+    icon: Users,
+    title: 'Một hệ thống cho mọi vai trò',
+    description: 'Khách hàng, nhân viên quầy và quản trị viên làm việc trên cùng một nguồn dữ liệu nhất quán.',
+  },
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { y: 24, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { duration: 0.55, ease: 'easeOut' } },
+};
+
 const AboutPage = () => {
-  // Animation variants for staggered load
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 30, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.6, ease: 'easeOut' }
-    }
-  };
-
   return (
     <div className="about-page-wrapper">
-
-      {/* Hero Section */}
-      <section 
+      <section
         className="about-hero"
         style={{ backgroundImage: `url(${heroBg})` }}
       >
         <div className="about-hero-overlay" />
-        <motion.div 
+        <motion.div
           className="about-hero-content"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
+          <p className="about-eyebrow">Về NASAFILM</p>
           <h1 className="about-hero-title">
-            Nâng Tầm Nghệ Thuật Trải Nghiệm
+            Điện ảnh không dừng lại ở màn chiếu.
           </h1>
           <p className="about-hero-sub">
-            Nơi mỗi khung hình là một tuyệt tác và mọi vị trí ngồi đều là tốt nhất.
+            NASAFILM đang xây dựng một hành trình liền mạch từ lúc tìm phim,
+            chọn ghế, thanh toán đến khi tấm vé nằm trong tay bạn.
           </p>
+          <Link to="/movies" className="about-hero-link">
+            Khám phá phim <ArrowRight size={17} aria-hidden="true" />
+          </Link>
         </motion.div>
       </section>
 
-      {/* Our Story Section */}
-      <motion.section 
+      <motion.section
         className="about-story-section"
         initial="hidden"
         whileInView="visible"
@@ -62,163 +111,114 @@ const AboutPage = () => {
         variants={containerVariants}
       >
         <motion.div className="about-story-content" variants={itemVariants}>
-          <h2 className="about-story-title">Câu Chuyện Của Chúng Tôi</h2>
+          <p className="about-section-index">01 — Hệ thống đang được xây dựng</p>
+          <h2 className="about-story-title">Một nền tảng, trọn hành trình xem phim.</h2>
           <p className="about-story-text">
-            Được thành lập vào năm 2012, CINE LUXE khởi đầu với một tầm nhìn đơn giản: mang phép màu trở lại màn ảnh bạc. Trong kỷ nguyên của sự tiện lợi kỹ thuật số, chúng tôi tin rằng hành động xem phim tại rạp phải là một nghi thức thiêng liêng, đắm chìm.
+            NASAFILM không phải câu chuyện về một chuỗi rạp lâu đời. Đây là một
+            sản phẩm đang phát triển để kết nối trải nghiệm khách hàng với hoạt
+            động vận hành rạp trên cùng một nền tảng.
           </p>
           <p className="about-story-text">
-            Chúng tôi đã dành một thập kỷ để hoàn thiện công nghệ và kiến trúc không gian của mình, kết hợp máy chiếu laser tiên tiến nhất với sự sang trọng của rạp hát giữa thế kỷ trước. Ngày nay, chúng tôi tự hào là tiêu chuẩn toàn cầu cho điện ảnh cao cấp, tổ chức các buổi ra mắt thế giới và nuôi dưỡng một cộng đồng những người đam mê điện ảnh thực thụ.
+            Từ lịch chiếu, ghế ngồi và combo đến thanh toán, vé điện tử, hỗ trợ
+            sau mua và nội dung trực tuyến — mọi thành phần được thiết kế để
+            trao đổi dữ liệu nhất quán, giảm thao tác lặp và phản hồi nhanh hơn.
           </p>
-        </motion.div>
-        
-        <motion.div 
-          className="about-story-image-container"
-          variants={itemVariants}
-        >
-          <img 
-            src={projectorImg} 
-            alt="Premium Vintage Movie Projector" 
-            className="about-story-image" 
-          />
-        </motion.div>
-      </motion.section>
-
-      {/* The Core Values Section */}
-      <section className="about-values-section">
-        <h2 className="about-values-title">Giá Trị Cốt Lõi</h2>
-        
-        <motion.div 
-          className="about-values-grid"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={containerVariants}
-        >
-          {/* Card 1: Innovation */}
-          <motion.div className="about-value-card" variants={itemVariants}>
-            <div className="about-value-icon-wrapper">
-              <Zap size={22} />
-            </div>
-            <h3 className="about-value-title">Sáng Tạo Đột Phá</h3>
-            <p className="about-value-description">
-              Vượt qua ranh giới của thị giác và thính giác với công nghệ chiếu laser 8K độc quyền và âm thanh vòm Dolby Atmos đắm chìm.
-            </p>
-          </motion.div>
-
-          {/* Card 2: Luxury */}
-          <motion.div className="about-value-card" variants={itemVariants}>
-            <div className="about-value-icon-wrapper">
-              <Gem size={22} />
-            </div>
-            <h3 className="about-value-title">Sang Trọng Đẳng Cấp</h3>
-            <p className="about-value-description">
-              Ghế da khâu tay cao cấp có thể ngả lưng, dịch vụ quản gia cá nhân và thực đơn tuyển chọn từ các đối tác chuẩn sao Michelin.
-            </p>
-          </motion.div>
-
-          {/* Card 3: Community */}
-          <motion.div className="about-value-card" variants={itemVariants}>
-            <div className="about-value-icon-wrapper">
-              <Users size={22} />
-            </div>
-            <h3 className="about-value-title">Cộng Đồng Điện Ảnh</h3>
-            <p className="about-value-description">
-              Nuôi dưỡng không gian để những người yêu phim tụ họp, chia sẻ và tôn vinh sức mạnh biến đổi của nghệ thuật kể chuyện.
-            </p>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* The Visionaries Section */}
-      <section className="about-visionaries-section">
-        <h2 className="about-visionaries-title">Đội Ngũ Sáng Lập</h2>
-        <p className="about-visionaries-sub">
-          Những bộ óc đứng sau phép màu, cống hiến hết mình để hoàn thiện hành trình điện ảnh của bạn.
-        </p>
-
-        <motion.div 
-          className="about-visionaries-grid"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={containerVariants}
-        >
-          {/* Visionary 1: Julian Vance */}
-          <motion.div className="about-visionary-card" variants={itemVariants}>
-            <div className="about-visionary-avatar-wrapper">
-              <img 
-                src={julianAvatar} 
-                alt="Julian Vance" 
-                className="about-visionary-avatar" 
-              />
-            </div>
-            <h3 className="about-visionary-name">Julian Vance</h3>
-            <p className="about-visionary-role">CEO & Nhà sáng lập</p>
-          </motion.div>
-
-          {/* Visionary 2: Elena Rossi */}
-          <motion.div className="about-visionary-card" variants={itemVariants}>
-            <div className="about-visionary-avatar-wrapper">
-              <img 
-                src={elenaAvatar} 
-                alt="Elena Rossi" 
-                className="about-visionary-avatar" 
-              />
-            </div>
-            <h3 className="about-visionary-name">Elena Rossi</h3>
-            <p className="about-visionary-role">Giám đốc Trải nghiệm</p>
-          </motion.div>
-
-          {/* Visionary 3: Marcus Chen */}
-          <motion.div className="about-visionary-card" variants={itemVariants}>
-            <div className="about-visionary-avatar-wrapper">
-              <img 
-                src={marcusAvatar} 
-                alt="Marcus Chen" 
-                className="about-visionary-avatar" 
-              />
-            </div>
-            <h3 className="about-visionary-name">Marcus Chen</h3>
-            <p className="about-visionary-role">Giám đốc Công nghệ (CTO)</p>
-          </motion.div>
-
-          {/* Visionary 4: Sasha de Noir */}
-          <motion.div className="about-visionary-card" variants={itemVariants}>
-            <div className="about-visionary-avatar-wrapper">
-              <img 
-                src={sashaAvatar} 
-                alt="Sasha de Noir" 
-                className="about-visionary-avatar" 
-              />
-            </div>
-            <h3 className="about-visionary-name">Sasha de Noir</h3>
-            <p className="about-visionary-role">Trưởng nhóm Sáng tạo</p>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="about-cta-section">
-        <motion.div 
-          className="about-cta-card"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="about-cta-title">Đam mê điện ảnh? Hãy đồng hành cùng chúng tôi.</h2>
-          <p className="about-cta-sub">
-            Chúng tôi luôn tìm kiếm những cá nhân nhiệt huyết, tin tưởng vào sức mạnh của trải nghiệm điện ảnh. Tham gia vào đội ngũ đang phát triển của chúng tôi tại TP. Hồ Chí Minh, Hà Nội và Đà Nẵng.
-          </p>
-          <div className="about-cta-buttons">
-            <button className="about-btn-primary">
-              Cơ Hội Việc Làm
-            </button>
-            <button className="about-btn-secondary">
-              Liên Hệ Nhân Sự
-            </button>
+          <div className="about-progress-note">
+            <span className="about-progress-dot" />
+            <span>Đang tiếp tục hoàn thiện theo phản hồi thực tế của người dùng.</span>
           </div>
         </motion.div>
+        <motion.figure className="about-story-image-container" variants={itemVariants}>
+          <img
+            src={projectorImg}
+            alt="Máy chiếu phim trong không gian rạp tối"
+            className="about-story-image"
+          />
+          <figcaption className="about-image-caption">
+            <span>Đích đến</span>
+            Công nghệ lùi lại phía sau để trải nghiệm điện ảnh tiến lên phía trước.
+          </figcaption>
+        </motion.figure>
+      </motion.section>
+
+      <section className="about-capabilities-section">
+        <div className="about-section-heading">
+          <div>
+            <p className="about-section-index">02 — Năng lực hiện tại</p>
+            <h2 className="about-section-title">Không chỉ là một trang đặt vé.</h2>
+          </div>
+          <p className="about-section-lead">
+            Những luồng quan trọng đã được kết nối để phục vụ cả khách hàng,
+            nhân viên tại rạp và bộ phận vận hành.
+          </p>
+        </div>
+
+        <motion.div
+          className="about-capabilities-grid"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={containerVariants}
+        >
+          {capabilities.map(({ icon: Icon, number, title, description }) => (
+            <motion.article className="about-capability" variants={itemVariants} key={number}>
+              <div className="about-capability-topline">
+                <span className="about-capability-number">{number}</span>
+                <Icon size={21} aria-hidden="true" />
+              </div>
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </motion.article>
+          ))}
+        </motion.div>
+      </section>
+
+      <section className="about-journey-section">
+        <div className="about-journey-intro">
+          <p className="about-section-index">03 — Hành trình sản phẩm</p>
+          <h2 className="about-section-title">Bốn điểm chạm. Một mạch trải nghiệm.</h2>
+        </div>
+        <motion.ol
+          className="about-journey-list"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={containerVariants}
+        >
+          {journey.map(([title, description], index) => (
+            <motion.li variants={itemVariants} key={title}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </div>
+            </motion.li>
+          ))}
+        </motion.ol>
+      </section>
+
+      <section className="about-principles-section">
+        <div className="about-section-heading">
+          <div>
+            <p className="about-section-index">04 — Nguyên tắc phát triển</p>
+            <h2 className="about-section-title">Xây chắc trước khi xây lớn.</h2>
+          </div>
+        </div>
+        <div className="about-principles-grid">
+          {principles.map(({ icon: Icon, title, description }) => (
+            <article className="about-principle" key={title}>
+              <Icon size={20} aria-hidden="true" />
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </article>
+          ))}
+        </div>
+        <div className="about-closing">
+          <p>Chọn một bộ phim. Phần còn lại để NASAFILM kết nối.</p>
+          <Link to="/movies" className="about-closing-link">
+            Xem phim đang chiếu <ArrowRight size={17} aria-hidden="true" />
+          </Link>
+        </div>
       </section>
     </div>
   );

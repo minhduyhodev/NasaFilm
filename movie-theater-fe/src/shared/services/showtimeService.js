@@ -1,10 +1,15 @@
 import { authService } from '../../features/auth/api/authService';
 
 class ShowtimeService {
-  async getAdminShowtimes() {
+  async getAdminShowtimes({ page, size, unpaged = true } = {}) {
     try {
-      const response = await authService.api.get('/api/admin/showtimes');
-      return response.data.data ?? response.data;
+      const params = unpaged
+        ? { unpaged: true }
+        : { unpaged: false, page: page ?? 0, size: size ?? 50 };
+      const response = await authService.api.get('/api/admin/showtimes', { params });
+      const data = response.data.data ?? response.data;
+      if (Array.isArray(data)) return data;
+      return data?.content ?? [];
     } catch (error) {
       throw authService.handleError(error);
     }

@@ -19,7 +19,7 @@ public class SupportRealtimeBroadcaster {
         this.messagingTemplate = messagingTemplate;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onSupportTicketEvent(SupportTicketService.SupportTicketEvent event) {
         if (event.ticketCode() == null || event.ticketCode().isBlank()) {
             return;
@@ -28,7 +28,7 @@ public class SupportRealtimeBroadcaster {
         messagingTemplate.convertAndSend(USER_TOPIC_PREFIX + event.ticketCode(), event);
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onSupportTicketDeletedEvent(SupportTicketService.SupportTicketDeletedEvent event) {
         messagingTemplate.convertAndSend(ADMIN_TOPIC, event);
         if (event.ticketCode() != null && !event.ticketCode().isBlank()) {
@@ -36,7 +36,7 @@ public class SupportRealtimeBroadcaster {
         }
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onSupportLiveEvent(SupportLiveSupportService.SupportLiveEvent event) {
         messagingTemplate.convertAndSend(ADMIN_LIVE_TOPIC, event);
         messagingTemplate.convertAndSend(STAFF_AGENT_TOPIC, event);

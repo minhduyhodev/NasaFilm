@@ -1,7 +1,7 @@
 import { getVideoSource, getHeroBackgroundSource } from './videoSourceUtils';
 import { movieService } from '../../../shared/services/movieService';
 import { vodService } from '../../../shared/services/vodService';
-import { resolveMediaUrl, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import { resolveMediaUrl, unwrapMediaUrl, isAwsMovieStreamingUrl } from '../../../shared/utils/mediaUrlUtils';
 import {
   VOD_DEFAULT_DURATION_MINUTES,
   VOD_PLAYBACK_STATE,
@@ -85,15 +85,26 @@ export const getMoviePosterUrl = (movie) => {
 export const getMovieStreamingUrl = (movie) => {
   if (!movie) return '';
 
-  if (movie.streamingUrl?.trim()) return movie.streamingUrl.trim();
+  const candidates = [];
+  if (movie.streamingUrl?.trim()) {
+    candidates.push(movie.streamingUrl.trim());
+  }
 
   const medias = movie.medias || [];
-  const streamTypes = ['STREAM', 'FULL_MOVIE', 'VIDEO', 'ONLINE'];
-  const streamMedia = medias.find((m) => streamTypes.includes(m.mediaType))?.mediaUrl;
-  if (streamMedia?.trim()) return streamMedia.trim();
+  const streamTypes = ['STREAM', 'FULL_MOVIE', 'VIDEO', 'ONLINE', 'MOVIE'];
+  for (const media of medias) {
+    if (streamTypes.includes(media.mediaType) && media.mediaUrl?.trim()) {
+      candidates.push(media.mediaUrl.trim());
+    }
+  }
 
-  const trailerMedia = medias.find((m) => m.mediaType === 'TRAILER')?.mediaUrl;
-  return trailerMedia?.trim() || '';
+  // Online watch chỉ chấp nhận S3 movie/ — không fallback trailer YouTube
+  for (const url of candidates) {
+    if (isAwsMovieStreamingUrl(url)) {
+      return url;
+    }
+  }
+  return '';
 };
 
 export const getMovieTrailerUrl = (movie) => {
@@ -215,14 +226,27 @@ export const sortMoviesByReleaseDate = (movies = []) =>
     return dateB - dateA;
   });
 
-export const getMovieDetailPath = (uuid, { online = false } = {}) =>
-  uuid ? (online ? `/movie/${uuid}?from=online` : `/movie/${uuid}`) : '/movies';
+/** UUID hoặc slug — ưu tiên slug cho URL đẹp, UUID vẫn dùng được. */
+export const getMoviePathId = (movieOrId) => {
+  if (!movieOrId) return '';
+  if (typeof movieOrId === 'string') return movieOrId;
+  return movieOrId.slug || movieOrId.uuid || '';
+};
 
-export const getOnlineActivatePath = (uuid) =>
-  uuid ? `/online/activate/${uuid}` : '/online';
+export const getMovieDetailPath = (movieOrId, { online = false } = {}) => {
+  const id = getMoviePathId(movieOrId);
+  return id ? (online ? `/movie/${id}?from=online` : `/movie/${id}`) : '/movies';
+};
 
-export const getOnlineWatchPath = (uuid) =>
-  uuid ? `/watch/${uuid}` : '/online';
+export const getOnlineActivatePath = (movieOrId) => {
+  const id = getMoviePathId(movieOrId);
+  return id ? `/online/activate/${id}` : '/online';
+};
+
+export const getOnlineWatchPath = (movieOrId) => {
+  const id = getMoviePathId(movieOrId);
+  return id ? `/watch/${id}` : '/online';
+};
 
 /** Ước tính thời điểm hết hạn xem VOD (khớp BE: duration × lockMultiplier). */
 export const estimateVodExpiresAt = (
@@ -255,10 +279,11 @@ export const canWatchOnlineDirectly = (vodStatus) =>
       vodStatus?.firstPlayedAt
   );
 
-export const getOnlineMoviePath = (uuid, vodStatus = null) => {
-  if (!uuid) return '/online';
-  if (canWatchOnlineDirectly(vodStatus)) return getOnlineWatchPath(uuid);
-  return getOnlineActivatePath(uuid);
+export const getOnlineMoviePath = (movieOrId, vodStatus = null) => {
+  const id = getMoviePathId(movieOrId);
+  if (!id) return '/online';
+  if (canWatchOnlineDirectly(vodStatus)) return getOnlineWatchPath(id);
+  return getOnlineActivatePath(id);
 };
 
 export const getOnlineActionLabel = (vodStatus, fallback = 'Xem ngay') => {

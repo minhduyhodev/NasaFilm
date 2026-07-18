@@ -24,6 +24,10 @@ public class EmailTemplateService {
     public static final String CODE_THEATER_TICKET = "THEATER_TICKET";
     public static final String CODE_OTP_REGISTER = "OTP_REGISTER";
     public static final String CODE_PASSWORD_RESET = "PASSWORD_RESET";
+    public static final String CODE_ACCOUNT_ACTIVATION = "ACCOUNT_ACTIVATION";
+    public static final String CODE_STAFF_ACTIVATION = "STAFF_ACTIVATION";
+    public static final String CODE_WALLET_TOP_UP = "WALLET_TOP_UP";
+    public static final String CODE_WALLET_WITHDRAW = "WALLET_WITHDRAW";
 
     private final EmailTemplateRepository emailTemplateRepository;
 
@@ -108,6 +112,22 @@ public class EmailTemplateService {
                 "Gửi liên kết đặt lại mật khẩu khi người dùng quên mật khẩu",
                 "NASA FILM - Yêu cầu đặt lại mật khẩu",
                 EmailTemplateBlockPresets.passwordResetBlocks());
+        seedIfMissing(CODE_ACCOUNT_ACTIVATION, "Chào mừng hội viên mới",
+                "Gửi thông tin đăng nhập và link kích hoạt khi tạo tài khoản khách hàng mới",
+                "NASA FILM - Chào mừng bạn đến với NASA FILM",
+                EmailTemplateBlockPresets.accountActivationBlocks());
+        seedIfMissing(CODE_STAFF_ACTIVATION, "Tài khoản nhân sự",
+                "Gửi thông tin đăng nhập và link kích hoạt khi tạo tài khoản nhân sự mới",
+                "NASA FILM - Tài khoản nhân sự đã được tạo",
+                EmailTemplateBlockPresets.staffActivationBlocks());
+        seedIfMissing(CODE_WALLET_TOP_UP, "Nạp tiền ví",
+                "Gửi thông báo khi khách hàng nạp tiền vào Ví NASA thành công",
+                "NASA FILM - Nạp {{AMOUNT}} vào Ví NASA thành công",
+                EmailTemplateBlockPresets.walletTopUpBlocks());
+        seedIfMissing(CODE_WALLET_WITHDRAW, "Rút tiền ví",
+                "Gửi thông báo khi khách hàng rút tiền từ Ví NASA thành công",
+                "NASA FILM - Rút {{AMOUNT}} từ Ví NASA thành công",
+                EmailTemplateBlockPresets.walletWithdrawBlocks());
         backfillContentBlocksIfMissing();
     }
 
@@ -135,6 +155,10 @@ public class EmailTemplateService {
             case CODE_THEATER_TICKET -> EmailTemplateBlockPresets.theaterTicketBlocks();
             case CODE_OTP_REGISTER -> EmailTemplateBlockPresets.otpRegisterBlocks();
             case CODE_PASSWORD_RESET -> EmailTemplateBlockPresets.passwordResetBlocks();
+            case CODE_ACCOUNT_ACTIVATION -> EmailTemplateBlockPresets.accountActivationBlocks();
+            case CODE_STAFF_ACTIVATION -> EmailTemplateBlockPresets.staffActivationBlocks();
+            case CODE_WALLET_TOP_UP -> EmailTemplateBlockPresets.walletTopUpBlocks();
+            case CODE_WALLET_WITHDRAW -> EmailTemplateBlockPresets.walletWithdrawBlocks();
             default -> null;
         };
     }
@@ -196,6 +220,18 @@ public class EmailTemplateService {
             case CODE_PASSWORD_RESET -> new RenderedEmail(
                     applyVariables("NASA FILM - Yêu cầu đặt lại mật khẩu", safeVars),
                     applyVariables(EmailTemplateDefaults.passwordResetHtml(), safeVars));
+            case CODE_ACCOUNT_ACTIVATION -> new RenderedEmail(
+                    applyVariables("NASA FILM - Chào mừng bạn đến với NASA FILM", safeVars),
+                    applyVariables(EmailTemplateDefaults.accountActivationHtml(), safeVars));
+            case CODE_STAFF_ACTIVATION -> new RenderedEmail(
+                    applyVariables("NASA FILM - Tài khoản nhân sự đã được tạo", safeVars),
+                    applyVariables(EmailTemplateDefaults.staffActivationHtml(), safeVars));
+            case CODE_WALLET_TOP_UP -> new RenderedEmail(
+                    applyVariables("NASA FILM - Nạp {{AMOUNT}} vào Ví NASA thành công", safeVars),
+                    applyVariables(EmailTemplateDefaults.walletTopUpHtml(), safeVars));
+            case CODE_WALLET_WITHDRAW -> new RenderedEmail(
+                    applyVariables("NASA FILM - Rút {{AMOUNT}} từ Ví NASA thành công", safeVars),
+                    applyVariables(EmailTemplateDefaults.walletWithdrawHtml(), safeVars));
             default -> throw new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy mẫu email: " + code);
         };
     }

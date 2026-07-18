@@ -7,10 +7,10 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 
-import heroBg from '../../../shared/assets/cinema_hero_bg.png';
-import landmark81Img from '../../../shared/assets/cinema_landmark81.png';
-import cityCenterImg from '../../../shared/assets/cinema_citycenter.png';
-import sunsetMallImg from '../../../shared/assets/cinema_sunsetmall.png';
+import heroBg from '../../../shared/assets/cinema_hero_bg.webp';
+import landmark81Img from '../../../shared/assets/cinema_landmark81.webp';
+import cityCenterImg from '../../../shared/assets/cinema_citycenter.webp';
+import sunsetMallImg from '../../../shared/assets/cinema_sunsetmall.webp';
 import './CinemasPage.css';
 
 const FALLBACK_IMAGES = [landmark81Img, cityCenterImg, sunsetMallImg];
@@ -116,7 +116,7 @@ const CinemasPage = () => {
             entranceNote: cinema.entranceNote || '',
             latitude: cinema.latitude,
             longitude: cinema.longitude,
-            image: FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
+            image: cinema.imageUrl || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
             techs: techs.length > 0 ? techs : [`${cinema.totalRooms || rooms.length || 0} phòng chiếu`],
             totalRooms: cinema.totalRooms ?? rooms.length,
           };

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import OnlineHero from '../components/online/OnlineHero';
 import ContinueWatching from '../components/ContinueWatching';
+import WatchedOnlineMovies from '../components/WatchedOnlineMovies';
 import NewReleases from '../components/NewReleases';
 import ExclusiveCollection from '../components/ExclusiveCollection';
 import MovieCard from '../components/MovieCard';
@@ -14,7 +15,7 @@ import { useOnlineSpotlightMovies, useOnlineCatalog } from '../../../shared/hook
 import { mapApiMovies } from '../utils/movieUtils';
 import { useOnlineVodRoutes } from '../hooks/useOnlineVodRoutes';
 import { useMovieListFilters } from '../hooks/useMovieListFilters';
-import heroBg from '../../../shared/assets/cinema_hero_bg.png';
+import heroBg from '../../../shared/assets/cinema_hero_bg.webp';
 import '../styles/home-premium.css';
 import './OnlineMoviesPage.css';
 import './MoviesPage.css';
@@ -107,6 +108,7 @@ const OnlineMoviesPage = () => {
 
       <main className="online-page-container">
         {!isSpotlightLoading && <ContinueWatching onlineOnly getOnlinePath={getOnlinePath} />}
+        {!isSpotlightLoading && <WatchedOnlineMovies />}
         {!isSpotlightLoading && (
           <NewReleases
             onlineOnly

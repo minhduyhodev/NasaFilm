@@ -32,6 +32,7 @@ const Pagination = ({
   onPageChange,
   onItemsPerPageChange,
   itemsPerPageOptions = [5, 10, 20, 50],
+  compact = false,
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage) || 1);
   const safePage = Math.min(Math.max(currentPage, 1), totalPages);
@@ -60,6 +61,65 @@ const Pagination = ({
         ? 'bg-red-600 border-red-500 text-white shadow-md shadow-red-900/30'
         : 'bg-[#121826] border-[#2a3448] text-gray-300 hover:bg-[#1a2238] hover:border-[#3d4a63] hover:text-white active:scale-95'
     }`;
+
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-3 border-t border-white/8 pt-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[11px] font-medium text-gray-500">
+            <strong className="font-semibold text-gray-300">{startItem}–{endItem}</strong>
+            {' '}trong {totalItems}
+          </span>
+          <span className="text-[11px] font-semibold tabular-nums text-gray-300" aria-live="polite">
+            {safePage} / {totalPages}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          {onItemsPerPageChange && (
+            <label className="inline-flex items-center gap-2 text-[10px] text-gray-500">
+              <span>Dòng</span>
+              <select
+                value={itemsPerPage}
+                onChange={(event) => {
+                  onItemsPerPageChange(Number(event.target.value));
+                  onPageChange(1);
+                }}
+                className="app-select h-8 rounded-md border border-white/10 bg-white/[0.035] px-2 pr-7 text-xs text-gray-300 outline-none transition-colors focus:border-red-500/50"
+              >
+                {itemsPerPageOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <nav className="flex items-center gap-1.5" aria-label="Phân trang">
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => goToPage(safePage - 1)}
+              className={`${navBtnClass} ${safePage <= 1 ? navBtnDisabled : navBtnEnabled}`}
+              aria-label="Trang trước"
+              title="Trang trước"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => goToPage(safePage + 1)}
+              className={`${navBtnClass} ${safePage >= totalPages ? navBtnDisabled : navBtnEnabled}`}
+              aria-label="Trang sau"
+              title="Trang sau"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </nav>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 py-4 px-4 sm:px-5 border-t border-[#242d42]/40 bg-[#080b14]/40 sm:flex-row sm:items-center sm:justify-between">

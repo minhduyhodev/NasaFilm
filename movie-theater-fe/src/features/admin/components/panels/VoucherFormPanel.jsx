@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Coins, Zap } from 'lucide-react';
 import { adminPromotionService } from '../../api/adminPromotionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';
@@ -7,6 +8,7 @@ import { TIER_FORM_OPTIONS } from '../../../../shared/utils/memberTiers';
 import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../../utils/voucherFormUtils';
 import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
 import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
+import './VoucherFormPanel.css';
 
 const VOUCHER_TYPES = {
   REDEEM: 'REDEEM',
@@ -148,33 +150,35 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-        <label className={adminLabelClass}>Loại voucher *</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <fieldset className="voucher-type-picker">
+        <legend className={adminLabelClass}>Loại voucher *</legend>
+        <div className="voucher-type-picker__grid">
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.REDEEM)}
-            className={`rounded-lg border px-3 py-2.5 text-left transition ${
-              !isDirectType
-                ? 'border-amber-500/50 bg-amber-500/10 text-white'
-                : 'border-white/10 bg-transparent text-gray-400 hover:border-white/20'
-            }`}
+            className={`voucher-type-option voucher-type-option--redeem${!isDirectType ? ' is-active' : ''}`}
+            aria-pressed={!isDirectType}
           >
-            <span className="block text-xs font-bold uppercase tracking-wide">Đổi điểm</span>
+            <span className="voucher-type-option__icon"><Coins size={18} /></span>
+            <span className="voucher-type-option__content">
+              <strong>Đổi điểm</strong>
+              <small>Khách dùng điểm tích lũy để nhận voucher</small>
+            </span>
           </button>
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.DIRECT)}
-            className={`rounded-lg border px-3 py-2.5 text-left transition ${
-              isDirectType
-                ? 'border-green-500/50 bg-green-500/10 text-white'
-                : 'border-white/10 bg-transparent text-gray-400 hover:border-white/20'
-            }`}
+            className={`voucher-type-option voucher-type-option--direct${isDirectType ? ' is-active' : ''}`}
+            aria-pressed={isDirectType}
           >
-            <span className="block text-xs font-bold uppercase tracking-wide">Khả dụng trực tiếp</span>
+            <span className="voucher-type-option__icon"><Zap size={18} /></span>
+            <span className="voucher-type-option__content">
+              <strong>Dùng trực tiếp</strong>
+              <small>Voucher miễn phí, áp dụng ngay khi thanh toán</small>
+            </span>
           </button>
         </div>
-      </div>
+      </fieldset>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -241,18 +245,6 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           </label>
           <input type="number" min="1" className={adminInputClass} placeholder="Không giới hạn" value={form.maxUsagePerUser} onChange={(e) => setForm((p) => ({ ...p, maxUsagePerUser: e.target.value }))} />
         </div>
-        <AdminDateTimePicker
-          label="Ngày bắt đầu *"
-          value={form.startDate}
-          onChange={(v) => setForm((p) => ({ ...p, startDate: v }))}
-          required
-        />
-        <AdminDateTimePicker
-          label="Ngày kết thúc *"
-          value={form.endDate}
-          onChange={(v) => setForm((p) => ({ ...p, endDate: v }))}
-          required
-        />
         <div>
           <label className={adminLabelClass}>Trạng thái *</label>
           <select className={adminSelectClass} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
@@ -260,6 +252,24 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
             <option value="INACTIVE">Vô hiệu</option>
           </select>
         </div>
+        <AdminDateTimePicker
+          className="sm:col-span-2"
+          label="Ngày bắt đầu *"
+          dateLabel=""
+          timeLabel=""
+          value={form.startDate}
+          onChange={(v) => setForm((p) => ({ ...p, startDate: v }))}
+          required
+        />
+        <AdminDateTimePicker
+          className="sm:col-span-2"
+          label="Ngày kết thúc *"
+          dateLabel=""
+          timeLabel=""
+          value={form.endDate}
+          onChange={(v) => setForm((p) => ({ ...p, endDate: v }))}
+          required
+        />
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>

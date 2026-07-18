@@ -11,17 +11,28 @@ import {
 } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
 import { movieService } from '../../../shared/services/movieService';
+import tokenService from '../../auth/utils/tokenService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getOnlineCountdownSettings } from '../../../shared/utils/systemConfig';
 import { notificationService } from '../../../shared/services/notificationService';
 import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { getOnlineActivatePath, getMovieStreamingUrl, canWatchOnlineDirectly, getTemporaryVodToken, removeTemporaryVodToken, estimateVodExpiresAt, fetchPendingActivationMovies } from '../utils/movieUtils';
-import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
+import { resolveMediaUrl, resolvePlayableMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import PosterImage from '../../../shared/components/PosterImage';
+import MovieReviewsSection from '../components/MovieReviewsSection';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import { useHomeChrome } from '../context/HomeChromeContext';
 import './WatchPage.css';
+
+const toPlayableStreamUrl = async (rawUrl) => {
+  if (!rawUrl?.trim()) return '';
+  try {
+    return (await resolvePlayableMediaUrl(rawUrl.trim())) || rawUrl.trim();
+  } catch {
+    return rawUrl.trim();
+  }
+};
 
 const getPosterRaw = (movie) =>
   movie?.medias?.find((m) => m.isPrimary)?.mediaUrl ||
@@ -62,8 +73,14 @@ const WatchPage = () => {
   const [countdownSettings, setCountdownSettings] = useState(() => getOnlineCountdownSettings());
   const [vodExpiresAt, setVodExpiresAt] = useState(null);
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
+  const [ticketExpired, setTicketExpired] = useState(false);
+  const [reviewsExpanded, setReviewsExpanded] = useState(true);
   const heartbeatIntervalRef = useRef(null);
+  // Vị trí xem gần nhất — dùng để flush heartbeat cuối khi rời trang.
+  const lastPositionRef = useRef({ position: 0, duration: null });
   const cinemaUiTimerRef = useRef(null);
+  // Prevent double-click races that can rotate token twice.
+  const playLockRef = useRef(false);
 
   const getFullscreenRect = () => ({
     top: 0,
@@ -218,14 +235,22 @@ const WatchPage = () => {
         if (!active) return;
         setMovie(movieDetail);
         setUpNext(pendingMovies);
+        // Chuẩn hóa URL đẹp: /watch/uuid → /watch/slug (UUID vẫn mở được)
+        if (movieDetail?.slug && id && movieDetail.slug !== id) {
+          navigate(`/watch/${movieDetail.slug}`, { replace: true });
+        }
 
-        const status = await vodService.getStatus(id);
+        const status = await vodService.getStatus(movieDetail?.uuid || id);
         if (!active) return;
         if (!status.hasPurchased) {
           throw new Error('Bạn chưa mua vé xem trực tuyến phim này.');
         }
+        // Vé hết hạn: vẫn cho vào trang để xem thông tin và đánh giá phim,
+        // chỉ khóa phần phát video.
         if (status.playbackState === 'EXPIRED') {
-          throw new Error('Vé xem phim trực tuyến của bạn đã hết hạn.');
+          setTicketExpired(true);
+          setPreviewReady(true);
+          return;
         }
         if (status.expiresAt) {
           setVodExpiresAt(status.expiresAt);
@@ -237,10 +262,11 @@ const WatchPage = () => {
         const resolvedStreamUrl = getMovieStreamingUrl(movieDetail);
         if (!resolvedStreamUrl?.trim()) {
           throw new Error(
-            'Phim chưa được cấu hình link phát trực tuyến. Admin cần thêm URL video (.mp4) hoặc YouTube/Vimeo trong trang quản lý phim.'
+            'Phim chưa được cấu hình link phát trực tuyến. Admin cần thêm S3 key thư mục movie/ (vd: movie/tenphim.mp4).'
           );
         }
 
+        // Align develop: đã STREAMING → chỉ preview, bấm Play mới activatePlay (tránh đổi token/kick tab khác)
         if (canWatchOnlineDirectly(status)) {
           setPreviewReady(true);
           if (status.expiresAt) {
@@ -249,9 +275,12 @@ const WatchPage = () => {
           return;
         }
 
-        const verifiedBookingUuid = getTemporaryVodToken(id);
-        if (!verifiedBookingUuid) {
-          navigate(getOnlineActivatePath(id), { replace: true });
+        // Vé chưa kích hoạt (WAITING_FOR_PLAY): bắt buộc qua trang kích hoạt nhập mã vé.
+        // Ngoại lệ: vừa kích hoạt xong ở trang activate (có temporary token) — cho vào luôn.
+        const justActivated =
+          getTemporaryVodToken(movieDetail?.uuid || id) || getTemporaryVodToken(id);
+        if (!justActivated) {
+          navigate(getOnlineActivatePath(movieDetail?.uuid || id), { replace: true });
           return;
         }
 
@@ -274,37 +303,74 @@ const WatchPage = () => {
   useEffect(() => {
     if (!streamData?.streamToken) return;
 
+    const readVideoPosition = () => {
+      const video = videoRef.current;
+      const position = video?.currentTime;
+      const duration = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
+      // Bỏ qua các giá trị ~0 lúc video vừa mount/chưa seek để không ghi đè vị trí đã lưu.
+      if (Number.isFinite(position) && position > 1) {
+        lastPositionRef.current = { position, duration };
+        return { position, duration };
+      }
+      return { position: null, duration };
+    };
+
     const sendHeartbeat = async () => {
       try {
-        const video = videoRef.current;
-        const positionSeconds = video?.currentTime ?? null;
-        const durationSeconds = video?.duration && Number.isFinite(video.duration) ? video.duration : null;
-        await vodService.heartbeat(id, streamData.streamToken, positionSeconds, durationSeconds);
+        const { position, duration } = readVideoPosition();
+        const movieRef = movie?.uuid || id;
+        await vodService.heartbeat(movieRef, streamData.streamToken, position, duration);
       } catch (err) {
+        const moviePath = movie?.slug || movie?.uuid || id;
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
           notificationService.error('Tài khoản đang xem ở thiết bị khác.');
-          navigate(`/movie/${id}?from=online`);
+          navigate(`/movie/${moviePath}?from=online`);
         } else if (err.message?.includes('hết hạn')) {
           notificationService.error('Vé xem trực tuyến đã hết hạn.');
-          navigate(`/movie/${id}?from=online`);
+          navigate(`/movie/${moviePath}?from=online`);
         }
       }
     };
 
     sendHeartbeat();
     heartbeatIntervalRef.current = setInterval(sendHeartbeat, 15000);
-    return () => {
-      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+
+    const streamToken = streamData.streamToken;
+    const movieRef = movie?.uuid || id;
+
+    // Flush khi đóng tab/reload — fetch keepalive vẫn gửi được lúc trang unload.
+    const flushOnPageHide = () => {
+      readVideoPosition();
+      const { position, duration } = lastPositionRef.current;
+      if (!(position > 1)) return;
+      const params = new URLSearchParams({
+        streamToken,
+        positionSeconds: String(Math.floor(position)),
+      });
+      if (duration > 0) params.set('durationSeconds', String(Math.floor(duration)));
+      const token = tokenService.getToken();
+      fetch(`${import.meta.env.VITE_API_URL || ''}/api/vod/heartbeat/${movieRef}?${params.toString()}`, {
+        method: 'POST',
+        keepalive: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }).catch(() => {});
     };
-  }, [streamData, id, navigate]);
+    window.addEventListener('pagehide', flushOnPageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', flushOnPageHide);
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      // Flush vị trí cuối khi rời trang (điều hướng SPA) để không mất tối đa 15s tiến độ.
+      readVideoPosition();
+      const { position, duration } = lastPositionRef.current;
+      if (position > 1) {
+        vodService.heartbeat(movieRef, streamToken, position, duration).catch(() => {});
+      }
+    };
+  }, [streamData, id, movie, navigate]);
 
   useEffect(() => {
-    if (!isPlaying) {
-      setRemainingTimeText('');
-      setCountdownWarning(false);
-      return undefined;
-    }
-
+    // Đếm ngược chạy ngay khi vé đã kích hoạt (có expiresAt từ BE), không chờ bấm Play.
     let expiresAt = streamData?.expiresAt || vodExpiresAt;
     if (!expiresAt || !countdownSettings.enabled) {
       setRemainingTimeText('');
@@ -338,33 +404,44 @@ const WatchPage = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [streamData, vodExpiresAt, countdownSettings, isPlaying, movie, id, navigate]);
+  }, [streamData, vodExpiresAt, countdownSettings, movie, id, navigate]);
 
   const handlePlay = async () => {
+    if (ticketExpired) {
+      notificationService.error('Vé xem phim trực tuyến của bạn đã hết hạn.');
+      return;
+    }
     setVideoError('');
     if (streamData?.streamToken) {
       setIsPlaying(true);
       return;
     }
-    if (isStartingPlay) return;
+    if (playLockRef.current || isStartingPlay) return;
+    playLockRef.current = true;
     setIsStartingPlay(true);
     try {
-      const verifiedBookingUuid = getTemporaryVodToken(id);
-      const playSession = await vodService.activatePlay(id, verifiedBookingUuid || undefined);
+      const movieRef = movie?.uuid || id;
+      const verifiedBookingUuid = getTemporaryVodToken(movieRef) || getTemporaryVodToken(id);
+      const playSession = await vodService.activatePlay(movieRef, verifiedBookingUuid || undefined);
       showMissionCompletionToasts(playSession?.missionCompletions);
-      const resolvedStreamUrl = playSession.streamingUrl || getMovieStreamingUrl(movie);
-      if (!resolvedStreamUrl?.trim()) {
-        throw new Error('Phim chưa được cấu hình link phát trực tuyến.');
+      // Chỉ dùng URL kèm token từ activatePlay — fallback catalog (không token) sẽ 401 ở /stream.
+      const resolvedStreamUrl = playSession?.streamingUrl?.trim();
+      if (!resolvedStreamUrl) {
+        throw new Error(
+          'Không nhận được link phát có token. Thử lại hoặc kiểm tra cấu hình S3 movie/ trên admin.'
+        );
       }
+      const playUrl = await toPlayableStreamUrl(resolvedStreamUrl);
       const expiresAt = resolvePlayExpiresAt(
         playSession,
         movie,
         countdownSettings.lockMultiplier
       );
       removeTemporaryVodToken(id);
+      removeTemporaryVodToken(movieRef);
       setStreamData({
         ...playSession,
-        streamingUrl: resolvedStreamUrl.trim(),
+        streamingUrl: playUrl,
         expiresAt,
       });
       setVodExpiresAt(expiresAt);
@@ -374,10 +451,19 @@ const WatchPage = () => {
       notificationService.error(err?.message || 'Không thể bắt đầu phát phim.');
     } finally {
       setIsStartingPlay(false);
+      playLockRef.current = false;
     }
   };
 
-  const streamUrl = streamData?.streamingUrl || movie?.streamingUrl || '';
+  // Tự động gọi handlePlay khi load xong preview
+  useEffect(() => {
+    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamToken) {
+      handlePlay();
+    }
+  }, [previewReady, isPlaying, isStartingPlay, streamData]);
+
+  // Chỉ phát sau activatePlay — không dùng movie.streamingUrl công khai (thiếu token)
+  const streamUrl = streamData?.streamingUrl || '';
   const videoSource = getVideoSource(streamUrl);
 
   const getDirectPlaybackUrl = () => {
@@ -561,6 +647,7 @@ const WatchPage = () => {
             controls={!isCustomCinema}
             autoPlay={videoSource.type === 'direct'}
             playsInline
+            preload="auto"
             className="watch-player-video"
             controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}
@@ -585,7 +672,7 @@ const WatchPage = () => {
     );
   };
 
-  const showCountdown = countdownSettings.enabled && Boolean(isPlaying && streamData?.streamToken);
+  const showCountdown = countdownSettings.enabled && Boolean(streamData?.expiresAt || vodExpiresAt);
   const timerBadgeClass = `watch-timer-badge${countdownWarning ? ' watch-timer-badge--warning' : ''}`;
 
   const renderTimerBadge = () => (
@@ -651,14 +738,35 @@ const WatchPage = () => {
                         <ShieldAlert className="w-3.5 h-3.5" /> Bảo mật VOD
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={handlePlay}
-                      className="watch-play-btn"
-                      aria-label="Phát phim"
-                    >
-                      <Play className="h-7 w-7 fill-current ml-1" />
-                    </button>
+                    {ticketExpired ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 p-6 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-300">
+                          <Clock className="h-7 w-7" />
+                        </div>
+                        <p className="text-sm font-bold uppercase tracking-wider text-amber-300">
+                          Vé xem online đã hết hạn
+                        </p>
+                        <p className="max-w-sm text-xs leading-relaxed text-white/60">
+                          Bạn không thể phát lại phim, nhưng vẫn có thể xem thông tin và gửi đánh giá bên dưới.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/movie/${movie.slug || movie.uuid}?from=online`)}
+                          className="mt-1 rounded-lg border border-red-500/40 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/10"
+                        >
+                          Mua vé xem lại
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePlay}
+                        className="watch-play-btn"
+                        aria-label="Phát phim"
+                      >
+                        <Play className="h-7 w-7 fill-current ml-1" />
+                      </button>
+                    )}
                   </>
                 )}
 
@@ -837,6 +945,17 @@ const WatchPage = () => {
               </Link>
               )}
             </aside>
+          </div>
+
+          <div id="movie-reviews" className="watch-reviews-section">
+            <MovieReviewsSection
+              movieUuid={movie.uuid}
+              movieTitle={movie.title}
+              showTheaterCta={false}
+              showOnlineCta={false}
+              isExpanded={reviewsExpanded}
+              onExpandedChange={setReviewsExpanded}
+            />
           </div>
         </div>
       </main>

@@ -28,4 +28,16 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     int claimSucceededForBooking(@Param("gatewayTransactionId") String gatewayTransactionId,
             @Param("bookingUuid") UUID bookingUuid,
             @Param("now") OffsetDateTime now);
+
+    /**
+     * Atomically transitions a transaction from one status to another. Returns 1 when this thread won the
+     * transition, 0 when it was already changed — so only one concurrent request credits a top-up.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE PaymentTransaction t SET t.status = :toStatus, t.updatedAt = :now "
+            + "WHERE t.uuid = :uuid AND t.status = :fromStatus")
+    int transitionStatus(@Param("uuid") UUID uuid,
+            @Param("fromStatus") String fromStatus,
+            @Param("toStatus") String toStatus,
+            @Param("now") OffsetDateTime now);
 }

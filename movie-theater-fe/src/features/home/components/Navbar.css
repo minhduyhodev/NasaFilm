@@ -145,6 +145,94 @@
   @apply fill-red-500;
 }
 
+.navbar-booking-menu__divider {
+  @apply my-1 border-t border-white/10;
+}
+
+.orbit-join-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.orbit-join-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(3, 6, 13, 0.78);
+  backdrop-filter: blur(10px);
+  cursor: default;
+}
+
+.orbit-join-dialog__panel {
+  position: relative;
+  width: min(100%, 30rem);
+  animation: orbit-dialog-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.orbit-join-dialog__panel .orbit-join-bar {
+  max-width: none;
+  padding: 1.4rem;
+  border-color: rgba(248, 113, 113, 0.28);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+}
+
+.orbit-join-dialog__panel .orbit-join-bar__title {
+  font-size: 0.78rem;
+}
+
+.orbit-join-dialog__panel .orbit-join-bar__desc {
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.orbit-join-dialog__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.orbit-join-dialog__close:hover,
+.orbit-join-dialog__close:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+}
+
+.orbit-join-dialog__close:active {
+  transform: scale(0.96);
+}
+
+.orbit-join-dialog__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@keyframes orbit-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .navbar-cta-btn span {
   @apply whitespace-nowrap;
 }

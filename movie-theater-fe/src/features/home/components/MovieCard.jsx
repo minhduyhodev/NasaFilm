@@ -32,6 +32,7 @@ const resolveStatusBadge = ({ releaseDate, reviewAverageRating, reviewCount }) =
 
 const MovieCard = ({
   uuid,
+  slug: slugProp,
   title,
   genre,
   genres,
@@ -52,15 +53,16 @@ const MovieCard = ({
   hoverDetails,
   posterLoading = 'lazy',
 }) => {
-  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-  const resolveOnlinePath = (movieUuid) => {
-    if (getOnlinePath) return getOnlinePath(movieUuid);
-    return getOnlineMoviePath(movieUuid, vodStatus);
+  const pathId = slugProp || uuid
+    || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const resolveOnlinePath = (movieRef) => {
+    if (getOnlinePath) return getOnlinePath(movieRef);
+    return getOnlineMoviePath(movieRef, vodStatus);
   };
   const linkTarget =
-    fromOnline && uuid
-      ? resolveOnlinePath(uuid)
-      : getMovieDetailPath(uuid || slug, { online: false });
+    fromOnline && pathId
+      ? resolveOnlinePath(pathId)
+      : getMovieDetailPath(pathId, { online: false });
 
   const displayGenres = genres?.length
     ? genres.join(', ')

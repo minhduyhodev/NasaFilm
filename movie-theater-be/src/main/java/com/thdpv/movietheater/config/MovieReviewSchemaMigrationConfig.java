@@ -30,10 +30,6 @@ public class MovieReviewSchemaMigrationConfig {
         void migrate() {
             log.info("Applying movie review schema patches...");
             jdbc.execute("""
-                    ALTER TABLE movie_review
-                    DROP CONSTRAINT IF EXISTS uk_movie_review_movie_user
-                    """);
-            jdbc.execute("""
                     CREATE INDEX IF NOT EXISTS idx_movie_review_movie_user
                     ON movie_review (movie_uuid, user_uuid)
                     """);
@@ -77,6 +73,55 @@ public class MovieReviewSchemaMigrationConfig {
             jdbc.execute("""
                     CREATE INDEX IF NOT EXISTS idx_movie_review_report_review
                     ON movie_review_report (review_uuid)
+                    """);
+            jdbc.execute("""
+                    DELETE FROM movie_review_report
+                    WHERE review_uuid IN (
+                        SELECT uuid
+                        FROM (
+                            SELECT uuid,
+                                   row_number() OVER (
+                                       PARTITION BY movie_uuid, user_uuid
+                                       ORDER BY updated_at DESC NULLS LAST,
+                                                created_at DESC NULLS LAST,
+                                                uuid DESC
+                                   ) AS duplicate_rank
+                            FROM movie_review
+                        ) ranked_reviews
+                        WHERE duplicate_rank > 1
+                    )
+                    """);
+            jdbc.execute("""
+                    DELETE FROM movie_review
+                    WHERE uuid IN (
+                        SELECT uuid
+                        FROM (
+                            SELECT uuid,
+                                   row_number() OVER (
+                                       PARTITION BY movie_uuid, user_uuid
+                                       ORDER BY updated_at DESC NULLS LAST,
+                                                created_at DESC NULLS LAST,
+                                                uuid DESC
+                                   ) AS duplicate_rank
+                            FROM movie_review
+                        ) ranked_reviews
+                        WHERE duplicate_rank > 1
+                    )
+                    """);
+            jdbc.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'uk_movie_review_movie_user'
+                        ) THEN
+                            ALTER TABLE movie_review
+                            ADD CONSTRAINT uk_movie_review_movie_user
+                            UNIQUE (movie_uuid, user_uuid);
+                        END IF;
+                    END
+                    $$;
                     """);
             log.info("Movie review schema patches applied.");
         }

@@ -149,4 +149,164 @@ final class EmailTemplateDefaults {
                 </html>
                 """;
     }
+
+    static String accountActivationHtml() {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background-color:#0b0e14;color:#ffffff;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0e14;padding:40px 0;">
+                    <tr><td align="center">
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#121824;border:1px solid #1e293b;border-radius:16px;overflow:hidden;">
+                        <tr><td style="background:linear-gradient(135deg,#e50914,#9f060f);padding:30px;text-align:center;">
+                          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:2px;">NASA FILM</h1>
+                          <p style="margin:5px 0 0;color:rgba(255,255,255,0.8);font-size:14px;text-transform:uppercase;letter-spacing:1px;">Chào mừng hội viên mới</p>
+                        </td></tr>
+                        <tr><td style="padding:40px 30px;line-height:1.6;font-size:15px;color:#cbd5e1;">
+                          <p style="margin-top:0;color:#fff;font-size:18px;font-weight:600;">Xin chào {{FULL_NAME}}!</p>
+                          <p>Chào mừng bạn trở thành hội viên của NASA FILM! Tài khoản của bạn đã được tạo. Dưới đây là thông tin đăng nhập:</p>
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;background-color:#1e293b;border-radius:12px;overflow:hidden;">
+                            <tr><td style="padding:12px 20px;border-bottom:1px solid #334155;"><span style="color:#94a3b8;font-size:12px;">Email đăng nhập</span><br><strong style="color:#fff;">{{LOGIN_EMAIL}}</strong></td></tr>
+                            <tr><td style="padding:12px 20px;"><span style="color:#94a3b8;font-size:12px;">Mật khẩu tạm thời</span><br><strong style="color:#ff3b47;font-family:monospace;font-size:16px;">{{TEMP_PASSWORD}}</strong></td></tr>
+                          </table>
+                          <p>Để bảo mật, vui lòng nhấn nút bên dưới để <strong style="color:#fff;">đặt mật khẩu mới</strong> và kích hoạt tài khoản:</p>
+                          <div style="text-align:center;margin:35px 0;">
+                            <a href="{{ACTIVATION_LINK}}" style="display:inline-block;background:linear-gradient(135deg,#e50914,#9f060f);color:#fff;padding:14px 40px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Kích hoạt tài khoản</a>
+                            <p style="margin:15px 0 0;font-size:12px;color:#94a3b8;">(Liên kết có hiệu lực trong 72 giờ)</p>
+                          </div>
+                          <p style="color:#94a3b8;font-size:13px;">Nếu nút trên không hoạt động, sao chép liên kết sau vào trình duyệt:</p>
+                          <p style="word-break:break-all;font-size:12px;color:#ff3b47;">{{ACTIVATION_LINK}}</p>
+                          <p style="margin-bottom:0;">Trân trọng,<br><strong style="color:#fff;">Đội ngũ NASA FILM</strong></p>
+                        </td></tr>
+                        <tr><td style="background:#0f131f;padding:18px 30px;text-align:center;border-top:1px solid #1e293b;">
+                          <p style="margin:0;color:#64748b;font-size:12px;">&copy; 2026 NASA FILM. Email tự động, vui lòng không trả lời.</p>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """;
+    }
+
+    static String staffActivationHtml() {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background-color:#0b0e14;color:#ffffff;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0e14;padding:40px 0;">
+                    <tr><td align="center">
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#121824;border:1px solid #1e293b;border-radius:16px;overflow:hidden;">
+                        <tr><td style="background:linear-gradient(135deg,#1d4ed8,#1e40af);padding:30px;text-align:center;">
+                          <h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;letter-spacing:2px;">NASA FILM</h1>
+                          <p style="margin:5px 0 0;color:rgba(255,255,255,0.8);font-size:14px;text-transform:uppercase;letter-spacing:1px;">Tài khoản Nhân sự</p>
+                        </td></tr>
+                        <tr><td style="padding:40px 30px;line-height:1.6;font-size:15px;color:#cbd5e1;">
+                          <p style="margin-top:0;color:#fff;font-size:18px;font-weight:600;">Xin chào {{FULL_NAME}}!</p>
+                          <p>Tài khoản nhân sự NASA FILM của bạn đã được tạo. Dưới đây là thông tin đăng nhập:</p>
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;background-color:#1e293b;border-radius:12px;overflow:hidden;">
+                            <tr><td style="padding:12px 20px;border-bottom:1px solid #334155;"><span style="color:#94a3b8;font-size:12px;">Email đăng nhập</span><br><strong style="color:#fff;">{{LOGIN_EMAIL}}</strong></td></tr>
+                            <tr><td style="padding:12px 20px;"><span style="color:#94a3b8;font-size:12px;">Mật khẩu tạm thời</span><br><strong style="color:#60a5fa;font-family:monospace;font-size:16px;">{{TEMP_PASSWORD}}</strong></td></tr>
+                          </table>
+                          <p>Để bảo mật tài khoản, vui lòng nhấn nút bên dưới để <strong style="color:#fff;">đặt mật khẩu mới</strong> và kích hoạt tài khoản:</p>
+                          <div style="text-align:center;margin:35px 0;">
+                            <a href="{{ACTIVATION_LINK}}" style="display:inline-block;background:linear-gradient(135deg,#1d4ed8,#1e40af);color:#fff;padding:14px 40px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Kích hoạt tài khoản</a>
+                            <p style="margin:15px 0 0;font-size:12px;color:#94a3b8;">(Liên kết có hiệu lực trong 72 giờ)</p>
+                          </div>
+                          <p style="color:#94a3b8;font-size:13px;">Nếu nút trên không hoạt động, sao chép liên kết sau vào trình duyệt:</p>
+                          <p style="word-break:break-all;font-size:12px;color:#60a5fa;">{{ACTIVATION_LINK}}</p>
+                          <p style="margin-bottom:0;">Trân trọng,<br><strong style="color:#fff;">Đội ngũ NASA FILM</strong></p>
+                        </td></tr>
+                        <tr><td style="background:#0f131f;padding:18px 30px;text-align:center;border-top:1px solid #1e293b;">
+                          <p style="margin:0;color:#64748b;font-size:12px;">&copy; 2026 NASA FILM. Email tự động, vui lòng không trả lời.</p>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """;
+    }
+
+    static String walletTopUpHtml() {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background-color:#0b0e14;color:#ffffff;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0e14;padding:40px 0;">
+                    <tr><td align="center">
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#121824;border:1px solid #1e293b;border-radius:16px;overflow:hidden;">
+                        <tr><td style="background:linear-gradient(135deg,#059669,#047857);padding:28px;text-align:center;">
+                          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:800;letter-spacing:2px;">NASA FILM</h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;text-transform:uppercase;letter-spacing:1px;">Nạp tiền Ví NASA</p>
+                        </td></tr>
+                        <tr><td style="padding:36px 30px;line-height:1.65;font-size:15px;color:#cbd5e1;">
+                          <p style="margin-top:0;color:#fff;font-size:18px;font-weight:600;">Xin chào {{CUSTOMER_NAME}},</p>
+                          <p>Giao dịch nạp tiền vào Ví NASA của bạn đã thành công.</p>
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;background:#0f131f;border-radius:10px;border:1px solid #1e293b;">
+                            <tr><td style="padding:16px 18px;font-size:14px;">
+                              <p style="margin:0 0 8px;"><strong style="color:#fff;">Số tiền nạp:</strong> {{AMOUNT}}</p>
+                              <p style="margin:0 0 8px;"><strong style="color:#fff;">Số dư sau giao dịch:</strong> {{BALANCE_AFTER}}</p>
+                              <p style="margin:0;"><strong style="color:#fff;">Phương thức:</strong> {{METHOD}}</p>
+                            </td></tr>
+                          </table>
+                          <div style="text-align:center;margin:28px 0;">
+                            <a href="{{WALLET_URL}}" style="display:inline-block;background:linear-gradient(135deg,#059669,#047857);color:#fff;padding:13px 34px;text-decoration:none;border-radius:8px;font-weight:700;">Xem Ví NASA</a>
+                          </div>
+                          <p style="margin-bottom:0;">Trân trọng,<br><strong style="color:#fff;">Đội ngũ NASA FILM</strong></p>
+                        </td></tr>
+                        <tr><td style="background:#0f131f;padding:18px 30px;text-align:center;border-top:1px solid #1e293b;">
+                          <p style="margin:0;color:#64748b;font-size:12px;">&copy; 2026 NASA FILM. Email tự động, vui lòng không trả lời.</p>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """;
+    }
+
+    static String walletWithdrawHtml() {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background-color:#0b0e14;color:#ffffff;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0e14;padding:40px 0;">
+                    <tr><td align="center">
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#121824;border:1px solid #1e293b;border-radius:16px;overflow:hidden;">
+                        <tr><td style="background:linear-gradient(135deg,#e50914,#9f060f);padding:28px;text-align:center;">
+                          <h1 style="margin:0;color:#fff;font-size:26px;font-weight:800;letter-spacing:2px;">NASA FILM</h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;text-transform:uppercase;letter-spacing:1px;">Rút tiền Ví NASA</p>
+                        </td></tr>
+                        <tr><td style="padding:36px 30px;line-height:1.65;font-size:15px;color:#cbd5e1;">
+                          <p style="margin-top:0;color:#fff;font-size:18px;font-weight:600;">Xin chào {{CUSTOMER_NAME}},</p>
+                          <p>Giao dịch rút tiền từ Ví NASA của bạn đã thành công.</p>
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;background:#0f131f;border-radius:10px;border:1px solid #1e293b;">
+                            <tr><td style="padding:16px 18px;font-size:14px;">
+                              <p style="margin:0 0 8px;"><strong style="color:#fff;">Số tiền rút:</strong> {{AMOUNT}}</p>
+                              <p style="margin:0 0 8px;"><strong style="color:#fff;">Số dư sau giao dịch:</strong> {{BALANCE_AFTER}}</p>
+                              <p style="margin:0;"><strong style="color:#fff;">Phương thức:</strong> {{METHOD}}</p>
+                            </td></tr>
+                          </table>
+                          <div style="text-align:center;margin:28px 0;">
+                            <a href="{{WALLET_URL}}" style="display:inline-block;background:linear-gradient(135deg,#e50914,#9f060f);color:#fff;padding:13px 34px;text-decoration:none;border-radius:8px;font-weight:700;">Xem Ví NASA</a>
+                          </div>
+                          <p style="color:#94a3b8;font-size:13px;">Nếu bạn không thực hiện giao dịch này, vui lòng liên hệ hỗ trợ ngay.</p>
+                          <p style="margin-bottom:0;">Trân trọng,<br><strong style="color:#fff;">Đội ngũ NASA FILM</strong></p>
+                        </td></tr>
+                        <tr><td style="background:#0f131f;padding:18px 30px;text-align:center;border-top:1px solid #1e293b;">
+                          <p style="margin:0;color:#64748b;font-size:12px;">&copy; 2026 NASA FILM. Email tự động, vui lòng không trả lời.</p>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """;
+    }
 }
+

@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '../../auth/hooks/useAuthContext';
-import { notificationService } from '../../../shared/services/notificationService';
-import { useHomeCinemas, useNowShowingMovies, usePublicShowtimes } from '../hooks/useHomeQueries';
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuthContext } from "../../auth/hooks/useAuthContext";
+import { notificationService } from "../../../shared/services/notificationService";
+import {
+  useHomeCinemas,
+  useNowShowingMovies,
+  usePublicShowtimes,
+} from "../hooks/useHomeQueries";
 
 // Styles for custom dropdown scrollbar and animations
 const dropdownStyles = `
@@ -37,13 +41,13 @@ const dropdownStyles = `
 `;
 
 // Reusable Custom Dropdown Component
-const Dropdown = ({ 
-  placeholder, 
-  value, 
-  options, 
-  onChange, 
-  isOpen, 
-  onToggle 
+const Dropdown = ({
+  placeholder,
+  value,
+  options,
+  onChange,
+  isOpen,
+  onToggle,
 }) => {
   const dropdownRef = useRef(null);
 
@@ -55,9 +59,9 @@ const Dropdown = ({
         }
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onToggle]);
 
@@ -66,7 +70,7 @@ const Dropdown = ({
     onToggle(false);
   };
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = options.find((opt) => opt.value === value);
   const displayLabel = selectedOption ? selectedOption.label : placeholder;
   const displayImage = selectedOption?.image;
 
@@ -76,25 +80,25 @@ const Dropdown = ({
         type="button"
         onClick={() => onToggle(!isOpen)}
         className={`h-14 w-full flex items-center justify-between rounded-xl border px-4 text-base font-extrabold shadow-[0_8px_25px_rgba(0,0,0,0.08)] outline-none transition duration-300 ${
-          value 
-            ? 'bg-yellow-400 border-yellow-400 text-red-700 hover:bg-yellow-500 hover:border-yellow-500' 
-            : 'bg-white border-white/10 text-neutral-800 hover:border-neutral-300'
+          value
+            ? "bg-yellow-400 border-yellow-400 text-red-700 hover:bg-yellow-500 hover:border-yellow-500"
+            : "bg-white border-white/10 text-neutral-800 hover:border-neutral-300"
         }`}
       >
         <span className="flex items-center truncate pr-2">
           {displayImage && (
-            <img 
-              src={displayImage} 
-              alt={displayLabel} 
-              className="w-7 h-10 object-cover rounded-md mr-2.5 shadow-sm border border-black/10 flex-shrink-0" 
+            <img
+              src={displayImage}
+              alt={displayLabel}
+              className="w-7 h-10 object-cover rounded-md mr-2.5 shadow-sm border border-black/10 flex-shrink-0"
             />
           )}
           <span className="truncate">{displayLabel}</span>
         </span>
-        <ChevronDown 
+        <ChevronDown
           className={`h-5 w-5 transition-transform duration-300 ${
-            value ? 'text-red-700' : 'text-neutral-400'
-          } ${isOpen ? 'rotate-180' : ''}`} 
+            value ? "text-red-700" : "text-neutral-400"
+          } ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -113,18 +117,20 @@ const Dropdown = ({
                   onClick={() => handleSelect(opt.value)}
                   className={`flex items-center w-full cursor-pointer rounded-lg px-3 py-2 text-sm font-bold transition-all duration-200 break-words ${
                     isSelected
-                      ? 'bg-red-600 text-white shadow-sm'
-                      : 'text-neutral-700 hover:bg-red-50 hover:text-red-600'
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "text-neutral-700 hover:bg-red-50 hover:text-red-600"
                   }`}
                 >
                   {opt.image && (
-                    <img 
-                      src={opt.image} 
-                      alt={opt.label} 
-                      className="w-10 h-14 object-cover rounded-lg mr-3 shadow-md border border-neutral-100/50 flex-shrink-0" 
+                    <img
+                      src={opt.image}
+                      alt={opt.label}
+                      className="w-10 h-14 object-cover rounded-lg mr-3 shadow-md border border-neutral-100/50 flex-shrink-0"
                     />
                   )}
-                  <span className="flex-grow text-left leading-snug">{opt.label}</span>
+                  <span className="flex-grow text-left leading-snug">
+                    {opt.label}
+                  </span>
                 </div>
               );
             })
@@ -136,10 +142,10 @@ const Dropdown = ({
 };
 
 const TicketFilters = () => {
-  const [theater, setTheater] = useState('');
-  const [movie, setMovie] = useState('');
-  const [date, setDate] = useState('');
-  const [showtime, setShowtime] = useState('');
+  const [theater, setTheater] = useState("");
+  const [movie, setMovie] = useState("");
+  const [date, setDate] = useState("");
+  const [showtime, setShowtime] = useState("");
   const [showtimesEnabled, setShowtimesEnabled] = useState(false);
 
   const { data: moviesData } = useNowShowingMovies();
@@ -161,46 +167,52 @@ const TicketFilters = () => {
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
 
-    const isSameDay = (d1, d2) => 
+    const isSameDay = (d1, d2) =>
       d1.getFullYear() === d2.getFullYear() &&
       d1.getMonth() === d2.getMonth() &&
       d1.getDate() === d2.getDate();
 
-    const dateStr = dateObj.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    
+    const dateStr = dateObj.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+
     if (isSameDay(dateObj, today)) {
       return `Hôm nay, ${dateStr}`;
     } else if (isSameDay(dateObj, tomorrow)) {
       return `Ngày mai, ${dateStr}`;
     } else {
-      const weekdayStr = dateObj.toLocaleDateString('vi-VN', { weekday: 'long' });
-      const capitalizedWeekday = weekdayStr.charAt(0).toUpperCase() + weekdayStr.slice(1);
+      const weekdayStr = dateObj.toLocaleDateString("vi-VN", {
+        weekday: "long",
+      });
+      const capitalizedWeekday =
+        weekdayStr.charAt(0).toUpperCase() + weekdayStr.slice(1);
       return `${capitalizedWeekday}, ${dateStr}`;
     }
   };
 
   const formatShowtimeTime = (dateObj) => {
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const hours = String(dateObj.getHours()).padStart(2, "0");
+    const minutes = String(dateObj.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   };
 
   const handleTheaterChange = (selectedTheater) => {
     setTheater(selectedTheater);
-    setMovie('');
-    setDate('');
-    setShowtime('');
+    setMovie("");
+    setDate("");
+    setShowtime("");
   };
 
   const handleMovieChange = (selectedMovie) => {
     setMovie(selectedMovie);
-    setDate('');
-    setShowtime('');
+    setDate("");
+    setShowtime("");
   };
 
   const handleDateChange = (selectedDate) => {
     setDate(selectedDate);
-    setShowtime('');
+    setShowtime("");
   };
 
   const handleShowtimeChange = (selectedShowtimeUuid) => {
@@ -214,40 +226,42 @@ const TicketFilters = () => {
     setOpenDropdown(isOpen ? dropdownName : null);
   };
 
-  const filteredMovies = moviesList.filter(m => {
+  const filteredMovies = moviesList.filter((m) => {
     if (!theater) return true;
-    return showtimesList.some(s => s.movieTitle === m.title && s.cinemaName === theater);
+    return showtimesList.some(
+      (s) => s.movieTitle === m.title && s.cinemaName === theater,
+    );
   });
 
   const getDatesOptions = () => {
     if (!movie) return [];
-    
-    const matchedShowtimes = showtimesList.filter(s => {
+
+    const matchedShowtimes = showtimesList.filter((s) => {
       const matchMovie = s.movieTitle === movie;
       const matchTheater = !theater || s.cinemaName === theater;
       return matchMovie && matchTheater;
     });
 
     const dateMap = new Map();
-    matchedShowtimes.forEach(s => {
+    matchedShowtimes.forEach((s) => {
       const dateObj = new Date(s.startTime);
       const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
       const dateKey = `${year}-${month}-${day}`;
-      
+
       if (!dateMap.has(dateKey)) {
         dateMap.set(dateKey, dateObj);
       }
     });
 
     const sortedKeys = Array.from(dateMap.keys()).sort();
-    
-    return sortedKeys.map(key => {
+
+    return sortedKeys.map((key) => {
       const dateObj = dateMap.get(key);
       return {
         value: key,
-        label: formatShowtimeDate(dateObj)
+        label: formatShowtimeDate(dateObj),
       };
     });
   };
@@ -255,27 +269,29 @@ const TicketFilters = () => {
   const getShowtimesOptions = () => {
     if (!movie || !date) return [];
 
-    const matchedShowtimes = showtimesList.filter(s => {
+    const matchedShowtimes = showtimesList.filter((s) => {
       const matchMovie = s.movieTitle === movie;
       const matchTheater = !theater || s.cinemaName === theater;
-      
+
       const dateObj = new Date(s.startTime);
       const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
       const dateKey = `${year}-${month}-${day}`;
       const matchDate = dateKey === date;
 
       return matchMovie && matchTheater && matchDate;
     });
 
-    matchedShowtimes.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    matchedShowtimes.sort(
+      (a, b) => new Date(a.startTime) - new Date(b.startTime),
+    );
 
-    return matchedShowtimes.map(s => {
+    return matchedShowtimes.map((s) => {
       const dateObj = new Date(s.startTime);
       return {
         value: s.uuid,
-        label: `${formatShowtimeTime(dateObj)} - ${s.cinemaRoomName}`
+        label: `${formatShowtimeTime(dateObj)} - ${s.cinemaRoomName}`,
       };
     });
   };
@@ -285,37 +301,49 @@ const TicketFilters = () => {
 
   const handleBookNow = () => {
     if (!user) {
-      notificationService.warning("Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.");
-      navigate('/login');
+      notificationService.warning(
+        "Bạn cần đăng nhập tài khoản Customer để sử dụng tính năng đặt vé.",
+      );
+      navigate("/login");
       return;
     }
     if (!theater || !movie || !date || !showtime) {
-      notificationService.warning("Vui lòng chọn đầy đủ Rạp, Phim, Ngày và Suất chiếu để đặt vé.");
+      notificationService.warning(
+        "Vui lòng chọn đầy đủ Rạp, Phim, Ngày và Suất chiếu để đặt vé.",
+      );
       return;
     }
 
-    const selectedShowtimeObj = showtimesList.find(s => s.uuid === showtime);
+    const selectedShowtimeObj = showtimesList.find((s) => s.uuid === showtime);
     if (!selectedShowtimeObj) {
       notificationService.error("Suất chiếu không hợp lệ.");
       return;
     }
 
-    const selectedMovieObj = moviesList.find(m => m.title === movie);
-    const dateLabel = datesOptions.find(d => d.value === date)?.label || date;
-    const timeLabel = formatShowtimeTime(new Date(selectedShowtimeObj.startTime));
+    const selectedMovieObj = moviesList.find((m) => m.title === movie);
+    const dateLabel = datesOptions.find((d) => d.value === date)?.label || date;
+    const timeLabel = formatShowtimeTime(
+      new Date(selectedShowtimeObj.startTime),
+    );
 
-    navigate('/booking', {
+    navigate("/booking", {
       state: {
         showtimeUuid: selectedShowtimeObj.uuid,
         theater: `${selectedShowtimeObj.cinemaName} - ${selectedShowtimeObj.cinemaRoomName}`,
         movie: selectedShowtimeObj.movieTitle,
-        movieUuid: selectedMovieObj?.uuid || selectedShowtimeObj.movieUuid || '',
-        moviePoster: selectedMovieObj?.primaryMediaUrl || selectedShowtimeObj.moviePosterUrl || '',
-        movieFormat: selectedShowtimeObj.cinemaRoomName.includes('IMAX') ? 'IMAX' : '2D',
-        movieAgeRestriction: selectedMovieObj?.ageRestriction || '',
+        movieUuid:
+          selectedMovieObj?.uuid || selectedShowtimeObj.movieUuid || "",
+        moviePoster:
+          selectedMovieObj?.primaryMediaUrl ||
+          selectedShowtimeObj.moviePosterUrl ||
+          "",
+        movieFormat: selectedShowtimeObj.cinemaRoomName.includes("IMAX")
+          ? "IMAX"
+          : "2D",
+        movieAgeRestriction: selectedMovieObj?.ageRestriction || "",
         date: dateLabel,
-        showtime: timeLabel
-      }
+        showtime: timeLabel,
+      },
     });
   };
 
@@ -333,22 +361,22 @@ const TicketFilters = () => {
           value={theater}
           options={cinemasList.map((c) => ({ value: c.name, label: c.name }))}
           onChange={handleTheaterChange}
-          isOpen={openDropdown === 'theater'}
-          onToggle={(isOpen) => handleToggleDropdown('theater', isOpen)}
+          isOpen={openDropdown === "theater"}
+          onToggle={(isOpen) => handleToggleDropdown("theater", isOpen)}
         />
 
         {/* 2. Chọn Phim */}
         <Dropdown
           placeholder="2. Chọn Phim"
           value={movie}
-          options={filteredMovies.map((m) => ({ 
-            value: m.title, 
+          options={filteredMovies.map((m) => ({
+            value: m.title,
             label: m.title,
-            image: m.primaryMediaUrl
+            image: m.primaryMediaUrl,
           }))}
           onChange={handleMovieChange}
-          isOpen={openDropdown === 'movie'}
-          onToggle={(isOpen) => handleToggleDropdown('movie', isOpen)}
+          isOpen={openDropdown === "movie"}
+          onToggle={(isOpen) => handleToggleDropdown("movie", isOpen)}
         />
 
         {/* 3. Chọn Ngày */}
@@ -357,8 +385,8 @@ const TicketFilters = () => {
           value={date}
           options={datesOptions}
           onChange={handleDateChange}
-          isOpen={openDropdown === 'date'}
-          onToggle={(isOpen) => handleToggleDropdown('date', isOpen)}
+          isOpen={openDropdown === "date"}
+          onToggle={(isOpen) => handleToggleDropdown("date", isOpen)}
         />
 
         {/* 4. Chọn Suất */}
@@ -367,11 +395,11 @@ const TicketFilters = () => {
           value={showtime}
           options={showtimesOptions}
           onChange={handleShowtimeChange}
-          isOpen={openDropdown === 'showtime'}
-          onToggle={(isOpen) => handleToggleDropdown('showtime', isOpen)}
+          isOpen={openDropdown === "showtime"}
+          onToggle={(isOpen) => handleToggleDropdown("showtime", isOpen)}
         />
 
-        <button 
+        <button
           onClick={handleBookNow}
           className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-base font-black uppercase tracking-wide text-white shadow-[0_14px_35px_rgba(220,38,38,0.35)] transition hover:bg-red-700"
         >

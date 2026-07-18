@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
 import { REALTIME_TOPICS } from '../constants/realtimeTopics';
-import nasaAssistantFabAvatar from '../assets/nasa-assistant-avatar-head.jpg';
+import nasaAssistantFabAvatar from '../assets/nasa-assistant-avatar-head.webp';
 import nasaLogo from '../assets/NASAFILM.jpg';
 import { useRealtimeTopic } from '../hooks/useRealtimeTopic';
 import { useRealtimeTopics } from '../hooks/useRealtimeTopics';
@@ -819,6 +819,7 @@ const NasaAiAssistantWidget = () => {
 
     let activeFlag = true;
     const loadMySupportTickets = async () => {
+      if (document.hidden) return;
       try {
         const list = await supportService.getMySupportRequests();
         if (activeFlag) {
@@ -831,10 +832,15 @@ const NasaAiAssistantWidget = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (!document.hidden) loadMySupportTickets();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     loadMySupportTickets();
     const intervalId = window.setInterval(loadMySupportTickets, 60000);
     return () => {
       activeFlag = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(intervalId);
     };
   }, [isLoggedInCustomer, shouldHideOnRoute]);
@@ -963,7 +969,7 @@ const NasaAiAssistantWidget = () => {
     let cancelled = false;
 
     const pollLiveStatus = async () => {
-      if (cancelled || !ticketCode) return;
+      if (cancelled || !ticketCode || document.hidden) return;
 
       try {
         const detail = await supportService.getSupportRequest(ticketCode);
@@ -1015,10 +1021,15 @@ const NasaAiAssistantWidget = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (!document.hidden) pollLiveStatus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     pollLiveStatus();
     const intervalId = window.setInterval(pollLiveStatus, 5000);
     return () => {
       cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(intervalId);
     };
   }, [

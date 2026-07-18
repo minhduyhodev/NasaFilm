@@ -10,9 +10,16 @@ class WalletService {
     }
   }
 
-  async getTransactions() {
+  async getTransactions(page = 0, size = 10, type = null, date = null) {
     try {
-      const response = await authService.api.get('/api/wallet/transactions');
+      const response = await authService.api.get('/api/wallet/transactions', {
+        params: {
+          page,
+          size,
+          ...(type ? { type } : {}),
+          ...(date ? { date } : {}),
+        },
+      });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
@@ -50,6 +57,26 @@ class WalletService {
     try {
       const response = await authService.api.post('/api/wallet/withdraw', { amount });
       return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createVietQRTopUp(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/vietqr', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async checkVietQRTopUp(code, amount) {
+    try {
+      const response = await authService.api.get('/api/wallet/top-up/vietqr/check', {
+        params: { code, amount },
+      });
+      return response.data; // { data: WalletSummaryResponse | null, message }
     } catch (error) {
       throw authService.handleError(error);
     }

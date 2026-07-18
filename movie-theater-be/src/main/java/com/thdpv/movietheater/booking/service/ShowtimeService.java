@@ -10,8 +10,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.thdpv.movietheater.booking.dto.request.AutoShowtimeRequest;
 import com.thdpv.movietheater.booking.dto.request.AutoShowtimeSaveRequest;
@@ -37,6 +45,7 @@ import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.time.AppTimeZones;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -52,6 +61,8 @@ public class ShowtimeService {
     private final SystemConfigService systemConfigService;
     private final ShowtimeSchedulingEngine showtimeSchedulingEngine;
     private final ShowtimeOverlapSupport showtimeOverlapSupport;
+    private final CatalogCacheEvictor catalogCacheEvictor;
+    private final TransactionTemplate transactionTemplate;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -64,7 +75,9 @@ public class ShowtimeService {
             CancellationRefundService cancellationRefundService,
             SystemConfigService systemConfigService,
             ShowtimeSchedulingEngine showtimeSchedulingEngine,
-            ShowtimeOverlapSupport showtimeOverlapSupport) {
+            ShowtimeOverlapSupport showtimeOverlapSupport,
+            CatalogCacheEvictor catalogCacheEvictor,
+            PlatformTransactionManager transactionManager) {
         this.showtimeRepository = showtimeRepository;
         this.movieRepository = movieRepository;
         this.cinemaRoomRepository = cinemaRoomRepository;
@@ -73,6 +86,9 @@ public class ShowtimeService {
         this.systemConfigService = systemConfigService;
         this.showtimeSchedulingEngine = showtimeSchedulingEngine;
         this.showtimeOverlapSupport = showtimeOverlapSupport;
+        this.catalogCacheEvictor = catalogCacheEvictor;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Transactional
@@ -88,12 +104,16 @@ public class ShowtimeService {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
-        if (request.getStartTime() == null || !request.getStartTime().isAfter(now)) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Chỉ được tạo suất chiếu cho thời gian sắp tới");
+        ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.fromConfig(systemConfigService.getConfig());
+        int minLeadMinutes = settings.getMinLeadMinutes();
+        OffsetDateTime earliestStart = now.plusMinutes(minLeadMinutes);
+        if (request.getStartTime() == null || request.getStartTime().isBefore(earliestStart)) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Suất chiếu mới phải bắt đầu sau thời điểm hiện tại ít nhất "
+                            + minLeadMinutes + " phút");
         }
 
         // Calculate end time from movie duration + trailer buffer (system config)
-        ShowtimeSchedulingSettings settings = ShowtimeSchedulingSettings.fromConfig(systemConfigService.getConfig());
         int duration = movie.getDurationMinutes() != null
                 ? movie.getDurationMinutes()
                 : settings.getDefaultDurationMinutes();
@@ -124,11 +144,37 @@ public class ShowtimeService {
         showtime.setCouplePrice(request.getCouplePrice());
 
         Showtime savedShowtime = showtimeRepository.save(showtime);
+        catalogCacheEvictor.evictMovieLists();
         return toShowtimeResponse(savedShowtime, movie, room);
     }
 
-    @Transactional
     public ShowtimeResponse updateShowtimeStatus(UUID showtimeUuid, ShowtimeStatus newStatus) {
+        ShowtimeStatusUpdateResult result = transactionTemplate.execute(
+                status -> updateShowtimeStatusInTransaction(showtimeUuid, newStatus));
+        if (result == null) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Không thể cập nhật trạng thái suất chiếu");
+        }
+
+        // The showtime cancellation is already committed. Each booking now owns an independent transaction, so one
+        // failure cannot roll back the showtime or previously cancelled bookings.
+        for (UUID bookingUuid : result.confirmedBookingUuids()) {
+            try {
+                cancellationRefundService.cancelBooking(
+                        bookingUuid,
+                        null,
+                        "SYSTEM",
+                        true,
+                        "Suat chieu bi huy boi quan tri",
+                        true);
+            } catch (AppException ignored) {
+                // Booking may already be cancelling/cancelled. Other bookings must continue independently.
+            }
+        }
+        return result.response();
+    }
+
+    private ShowtimeStatusUpdateResult updateShowtimeStatusInTransaction(
+            UUID showtimeUuid, ShowtimeStatus newStatus) {
         Showtime showtime = showtimeRepository.findById(showtimeUuid)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Suat chieu khong ton tai"));
 
@@ -166,6 +212,8 @@ public class ShowtimeService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Trang thai Het ve chi co the chuyen sang Mo ban ve, Huy hoac Ket thuc.");
         }
 
+        List<UUID> confirmedBookingUuids = List.of();
+
         // Handle cancellations
         if (newStatus == ShowtimeStatus.CANCELLED) {
             // Delete active seat locks
@@ -173,24 +221,11 @@ public class ShowtimeService {
                     .setParameter("showtimeUuid", showtimeUuid)
                     .executeUpdate();
 
-            // Refund confirmed bookings through cancellation service
-            List<Booking> bookings = bookingRepository.findByShowtimeUuid(showtimeUuid);
-            for (Booking booking : bookings) {
-                if (!"CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
-                    continue;
-                }
-                try {
-                    cancellationRefundService.cancelBooking(
-                            booking.getUuid(),
-                            null,
-                            "SYSTEM",
-                            true,
-                            "Suat chieu bi huy boi quan tri",
-                            true);
-                } catch (AppException ex) {
-                    // Skip bookings that cannot be cancelled (e.g. already processing)
-                }
-            }
+            // Collect IDs only. Cancellation/refund work runs after this transaction commits.
+            confirmedBookingUuids = bookingRepository.findByShowtimeUuid(showtimeUuid).stream()
+                    .filter(booking -> "CONFIRMED".equalsIgnoreCase(booking.getStatus()))
+                    .map(Booking::getUuid)
+                    .toList();
         }
 
         if (newStatus == ShowtimeStatus.FINISHED) {
@@ -228,11 +263,14 @@ public class ShowtimeService {
 
         showtime.setStatus(newStatus);
         Showtime updatedShowtime = showtimeRepository.save(showtime);
+        catalogCacheEvictor.evictMovieLists();
 
         Movie movie = movieRepository.findById(updatedShowtime.getMovieUuid()).orElse(null);
         CinemaRoom room = cinemaRoomRepository.findById(updatedShowtime.getCinemaRoomUuid()).orElse(null);
 
-        return toShowtimeResponse(updatedShowtime, movie, room);
+        return new ShowtimeStatusUpdateResult(
+                toShowtimeResponse(updatedShowtime, movie, room),
+                confirmedBookingUuids);
     }
 
     /**
@@ -248,14 +286,16 @@ public class ShowtimeService {
                   AND st.status = 'DRAFT'
                 """).executeUpdate();
 
-        return entityManager.createNativeQuery("""
+        int cancelled = entityManager.createNativeQuery("""
                 UPDATE showtime
                 SET status = 'CANCELLED'
                 WHERE status = 'DRAFT'
                 """).executeUpdate();
+        catalogCacheEvictor.evictMovieLists();
+        return cancelled;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public int cancelFutureActiveShowtimesForRoom(UUID roomUuid) {
         List<Showtime> showtimes = showtimeRepository.findFutureActiveShowtimesByRoom(roomUuid, OffsetDateTime.now());
         int cancelled = 0;
@@ -268,6 +308,11 @@ public class ShowtimeService {
             cancelled++;
         }
         return cancelled;
+    }
+
+    private record ShowtimeStatusUpdateResult(
+            ShowtimeResponse response,
+            List<UUID> confirmedBookingUuids) {
     }
 
     @Transactional
@@ -322,10 +367,23 @@ public class ShowtimeService {
         return finished + cancelledDrafts;
     }
 
+    private static final int ADMIN_SHOWTIME_SOFT_CAP = 500;
+
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getAdminShowtimes() {
-        List<Showtime> showtimes = showtimeRepository.findAllOrderByStartTimeDesc();
-        return mapShowtimesToResponses(showtimes);
+        // Soft cap for legacy callers that still expect a full list (filter UIs). Prefer getAdminShowtimes(Pageable).
+        Pageable limited = PageRequest.of(0, ADMIN_SHOWTIME_SOFT_CAP, Sort.by(Sort.Direction.DESC, "startTime"));
+        return mapShowtimesToResponses(showtimeRepository.findAllByOrderByStartTimeDesc(limited).getContent());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ShowtimeResponse> getAdminShowtimes(Pageable pageable) {
+        Pageable effective = pageable == null || pageable.isUnpaged()
+                ? PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "startTime"))
+                : pageable;
+        Page<Showtime> page = showtimeRepository.findAllByOrderByStartTimeDesc(effective);
+        List<ShowtimeResponse> mapped = mapShowtimesToResponses(page.getContent());
+        return new org.springframework.data.domain.PageImpl<>(mapped, effective, page.getTotalElements());
     }
 
     @Transactional(readOnly = true)

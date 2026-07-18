@@ -40,12 +40,15 @@ export default function AdminDateTimePicker({
     onChange?.(joinDateTimeLocal(date, nextTime));
   };
 
+  const resolvedDateLabel = dateLabel ?? (label ? 'Ngày' : undefined);
+  const resolvedTimeLabel = timeLabel ?? 'Giờ';
+
   return (
     <div className={className}>
       {label ? <label className="adm-datepicker__label">{label}</label> : null}
       <div className="adm-datetime">
         <AdminDatePicker
-          label={dateLabel}
+          label={resolvedDateLabel}
           value={date}
           onChange={setDate}
           min={minDate}
@@ -54,14 +57,17 @@ export default function AdminDateTimePicker({
           clearable={clearable}
           size={size}
           placeholder="Chọn ngày"
+          panelAlign="left"
         />
         <div className="adm-datetime__time">
-          {timeLabel ? <label className="adm-datepicker__label">{timeLabel}</label> : null}
+          {resolvedTimeLabel ? (
+            <label className="adm-datepicker__label">{resolvedTimeLabel}</label>
+          ) : null}
           <input
             type="time"
             className={`${adminInputClass} adm-datetime__time-input${size === 'sm' ? ' adm-datetime__time-input--sm' : ''}`}
             value={time}
-            disabled={disabled}
+            disabled={disabled || !date}
             required={required}
             onChange={(e) => setTime(e.target.value)}
           />

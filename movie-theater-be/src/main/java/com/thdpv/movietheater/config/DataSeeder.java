@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.thdpv.movietheater.auth.repository.PermissionRepository;
 import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.common.util.MojibakeUtils;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.user.entity.Permission;
 import com.thdpv.movietheater.user.entity.Role;
@@ -37,6 +38,8 @@ import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.MovieActor;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.service.MovieService;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.ActorRepository;
@@ -73,6 +76,7 @@ public class DataSeeder implements CommandLineRunner {
     private final ResourceLoader resourceLoader;
     private final TransactionTemplate transactionTemplate;
     private final AwsMovieOverrideSeeder awsMovieOverrideSeeder;
+    private final MovieService movieService;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -120,7 +124,8 @@ public class DataSeeder implements CommandLineRunner {
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
             PlatformTransactionManager transactionManager,
-            AwsMovieOverrideSeeder awsMovieOverrideSeeder) {
+            AwsMovieOverrideSeeder awsMovieOverrideSeeder,
+            MovieService movieService) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
@@ -138,24 +143,32 @@ public class DataSeeder implements CommandLineRunner {
         this.resourceLoader = resourceLoader;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.awsMovieOverrideSeeder = awsMovieOverrideSeeder;
+        this.movieService = movieService;
     }
 
     @Override
     public void run(String... args) {
         createDummyTables();
-        if (!seedEnabled) {
-            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
-            return;
-        }
         healWalletVersionColumn();
         healUserSchemaColumns();
         healMovieMediaUrlColumns();
+        referenceMetadataSeeder.healCatalogEncoding();
+        healMojibakeMovies();
+
+        // These are idempotent (INSERT IF NOT EXISTS) and must always run
+        // so that user accounts and their permissions are always up to date,
+        // regardless of whether bulk seed data is enabled.
         seedRoles();
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
         seedPermissions();
         seedRolePermissions();
+        if (!seedEnabled) {
+            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
+            backfillMovieSlugs();
+            return;
+        }
         seedGuestAccount();
         seedUsersFromJson();
         referenceMetadataSeeder.seedAll();
@@ -178,6 +191,19 @@ public class DataSeeder implements CommandLineRunner {
         seedPromotions();
         seedShowtimes();
         repairOrphanBookingSeats();
+        backfillMovieSlugs();
+    }
+
+    /** Backfill slug qua MovieService để {@code @Transactional} có hiệu lực. */
+    private void backfillMovieSlugs() {
+        try {
+            int updated = movieService.backfillMissingSlugs();
+            if (updated > 0) {
+                logger.info("Backfilled slug for {} movies", updated);
+            }
+        } catch (Exception ex) {
+            logger.warn("Movie slug backfill skipped: {}", ex.getMessage());
+        }
     }
 
     private void createDummyTables() {
@@ -846,9 +872,15 @@ public class DataSeeder implements CommandLineRunner {
                 if (exists) {
                     Movie movie = movieRepository.findByTitleIgnoreCase(movieData.title).orElse(null);
                     if (movie != null) {
-                        // Chỉ cập nhật streamingUrl khi JSON có giá trị (AWS override file xử lý S3)
+                        // Chỉ cập nhật streamingUrl khi JSON có giá trị (AWS override file xử lý S3).
+                        // KHÔNG đè link S3 (movie/...) đã cấu hình bằng link cũ trong JSON
+                        // (opstream/youtube) — tránh mỗi lần khởi động lại làm hỏng phim online.
                         if (movieData.streamingUrl != null && !movieData.streamingUrl.isBlank()) {
-                            movie.setStreamingUrl(movieData.streamingUrl);
+                            boolean dbHasAwsKey = S3MediaBorderUtils.isAwsMovieStreamingUrl(movie.getStreamingUrl());
+                            boolean jsonIsAwsKey = S3MediaBorderUtils.isAwsMovieStreamingUrl(movieData.streamingUrl);
+                            if (!dbHasAwsKey || jsonIsAwsKey) {
+                                movie.setStreamingUrl(movieData.streamingUrl);
+                            }
                         }
 
                         // Cập nhật trailer trong medias
@@ -881,6 +913,12 @@ public class DataSeeder implements CommandLineRunner {
                         movieRepository.save(movie);
                         logger.info("Updated existing movie '{}' streaming/trailer from JSON.", movie.getTitle());
                     }
+                    continue;
+                }
+
+                if (MojibakeUtils.looksLikeMojibake(movieData.title)
+                        || (movieData.title != null && movieData.title.indexOf('\uFFFD') >= 0)) {
+                    logger.warn("Skip seeding movie with corrupt title: {}", movieData.title);
                     continue;
                 }
 
@@ -1071,6 +1109,110 @@ public class DataSeeder implements CommandLineRunner {
         } catch (Exception e) {
             logger.error("Failed to self-heal ratings", e);
         }
+    }
+
+    /**
+     * Dọn phim title lỗi font do seed từ movies.json bị hỏng UTF-8.
+     * - Mojibake (Ã­…): rename hoặc DELETE nếu đã có bản đúng
+     * - Replacement char U+FFFD (�): DELETE (bản twin đúng thường đã tồn tại)
+     */
+    private void healMojibakeMovies() {
+        try {
+            int deleted = 0;
+            int renamed = 0;
+            List<Movie> all = movieRepository.findAll();
+            for (Movie movie : all) {
+                String title = movie.getTitle();
+                if (title == null || "DELETED".equalsIgnoreCase(movie.getStatus())) {
+                    continue;
+                }
+
+                boolean hasReplacement = title.indexOf('\uFFFD') >= 0;
+                boolean hasMojibake = MojibakeUtils.looksLikeMojibake(title);
+                if (!hasReplacement && !hasMojibake) {
+                    continue;
+                }
+
+                if (hasReplacement) {
+                    Optional<Movie> twin = findHealthyTitleTwin(movie, title);
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.info("Deleted replacement-char movie '{}' (twin={})",
+                            title, twin.map(Movie::getTitle).orElse("none"));
+                    continue;
+                }
+
+                String fixedTitle = MojibakeUtils.tryFix(title);
+                if (fixedTitle == null || fixedTitle.isBlank() || fixedTitle.equals(title)) {
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.warn("Marked undecodable mojibake movie as DELETED: {}", title);
+                    continue;
+                }
+
+                Optional<Movie> existing = movieRepository.findByTitleIgnoreCase(fixedTitle);
+                if (existing.isPresent() && !existing.get().getUuid().equals(movie.getUuid())) {
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.info("Deleted duplicate mojibake movie '{}' (kept '{}')", title, fixedTitle);
+                } else {
+                    movie.setTitle(fixedTitle);
+                    if (MojibakeUtils.looksLikeMojibake(movie.getDescription())) {
+                        String fixedDesc = MojibakeUtils.tryFix(movie.getDescription());
+                        if (fixedDesc != null) {
+                            movie.setDescription(fixedDesc);
+                        }
+                    }
+                    movieRepository.save(movie);
+                    renamed++;
+                    logger.info("Renamed mojibake movie '{}' -> '{}'", title, fixedTitle);
+                }
+            }
+            if (deleted > 0 || renamed > 0) {
+                logger.info("Healed corrupt movies: deletedDuplicates={}, renamed={}", deleted, renamed);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to heal mojibake movies", e);
+        }
+    }
+
+    private Optional<Movie> findHealthyTitleTwin(Movie corrupt, String corruptTitle) {
+        String likePattern = corruptTitle.replace("\uFFFD?", "%").replace("\uFFFD", "%");
+        for (Movie candidate : movieRepository.findAll()) {
+            if (candidate.getUuid().equals(corrupt.getUuid())) {
+                continue;
+            }
+            if ("DELETED".equalsIgnoreCase(candidate.getStatus())) {
+                continue;
+            }
+            String candidateTitle = candidate.getTitle();
+            if (candidateTitle == null || candidateTitle.indexOf('\uFFFD') >= 0) {
+                continue;
+            }
+            if (titleMatchesLikePattern(candidateTitle, likePattern)) {
+                return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean titleMatchesLikePattern(String title, String likePattern) {
+        StringBuilder regex = new StringBuilder("^");
+        for (int i = 0; i < likePattern.length(); i++) {
+            char c = likePattern.charAt(i);
+            if (c == '%') {
+                regex.append(".*");
+            } else if ("\\.[]{}()*+-?^$|".indexOf(c) >= 0) {
+                regex.append('\\').append(c);
+            } else {
+                regex.append(c);
+            }
+        }
+        regex.append('$');
+        return title.matches("(?i)" + regex);
     }
 
     private void removeObsoleteComingSoonMovies() {
@@ -1340,8 +1482,8 @@ public class DataSeeder implements CommandLineRunner {
                         uuid) == 0) {
                     jdbcTemplate.update(
                             """
-                                        INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at, points_cost, min_score)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
                                     """,
                             uuid, code, discountValue, discountType, maxUsage, 0,
                             oncePerUser != null ? oncePerUser : false,

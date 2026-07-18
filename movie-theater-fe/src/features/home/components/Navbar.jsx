@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play, Film } from 'lucide-react';
+import { Bell, Menu, ShieldCheck, ChevronDown, User, Wallet, Calendar, LogOut, Star, Loader2, Play, Film, UsersRound, X } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
@@ -12,6 +12,7 @@ import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQue
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
 import GlobalSearchBar from './GlobalSearchBar';
+import OrbitJoinInput from './OrbitJoinInput';
 
 const CATALOG_MENUS = {
   genre: {
@@ -96,17 +97,63 @@ const NavCatalogPanel = ({ variant, onClose }) => {
   );
 };
 
+const OrbitJoinDialog = ({ onClose }) => {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div className="orbit-join-dialog" role="presentation">
+      <button
+        type="button"
+        className="orbit-join-dialog__backdrop"
+        aria-label="Đóng cửa sổ tham gia nhóm"
+        onClick={onClose}
+      />
+      <div
+        className="orbit-join-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tham gia phòng Orbit"
+      >
+        <button
+          type="button"
+          className="orbit-join-dialog__close"
+          aria-label="Đóng"
+          onClick={onClose}
+        >
+          <X aria-hidden />
+        </button>
+        <OrbitJoinInput autoFocus />
+      </div>
+    </div>,
+    document.body,
+  );
+};
+
 const Navbar = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [openCatalog, setOpenCatalog] = useState(null);
   const [showBookingDropdown, setShowBookingDropdown] = useState(false);
+  const [showOrbitJoinDialog, setShowOrbitJoinDialog] = useState(false);
   const closeCatalogTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
     setShowBookingDropdown(false);
+    setShowOrbitJoinDialog(false);
   }, [location.pathname, location.search]);
 
   const handleLinkClick = (e, path) => {
@@ -295,6 +342,21 @@ const Navbar = () => {
                     <Play className="navbar-booking-option__icon navbar-booking-option__icon--fill" aria-hidden />
                     <span>Trực tuyến</span>
                   </Link>
+
+                  <div className="navbar-booking-menu__divider" />
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowBookingDropdown(false);
+                      setShowOrbitJoinDialog(true);
+                    }}
+                    className="navbar-booking-option"
+                  >
+                    <UsersRound className="navbar-booking-option__icon" aria-hidden />
+                    <span>Tham gia nhóm</span>
+                  </button>
                 </div>
               </>
             )}
@@ -330,6 +392,10 @@ const Navbar = () => {
             <NavCatalogPanel variant={openCatalog} onClose={() => setOpenCatalog(null)} />
           </div>
         </>
+      )}
+
+      {showOrbitJoinDialog && (
+        <OrbitJoinDialog onClose={() => setShowOrbitJoinDialog(false)} />
       )}
     </header>
   );

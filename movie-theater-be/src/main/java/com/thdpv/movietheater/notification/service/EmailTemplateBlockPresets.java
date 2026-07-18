@@ -81,4 +81,84 @@ final class EmailTemplateBlockPresets {
                 ]}
                 """;
     }
+
+    static String accountActivationBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"FULL_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Chào mừng bạn trở thành hội viên của NASA FILM! Tài khoản của bạn đã được tạo với thông tin đăng nhập sau:"},
+                  {"type":"info_table","rows":[
+                    {"label":"Email đăng nhập","key":"LOGIN_EMAIL"},
+                    {"label":"Mật khẩu tạm thời","key":"TEMP_PASSWORD"}
+                  ]},
+                  {"type":"text","value":"Vui lòng nhấn nút bên dưới để đặt mật khẩu mới và kích hoạt tài khoản:"},
+                  {"type":"field","key":"ACTIVATION_LINK"},
+                  {"type":"text","value":"Liên kết có hiệu lực trong 72 giờ. Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
+
+    static String staffActivationBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"FULL_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Tài khoản nhân sự NASA FILM của bạn đã được tạo. Dưới đây là thông tin đăng nhập:"},
+                  {"type":"info_table","rows":[
+                    {"label":"Email đăng nhập","key":"LOGIN_EMAIL"},
+                    {"label":"Mật khẩu tạm thời","key":"TEMP_PASSWORD"}
+                  ]},
+                  {"type":"text","value":"Vui lòng nhấn nút bên dưới để đặt mật khẩu mới và kích hoạt tài khoản:"},
+                  {"type":"field","key":"ACTIVATION_LINK"},
+                  {"type":"text","value":"Liên kết có hiệu lực trong 72 giờ. Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
+
+    static String walletTopUpBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"CUSTOMER_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Giao dịch nạp tiền vào Ví NASA của bạn đã thành công."},
+                  {"type":"info_table","rows":[
+                    {"label":"Số tiền nạp","key":"AMOUNT"},
+                    {"label":"Số dư sau giao dịch","key":"BALANCE_AFTER"},
+                    {"label":"Phương thức","key":"METHOD"}
+                  ]},
+                  {"type":"field","key":"WALLET_URL"},
+                  {"type":"text","value":"Trân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
+
+    static String walletWithdrawBlocks() {
+        return """
+                {"version":1,"blocks":[
+                  {"type":"paragraph","parts":[
+                    {"type":"text","value":"Xin chào "},
+                    {"type":"field","key":"CUSTOMER_NAME"},
+                    {"type":"text","value":"!"}
+                  ]},
+                  {"type":"text","value":"Giao dịch rút tiền từ Ví NASA của bạn đã thành công."},
+                  {"type":"info_table","rows":[
+                    {"label":"Số tiền rút","key":"AMOUNT"},
+                    {"label":"Số dư sau giao dịch","key":"BALANCE_AFTER"},
+                    {"label":"Phương thức","key":"METHOD"}
+                  ]},
+                  {"type":"field","key":"WALLET_URL"},
+                  {"type":"text","value":"Nếu bạn không thực hiện giao dịch này, vui lòng liên hệ hỗ trợ ngay.\\nTrân trọng,\\nĐội ngũ NASA FILM"}
+                ]}
+                """;
+    }
 }
