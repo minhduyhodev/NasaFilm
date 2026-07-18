@@ -12,11 +12,11 @@ import { showMissionCompletionToasts } from '../../shared/services/missionServic
 export default function VietQRPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const state = location.state;
   const amount = state?.amount;
   const checkoutState = state?.checkoutState;
-  
+
   const isVod = checkoutState?.isVod ?? false;
   const movieUuid = checkoutState?.movieUuid ?? '';
   const showtimeUuid = checkoutState?.showtimeUuid ?? '';
@@ -27,7 +27,7 @@ export default function VietQRPage() {
   const [loadingQr, setLoadingQr] = useState(true);
   const [qrLoaded, setQrLoaded] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
-  
+
   const [isConfirming, setIsConfirming] = useState(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
@@ -69,12 +69,12 @@ export default function VietQRPage() {
         const desc = isVod
           ? `NASAFILM VOD ${movieUuid.substring(0, 8).toUpperCase()}`
           : `NASAFILM ${showtimeUuid.substring(0, 8).toUpperCase()}`;
-          
+
         const { data } = await authService.api.post('/api/payments/vietqr/generate', {
           amount: amount,
           description: desc,
         });
-        
+
         if (isMounted) {
           if (data.success && data.data) {
             setQrData(data.data);
@@ -102,7 +102,7 @@ export default function VietQRPage() {
     if (confirmFired.current) return;
     confirmFired.current = true;
     setIsConfirming(true);
-    
+
     try {
       let response;
       if (isVod) {
@@ -119,25 +119,25 @@ export default function VietQRPage() {
           qrData?.transferCode
         );
       }
-      
+
       const movie = checkoutState.movie;
       const theater = checkoutState.theater;
       const showtime = checkoutState.showtime;
       const date = checkoutState.date;
-      
+
       const successMessage = isVod
         ? `Mua vé xem phim Online thành công! Hãy kích hoạt mã vé để bắt đầu xem.`
         : `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}.`;
-      
+
       notificationService.addNotification("Đặt vé thành công", successMessage, "success");
       notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(amount).toLocaleString('vi-VN')} đ bằng VietQR.`);
-      
+
       showMissionCompletionToasts(response?.missionCompletions);
       clearAllBookingSessions();
       if (orbitRoomUuid) {
         removeOrbitRoom(orbitRoomUuid);
       }
-      
+
       if (isVod) {
         navigate('/booking-confirmed', {
           state: {
@@ -186,7 +186,7 @@ export default function VietQRPage() {
             }
           });
           const success = response.data.data ?? response.data;
-          
+
           if (success && !confirmFired.current) {
             clearInterval(intervalId);
             // Automatically confirm booking when payment is received, even if user didn't click
@@ -248,10 +248,10 @@ export default function VietQRPage() {
   return (
     <div className="min-h-screen bg-[#0b0f19] pt-24 pb-20 px-4">
       <div className="max-w-4xl mx-auto w-full">
-        
+
         {/* Back Button */}
-        <div 
-          className="mb-6 flex items-center gap-2 group cursor-pointer w-fit" 
+        <div
+          className="mb-6 flex items-center gap-2 group cursor-pointer w-fit"
           onClick={() => !isConfirming && navigate('/checkout', { replace: true })}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
@@ -262,7 +262,7 @@ export default function VietQRPage() {
 
         {/* Payment Container */}
         <div className="w-full overflow-hidden rounded-2xl bg-[#0f1729] border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col">
-          
+
           {/* Header */}
           <div className="relative bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20 border-b border-white/10 p-5 md:p-6 shrink-0">
             <div className="flex items-center gap-4">
@@ -311,11 +311,10 @@ export default function VietQRPage() {
 
                 {/* Timer */}
                 {timeLeftSeconds != null && (
-                  <div className={`w-full flex justify-center items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl ${
-                    isExpired ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                    isLowTime ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                    'bg-white/5 text-slate-300 border border-white/10'
-                  }`}>
+                  <div className={`w-full flex justify-center items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl ${isExpired ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                      isLowTime ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        'bg-white/5 text-slate-300 border border-white/10'
+                    }`}>
                     {isExpired ? (
                       <AlertTriangle className="w-4 h-4" />
                     ) : (
@@ -331,12 +330,12 @@ export default function VietQRPage() {
 
                 {/* DEV ONLY Webhook Simulator */}
                 {import.meta.env.DEV && (
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
                         const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
                           method: 'POST',
-                          headers: { 
+                          headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'nasafilm-secret-webhook-token'
                           },
@@ -348,7 +347,7 @@ export default function VietQRPage() {
                           })
                         });
                         if (res.ok) alert('Đã gửi Webhook giả lập thành công! Hãy đợi khoảng 1-2s để auto-polling chạy.');
-                      } catch(e) {
+                      } catch (e) {
                         alert('Lỗi gửi webhook: ' + e.message);
                       }
                     }}
@@ -361,11 +360,11 @@ export default function VietQRPage() {
 
               {/* Right Column: Bank Info & Actions */}
               <div className="w-full md:w-7/12 p-6 md:p-8 flex flex-col justify-between space-y-6">
-                
+
                 <div className="space-y-4">
                   <h3 className="text-base font-bold text-white flex items-center gap-2 uppercase tracking-wide">
                     <CreditCard className="w-5 h-5 text-blue-400" />
-                    Thông tự chuyển khoản
+                    Thông tin chuyển khoản
                   </h3>
 
                   {/* Bank Info Card */}
