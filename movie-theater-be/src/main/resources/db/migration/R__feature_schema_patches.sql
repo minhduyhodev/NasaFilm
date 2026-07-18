@@ -205,3 +205,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_movie_slug
 
 ALTER TABLE cinema ADD COLUMN IF NOT EXISTS image_url varchar(1000);
 
+-- ── Support ticket message attachments (tối đa 3 ảnh / tin) ───────────────────
+
+ALTER TABLE support_ticket_message ADD COLUMN IF NOT EXISTS image_urls jsonb;
+

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BadgeInfo,
   Headphones,
+  ImagePlus,
   Inbox,
   Loader2,
   MessageSquare,
@@ -9,8 +10,10 @@ import {
   Search,
   Send,
   Trash2,
+  X,
 } from 'lucide-react';
 import SupportStickerBubble from '../../../shared/components/SupportStickerBubble';
+import SupportMessageImages from '../../../shared/components/SupportMessageImages';
 import {
   DEFAULT_THANK_YOU_STICKER_ID,
   encodeSupportStickerMessage,
@@ -31,6 +34,10 @@ const STATUS_FILTERS = [
   { id: 'progress', label: 'Đang xử lý' },
   { id: 'resolved', label: 'Đã đóng' },
 ];
+
+const MAX_SUPPORT_IMAGES = 3;
+const MAX_SUPPORT_IMAGE_BYTES = 5 * 1024 * 1024;
+const SUPPORT_IMAGE_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp,image/gif';
 
 const CATEGORY_LABELS = {
   ticket: 'Vé / suất chiếu',
@@ -100,7 +107,9 @@ const SupportInboxPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTicketDetail, setSelectedTicketDetail] = useState(null);
+  const [pendingImages, setPendingImages] = useState([]);
   const messagesEndRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   const incomingTickets = useMemo(() => {
     const byCode = new Map();
@@ -243,6 +252,16 @@ const SupportInboxPage = () => {
   useEffect(() => {
     loadMessages(selectedTicketCode);
     loadTicketDetail(selectedTicketCode);
+  }, [selectedTicketCode]);
+
+  useEffect(() => {
+    setPendingImages((prev) => {
+      prev.forEach((item) => {
+        if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+    setDraft('');
   }, [selectedTicketCode]);
 
   useEffect(() => {
@@ -400,13 +419,84 @@ const SupportInboxPage = () => {
     await handleSendSticker(DEFAULT_THANK_YOU_STICKER_ID, { markDone: true });
   };
 
+  const clearPendingImages = () => {
+    setPendingImages((prev) => {
+      prev.forEach((item) => {
+        if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+  };
+
+  const removePendingImage = (id) => {
+    setPendingImages((prev) => {
+      const next = [];
+      prev.forEach((item) => {
+        if (item.id === id) {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+          return;
+        }
+        next.push(item);
+      });
+      return next;
+    });
+  };
+
+  const handlePickSupportImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+
+    setPendingImages((prev) => {
+      const remaining = MAX_SUPPORT_IMAGES - prev.length;
+      if (remaining <= 0) {
+        notificationService.info('Mỗi tin nhắn chỉ gửi tối đa 3 ảnh.');
+        return prev;
+      }
+
+      const accepted = [];
+      for (const file of files) {
+        if (accepted.length >= remaining) break;
+        const type = `${file.type || ''}`.toLowerCase();
+        if (!type.startsWith('image/')) {
+          notificationService.error('Chỉ chọn file ảnh.');
+          continue;
+        }
+        if (file.size > MAX_SUPPORT_IMAGE_BYTES) {
+          notificationService.error(`Ảnh "${file.name}" vượt quá 5MB.`);
+          continue;
+        }
+        accepted.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      }
+
+      if (files.length > remaining) {
+        notificationService.info('Mỗi tin nhắn chỉ gửi tối đa 3 ảnh.');
+      }
+      return accepted.length ? [...prev, ...accepted] : prev;
+    });
+  };
+
   const handleReply = async () => {
     const value = draft.trim();
-    if (!value || !selectedTicketCode) return;
+    const filesToSend = pendingImages.map((item) => item.file).filter(Boolean);
+    if ((!value && filesToSend.length === 0) || !selectedTicketCode) return;
     setLoading(true);
     try {
-      await supportService.sendAdminSupportMessage(selectedTicketCode, { message: value, status: 'IN_PROGRESS' });
+      let imageUrls = [];
+      if (filesToSend.length > 0) {
+        imageUrls = await supportService.uploadAdminSupportImages(filesToSend);
+      }
+      await supportService.sendAdminSupportMessage(selectedTicketCode, {
+        message: value,
+        imageUrls,
+        status: 'IN_PROGRESS',
+      });
       setDraft('');
+      clearPendingImages();
       await loadMessages(selectedTicketCode);
       await loadTickets();
       await loadTicketDetail(selectedTicketCode);
@@ -420,7 +510,7 @@ const SupportInboxPage = () => {
   const handleTextareaKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!loading && draft.trim()) handleReply();
+      if (!loading && (draft.trim() || pendingImages.length > 0)) handleReply();
     }
   };
 
@@ -718,7 +808,10 @@ const SupportInboxPage = () => {
                             {parseSupportStickerMessage(message.message).type === 'sticker' ? (
                               <SupportStickerBubble message={message.message} showCaption />
                             ) : (
-                              message.message
+                              <>
+                                {message.message ? <div>{message.message}</div> : null}
+                                <SupportMessageImages urls={message.imageUrls} />
+                              </>
                             )}
                           </div>
                         </div>
@@ -730,6 +823,24 @@ const SupportInboxPage = () => {
               </div>
 
               <div className="support-compose">
+                {pendingImages.length > 0 ? (
+                  <div className="support-image-preview-row">
+                    {pendingImages.map((item) => (
+                      <div key={item.id} className="support-image-preview-item">
+                        <img src={item.previewUrl} alt="Ảnh sẽ gửi" />
+                        <button
+                          type="button"
+                          className="support-image-preview-remove"
+                          onClick={() => removePendingImage(item.id)}
+                          aria-label="Xóa ảnh"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <span className="support-image-preview-hint">{pendingImages.length}/3</span>
+                  </div>
+                ) : null}
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -743,11 +854,36 @@ const SupportInboxPage = () => {
                   disabled={loading || isIncomingTicket(selectedTicket)}
                 />
                 <div className="support-compose-footer">
-                  <span className="support-compose-hint">Realtime · Enter gửi nhanh</span>
+                  <div className="support-compose-actions">
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept={SUPPORT_IMAGE_ACCEPT}
+                      multiple
+                      hidden
+                      onChange={handlePickSupportImages}
+                    />
+                    <button
+                      type="button"
+                      className="support-attach-btn"
+                      disabled={
+                        loading
+                        || selectedTicket.status === 'DONE'
+                        || selectedTicket.status === 'CLOSED'
+                        || pendingImages.length >= MAX_SUPPORT_IMAGES
+                      }
+                      onClick={() => imageInputRef.current?.click()}
+                      title="Gửi tối đa 3 ảnh"
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                      Ảnh
+                    </button>
+                    <span className="support-compose-hint">Realtime · Enter gửi nhanh</span>
+                  </div>
                   <PrimaryButton
                     type="button"
                     disabled={
-                      !draft.trim()
+                      (!draft.trim() && pendingImages.length === 0)
                       || isIncomingTicket(selectedTicket)
                       || selectedTicket.status === 'DONE'
                       || selectedTicket.status === 'CLOSED'

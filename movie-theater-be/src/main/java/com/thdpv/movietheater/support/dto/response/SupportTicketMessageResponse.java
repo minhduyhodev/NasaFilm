@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.support.dto.response;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class SupportTicketMessageResponse {
@@ -9,6 +11,7 @@ public class SupportTicketMessageResponse {
     private String senderRole;
     private String senderName;
     private String message;
+    private List<String> imageUrls = new ArrayList<>();
     private OffsetDateTime createdAt;
 
     public UUID getUuid() { return uuid; }
@@ -21,6 +24,10 @@ public class SupportTicketMessageResponse {
     public void setSenderName(String senderName) { this.senderName = senderName; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
+    }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }

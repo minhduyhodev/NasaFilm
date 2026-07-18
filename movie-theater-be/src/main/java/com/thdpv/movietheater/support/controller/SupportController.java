@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.common.exception.ErrorCode;
@@ -180,6 +183,14 @@ public class SupportController {
         return ResponseEntity.ok(ApiResponse.success(supportTicketService.listMessages(ticketCode)));
     }
 
+    @PostMapping(value = "/support-requests/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<String>>> uploadImages(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("files") MultipartFile[] files) {
+        supportActionRateLimiter.assertTicketMessageAllowed(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(supportTicketService.uploadImages(files)));
+    }
+
     @PostMapping("/support-requests/{ticketCode}/messages")
     public ResponseEntity<ApiResponse<SupportTicketResponse>> replyMine(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -187,7 +198,11 @@ public class SupportController {
             @Valid @RequestBody SupportTicketMessageRequest request) {
         supportActionRateLimiter.assertTicketMessageAllowed(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(
-                supportTicketService.addUserMessage(ticketCode, userDetails.getUsername(), request.getMessage())));
+                supportTicketService.addUserMessage(
+                        ticketCode,
+                        userDetails.getUsername(),
+                        request.getMessage(),
+                        request.getImageUrls())));
     }
 
     @PostMapping("/support-requests/{ticketCode}/cancel")
