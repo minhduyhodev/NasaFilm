@@ -78,9 +78,9 @@ const ShowtimesPage = () => {
   const [sortKey, setSortKey] = useState('startTime_asc');
   const [groupBy, setGroupBy] = useState('status'); // 'status' | 'cinema'
 
-  // View
+  // View — mặc định "Tất cả" để không ẩn suất ngoài 7 ngày tới
   const [viewMode, setViewMode] = useState('grid');
-  const [selectedDate, setSelectedDate] = useState('today');
+  const [selectedDate, setSelectedDate] = useState('all');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -765,7 +765,11 @@ const ShowtimesPage = () => {
           <EmptyState
             icon={Calendar}
             title="Không có suất chiếu nào"
-            subtitle="Thử thay đổi bộ lọc hoặc chọn ngày khác."
+            subtitle={
+              showtimes.length > 0 && selectedDate !== 'all'
+                ? `Có ${showtimes.length} suất trong hệ thống nhưng không thuộc ngày đang chọn. Bấm «Tất cả» trên thanh ngày để xem.`
+                : 'Thử thay đổi bộ lọc hoặc chọn ngày khác.'
+            }
           />
         )}
       </div>
@@ -857,7 +861,15 @@ const ShowtimesPage = () => {
         </div>
       ))}
       {Object.keys(pageCinemaGroups).length === 0 && (
-        <EmptyState icon={Building2} title="Không có dữ liệu" subtitle="Thử thay đổi bộ lọc hoặc chọn ngày khác." />
+        <EmptyState
+          icon={Building2}
+          title="Không có dữ liệu"
+          subtitle={
+            showtimes.length > 0 && selectedDate !== 'all'
+              ? `Có ${showtimes.length} suất trong hệ thống nhưng không thuộc ngày đang chọn. Bấm «Tất cả» để xem.`
+              : 'Thử thay đổi bộ lọc hoặc chọn ngày khác.'
+          }
+        />
       )}
     </div>
   );
@@ -889,7 +901,15 @@ const ShowtimesPage = () => {
       </div>
       {/* Rows */}
       {paginatedShowtimes.length === 0 ? (
-        <EmptyState icon={AlignJustify} title="Không có suất chiếu" subtitle="Thử thay đổi bộ lọc." />
+        <EmptyState
+          icon={AlignJustify}
+          title="Không có suất chiếu"
+          subtitle={
+            showtimes.length > 0 && selectedDate !== 'all'
+              ? `Có ${showtimes.length} suất trong hệ thống nhưng không thuộc ngày đang chọn. Bấm «Tất cả» để xem.`
+              : 'Thử thay đổi bộ lọc.'
+          }
+        />
       ) : (
         paginatedShowtimes.map(row => {
           const trans = getValidTransitions(row.status);

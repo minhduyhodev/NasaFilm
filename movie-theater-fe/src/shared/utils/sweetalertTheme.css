@@ -1,4 +1,5 @@
 .nasafilm-swal-popup {
+  background: #141418 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 1rem !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75) !important;
@@ -63,11 +64,11 @@
 }
 
 .nasafilm-swal-confirm--danger {
-  background: #dc2626 !important;
+  background: #e11d48 !important;
 }
 
 .nasafilm-swal-confirm--danger:hover {
-  background: #ef4444 !important;
+  background: #be123c !important;
 }
 
 .nasafilm-swal-confirm--warning {

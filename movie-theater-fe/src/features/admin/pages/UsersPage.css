@@ -1,13 +1,1 @@
-/* ---- KPI Card ---- */
-.kpi-card {
-  background: rgba(11, 15, 25, 0.7);
-  border: 1px solid #1a2238;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.kpi-card:hover {
-  border-color: #334155;
-  transform: translateY(-1px);
-}
+/* Users page — KPI styles come from AdminKpiGrid.css */

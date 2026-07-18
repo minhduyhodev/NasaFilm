@@ -196,6 +196,12 @@
   flex-shrink: 0;
 }
 
+.support-closed-note--incoming {
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.22);
+}
+
 /* Compact "delete ticket" button placed in the chat header actions. */
 .support-chat-delete-btn {
   display: inline-flex;
@@ -355,28 +361,36 @@
 }
 
 .support-filter-tab {
-  padding: 0.375rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--adm-border, #1a2238);
+  padding: 0.45rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
   background: transparent;
-  color: var(--adm-text-muted, #94a3b8);
-  font-family: 'Inter', sans-serif;
-  font-size: 0.6875rem;
+  color: #e2e8f0;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .support-filter-tab:hover {
-  color: var(--adm-text, #f8fafc);
-  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(226, 232, 240, 0.5);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .support-filter-tab--active {
-  background: var(--adm-accent-soft, rgba(239, 68, 68, 0.12));
-  border-color: var(--adm-accent-border, rgba(239, 68, 68, 0.35));
-  color: var(--adm-nav-active-text, #fca5a5);
+  background: #e11d48;
+  border-color: #e11d48;
+  color: #fff;
+  box-shadow: none;
+}
+
+.support-filter-tab--active:hover {
+  background: #be123c;
+  border-color: #be123c;
+  color: #fff;
 }
 
 .support-ticket-list {
@@ -407,6 +421,31 @@
   background: var(--adm-accent-soft, rgba(239, 68, 68, 0.1));
   border-color: var(--adm-accent-border, rgba(239, 68, 68, 0.35));
   box-shadow: inset 3px 0 0 var(--adm-accent, #ef4444);
+}
+
+.support-ticket-card--incoming {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.support-ticket-card--incoming.support-ticket-card--active {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: inset 3px 0 0 #fbbf24;
+}
+
+.support-ticket-live-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.3);
 }
 
 .support-ticket-card-top {

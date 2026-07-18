@@ -8,8 +8,8 @@ import {
 } from '../../api/adminMissionService';
 import { getFeatureLabel, getMissionDisplayTitle } from '../../utils/missionAdminUtils';
 import { notificationService } from '../../../../shared/services/notificationService';
-import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
-import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
+import { PrimaryButton, GhostButton, AdminDateTimePicker, AdminSelectDropdown } from '..';
+import { adminInputClass, adminTextareaClass } from '../adminFormStyles';
 
 const CUSTOM_OPTION = '__CUSTOM__';
 
@@ -110,6 +110,8 @@ const withWindowDays = (conditionJson, days) => {
 const usesWindowDays = (conditionType) =>
   conditionType === 'GENRE_WINDOW' || conditionType === 'PREMIERE_BOOKING';
 
+const fieldLabelClass = 'mc-form__label';
+
 const MissionFormPanel = ({
   template,
   campaigns = [],
@@ -149,6 +151,39 @@ const MissionFormPanel = ({
   const preset = getMissionPreset(form?.code);
   const isCustomMission = mode === 'custom' || (isEditing && !preset);
   const selectValue = mode === 'custom' ? CUSTOM_OPTION : form?.code || '';
+
+  const typeOptions = useMemo(
+    () => [
+      ...MISSION_PRESETS.map((item) => ({
+        value: item.code,
+        label: usedCodes.has(item.code) ? `${item.label} (đã dùng)` : item.label,
+        disabled: usedCodes.has(item.code),
+      })),
+      { value: CUSTOM_OPTION, label: 'Loại mới…' },
+    ],
+    [usedCodes],
+  );
+
+  const conditionOptions = useMemo(
+    () => MISSION_CONDITION_TYPES.map((item) => ({ value: item.value, label: item.label })),
+    [],
+  );
+
+  const recurrenceOptions = useMemo(
+    () => MISSION_RECURRENCE_TYPES.map((item) => ({ value: item.value, label: item.label })),
+    [],
+  );
+
+  const campaignOptions = useMemo(
+    () => [
+      { value: '', label: 'Không gắn' },
+      ...campaigns.map((campaign) => ({
+        value: String(campaign.uuid),
+        label: campaign.title,
+      })),
+    ],
+    [campaigns],
+  );
 
   const handleTypeChange = (value) => {
     if (value === CUSTOM_OPTION) {
@@ -224,12 +259,12 @@ const MissionFormPanel = ({
         {isEditing ? (
           isCustomMission ? (
             <div className="mc-form-field mc-form-field--full">
-              <label className={adminLabelClass}>Mã</label>
+              <label className={fieldLabelClass}>Mã</label>
               <div className="mc-form-static">{form.code}</div>
             </div>
           ) : (
             <div className="mc-form-field mc-form-field--full">
-              <label className={adminLabelClass}>Loại</label>
+              <label className={fieldLabelClass}>Loại</label>
               <div className="mc-form-static">
                 {preset?.label || getMissionDisplayTitle({ code: form.code, title: form.title })}
               </div>
@@ -237,32 +272,22 @@ const MissionFormPanel = ({
           )
         ) : (
           <div className="mc-form-field mc-form-field--full">
-            <label className={adminLabelClass} htmlFor="mission-preset">Loại</label>
-            <select
-              id="mission-preset"
-              className={adminSelectClass}
+            <AdminSelectDropdown
+              label="Loại"
+              labelClassName={fieldLabelClass}
               value={selectValue}
-              onChange={(e) => handleTypeChange(e.target.value)}
-            >
-              {MISSION_PRESETS.map((item) => (
-                <option
-                  key={item.code}
-                  value={item.code}
-                  disabled={usedCodes.has(item.code)}
-                >
-                  {item.label}
-                </option>
-              ))}
-              <option value={CUSTOM_OPTION}>Loại mới…</option>
-            </select>
+              options={typeOptions}
+              onChange={handleTypeChange}
+              placeholder="Chọn loại nhiệm vụ"
+            />
           </div>
         )}
 
         {isCustomMission && !isEditing && (
           <div className="mc-form-field mc-form-field--full">
-            <label className={adminLabelClass}>Mã</label>
+            <label className={fieldLabelClass}>Mã</label>
             <input
-              className={adminInputClass}
+              className={`${adminInputClass} mc-form__input`}
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
               placeholder="SUMMER_WATCH"
@@ -272,89 +297,79 @@ const MissionFormPanel = ({
 
         {isCustomMission && (
           <div className="mc-form-field mc-form-field--full">
-            <label className={adminLabelClass}>Hành động theo dõi</label>
-            <select
-              className={adminSelectClass}
+            <AdminSelectDropdown
+              label="Hành động theo dõi"
+              labelClassName={fieldLabelClass}
               value={form.conditionType}
-              onChange={(e) => handleConditionChange(e.target.value)}
-            >
-              {MISSION_CONDITION_TYPES.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
+              options={conditionOptions}
+              onChange={handleConditionChange}
+            />
           </div>
         )}
 
         <div className="mc-form-field mc-form-field--full">
-          <label className={adminLabelClass}>Tên</label>
+          <label className={fieldLabelClass}>Tên</label>
           <input
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
         </div>
         <div className="mc-form-field mc-form-field--full">
-          <label className={adminLabelClass}>Mô tả</label>
+          <label className={fieldLabelClass}>Mô tả</label>
           <textarea
-            className={adminTextareaClass}
+            className={`${adminTextareaClass} mc-form__textarea`}
             rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Chu kỳ</label>
-          <select
-            className={adminSelectClass}
+          <AdminSelectDropdown
+            label="Chu kỳ"
+            labelClassName={fieldLabelClass}
             value={form.recurrence}
-            onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-          >
-            {MISSION_RECURRENCE_TYPES.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
+            options={recurrenceOptions}
+            onChange={(val) => setForm({ ...form, recurrence: val })}
+          />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Chiến dịch</label>
-          <select
-            className={adminSelectClass}
+          <AdminSelectDropdown
+            label="Chiến dịch"
+            labelClassName={fieldLabelClass}
             value={form.campaignUuid ? String(form.campaignUuid) : ''}
-            onChange={(e) => setForm({ ...form, campaignUuid: e.target.value })}
-          >
-            <option value="">Không gắn</option>
-            {campaigns.map((campaign) => (
-              <option key={campaign.uuid} value={String(campaign.uuid)}>{campaign.title}</option>
-            ))}
-          </select>
+            options={campaignOptions}
+            onChange={(val) => setForm({ ...form, campaignUuid: val })}
+          />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Mục tiêu</label>
+          <label className={fieldLabelClass}>Mục tiêu</label>
           <input
             type="number"
             min="1"
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.targetValue}
             onChange={(e) => setForm({ ...form, targetValue: Number(e.target.value) })}
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Điểm</label>
+          <label className={fieldLabelClass}>Điểm</label>
           <input
             type="number"
             min="0"
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.rewardPoints}
             onChange={(e) => setForm({ ...form, rewardPoints: Number(e.target.value) })}
           />
         </div>
         {usesWindowDays(form.conditionType) && (
           <div className="mc-form-field">
-            <label className={adminLabelClass}>Cửa sổ (ngày)</label>
+            <label className={fieldLabelClass}>Cửa sổ (ngày)</label>
             <input
               type="number"
               min="1"
               max="365"
-              className={adminInputClass}
+              className={`${adminInputClass} mc-form__input`}
               value={parseWindowDays(form.conditionJson)}
               onChange={(e) =>
                 setForm((prev) => ({
@@ -366,11 +381,11 @@ const MissionFormPanel = ({
           </div>
         )}
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Thứ tự hiển thị</label>
+          <label className={fieldLabelClass}>Thứ tự hiển thị</label>
           <input
             type="number"
             min="0"
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.sortOrder}
             onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
           />
@@ -392,18 +407,18 @@ const MissionFormPanel = ({
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Mã huy hiệu (tuỳ chọn)</label>
+          <label className={fieldLabelClass}>Mã huy hiệu (tuỳ chọn)</label>
           <input
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.rewardBadgeCode}
             onChange={(e) => setForm({ ...form, rewardBadgeCode: e.target.value })}
             placeholder="EXPLORER_BADGE"
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Tên huy hiệu (tuỳ chọn)</label>
+          <label className={fieldLabelClass}>Tên huy hiệu (tuỳ chọn)</label>
           <input
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.rewardBadgeTitle}
             onChange={(e) => setForm({ ...form, rewardBadgeTitle: e.target.value })}
             placeholder="Nhà thám hiểm"
@@ -434,10 +449,12 @@ const MissionFormPanel = ({
       )}
 
       <div className="mc-form-actions">
-        <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
-        <PrimaryButton type="submit" disabled={isSaving}>
+        <PrimaryButton type="submit" className="mc-form__submit" disabled={isSaving} loading={isSaving}>
           {isSaving ? 'Đang lưu...' : 'Lưu'}
         </PrimaryButton>
+        <GhostButton type="button" className="mc-form__cancel" onClick={onCancel}>
+          Hủy
+        </GhostButton>
       </div>
     </form>
   );

@@ -322,7 +322,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               {renderLink(
                 "/admin/matchmaker-analytics",
                 Sparkles,
-                "Thống kê gợi ý phim",
+                "Gợi ý phim",
                 "text-orange-400",
                 { permission: PERMISSIONS.USER_VIEW }
               )}

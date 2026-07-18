@@ -5,8 +5,6 @@ import {
   Loader2,
   Radio,
   Users,
-  Volume2,
-  VolumeX,
 } from 'lucide-react';
 import { AdminPage, PageHeader, StatusBadge } from '../components';
 import { staffMissionService } from '../api/staffMissionService';
@@ -82,7 +80,7 @@ const StaffMissionControlPage = () => {
   const [loadingShowtimes, setLoadingShowtimes] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [recentCheckIns, setRecentCheckIns] = useState([]);
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const audioEnabled = true;
   const checkinFooterRef = useRef(null);
 
   const loadShowtimes = useCallback(async () => {
@@ -271,13 +269,6 @@ const StaffMissionControlPage = () => {
           title="Soát vé & giám sát suất chiếu"
           description="Soát vé QR, giám sát ghế trực tiếp và vận hành suất chiếu trên một màn hình."
           variant="display"
-          secondaryActions={[
-            {
-              label: `Âm thanh: ${audioEnabled ? 'BẬT (TTS)' : 'TẮT'}`,
-              icon: audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />,
-              onClick: () => setAudioEnabled((prev) => !prev),
-            },
-          ]}
         />
 
         {loadingShowtimes ? (

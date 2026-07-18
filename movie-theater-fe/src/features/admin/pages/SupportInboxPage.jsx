@@ -30,6 +30,7 @@ import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
   { id: 'all', label: 'Tất cả' },
+  { id: 'open', label: 'Chờ nhận' },
   { id: 'progress', label: 'Đang xử lý' },
   { id: 'resolved', label: 'Đã đóng' },
 ];
@@ -110,31 +111,6 @@ const SupportInboxPage = () => {
   const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  const selectedTicket = useMemo(() => {
-    const fromList = tickets.find((item) => item.ticketCode === selectedTicketCode) || null;
-    if (!selectedTicketDetail || selectedTicketDetail.ticketCode !== selectedTicketCode) {
-      return fromList;
-    }
-    return { ...fromList, ...selectedTicketDetail };
-  }, [selectedTicketDetail, tickets, selectedTicketCode]);
-
-  const ticketStats = useMemo(() => {
-    let open = 0;
-    let progress = 0;
-    let resolved = 0;
-    tickets.forEach((ticket) => {
-      if (isIncomingTicket(ticket)) {
-        open += 1;
-        return;
-      }
-      const bucket = getStatusMeta(ticket.status).bucket;
-      if (bucket === 'progress') progress += 1;
-      else if (bucket === 'resolved') resolved += 1;
-      else open += 1;
-    });
-    return { total: tickets.length, open, progress, resolved };
-  }, [tickets]);
-
   const incomingTickets = useMemo(() => {
     const byCode = new Map();
     tickets.filter(isIncomingTicket).forEach((ticket) => {
@@ -152,15 +128,52 @@ const SupportInboxPage = () => {
     });
   }, [tickets, liveQueue]);
 
-  const inboxTickets = useMemo(
-    () => tickets.filter((ticket) => !isIncomingTicket(ticket)),
-    [tickets],
-  );
+  const allTickets = useMemo(() => {
+    const byCode = new Map();
+    tickets.forEach((ticket) => {
+      if (ticket?.ticketCode) byCode.set(ticket.ticketCode, ticket);
+    });
+    liveQueue.forEach((ticket) => {
+      if (ticket?.ticketCode && !byCode.has(ticket.ticketCode)) {
+        byCode.set(ticket.ticketCode, ticket);
+      }
+    });
+    return [...byCode.values()].sort((a, b) => {
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [tickets, liveQueue]);
+
+  const selectedTicket = useMemo(() => {
+    const fromList = allTickets.find((item) => item.ticketCode === selectedTicketCode) || null;
+    if (!selectedTicketDetail || selectedTicketDetail.ticketCode !== selectedTicketCode) {
+      return fromList;
+    }
+    return { ...fromList, ...selectedTicketDetail };
+  }, [selectedTicketDetail, allTickets, selectedTicketCode]);
+
+  const ticketStats = useMemo(() => {
+    let open = 0;
+    let progress = 0;
+    let resolved = 0;
+    allTickets.forEach((ticket) => {
+      if (isIncomingTicket(ticket)) {
+        open += 1;
+        return;
+      }
+      const bucket = getStatusMeta(ticket.status).bucket;
+      if (bucket === 'progress') progress += 1;
+      else if (bucket === 'resolved') resolved += 1;
+      else open += 1;
+    });
+    return { total: allTickets.length, open, progress, resolved };
+  }, [allTickets]);
 
   const filteredTickets = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return inboxTickets.filter((ticket) => {
-      const bucket = getStatusMeta(ticket.status).bucket;
+    return allTickets.filter((ticket) => {
+      const bucket = isIncomingTicket(ticket) ? 'open' : getStatusMeta(ticket.status).bucket;
       if (statusFilter !== 'all' && bucket !== statusFilter) return false;
       if (!query) return true;
       const haystack = [
@@ -176,7 +189,7 @@ const SupportInboxPage = () => {
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [inboxTickets, searchQuery, statusFilter]);
+  }, [allTickets, searchQuery, statusFilter]);
 
   const loadTickets = async () => {
     setLoadingTickets(true);
@@ -184,11 +197,10 @@ const SupportInboxPage = () => {
       const list = await supportService.getAdminSupportRequests();
       const next = Array.isArray(list) ? list : [];
       setTickets(next);
-      const accepted = next.filter((ticket) => !isIncomingTicket(ticket));
-      if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
-        setSelectedTicketCode(accepted[0]?.ticketCode || '');
-      } else if (selectedTicketCode && isIncomingTicket(next.find((t) => t.ticketCode === selectedTicketCode))) {
-        setSelectedTicketCode(accepted[0]?.ticketCode || '');
+      if (!selectedTicketCode && next[0]?.ticketCode) {
+        setSelectedTicketCode(next[0].ticketCode);
+      } else if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
+        setSelectedTicketCode(next[0]?.ticketCode || '');
       }
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không tải được danh sách ticket hỗ trợ.');
@@ -240,6 +252,16 @@ const SupportInboxPage = () => {
   useEffect(() => {
     loadMessages(selectedTicketCode);
     loadTicketDetail(selectedTicketCode);
+  }, [selectedTicketCode]);
+
+  useEffect(() => {
+    setPendingImages((prev) => {
+      prev.forEach((item) => {
+        if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+    setDraft('');
   }, [selectedTicketCode]);
 
   useEffect(() => {
@@ -492,88 +514,32 @@ const SupportInboxPage = () => {
     }
   };
 
-  useEffect(() => {
-    setPendingImages((prev) => {
-      prev.forEach((item) => {
-        if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
-      });
-      return [];
-    });
-    setDraft('');
-  }, [selectedTicketCode]);
-
-  const renderIncomingNotice = (ticket) => {
-    const isLive = Boolean(ticket.liveRequested && !ticket.liveConnected)
-      || `${ticket.status || ''}`.toUpperCase() === 'LIVE_REQUESTED';
-    const busy = processingLiveTicket === ticket.ticketCode;
-
-    return (
-      <div
-        key={ticket.ticketCode}
-        className={`support-incoming-notice ${isLive ? 'support-incoming-notice--live' : ''}`}
-      >
-        <div className="support-incoming-notice__main">
-          <div className="support-incoming-notice__top">
-            <span className="support-incoming-notice__badge">
-              {isLive ? 'Chat trực tiếp' : 'Yêu cầu mới'}
-            </span>
-            <span className="support-incoming-notice__meta">{formatDateTime(ticket.createdAt)}</span>
-          </div>
-          <div className="support-incoming-notice__title">
-            {getCategoryLabel(ticket.category)}
-            <span>·</span>
-            <strong>{ticket.ticketCode}</strong>
-          </div>
-          <p className="support-incoming-notice__who">
-            {ticket.ownerName || ticket.ownerEmail || 'Khách hàng'}
-          </p>
-          <p className="support-incoming-notice__preview">
-            {previewText(ticket.description || ticket.lastMessage)}
-          </p>
-        </div>
-        <div className="support-incoming-notice__actions">
-          <PrimaryButton
-            type="button"
-            loading={busy}
-            onClick={() => handleAcceptTicket(ticket)}
-          >
-            Nhận
-          </PrimaryButton>
-          {isLive ? (
-            <button
-              type="button"
-              className="support-filter-tab"
-              disabled={busy}
-              onClick={() => handleRejectLiveSupport(ticket.ticketCode)}
-            >
-              Từ chối
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  };
-
   const renderInboxTicketCard = (ticket) => {
-    const statusMeta = getStatusMeta(ticket.status);
+    const incoming = isIncomingTicket(ticket);
+    const statusMeta = incoming
+      ? { label: 'Chờ nhận', variant: 'warning' }
+      : getStatusMeta(ticket.status);
     const isActive = selectedTicketCode === ticket.ticketCode;
     const shortDescription = previewText(ticket.description || ticket.lastMessage, 64);
     const detailDescription = ticket.description || 'Không có mô tả';
     const latestMessage = ticket.lastMessage && ticket.lastMessage !== ticket.description
       ? ticket.lastMessage
       : null;
+    const isLive = Boolean(ticket.liveRequested && !ticket.liveConnected)
+      || `${ticket.status || ''}`.toUpperCase() === 'LIVE_REQUESTED';
 
     return (
       <button
         key={ticket.ticketCode}
         type="button"
-        className={`support-ticket-card ${isActive ? 'support-ticket-card--active' : ''} ${!ticket.readByAdmin ? 'support-ticket-card--unread' : ''}`.trim()}
+        className={`support-ticket-card ${isActive ? 'support-ticket-card--active' : ''} ${incoming ? 'support-ticket-card--incoming' : ''} ${!ticket.readByAdmin ? 'support-ticket-card--unread' : ''}`.trim()}
         onClick={() => setSelectedTicketCode(ticket.ticketCode)}
       >
         <div className="support-ticket-card-top">
           <div className="support-ticket-code">
-            {!ticket.readByAdmin ? <span className="support-ticket-unread" aria-label="Chưa đọc" /> : null}
+            {!ticket.readByAdmin || incoming ? <span className="support-ticket-unread" aria-label="Chưa đọc" /> : null}
             <strong>{ticket.ticketCode}</strong>
+            {isLive ? <span className="support-ticket-live-tag">Live</span> : null}
           </div>
           <StatusBadge variant={statusMeta.variant}>{statusMeta.label}</StatusBadge>
         </div>
@@ -617,7 +583,7 @@ const SupportInboxPage = () => {
       <PageHeader
         eyebrow="NASAFilm · Support Inbox"
         title="Hỗ trợ khách hàng"
-        description="Yêu cầu mới hiện dạng thông báo gọn. Nhấn Nhận để đưa ticket vào hộp thư và chat với khách."
+        description="Danh sách toàn bộ ticket hỗ trợ. Chọn ticket để xem hội thoại hoặc nhận yêu cầu đang chờ."
         secondaryActions={[
           {
             label: 'Làm mới',
@@ -638,62 +604,39 @@ const SupportInboxPage = () => {
             label: 'Tổng ticket',
             value: ticketStats.total,
             icon: Inbox,
-            color: 'text-sky-400',
+            kpiClass: 'kpi-total',
           },
           {
             label: 'Chờ nhận',
             value: incomingTickets.length,
             icon: Headphones,
-            color: 'text-amber-400',
+            kpiClass: 'kpi-upcoming',
           },
           {
             label: 'Đang xử lý',
             value: ticketStats.progress,
             icon: MessageSquare,
-            color: 'text-rose-400',
+            kpiClass: 'kpi-inactive',
           },
           {
             label: 'Đã đóng',
             value: ticketStats.resolved,
             icon: BadgeInfo,
-            color: 'text-emerald-400',
+            kpiClass: 'kpi-active',
           },
         ]}
       />
-
-      <div className="support-incoming-panel">
-        <div className="support-list-head">
-          <div className="support-list-title">
-            <Headphones className="w-4 h-4" />
-            Yêu cầu chờ nhận
-            {incomingTickets.length > 0 ? (
-              <span className="support-incoming-count">{incomingTickets.length}</span>
-            ) : null}
-          </div>
-          <p className="support-list-desc">
-            Ticket mới và chat trực tiếp hiện ở đây. Nhấn Nhận để mở hội thoại đầy đủ bên trái.
-          </p>
-        </div>
-        <div className="support-incoming-list">
-          {incomingTickets.length === 0 ? (
-            <div className="support-list-empty support-list-empty--compact">
-              Không có yêu cầu nào đang chờ nhận.
-            </div>
-          ) : (
-            incomingTickets.map(renderIncomingNotice)
-          )}
-        </div>
-      </div>
 
       <div className="support-inbox-layout">
         <aside className="support-list-panel">
           <div className="support-list-head">
             <div className="support-list-title">
               <Inbox className="w-4 h-4" />
-              Hộp thư ticket
+              Danh sách ticket
             </div>
             <p className="support-list-desc">
-              {filteredTickets.length} / {inboxTickets.length} ticket đã nhận
+              {filteredTickets.length} / {allTickets.length} ticket
+              {incomingTickets.length > 0 ? ` · ${incomingTickets.length} chờ nhận` : ''}
             </p>
           </div>
 
@@ -724,8 +667,8 @@ const SupportInboxPage = () => {
               </div>
             ) : filteredTickets.length === 0 ? (
               <div className="support-list-empty">
-                {inboxTickets.length === 0
-                  ? 'Chưa có ticket đã nhận. Nhận yêu cầu ở phía trên để bắt đầu.'
+                {allTickets.length === 0
+                  ? 'Chưa có ticket hỗ trợ nào.'
                   : 'Không tìm thấy ticket phù hợp.'}
               </div>
             ) : (
@@ -747,7 +690,28 @@ const SupportInboxPage = () => {
                   </div>
                 </div>
                 <div className="support-chat-head__actions">
-                  {selectedTicket.status !== 'DONE' && selectedTicket.status !== 'CLOSED' && selectedTicket.status !== 'RESOLVED' ? (
+                  {isIncomingTicket(selectedTicket) ? (
+                    <>
+                      <PrimaryButton
+                        type="button"
+                        loading={processingLiveTicket === selectedTicket.ticketCode}
+                        onClick={() => handleAcceptTicket(selectedTicket)}
+                      >
+                        Nhận ticket
+                      </PrimaryButton>
+                      {(Boolean(selectedTicket.liveRequested && !selectedTicket.liveConnected)
+                        || `${selectedTicket.status || ''}`.toUpperCase() === 'LIVE_REQUESTED') && (
+                        <button
+                          type="button"
+                          className="support-filter-tab"
+                          disabled={processingLiveTicket === selectedTicket.ticketCode}
+                          onClick={() => handleRejectLiveSupport(selectedTicket.ticketCode)}
+                        >
+                          Từ chối
+                        </button>
+                      )}
+                    </>
+                  ) : selectedTicket.status !== 'DONE' && selectedTicket.status !== 'CLOSED' && selectedTicket.status !== 'RESOLVED' ? (
                     <button
                       type="button"
                       className="support-filter-tab support-filter-tab--active"
@@ -768,7 +732,7 @@ const SupportInboxPage = () => {
                     </button>
                   )}
                   <StatusBadge variant={getStatusMeta(selectedTicket.status).variant}>
-                    {getStatusMeta(selectedTicket.status).label}
+                    {isIncomingTicket(selectedTicket) ? 'Chờ nhận' : getStatusMeta(selectedTicket.status).label}
                   </StatusBadge>
                 </div>
               </header>
@@ -777,6 +741,12 @@ const SupportInboxPage = () => {
                 <div className="support-ticket-summary">
                   <span>Mô tả yêu cầu</span>
                   <p>{selectedTicket.description}</p>
+                </div>
+              ) : null}
+
+              {isIncomingTicket(selectedTicket) ? (
+                <div className="support-closed-note support-closed-note--incoming">
+                  Ticket đang chờ nhận. Nhấn &quot;Nhận ticket&quot; để bắt đầu hỗ trợ và chat với khách.
                 </div>
               ) : null}
 
@@ -797,7 +767,11 @@ const SupportInboxPage = () => {
                       <MessageSquare className="w-7 h-7" />
                     </div>
                     <p className="support-state-title">Chưa có tin nhắn</p>
-                    <p className="support-state-desc">Gửi phản hồi đầu tiên cho khách hàng bên dưới.</p>
+                    <p className="support-state-desc">
+                      {isIncomingTicket(selectedTicket)
+                        ? 'Nhận ticket để bắt đầu hội thoại với khách hàng.'
+                        : 'Gửi phản hồi đầu tiên cho khách hàng bên dưới.'}
+                    </p>
                   </div>
                 ) : (
                   messages.map((message) => {
@@ -872,8 +846,12 @@ const SupportInboxPage = () => {
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={handleTextareaKeyDown}
                   className="support-textarea"
-                  placeholder="Phản hồi cho khách... (Enter gửi, Shift+Enter xuống dòng)"
-                  disabled={loading}
+                  placeholder={
+                    isIncomingTicket(selectedTicket)
+                      ? 'Nhận ticket trước khi gửi phản hồi...'
+                      : 'Phản hồi cho khách... (Enter gửi, Shift+Enter xuống dòng)'
+                  }
+                  disabled={loading || isIncomingTicket(selectedTicket)}
                 />
                 <div className="support-compose-footer">
                   <div className="support-compose-actions">
@@ -906,6 +884,7 @@ const SupportInboxPage = () => {
                     type="button"
                     disabled={
                       (!draft.trim() && pendingImages.length === 0)
+                      || isIncomingTicket(selectedTicket)
                       || selectedTicket.status === 'DONE'
                       || selectedTicket.status === 'CLOSED'
                     }
@@ -925,7 +904,7 @@ const SupportInboxPage = () => {
               </div>
               <p className="support-state-title">Chưa chọn ticket</p>
               <p className="support-state-desc">
-                Nhận một yêu cầu ở phía trên, hoặc chọn ticket đã nhận ở danh sách bên trái.
+                Chọn một ticket ở danh sách bên trái để xem hội thoại.
               </p>
             </div>
           )}

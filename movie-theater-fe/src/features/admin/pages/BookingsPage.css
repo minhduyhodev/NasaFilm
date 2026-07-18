@@ -13,35 +13,7 @@
   animation: dropdownFadeIn 0.15s ease-out forwards;
 }
 
-/* ---- KPI Card ---- */
-.kpi-card {
-  background: rgba(11, 15, 25, 0.7);
-  border: 1px solid #1a2238;
-  border-radius: 12px;
-  padding: 14px 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
-}
-
-.kpi-card--clickable {
-  cursor: pointer;
-  border: 0;
-  width: 100%;
-  font: inherit;
-  color: inherit;
-}
-
-.kpi-card--clickable:hover {
-  border-color: #334155;
-  transform: translateY(-1px);
-  background: rgba(15, 20, 35, 0.9);
-}
-
-.kpi-card--active {
-  border-color: rgba(239, 68, 68, 0.45) !important;
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15);
-  background: rgba(239, 68, 68, 0.06);
-}
+/* ---- KPI Card overrides removed — use AdminKpiGrid.css ---- */
 
 /* ---- Toolbar ---- */
 .bk-toolbar {

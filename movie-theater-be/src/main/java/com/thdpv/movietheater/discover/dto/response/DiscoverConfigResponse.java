@@ -11,6 +11,9 @@ public class DiscoverConfigResponse {
     private List<String> moods;
     private List<String> durations;
     private List<String> viewingLocations;
+    private List<DiscoverQuizOptionResponse> moodOptions;
+    private List<DiscoverQuizOptionResponse> durationOptions;
+    private List<DiscoverQuizOptionResponse> viewingOptions;
 
     public int getMaxMatches() {
         return maxMatches;
@@ -66,5 +69,29 @@ public class DiscoverConfigResponse {
 
     public void setViewingLocations(List<String> viewingLocations) {
         this.viewingLocations = viewingLocations;
+    }
+
+    public List<DiscoverQuizOptionResponse> getMoodOptions() {
+        return moodOptions;
+    }
+
+    public void setMoodOptions(List<DiscoverQuizOptionResponse> moodOptions) {
+        this.moodOptions = moodOptions;
+    }
+
+    public List<DiscoverQuizOptionResponse> getDurationOptions() {
+        return durationOptions;
+    }
+
+    public void setDurationOptions(List<DiscoverQuizOptionResponse> durationOptions) {
+        this.durationOptions = durationOptions;
+    }
+
+    public List<DiscoverQuizOptionResponse> getViewingOptions() {
+        return viewingOptions;
+    }
+
+    public void setViewingOptions(List<DiscoverQuizOptionResponse> viewingOptions) {
+        this.viewingOptions = viewingOptions;
     }
 }

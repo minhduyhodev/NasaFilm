@@ -326,19 +326,7 @@
   background: rgba(11, 15, 25, 0.5);
 }
 
-/* ---- KPI Card ---- */
-.kpi-card {
-  background: rgba(11, 15, 25, 0.7);
-  border: 1px solid #1a2238;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.kpi-card:hover {
-  border-color: #334155;
-  transform: translateY(-1px);
-}
+/* ---- KPI Card overrides removed — use AdminKpiGrid.css ---- */
 
 /* ---- Bulk Action Bar ---- */
 .bulk-bar {
@@ -899,9 +887,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .st-auto-movie-picker__search-input { width: 100%; border: none; background: transparent; color: #fff; font-size: 0.68rem; outline: none; }
 .st-auto-movie-picker__search-input::placeholder { color: #64748b; }
 .st-auto-movie-picker__sort { background: #0F1322; border: 1px solid #1a2238; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.62rem; color: #cbd5e1; }
-.st-auto-movie-picker__filters { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.st-auto-movie-picker__filter { padding: 0.3rem 0.55rem; border-radius: 999px; border: 1px solid #1a2238; background: rgba(255,255,255,0.02); color: #94a3b8; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s ease; }
-.st-auto-movie-picker__filter.is-active { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08); color: #fbbf24; }
+.st-auto-movie-picker__filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.st-auto-movie-picker__filter {
+  padding: 0.45rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.st-auto-movie-picker__filter:hover {
+  color: #fff;
+  border-color: rgba(226, 232, 240, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+}
+.st-auto-movie-picker__filter.is-active {
+  border-color: #e11d48;
+  background: #e11d48;
+  color: #fff;
+}
 .st-auto-movie-picker__empty { padding: 1.25rem 0.75rem; text-align: center; font-size: 0.65rem; color: #64748b; }
 .st-auto-movie { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.55rem; border-radius: 0.45rem; font-size: 0.68rem; color: #cbd5e1; cursor: pointer; border: 1px solid transparent; transition: background 0.15s ease, border-color 0.15s ease; }
 .st-auto-movie:hover { background: rgba(255,255,255,0.04); }

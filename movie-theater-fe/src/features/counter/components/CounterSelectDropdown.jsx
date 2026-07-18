@@ -44,12 +44,15 @@ export function CounterSelectDropdown({
   options = [],
   onChange,
   placeholder = 'Chọn...',
+  /** When set, closed trigger always shows this text (selection still works in the menu). */
+  triggerLabel = null,
   disabled = false,
   emptyMessage = 'Không có dữ liệu',
   fieldClassName = '',
   className = '',
   variant = 'field',
   leadingIcon: LeadingIcon = null,
+  iconClassName = '',
   menuMinWidth,
 }) {
   const isHeader = variant === 'header';
@@ -115,7 +118,7 @@ export function CounterSelectDropdown({
 
   const selected = options.find((opt) => opt.value === value);
   const hasValue = value !== '' && value != null;
-  const display = selected?.label ?? placeholder;
+  const display = triggerLabel ?? selected?.label ?? placeholder;
   const hasPosters = options.some((opt) => Boolean(opt.image));
 
   const menu = open && menuStyle && createPortal(
@@ -209,7 +212,10 @@ export function CounterSelectDropdown({
           onClick={() => !disabled && setOpen((prev) => !prev)}
         >
           {isHeader && LeadingIcon && (
-            <LeadingIcon className="counter-header__dropdown-icon" aria-hidden />
+            <LeadingIcon
+              className={`counter-header__dropdown-icon ${iconClassName}`.trim()}
+              aria-hidden
+            />
           )}
           <span
             className={[

@@ -35,8 +35,8 @@
   min-height: 42px;
   padding: 0 12px;
   border-radius: var(--adm-radius-sm, 10px);
-  background: var(--adm-bg-input, #0f172a);
-  border: 1px solid var(--adm-border, #1a2238);
+  background: var(--adm-bg-input, #0f0f12);
+  border: 1px solid var(--adm-border-strong, rgba(255, 255, 255, 0.1));
   color: var(--adm-text, #f8fafc);
   font-size: 13px;
   font-family: inherit;
@@ -52,7 +52,7 @@
 }
 
 .adm-datepicker__trigger:hover:not(:disabled) {
-  border-color: var(--adm-border-strong, #242d42);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .adm-datepicker__trigger--open,
@@ -289,8 +289,8 @@
   min-height: 42px;
   width: 100%;
   border-radius: var(--adm-radius-sm, 10px);
-  background: var(--adm-bg-input, #0f172a);
-  border: 1px solid var(--adm-border, #1a2238);
+  background: var(--adm-bg-input, #0f0f12);
+  border: 1px solid var(--adm-border-strong, rgba(255, 255, 255, 0.1));
   color: var(--adm-text, #f8fafc);
   font-size: 13px;
   font-family: inherit;
@@ -299,7 +299,7 @@
 }
 
 .adm-datetime__time-input:hover:not(:disabled) {
-  border-color: var(--adm-border-strong, #242d42);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .adm-datetime__time-input:focus {

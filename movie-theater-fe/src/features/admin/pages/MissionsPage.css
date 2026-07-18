@@ -19,26 +19,26 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* ── Ops panel ── */
-.mc-panel {
-  background: rgba(15, 19, 34, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 1rem;
-  padding: 1.125rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+/* ── Section (no outer popup shell) ── */
+.mc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
-.mc-panel__head {
+.mc-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
-.mc-panel__title {
+.mc-section__title {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -47,24 +47,16 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--adm-text-dim, #64748b);
-}
-
-.mc-panel__badge {
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.58rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: rgba(203, 213, 225, 0.72);
 }
 
 /* ── Toolbar ── */
 .mc-toolbar {
-  margin-bottom: 1rem;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .mc-toolbar__row {
@@ -80,17 +72,19 @@
   align-items: center;
   gap: 0.5rem;
   min-width: min(100%, 240px);
-  flex: 1 1 200px;
+  flex: 0 1 280px;
   max-width: 320px;
+  margin-left: auto;
 }
 
+.mc-search__icon,
 .mc-search .adm-toolbar__search-icon,
 .mc-search > svg {
   position: absolute;
   left: 10px;
   width: 14px;
   height: 14px;
-  color: #64748b;
+  color: #8a8f98;
   pointer-events: none;
   z-index: 1;
 }
@@ -98,6 +92,8 @@
 .mc-search .adm-input {
   padding-left: 2rem;
   width: 100%;
+  background: #0f0f12;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Horizontal card strip ── */
@@ -107,27 +103,26 @@
   overflow-x: auto;
   padding: 0.25rem 0.125rem 0.75rem;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  touch-action: pan-y;
 }
 
 .mc-strip::-webkit-scrollbar {
-  height: 6px;
+  display: none;
+  height: 0;
+  width: 0;
 }
 
-.mc-strip::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
-  border-radius: 999px;
+.mc-strip.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
 }
 
-.mc-strip__summary {
-  margin: 0.15rem 0 0;
-  font-size: 0.68rem;
-  color: #64748b;
-}
-
-.mc-strip__summary strong {
-  color: #cbd5e1;
+.mc-strip.is-dragging * {
+  pointer-events: none;
 }
 
 /* ── Mission / campaign cards ── */
@@ -141,17 +136,17 @@
   row-gap: 0.7rem;
   padding: 0.85rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141418;
   animation: mc-card-in 0.35s ease both;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mc-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #18181d;
+  border-color: rgba(255, 255, 255, 0.12);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .mc-card.is-on {
@@ -179,22 +174,22 @@
   font-size: 1.25rem;
   font-weight: 900;
   color: #86efac;
-  background: linear-gradient(160deg, #1a2a22, #0f141c);
+  background: linear-gradient(160deg, #1a2a22, #0f0f12);
   border: 1px solid rgba(34, 197, 94, 0.25);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .mc-card.is-off .mc-card__thumb,
 .mc-card.is-deleted .mc-card__thumb {
-  color: #94a3b8;
-  border-color: rgba(148, 163, 184, 0.2);
-  background: linear-gradient(160deg, #1e2438, #121828);
+  color: #8a8f98;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, #1c1c20, #0f0f12);
 }
 
 .mc-card__thumb--campaign {
   color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.28);
-  background: linear-gradient(160deg, #2a1a1e, #121828);
+  border-color: rgba(225, 29, 72, 0.28);
+  background: linear-gradient(160deg, #2a1a1e, #0f0f12);
 }
 
 .mc-card__body {
@@ -437,6 +432,44 @@
   min-width: 0;
 }
 
+.mc-form__label {
+  display: block;
+  margin: 0 0 0.4rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(203, 213, 225, 0.72);
+  font-family: inherit;
+}
+
+.mc-form__input,
+.mc-form__textarea,
+.mc-form .adm-input,
+.mc-form .adm-textarea {
+  background: #0f0f12 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px;
+}
+
+.mc-form .adm-select-trigger,
+.mc-form .admin-select-trigger,
+.mc-form .adm-datepicker__trigger,
+.mc-form .adm-datetime__time-input {
+  min-height: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #0f0f12;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mc-form .adm-select-trigger:hover,
+.mc-form .admin-select-trigger:hover,
+.mc-form .adm-datepicker__trigger:hover:not(:disabled),
+.mc-form .adm-datetime__time-input:hover:not(:disabled) {
+  border-color: rgba(225, 29, 72, 0.35);
+}
+
 .mc-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -459,15 +492,15 @@
   display: flex;
   align-items: center;
   padding: 0.65rem 0.75rem;
-  border-radius: var(--adm-radius-sm, 10px);
-  border: 1px solid var(--adm-border-strong, #3d4f6f);
-  background: rgba(15, 23, 42, 0.65);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f0f12;
   color: #cbd5e1;
   font-size: 0.8rem;
 }
 
 .mc-form-note {
-  margin: 0;
+  margin: 0.45rem 0 0;
   padding: 0.65rem 0.75rem;
   border-radius: 0.65rem;
   border: 1px solid rgba(245, 158, 11, 0.18);
@@ -491,6 +524,12 @@
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.mc-form-toggle:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .mc-form-toggle input {
@@ -501,17 +540,77 @@
 }
 
 .mc-form-actions {
-  position: sticky;
-  bottom: -1.25rem;
-  z-index: 3;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.65rem;
-  margin: 0 -1.25rem -1.25rem;
-  padding: 0.9rem 1.25rem;
+  margin: 0.25rem 0 0;
+  padding: 0.9rem 0 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 15, 25, 0.96);
-  backdrop-filter: blur(12px);
+  background: transparent;
+  position: static;
+}
+
+.mc-form__submit.adm-btn--primary,
+.mc-form-actions .adm-btn--primary {
+  background: #e11d48;
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.35),
+    0 0 20px rgba(225, 29, 72, 0.55),
+    0 8px 28px rgba(225, 29, 72, 0.35);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mc-form__submit.adm-btn--primary:hover:not(:disabled),
+.mc-form-actions .adm-btn--primary:hover:not(:disabled) {
+  background: #be123c;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.45),
+    0 0 28px rgba(225, 29, 72, 0.65),
+    0 10px 32px rgba(225, 29, 72, 0.4);
+}
+
+.mc-form__cancel {
+  color: rgba(248, 250, 252, 0.88) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.mc-form__cancel:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-modal-panel:has(.mc-form) {
+  background: #141418;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.admin-modal-panel:has(.mc-form) .admin-modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.admin-modal-panel:has(.mc-form) .admin-modal-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-modal-panel:has(.mc-form) .admin-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.admin-modal-panel:has(.mc-form) .admin-modal-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ── Empty / skeleton ── */
@@ -578,10 +677,6 @@
 
   .mc-form-field--full {
     grid-column: auto;
-  }
-
-  .mc-form-actions {
-    bottom: -1.25rem;
   }
 
   .mc-card {

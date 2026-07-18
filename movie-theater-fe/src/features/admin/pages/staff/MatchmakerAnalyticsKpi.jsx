@@ -4,36 +4,37 @@ import AdminKpiGrid from '../../components/AdminKpiGrid';
 const MatchmakerAnalyticsKpi = ({ analytics }) => {
   const total = analytics?.totalQuizzes ?? 0;
   const last7 = analytics?.quizzesLast7Days ?? 0;
-  const last7Meta =
-    total > 0 ? `${Math.round((last7 / total) * 100)}% trong 7 ngày qua` : null;
+  const last7Pct = total > 0 ? Math.round((last7 / total) * 100) : null;
 
   return (
     <AdminKpiGrid
+      columns={4}
+      className="mb-5"
       items={[
         {
           label: 'Tổng quiz',
           value: total.toLocaleString('vi-VN'),
-          badge: last7Meta || undefined,
           icon: BarChart3,
-          color: 'text-rose-400',
+          kpiClass: 'kpi-total',
+          badge: last7Pct != null ? `${last7Pct}% trong 7 ngày qua` : null,
         },
         {
           label: '7 ngày qua',
           value: last7.toLocaleString('vi-VN'),
           icon: Sparkles,
-          color: 'text-amber-400',
+          kpiClass: 'kpi-showing',
         },
         {
           label: 'Thành viên',
           value: (analytics?.authenticatedQuizzes ?? 0).toLocaleString('vi-VN'),
           icon: Users,
-          color: 'text-emerald-400',
+          kpiClass: 'kpi-active',
         },
         {
           label: 'Khách',
           value: (analytics?.guestQuizzes ?? 0).toLocaleString('vi-VN'),
           icon: User,
-          color: 'text-slate-400',
+          kpiClass: 'kpi-upcoming',
         },
       ]}
     />

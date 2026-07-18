@@ -48,7 +48,7 @@ const VouchersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
   const [isDeleting, setIsDeleting] = useState(false);
   const [voucherModal, setVoucherModal] = useState({
     open: false,
@@ -156,7 +156,7 @@ const VouchersPage = () => {
       : undefined;
 
   return (
-    <AdminPage>
+    <AdminPage className="vouchers-page">
       <PageHeader
         eyebrow="Trung tâm khuyến mãi"
         title="Quản lý voucher"
@@ -175,40 +175,37 @@ const VouchersPage = () => {
             label: "Tổng voucher",
             value: totalVouchers,
             icon: Ticket,
-            color: "text-amber-400",
             kpiClass: "kpi-total",
           },
           {
             label: "Đang hoạt động",
             value: activeVouchers,
             icon: CheckCircle,
-            color: "text-emerald-400",
             kpiClass: "kpi-active",
           },
           {
             label: "Vô hiệu hóa",
             value: inactiveVouchers,
             icon: Pause,
-            color: "text-amber-400",
             kpiClass: "kpi-inactive",
           },
           {
             label: "Tổng lượt sử dụng",
             value: totalUsedCount,
             icon: Activity,
-            color: "text-sky-400",
             kpiClass: "kpi-used",
           },
         ]}
       />
 
       <AdminTableShell
+        className="vouchers-shell"
         toolbar={
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
-            <div className="adm-toolbar__search max-w-md w-full">
-              <Search className="adm-toolbar__search-icon" />
+          <div className="vouchers-toolbar">
+            <div className="vouchers-search">
+              <Search className="vouchers-search__icon" aria-hidden="true" />
               <input
-                className="adm-input"
+                className="vouchers-search__input"
                 placeholder="Tìm kiếm theo mã voucher..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -240,127 +237,136 @@ const VouchersPage = () => {
         }
       >
         {isLoading ? (
-          <div className="adm-loading min-h-[280px]">
-            <div className="w-10 h-10 border-2 border-[var(--adm-accent)] border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-[var(--adm-text-dim)]">
-              Đang tải danh sách voucher...
-            </p>
+          <div className="vouchers-state">
+            <div className="vouchers-state__spinner" />
+            <p>Đang tải danh sách voucher...</p>
           </div>
         ) : filteredVouchers.length === 0 ? (
-          <div className="adm-empty">
-            <Ticket className="w-12 h-12 text-[var(--adm-text-dim)] mb-2" />
-            <p className="font-semibold text-[var(--adm-text)]">
-              Không tìm thấy voucher nào
-            </p>
-            <p className="text-xs text-[var(--adm-text-dim)] mt-1">
+          <div className="vouchers-state">
+            <Ticket className="vouchers-state__icon" />
+            <p className="vouchers-state__title">Không tìm thấy voucher nào</p>
+            <p className="vouchers-state__desc">
               Hãy tạo voucher mới hoặc điều chỉnh bộ lọc.
             </p>
           </div>
         ) : (
-          <table className="adm-table">
-            <thead>
-              <tr>
-                <th>Mã voucher</th>
-                <th>Chiết khấu</th>
-                <th>Lượt sử dụng</th>
-                <th>Hiệu lực</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedVouchers.map((v) => {
-                const lifecycle = getVoucherLifecycleStatus(v);
-                const usedCount = v.usedCount ?? 0;
-                const pct =
-                  v.maxUsage > 0
-                    ? Math.min(100, Math.round((usedCount / v.maxUsage) * 100))
-                    : 0;
-                const progressColor =
-                  pct >= 85
-                    ? "bg-rose-500"
-                    : pct >= 60
-                      ? "bg-amber-500"
-                      : "bg-emerald-500";
+          <div className="vouchers-grid">
+            {paginatedVouchers.map((v) => {
+              const lifecycle = getVoucherLifecycleStatus(v);
+              const usedCount = v.usedCount ?? 0;
+              const maxUsage = v.maxUsage;
+              const pct =
+                maxUsage > 0
+                  ? Math.min(100, Math.round((usedCount / maxUsage) * 100))
+                  : 0;
+              const ringR = 22;
+              const ring = 2 * Math.PI * ringR;
+              const dashOffset = ring - (pct / 100) * ring;
+              const discountLabel =
+                v.discountType === "PERCENTAGE"
+                  ? `${Math.round(v.discountValue * 100)}%`
+                  : `${Number(v.discountValue).toLocaleString("vi-VN")}đ`;
+              const usageFraction =
+                maxUsage > 0 ? `${usedCount}/${maxUsage}` : `${usedCount} lượt`;
+              const usagePct = maxUsage > 0 ? `${pct}%` : null;
+              const startLabel = v.startDate
+                ? formatDateTimeDisplay(formatDateForInput(v.startDate))
+                : null;
+              const endLabel = v.endDate
+                ? formatDateTimeDisplay(formatDateForInput(v.endDate))
+                : null;
 
-                return (
-                  <tr
-                    key={v.id}
-                    onClick={() =>
-                      setVoucherModal({ open: true, mode: "detail", voucher: v })
-                    }
-                    className="cursor-pointer"
-                  >
-                    <td>
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <span className="text-sm font-bold text-[var(--adm-text)] tracking-wider uppercase">
-                          {v.code}
-                        </span>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <StatusBadge variant={lifecycleVariant(lifecycle.tone)}>
-                            {lifecycle.label}
-                          </StatusBadge>
-                          {lifecycle.soonExpiring && (
-                            <StatusBadge variant="warning">Sắp hết hạn</StatusBadge>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-[var(--adm-text-dim)]">
-                          {v.discountType === "PERCENTAGE"
-                            ? "Phần trăm (%)"
-                            : "Cố định (đ)"}
-                        </span>
-                        <span className="text-base font-bold text-amber-400 adm-tabular">
-                          {v.discountType === "PERCENTAGE"
-                            ? `${Math.round(v.discountValue * 100)}%`
-                            : `${Number(v.discountValue).toLocaleString("vi-VN")} đ`}
+              return (
+                <article
+                  key={v.id}
+                  className={`voucher-ticket voucher-ticket--${lifecycle.tone}${
+                    lifecycle.soonExpiring ? " voucher-ticket--soon" : ""
+                  }`}
+                >
+                  <div className="voucher-ticket__stub">
+                    <h3 className="voucher-ticket__code">{v.code}</h3>
+                    <p className="voucher-ticket__discount">{discountLabel}</p>
+
+                    {maxUsage > 0 ? (
+                      <div className="voucher-ticket__ring" aria-hidden="true">
+                        <svg viewBox="0 0 56 56" className="voucher-ticket__ring-svg">
+                          <circle cx="28" cy="28" r={ringR} className="voucher-ticket__ring-track" />
+                          <circle
+                            cx="28"
+                            cy="28"
+                            r={ringR}
+                            className="voucher-ticket__ring-value"
+                            style={{
+                              strokeDasharray: ring,
+                              strokeDashoffset: dashOffset,
+                            }}
+                          />
+                        </svg>
+                        <span className="voucher-ticket__ring-label">
+                          <span className="voucher-ticket__ring-frac">{usageFraction}</span>
+                          <span className="voucher-ticket__ring-pct">{usagePct}</span>
                         </span>
                       </div>
-                    </td>
-                    <td>
-                      <div className="flex flex-col gap-1.5 max-w-[150px]">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-[var(--adm-text-dim)] adm-tabular">
-                          <span>
-                            {usedCount} / {v.maxUsage ?? "∞"}
-                          </span>
-                          {v.maxUsage > 0 && <span>{pct}%</span>}
-                        </div>
-                        {v.maxUsage > 0 ? (
-                          <div className="h-1 rounded-full bg-[var(--adm-border)] overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${progressColor}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-[var(--adm-text-dim)]">
-                            Không giới hạn
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex flex-col gap-1 text-xs text-[var(--adm-text-dim)]">
-                        {v.startDate && (
-                          <span>
-                            Từ:{" "}
-                            {formatDateTimeDisplay(formatDateForInput(v.startDate))}
-                          </span>
-                        )}
-                        {v.endDate && (
-                          <span>
-                            Đến:{" "}
-                            {formatDateTimeDisplay(formatDateForInput(v.endDate))}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    ) : (
+                      <p className="voucher-ticket__usage-plain">{usageFraction}</p>
+                    )}
+                  </div>
+
+                  <div className="voucher-ticket__perforation" aria-hidden="true">
+                    <span className="voucher-ticket__notch voucher-ticket__notch--top" />
+                    <span className="voucher-ticket__dash" />
+                    <span className="voucher-ticket__notch voucher-ticket__notch--bottom" />
+                  </div>
+
+                  <div className="voucher-ticket__panel">
+                    {lifecycle.soonExpiring ? (
+                      <span className="voucher-ticket__tag">Sắp hết hạn</span>
+                    ) : (
+                      <span className="voucher-ticket__tag voucher-ticket__tag--spacer" aria-hidden="true" />
+                    )}
+
+                    <div className="voucher-ticket__status">
+                      <span
+                        className={`voucher-ticket__dot voucher-ticket__dot--${lifecycle.tone}`}
+                      />
+                      <span className={`voucher-ticket__status-text voucher-ticket__status-text--${lifecycle.tone}`}>
+                        {lifecycle.label}
+                      </span>
+                    </div>
+
+                    <div className="voucher-ticket__dates">
+                      {startLabel ? (
+                        <p>
+                          <span className="voucher-ticket__date-label">Từ:</span>{" "}
+                          <span className="voucher-ticket__date-value">{startLabel}</span>
+                        </p>
+                      ) : null}
+                      {endLabel ? (
+                        <p>
+                          <span className="voucher-ticket__date-label">Đến:</span>{" "}
+                          <span className="voucher-ticket__date-value">{endLabel}</span>
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="voucher-ticket__cta"
+                      onClick={() =>
+                        setVoucherModal({
+                          open: true,
+                          mode: "detail",
+                          voucher: v,
+                        })
+                      }
+                    >
+                      Chi tiết
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
       </AdminTableShell>
 
@@ -369,7 +375,7 @@ const VouchersPage = () => {
         onClose={closeVoucherModal}
         title={voucherModalTitle}
         subtitle={voucherModalSubtitle}
-        size={voucherModal.mode === "detail" ? "md" : "lg"}
+        size={voucherModal.mode === "detail" ? "md" : "xl"}
       >
         {voucherModal.mode === "detail" &&
           voucherModal.voucher &&

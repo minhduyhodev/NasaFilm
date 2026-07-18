@@ -8,14 +8,18 @@
 }
 
 .admin-modal-panel {
-  @apply relative flex flex-col w-full max-h-[90vh] rounded-2xl border border-white/10 bg-[#0f1322] shadow-2xl shadow-black/50 overflow-hidden;
+  @apply relative flex flex-col w-full max-h-[90vh] rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden;
+  background: #141418;
   animation: admin-modal-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  --adm-bg-input: #0f172a;
-  --adm-border-strong: #3d4f6f;
+  --adm-bg-input: #0f0f12;
+  --adm-border: rgba(255, 255, 255, 0.06);
+  --adm-border-strong: rgba(255, 255, 255, 0.1);
   --adm-text: #f8fafc;
-  --adm-text-dim: #94a3b8;
-  --adm-focus-ring: rgba(239, 68, 68, 0.55);
-  --adm-accent-soft: rgba(239, 68, 68, 0.14);
+  --adm-text-dim: #8a8f98;
+  --adm-text-muted: #8a8f98;
+  --adm-focus-ring: rgba(225, 29, 72, 0.55);
+  --adm-accent-soft: rgba(225, 29, 72, 0.14);
+  --adm-accent-border: rgba(225, 29, 72, 0.35);
   --adm-radius-sm: 10px;
 }
 
@@ -77,7 +81,8 @@
 }
 
 .admin-modal-header {
-  @apply flex items-start justify-between gap-4 px-5 py-4 border-b border-white/10 bg-[#121826]/80 shrink-0;
+  @apply flex items-start justify-between gap-4 px-5 py-4 border-b border-white/10 shrink-0;
+  background: rgba(10, 10, 12, 0.85);
 }
 
 .admin-modal-title {
@@ -114,7 +119,8 @@
 }
 
 .admin-modal-footer {
-  @apply shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-white/10 bg-[#0b0f19]/60;
+  @apply shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-white/10;
+  background: rgba(10, 10, 12, 0.65);
 }
 
 @keyframes admin-modal-fade-in {

@@ -20,7 +20,8 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const mainRef = useRef(null);
   const isOpsPage = isCounterOpsPath(location.pathname);
-  const isWidePage = isOpsPage;
+  const isMoviesPage = location.pathname.startsWith('/admin/movies');
+  const isWidePage = isOpsPage || isMoviesPage;
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,7 +42,7 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="admin-shell adm-app antialiased overflow-hidden relative min-h-screen">
+    <div className="admin-shell adm-app antialiased relative">
       <SupportAdminMessageAlerts />
       <Suspense
         fallback={
@@ -70,7 +71,7 @@ const AdminLayout = ({ children }) => {
       <main
         ref={mainRef}
         data-scroll-container="admin-main"
-        className={`adm-main custom-scrollbar ${
+        className={`adm-main ${
           isSidebarOpen ? "adm-main--sidebar-open" : "adm-main--sidebar-collapsed"
         }`}
       >

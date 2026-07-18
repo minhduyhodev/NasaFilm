@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Coins, Zap } from 'lucide-react';
 import { adminPromotionService } from '../../api/adminPromotionService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { systemConfigService } from '../../../../shared/services/systemConfigService';
 import { getPointsToCashValue } from '../../../../shared/utils/systemConfig';
 import { TIER_FORM_OPTIONS } from '../../../../shared/utils/memberTiers';
-import { formatDateForInput, formatDateForBackend, validateVoucherDiscountValue, validateVoucherSchedule } from '../../utils/voucherFormUtils';
-import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
-import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
+import {
+  formatDateForInput,
+  formatDateForBackend,
+  validateVoucherDiscountValue,
+  validateVoucherSchedule,
+} from '../../utils/voucherFormUtils';
+import { PrimaryButton, GhostButton, AdminDateTimePicker, AdminSelectDropdown } from '..';
 import './VoucherFormPanel.css';
 
 const VOUCHER_TYPES = {
@@ -37,8 +41,22 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
 
   const isDirectType = form.voucherType === VOUCHER_TYPES.DIRECT;
 
+  const tierOptions = useMemo(
+    () => TIER_FORM_OPTIONS.map((tier) => ({ value: tier.value, label: tier.label })),
+    [],
+  );
+  const discountTypeOptions = [
+    { value: 'PERCENTAGE', label: 'Phần trăm (%)' },
+    { value: 'FIXED_AMOUNT', label: 'Số tiền cố định (VND)' },
+  ];
+  const statusOptions = [
+    { value: 'ACTIVE', label: 'Hoạt động' },
+    { value: 'INACTIVE', label: 'Vô hiệu' },
+  ];
+
   useEffect(() => {
-    systemConfigService.getConfig()
+    systemConfigService
+      .getConfig()
       .then((cfg) => setPointsToCashValue(getPointsToCashValue(cfg)))
       .catch(() => {});
   }, []);
@@ -63,7 +81,7 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       maxUsagePerUser: voucher.maxUsagePerUser != null ? String(voucher.maxUsagePerUser) : '',
       startDate: formatDateForInput(voucher.startDate),
       endDate: formatDateForInput(voucher.endDate),
-      status: voucher.status === 'DELETED' ? 'INACTIVE' : (voucher.status || 'ACTIVE'),
+      status: voucher.status === 'DELETED' ? 'INACTIVE' : voucher.status || 'ACTIVE',
     });
   }, [voucher]);
 
@@ -86,7 +104,9 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
     let pointsCost = 0;
     if (isDirectType) {
       if (!form.maxUsage) {
-        notificationService.error('Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống');
+        notificationService.error(
+          'Voucher khả dụng trực tiếp phải có giới hạn lượt sử dụng toàn hệ thống',
+        );
         return;
       }
     } else {
@@ -101,7 +121,11 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
       }
     }
 
-    const discountError = validateVoucherDiscountValue(form.discountType, form.discountValue, pointsToCashValue);
+    const discountError = validateVoucherDiscountValue(
+      form.discountType,
+      form.discountValue,
+      pointsToCashValue,
+    );
     if (discountError) {
       notificationService.error(discountError);
       return;
@@ -149,17 +173,21 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="voucher-form">
       <fieldset className="voucher-type-picker">
-        <legend className={adminLabelClass}>Loại voucher *</legend>
+        <legend className="voucher-form__label">
+          Loại voucher<span className="voucher-form__req"> *</span>
+        </legend>
         <div className="voucher-type-picker__grid">
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.REDEEM)}
-            className={`voucher-type-option voucher-type-option--redeem${!isDirectType ? ' is-active' : ''}`}
+            className={`voucher-type-option${!isDirectType ? ' is-active' : ''}`}
             aria-pressed={!isDirectType}
           >
-            <span className="voucher-type-option__icon"><Coins size={18} /></span>
+            <span className="voucher-type-option__icon">
+              <Coins size={18} />
+            </span>
             <span className="voucher-type-option__content">
               <strong>Đổi điểm</strong>
               <small>Khách dùng điểm tích lũy để nhận voucher</small>
@@ -168,10 +196,12 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           <button
             type="button"
             onClick={() => handleTypeChange(VOUCHER_TYPES.DIRECT)}
-            className={`voucher-type-option voucher-type-option--direct${isDirectType ? ' is-active' : ''}`}
+            className={`voucher-type-option${isDirectType ? ' is-active' : ''}`}
             aria-pressed={isDirectType}
           >
-            <span className="voucher-type-option__icon"><Zap size={18} /></span>
+            <span className="voucher-type-option__icon">
+              <Zap size={18} />
+            </span>
             <span className="voucher-type-option__content">
               <strong>Dùng trực tiếp</strong>
               <small>Voucher miễn phí, áp dụng ngay khi thanh toán</small>
@@ -180,80 +210,110 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={adminLabelClass}>Mã voucher *</label>
-          <input className={`${adminInputClass} uppercase font-bold`} value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required />
-        </div>
-        {!isDirectType && (
-          <div>
-            <label className={adminLabelClass}>Điểm đổi *</label>
-            <input
-              type="number"
-              min="1"
-              className={adminInputClass}
-              value={form.pointsCost}
-              onChange={(e) => setForm((p) => ({ ...p, pointsCost: e.target.value }))}
-              required={!isDirectType}
-            />
-          </div>
-        )}
-        <div>
-          <label className={adminLabelClass}>Hạng thành viên *</label>
-          <select className={adminSelectClass} value={form.minScore} onChange={(e) => setForm((p) => ({ ...p, minScore: Number(e.target.value) }))}>
-            {TIER_FORM_OPTIONS.map((tier) => (
-              <option key={tier.value} value={tier.value}>{tier.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={adminLabelClass}>Loại giảm giá *</label>
-          <select className={adminSelectClass} value={form.discountType} onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}>
-            <option value="PERCENTAGE">Phần trăm (%)</option>
-            <option value="FIXED_AMOUNT">Số tiền cố định (VND)</option>
-          </select>
-        </div>
-        <div>
-          <label className={adminLabelClass}>Giá trị giảm *</label>
+      <div className="voucher-form__grid voucher-form__grid--2">
+        <div className="voucher-form__field">
+          <label className="voucher-form__label">
+            Mã voucher<span className="voucher-form__req"> *</span>
+          </label>
           <input
-            type="number"
-            min={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
-            step={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
-            className={adminInputClass}
-            value={form.discountValue}
-            onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))}
+            className="voucher-form__input voucher-form__input--code"
+            value={form.code}
+            onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+            placeholder="VD: CINELUXE50"
             required
           />
         </div>
-        <div>
-          <label className={adminLabelClass}>
-            {isDirectType ? 'Giới hạn lượt sử dụng toàn hệ thống *' : 'Giới hạn lượt đổi toàn hệ thống'}
+        <div className="voucher-form__field">
+          <label className="voucher-form__label">
+            Điểm đổi{!isDirectType ? <span className="voucher-form__req"> *</span> : null}
           </label>
           <input
             type="number"
             min="1"
-            className={adminInputClass}
+            className="voucher-form__input"
+            value={form.pointsCost}
+            onChange={(e) => setForm((p) => ({ ...p, pointsCost: e.target.value }))}
+            placeholder={isDirectType ? 'Không áp dụng' : 'Nhập số điểm'}
+            disabled={isDirectType}
+            required={!isDirectType}
+          />
+        </div>
+      </div>
+
+      <div className="voucher-form__grid voucher-form__grid--3">
+        <AdminSelectDropdown
+          label="Hạng thành viên *"
+          labelClassName="voucher-form__label"
+          value={form.minScore}
+          options={tierOptions}
+          onChange={(val) => setForm((p) => ({ ...p, minScore: Number(val) }))}
+        />
+        <AdminSelectDropdown
+          label="Loại giảm giá *"
+          labelClassName="voucher-form__label"
+          value={form.discountType}
+          options={discountTypeOptions}
+          onChange={(val) => setForm((p) => ({ ...p, discountType: val }))}
+        />
+        <div className="voucher-form__field">
+          <label className="voucher-form__label">
+            Giá trị giảm<span className="voucher-form__req"> *</span>
+          </label>
+          <input
+            type="number"
+            min={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
+            step={form.discountType === 'FIXED_AMOUNT' ? pointsToCashValue : 1}
+            className="voucher-form__input"
+            value={form.discountValue}
+            onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))}
+            placeholder={form.discountType === 'PERCENTAGE' ? 'Phần trăm (%)' : 'Số tiền (VND)'}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="voucher-form__grid voucher-form__grid--3">
+        <div className="voucher-form__field">
+          <label className="voucher-form__label">
+            {isDirectType
+              ? 'Giới hạn lượt sử dụng toàn hệ thống'
+              : 'Giới hạn lượt đổi toàn hệ thống'}
+            {isDirectType ? <span className="voucher-form__req"> *</span> : null}
+          </label>
+          <input
+            type="number"
+            min="1"
+            className="voucher-form__input"
             placeholder={isDirectType ? 'Bắt buộc' : 'Không giới hạn'}
             value={form.maxUsage}
             onChange={(e) => setForm((p) => ({ ...p, maxUsage: e.target.value }))}
             required={isDirectType}
           />
         </div>
-        <div>
-          <label className={adminLabelClass}>
+        <div className="voucher-form__field">
+          <label className="voucher-form__label">
             {isDirectType ? 'Giới hạn sử dụng mỗi tài khoản' : 'Giới hạn đổi mỗi tài khoản'}
           </label>
-          <input type="number" min="1" className={adminInputClass} placeholder="Không giới hạn" value={form.maxUsagePerUser} onChange={(e) => setForm((p) => ({ ...p, maxUsagePerUser: e.target.value }))} />
+          <input
+            type="number"
+            min="1"
+            className="voucher-form__input"
+            placeholder="Không giới hạn"
+            value={form.maxUsagePerUser}
+            onChange={(e) => setForm((p) => ({ ...p, maxUsagePerUser: e.target.value }))}
+          />
         </div>
-        <div>
-          <label className={adminLabelClass}>Trạng thái *</label>
-          <select className={adminSelectClass} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-            <option value="ACTIVE">Hoạt động</option>
-            <option value="INACTIVE">Vô hiệu</option>
-          </select>
-        </div>
+        <AdminSelectDropdown
+          label="Trạng thái *"
+          labelClassName="voucher-form__label"
+          value={form.status}
+          options={statusOptions}
+          onChange={(val) => setForm((p) => ({ ...p, status: val }))}
+        />
+      </div>
+
+      <div className="voucher-form__grid voucher-form__grid--2">
         <AdminDateTimePicker
-          className="sm:col-span-2"
           label="Ngày bắt đầu *"
           dateLabel=""
           timeLabel=""
@@ -262,7 +322,6 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           required
         />
         <AdminDateTimePicker
-          className="sm:col-span-2"
           label="Ngày kết thúc *"
           dateLabel=""
           timeLabel=""
@@ -271,11 +330,19 @@ const VoucherFormPanel = ({ voucher, onSuccess, onCancel }) => {
           required
         />
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
-        <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
+
+      <div className="voucher-form__actions">
+        <PrimaryButton
+          type="submit"
+          className="voucher-form__submit"
+          loading={isSaving}
+          disabled={isSaving}
+        >
           {isEditing ? 'Cập nhật' : 'Tạo voucher'}
         </PrimaryButton>
+        <GhostButton type="button" className="voucher-form__cancel" onClick={onCancel}>
+          Hủy
+        </GhostButton>
       </div>
     </form>
   );

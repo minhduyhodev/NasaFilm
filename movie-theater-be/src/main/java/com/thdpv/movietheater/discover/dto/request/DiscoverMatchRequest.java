@@ -20,7 +20,7 @@ public class DiscoverMatchRequest {
     @NotBlank
     private String viewingLocation;
 
-    @Size(max = 2)
+    @Size(max = 5)
     private List<UUID> genreUuids;
 
     private Boolean useHistory;
