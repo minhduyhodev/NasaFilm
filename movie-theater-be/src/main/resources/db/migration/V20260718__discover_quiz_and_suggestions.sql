@@ -39,7 +39,7 @@ VALUES
     ('a1000001-0001-4000-8000-000000000021', 'VIEWING', 'THEATER', 'Rạp chiếu', 'Màn ảnh lớn · Trải nghiệm rạp', 'Clapperboard', NULL, 1, true),
     ('a1000001-0001-4000-8000-000000000022', 'VIEWING', 'HOME', 'Xem tại nhà', 'Online · Thoải mái tại nhà', 'Tv', NULL, 2, true),
     ('a1000001-0001-4000-8000-000000000023', 'VIEWING', 'BOTH', 'Cả hai', 'Rạp hoặc nhà · Linh hoạt', 'Film', NULL, 3, true)
-ON CONFLICT (option_group, option_key) DO NOTHING;
+ON CONFLICT (uuid) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS discover_curated_suggestion (
     uuid uuid PRIMARY KEY,

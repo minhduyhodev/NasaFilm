@@ -21,7 +21,7 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
      * Atomically binds a succeeded transaction to a booking so a single Stripe payment can back only one
      * booking. Returns 1 when this booking won the claim, 0 when it was already claimed or is not (yet) SUCCESS.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PaymentTransaction t SET t.bookingUuid = :bookingUuid, t.updatedAt = :now "
             + "WHERE t.gatewayTransactionId = :gatewayTransactionId AND t.bookingUuid IS NULL "
             + "AND t.status = 'SUCCESS'")
@@ -33,7 +33,7 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
      * Atomically transitions a transaction from one status to another. Returns 1 when this thread won the
      * transition, 0 when it was already changed — so only one concurrent request credits a top-up.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PaymentTransaction t SET t.status = :toStatus, t.updatedAt = :now "
             + "WHERE t.uuid = :uuid AND t.status = :fromStatus")
     int transitionStatus(@Param("uuid") UUID uuid,

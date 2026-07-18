@@ -7,7 +7,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { resolveMovieOnlinePrice } from '../../../shared/utils/systemConfig';
-import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket } from '../utils/movieUtils';
+import { matchBookingCode, getMoviePosterUrl, isVodTicketActive, canPurchaseVodTicket, canWatchOnlineDirectly, getOnlineWatchPath, setTemporaryVodToken, isLiveTicket, isOnlineBooking } from '../utils/movieUtils';
 import { VOD_PLAYBACK_STATE } from '../../../shared/constants/vod';
 import { invalidateVodStatus } from '../hooks/useOnlineVodRoutes';
 import projectorImg from '../../../shared/assets/about_projector.webp';
@@ -78,7 +78,20 @@ const TicketActivationPage = () => {
 
         if (isAuthenticated) {
           try {
-            const status = await vodService.getStatus(movieId);
+            let status = await vodService.getStatus(movieId);
+            if (!status?.hasPurchased && data?.uuid) {
+              try {
+                const bookings = await vodService.getMyBookings();
+                const hasOnlineBooking = (bookings || []).some(
+                  (booking) => isOnlineBooking(booking) && booking.movieUuid === data.uuid && isLiveTicket(booking)
+                );
+                if (hasOnlineBooking) {
+                  status = { ...status, hasPurchased: true, playbackState: VOD_PLAYBACK_STATE.WAITING_FOR_PLAY };
+                }
+              } catch {
+                // Giữ status gốc nếu không tải được lịch sử vé.
+              }
+            }
             setVodStatus(status);
             // Đã kích hoạt / đang STREAMING → vào xem luôn, không bắt nhập mã lại
             if (canWatchOnlineDirectly(status)) {
@@ -173,7 +186,7 @@ const TicketActivationPage = () => {
     setIsActivating(true);
     try {
       const bookings = await vodService.getMyBookings();
-      const matched = (bookings || []).find((b) => matchBookingCode(b, code, movieId));
+      const matched = (bookings || []).find((b) => matchBookingCode(b, code, movie?.uuid));
 
       if (!matched) {
         setError('Không tìm thấy vé online khớp mã này cho phim đang chọn.');
@@ -248,9 +261,9 @@ const TicketActivationPage = () => {
   return (
     <div className="ticket-activation-page text-white min-h-screen">
       <div className="max-w-7xl mx-auto pt-28 px-4 md:px-8 lg:px-20 no-print flex justify-end">
-        <button 
-          type="button" 
-          onClick={() => navigate('/profile')} 
+        <button
+          type="button"
+          onClick={() => navigate('/profile')}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-semibold rounded-lg transition duration-200 cursor-pointer"
         >
           <X size={14} />

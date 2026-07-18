@@ -34,7 +34,7 @@ export const BookingConfirmedPage = () => {
       .then((detail) => {
         if (!cancelled) setFetchedPoster(getMoviePosterUrl(detail));
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -101,11 +101,10 @@ export const BookingConfirmedPage = () => {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-sm font-bold text-white truncate">{movie}</span>
                     {movieRating && (
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                        String(movieRating || '').toUpperCase() === 'P' ? 'bg-emerald-600 text-white'
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${String(movieRating || '').toUpperCase() === 'P' ? 'bg-emerald-600 text-white'
                           : String(movieRating || '').toUpperCase().includes('T18') ? 'bg-red-600 text-white'
                             : 'bg-amber-600 text-white'
-                      }`}
+                        }`}
                       >
                         {movieRating}
                       </span>
