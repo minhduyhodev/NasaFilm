@@ -66,6 +66,28 @@ export const supportService = {
     return response.data.data ?? response.data;
   },
 
+  async uploadSupportImages(files) {
+    const formData = new FormData();
+    (files || []).forEach((file) => {
+      if (file) formData.append('files', file);
+    });
+    const response = await authService.api.post('/api/support-requests/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data ?? response.data;
+  },
+
+  async uploadAdminSupportImages(files) {
+    const formData = new FormData();
+    (files || []).forEach((file) => {
+      if (file) formData.append('files', file);
+    });
+    const response = await authService.api.post('/api/admin/support/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data ?? response.data;
+  },
+
   async cancelSupportRequest(ticketCode) {
     const response = await authService.api.post(`/api/support-requests/${ticketCode}/cancel`);
     return response.data.data ?? response.data;

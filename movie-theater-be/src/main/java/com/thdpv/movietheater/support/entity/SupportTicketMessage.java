@@ -1,9 +1,13 @@
 package com.thdpv.movietheater.support.entity;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,6 +36,10 @@ public class SupportTicketMessage {
 
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "image_urls", columnDefinition = "jsonb")
+    private List<String> imageUrls = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -75,6 +83,14 @@ public class SupportTicketMessage {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
     }
 
     public OffsetDateTime getCreatedAt() {
