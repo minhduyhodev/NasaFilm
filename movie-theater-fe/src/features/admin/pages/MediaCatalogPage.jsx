@@ -395,7 +395,7 @@ const MediaCatalogPage = () => {
   };
 
   return (
-    <AdminPage>
+    <AdminPage className="media-catalog-page">
       <PageHeader
         eyebrow="Danh mục nội dung"
         title="Truyền thông"
@@ -410,9 +410,9 @@ const MediaCatalogPage = () => {
       <AdminKpiGrid
         columns={3}
         items={[
-          { label: "Diễn viên", value: actors.length, icon: User, color: "text-sky-400", kpiClass: "kpi-total" },
-          { label: "Quốc gia", value: countriesList.length, icon: Globe, color: "text-emerald-400", kpiClass: "kpi-represented" },
-          { label: "Thể loại", value: genresList.length, icon: Tags, color: "text-amber-400", kpiClass: "kpi-popular" },
+          { label: "Diễn viên", value: actors.length, icon: User, kpiClass: "kpi-total" },
+          { label: "Quốc gia", value: countriesList.length, icon: Globe, kpiClass: "kpi-showing" },
+          { label: "Thể loại", value: genresList.length, icon: Tags, kpiClass: "kpi-upcoming" },
         ]}
       />
 

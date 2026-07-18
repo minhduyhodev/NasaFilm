@@ -25,6 +25,7 @@ import MissionFormPanel from '../components/panels/MissionFormPanel';
 import MissionCampaignFormPanel from '../components/panels/MissionCampaignFormPanel';
 import { AdminPage, PageHeader, PrimaryButton, AdminKpiGrid, FilterPills, StatusBadge } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import useDragScroll from '../../../shared/hooks/useDragScroll';
 import {
   formatAdminDateRange,
   formatAdminDateTime,
@@ -35,6 +36,15 @@ import {
   resolveCampaignTitle,
 } from '../utils/missionAdminUtils';
 import './MissionsPage.css';
+
+const MissionStrip = ({ children }) => {
+  const { ref, dragScrollProps } = useDragScroll();
+  return (
+    <div ref={ref} className="mc-strip" {...dragScrollProps}>
+      {children}
+    </div>
+  );
+};
 
 const MissionSkeleton = () => (
   <div className="mc-skeleton" aria-busy="true" aria-label="Đang tải">
@@ -541,21 +551,13 @@ const MissionsPage = () => {
                 onClick: openCreate,
               }
         }
-        secondaryActions={[
-          {
-            label: 'Làm mới',
-            icon: <RefreshCw size={15} className={isLoading ? 'mc-spin' : ''} />,
-            onClick: loadData,
-            disabled: isLoading,
-          },
-        ]}
       />
 
       <AdminKpiGrid items={missionKpis} />
 
-      <section className="mc-panel">
-        <div className="mc-panel__head">
-          <h2 className="mc-panel__title">
+      <section className="mc-section">
+        <div className="mc-section__head">
+          <h2 className="mc-section__title">
             <LayoutGrid className="w-3.5 h-3.5" />
             {activeTab === 'templates'
               ? templateView === 'deleted'
@@ -563,16 +565,9 @@ const MissionsPage = () => {
                 : 'Nhiệm vụ đang quản lý'
               : 'Chiến dịch'}
           </h2>
-          <span className="mc-panel__badge">
-            {activeTab === 'templates'
-              ? `${templateView === 'deleted' ? (analytics?.deletedTemplates ?? templateTotal) : activeTemplates} ${
-                  templateView === 'deleted' ? 'đã xóa' : 'đang bật'
-                }`
-              : `${liveCampaigns} đang chạy`}
-          </span>
         </div>
 
-        <div className="mc-toolbar adm-toolbar">
+        <div className="mc-toolbar">
           <div className="mc-toolbar__row">
             <FilterPills
               value={activeTab}
@@ -613,8 +608,8 @@ const MissionsPage = () => {
               />
             )}
 
-            <label className="mc-search adm-toolbar__search">
-              <Search size={15} className="adm-toolbar__search-icon" />
+            <label className="mc-search">
+              <Search size={15} className="mc-search__icon" />
               <input
                 type="search"
                 className="adm-input"
@@ -667,7 +662,7 @@ const MissionsPage = () => {
           </div>
         ) : (
           <>
-            <div className="mc-strip">
+            <MissionStrip>
               {templates.map((item) => (
                 <TemplateRow
                   key={item.uuid || item.code}
@@ -685,10 +680,7 @@ const MissionsPage = () => {
                   isDeletedView={templateView === 'deleted'}
                 />
               ))}
-            </div>
-            <p className="mc-strip__summary">
-              Hiển thị <strong>{templates.length}</strong> / {templateTotal} nhiệm vụ
-            </p>
+            </MissionStrip>
           </>
         )
       ) : campaigns.length === 0 ? (
@@ -709,7 +701,7 @@ const MissionsPage = () => {
         </div>
       ) : (
         <>
-          <div className="mc-strip">
+          <MissionStrip>
             {campaigns.map((item) => (
               <CampaignRow
                 key={item.uuid || item.code}
@@ -721,10 +713,7 @@ const MissionsPage = () => {
                 isDeleting={deletingUuid === item.uuid}
               />
             ))}
-          </div>
-          <p className="mc-strip__summary">
-            Hiển thị <strong>{campaigns.length}</strong> / {campaignTotal} chiến dịch
-          </p>
+          </MissionStrip>
         </>
       )}
       </TabTransition>

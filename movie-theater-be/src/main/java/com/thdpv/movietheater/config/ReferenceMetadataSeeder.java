@@ -51,25 +51,29 @@ public class ReferenceMetadataSeeder {
 
     public void seedAll() {
         healMojibakeGenres();
+        healMojibakeCountries();
         seedGenres();
         seedCountries();
     }
 
-    /** Gọi độc lập khi seed tắt — dọn thể loại lỗi font đã nằm trong DB. */
+    /** Gọi độc lập khi seed tắt — dọn thể loại / quốc gia lỗi font đã nằm trong DB. */
     public void healCatalogEncoding() {
         healMojibakeGenres();
+        healMojibakeCountries();
     }
 
     /**
-     * Sửa thể loại lỗi font: mojibake ({@code BÃ­ áº©n}) hoặc ký tự thay thế ({@code Hành �?�?ng}).
+     * Sửa thể loại lỗi font: mojibake ({@code BÃ­ áº©n}), U+FFFD, hoặc ASCII {@code ?}
+     * (vd. {@code ?m nh?c} → {@code Âm nhạc}).
      */
     private void healMojibakeGenres() {
         int healed = 0;
         List<Genre> all = genreRepository.findAll();
-        List<String> goodNames = all.stream()
+        List<String> goodNames = new java.util.ArrayList<>(all.stream()
                 .map(Genre::getName)
                 .filter(n -> n != null && !MojibakeUtils.looksCorrupt(n))
-                .toList();
+                .toList());
+        goodNames.addAll(loadCanonicalGenreNames());
 
         for (Genre genre : all) {
             String name = genre.getName();
@@ -104,6 +108,23 @@ public class ReferenceMetadataSeeder {
         }
     }
 
+    private List<String> loadCanonicalGenreNames() {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/genres.json");
+            if (!resource.exists()) {
+                return List.of();
+            }
+            try (InputStream is = resource.getInputStream()) {
+                List<String> names = objectMapper.readValue(is, new TypeReference<List<String>>() {
+                });
+                return names == null ? List.of() : names;
+            }
+        } catch (Exception e) {
+            logger.warn("Could not load genres.json for encoding heal", e);
+            return List.of();
+        }
+    }
+
     private void mergeGenreInto(UUID fromGenreUuid, UUID toGenreUuid) {
         jdbcTemplate.update("""
                 DELETE FROM movie_genre mg
@@ -116,6 +137,67 @@ public class ReferenceMetadataSeeder {
         jdbcTemplate.update(
                 "UPDATE movie_genre SET genre_uuid = ? WHERE genre_uuid = ?",
                 toGenreUuid, fromGenreUuid);
+    }
+
+    /**
+     * Sửa quốc gia lỗi font (vd. {@code HÃn Quá»'c} → {@code Hàn Quốc}) và gộp bản trùng.
+     */
+    private void healMojibakeCountries() {
+        int healed = 0;
+        List<Country> all = countryRepository.findAll();
+        List<String> goodNames = all.stream()
+                .map(Country::getName)
+                .filter(n -> n != null && !MojibakeUtils.looksCorrupt(n))
+                .toList();
+
+        for (Country country : all) {
+            String name = country.getName();
+            if (!MojibakeUtils.looksCorrupt(name)) {
+                continue;
+            }
+
+            String fixed = MojibakeUtils.tryFix(name);
+            if (fixed == null || fixed.equals(name)) {
+                fixed = MojibakeUtils.matchCanonical(name, goodNames);
+            }
+            if (fixed == null || fixed.equals(name)) {
+                logger.warn("Skip corrupt country (no canonical match): '{}'", name);
+                continue;
+            }
+
+            Optional<Country> existing = countryRepository.findByNameIgnoreCase(fixed);
+            if (existing.isPresent() && !existing.get().getUuid().equals(country.getUuid())) {
+                mergeCountryInto(country.getUuid(), existing.get().getUuid());
+                countryRepository.delete(country);
+                healed++;
+                logger.info("Merged corrupt country '{}' into '{}'", name, fixed);
+            } else {
+                country.setName(fixed);
+                countryRepository.save(country);
+                healed++;
+                logger.info("Renamed corrupt country '{}' -> '{}'", name, fixed);
+            }
+        }
+        if (healed > 0) {
+            logger.info("Healed {} corrupt country row(s).", healed);
+        }
+    }
+
+    private void mergeCountryInto(UUID fromCountryUuid, UUID toCountryUuid) {
+        jdbcTemplate.update("""
+                DELETE FROM movie_country mc
+                WHERE mc.country_uuid = ?
+                  AND EXISTS (
+                      SELECT 1 FROM movie_country ok
+                      WHERE ok.movie_uuid = mc.movie_uuid AND ok.country_uuid = ?
+                  )
+                """, fromCountryUuid, toCountryUuid);
+        jdbcTemplate.update(
+                "UPDATE movie_country SET country_uuid = ? WHERE country_uuid = ?",
+                toCountryUuid, fromCountryUuid);
+        jdbcTemplate.update(
+                "UPDATE actor SET country_uuid = ? WHERE country_uuid = ?",
+                toCountryUuid, fromCountryUuid);
     }
 
     private void seedGenres() {

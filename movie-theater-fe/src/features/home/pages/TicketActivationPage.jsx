@@ -337,7 +337,7 @@ const TicketActivationPage = () => {
                     {vodStatus?.playbackState === VOD_PLAYBACK_STATE.WAITING_FOR_PLAY ? (
                       <>
                         <p className="mt-2 text-xs text-sky-200/80">
-                          Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên — hoặc vào xem trực tiếp nếu đã xác nhận mua vé.
+                          Kiểm tra hộp thư (kể cả Spam/Quảng cáo), sao chép mã vé rồi nhập vào ô phía trên để kích hoạt trước khi xem.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button

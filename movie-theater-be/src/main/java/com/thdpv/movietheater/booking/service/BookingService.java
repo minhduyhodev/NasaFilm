@@ -1679,7 +1679,14 @@ public class BookingService {
     public List<com.thdpv.movietheater.booking.dto.response.VodHistoryItemResponse> getVodWatchHistory(
             String currentUserEmail) {
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
-        List<Booking> bookings = bookingJpaRepository.findVodWatchHistory(userUuid, OffsetDateTime.now());
+        List<Booking> history = bookingJpaRepository.findVodWatchHistory(userUuid);
+        Map<UUID, Booking> latestBookingByMovie = new LinkedHashMap<>();
+        for (Booking booking : history) {
+            if (booking.getMovieUuid() != null) {
+                latestBookingByMovie.putIfAbsent(booking.getMovieUuid(), booking);
+            }
+        }
+        List<Booking> bookings = List.copyOf(latestBookingByMovie.values());
         if (bookings.isEmpty()) {
             return List.of();
         }

@@ -1,227 +1,190 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import './Pagination.css';
 
-const getVisiblePages = (currentPage, totalPages) => {
+/**
+ * Page list with ellipsis for long ranges.
+ * e.g. 1 2 3 4 5 ... 12 | 1 ... 4 5 6 ... 12 | 1 ... 8 9 10 11 12
+ */
+const getPageItems = (currentPage, totalPages) => {
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
 
-  const pages = new Set([1, totalPages, currentPage]);
-
-  if (currentPage > 1) pages.add(currentPage - 1);
-  if (currentPage < totalPages) pages.add(currentPage + 1);
-  if (currentPage > 2) pages.add(currentPage - 2);
-  if (currentPage < totalPages - 1) pages.add(currentPage + 2);
-
-  const sorted = [...pages].sort((a, b) => a - b);
-  const result = [];
-
-  for (let i = 0; i < sorted.length; i += 1) {
-    if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
-      result.push('ellipsis');
-    }
-    result.push(sorted[i]);
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, '...', totalPages];
   }
 
-  return result;
+  if (currentPage >= totalPages - 3) {
+    return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
 };
 
+/**
+ * Compact page-size menu — absolute panel above trigger.
+ */
+const PageSizeMenu = ({ value, options, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const listId = useId();
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className={`pg__size-menu${open ? ' is-open' : ''}`} ref={rootRef}>
+      <button
+        type="button"
+        className="pg__size-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label="Số mục mỗi trang"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span className="pg__size-value">{value}</span>
+        <ChevronDown className="pg__size-chevron" strokeWidth={2.25} />
+      </button>
+
+      {open && (
+        <div id={listId} className="pg__size-panel" role="listbox">
+          {options.map((opt) => {
+            const selected = opt === value;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`pg__size-option${selected ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Admin pagination — Trang X/Y + page size + page numbers + prev/next.
+ */
 const Pagination = ({
   currentPage,
+  totalPages: totalPagesProp,
   totalItems,
-  itemsPerPage,
+  itemsPerPage = 10,
   onPageChange,
   onItemsPerPageChange,
   itemsPerPageOptions = [5, 10, 20, 50],
-  compact = false,
 }) => {
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage) || 1);
-  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
-  const startItem = totalItems === 0 ? 0 : (safePage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(safePage * itemsPerPage, totalItems);
-  const visiblePages = getVisiblePages(safePage, totalPages);
+  const totalPages =
+    totalPagesProp ??
+    Math.max(1, Math.ceil((totalItems ?? 0) / itemsPerPage) || 1);
 
-  const goToPage = (page) => {
+  const safePage = Math.min(Math.max(Number(currentPage) || 1, 1), totalPages);
+  const pageItems = getPageItems(safePage, totalPages);
+  const isFirst = safePage <= 1;
+  const isLast = safePage >= totalPages;
+
+  const goTo = (page) => {
     if (page >= 1 && page <= totalPages && page !== safePage) {
       onPageChange(page);
     }
   };
 
-  const navBtnClass =
-    'inline-flex items-center justify-center w-9 h-9 rounded-lg border text-sm font-semibold transition-all duration-150 cursor-pointer disabled:cursor-not-allowed';
-
-  const navBtnEnabled =
-    'bg-[#121826] border-[#2a3448] text-gray-200 hover:bg-[#1a2238] hover:border-[#3d4a63] hover:text-white active:scale-95';
-
-  const navBtnDisabled =
-    'bg-[#0a0e18] border-[#1a2238] text-gray-600 opacity-60';
-
-  const pageBtnClass = (isActive) =>
-    `inline-flex items-center justify-center min-w-9 h-9 px-2.5 rounded-lg border text-sm font-bold transition-all duration-150 cursor-pointer ${
-      isActive
-        ? 'bg-red-600 border-red-500 text-white shadow-md shadow-red-900/30'
-        : 'bg-[#121826] border-[#2a3448] text-gray-300 hover:bg-[#1a2238] hover:border-[#3d4a63] hover:text-white active:scale-95'
-    }`;
-
-  if (compact) {
-    return (
-      <div className="flex flex-col gap-3 border-t border-white/8 pt-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] font-medium text-gray-500">
-            <strong className="font-semibold text-gray-300">{startItem}–{endItem}</strong>
-            {' '}trong {totalItems}
-          </span>
-          <span className="text-[11px] font-semibold tabular-nums text-gray-300" aria-live="polite">
-            {safePage} / {totalPages}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          {onItemsPerPageChange && (
-            <label className="inline-flex items-center gap-2 text-[10px] text-gray-500">
-              <span>Dòng</span>
-              <select
-                value={itemsPerPage}
-                onChange={(event) => {
-                  onItemsPerPageChange(Number(event.target.value));
-                  onPageChange(1);
-                }}
-                className="app-select h-8 rounded-md border border-white/10 bg-white/[0.035] px-2 pr-7 text-xs text-gray-300 outline-none transition-colors focus:border-red-500/50"
-              >
-                {itemsPerPageOptions.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <nav className="flex items-center gap-1.5" aria-label="Phân trang">
-            <button
-              type="button"
-              disabled={safePage <= 1}
-              onClick={() => goToPage(safePage - 1)}
-              className={`${navBtnClass} ${safePage <= 1 ? navBtnDisabled : navBtnEnabled}`}
-              aria-label="Trang trước"
-              title="Trang trước"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              disabled={safePage >= totalPages}
-              onClick={() => goToPage(safePage + 1)}
-              className={`${navBtnClass} ${safePage >= totalPages ? navBtnDisabled : navBtnEnabled}`}
-              aria-label="Trang sau"
-              title="Trang sau"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </nav>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-3 py-4 px-4 sm:px-5 border-t border-[#242d42]/40 bg-[#080b14]/40 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <span className="text-xs text-gray-400 font-medium">
-          Hiển thị{' '}
-          <span className="text-gray-200 font-semibold">
-            {startItem}–{endItem}
-          </span>{' '}
-          / <span className="text-gray-200 font-semibold">{totalItems}</span>
-        </span>
+    <div className="pg">
+      <div className="pg__meta">
+        <p className="pg__label" aria-live="polite">
+          Trang{' '}
+          <span className="pg__current">{safePage}</span>
+          <span className="pg__slash">/</span>
+          <span className="pg__total">{totalPages}</span>
+        </p>
 
         {onItemsPerPageChange && (
-          <label className="inline-flex items-center gap-2 text-xs text-gray-500">
-            <span className="whitespace-nowrap">Mỗi trang</span>
-            <select
+          <div className="pg__size">
+            <span className="pg__size-text">Mỗi trang</span>
+            <PageSizeMenu
               value={itemsPerPage}
-              onChange={(e) => {
-                onItemsPerPageChange(Number(e.target.value));
+              options={itemsPerPageOptions}
+              onChange={(size) => {
+                onItemsPerPageChange(size);
                 onPageChange(1);
               }}
-              className="app-select h-8 rounded-lg bg-[#121826] border border-[#2a3448] text-gray-200 text-xs px-2.5 pr-8 focus:outline-none focus:border-red-500/40 cursor-pointer"
-            >
-              {itemsPerPageOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
         )}
       </div>
 
-      <nav className="flex items-center gap-1" aria-label="Phân trang">
+      <nav className="pg__nav" aria-label="Phân trang">
         <button
           type="button"
-          disabled={safePage <= 1}
-          onClick={() => goToPage(1)}
-          className={`${navBtnClass} ${safePage <= 1 ? navBtnDisabled : navBtnEnabled}`}
-          aria-label="Trang đầu"
-          title="Trang đầu"
-        >
-          <ChevronsLeft className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          disabled={safePage <= 1}
-          onClick={() => goToPage(safePage - 1)}
-          className={`${navBtnClass} ${safePage <= 1 ? navBtnDisabled : navBtnEnabled}`}
+          className="pg__btn"
+          disabled={isFirst}
+          onClick={() => goTo(safePage - 1)}
           aria-label="Trang trước"
           title="Trang trước"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="pg__icon" strokeWidth={2} />
         </button>
 
-        <div className="hidden sm:flex items-center gap-1 mx-1">
-          {visiblePages.map((page, index) =>
-            page === 'ellipsis' ? (
-              <span
-                key={`ellipsis-${index}`}
-                className="inline-flex items-center justify-center min-w-9 h-9 text-gray-500 text-sm select-none"
-              >
+        <div className="pg__pages">
+          {pageItems.map((item, index) =>
+            item === '...' ? (
+              <span key={`ellipsis-${index}`} className="pg__ellipsis" aria-hidden="true">
                 …
               </span>
             ) : (
               <button
-                key={page}
+                key={item}
                 type="button"
-                onClick={() => goToPage(page)}
-                className={pageBtnClass(page === safePage)}
-                aria-label={`Trang ${page}`}
-                aria-current={page === safePage ? 'page' : undefined}
+                className={`pg__page${item === safePage ? ' is-active' : ''}`}
+                onClick={() => goTo(item)}
+                aria-label={`Trang ${item}`}
+                aria-current={item === safePage ? 'page' : undefined}
               >
-                {page}
+                {item}
               </button>
             ),
           )}
         </div>
 
-        <span className="sm:hidden inline-flex items-center justify-center min-w-10 h-9 px-2 text-xs font-bold text-gray-300">
-          {safePage}/{totalPages}
-        </span>
-
         <button
           type="button"
-          disabled={safePage >= totalPages}
-          onClick={() => goToPage(safePage + 1)}
-          className={`${navBtnClass} ${safePage >= totalPages ? navBtnDisabled : navBtnEnabled}`}
-          aria-label="Trang sau"
-          title="Trang sau"
+          className="pg__btn"
+          disabled={isLast}
+          onClick={() => goTo(safePage + 1)}
+          aria-label="Trang tiếp"
+          title="Trang tiếp"
         >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          disabled={safePage >= totalPages}
-          onClick={() => goToPage(totalPages)}
-          className={`${navBtnClass} ${safePage >= totalPages ? navBtnDisabled : navBtnEnabled}`}
-          aria-label="Trang cuối"
-          title="Trang cuối"
-        >
-          <ChevronsRight className="w-4 h-4" />
+          <ChevronRight className="pg__icon" strokeWidth={2} />
         </button>
       </nav>
     </div>

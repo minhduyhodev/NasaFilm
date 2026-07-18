@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -17,6 +17,7 @@ import { getSupportMessageSenderLabel } from '../utils/supportMessageUtils';
 import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '../utils/nasaBotStorage';
 import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
+import SupportMessageImages from './SupportMessageImages';
 import './NasaAiAssistantWidget.css';
 import './NasaAiAssistantWidget.theme.css';
 
@@ -41,6 +42,9 @@ const BOT_INTENT = {
 const LIVE_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
 const MIN_DESCRIPTION_LENGTH = 15;
 const MIN_SEND_GAP_MS = 1200;
+const MAX_SUPPORT_IMAGES = 3;
+const MAX_SUPPORT_IMAGE_BYTES = 5 * 1024 * 1024;
+const SUPPORT_IMAGE_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp,image/gif';
 
 const CATEGORY_GUIDED_KEYS = new Set(['ticket', 'payment', 'account', 'promo', 'membership']);
 
@@ -469,6 +473,8 @@ const NasaAiAssistantWidget = () => {
   const [liveWaitStartedAt, setLiveWaitStartedAt] = useState(null);
   const [liveWaitTick, setLiveWaitTick] = useState(Date.now());
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
+  const [pendingImages, setPendingImages] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Bot reply movie links → navigate in-app and tuck the widget away so the
   // customer lands on the movie page.
@@ -484,6 +490,7 @@ const NasaAiAssistantWidget = () => {
   const chatViewRef = useRef(CHAT_VIEW.BOT);
   const botRestoredRef = useRef(false);
   const prevUserKeyRef = useRef(undefined);
+  const imageInputRef = useRef(null);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
@@ -1082,6 +1089,7 @@ const NasaAiAssistantWidget = () => {
 
   const openTicketThread = async (ticketCode) => {
     if (!ticketCode) return;
+    clearPendingImages();
     setShowTicketDrawer(false);
     setActiveTicketCode(ticketCode);
     setChatView(CHAT_VIEW.STAFF);
@@ -1471,12 +1479,76 @@ const NasaAiAssistantWidget = () => {
     return true;
   };
 
+  const clearPendingImages = () => {
+    setPendingImages((prev) => {
+      prev.forEach((item) => {
+        if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+  };
+
+  const removePendingImage = (id) => {
+    setPendingImages((prev) => {
+      const next = [];
+      prev.forEach((item) => {
+        if (item.id === id) {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+          return;
+        }
+        next.push(item);
+      });
+      return next;
+    });
+  };
+
+  const handlePickSupportImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+
+    setPendingImages((prev) => {
+      const remaining = MAX_SUPPORT_IMAGES - prev.length;
+      if (remaining <= 0) {
+        notificationService.info('Mỗi tin nhắn chỉ gửi tối đa 3 ảnh.');
+        return prev;
+      }
+
+      const accepted = [];
+      for (const file of files) {
+        if (accepted.length >= remaining) break;
+        const type = `${file.type || ''}`.toLowerCase();
+        if (!type.startsWith('image/')) {
+          notificationService.error('Chỉ chọn file ảnh.');
+          continue;
+        }
+        if (file.size > MAX_SUPPORT_IMAGE_BYTES) {
+          notificationService.error(`Ảnh "${file.name}" vượt quá 5MB.`);
+          continue;
+        }
+        accepted.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      }
+
+      if (files.length > remaining) {
+        notificationService.info('Mỗi tin nhắn chỉ gửi tối đa 3 ảnh.');
+      }
+      return accepted.length ? [...prev, ...accepted] : prev;
+    });
+  };
+
   const sendTicketReply = async (rawValue = draft) => {
     const value = rawValue.trim();
-    if (!value || !activeTicketCode || !canReplyToTicket) return;
+    const filesToSend = pendingImages.map((item) => item.file).filter(Boolean);
+    if ((!value && filesToSend.length === 0) || !activeTicketCode || !canReplyToTicket) return;
     if (!assertSendGap()) return;
 
     setDraft('');
+    const optimisticPreviews = pendingImages.map((item) => item.previewUrl).filter(Boolean);
+    clearPendingImages();
     setTicketMessages((prev) => [
       ...prev,
       {
@@ -1484,17 +1556,28 @@ const NasaAiAssistantWidget = () => {
         senderRole: 'USER',
         senderName: ownerLabel,
         message: value,
+        imageUrls: optimisticPreviews,
         createdAt: new Date().toISOString(),
       },
     ]);
 
     try {
-      await supportService.sendSupportMessage(activeTicketCode, { message: value });
+      let imageUrls = [];
+      if (filesToSend.length > 0) {
+        setUploadingImages(true);
+        imageUrls = await supportService.uploadSupportImages(filesToSend);
+      }
+      await supportService.sendSupportMessage(activeTicketCode, {
+        message: value,
+        imageUrls,
+      });
       await refreshTicketThread(activeTicketCode);
       await loadMyTickets();
     } catch (error) {
       notificationService.error(resolveSupportErrorMessage(error, 'Không gửi được tin nhắn support.'));
       await refreshTicketThread(activeTicketCode).catch(() => { });
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -1605,7 +1688,7 @@ const NasaAiAssistantWidget = () => {
 
   const handleComposerSend = async () => {
     const value = draft.trim();
-    if (!value || typing) return;
+    if (typing || uploadingImages) return;
 
     // Staff chatbox: always send to ticket / nhân viên
     if (isStaffView) {
@@ -1613,9 +1696,12 @@ const NasaAiAssistantWidget = () => {
         notificationService.info('Ticket đã đóng. Chuyển sang Chat bot nếu bạn cần hỏi thêm.');
         return;
       }
+      if (!value && pendingImages.length === 0) return;
       await sendTicketReply(value);
       return;
     }
+
+    if (!value) return;
 
     if (isBotPickIntent) {
       notificationService.info('Chọn Hỗ trợ hoặc Giải đáp trước khi chat.');
@@ -1984,7 +2070,10 @@ const NasaAiAssistantWidget = () => {
                 {parseSupportStickerMessage(item.message).type === 'sticker' ? (
                   <SupportStickerBubble message={item.message} compact showCaption />
                 ) : (
-                  item.message
+                  <>
+                    {item.message ? item.message : null}
+                    <SupportMessageImages urls={item.imageUrls} compact />
+                  </>
                 )}
               </div>
             </div>
@@ -2226,14 +2315,60 @@ const NasaAiAssistantWidget = () => {
                   </button>
                 </div>
               ) : null}
+              {isStaffView && pendingImages.length > 0 ? (
+                <div className="nasa-image-preview-row">
+                  {pendingImages.map((item) => (
+                    <div key={item.id} className="nasa-image-preview-item">
+                      <img src={item.previewUrl} alt="Ảnh sẽ gửi" />
+                      <button
+                        type="button"
+                        className="nasa-image-preview-remove"
+                        onClick={() => removePendingImage(item.id)}
+                        aria-label="Xóa ảnh"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <span className="nasa-image-preview-hint">{pendingImages.length}/3</span>
+                </div>
+              ) : null}
               <div className="nasa-assistant-inputbar">
                 <div className="nasa-assistant-inputshell">
+                  {isStaffView ? (
+                    <>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept={SUPPORT_IMAGE_ACCEPT}
+                        multiple
+                        hidden
+                        onChange={handlePickSupportImages}
+                      />
+                      <button
+                        type="button"
+                        className="nasa-assistant-attach"
+                        disabled={
+                          uploadingImages
+                          || !activeTicket?.ticketCode
+                          || !canReplyToTicket
+                          || pendingImages.length >= MAX_SUPPORT_IMAGES
+                        }
+                        onClick={() => imageInputRef.current?.click()}
+                        aria-label="Đính kèm ảnh"
+                        title="Gửi tối đa 3 ảnh"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : null}
                   <input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     placeholder={composerPlaceholder}
                     disabled={
                       typing
+                      || uploadingImages
                       || isBotPickIntent
                       || (isBotView && chatFlow === CHAT_FLOW.AWAIT_CONFIRM)
                       || (isStaffView && (!activeTicket?.ticketCode || !canReplyToTicket))
@@ -2249,7 +2384,8 @@ const NasaAiAssistantWidget = () => {
                     type="button"
                     className="nasa-assistant-send"
                     disabled={
-                      !draft.trim()
+                      uploadingImages
+                      || (!draft.trim() && !(isStaffView && pendingImages.length > 0))
                       || typing
                       || isBotPickIntent
                       || (isBotView && chatFlow === CHAT_FLOW.AWAIT_CONFIRM)

@@ -18,14 +18,44 @@ import { AdminPage } from '../../admin/components';
 import VietQRPOSModal from '../components/VietQRPOSModal';
 import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
-import {
-  applyShowtimeFilters,
-  formatDateLabel,
-  toDateKey,
-} from '../../../shared/utils/showtimeFilterUtils';
+import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
+
+const FORMAT_KEYWORDS = [
+  { match: /imax/i, label: 'IMAX' },
+  { match: /4dx|four.?dx/i, label: '4DX' },
+  { match: /dolby|atmos/i, label: 'DOLBY' },
+  { match: /vip/i, label: 'VIP' },
+  { match: /3d/i, label: '3D' },
+];
+
+const resolveShowtimeFormat = (showtime) => {
+  const haystack = `${showtime?.cinemaRoomName || ''} ${showtime?.roomType || ''}`;
+  const hit = FORMAT_KEYWORDS.find((item) => item.match.test(haystack));
+  return hit?.label || '2D';
+};
+
+/** Badge triad matching reference: Selling / Almost Full / Started */
+const resolveShowtimeBadge = (showtime) => {
+  const now = Date.now();
+  const start = new Date(showtime.startTime).getTime();
+  const end = showtime.endTime
+    ? new Date(showtime.endTime).getTime()
+    : start + 3 * 60 * 60 * 1000;
+
+  if (Number.isFinite(start) && now >= start && now < end) {
+    return { tone: 'started', label: 'Đã bắt đầu' };
+  }
+  if (showtime.status === 'SOLD_OUT') {
+    return { tone: 'almost', label: 'Sắp hết' };
+  }
+  if (showtime.status === 'FINISHED' || (Number.isFinite(end) && now >= end)) {
+    return { tone: 'started', label: 'Đã bắt đầu' };
+  }
+  return { tone: 'selling', label: 'Đang bán' };
+};
 
 export default function CounterPOSPage() {
   const confirm = useConfirm();
@@ -207,8 +237,24 @@ export default function CounterPOSPage() {
     [allShowtimes, currentRoomUuid, filters],
   );
 
+  const moviePosterByUuid = useMemo(() => {
+    const map = new Map();
+    movies.forEach((movie) => {
+      const raw = movie.primaryMediaUrl || movie.posterUrl || movie.poster || '';
+      if (movie.uuid && raw) map.set(movie.uuid, resolveMediaUrl(raw, 240));
+    });
+    return map;
+  }, [movies]);
+
+  const flatShowtimes = useMemo(
+    () => matchingShowtimes
+      .slice()
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+    [matchingShowtimes],
+  );
+
   const movieOptions = useMemo(() => [
-    { value: '', label: 'Tất cả phim' },
+    { value: '', label: 'Phim' },
     ...movies.map((movie) => {
       const rawPoster = movie.primaryMediaUrl || movie.posterUrl || movie.poster || '';
       return {
@@ -489,59 +535,92 @@ export default function CounterPOSPage() {
         description="Chọn suất chiếu, ghế ngồi và thanh toán tại quầy."
       />
 
-      <section className="staff-control__panel staff-control__panel--showtimes-picker">
-        <div className="staff-control__panel-head">
-          <h2 className="staff-control__panel-title">Chọn suất chiếu</h2>
-          {hasActiveFilters && (
-            <button type="button" className="staff-control__filter-clear" onClick={handleClearFilters}>
-              <X className="w-3 h-3" />
-              Xóa lọc
-            </button>
-          )}
-        </div>
-
-        <CounterPosShowtimeFilters
-          showtimes={allShowtimes}
-          filters={filters}
-          roomUuid={currentRoomUuid}
-          onFilterChange={handleFilterChange}
-          movieOptions={movieOptions}
-        />
-
-        <div className="staff-control__field staff-control__field--wide">
-          <label className="staff-control__field-label">
-            {filters.date ? 'Xác nhận suất chiếu' : 'Tất cả suất chiếu theo ngày'}
-          </label>
-          <div className="staff-control__showtime-pills">
-            {matchingShowtimes.length === 0 ? (
-              <span className="staff-control__empty-inline">Không có suất phù hợp với bộ lọc</span>
-            ) : (
-              matchingShowtimes.map((st, index) => (
-                <button
-                  key={st.uuid}
-                  type="button"
-                  style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
-                  onClick={() => setSelectedShowtime(st)}
-                  className={`staff-control__pill counter-pos__pill ${selectedShowtime?.uuid === st.uuid ? 'staff-control__pill--active counter-pos__pill--active' : ''}`}
-                >
-                  {new Date(st.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  <span className="staff-control__pill-room">
-                    {!filters.date && `${formatDateLabel(toDateKey(st.startTime))} - `}
-                    {st.movieTitle}
-                  </span>
-                </button>
-              ))
+      <section className="staff-control__panel staff-control__panel--showtimes-picker counter-pos__daily">
+        <div className="counter-pos__daily-head">
+          <h2 className="counter-pos__daily-title">Suất chiếu theo ngày</h2>
+          <div className="counter-pos__daily-head-actions">
+            <CounterPosShowtimeFilters
+              showtimes={allShowtimes}
+              filters={filters}
+              roomUuid={currentRoomUuid}
+              onFilterChange={handleFilterChange}
+              movieOptions={movieOptions}
+            />
+            {hasActiveFilters && (
+              <button type="button" className="staff-control__filter-clear" onClick={handleClearFilters}>
+                <X className="w-3 h-3" />
+                Xóa lọc
+              </button>
             )}
           </div>
+        </div>
+
+        <div className="counter-pos__daily-board">
+          {flatShowtimes.length === 0 ? (
+            <div className="counter-pos__showtime-empty">
+              Không có suất phù hợp với bộ lọc
+            </div>
+          ) : (
+            <div className="counter-pos__daily-strip-wrap">
+              <div className="counter-pos__daily-strip" role="list">
+                {flatShowtimes.map((st) => {
+                  const isActive = selectedShowtime?.uuid === st.uuid;
+                  const timeLabel = new Date(st.startTime).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  const poster =
+                    (st.moviePosterUrl ? resolveMediaUrl(st.moviePosterUrl, 240) : '')
+                    || moviePosterByUuid.get(st.movieUuid)
+                    || '';
+                  const formatLabel = resolveShowtimeFormat(st);
+                  const badge = resolveShowtimeBadge(st);
+
+                  return (
+                    <button
+                      key={st.uuid}
+                      type="button"
+                      role="listitem"
+                      onClick={() => setSelectedShowtime(st)}
+                      className={`counter-pos__daily-card ${isActive ? 'counter-pos__daily-card--active' : ''}`}
+                      title={`${timeLabel} · ${st.movieTitle || ''}`}
+                      aria-pressed={isActive}
+                    >
+                      <div className="counter-pos__daily-card-poster">
+                        {poster ? (
+                          <img
+                            src={poster}
+                            alt={st.movieTitle || ''}
+                            loading="lazy"
+                            decoding="async"
+                            onError={handlePosterError}
+                          />
+                        ) : (
+                          <span className="counter-pos__daily-card-poster-fallback" aria-hidden>
+                            <Ticket className="w-6 h-6" />
+                          </span>
+                        )}
+                      </div>
+                      <span className="counter-pos__daily-card-time">{timeLabel}</span>
+                      <span className="counter-pos__daily-card-format">{formatLabel}</span>
+                      <span className={`counter-pos__daily-card-badge counter-pos__daily-card-badge--${badge.tone}`}>
+                        {badge.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       <div className="staff-control__grid">
-        <section className="staff-control__panel staff-control__panel--map min-h-[460px]">
-          <h2 className="staff-control__panel-title">Sơ đồ ghế trực tiếp</h2>
+        <section className="staff-control__panel staff-control__panel--map counter-pos__map-panel min-h-[460px]">
+          <h2 className="counter-pos__map-title">Sơ đồ ghế trực tiếp</h2>
 
           {selectedShowtime ? (
-            <div className="w-full">
+            <div className="w-full counter-pos__map-body">
               {isMapLoading && seatRows.length === 0 ? (
                 <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -561,10 +640,25 @@ export default function CounterPOSPage() {
               )}
             </div>
           ) : (
-            <div className="staff-control__empty">
-              <Ticket className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p>Chưa chọn suất chiếu</p>
-              <p className="text-[0.7rem] mt-1">Chọn rạp, ngày, suất và phim ở bảng trên để kích hoạt sơ đồ ghế</p>
+            <div className="counter-pos__map-empty">
+              <div className="counter-pos__map-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 72 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="8" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="29" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="31" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="52" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="54" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="14" y="8" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="16" y="20" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="44" y="8" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="46" y="20" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <strong className="counter-pos__map-empty-title">Chưa chọn suất chiếu</strong>
+              <p className="counter-pos__map-empty-desc">
+                Chọn rạp, ngày, suất và phim ở bảng trên để kích hoạt sơ đồ ghế
+              </p>
             </div>
           )}
         </section>
@@ -576,7 +670,7 @@ export default function CounterPOSPage() {
               <Popcorn className="w-3.5 h-3.5" />
               Bắp nước & Phụ kiện
             </h2>
-            <div className="staff-control__combo-list max-h-[220px] overflow-y-auto">
+            <div className="staff-control__combo-list">
               {combos.map((combo) => {
                 const comboImage = combo.imageUrl?.trim()
                   ? resolveMediaUrl(combo.imageUrl.trim(), 120)
@@ -763,11 +857,11 @@ export default function CounterPOSPage() {
       </div>
 
       <PrintTicketModal data={printTicketData} onClose={() => setPrintTicketData(null)} />
-      <VietQRPOSModal 
-        isOpen={isVietQRModalOpen} 
-        onClose={() => setIsVietQRModalOpen(false)} 
-        onPaymentSuccess={handleVietQRSuccess} 
-        amount={finalTotal} 
+      <VietQRPOSModal
+        isOpen={isVietQRModalOpen}
+        onClose={() => setIsVietQRModalOpen(false)}
+        onPaymentSuccess={handleVietQRSuccess}
+        amount={finalTotal}
       />
     </AdminPage>
   );

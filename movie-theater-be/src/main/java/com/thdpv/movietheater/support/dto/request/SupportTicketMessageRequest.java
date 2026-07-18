@@ -1,13 +1,19 @@
 package com.thdpv.movietheater.support.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.validation.constraints.Size;
 
 public class SupportTicketMessageRequest {
 
-    @NotBlank
+    @Size(max = 4000)
     private String message;
 
     private String status;
+
+    @Size(max = 3)
+    private List<@Size(max = 1000) String> imageUrls = new ArrayList<>();
 
     public String getMessage() {
         return message;
@@ -23,5 +29,13 @@ public class SupportTicketMessageRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
     }
 }

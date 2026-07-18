@@ -27,6 +27,16 @@ import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl } from '../u
 import './MovieMatchmakerWidget.css';
 import './ProfilePreferencesTab.css';
 
+const ICON_MAP = {
+  Moon,
+  Flame,
+  Heart,
+  Zap,
+  Clapperboard,
+  Tv,
+  Film,
+};
+
 const MOOD_UI = {
   RELAX: { label: 'Thư giãn', hint: 'Nhẹ nhàng · Giải trí êm', icon: Moon },
   EXCITING: { label: 'Phấn khích', hint: 'Sôi động · Cuốn hút', icon: Flame },
@@ -52,9 +62,31 @@ const VIEWING_UI = {
   BOTH: { label: 'Cả hai', hint: 'Rạp hoặc nhà · Linh hoạt', icon: Film },
 };
 
-const buildConfigOptions = (values, uiMap) => {
-  if (!Array.isArray(values) || !values.length) return [];
-  return values
+const resolveIcon = (iconKey, fallbackIcon) => {
+  if (iconKey && ICON_MAP[iconKey]) return ICON_MAP[iconKey];
+  return fallbackIcon;
+};
+
+const buildConfigOptions = (keys, richOptions, uiMap) => {
+  if (Array.isArray(richOptions) && richOptions.length) {
+    return richOptions
+      .filter((item) => item && (item.active !== false) && (item.key || item.optionKey))
+      .map((item) => {
+        const key = item.key || item.optionKey;
+        const fallback = uiMap[key] ?? {};
+        return {
+          value: key,
+          label: item.label || fallback.label || key,
+          hint: item.hint || fallback.hint || '',
+          icon: resolveIcon(item.iconKey, fallback.icon),
+          code: item.code || fallback.code,
+        };
+      })
+      .filter((option) => option.label);
+  }
+
+  if (!Array.isArray(keys) || !keys.length) return [];
+  return keys
     .map((value) => {
       const meta = uiMap[value] ?? {};
       return {
@@ -233,28 +265,37 @@ const MovieMatchmakerWidget = () => {
   const maxGenreSelections = discoverConfig?.maxGenreSelections ?? 2;
   const questionCount = useMemo(() => {
     if (!isAuthenticated) return null;
-    return discoverConfig?.authenticatedQuestionCount ?? 5;
+    const raw = Number(discoverConfig?.authenticatedQuestionCount);
+    if (!Number.isFinite(raw)) return 5;
+    return Math.min(5, Math.max(3, Math.round(raw)));
   }, [discoverConfig, isAuthenticated]);
 
   const moodOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.moods, MOOD_UI),
+    () => buildConfigOptions(discoverConfig?.moods, discoverConfig?.moodOptions, MOOD_UI),
     [discoverConfig],
   );
 
   const durationOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.durations, DURATION_UI),
+    () => buildConfigOptions(discoverConfig?.durations, discoverConfig?.durationOptions, DURATION_UI),
     [discoverConfig],
   );
 
   const viewingOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.viewingLocations, VIEWING_UI),
+    () => buildConfigOptions(discoverConfig?.viewingLocations, discoverConfig?.viewingOptions, VIEWING_UI),
     [discoverConfig],
   );
 
-  const visibleSteps = useMemo(
-    () => QUIZ_STEPS,
-    [],
-  );
+  // 3 = mood + duration + viewing (bắt buộc BE) · 4 + genre · 5 + useHistory
+  const visibleSteps = useMemo(() => {
+    const count = questionCount ?? QUIZ_STEPS.length;
+    return QUIZ_STEPS.slice(0, count);
+  }, [questionCount]);
+
+  useEffect(() => {
+    if (step > visibleSteps.length - 1) {
+      setStep(Math.max(0, visibleSteps.length - 1));
+    }
+  }, [step, visibleSteps.length]);
 
   const currentStep = visibleSteps[step];
   const isLastStep = step >= visibleSteps.length - 1;
@@ -413,8 +454,12 @@ const MovieMatchmakerWidget = () => {
         mood: answers.mood,
         duration: answers.duration,
         viewingLocation: answers.viewingLocation,
-        genreUuids: answers.genreUuids.slice(0, maxGenreSelections),
-        useHistory: isAuthenticated ? answers.useHistory : false,
+        genreUuids: visibleSteps.some((s) => s.key === 'genreUuids')
+          ? answers.genreUuids.slice(0, maxGenreSelections)
+          : [],
+        useHistory: visibleSteps.some((s) => s.key === 'useHistory')
+          ? Boolean(answers.useHistory)
+          : false,
       };
       const data = await discoverService.match(payload);
       setResult(data);

@@ -1,8 +1,8 @@
 .staff-control {
-  --staff-accent: #ef4444;
-  --staff-panel: rgba(15, 19, 34, 0.92);
-  --staff-panel-border: rgba(148, 163, 184, 0.12);
-  --staff-glow: rgba(239, 68, 68, 0.15);
+  --staff-accent: #e11d48;
+  --staff-panel: #141418;
+  --staff-panel-border: rgba(255, 255, 255, 0.08);
+  --staff-glow: rgba(225, 29, 72, 0.18);
   max-width: none;
   width: 100%;
   animation: staff-page-in 0.45s ease;
@@ -129,19 +129,36 @@
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
-  padding: 0.25rem 0.125rem 0.75rem;
+  padding: 0.25rem 0.125rem 0.35rem;
   scroll-snap-type: x proximity;
+  /* Luôn giữ chỗ cho thanh ngang — chỉ đổi độ mờ khi hover */
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-color: transparent transparent;
 }
 
 .staff-control__showtime-strip::-webkit-scrollbar {
   height: 6px;
 }
 
+.staff-control__showtime-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .staff-control__showtime-strip::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
+  background: transparent;
   border-radius: 999px;
+}
+
+.staff-control__showtime-strip:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+.staff-control__showtime-strip:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.staff-control__showtime-strip:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
 }
 
 .staff-control__showtime-card--strip {
@@ -306,9 +323,9 @@
 }
 
 .staff-control__showtime-card--active {
-  border-color: rgba(239, 68, 68, 0.55);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.04));
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15), 0 8px 24px var(--staff-glow);
+  border-color: rgba(225, 29, 72, 0.55);
+  background: linear-gradient(135deg, rgba(225, 29, 72, 0.1), rgba(225, 29, 72, 0.04));
+  box-shadow: 0 0 0 1px rgba(225, 29, 72, 0.15), 0 8px 24px var(--staff-glow);
 }
 
 .staff-control__showtime-card--has-sales {
@@ -316,7 +333,7 @@
 }
 
 .staff-control__showtime-card--alert {
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: rgba(225, 29, 72, 0.45);
 }
 
 .staff-control__showtime-poster-wrap {
@@ -333,7 +350,7 @@
   border-radius: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  background: #1a2030;
+  background: #1a1a1e;
 }
 
 .staff-control__poster--hero {
@@ -346,7 +363,7 @@
   align-items: center;
   justify-content: center;
   color: #64748b;
-  background: linear-gradient(160deg, #1e2438, #121828);
+  background: linear-gradient(160deg, #1c1c20, #0f0f12);
 }
 
 .staff-control__poster-live {
@@ -407,8 +424,8 @@
 
 .staff-control__chip--time {
   color: #fca5a5;
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(225, 29, 72, 0.1);
+  border-color: rgba(225, 29, 72, 0.2);
 }
 
 .staff-control__showtime-meta {
@@ -443,7 +460,7 @@
   margin-top: 0.15rem;
   font-size: 0.58rem;
   font-weight: 700;
-  color: #f87171;
+  color: #fb7185;
 }
 
 .staff-control__occupancy {
@@ -469,7 +486,7 @@
 }
 
 .staff-control__occupancy-fill--danger {
-  background: linear-gradient(90deg, #f97316, #ef4444);
+  background: linear-gradient(90deg, #f97316, #e11d48);
 }
 
 .staff-control__occupancy-pct {
@@ -526,8 +543,8 @@
   padding: 0.625rem 0.875rem;
   margin-bottom: 1rem;
   border-radius: 0.625rem;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
   color: #fecaca;
   font-size: 0.75rem;
   font-weight: 600;
@@ -550,18 +567,7 @@
   margin-bottom: 1rem;
 }
 
-.staff-control__stats-kpi .kpi-card {
-  background: rgba(11, 15, 25, 0.7);
-  border: 1px solid #1a2238;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.staff-control__stats-kpi .kpi-card:hover {
-  border-color: #334155;
-  transform: translateY(-1px);
-}
+/* KPI styles from AdminKpiGrid.css */
 
 .staff-control__seat-map-wrap {
   overflow-x: auto;
@@ -619,8 +625,8 @@
   width: 100%;
   padding: 0.625rem 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f0f12;
   color: #fff;
   font-size: 0.8rem;
   font-family: ui-monospace, monospace;
@@ -629,8 +635,8 @@
 
 .staff-control__input:focus {
   outline: none;
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  border-color: rgba(225, 29, 72, 0.5);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
 }
 
 .staff-control__btn {
@@ -657,13 +663,20 @@
 }
 
 .staff-control__btn--primary {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: #e11d48;
   color: #fff;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.3),
+    0 0 18px rgba(225, 29, 72, 0.4),
+    0 6px 20px rgba(225, 29, 72, 0.3);
 }
 
 .staff-control__btn--primary:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  background: #be123c;
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.4),
+    0 0 24px rgba(225, 29, 72, 0.5),
+    0 8px 24px rgba(225, 29, 72, 0.35);
 }
 
 .staff-control__btn--secondary {
@@ -717,8 +730,11 @@
   width: min(420px, 92vw);
   padding: 2rem;
   border-radius: 1rem;
-  background: linear-gradient(160deg, #0f1322 0%, #1a1030 100%);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: #141418;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.12),
+    0 25px 50px -12px rgba(0, 0, 0, 0.75);
   text-align: center;
   animation: staff-slide-up 0.35s ease;
 }
@@ -760,7 +776,8 @@
   text-align: left;
   padding: 1rem;
   border-radius: 0.625rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: #0f0f12;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.75rem;
   line-height: 1.6;
   margin-bottom: 1.25rem;
@@ -810,8 +827,8 @@
 }
 
 .staff-control__scan-placeholder:hover:not(.staff-control__scan-placeholder--disabled) {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.04);
+  border-color: rgba(225, 29, 72, 0.4);
+  background: rgba(225, 29, 72, 0.04);
 }
 
 .staff-control__scan-placeholder--disabled {
@@ -823,11 +840,11 @@
   width: 3rem;
   height: 3rem;
   border-radius: 999px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(225, 29, 72, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f87171;
+  color: #fb7185;
   margin-bottom: 0.75rem;
 }
 
@@ -866,8 +883,8 @@
 }
 
 .staff-control__panel--live {
-  border-color: rgba(239, 68, 68, 0.35);
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12), 0 8px 28px rgba(239, 68, 68, 0.08);
+  border-color: rgba(225, 29, 72, 0.35);
+  box-shadow: 0 0 0 1px rgba(225, 29, 72, 0.12), 0 8px 28px rgba(225, 29, 72, 0.08);
   animation: staff-panel-live-in 0.35s ease;
 }
 
@@ -926,8 +943,8 @@
 }
 
 .staff-control__result-banner--error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(225, 29, 72, 0.1);
+  border: 1px solid rgba(225, 29, 72, 0.25);
   color: #fca5a5;
 }
 
@@ -1020,7 +1037,7 @@
 }
 
 .staff-control__history-badge--err {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(225, 29, 72, 0.1);
   color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.22);
+  border: 1px solid rgba(225, 29, 72, 0.22);
 }

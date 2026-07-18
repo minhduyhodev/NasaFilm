@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   X, Plus, User, Play, Calendar, FileText, Archive, Pause,
-  ChevronLeft, ChevronRight, Search, Loader2, Film, Upload
+  Search, Loader2, Upload,
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -11,18 +11,105 @@ import { getDefaultOnlineStreamingPrice } from '../../../shared/utils/systemConf
 import {
   AdminPage,
   PageHeader,
-  Section,
   PrimaryButton,
   GhostButton,
   AdminSelectDropdown,
   AdminDatePicker,
 } from '../components';
-import { adminInputClass, adminLabelClass, adminTextareaClass } from '../components/adminFormStyles';
+import { adminInputClass } from '../components/adminFormStyles';
 import PosterImage from '../../../shared/components/PosterImage';
 import { unwrapMediaUrl, isAwsMovieStreamingUrl } from '../../../shared/utils/mediaUrlUtils';
 import { uploadMediaToS3 } from '../../../shared/utils/s3Upload';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import './AdminMovieFormPage.css';
+
+/** Tag multi-select — cùng onToggle(uuid) như checklist cũ (chỉ UI). */
+const AmfTagPicker = ({
+  label,
+  required,
+  items,
+  selectedUuids,
+  onToggle,
+  getLabel,
+  searchPlaceholder = 'Tìm...',
+}) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const selected = items.filter((item) => selectedUuids.includes(item.uuid));
+  const filtered = items.filter((item) =>
+    getLabel(item).toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <div className="amf-field" ref={rootRef}>
+      <label className="amf-label">
+        {label}
+        {required ? <span className="amf-req"> *</span> : null}
+      </label>
+      <div className={`amf-tag-field${open ? ' is-open' : ''}`}>
+        <div className="amf-tag-field__body" onClick={() => setOpen(true)}>
+          {selected.map((item) => (
+            <button
+              key={item.uuid}
+              type="button"
+              className="amf-tag"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(item.uuid);
+              }}
+            >
+              <span>{getLabel(item)}</span>
+              <X className="amf-tag__x" />
+            </button>
+          ))}
+          <input
+            type="text"
+            className="amf-tag-field__search"
+            placeholder={selected.length ? '' : searchPlaceholder}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+          />
+        </div>
+        <Search className="amf-tag-field__icon" aria-hidden="true" />
+        {open && (
+          <div className="amf-tag-field__menu custom-scrollbar" role="listbox">
+            {filtered.length === 0 ? (
+              <p className="amf-tag-field__empty">Không có kết quả</p>
+            ) : (
+              filtered.map((item) => {
+                const active = selectedUuids.includes(item.uuid);
+                return (
+                  <button
+                    key={item.uuid}
+                    type="button"
+                    className={`amf-tag-field__option${active ? ' is-active' : ''}`}
+                    onClick={() => onToggle(item.uuid)}
+                  >
+                    {getLabel(item)}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const mapDetailToFormData = (detail, genresList, countriesList) => {
   const poster = unwrapMediaUrl(detail.medias?.find(m => m.mediaType === 'POSTER')?.mediaUrl || '');
@@ -397,8 +484,6 @@ const AdminMovieFormPage = () => {
   };
 
   const inputClass = adminInputClass;
-  const labelClass = adminLabelClass;
-  const textareaClass = adminTextareaClass;
 
   if (isLoading) {
     return (
@@ -421,9 +506,13 @@ const AdminMovieFormPage = () => {
       />
 
       <form onSubmit={handleSubmit} className="amf-form">
-          <Section title="Poster & thông tin phim">
-            <div className="grid grid-cols-1 md:grid-cols-[148px_1fr] gap-6">
-              <div className="shrink-0">
+        <div className="amf-grid">
+          {/* LEFT — Thông tin chung */}
+          <div className="amf-card">
+            <h3 className="amf-card__title">Thông tin chung</h3>
+
+            <div className="amf-info">
+              <label className="amf-poster-upload">
                 <div className="amf-poster">
                   {formData.posterUrl?.trim() && !posterLoadError ? (
                     <PosterImage
@@ -435,190 +524,97 @@ const AdminMovieFormPage = () => {
                     />
                   ) : (
                     <div className="amf-poster__empty">
-                      <Film className="w-8 h-8" />
+                      <Upload className="amf-poster__icon" />
                       <span>
-                        {formData.posterUrl?.trim() ? 'Không tải được ảnh' : 'Chưa có poster'}
+                        {uploadProgress.poster != null
+                          ? `${uploadProgress.poster}%`
+                          : formData.posterUrl?.trim()
+                            ? 'Không tải được ảnh'
+                            : 'Chưa có poster'}
                       </span>
                     </div>
                   )}
                 </div>
-              </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploadProgress.poster != null}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    handleS3FileUpload('poster', file, 'posterUrl');
+                  }}
+                />
+              </label>
 
-              <div className="space-y-4 min-w-0">
-                <div>
-                  <label className={labelClass}>Tên phim *</label>
+              <div className="amf-info__fields">
+                <div className="amf-field">
+                  <label className="amf-label">
+                    Tên phim<span className="amf-req"> *</span>
+                  </label>
                   <input
                     type="text"
-                    className={inputClass}
+                    className="amf-input amf-input--line"
                     placeholder="Nhập tên phim..."
                     value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                     required
                   />
                 </div>
-                <div>
-                  <label className={labelClass}>Poster URL *</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      className={`${inputClass} flex-1`}
-                      placeholder="poster/Avatar2009.jpg"
-                      value={formData.posterUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
-                      required
-                    />
-                    <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
-                      <Upload className="w-3.5 h-3.5" />
-                      {uploadProgress.poster != null ? `${uploadProgress.poster}%` : 'Upload'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploadProgress.poster != null}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = '';
-                          handleS3FileUpload('poster', file, 'posterUrl');
-                        }}
-                      />
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Nhập Tên phim trước, rồi Upload — key dạng poster/Avatar2009.jpg.
-                  </p>
-                </div>
-                <div>
-                  <label className={labelClass}>Mô tả phim</label>
-                  <textarea
-                    className={textareaClass}
-                    placeholder="Nhập mô tả chi tiết..."
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-          </Section>
 
-          <Section title="Phát hành & trạng thái" divided>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Thời lượng (phút) *</label>
-                <input
-                  type="number"
-                  className={inputClass}
-                  placeholder="Ví dụ: 120"
-                  value={formData.durationMinutes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, durationMinutes: e.target.value }))}
-                  required
-                />
-              </div>
-              <AdminDatePicker
-                label="Ngày khởi chiếu *"
-                value={formData.releaseDate}
-                onChange={(v) => setFormData((prev) => ({ ...prev, releaseDate: v }))}
-                placeholder="Chọn ngày khởi chiếu"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AdminSelectDropdown
-                label="Trạng thái phim *"
-                labelClassName={labelClass}
-                value={formData.status}
-                options={statusOptions}
-                onChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}
-              />
-
-              <AdminSelectDropdown
-                label="Giới hạn độ tuổi (Age Rating) *"
-                labelClassName={labelClass}
-                value={formData.ageRestriction}
-                options={ageRestrictionOptions}
-                onChange={(val) => setFormData((prev) => ({ ...prev, ageRestriction: val }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AdminSelectDropdown
-                label="Hình thức phát hành *"
-                labelClassName={labelClass}
-                value={formData.screeningMode}
-                options={screeningModeOptions}
-                onChange={(val) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    screeningMode: val,
-                    onlinePrice: (val === 'THEATER_ONLY' || val === 'NONE')
-                      ? ''
-                      : (prev.onlinePrice || String(defaultOnlinePrice)),
-                  }));
-                }}
-              />
-
-              <div>
-                <label className={labelClass}>Giá vé xem Online (VND)</label>
-                <input
-                  type="number"
-                  min="0"
-                  disabled={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE'}
-                  className={inputClass}
-                  placeholder={formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE' ? 'Không áp dụng' : `Mặc định: ${defaultOnlinePrice.toLocaleString('vi-VN')} VND`}
-                  value={formData.onlinePrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '' || Number(val) >= 0) {
-                      setFormData(prev => ({ ...prev, onlinePrice: val }));
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          </Section>
-
-          <Section title="Phân loại & phương tiện" divided>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Thể loại phim *</label>
-                <div className="amf-checklist custom-scrollbar">
-                  {genresList.map(genre => (
-                    <label key={genre.uuid} className="amf-check">
-                      <input type="checkbox" checked={formData.genreUuids.includes(genre.uuid)} onChange={() => handleGenreCheckboxChange(genre.uuid)} />
-                      <span>{genre.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className={labelClass}>Quốc gia sản xuất *</label>
-                <div className="amf-checklist custom-scrollbar">
-                  {countriesList.map(country => (
-                    <label key={country.uuid} className="amf-check">
-                      <input type="checkbox" checked={formData.countryUuids.includes(country.uuid)} onChange={() => handleCountryCheckboxChange(country.uuid)} />
-                      <span>{country.name} ({country.code})</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Trailer URL</label>
-                <div className="flex gap-2">
+                <div className="amf-field">
+                  <label className="amf-label">
+                    Poster URL<span className="amf-req"> *</span>
+                  </label>
                   <input
                     type="text"
-                    className={`${inputClass} flex-1`}
+                    className="amf-input amf-input--line"
+                    placeholder="poster/Avatar2009.jpg"
+                    value={formData.posterUrl}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, posterUrl: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="amf-field">
+                  <label className="amf-label">Mô tả phim</label>
+                  <textarea
+                    className="amf-input amf-input--line amf-textarea"
+                    placeholder="Nhập mô tả chi tiết..."
+                    rows={5}
+                    value={formData.description}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE — Media + Cast */}
+          <div className="amf-col-stack">
+            <div className="amf-card">
+              <h3 className="amf-card__title">Phương tiện &amp; media</h3>
+
+              <div className="amf-field">
+                <label className="amf-label">Trailer URL</label>
+                <div className="amf-media-row">
+                  <input
+                    type="text"
+                    className="amf-input amf-input--box"
                     placeholder="trailer/trailerAvatar2009.mp4"
                     value={formData.trailerUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, trailerUrl: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, trailerUrl: e.target.value }))}
                   />
-                  <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
-                    <Upload className="w-3.5 h-3.5" />
-                    {uploadProgress.trailer != null ? `${uploadProgress.trailer}%` : 'Upload'}
+                  <label className="amf-media-upload" title="Upload trailer">
+                    <Upload className="w-4 h-4" />
+                    {uploadProgress.trailer != null ? (
+                      <span className="amf-media-upload__pct">{uploadProgress.trailer}%</span>
+                    ) : null}
                     <input
                       type="file"
                       accept="video/*,.mkv,.mp4,.webm"
-                      className="hidden"
+                      className="sr-only"
                       disabled={uploadProgress.trailer != null}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -629,23 +625,26 @@ const AdminMovieFormPage = () => {
                   </label>
                 </div>
               </div>
-              <div>
-                <label className={labelClass}>Link phim (Streaming URL)</label>
-                <div className="flex gap-2">
+
+              <div className="amf-field">
+                <label className="amf-label">Streaming URL</label>
+                <div className="amf-media-row">
                   <input
                     type="text"
-                    className={`${inputClass} flex-1`}
+                    className="amf-input amf-input--box"
                     placeholder="movie/avatar2009.mp4"
                     value={formData.streamingUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, streamingUrl: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, streamingUrl: e.target.value }))}
                   />
-                  <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg border border-white/10 bg-white/[0.03] text-xs text-gray-300 cursor-pointer hover:bg-white/[0.06]">
-                    <Upload className="w-3.5 h-3.5" />
-                    {uploadProgress.movie != null ? `${uploadProgress.movie}%` : 'Upload'}
+                  <label className="amf-media-upload" title="Upload phim">
+                    <Upload className="w-4 h-4" />
+                    {uploadProgress.movie != null ? (
+                      <span className="amf-media-upload__pct">{uploadProgress.movie}%</span>
+                    ) : null}
                     <input
                       type="file"
                       accept="video/*,.mkv,.mp4,.webm"
-                      className="hidden"
+                      className="sr-only"
                       disabled={uploadProgress.movie != null}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -655,67 +654,187 @@ const AdminMovieFormPage = () => {
                     />
                   </label>
                 </div>
-                <p className="mt-1 text-[10px] text-gray-500">
-                  Nhập Tên phim trước — upload tạo key movie/tênphim.mp4 (không dùng tên file local), tự điền vào ô Link phim. Nên dùng file MP4 chuẩn (H.264); tránh file ghép từ m3u8 để phát mượt.
-                </p>
               </div>
             </div>
-          </Section>
 
-          <Section
-            title="Dàn diễn viên"
-            divided
-            action={
-              <GhostButton type="button" onClick={handleAddActorToCast}>
-                <Plus className="w-3.5 h-3.5" /> Thêm vai
-              </GhostButton>
-            }
-          >
-            <div className="amf-cast-list custom-scrollbar">
-              {formData.actors.length === 0 ? (
-                <p className="amf-cast-empty">Chưa có vai diễn nào được thiết lập.</p>
-              ) : (
-                formData.actors.map((cast, index) => {
-                  const matchingActorObj = actorsList.find(a => a.uuid === cast.actorUuid);
-                  return (
-                    <div key={index} className="amf-cast-row">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenActorSelector(index)}
-                        className={`amf-cast-pick${matchingActorObj ? '' : ' amf-cast-pick--empty'}`}
-                      >
-                        {matchingActorObj ? matchingActorObj.fullName : 'Chọn diễn viên...'}
-                      </button>
-                      <input
-                        type="text"
-                        placeholder="Tên vai diễn..."
-                        className={inputClass}
-                        value={cast.characterName}
-                        onChange={(e) => handleCastFieldChange(index, 'characterName', e.target.value)}
-                      />
-                      <label className="amf-cast-main">
-                        <input type="checkbox" checked={cast.isMain} onChange={(e) => handleCastFieldChange(index, 'isMain', e.target.checked)} />
-                        Chính
-                      </label>
-                      <button type="button" onClick={() => handleRemoveActorFromCast(index)} className="amf-cast-del" title="Xóa vai diễn">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+            <div className="amf-card">
+              <h3 className="amf-card__title">Dàn diễn viên</h3>
+              <div className="amf-cast-box">
+                <button type="button" className="amf-cast-add" onClick={handleAddActorToCast}>
+                  <Plus className="w-3.5 h-3.5" /> Thêm vai
+                </button>
+
+                {formData.actors.length === 0 ? (
+                  <div className="amf-cast-placeholders">
+                    <span className="amf-cast-placeholder" />
+                    <span className="amf-cast-placeholder" />
+                    <span className="amf-cast-placeholder" />
+                  </div>
+                ) : (
+                  <div className="amf-cast-list custom-scrollbar">
+                    {formData.actors.map((cast, index) => {
+                      const matchingActorObj = actorsList.find((a) => a.uuid === cast.actorUuid);
+                      return (
+                        <div key={index} className="amf-cast-row">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenActorSelector(index)}
+                            className={`amf-cast-pick${matchingActorObj ? '' : ' amf-cast-pick--empty'}`}
+                          >
+                            {matchingActorObj ? matchingActorObj.fullName : 'Chọn diễn viên...'}
+                          </button>
+                          <input
+                            type="text"
+                            placeholder="Tên vai diễn..."
+                            className="amf-input amf-input--box"
+                            value={cast.characterName}
+                            onChange={(e) => handleCastFieldChange(index, 'characterName', e.target.value)}
+                          />
+                          <label className="amf-cast-main">
+                            <input
+                              type="checkbox"
+                              checked={cast.isMain}
+                              onChange={(e) => handleCastFieldChange(index, 'isMain', e.target.checked)}
+                            />
+                            Chính
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveActorFromCast(index)}
+                            className="amf-cast-del"
+                            title="Xóa vai diễn"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </Section>
-
-          <div className="amf-actions">
-            <GhostButton type="button" onClick={handleCancel} disabled={isSaving}>
-              Hủy
-            </GhostButton>
-            <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
-              Lưu phim
-            </PrimaryButton>
           </div>
-        </form>
+
+          {/* RIGHT — Phân loại & phát hành */}
+          <div className="amf-card">
+            <h3 className="amf-card__title">Phân loại &amp; phát hành</h3>
+
+            <AmfTagPicker
+              label="Thể loại"
+              required
+              items={genresList}
+              selectedUuids={formData.genreUuids}
+              onToggle={handleGenreCheckboxChange}
+              getLabel={(g) => g.name}
+              searchPlaceholder="Tìm thể loại..."
+            />
+
+            <AmfTagPicker
+              label="Quốc gia"
+              required
+              items={countriesList}
+              selectedUuids={formData.countryUuids}
+              onToggle={handleCountryCheckboxChange}
+              getLabel={(c) => `${c.name} (${c.code})`}
+              searchPlaceholder="Tìm quốc gia..."
+            />
+
+            <div className="amf-fields-2">
+              <div className="amf-field">
+                <label className="amf-label">
+                  Thời lượng (phút)<span className="amf-req"> *</span>
+                </label>
+                <input
+                  type="number"
+                  className="amf-input amf-input--line"
+                  placeholder="120"
+                  value={formData.durationMinutes}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <AdminDatePicker
+                label="Ngày khởi chiếu *"
+                value={formData.releaseDate}
+                onChange={(v) => setFormData((prev) => ({ ...prev, releaseDate: v }))}
+                placeholder="Chọn ngày khởi chiếu"
+              />
+
+              <AdminSelectDropdown
+                label="Trạng thái *"
+                labelClassName="amf-label"
+                value={formData.status}
+                options={statusOptions}
+                onChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}
+              />
+
+              <AdminSelectDropdown
+                label="Giới hạn độ tuổi *"
+                labelClassName="amf-label"
+                value={formData.ageRestriction}
+                options={ageRestrictionOptions}
+                onChange={(val) => setFormData((prev) => ({ ...prev, ageRestriction: val }))}
+              />
+
+              <AdminSelectDropdown
+                label="Hình thức phát hành *"
+                labelClassName="amf-label"
+                value={formData.screeningMode}
+                options={screeningModeOptions}
+                onChange={(val) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    screeningMode: val,
+                    onlinePrice:
+                      val === 'THEATER_ONLY' || val === 'NONE'
+                        ? ''
+                        : prev.onlinePrice || String(defaultOnlinePrice),
+                  }));
+                }}
+              />
+
+              <div className="amf-field">
+                <label className="amf-label">Giá vé (VNĐ)</label>
+                <input
+                  type="number"
+                  min="0"
+                  disabled={
+                    formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE'
+                  }
+                  className="amf-input amf-input--line"
+                  placeholder={
+                    formData.screeningMode === 'THEATER_ONLY' || formData.screeningMode === 'NONE'
+                      ? 'Không áp dụng'
+                      : `Mặc định: ${defaultOnlinePrice.toLocaleString('vi-VN')} VND`
+                  }
+                  value={formData.onlinePrice}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || Number(val) >= 0) {
+                      setFormData((prev) => ({ ...prev, onlinePrice: val }));
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="amf-actions">
+          <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
+            Lưu phim
+          </PrimaryButton>
+          <GhostButton
+            type="button"
+            className="amf-btn-cancel"
+            onClick={handleCancel}
+            disabled={isSaving}
+          >
+            Hủy
+          </GhostButton>
+        </div>
+      </form>
 
       {isActorSelectorOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">

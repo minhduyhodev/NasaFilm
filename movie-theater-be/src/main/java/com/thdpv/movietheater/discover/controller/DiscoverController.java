@@ -16,7 +16,7 @@ import com.thdpv.movietheater.discover.dto.request.DiscoverMatchRequest;
 import com.thdpv.movietheater.discover.dto.response.DiscoverConfigResponse;
 import com.thdpv.movietheater.discover.dto.response.DiscoverMatchResponse;
 import com.thdpv.movietheater.discover.service.DiscoverMatchService;
-import com.thdpv.movietheater.discover.support.DiscoverQuizConfig;
+import com.thdpv.movietheater.discover.service.DiscoverQuizAdminService;
 
 import jakarta.validation.Valid;
 
@@ -25,14 +25,18 @@ import jakarta.validation.Valid;
 public class DiscoverController {
 
     private final DiscoverMatchService discoverMatchService;
+    private final DiscoverQuizAdminService discoverQuizAdminService;
 
-    public DiscoverController(DiscoverMatchService discoverMatchService) {
+    public DiscoverController(
+            DiscoverMatchService discoverMatchService,
+            DiscoverQuizAdminService discoverQuizAdminService) {
         this.discoverMatchService = discoverMatchService;
+        this.discoverQuizAdminService = discoverQuizAdminService;
     }
 
     @GetMapping("/config")
     public ResponseEntity<ApiResponse<DiscoverConfigResponse>> getConfig() {
-        return ResponseEntity.ok(ApiResponse.success(DiscoverQuizConfig.toResponse()));
+        return ResponseEntity.ok(ApiResponse.success(discoverQuizAdminService.getPublicConfig()));
     }
 
     @PostMapping("/match")

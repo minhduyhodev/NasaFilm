@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminMissionService, MISSION_CAMPAIGN_STATUSES } from '../../api/adminMissionService';
 import { notificationService } from '../../../../shared/services/notificationService';
-import { PrimaryButton, GhostButton, AdminDateTimePicker } from '..';
-import { adminInputClass, adminLabelClass, adminSelectClass, adminTextareaClass } from '../adminFormStyles';
+import { PrimaryButton, GhostButton, AdminDateTimePicker, AdminSelectDropdown } from '..';
+import { adminInputClass, adminTextareaClass } from '../adminFormStyles';
 
 const emptyForm = {
   code: '',
@@ -19,9 +19,16 @@ const STATUS_HINTS = {
   ARCHIVED: 'Đã kết thúc — nhiệm vụ gắn sẽ không hiện.',
 };
 
+const fieldLabelClass = 'mc-form__label';
+
 const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+
+  const statusOptions = useMemo(
+    () => MISSION_CAMPAIGN_STATUSES.map((item) => ({ value: item.value, label: item.label })),
+    [],
+  );
 
   useEffect(() => {
     if (!campaign) {
@@ -67,9 +74,9 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
     <form onSubmit={handleSubmit} className="mc-form mc-form--compact">
       <div className="mc-form-grid">
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Mã</label>
+          <label className={fieldLabelClass}>Mã</label>
           <input
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
             placeholder="MUA_HE_2026"
@@ -77,18 +84,18 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Tên</label>
+          <label className={fieldLabelClass}>Tên</label>
           <input
-            className={adminInputClass}
+            className={`${adminInputClass} mc-form__input`}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Mùa hè NASA 2026"
           />
         </div>
         <div className="mc-form-field mc-form-field--full">
-          <label className={adminLabelClass}>Mô tả</label>
+          <label className={fieldLabelClass}>Mô tả</label>
           <textarea
-            className={adminTextareaClass}
+            className={`${adminTextareaClass} mc-form__textarea`}
             rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -96,16 +103,13 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
           />
         </div>
         <div className="mc-form-field">
-          <label className={adminLabelClass}>Trạng thái</label>
-          <select
-            className={adminSelectClass}
+          <AdminSelectDropdown
+            label="Trạng thái"
+            labelClassName={fieldLabelClass}
             value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-          >
-            {MISSION_CAMPAIGN_STATUSES.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
+            options={statusOptions}
+            onChange={(val) => setForm({ ...form, status: val })}
+          />
           <p className="mc-form-note">{STATUS_HINTS[form.status]}</p>
         </div>
         <div className="mc-form-field">
@@ -127,10 +131,12 @@ const MissionCampaignFormPanel = ({ campaign, onSuccess, onCancel }) => {
       </div>
 
       <div className="mc-form-actions">
-        <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
-        <PrimaryButton type="submit" disabled={isSaving}>
+        <PrimaryButton type="submit" className="mc-form__submit" disabled={isSaving} loading={isSaving}>
           {isSaving ? 'Đang lưu...' : 'Lưu'}
         </PrimaryButton>
+        <GhostButton type="button" className="mc-form__cancel" onClick={onCancel}>
+          Hủy
+        </GhostButton>
       </div>
     </form>
   );

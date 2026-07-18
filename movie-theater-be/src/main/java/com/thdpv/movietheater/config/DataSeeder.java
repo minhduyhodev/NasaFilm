@@ -530,9 +530,11 @@ public class DataSeeder implements CommandLineRunner {
                         sender_role VARCHAR(24) NOT NULL,
                         sender_name VARCHAR(255),
                         message TEXT NOT NULL,
+                        image_urls JSONB,
                         created_at TIMESTAMPTZ
                     )
                     """);
+            jdbcTemplate.execute("ALTER TABLE support_ticket_message ADD COLUMN IF NOT EXISTS image_urls JSONB");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
             jdbcTemplate.execute(

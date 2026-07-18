@@ -64,7 +64,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             WHERE b.userUuid = :userUuid
               AND UPPER(b.status) = 'CONFIRMED'
               AND (
-                (UPPER(b.bookingType) = 'ONLINE' AND b.movieUuid = :movieUuid)
+                (
+                  UPPER(b.bookingType) = 'ONLINE'
+                  AND b.movieUuid = :movieUuid
+                  AND b.firstPlayedAt IS NOT NULL
+                )
                 OR (
                   (b.bookingType IS NULL OR UPPER(b.bookingType) = 'THEATER')
                   AND b.showtimeUuid IN (
@@ -124,12 +128,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
               AND b.firstPlayedAt IS NOT NULL
               AND b.vodPositionSeconds IS NOT NULL
               AND b.vodPositionSeconds > 0
-              AND (b.expiresAt IS NULL OR b.expiresAt > :now)
             ORDER BY b.vodLastWatchedAt DESC NULLS LAST, b.updatedAt DESC
             """)
-    List<Booking> findVodWatchHistory(
-            @Param("userUuid") UUID userUuid,
-            @Param("now") OffsetDateTime now);
+    List<Booking> findVodWatchHistory(@Param("userUuid") UUID userUuid);
 
     @Query("""
             SELECT b FROM Booking b

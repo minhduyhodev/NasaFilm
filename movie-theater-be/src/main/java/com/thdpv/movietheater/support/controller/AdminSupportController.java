@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.support.dto.request.SupportTicketMessageRequest;
@@ -61,13 +63,23 @@ public class AdminSupportController {
         return ResponseEntity.ok(ApiResponse.success(supportTicketService.listMessages(ticketCode)));
     }
 
+    @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<String>>> uploadImages(@RequestParam("files") MultipartFile[] files) {
+        return ResponseEntity.ok(ApiResponse.success(supportTicketService.uploadImages(files)));
+    }
+
     @PostMapping("/{ticketCode}/messages")
     public ResponseEntity<ApiResponse<SupportTicketResponse>> reply(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String ticketCode,
             @Valid @RequestBody SupportTicketMessageRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                supportTicketService.addAdminMessage(ticketCode, userDetails.getUsername(), request.getMessage(), request.getStatus())));
+                supportTicketService.addAdminMessage(
+                        ticketCode,
+                        userDetails.getUsername(),
+                        request.getMessage(),
+                        request.getStatus(),
+                        request.getImageUrls())));
     }
 
     @PatchMapping("/{ticketCode}/status")

@@ -38,6 +38,9 @@ export function getFloatingPanelPosition(triggerEl, {
   estimatedHeight = null,
   gap = 6,
   align = 'left',
+  constrainToModal = true,
+  /** 'auto' | 'bottom' | 'top' — 'bottom' luôn sổ xuống */
+  placement = 'auto',
 } = {}) {
   const rect = triggerEl.getBoundingClientRect();
   const panelWidth = width ?? rect.width;
@@ -45,16 +48,32 @@ export function getFloatingPanelPosition(triggerEl, {
   left = Math.max(VIEWPORT_PADDING, Math.min(left, window.innerWidth - panelWidth - VIEWPORT_PADDING));
 
   const preferredHeight = estimatedHeight ?? maxHeight;
-  const { spaceBelow, spaceAbove } = getConstrainedSpaces(triggerEl, gap);
-  const openUpward = spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+  const { spaceBelow, spaceAbove } = constrainToModal
+    ? getConstrainedSpaces(triggerEl, gap)
+    : {
+        spaceBelow: Math.max(0, window.innerHeight - VIEWPORT_PADDING - rect.bottom),
+        spaceAbove: Math.max(0, rect.top - VIEWPORT_PADDING),
+      };
+
+  const openUpward =
+    placement === 'top'
+      ? true
+      : placement === 'bottom'
+        ? false
+        : spaceBelow < preferredHeight && spaceAbove > spaceBelow;
 
   let top;
   let computedMaxHeight;
   if (openUpward) {
-    computedMaxHeight = Math.min(maxHeight, spaceAbove, preferredHeight);
+    computedMaxHeight = Math.min(maxHeight, spaceAbove || preferredHeight, preferredHeight);
     top = rect.top - gap - computedMaxHeight;
   } else {
-    computedMaxHeight = Math.min(maxHeight, spaceBelow, preferredHeight);
+    // Prefer mở xuống: dùng tối đa khoảng trống bên dưới (hoặc maxHeight)
+    computedMaxHeight = Math.min(maxHeight, Math.max(spaceBelow, 120), preferredHeight);
+    if (spaceBelow < 80) {
+      // Viewport quá hẹp dưới trigger — vẫn cố mở xuống, clamp theo viewport
+      computedMaxHeight = Math.min(maxHeight, window.innerHeight - rect.bottom - gap - VIEWPORT_PADDING);
+    }
     top = rect.bottom + gap;
   }
 
@@ -81,6 +100,8 @@ export function useFloatingPanelPosition(open, triggerRef, options = {}) {
     options.estimatedHeight,
     options.gap,
     options.align,
+    options.constrainToModal,
+    options.placement,
   ]);
 
   useLayoutEffect(() => {

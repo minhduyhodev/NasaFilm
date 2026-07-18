@@ -116,7 +116,59 @@ CREATE INDEX IF NOT EXISTS idx_orbit_member_room
 ALTER TABLE movie_media ALTER COLUMN media_url TYPE VARCHAR(2048);
 ALTER TABLE movie ALTER COLUMN streaming_url TYPE VARCHAR(2048);
 
-ALTER TABLE movie_review DROP CONSTRAINT IF EXISTS uk_movie_review_movie_user;
+DO $$
+BEGIN
+    IF to_regclass('public.movie_review_report') IS NOT NULL THEN
+        EXECUTE $delete_reports$
+            DELETE FROM movie_review_report
+            WHERE review_uuid IN (
+                SELECT uuid
+                FROM (
+                    SELECT uuid,
+                           row_number() OVER (
+                               PARTITION BY movie_uuid, user_uuid
+                               ORDER BY updated_at DESC NULLS LAST,
+                                        created_at DESC NULLS LAST,
+                                        uuid DESC
+                           ) AS duplicate_rank
+                    FROM movie_review
+                ) ranked_reviews
+                WHERE duplicate_rank > 1
+            )
+        $delete_reports$;
+    END IF;
+END
+$$;
+
+DELETE FROM movie_review
+WHERE uuid IN (
+    SELECT uuid
+    FROM (
+        SELECT uuid,
+               row_number() OVER (
+                   PARTITION BY movie_uuid, user_uuid
+                   ORDER BY updated_at DESC NULLS LAST,
+                            created_at DESC NULLS LAST,
+                            uuid DESC
+               ) AS duplicate_rank
+        FROM movie_review
+    ) ranked_reviews
+    WHERE duplicate_rank > 1
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'uk_movie_review_movie_user'
+    ) THEN
+        ALTER TABLE movie_review
+        ADD CONSTRAINT uk_movie_review_movie_user
+        UNIQUE (movie_uuid, user_uuid);
+    END IF;
+END
+$$;
 
 -- ── Orbit Chat & Concessions ──────────────────────────────────────────────────
 
@@ -152,4 +204,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_movie_slug
 -- ── Cinema image (ảnh đại diện rạp do admin upload) ───────────────────────────
 
 ALTER TABLE cinema ADD COLUMN IF NOT EXISTS image_url varchar(1000);
+
+-- ── Support ticket message attachments (tối đa 3 ảnh / tin) ───────────────────
+
+ALTER TABLE support_ticket_message ADD COLUMN IF NOT EXISTS image_urls jsonb;
 
