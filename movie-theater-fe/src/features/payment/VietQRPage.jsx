@@ -312,8 +312,8 @@ export default function VietQRPage() {
                 {/* Timer */}
                 {timeLeftSeconds != null && (
                   <div className={`w-full flex justify-center items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl ${isExpired ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                      isLowTime ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                        'bg-white/5 text-slate-300 border border-white/10'
+                    isLowTime ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                      'bg-white/5 text-slate-300 border border-white/10'
                     }`}>
                     {isExpired ? (
                       <AlertTriangle className="w-4 h-4" />
@@ -333,18 +333,20 @@ export default function VietQRPage() {
                   <button
                     onClick={async () => {
                       try {
+                        const mockPayload = {
+                          gateway: "MockBank_Local",
+                          amount: qrData.amount,
+                          content: qrData.transferContent,
+                          referenceCode: qrData.transferCode
+                        };
+
                         const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'nasafilm-secret-webhook-token'
                           },
-                          body: JSON.stringify({
-                            gateway: "MockBank_Local",
-                            amount: qrData.amount,
-                            content: qrData.transferContent,
-                            referenceCode: qrData.transferCode
-                          })
+                          body: JSON.stringify(mockPayload)
                         });
                         if (res.ok) alert('Đã gửi Webhook giả lập thành công! Hãy đợi khoảng 1-2s để auto-polling chạy.');
                       } catch (e) {
