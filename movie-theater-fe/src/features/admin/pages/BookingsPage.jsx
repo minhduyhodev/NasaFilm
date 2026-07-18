@@ -23,6 +23,7 @@ import {
   AdminTableShell,
   AdminDatePicker,
   AdminMonthCalendar,
+  AdminKpiGrid,
 } from '../components';
 import { toIsoDate } from '../components/calendar/dateUtils';
 import {
@@ -440,32 +441,54 @@ const BookingsPage = () => {
       />
 
       {/* KPI CARDS */}
-      <div className="adm-kpi-grid adm-kpi-grid--5">
-        {[
-          { label: 'DOANH THU', value: formatPrice(stats.totalRevenue), badge: 'Đơn thành công', icon: DollarSign, color: 'text-amber-400', kpiClass: 'kpi-revenue', clickable: true },
-          { label: 'THÀNH CÔNG', value: stats.confirmedCount, badge: 'đơn đặt vé', icon: CheckCircle2, color: 'text-emerald-400', kpiClass: 'kpi-success', clickable: true },
-          { label: 'ĐÃ HỦY', value: stats.cancelledCount, badge: 'đơn đã hủy', icon: XCircle, color: 'text-rose-400', kpiClass: 'kpi-cancelled', clickable: true },
-          { label: 'TỔNG ĐƠN HÀNG', value: stats.totalCount, badge: 'tổng giao dịch', icon: Ticket, color: 'text-indigo-400', kpiClass: 'kpi-total', clickable: true },
-          { label: 'GIÁ TRỊ AOV', value: formatPrice(stats.avgOrderValue), badge: 'trung bình/đơn', icon: Sparkles, color: 'text-blue-400', kpiClass: 'kpi-aov', clickable: false }
-        ].map(kpi => {
-          const Tag = kpi.clickable ? 'button' : 'div';
-          return (
-            <Tag
-              key={kpi.label}
-              type={kpi.clickable ? 'button' : undefined}
-              onClick={kpi.clickable ? () => handleKpiClick(kpi.label) : undefined}
-              className={`adm-kpi-card kpi-card ${kpi.kpiClass} ${kpi.clickable ? 'adm-kpi-card--clickable kpi-card--clickable' : ''} ${kpiActive(kpi.label) ? 'adm-kpi-card--active kpi-card--active' : ''}`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-tight">{kpi.label}</span>
-                <kpi.icon className={`w-4 h-4 ${kpi.color} opacity-60`} />
-              </div>
-              <p className={`text-xl font-black ${kpi.color} leading-none truncate`} title={kpi.value.toString()}>{kpi.value}</p>
-              <p className="text-[9px] text-gray-500 mt-1.5 leading-none">{kpi.badge}</p>
-            </Tag>
-          );
-        })}
-      </div>
+      <AdminKpiGrid
+        columns={5}
+        items={[
+          {
+            label: 'DOANH THU',
+            value: formatPrice(stats.totalRevenue),
+            badge: 'Đơn thành công',
+            icon: DollarSign,
+            kpiClass: 'kpi-revenue',
+            onClick: () => handleKpiClick('DOANH THU'),
+            active: kpiActive('DOANH THU'),
+          },
+          {
+            label: 'THÀNH CÔNG',
+            value: stats.confirmedCount,
+            badge: 'đơn đặt vé',
+            icon: CheckCircle2,
+            kpiClass: 'kpi-success',
+            onClick: () => handleKpiClick('THÀNH CÔNG'),
+            active: kpiActive('THÀNH CÔNG'),
+          },
+          {
+            label: 'ĐÃ HỦY',
+            value: stats.cancelledCount,
+            badge: 'đơn đã hủy',
+            icon: XCircle,
+            kpiClass: 'kpi-cancelled',
+            onClick: () => handleKpiClick('ĐÃ HỦY'),
+            active: kpiActive('ĐÃ HỦY'),
+          },
+          {
+            label: 'TỔNG ĐƠN HÀNG',
+            value: stats.totalCount,
+            badge: 'tổng giao dịch',
+            icon: Ticket,
+            kpiClass: 'kpi-total',
+            onClick: () => handleKpiClick('TỔNG ĐƠN HÀNG'),
+            active: kpiActive('TỔNG ĐƠN HÀNG'),
+          },
+          {
+            label: 'GIÁ TRỊ AOV',
+            value: formatPrice(stats.avgOrderValue),
+            badge: 'trung bình/đơn',
+            icon: Sparkles,
+            kpiClass: 'kpi-aov',
+          },
+        ]}
+      />
 
       {/* FILTER TOOLBAR */}
       <div className="bk-toolbar adm-toolbar">

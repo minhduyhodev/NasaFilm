@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Globe } from 'lucide-react';
 import { movieService } from '../../../../shared/services/movieService';
 import { notificationService } from '../../../../shared/services/notificationService';
-import { PrimaryButton, GhostButton } from '..';
-import { adminInputClass, adminLabelClass, adminSelectClass } from '../adminFormStyles';
+import { PrimaryButton, GhostButton, AdminSelectDropdown } from '..';
+import { adminInputClass, adminLabelClass } from '../adminFormStyles';
+import './ActorFormPanel.css';
 
 const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
   const isEditing = Boolean(actor?.uuid);
@@ -21,10 +23,23 @@ const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
     });
   }, [actor, countriesList]);
 
+  const countryOptions = useMemo(
+    () =>
+      (countriesList || []).map((c) => ({
+        value: c.uuid,
+        label: `${c.name} (${c.code})`,
+      })),
+    [countriesList],
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.fullName.trim()) {
       notificationService.error('Tên diễn viên không được để trống');
+      return;
+    }
+    if (!formData.countryUuid) {
+      notificationService.error('Vui lòng chọn quốc tịch');
       return;
     }
     const payload = {
@@ -50,8 +65,8 @@ const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
+    <form onSubmit={handleSubmit} className="actor-form">
+      <div className="actor-form__field">
         <label className={adminLabelClass}>Họ và tên *</label>
         <input
           type="text"
@@ -62,7 +77,8 @@ const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
           required
         />
       </div>
-      <div>
+
+      <div className="actor-form__field">
         <label className={adminLabelClass}>URL ảnh chân dung</label>
         <input
           type="url"
@@ -72,31 +88,42 @@ const ActorFormPanel = ({ actor, countriesList, onSuccess, onCancel }) => {
           onChange={(e) => setFormData((p) => ({ ...p, avatarUrl: e.target.value }))}
         />
         {formData.avatarUrl?.trim().startsWith('http') && (
-          <div className="mt-3 flex items-center gap-3">
-            <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 bg-white/[0.03]">
-              <img src={formData.avatarUrl.trim()} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+          <div className="actor-form__preview">
+            <div className="actor-form__avatar">
+              <img
+                src={formData.avatarUrl.trim()}
+                alt=""
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
             </div>
-            <span className="text-xs text-gray-500">Xem trước</span>
+            <span className="actor-form__preview-label">Xem trước</span>
           </div>
         )}
       </div>
-      <div>
-        <label className={adminLabelClass}>Quốc tịch *</label>
-        <select
-          className={adminSelectClass}
+
+      <div className="actor-form__field">
+        <AdminSelectDropdown
+          label="Quốc tịch *"
           value={formData.countryUuid}
-          onChange={(e) => setFormData((p) => ({ ...p, countryUuid: e.target.value }))}
-          required
-        >
-          {countriesList.map((c) => (
-            <option key={c.uuid} value={c.uuid}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
+          options={countryOptions}
+          onChange={(val) => setFormData((p) => ({ ...p, countryUuid: val }))}
+          placeholder="Chọn quốc tịch..."
+          searchPlaceholder="Tìm quốc gia, mã quốc gia..."
+          searchable
+          emptyMessage="Không tìm thấy quốc gia phù hợp"
+        />
+        <p className="actor-form__hint">
+          <Globe className="actor-form__hint-icon" aria-hidden="true" />
+          Gõ tên hoặc mã quốc gia để lọc nhanh danh sách.
+        </p>
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <GhostButton type="button" onClick={onCancel}>Hủy</GhostButton>
+
+      <div className="actor-form__actions">
+        <GhostButton type="button" onClick={onCancel}>
+          Hủy
+        </GhostButton>
         <PrimaryButton type="submit" loading={isSaving} disabled={isSaving}>
           {isEditing ? 'Cập nhật' : 'Thêm diễn viên'}
         </PrimaryButton>

@@ -11,6 +11,7 @@ import AdminModal from '../components/AdminModal';
 import AdminUserFormPanel from '../components/panels/AdminUserFormPanel';
 import { adminFilterSelectClass } from '../components/adminFormStyles';
 import { AdminPage, PageHeader, AdminKpiGrid, FilterPills, StatusBadge, AdminTableShell } from '../components';
+import Pagination from '../../../shared/components/Pagination';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const StaffPage = () => {
@@ -372,27 +373,12 @@ const StaffPage = () => {
           </div>
         )}
         footer={filteredStaff.length > 0 ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
-            <span className="adm-tabular">Trang {currentPage}/{totalPages}</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
-              >
-                ›
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredStaff.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
         ) : null}
       >
       {isLoading ? (

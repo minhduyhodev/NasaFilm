@@ -285,9 +285,6 @@ const CinemasPage = () => {
             <h2 className="adm-panel__title">Danh sách rạp chiếu</h2>
             <p className="text-xs text-[var(--adm-text-dim)] mt-1">Chọn một chi nhánh để xem danh sách phòng chiếu bên dưới.</p>
           </div>
-          <StatusBadge variant="accent">
-            Hoạt động: {cinemas.filter((c) => getCinemaStats(c.uuid).activeCount > 0).length}
-          </StatusBadge>
         </div>
         <div className="adm-panel__body">
         <div className="adm-toolbar__search mb-4 max-w-md">

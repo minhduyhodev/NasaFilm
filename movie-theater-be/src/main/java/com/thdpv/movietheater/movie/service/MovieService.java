@@ -33,6 +33,7 @@ import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.common.util.MojibakeUtils;
 import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
 import com.thdpv.movietheater.config.service.SystemConfigService;
@@ -439,6 +440,29 @@ public class MovieService {
         return updated;
     }
 
+    /**
+     * Map UUID → {@link MovieListResponse} (medias/genres/countries + review stats).
+     * Dùng cho Discover curated khi phim không nằm trong trang candidate mặc định.
+     */
+    @Transactional(readOnly = true)
+    public List<MovieListResponse> getMovieListByUuids(List<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uniqueUuids = movieUuids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .limit(50)
+                .toList();
+        if (uniqueUuids.isEmpty()) {
+            return List.of();
+        }
+        List<Movie> movies = movieRepository.findAllById(uniqueUuids).stream()
+                .filter(movie -> movie.getStatus() == null || !"DELETED".equalsIgnoreCase(movie.getStatus()))
+                .toList();
+        return toMovieListResponses(movies);
+    }
+
     @Transactional(readOnly = true)
     public List<MovieSummaryResponse> getMovieSummaries(List<UUID> movieUuids) {
         if (movieUuids == null || movieUuids.isEmpty()) {
@@ -462,6 +486,7 @@ public class MovieService {
     @Cacheable(value = CacheNames.GENRES, key = "'all'")
     public List<Genre> getAllGenres() {
         return genreRepository.findAll().stream()
+                .filter(g -> g.getName() != null && !MojibakeUtils.looksCorrupt(g.getName()))
                 .sorted(java.util.Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
@@ -469,6 +494,7 @@ public class MovieService {
     @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
         return countryRepository.findAll().stream()
+                .filter(c -> c.getName() != null && !MojibakeUtils.looksCorrupt(c.getName()))
                 .sorted(java.util.Comparator.comparing(Country::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }

@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * Phát hiện / sửa chuỗi UTF-8 bị đọc nhầm Latin-1 (mojibake), ví dụ {@code BÃ­ áº©n} → {@code Bí ẩn},
- * hoặc chuỗi có ký tự thay thế {@code \uFFFD} (thường hiện thành {@code �}).
+ * hoặc chuỗi có ký tự thay thế {@code \uFFFD} / ASCII {@code ?} (vd. {@code ?m nh?c} → {@code Âm nhạc}).
  */
 public final class MojibakeUtils {
 
@@ -20,6 +20,11 @@ public final class MojibakeUtils {
         return value != null && value.indexOf(REPLACEMENT) >= 0;
     }
 
+    /** ASCII {@code ?} thay thế dấu tiếng Việt (vd. {@code ?m nh?c}). */
+    public static boolean hasAsciiQuestionMarks(String value) {
+        return value != null && value.indexOf('?') >= 0;
+    }
+
     public static boolean looksLikeMojibake(String value) {
         if (value == null || value.isBlank()) {
             return false;
@@ -28,21 +33,28 @@ public final class MojibakeUtils {
                 || value.contains("áº") || value.contains("á»") || value.contains("Â");
     }
 
-    /** Mojibake Latin-1 hoặc đã mất ký tự (U+FFFD). */
+    /** Mojibake Latin-1, U+FFFD, hoặc ASCII {@code ?} thay dấu. */
     public static boolean looksCorrupt(String value) {
-        return looksLikeMojibake(value) || hasReplacementChar(value);
+        return looksLikeMojibake(value) || hasReplacementChar(value) || hasAsciiQuestionMarks(value);
     }
 
     public static String tryFix(String value) {
         if (value == null) {
             return null;
         }
-        if (hasReplacementChar(value)) {
+        if (hasReplacementChar(value) || hasAsciiQuestionMarks(value)) {
             return null;
         }
+        // Windows-1252 (không phải ISO-8859-1): giữ được 0x80–0x9F như ‘ ’ “ ” …
+        // vốn hay xuất hiện khi UTF-8 bị đọc nhầm trên Windows.
         try {
-            String fixed = new String(value.getBytes(Charset.forName("ISO-8859-1")), StandardCharsets.UTF_8);
-            if (looksLikeMojibake(fixed) || hasReplacementChar(fixed)) {
+            String fixed = new String(value.getBytes(Charset.forName("Windows-1252")), StandardCharsets.UTF_8);
+            if (looksLikeMojibake(fixed) || hasReplacementChar(fixed) || hasAsciiQuestionMarks(fixed)) {
+                // Một số chuỗi bị encode sai 2 lần — thử thêm một vòng.
+                String twice = new String(fixed.getBytes(Charset.forName("Windows-1252")), StandardCharsets.UTF_8);
+                if (!looksLikeMojibake(twice) && !hasReplacementChar(twice) && !hasAsciiQuestionMarks(twice)) {
+                    return twice;
+                }
                 return null;
             }
             return fixed;
@@ -52,14 +64,14 @@ public final class MojibakeUtils {
     }
 
     /**
-     * Ghép tên bị {@code \uFFFD} (và {@code ?} thừa sau nó) với danh sách tên đúng.
-     * Mỗi cụm {@code \uFFFD} hoặc {@code \uFFFD?} khớp đúng 1 ký tự.
+     * Ghép tên bị {@code \uFFFD} / ASCII {@code ?} với danh sách tên đúng.
+     * Mỗi {@code \uFFFD}, {@code \uFFFD?} hoặc {@code ?} khớp đúng 1 ký tự.
      */
     public static String matchCanonical(String broken, Collection<String> canonicalNames) {
         if (broken == null || broken.isBlank() || canonicalNames == null || canonicalNames.isEmpty()) {
             return null;
         }
-        if (!hasReplacementChar(broken)) {
+        if (!hasReplacementChar(broken) && !hasAsciiQuestionMarks(broken)) {
             return null;
         }
         StringBuilder regex = new StringBuilder("^");

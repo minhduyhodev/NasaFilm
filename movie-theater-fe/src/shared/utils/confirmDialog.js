@@ -5,7 +5,7 @@ import './sweetalertTheme.css';
 const VARIANT_STYLES = {
   danger: {
     icon: 'warning',
-    confirmColor: '#dc2626',
+    confirmColor: '#e11d48',
     confirmClass: 'nasafilm-swal-confirm--danger',
   },
   warning: {
@@ -66,7 +66,7 @@ export const confirmAction = async ({
     cancelButtonText: cancelLabel,
     confirmButtonColor: style.confirmColor,
     cancelButtonColor: '#334155',
-    background: '#0f1322',
+    background: '#141418',
     color: '#f1f5f9',
     reverseButtons: true,
     focusCancel: true,

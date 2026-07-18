@@ -32,6 +32,7 @@ import {
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import { useAuthContext } from "../../auth/hooks/useAuthContext";
 import { hasPermission, isAdmin, PERMISSIONS } from "../../../shared/utils/permissions";
+import Pagination from "../../../shared/components/Pagination";
 import "./UsersPage.css";
 
 const UsersPage = () => {
@@ -367,29 +368,13 @@ const UsersPage = () => {
           </div>
         )}
         footer={totalElements > 0 ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
-            <span className="adm-tabular">
-              Trang {currentPage}/{totalPages}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="adm-btn adm-btn--ghost min-w-8 h-8 px-2"
-              >
-                ›
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalElements}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
         ) : null}
       >
       {isLoading ? (

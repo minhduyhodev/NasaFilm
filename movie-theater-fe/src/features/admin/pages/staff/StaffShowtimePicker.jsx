@@ -134,13 +134,14 @@ const StaffShowtimePicker = ({
         <div className="staff-control__filters staff-control__filters--cascade">
           <div className="staff-control__filter-step">
             <span className="staff-control__filter-label">
-              <Building2 className="w-3 h-3" />
+              <Building2 className="w-3 h-3 staff-control__filter-label-icon--cinema" />
               Rạp
             </span>
             <CounterSelectDropdown
               id="staff-control-cinema"
               variant="header"
               leadingIcon={Building2}
+              iconClassName="counter-header__dropdown-icon--cinema"
               value={filters.cinema}
               options={[
                 { value: '', label: 'Tất cả rạp' },
@@ -154,13 +155,14 @@ const StaffShowtimePicker = ({
 
           <div className="staff-control__filter-step">
             <span className="staff-control__filter-label">
-              <Milestone className="w-3 h-3" />
+              <Milestone className="w-3 h-3 staff-control__filter-label-icon--room" />
               Phòng
             </span>
             <CounterSelectDropdown
               id="staff-control-room"
               variant="header"
               leadingIcon={Milestone}
+              iconClassName="counter-header__dropdown-icon--room"
               value={filters.room}
               options={[
                 { value: '', label: 'Tất cả phòng' },
@@ -175,13 +177,14 @@ const StaffShowtimePicker = ({
 
           <div className="staff-control__filter-step">
             <span className="staff-control__filter-label">
-              <Calendar className="w-3 h-3" />
+              <Calendar className="w-3 h-3 staff-control__filter-label-icon--date" />
               Ngày chiếu
             </span>
             <CounterSelectDropdown
               id="staff-control-date"
               variant="header"
               leadingIcon={Calendar}
+              iconClassName="counter-header__dropdown-icon--date"
               value={filters.date}
               options={[
                 { value: '', label: 'Tất cả ngày' },
@@ -196,13 +199,14 @@ const StaffShowtimePicker = ({
 
           <div className="staff-control__filter-step">
             <span className="staff-control__filter-label">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3 h-3 staff-control__filter-label-icon--time" />
               Suất chiếu
             </span>
             <CounterSelectDropdown
               id="staff-control-timeslot"
               variant="header"
               leadingIcon={Clock}
+              iconClassName="counter-header__dropdown-icon--time"
               value={filters.timeSlot}
               options={[
                 { value: '', label: 'Tất cả suất' },
@@ -217,7 +221,7 @@ const StaffShowtimePicker = ({
 
           <label className="staff-control__filter-step staff-control__filter-step--movie">
             <span className="staff-control__filter-label">
-              <Search className="w-3 h-3" />
+              <Search className="w-3 h-3 staff-control__filter-label-icon--search" />
               Phim
             </span>
             <input

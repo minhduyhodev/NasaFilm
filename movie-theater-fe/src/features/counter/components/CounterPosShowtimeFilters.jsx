@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Building2, Calendar, Clock, Film } from 'lucide-react';
+﻿import { useMemo } from 'react';
+import { Calendar, Clock, Film } from 'lucide-react';
 import { CounterSelectDropdown } from './CounterSelectDropdown';
 import CounterLocationToolbar from './CounterLocationToolbar';
 import {
@@ -9,6 +9,10 @@ import {
   toTimeSlot,
 } from '../../../shared/utils/showtimeFilterUtils';
 
+/**
+ * Compact filter row for POS Daily Showtimes:
+ * Cinema · Room · Date · Time · Movie — matches reference header layout.
+ */
 const CounterPosShowtimeFilters = ({
   showtimes = [],
   filters,
@@ -39,77 +43,67 @@ const CounterPosShowtimeFilters = ({
   }, [basePool, filters.date, filters.timeSlot, movieOptions]);
 
   return (
-    <div className="staff-control__filters staff-control__filters--cascade staff-control__filters--pos">
-        <div className="staff-control__filter-step staff-control__filter-step--location">
-          <span className="staff-control__filter-label">
-            <Building2 className="w-3 h-3" />
-            Rạp & Phòng
-          </span>
-          <CounterLocationToolbar className="counter-location-toolbar--in-grid" />
-        </div>
+    <div className="counter-pos__daily-filters">
+      <CounterLocationToolbar
+        className="counter-location-toolbar--daily"
+        cinemaLabel="Rạp"
+        roomLabel="Phòng chiếu"
+        allowEmptyCinema
+        cinemaEmptyLabel="Rạp"
+        allowEmptyRoom
+        roomEmptyLabel="Phòng chiếu"
+      />
 
-        <div className="staff-control__filter-step">
-          <span className="staff-control__filter-label">
-            <Calendar className="w-3 h-3" />
-            Ngày chiếu
-          </span>
-          <CounterSelectDropdown
-            id="counter-pos-date"
-            variant="header"
-            leadingIcon={Calendar}
-            value={filters.date}
-            options={[
-              { value: '', label: 'Tất cả ngày' },
-              ...dateOptions.map((key) => ({
-                value: key,
-                label: formatDateLabel(key),
-              })),
-            ]}
-            placeholder="Tất cả ngày"
-            emptyMessage="Không có ngày"
-            disabled={!dateOptions.length}
-            onChange={(value) => onFilterChange('date', value)}
-          />
-        </div>
+      <CounterSelectDropdown
+        id="counter-pos-date"
+        variant="header"
+        label="Ngày"
+        leadingIcon={Calendar}
+        iconClassName="counter-header__dropdown-icon--date"
+        value={filters.date}
+        options={[
+          { value: '', label: 'Ngày' },
+          ...dateOptions.map((key) => ({
+            value: key,
+            label: formatDateLabel(key),
+          })),
+        ]}
+        placeholder="Ngày"
+        emptyMessage="Không có ngày"
+        disabled={!dateOptions.length}
+        onChange={(value) => onFilterChange('date', value)}
+      />
 
-        <div className="staff-control__filter-step">
-          <span className="staff-control__filter-label">
-            <Clock className="w-3 h-3" />
-            Suất chiếu
-          </span>
-          <CounterSelectDropdown
-            id="counter-pos-timeslot"
-            variant="header"
-            leadingIcon={Clock}
-            value={filters.timeSlot}
-            options={[
-              { value: '', label: 'Tất cả suất' },
-              ...timeSlotOptions.map((slot) => ({ value: slot, label: slot })),
-            ]}
-            placeholder="Tất cả suất"
-            emptyMessage="Không có suất"
-            disabled={!timeSlotOptions.length}
-            onChange={(value) => onFilterChange('timeSlot', value)}
-          />
-        </div>
+      <CounterSelectDropdown
+        id="counter-pos-timeslot"
+        variant="header"
+        label="Suất"
+        leadingIcon={Clock}
+        iconClassName="counter-header__dropdown-icon--time"
+        value={filters.timeSlot}
+        options={[
+          { value: '', label: 'Suất' },
+          ...timeSlotOptions.map((slot) => ({ value: slot, label: slot })),
+        ]}
+        placeholder="Suất"
+        emptyMessage="Không có suất"
+        disabled={!timeSlotOptions.length}
+        onChange={(value) => onFilterChange('timeSlot', value)}
+      />
 
-        <div className="staff-control__filter-step">
-          <span className="staff-control__filter-label">
-            <Film className="w-3 h-3" />
-            Phim
-          </span>
-          <CounterSelectDropdown
-            id="counter-pos-movie"
-            variant="header"
-            leadingIcon={Film}
-            value={filters.movieUuid}
-            options={filteredMovieOptions}
-            placeholder="Tất cả phim"
-            emptyMessage="Không có phim"
-            disabled={!filteredMovieOptions.some((o) => o.value)}
-            onChange={(value) => onFilterChange('movieUuid', value)}
-          />
-        </div>
+      <CounterSelectDropdown
+        id="counter-pos-movie"
+        variant="header"
+        label="Phim"
+        leadingIcon={Film}
+        iconClassName="counter-header__dropdown-icon--movie"
+        value={filters.movieUuid}
+        options={filteredMovieOptions}
+        placeholder="Phim"
+        emptyMessage="Không có phim"
+        disabled={!filteredMovieOptions.some((o) => o.value)}
+        onChange={(value) => onFilterChange('movieUuid', value)}
+      />
     </div>
   );
 };

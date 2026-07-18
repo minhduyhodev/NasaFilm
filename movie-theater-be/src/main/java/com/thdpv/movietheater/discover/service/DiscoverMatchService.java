@@ -3,6 +3,7 @@ package com.thdpv.movietheater.discover.service;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,7 +21,7 @@ import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.discover.dto.request.DiscoverMatchRequest;
 import com.thdpv.movietheater.discover.dto.response.DiscoverMatchItemResponse;
 import com.thdpv.movietheater.discover.dto.response.DiscoverMatchResponse;
-import com.thdpv.movietheater.discover.support.DiscoverQuizConfig;
+import com.thdpv.movietheater.discover.entity.DiscoverCuratedSuggestion;
 import com.thdpv.movietheater.discover.support.DiscoverScorer;
 import com.thdpv.movietheater.discover.support.DiscoverScorer.ScoreResult;
 import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
@@ -37,7 +38,6 @@ import com.thdpv.movietheater.user.repository.UserRepository;
 @Service
 public class DiscoverMatchService {
 
-    private static final int MAX_MATCHES = DiscoverQuizConfig.MAX_MATCHES;
     private static final int CANDIDATE_PAGE_SIZE = 120;
 
     private final MovieService movieService;
@@ -45,18 +45,24 @@ public class DiscoverMatchService {
     private final UserRepository userRepository;
     private final UserFavoriteRepository userFavoriteRepository;
     private final DiscoverHistoryService discoverHistoryService;
+    private final DiscoverQuizAdminService discoverQuizAdminService;
+    private final DiscoverSuggestionAdminService discoverSuggestionAdminService;
 
     public DiscoverMatchService(
             MovieService movieService,
             MovieRepository movieRepository,
             UserRepository userRepository,
             UserFavoriteRepository userFavoriteRepository,
-            DiscoverHistoryService discoverHistoryService) {
+            DiscoverHistoryService discoverHistoryService,
+            DiscoverQuizAdminService discoverQuizAdminService,
+            DiscoverSuggestionAdminService discoverSuggestionAdminService) {
         this.movieService = movieService;
         this.movieRepository = movieRepository;
         this.userRepository = userRepository;
         this.userFavoriteRepository = userFavoriteRepository;
         this.discoverHistoryService = discoverHistoryService;
+        this.discoverQuizAdminService = discoverQuizAdminService;
+        this.discoverSuggestionAdminService = discoverSuggestionAdminService;
     }
 
     @Transactional
@@ -82,6 +88,11 @@ public class DiscoverMatchService {
             candidates = movieService.getMovieList(filter, PageRequest.of(0, CANDIDATE_PAGE_SIZE));
         }
 
+        Map<UUID, MovieListResponse> candidatesByUuid = new LinkedHashMap<>();
+        for (MovieListResponse movie : candidates.getContent()) {
+            candidatesByUuid.put(movie.getUuid(), movie);
+        }
+
         List<ScoredMovie> scored = new ArrayList<>();
         for (MovieListResponse movie : candidates.getContent()) {
             ScoreResult scoreResult = DiscoverScorer.score(
@@ -96,10 +107,13 @@ public class DiscoverMatchService {
                         : item.movie().getRating() != null ? item.movie().getRating() : 0.0,
                         Comparator.reverseOrder()));
 
-        List<DiscoverMatchItemResponse> matches = scored.stream()
-                .limit(MAX_MATCHES)
-                .map(item -> toMatchItem(item.movie(), item.score(), item.reasons()))
-                .toList();
+        int maxMatches = Math.max(1, discoverQuizAdminService.getMaxMatches());
+        hydrateCuratedCandidates(request.getMood(), candidatesByUuid);
+        List<DiscoverMatchItemResponse> matches = mergeCuratedWithScored(
+                request.getMood(),
+                candidatesByUuid,
+                scored,
+                maxMatches);
 
         if (matches.isEmpty()) {
             throw new AppException(ErrorCode.NOT_FOUND, "Chưa có phim phù hợp để gợi ý");
@@ -121,6 +135,67 @@ public class DiscoverMatchService {
         return response;
     }
 
+    /**
+     * Đảm bảo phim curated có trong map candidate dù không nằm page NOW_SHOWING đầu tiên.
+     */
+    private void hydrateCuratedCandidates(String mood, Map<UUID, MovieListResponse> candidatesByUuid) {
+        List<DiscoverCuratedSuggestion> curated = discoverSuggestionAdminService.findActiveByMood(mood);
+        if (curated.isEmpty()) {
+            return;
+        }
+        List<UUID> missing = curated.stream()
+                .map(DiscoverCuratedSuggestion::getMovieUuid)
+                .filter(uuid -> uuid != null && !candidatesByUuid.containsKey(uuid))
+                .distinct()
+                .toList();
+        if (missing.isEmpty()) {
+            return;
+        }
+        for (MovieListResponse movie : movieService.getMovieListByUuids(missing)) {
+            candidatesByUuid.putIfAbsent(movie.getUuid(), movie);
+        }
+    }
+
+    private List<DiscoverMatchItemResponse> mergeCuratedWithScored(
+            String mood,
+            Map<UUID, MovieListResponse> candidatesByUuid,
+            List<ScoredMovie> scored,
+            int maxMatches) {
+        List<DiscoverMatchItemResponse> matches = new ArrayList<>();
+        Set<UUID> used = new HashSet<>();
+
+        List<DiscoverCuratedSuggestion> curated = discoverSuggestionAdminService.findActiveByMood(mood);
+        for (DiscoverCuratedSuggestion suggestion : curated) {
+            if (matches.size() >= maxMatches) {
+                break;
+            }
+            MovieListResponse movie = candidatesByUuid.get(suggestion.getMovieUuid());
+            if (movie == null || used.contains(movie.getUuid())) {
+                continue;
+            }
+            used.add(movie.getUuid());
+            List<String> reasons = new ArrayList<>();
+            reasons.add("Gợi ý được chọn bởi NASA FILM");
+            if (suggestion.getNote() != null && !suggestion.getNote().isBlank()) {
+                reasons.add(suggestion.getNote());
+            }
+            matches.add(toMatchItem(movie, 100, reasons));
+        }
+
+        for (ScoredMovie item : scored) {
+            if (matches.size() >= maxMatches) {
+                break;
+            }
+            if (used.contains(item.movie().getUuid())) {
+                continue;
+            }
+            used.add(item.movie().getUuid());
+            matches.add(toMatchItem(item.movie(), item.score(), item.reasons()));
+        }
+
+        return matches;
+    }
+
     private User resolveUser(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {
             return null;
@@ -129,9 +204,9 @@ public class DiscoverMatchService {
     }
 
     private void validateRequest(DiscoverMatchRequest request) {
-        validateEnum("mood", request.getMood(), DiscoverQuizConfig.MOODS);
-        validateEnum("duration", request.getDuration(), DiscoverQuizConfig.DURATIONS);
-        validateEnum("viewingLocation", request.getViewingLocation(), DiscoverQuizConfig.VIEWING_LOCATIONS);
+        validateEnum("mood", request.getMood(), discoverQuizAdminService.getActiveKeys("MOOD"));
+        validateEnum("duration", request.getDuration(), discoverQuizAdminService.getActiveKeys("DURATION"));
+        validateEnum("viewingLocation", request.getViewingLocation(), discoverQuizAdminService.getActiveKeys("VIEWING"));
     }
 
     private void validateEnum(String field, String value, Set<String> allowed) {

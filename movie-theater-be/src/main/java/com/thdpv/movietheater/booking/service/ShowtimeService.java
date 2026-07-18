@@ -568,11 +568,15 @@ public class ShowtimeService {
                 continue;
             }
 
-            ShowtimeResponse scheduled = updateShowtimeStatus(created.getUuid(), ShowtimeStatus.SCHEDULED);
+            // Cùng transaction với create — không dùng updateShowtimeStatus (REQUIRES_NEW)
+            // vì transaction mới không thấy suất chưa commit → SHOWTIME_NOT_FOUND.
+            ShowtimeResponse scheduled = updateShowtimeStatusInTransaction(
+                    created.getUuid(), ShowtimeStatus.SCHEDULED).response();
             if (publishStatus == ShowtimeStatus.SCHEDULED) {
                 savedList.add(scheduled);
             } else {
-                savedList.add(updateShowtimeStatus(scheduled.getUuid(), ShowtimeStatus.OPEN_FOR_BOOKING));
+                savedList.add(updateShowtimeStatusInTransaction(
+                        scheduled.getUuid(), ShowtimeStatus.OPEN_FOR_BOOKING).response());
             }
         }
         return savedList;

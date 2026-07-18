@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.thdpv.movietheater.discover.dto.response.DiscoverConfigResponse;
+import com.thdpv.movietheater.discover.dto.response.DiscoverQuizOptionResponse;
 
 public final class DiscoverQuizConfig {
 
@@ -28,6 +29,24 @@ public final class DiscoverQuizConfig {
         response.setMoods(List.copyOf(MOODS));
         response.setDurations(List.copyOf(DURATIONS));
         response.setViewingLocations(List.copyOf(VIEWING_LOCATIONS));
+        response.setMoodOptions(fallbackOptions("MOOD", MOODS));
+        response.setDurationOptions(fallbackOptions("DURATION", DURATIONS));
+        response.setViewingOptions(fallbackOptions("VIEWING", VIEWING_LOCATIONS));
         return response;
+    }
+
+    private static List<DiscoverQuizOptionResponse> fallbackOptions(String group, Set<String> keys) {
+        int order = 1;
+        java.util.ArrayList<DiscoverQuizOptionResponse> options = new java.util.ArrayList<>();
+        for (String key : keys) {
+            DiscoverQuizOptionResponse option = new DiscoverQuizOptionResponse();
+            option.setOptionGroup(group);
+            option.setKey(key);
+            option.setLabel(key);
+            option.setSortOrder(order++);
+            option.setActive(true);
+            options.add(option);
+        }
+        return options;
     }
 }
