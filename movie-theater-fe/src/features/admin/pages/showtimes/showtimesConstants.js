@@ -1,5 +1,6 @@
 import {
   Hash, CalendarClock, Ticket, CheckCircle, XCircle, Ban, LayoutGrid, AlignJustify,
+  GanttChartSquare,
 } from 'lucide-react';
 
 export const STATUS_ORDER = ['OPEN_FOR_BOOKING', 'SCHEDULED', 'SOLD_OUT', 'DRAFT', 'FINISHED', 'CANCELLED'];
@@ -45,6 +46,7 @@ export const SORT_OPTIONS = [
 ];
 
 export const VIEW_MODES = [
+  { key: 'timeline', icon: GanttChartSquare, label: 'Dòng thời gian' },
   { key: 'grid', icon: LayoutGrid, label: 'Lưới' },
   { key: 'list', icon: AlignJustify, label: 'Danh sách' },
 ];
@@ -180,4 +182,89 @@ export const sortShowtimes = (arr, sortKey) => {
 export const normalizeActiveRooms = (data) => {
   const list = Array.isArray(data) ? data : (data?.content ?? []);
   return list.filter((room) => String(room?.status ?? '').toUpperCase() === 'ACTIVE');
+};
+
+export const formatPrice = (v) => (v != null ? `${v.toLocaleString('vi-VN')}đ` : '—');
+
+/** Key ngày theo lịch VN, dạng 'YYYY-MM-DD' — dùng làm khóa cho calendar & lọc theo ngày. */
+export const vnDayKey = (d) => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: VN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d instanceof Date ? d : new Date(d));
+};
+
+/** Chuyển key 'YYYY-MM-DD' về mốc trưa ngày đó theo giờ VN (ổn định khi so sánh/cộng ngày). */
+export const dayKeyToDate = (key) => new Date(`${key}T12:00:00+07:00`);
+
+/** Nhãn "Hôm nay / Ngày mai / Thứ x, dd/mm" cho một day-key. */
+export const formatDayKeyLabel = (key, todayKey) => {
+  const date = dayKeyToDate(key);
+  if (key === todayKey) return `Hôm nay, ${formatDateShort(date)}`;
+  const tomorrowKey = vnDayKey(addVnDays(dayKeyToDate(todayKey), 1));
+  if (key === tomorrowKey) return `Ngày mai, ${formatDateShort(date)}`;
+  return `${formatWeekday(date)}, ${formatDateShort(date)}`;
+};
+
+export const formatDateFull = (d) => {
+  const date = d instanceof Date ? d : new Date(d);
+  return date.toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: VN_TIME_ZONE,
+  });
+};
+
+export const getShowtimeDurationMin = (st) => {
+  if (!st?.startTime || !st?.endTime) return null;
+  const ms = new Date(st.endTime) - new Date(st.startTime);
+  return ms > 0 ? Math.round(ms / 60000) : null;
+};
+
+/** Decimal hour (e.g. 20.5 = 20:30) of an ISO instant, in VN timezone. */
+export const getVnDecimalHour = (iso) => {
+  const formatted = new Intl.DateTimeFormat('en-GB', {
+    timeZone: VN_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
+  const [h, m] = formatted.split(':').map(Number);
+  return (h % 24) + m / 60;
+};
+
+/**
+ * Detects overlapping showtimes inside the same room (CANCELLED excluded).
+ * Returns a Set of conflicting showtime uuids.
+ */
+export const findRoomConflicts = (showtimes) => {
+  const byRoom = {};
+  showtimes.forEach((s) => {
+    if (!s?.startTime || !s?.endTime) return;
+    if (s.status === 'CANCELLED' || s.status === 'FINISHED') return;
+    (byRoom[s.cinemaRoomUuid || s.cinemaRoomName] ||= []).push(s);
+  });
+  const conflicted = new Set();
+  Object.values(byRoom).forEach((list) => {
+    const sorted = [...list].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    let maxEnd = null;
+    let holder = null;
+    sorted.forEach((s) => {
+      const start = new Date(s.startTime);
+      const end = new Date(s.endTime);
+      if (maxEnd && start < maxEnd) {
+        conflicted.add(s.uuid);
+        if (holder) conflicted.add(holder.uuid);
+      }
+      if (!maxEnd || end > maxEnd) {
+        maxEnd = end;
+        holder = s;
+      }
+    });
+  });
+  return conflicted;
 };
