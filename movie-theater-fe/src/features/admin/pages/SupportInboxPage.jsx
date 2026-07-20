@@ -26,6 +26,7 @@ import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { getSupportMessageSenderLabel } from '../../../shared/utils/supportMessageUtils';
 import { AdminPage, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminKpiGrid } from '../components';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { notifySupportAttentionChanged } from '../utils/supportAttention';
 import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
@@ -202,6 +203,7 @@ const SupportInboxPage = () => {
       } else if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
         setSelectedTicketCode(next[0]?.ticketCode || '');
       }
+      notifySupportAttentionChanged();
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không tải được danh sách ticket hỗ trợ.');
     } finally {
@@ -213,6 +215,7 @@ const SupportInboxPage = () => {
     try {
       const list = await supportService.getPendingLiveSupportRequests();
       setLiveQueue(Array.isArray(list) ? list : []);
+      notifySupportAttentionChanged();
     } catch {
       setLiveQueue([]);
     }

@@ -4,6 +4,7 @@ import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { notificationService } from '../../../shared/services/notificationService';
 import { hasAnyPermission, PERMISSIONS } from '../../../shared/utils/permissions';
+import { notifySupportAttentionChanged } from '../utils/supportAttention';
 
 const isUserSender = (role = '') => `${role || ''}`.toUpperCase() === 'USER';
 
@@ -25,6 +26,7 @@ const SupportAdminMessageAlerts = () => {
       const senderRole = payload?.senderRole;
       if (!ticketCode || !isUserSender(senderRole)) return;
 
+      notifySupportAttentionChanged();
       notificationService.info(
         `Có tin nhắn mới từ khách · ${ticketCode}`,
         {
@@ -52,6 +54,7 @@ const SupportAdminMessageAlerts = () => {
       const ticketCode = payload?.ticketCode;
       if (eventType !== 'LIVE_REQUESTED' || !ticketCode) return;
 
+      notifySupportAttentionChanged();
       notificationService.info(`Khách yêu cầu chat trực tiếp · ${ticketCode}`, {
         title: 'Hỗ trợ trực tiếp',
         variant: 'message',
