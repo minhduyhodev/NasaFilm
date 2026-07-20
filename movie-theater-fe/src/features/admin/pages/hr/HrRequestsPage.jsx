@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, CalendarX, Check, Loader2, RefreshCw, X } from 'lucide-react';
+import { ArrowLeftRight, CalendarX, Check, Loader2, X } from 'lucide-react';
 import { AdminPage, PageHeader, FilterPills, StatusBadge, AdminTableShell } from '../../components';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
@@ -116,14 +116,6 @@ const HrRequestsPage = () => {
         title="Duyệt đơn từ"
         description="Xét duyệt đơn xin nghỉ phép và yêu cầu đổi ca của nhân viên."
         variant="default"
-        secondaryActions={[
-          {
-            label: 'Làm mới',
-            onClick: load,
-            disabled: loading,
-            icon: <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />,
-          },
-        ]}
       />
 
       <FilterPills

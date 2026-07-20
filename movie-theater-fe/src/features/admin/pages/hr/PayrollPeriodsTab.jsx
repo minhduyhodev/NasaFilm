@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   BadgeCheck,
@@ -28,6 +29,51 @@ import {
 import { StatusBadge, AdminTableShell } from '../../components';
 
 const now = new Date();
+
+const WORKFLOW_STEPS = [
+  { id: 'OPEN', label: 'Mở kỳ' },
+  { id: 'GENERATED', label: 'Sinh phiếu' },
+  { id: 'APPROVED', label: 'Duyệt kỳ' },
+  { id: 'PAID', label: 'Chi trả' },
+];
+
+const workflowIndex = (status) => WORKFLOW_STEPS.findIndex((s) => s.id === status);
+
+function PayrollWorkflow({ status }) {
+  const currentIdx = workflowIndex(status);
+  return (
+    <div className="hr-workflow" aria-label="Luồng kỳ lương">
+      {WORKFLOW_STEPS.map((step, idx) => {
+        const done = currentIdx > idx;
+        const current = currentIdx === idx;
+        return (
+          <div key={step.id} className="hr-workflow__step-wrap" style={{ display: 'contents' }}>
+            <div className={`hr-workflow__step${done ? ' is-done' : ''}${current ? ' is-current' : ''}`}>
+              <span className="hr-workflow__dot">{done ? '✓' : idx + 1}</span>
+              <span className="hr-workflow__label">{step.label}</span>
+            </div>
+            {idx < WORKFLOW_STEPS.length - 1 && (
+              <span className={`hr-workflow__line${done ? ' is-done' : ''}`} aria-hidden />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PayrollAlert({ variant, icon: Icon, title, children, action }) {
+  return (
+    <div className={`hr-alert hr-alert--${variant}`}>
+      <Icon className="hr-alert__icon h-5 w-5" style={{ flexShrink: 0 }} />
+      <div className="hr-alert__body">
+        <p className="hr-alert__title">{title}</p>
+        <div className="hr-alert__text">{children}</div>
+      </div>
+      {action && <div className="hr-alert__action">{action}</div>}
+    </div>
+  );
+}
 
 const PayrollPeriodsTab = ({ staff }) => {
   const [periods, setPeriods] = useState([]);
@@ -229,9 +275,9 @@ const PayrollPeriodsTab = ({ staff }) => {
 
   return (
     <div>
-      <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="hr-toolbar-split">
         <span className="hr-muted" style={{ fontSize: 13 }}>
-          {periods.length} kỳ lương
+          {periods.length} kỳ lương · chọn kỳ để sinh phiếu, duyệt và chi trả
         </span>
         <PrimaryButton onClick={() => setCreateOpen(true)}>
           <CalendarPlus className="h-4 w-4" />
@@ -250,50 +296,46 @@ const PayrollPeriodsTab = ({ staff }) => {
           <p>Chưa có kỳ lương nào. Hãy tạo kỳ lương theo tháng.</p>
         </div>
       ) : (
-        <div className="hr-grid" style={{ gridTemplateColumns: 'minmax(0, 300px) 1fr', alignItems: 'start' }}>
-          {/* Danh sách kỳ lương */}
-          <div className="hr-grid" style={{ gap: 8 }}>
+        <div className="hr-payroll-layout">
+          <div className="hr-period-list">
             {periods.map((p) => {
               const meta = statusBadge(PAYROLL_STATUS_META, p.status);
               const active = p.uuid === selectedId;
+              const hasWarn = (p.warningCount ?? 0) > 0;
+              const hasPending = (p.pendingAttendanceCount ?? 0) > 0
+                && (p.status === 'OPEN' || p.status === 'GENERATED');
               return (
                 <button
                   key={p.uuid}
                   type="button"
-                  className="hr-card"
-                  style={{
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderColor: active ? 'rgba(239,68,68,0.5)' : undefined,
-                    background: active ? 'rgba(239,68,68,0.06)' : undefined,
-                  }}
+                  className={`hr-period-card${active ? ' is-active' : ''}`}
                   onClick={() => setSelectedId(p.uuid)}
                 >
-                  <div className="hr-inline" style={{ justifyContent: 'space-between' }}>
+                  <div className="hr-period-card__row">
                     <span className="hr-strong">Kỳ {p.label}</span>
                     <span className="hr-inline" style={{ gap: 6 }}>
-                      {(() => {
-                        const hasWarn = (p.warningCount ?? 0) > 0;
-                        const hasPending = (p.pendingAttendanceCount ?? 0) > 0
-                          && (p.status === 'OPEN' || p.status === 'GENERATED');
-                        if (!p.stale && !hasWarn && !hasPending) return null;
-                        const color = hasWarn ? '#f87171' : p.stale ? '#fbbf24' : '#38bdf8';
-                        const title = hasWarn
-                          ? `${p.warningCount} phiếu cần rà soát`
-                          : p.stale
-                            ? 'Phiếu lương đã lỗi thời — cần sinh lại'
-                            : `${p.pendingAttendanceCount} chấm công chưa duyệt`;
-                        return <AlertTriangle className="h-4 w-4" style={{ color }} title={title} />;
-                      })()}
+                      {!p.stale && !hasWarn && !hasPending ? null : (
+                        <AlertTriangle
+                          className="h-4 w-4"
+                          style={{ color: hasWarn ? '#f87171' : p.stale ? '#fbbf24' : '#38bdf8' }}
+                          title={
+                            hasWarn
+                              ? `${p.warningCount} phiếu cần rà soát`
+                              : p.stale
+                                ? 'Phiếu lương đã lỗi thời — cần sinh lại'
+                                : `${p.pendingAttendanceCount} chấm công chưa duyệt`
+                          }
+                        />
+                      )}
                       <StatusBadge variant={statusVariant(PAYROLL_STATUS_META, p.status)}>
                         {meta.label}
                       </StatusBadge>
                     </span>
                   </div>
-                  <p className="hr-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                  <p className="hr-period-card__meta">
                     {formatDate(p.startDate)} – {formatDate(p.endDate)}
                   </p>
-                  <div className="hr-inline" style={{ justifyContent: 'space-between', marginTop: 6 }}>
+                  <div className="hr-period-card__foot">
                     <span className="hr-muted" style={{ fontSize: 12 }}>{p.payslipCount} phiếu</span>
                     <span className="hr-strong" style={{ fontSize: 13 }}>{formatMoney(p.totalNetPay)}</span>
                   </div>
@@ -302,17 +344,36 @@ const PayrollPeriodsTab = ({ staff }) => {
             })}
           </div>
 
-          {/* Chi tiết kỳ lương */}
           <div>
             {selected && (
               <>
+                <PayrollWorkflow status={selected.status} />
+
+                <div className="hr-kpi-grid">
+                  <article className="hr-kpi-card hr-kpi-card--accent">
+                    <span className="hr-kpi-card__label">Tổng thực chi</span>
+                    <span className="hr-kpi-card__value" style={{ fontSize: 18 }}>{formatMoney(selected.totalNetPay)}</span>
+                  </article>
+                  <article className="hr-kpi-card">
+                    <span className="hr-kpi-card__label">Phiếu lương</span>
+                    <span className="hr-kpi-card__value">{selected.payslipCount ?? 0}</span>
+                  </article>
+                  <article className="hr-kpi-card hr-kpi-card--warn">
+                    <span className="hr-kpi-card__label">Chấm công chưa duyệt</span>
+                    <span className="hr-kpi-card__value">{selected.pendingAttendanceCount ?? 0}</span>
+                  </article>
+                  <article className="hr-kpi-card">
+                    <span className="hr-kpi-card__label">Cần rà soát</span>
+                    <span className="hr-kpi-card__value">{selected.warningCount ?? 0}</span>
+                  </article>
+                </div>
+
                 <div className="hr-card" style={{ marginBottom: 16 }}>
-                  <div className="hr-inline" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div className="hr-detail-head">
                     <div>
-                      <p className="hr-strong" style={{ fontSize: 16 }}>Kỳ lương {selected.label}</p>
-                      <p className="hr-muted" style={{ fontSize: 12 }}>
-                        {formatDate(selected.startDate)} – {formatDate(selected.endDate)} · Tổng thực chi{' '}
-                        <span className="hr-strong">{formatMoney(selected.totalNetPay)}</span>
+                      <h3 className="hr-detail-head__title">Kỳ lương {selected.label}</h3>
+                      <p className="hr-detail-head__sub">
+                        {formatDate(selected.startDate)} – {formatDate(selected.endDate)}
                       </p>
                     </div>
                     <div className="hr-row-actions">
@@ -351,66 +412,41 @@ const PayrollPeriodsTab = ({ staff }) => {
                 </div>
 
                 {(selected.pendingAttendanceCount ?? 0) > 0 && (selected.status === 'OPEN' || selected.status === 'GENERATED') && (
-                  <div
-                    className="hr-card"
-                    style={{ marginBottom: 12, borderColor: 'rgba(56,189,248,0.5)', background: 'rgba(56,189,248,0.08)' }}
-                  >
-                    <div className="hr-inline" style={{ gap: 10, alignItems: 'flex-start' }}>
-                      <AlertTriangle className="h-5 w-5" style={{ color: '#38bdf8', flexShrink: 0 }} />
-                      <div>
-                        <p className="hr-strong" style={{ margin: 0 }}>{selected.pendingAttendanceCount} chấm công chưa duyệt trong kỳ</p>
-                        <p className="hr-muted" style={{ fontSize: 13, margin: '4px 0 0' }}>
-                          Các bản ghi này <b>sẽ không được tính</b> vào phiếu lương. Hãy duyệt hết chấm công ở mục <b>Chấm công</b> rồi sinh/sinh lại phiếu để đảm bảo đủ công.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <PayrollAlert variant="info" icon={AlertTriangle} title={`${selected.pendingAttendanceCount} chấm công chưa duyệt trong kỳ`}>
+                    Các bản ghi này <b>sẽ không được tính</b> vào phiếu lương. Duyệt hết chấm công rồi sinh hoặc sinh lại phiếu.
+                    {' '}
+                    <Link className="hr-link" to="/admin/hr/attendance">Mở duyệt chấm công →</Link>
+                  </PayrollAlert>
                 )}
 
                 {selected.stale && (
-                  <div
-                    className="hr-card"
-                    style={{ marginBottom: 12, borderColor: 'rgba(251,191,36,0.5)', background: 'rgba(251,191,36,0.08)' }}
-                  >
-                    <div className="hr-inline" style={{ gap: 10, alignItems: 'flex-start' }}>
-                      <AlertTriangle className="h-5 w-5" style={{ color: '#fbbf24', flexShrink: 0 }} />
-                      <div>
-                        <p className="hr-strong" style={{ margin: 0 }}>Phiếu lương đã lỗi thời</p>
-                        <p className="hr-muted" style={{ fontSize: 13, margin: '4px 0 0' }}>
-                          Có chấm công được duyệt <b>sau khi</b> sinh phiếu. Nhấn <b>Sinh lại phiếu</b> để cập nhật số liệu trước khi duyệt kỳ lương.
-                        </p>
-                      </div>
-                      {(selected.status === 'OPEN' || selected.status === 'GENERATED') && (
+                  <PayrollAlert
+                    variant="warn"
+                    icon={AlertTriangle}
+                    title="Phiếu lương đã lỗi thời"
+                    action={
+                      (selected.status === 'OPEN' || selected.status === 'GENERATED') ? (
                         <button
                           type="button"
                           className="adm-btn adm-btn--ghost px-3 py-1.5 rounded-md cursor-pointer text-xs font-semibold inline-flex items-center gap-1.5"
-                          style={{ marginLeft: 'auto', color: '#fbbf24' }}
+                          style={{ color: '#fbbf24' }}
                           disabled={busy}
                           onClick={handleGenerate}
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
                           Sinh lại
                         </button>
-                      )}
-                    </div>
-                  </div>
+                      ) : null
+                    }
+                  >
+                    Có chấm công được duyệt <b>sau khi</b> sinh phiếu. Nhấn <b>Sinh lại phiếu</b> trước khi duyệt kỳ lương.
+                  </PayrollAlert>
                 )}
 
                 {(selected.warningCount ?? 0) > 0 && (
-                  <div
-                    className="hr-card"
-                    style={{ marginBottom: 12, borderColor: 'rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.08)' }}
-                  >
-                    <div className="hr-inline" style={{ gap: 10, alignItems: 'flex-start' }}>
-                      <AlertTriangle className="h-5 w-5" style={{ color: '#f87171', flexShrink: 0 }} />
-                      <div>
-                        <p className="hr-strong" style={{ margin: 0 }}>{selected.warningCount} phiếu cần rà soát</p>
-                        <p className="hr-muted" style={{ fontSize: 13, margin: '4px 0 0' }}>
-                          Một số phiếu <b>chưa có đơn giá lương</b> (nhân viên chưa cấu hình hồ sơ hoặc hồ sơ đang tạm ngưng) hoặc có <b>thực nhận âm</b>. Kiểm tra hồ sơ lương / khấu trừ trước khi duyệt.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <PayrollAlert variant="danger" icon={AlertTriangle} title={`${selected.warningCount} phiếu cần rà soát`}>
+                    Một số phiếu <b>chưa có đơn giá lương</b> hoặc có <b>thực nhận âm</b>. Kiểm tra tab Hồ sơ lương trước khi duyệt.
+                  </PayrollAlert>
                 )}
 
                 {detailLoading ? (
@@ -421,7 +457,9 @@ const PayrollPeriodsTab = ({ staff }) => {
                 ) : (
                   <>
                     {/* Phiếu lương */}
-                    <p className="hr-card__title" style={{ marginBottom: 8 }}>Phiếu lương ({payslips.length})</p>
+                    <div className="hr-section-head">
+                      <p className="hr-section-head__title">Phiếu lương ({payslips.length})</p>
+                    </div>
                     {payslips.length === 0 ? (
                       <div className="hr-state" style={{ padding: 32 }}>
                         <p>Chưa có phiếu lương. Nhấn “Sinh phiếu lương” để tính từ công đã duyệt.</p>
@@ -433,10 +471,10 @@ const PayrollPeriodsTab = ({ staff }) => {
                             <tr>
                               <th>Nhân viên</th>
                               <th>Giờ công</th>
-                              <th>OT</th>
+                              <th>OT (giờ)</th>
                               <th>Đơn giá</th>
                               <th>Lương cơ bản</th>
-                              <th>OT</th>
+                              <th>Lương OT</th>
                               <th>Thưởng</th>
                               <th>Khấu trừ</th>
                               <th>Thực nhận</th>
@@ -451,7 +489,7 @@ const PayrollPeriodsTab = ({ staff }) => {
                               return (
                                 <tr
                                   key={slip.uuid}
-                                  style={warn ? { background: 'rgba(248,113,113,0.06)' } : undefined}
+                                  className={warn ? 'hr-row-warn' : undefined}
                                 >
                                   <td className="hr-strong">
                                     {slip.fullName || slip.email}
@@ -498,8 +536,8 @@ const PayrollPeriodsTab = ({ staff }) => {
                     )}
 
                     {/* Thưởng / khấu trừ */}
-                    <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-                      <p className="hr-card__title" style={{ margin: 0 }}>Thưởng & khấu trừ ({adjustments.length})</p>
+                    <div className="hr-section-head">
+                      <p className="hr-section-head__title">Thưởng & khấu trừ ({adjustments.length})</p>
                       {canEditAdjust && (
                         <button
                           type="button"
@@ -540,18 +578,15 @@ const PayrollPeriodsTab = ({ staff }) => {
                                 <td>{adj.reason}</td>
                                 <td>
                                   {canEditAdjust && (
-                                    <div className="hr-row-actions">
-                                      <button
-                                        type="button"
-                                        className="cursor-pointer"
-                                        style={{ background: 'none', border: 'none', color: '#f87171', padding: 4 }}
-                                        title="Xóa"
-                                        disabled={busy}
-                                        onClick={() => handleDeleteAdjustment(adj)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </div>
+                                    <button
+                                      type="button"
+                                      className="hr-action-btn hr-action-btn--reject"
+                                      title="Xóa"
+                                      disabled={busy}
+                                      onClick={() => handleDeleteAdjustment(adj)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
                                   )}
                                 </td>
                               </tr>

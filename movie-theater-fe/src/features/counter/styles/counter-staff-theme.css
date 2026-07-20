@@ -785,11 +785,16 @@
   color: #fca5a5;
 }
 
-/* Print ticket modal ? dark theme like staff-control welcome */
+/* Print ticket modal — dark theme like staff-control welcome */
 .staff-control__welcome-card--wide {
-  width: min(460px, 94vw);
+  width: min(440px, 94vw);
   text-align: left;
   position: relative;
+}
+
+.staff-control__welcome-card--ticket {
+  max-height: min(92vh, 900px);
+  overflow-y: auto;
 }
 
 .staff-control__modal-close {
@@ -802,41 +807,86 @@
   background: rgba(255, 255, 255, 0.06);
   color: #94a3b8;
   cursor: pointer;
+  z-index: 2;
+}
+
+.staff-control__modal-close:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .staff-control__welcome-icon--ticket {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
 }
 
 .staff-control__ticket-stub {
-  padding: 1rem;
-  border-radius: 0.625rem;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px dashed rgba(148, 163, 184, 0.2);
+  position: relative;
+  padding: 1.1rem 1.15rem 1rem;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(24, 28, 42, 0.95), rgba(12, 15, 26, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.16);
   margin-bottom: 1rem;
   font-size: 0.75rem;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.staff-control__ticket-stub-notch {
+  position: absolute;
+  top: 58%;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #0b0d12;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  z-index: 1;
+}
+
+.staff-control__ticket-stub-notch--left {
+  left: -8px;
+}
+
+.staff-control__ticket-stub-notch--right {
+  right: -8px;
 }
 
 .staff-control__ticket-stub-header {
   text-align: center;
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.22);
+}
+
+.staff-control__ticket-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #f8fafc;
 }
 
 .staff-control__ticket-stub-header h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 900;
+  letter-spacing: 0.08em;
   color: #fff;
 }
 
-.staff-control__ticket-stub-header p {
-  margin: 0.15rem 0 0;
-  font-size: 0.65rem;
+.staff-control__ticket-meta {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
   color: #94a3b8;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.35rem;
+}
+
+.staff-control__ticket-meta-sep {
+  opacity: 0.5;
 }
 
 .staff-control__ticket-label {
@@ -852,44 +902,271 @@
 .staff-control__ticket-value {
   font-weight: 700;
   color: #e2e8f0;
+  line-height: 1.35;
+}
+
+.staff-control__ticket-value--title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
 }
 
 .staff-control__ticket-value--accent {
-  color: #fca5a5;
+  color: #f87171;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.staff-control__ticket-movie,
+.staff-control__ticket-customer,
+.staff-control__ticket-combos {
+  margin-bottom: 0.75rem;
+}
+
+.staff-control__ticket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.staff-control__ticket-email {
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  color: #64748b;
+  word-break: break-all;
 }
 
 .staff-control__ticket-qr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.75rem 0;
-  margin: 0.5rem 0;
-  border-top: 1px dashed rgba(148, 163, 184, 0.2);
+  gap: 0.4rem;
+  padding: 0.9rem 0 0.65rem;
+  margin: 0.35rem 0 0.15rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.22);
+}
+
+.staff-control__ticket-qr-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: zoom-in;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 12px;
+  transition: transform 0.15s ease;
+}
+
+.staff-control__ticket-qr-btn:hover {
+  transform: scale(1.02);
+}
+
+.staff-control__ticket-qr-btn:focus-visible {
+  outline: 2px solid rgba(248, 113, 113, 0.55);
+  outline-offset: 4px;
+}
+
+.staff-control__ticket-qr-img {
+  width: 148px;
+  height: 148px;
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: block;
+}
+
+.staff-control__ticket-qr-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.staff-control__ticket-qr-btn:hover .staff-control__ticket-qr-hint {
+  color: #fdba74;
+}
+
+.staff-control__ticket-qr-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 120px;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.7rem;
 }
 
 .staff-control__ticket-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e2e8f0;
+}
+
+.staff-control__ticket-code-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.staff-control__ticket-code-chip {
   font-family: ui-monospace, monospace;
-  font-size: 0.7rem;
-  color: #cbd5e1;
+  font-size: 0.62rem;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+.staff-control__ticket-qr-caption {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .staff-control__ticket-total {
   display: flex;
   justify-content: space-between;
-  padding-top: 0.5rem;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  margin-top: 0.35rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.22);
   font-size: 0.8rem;
   color: #94a3b8;
 }
 
 .staff-control__ticket-total strong {
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .staff-control__modal-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+/* QR zoom lightbox */
+.staff-control__qr-zoom {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(3, 5, 10, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+.staff-control__qr-zoom-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(420px, 94vw);
+  padding: 1.75rem 1.5rem 1.35rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #161a28, #0e121d);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.staff-control__qr-zoom-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.staff-control__qr-zoom-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.staff-control__qr-zoom-title {
+  margin: 0;
+  width: 100%;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em; /* bù letter-spacing để chữ căn giữa thật */
+  text-transform: uppercase;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.staff-control__qr-zoom-movie {
+  margin: 0.4rem 0 1.1rem;
+  width: 100%;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.staff-control__qr-zoom-img {
+  display: block;
+  width: min(300px, 72vw);
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.staff-control__qr-zoom-code {
+  margin: 1rem 0 0.4rem;
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-indent: 0.12em;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+.staff-control__qr-zoom-hint {
+  margin: 0;
+  width: 100%;
+  max-width: 22rem;
+  font-size: 0.7rem;
+  color: #64748b;
+  line-height: 1.45;
+  text-align: center;
 }
 
 /* ?? Counter POS ? modern motion ?? */
@@ -2230,7 +2507,10 @@
   .staff-control__modal-actions,
   .staff-control__welcome-icon,
   .staff-control__welcome-title,
-  .staff-control__welcome-sub {
+  .staff-control__welcome-sub,
+  .staff-control__ticket-qr-hint,
+  .staff-control__ticket-stub-notch,
+  .staff-control__qr-zoom {
     display: none !important;
   }
 
@@ -2255,6 +2535,7 @@
     color: #000 !important;
     box-shadow: none !important;
     font-size: 11pt; /* Make text slightly larger for print */
+    overflow: visible !important;
   }
 
   .staff-control__ticket-stub * {
@@ -2268,9 +2549,15 @@
     padding-top: 10px !important;
   }
 
-  .staff-control__ticket-qr svg {
-    color: #000 !important;
-    width: 80px !important;
-    height: 80px !important;
+  .staff-control__ticket-qr-img {
+    width: 100px !important;
+    height: 100px !important;
+    box-shadow: none !important;
+    padding: 4px !important;
+  }
+
+  .staff-control__ticket-qr-btn {
+    cursor: default !important;
+    transform: none !important;
   }
 }
