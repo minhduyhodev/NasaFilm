@@ -12,7 +12,6 @@ import {
   LogOut,
   Plus,
   QrCode,
-  RefreshCw,
   Send,
   Timer,
   Trash2,
@@ -225,18 +224,6 @@ const MyHrPage = () => {
         title="Bảng công của tôi"
         description="Xem lịch ca được phân, check-in / check-out và tra cứu phiếu lương của bạn."
         variant="default"
-        secondaryActions={[
-          {
-            label: 'Làm mới',
-            onClick: () => {
-              loadTab();
-              loadOverview();
-              loadNotifs();
-            },
-            disabled: loading,
-            icon: <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />,
-          },
-        ]}
       />
 
       {kpis.length > 0 && <AdminKpiGrid items={kpis} columns={4} className="mb-6" />}
