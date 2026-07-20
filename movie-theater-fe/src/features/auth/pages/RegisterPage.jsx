@@ -14,6 +14,7 @@ import { authService } from "../api/authService";
 import { useAuthContext } from "../hooks/useAuthContext";
 import { notificationService } from "../../../shared/services/notificationService";
 import tokenService from "../utils/tokenService";
+import { getDefaultAdminPath, isAdminOrStaffUser } from "../../../shared/utils/adminNavigation";
 import "./RegisterPage.css";
 
 export const RegisterPage = () => {
@@ -170,9 +171,9 @@ export const RegisterPage = () => {
 
   const redirectAfterLogin = () => {
     const storedUser = tokenService.getUser();
-    const roles = storedUser?.roles || [];
-    const isAdminOrStaff = roles.some((r) => r === "admin" || r === "staff");
-    const targetPath = isAdminOrStaff ? "/admin" : "/";
+    const targetPath = isAdminOrStaffUser(storedUser)
+      ? getDefaultAdminPath(storedUser)
+      : "/";
     navigate(targetPath, { replace: true });
   };
 

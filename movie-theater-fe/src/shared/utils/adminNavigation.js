@@ -1,5 +1,20 @@
 import { hasPermission, isAdmin, PERMISSIONS } from './permissions';
 
+/** Admin / staff — không dùng khu vực khách hàng (home, đặt vé, ví…). */
+export const isAdminOrStaffUser = (user) => {
+  const roles = user?.roles || [];
+  return roles.some((r) => {
+    if (!r) return false;
+    const roleLower = String(r).toLowerCase();
+    return (
+      roleLower === 'admin'
+      || roleLower === 'staff'
+      || roleLower.includes('admin')
+      || roleLower.includes('staff')
+    );
+  });
+};
+
 /** Thứ tự ưu tiên trang mặc định sau đăng nhập (staff không phải admin). */
 const STAFF_LANDING_CANDIDATES = [
   { path: '/admin', permission: PERMISSIONS.USER_VIEW },

@@ -65,6 +65,35 @@ const principles = [
   },
 ];
 
+/** Đội ngũ NASAFilm — phân vai theo mảng phụ trách thực tế trên dự án. */
+const teamMembers = [
+  {
+    name: 'Hồ Minh Duy',
+    role: 'Project Manager',
+    focus: 'Điều phối dự án · Booking · Thanh toán',
+  },
+  {
+    name: 'Võ Lê Đức Phát',
+    role: 'Frontend Lead',
+    focus: 'Admin UI · Rạp & suất chiếu · Review',
+  },
+  {
+    name: 'Nguyễn Chí Trung',
+    role: 'Backend Developer',
+    focus: 'Mission · Discover · Streaming / S3',
+  },
+  {
+    name: 'Vũ Trần Tuấn Huy',
+    role: 'Frontend Developer',
+    focus: 'Customer UI · Orbit · Hồ sơ thành viên',
+  },
+  {
+    name: 'Huỳnh Gia Vỹ',
+    role: 'CEO',
+    focus: 'Định hướng sản phẩm · Realtime · Orbit',
+  },
+];
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -195,6 +224,35 @@ const AboutPage = () => {
             </motion.li>
           ))}
         </motion.ol>
+      </section>
+
+      <section className="about-team-section" aria-labelledby="about-team-heading">
+        <div className="about-team-filmstrip about-team-filmstrip--left" aria-hidden="true" />
+        <div className="about-team-filmstrip about-team-filmstrip--right" aria-hidden="true" />
+        <div className="about-team-beams" aria-hidden="true" />
+        <div className="about-team-inner">
+          <h2 id="about-team-heading" className="about-team-title">Thành viên NASAFILM</h2>
+          <motion.ul
+            className="about-team-grid"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={containerVariants}
+          >
+            {teamMembers.map((member) => (
+              <motion.li className="about-team-card" variants={itemVariants} key={member.name}>
+                <div className="about-team-card__meta">
+                  <h3>{member.name}</h3>
+                  <p className="about-team-card__role">{member.role}</p>
+                  <p className="about-team-card__focus">{member.focus}</p>
+                </div>
+                <div className="about-team-card__photo" aria-hidden="true">
+                  <span>{member.name.split(' ').pop()?.charAt(0)}</span>
+                </div>
+              </motion.li>
+            ))}
+          </motion.ul>
+        </div>
       </section>
 
       <section className="about-principles-section">
