@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowLeftRight,
   BellRing,
@@ -85,15 +86,24 @@ const NOTIF_ICON = {
 };
 
 const MyHrPage = () => {
-  const [tab, setTab] = useState('shifts');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab') || 'shifts';
+  const tab = TABS.some((t) => t.id === rawTab) ? rawTab : 'shifts';
+  const setTab = useCallback((id) => {
+    setSearchParams(id === 'shifts' ? {} : { tab: id }, { replace: true });
+  }, [setSearchParams]);
+
   const [overview, setOverview] = useState(null);
   const [shifts, setShifts] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [payslips, setPayslips] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [swaps, setSwaps] = useState([]);
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+  const [pendingSwapCount, setPendingSwapCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [checkpoint, setCheckpoint] = useState(null);
+  const [swapModalShift, setSwapModalShift] = useState(null);
   const [notifs, setNotifs] = useState([]);
   const [markingRead, setMarkingRead] = useState(false);
   const confirm = useConfirm();
@@ -102,6 +112,24 @@ const MyHrPage = () => {
     () => ({ from: addDaysIso(todayIso(), -7), to: addDaysIso(todayIso(), 21) }),
     [],
   );
+
+  const loadRequestCounts = useCallback(async () => {
+    try {
+      const [leaveData, swapData] = await Promise.all([
+        hrService.getMyLeaveRequests(),
+        hrService.getMySwapRequests(),
+      ]);
+      const leaveList = Array.isArray(leaveData) ? leaveData : [];
+      const swapList = Array.isArray(swapData) ? swapData : [];
+      setPendingLeaveCount(leaveList.filter((l) => l.status === 'PENDING').length);
+      setPendingSwapCount(swapList.filter((s) => s.status === 'PENDING').length);
+      if (tab === 'leave') setLeaves(leaveList);
+      if (tab === 'swap') setSwaps(swapList);
+    } catch {
+      setPendingLeaveCount(0);
+      setPendingSwapCount(0);
+    }
+  }, [tab]);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -163,7 +191,8 @@ const MyHrPage = () => {
   useEffect(() => {
     loadOverview();
     loadNotifs();
-  }, [loadOverview, loadNotifs]);
+    loadRequestCounts();
+  }, [loadOverview, loadNotifs, loadRequestCounts]);
 
   useEffect(() => {
     loadTab();
@@ -218,19 +247,49 @@ const MyHrPage = () => {
       ]
     : [];
 
+  const tabItems = useMemo(
+    () => TABS.map((t) => ({
+      ...t,
+      count:
+        t.id === 'leave' && pendingLeaveCount > 0
+          ? pendingLeaveCount
+          : t.id === 'swap' && pendingSwapCount > 0
+            ? pendingSwapCount
+            : undefined,
+    })),
+    [pendingLeaveCount, pendingSwapCount],
+  );
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadTab(), loadOverview(), loadRequestCounts()]);
+  }, [loadTab, loadOverview, loadRequestCounts]);
+
+  const openSwapForShift = useCallback((shift) => {
+    setSwapModalShift(shift);
+  }, []);
+
   return (
     <AdminPage>
       <PageHeader
         eyebrow="Chấm công & Lương"
         title="Bảng công của tôi"
-        description="Xem lịch ca được phân, check-in / check-out và tra cứu phiếu lương của bạn."
+        description="Xem lịch ca, chấm công, gửi đơn nghỉ phép / đổi ca và tra cứu phiếu lương."
         variant="default"
+        primaryAction={{
+          label: 'Gửi yêu cầu đổi ca',
+          onClick: () => setTab('swap'),
+          icon: <ArrowLeftRight className="h-4 w-4" />,
+        }}
         secondaryActions={[
+          {
+            label: 'Xin nghỉ phép',
+            onClick: () => setTab('leave'),
+            icon: <CalendarX className="h-4 w-4" />,
+          },
           {
             label: 'Làm mới',
             onClick: () => {
-              loadTab();
-              loadOverview();
+              refreshAll();
               loadNotifs();
             },
             disabled: loading,
@@ -286,7 +345,7 @@ const MyHrPage = () => {
       <FilterPills
         value={tab}
         onChange={setTab}
-        items={TABS}
+        items={tabItems}
         ariaLabel="Tab HR cá nhân"
         className="mb-4"
       />
@@ -301,15 +360,25 @@ const MyHrPage = () => {
           shifts={shifts}
           onCheckIn={(s) => openCheckpoint(s, 'in')}
           onCheckOut={(s) => openCheckpoint(s, 'out')}
+          onRequestSwap={openSwapForShift}
         />
       ) : tab === 'attendance' ? (
         <AttendanceList attendance={attendance} />
       ) : tab === 'payslips' ? (
         <PayslipList payslips={payslips} />
       ) : tab === 'leave' ? (
-        <LeaveTab leaves={leaves} onChanged={loadTab} confirm={confirm} />
+        <LeaveTab leaves={leaves} onChanged={refreshAll} confirm={confirm} />
       ) : (
-        <SwapTab swaps={swaps} onChanged={loadTab} confirm={confirm} />
+        <SwapTab swaps={swaps} onChanged={refreshAll} confirm={confirm} />
+      )}
+
+      {swapModalShift && (
+        <SwapRequestModal
+          shift={swapModalShift}
+          onClose={() => setSwapModalShift(null)}
+          onSubmitted={refreshAll}
+          confirm={confirm}
+        />
       )}
 
       {checkpoint && (
@@ -379,7 +448,7 @@ function NotificationPanel({ notifs, onMarkRead, marking }) {
   );
 }
 
-function ShiftList({ shifts, onCheckIn, onCheckOut }) {
+function ShiftList({ shifts, onCheckIn, onCheckOut, onRequestSwap }) {
   const today = todayIso();
 
   const groups = useMemo(() => {
@@ -475,6 +544,7 @@ function ShiftList({ shifts, onCheckIn, onCheckOut }) {
                     shift={s}
                     onCheckIn={onCheckIn}
                     onCheckOut={onCheckOut}
+                    onRequestSwap={onRequestSwap}
                   />
                 ))}
               </div>
@@ -486,13 +556,19 @@ function ShiftList({ shifts, onCheckIn, onCheckOut }) {
   );
 }
 
-function ShiftCard({ shift, onCheckIn, onCheckOut }) {
+function ShiftCard({ shift, onCheckIn, onCheckOut, onRequestSwap }) {
   const cancelled = shift.status === 'CANCELLED';
   const hasCheckIn = Boolean(shift.checkInAt);
   const hasCheckOut = Boolean(shift.checkOutAt);
   const windowState = !hasCheckIn
     ? shiftCheckInState(shift.workDate, shift.startTime, shift.endTime)
     : 'OPEN';
+  const canRequestSwap =
+    !cancelled
+    && shift.status === 'SCHEDULED'
+    && shift.workDate >= todayIso()
+    && !hasCheckIn
+    && windowState !== 'MISSED';
 
   return (
     <div className="hr-shift-card">
@@ -558,6 +634,16 @@ function ShiftCard({ shift, onCheckIn, onCheckOut }) {
             </button>
           )}
           {hasCheckOut && <span className="hr-badge hr-badge--success">Hoàn tất</span>}
+          {canRequestSwap && onRequestSwap && (
+            <button
+              type="button"
+              className="adm-btn adm-btn--ghost px-3 py-1.5 inline-flex items-center gap-1.5 rounded-md text-xs font-semibold cursor-pointer hr-swap-shift-btn"
+              onClick={() => onRequestSwap(shift)}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              Đổi ca
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -820,15 +906,14 @@ function LeaveTab({ leaves, onChanged, confirm }) {
   );
 }
 
-function SwapTab({ swaps, onChanged, confirm }) {
+function SwapRequestForm({ prefillAssignmentId = '', onSubmitted, confirm, showSubmit = true }) {
   const [myShifts, setMyShifts] = useState([]);
   const [candidates, setCandidates] = useState([]);
-  const [mine, setMine] = useState('');
+  const [mine, setMine] = useState(prefillAssignmentId || '');
   const [theirs, setTheirs] = useState('');
   const [note, setNote] = useState('');
   const [loadingForm, setLoadingForm] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [cancelId, setCancelId] = useState(null);
 
   const range = useMemo(() => ({ from: todayIso(), to: addDaysIso(todayIso(), 28) }), []);
 
@@ -856,6 +941,15 @@ function SwapTab({ swaps, onChanged, confirm }) {
     loadForm();
   }, [loadForm]);
 
+  useEffect(() => {
+    if (prefillAssignmentId) setMine(prefillAssignmentId);
+  }, [prefillAssignmentId]);
+
+  const selectedMine = useMemo(
+    () => myShifts.find((s) => s.uuid === mine) || null,
+    [myShifts, mine],
+  );
+
   const mineOptions = useMemo(
     () => [
       { value: '', label: 'Chọn ca của bạn...' },
@@ -867,16 +961,23 @@ function SwapTab({ swaps, onChanged, confirm }) {
     [myShifts],
   );
 
-  const theirsOptions = useMemo(
-    () => [
+  const theirsOptions = useMemo(() => {
+    const pool = selectedMine
+      ? candidates.filter((s) => s.workDate === selectedMine.workDate)
+      : candidates;
+    const list = pool.length > 0 ? pool : candidates;
+    return [
       { value: '', label: 'Chọn ca đồng nghiệp...' },
-      ...candidates.map((s) => ({
+      ...list.map((s) => ({
         value: s.uuid,
-        label: `${s.fullName || s.email} · ${formatDate(s.workDate)} · ${s.shiftName}`,
+        label: `${s.fullName || s.email} · ${formatDate(s.workDate)} · ${s.shiftName} (${formatTime(s.startTime)}–${formatTime(s.endTime)})`,
       })),
-    ],
-    [candidates],
-  );
+    ];
+  }, [candidates, selectedMine]);
+
+  useEffect(() => {
+    setTheirs('');
+  }, [mine]);
 
   const submit = async () => {
     if (!mine || !theirs) {
@@ -902,13 +1003,99 @@ function SwapTab({ swaps, onChanged, confirm }) {
       setMine('');
       setTheirs('');
       setNote('');
-      await Promise.all([onChanged(), loadForm()]);
+      await Promise.all([onSubmitted?.(), loadForm()]);
     } catch (err) {
       notificationService.error(err?.message || 'Không thể gửi yêu cầu đổi ca.');
     } finally {
       setSaving(false);
     }
   };
+
+  if (loadingForm) {
+    return (
+      <div className="hr-state" style={{ padding: 20 }}>
+        <Loader2 className="h-6 w-6 text-red-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (myShifts.length === 0) {
+    return (
+      <p className="hr-muted" style={{ fontSize: 13 }}>
+        Bạn chưa có ca sắp tới nào để đổi. Liên hệ quản lý nếu cần điều chỉnh lịch.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div className="hr-field">
+        <AdminSelectDropdown label="Ca của tôi" value={mine} options={mineOptions} onChange={setMine} size="sm" />
+      </div>
+      <div className="hr-field" style={{ marginTop: 12 }}>
+        <AdminSelectDropdown label="Đổi lấy ca của đồng nghiệp" value={theirs} options={theirsOptions} onChange={setTheirs} size="sm" />
+      </div>
+      {selectedMine && candidates.filter((s) => s.workDate === selectedMine.workDate).length === 0 && (
+        <p className="hr-muted" style={{ fontSize: 11, marginTop: 8 }}>
+          Không có ca đồng nghiệp cùng ngày — hiển thị tất cả ca có thể đổi trong 4 tuần tới.
+        </p>
+      )}
+      <div className="hr-field" style={{ marginTop: 12 }}>
+        <label className="hr-field__label">Ghi chú (tùy chọn)</label>
+        <textarea
+          className={adminInputClass}
+          rows={2}
+          placeholder="Lý do đổi ca..."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </div>
+      <p className="hr-muted" style={{ fontSize: 11, marginTop: 8 }}>
+        Yêu cầu cần quản lý duyệt. Hệ thống kiểm tra trùng giờ và nghỉ phép trước khi đổi.
+      </p>
+      {showSubmit && (
+        <div style={{ marginTop: 14 }}>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!mine || !theirs}>
+            <Send className="h-4 w-4" />
+            Gửi yêu cầu
+          </PrimaryButton>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SwapRequestModal({ shift, onClose, onSubmitted, confirm }) {
+  return (
+    <AdminModal
+      open
+      onClose={onClose}
+      title="Gửi yêu cầu đổi ca"
+      subtitle={`${shift.shiftName} · ${formatDate(shift.workDate)} · ${formatTime(shift.startTime)}–${formatTime(shift.endTime)}`}
+      size="md"
+      footer={(
+        <div className="hr-inline" style={{ justifyContent: 'flex-end', width: '100%' }}>
+          <button
+            type="button"
+            className="adm-btn adm-btn--ghost px-3.5 py-2 rounded-md cursor-pointer text-sm font-medium"
+            onClick={onClose}
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+    >
+      <SwapRequestForm
+        prefillAssignmentId={shift.uuid}
+        onSubmitted={onSubmitted}
+        confirm={confirm}
+      />
+    </AdminModal>
+  );
+}
+
+function SwapTab({ swaps, onChanged, confirm }) {
+  const [cancelId, setCancelId] = useState(null);
 
   const cancel = async (rec) => {
     const ok = await confirm({
@@ -937,43 +1124,9 @@ function SwapTab({ swaps, onChanged, confirm }) {
           <ArrowLeftRight className="h-4 w-4 text-sky-400" />
           Gửi yêu cầu đổi ca
         </p>
-        {loadingForm ? (
-          <div className="hr-state" style={{ padding: 20 }}>
-            <Loader2 className="h-6 w-6 text-red-500 animate-spin" />
-          </div>
-        ) : myShifts.length === 0 ? (
-          <p className="hr-muted" style={{ fontSize: 13, marginTop: 12 }}>
-            Bạn chưa có ca sắp tới nào để đổi.
-          </p>
-        ) : (
-          <>
-            <div className="hr-field" style={{ marginTop: 12 }}>
-              <AdminSelectDropdown label="Ca của tôi" value={mine} options={mineOptions} onChange={setMine} size="sm" />
-            </div>
-            <div className="hr-field" style={{ marginTop: 12 }}>
-              <AdminSelectDropdown label="Đổi lấy ca của đồng nghiệp" value={theirs} options={theirsOptions} onChange={setTheirs} size="sm" />
-            </div>
-            <div className="hr-field" style={{ marginTop: 12 }}>
-              <label className="hr-field__label">Ghi chú (tùy chọn)</label>
-              <textarea
-                className={adminInputClass}
-                rows={2}
-                placeholder="Lý do đổi ca..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </div>
-            <p className="hr-muted" style={{ fontSize: 11, marginTop: 8 }}>
-              Yêu cầu cần quản lý duyệt. Hệ thống sẽ kiểm tra trùng giờ và nghỉ phép trước khi đổi.
-            </p>
-            <div style={{ marginTop: 14 }}>
-              <PrimaryButton onClick={submit} loading={saving} disabled={!mine || !theirs}>
-                <Send className="h-4 w-4" />
-                Gửi yêu cầu
-              </PrimaryButton>
-            </div>
-          </>
-        )}
+        <div style={{ marginTop: 12 }}>
+          <SwapRequestForm onSubmitted={onChanged} confirm={confirm} />
+        </div>
       </div>
 
       <div className="hr-req-history">
