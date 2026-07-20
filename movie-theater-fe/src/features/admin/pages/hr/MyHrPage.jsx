@@ -13,7 +13,6 @@ import {
   LogOut,
   Plus,
   QrCode,
-  RefreshCw,
   Send,
   Timer,
   Trash2,
@@ -219,35 +218,35 @@ const MyHrPage = () => {
 
   const kpis = overview
     ? [
-        {
-          label: 'Ca sắp tới',
-          value: overview.upcomingShiftCount ?? 0,
-          icon: CalendarClock,
-          kpiClass: 'kpi-total',
-          badge: 'Trong 3 tuần tới',
-        },
-        {
-          label: 'Giờ công tháng này',
-          value: `${formatMinutes(overview.monthRegularMinutes)}`,
-          icon: Clock,
-          kpiClass: 'kpi-active',
-          badge: `${overview.monthShiftCount ?? 0} ca đã làm`,
-        },
-        {
-          label: 'Giờ OT tháng này',
-          value: formatMinutes(overview.monthOtMinutes),
-          icon: Timer,
-          kpiClass: 'kpi-showing',
-          badge: `${overview.monthPendingCount ?? 0} chờ duyệt`,
-        },
-        {
-          label: 'Lương kỳ gần nhất',
-          value: formatMoney(overview.latestNetPay),
-          icon: Wallet,
-          kpiClass: 'kpi-upcoming',
-          badge: overview.latestPayslipLabel || 'Chưa có',
-        },
-      ]
+      {
+        label: 'Ca sắp tới',
+        value: overview.upcomingShiftCount ?? 0,
+        icon: CalendarClock,
+        kpiClass: 'kpi-total',
+        badge: 'Trong 3 tuần tới',
+      },
+      {
+        label: 'Giờ công tháng này',
+        value: `${formatMinutes(overview.monthRegularMinutes)}`,
+        icon: Clock,
+        kpiClass: 'kpi-active',
+        badge: `${overview.monthShiftCount ?? 0} ca đã làm`,
+      },
+      {
+        label: 'Giờ OT tháng này',
+        value: formatMinutes(overview.monthOtMinutes),
+        icon: Timer,
+        kpiClass: 'kpi-showing',
+        badge: `${overview.monthPendingCount ?? 0} chờ duyệt`,
+      },
+      {
+        label: 'Lương kỳ gần nhất',
+        value: formatMoney(overview.latestNetPay),
+        icon: Wallet,
+        kpiClass: 'kpi-upcoming',
+        badge: overview.latestPayslipLabel || 'Chưa có',
+      },
+    ]
     : [];
 
   const tabItems = useMemo(

@@ -10,11 +10,19 @@ public record AdminDashboardResponse(
     Double growth,
     Double conversionRate,
     List<CinemaStat> cinemas,
+    List<RoomStat> rooms,
     List<GenreStat> genres,
     List<MovieStat> topMovies
 ) {
     public record CinemaStat(
         String name,
+        BigDecimal revenue,
+        Double occupancyRate
+    ) {}
+
+    public record RoomStat(
+        String name,
+        String cinemaName,
         BigDecimal revenue,
         Double occupancyRate
     ) {}
