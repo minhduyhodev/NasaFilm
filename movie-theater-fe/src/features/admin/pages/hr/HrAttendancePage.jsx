@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, CheckCheck, Loader2, Lock, Pencil, QrCode, ScanLine, X } from 'lucide-react';
-import QRCode from 'qrcode';
 import { AdminPage, AdminModal, PageHeader, PrimaryButton, StatusBadge, AdminTableShell, AdminDatePicker, AdminDateTimePicker } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
+import CheckpointCodeDisplay from './CheckpointCodeDisplay';
 import {
   APPROVAL_STATUS_META,
   ATTENDANCE_STATUS_META,
@@ -439,57 +439,6 @@ const HrAttendancePage = () => {
 };
 
 function CheckpointCodeModal({ onClose }) {
-  const [data, setData] = useState(null);
-  const [qrUrl, setQrUrl] = useState('');
-  const [remaining, setRemaining] = useState(0);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const periodRef = useRef(60);
-
-  const fetchCode = useCallback(async () => {
-    try {
-      const res = await hrService.getCheckpointCode();
-      setData(res);
-      setRemaining(res?.validForSeconds ?? 0);
-      periodRef.current = res?.periodSeconds || 60;
-      setError('');
-      if (res?.qrContent) {
-        const url = await QRCode.toDataURL(String(res.qrContent), {
-          width: 320,
-          margin: 1,
-          errorCorrectionLevel: 'M',
-          color: { dark: '#0b1020', light: '#ffffff' },
-        });
-        setQrUrl(url);
-      }
-    } catch (err) {
-      setError(err?.message || 'Không tải được mã điểm danh.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCode();
-  }, [fetchCode]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          fetchCode();
-          return periodRef.current;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [fetchCode]);
-
-  const code = data?.code || '';
-  const prettyCode = code.length === 6 ? `${code.slice(0, 3)} ${code.slice(3)}` : code;
-  const pct = periodRef.current > 0 ? Math.round((remaining / periodRef.current) * 100) : 0;
-
   return (
     <AdminModal
       open
@@ -509,31 +458,7 @@ function CheckpointCodeModal({ onClose }) {
         </div>
       }
     >
-      {loading ? (
-        <div className="hr-state">
-          <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
-          <p>Đang tạo mã...</p>
-        </div>
-      ) : error ? (
-        <div className="hr-state">
-          <QrCode className="h-9 w-9 text-slate-500" />
-          <p>{error}</p>
-        </div>
-      ) : (
-        <div className="hr-checkpoint-card">
-          <div className="hr-checkpoint">
-            {qrUrl && <img src={qrUrl} alt="Mã QR điểm danh" className="hr-checkpoint__qr" />}
-            <p className="hr-card__title" style={{ margin: 0 }}>Mã checkpoint ca</p>
-            <div className="hr-checkpoint__code">{prettyCode}</div>
-            <div className="hr-checkpoint__bar">
-              <span className="hr-checkpoint__bar-fill" style={{ width: `${pct}%` }} />
-            </div>
-            <p className="hr-muted" style={{ fontSize: 12, textAlign: 'center', maxWidth: 320 }}>
-              Mã tự đổi sau <span className="hr-strong">{remaining}s</span>. Nhân viên quét QR hoặc nhập mã 6 số tại màn chấm công.
-            </p>
-          </div>
-        </div>
-      )}
+      <CheckpointCodeDisplay fetchCode={() => hrService.getCheckpointCode()} />
     </AdminModal>
   );
 }

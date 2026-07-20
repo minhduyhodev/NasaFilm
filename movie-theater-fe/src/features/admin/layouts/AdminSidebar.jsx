@@ -31,6 +31,7 @@ import {
   Wallet,
   Clock,
   ArrowLeftRight,
+  QrCode,
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -497,6 +498,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Clock,
                 "Bảng công của tôi",
                 "text-teal-400",
+              )}
+              {renderLink(
+                "/admin/hr/checkpoint",
+                QrCode,
+                "Mã QR điểm danh quầy",
+                "text-amber-400",
               )}
               {renderLink(
                 "/admin/hr/me?tab=swap",
