@@ -12,7 +12,7 @@ import { SocialLoginButtons } from '../components/SocialLoginButtons';
 import { loginSchema } from '../utils/validation';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
-import { getDefaultAdminPath, remapLegacyCounterPath } from '../../../shared/utils/adminNavigation';
+import { getDefaultAdminPath, isAdminOrStaffUser, remapLegacyCounterPath } from '../../../shared/utils/adminNavigation';
 import './LoginPage.css';
 
 export const LoginPage = () => {
@@ -51,15 +51,8 @@ export const LoginPage = () => {
   const redirectAfterLogin = () => {
     const from = location.state?.from?.pathname;
     const storedUser = tokenService.getUser();
-    const roles = storedUser?.roles || [];
 
-    const isAdminOrStaff = roles.some((r) => {
-      if (!r) return false;
-      const roleLower = r.toLowerCase();
-      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
-    });
-
-    if (isAdminOrStaff) {
+    if (isAdminOrStaffUser(storedUser)) {
       let targetPath = from;
       if (targetPath?.startsWith('/counter')) {
         targetPath = remapLegacyCounterPath(targetPath);

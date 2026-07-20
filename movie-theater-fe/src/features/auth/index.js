@@ -6,6 +6,7 @@ export { SocialLoginButtons } from './components/SocialLoginButtons';
 export { PasswordStrength } from './components/PasswordStrength';
 export { ProtectedRoute } from './components/ProtectedRoute';
 export { PublicRoute } from './components/PublicRoute';
+export { StaffAwayFromCustomerRoute } from './components/StaffAwayFromCustomerRoute';
 
 // Pages
 export { default as LoginPage } from './pages/LoginPage';
