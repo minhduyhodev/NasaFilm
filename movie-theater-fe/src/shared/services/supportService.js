@@ -108,8 +108,10 @@ export const supportService = {
     return response.data.data ?? response.data;
   },
 
-  async getAdminSupportRequests({ page = 0, size = 100 } = {}) {
-    const response = await authService.api.get('/api/admin/support', { params: { page, size } });
+  async getAdminSupportRequests({ page = 0, size = 100, unpaged = false } = {}) {
+    const response = await authService.api.get('/api/admin/support', {
+      params: unpaged ? { unpaged: true } : { page, size },
+    });
     const data = response.data.data ?? response.data;
     if (Array.isArray(data)) return data;
     return data?.content ?? [];

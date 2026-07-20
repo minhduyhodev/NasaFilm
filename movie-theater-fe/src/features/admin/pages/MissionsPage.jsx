@@ -3,8 +3,11 @@ import {
   Archive,
   BarChart3,
   CalendarRange,
+  Clapperboard,
+  Compass,
   Copy,
   LayoutGrid,
+  PenLine,
   Pencil,
   Plus,
   Power,
@@ -12,8 +15,11 @@ import {
   RotateCcw,
   Rocket,
   Search,
+  Sparkles,
   Target,
+  Ticket,
   Trash2,
+  Users,
   Zap,
 } from 'lucide-react';
 import { adminMissionService } from '../api/adminMissionService';
@@ -30,14 +36,43 @@ import {
   formatAdminDateRange,
   formatAdminDateTime,
   getCampaignStatusLabel,
-  getCampaignPosterSrc,
+  getCampaignCardTheme,
   getConditionLabel,
+  getMissionCardTheme,
   getMissionDisplayTitle,
-  getMissionPosterSrc,
   getRecurrenceLabel,
   resolveCampaignTitle,
 } from '../utils/missionAdminUtils';
 import './MissionsPage.css';
+
+const MISSION_THEME_ICONS = {
+  compass: Compass,
+  ticket: Ticket,
+  clapperboard: Clapperboard,
+  users: Users,
+  pen: PenLine,
+  sparkles: Sparkles,
+  target: Target,
+  rocket: Rocket,
+};
+
+const MissionCardCover = ({ theme, variant = 'mission' }) => {
+  const Icon = MISSION_THEME_ICONS[theme.icon] || Target;
+  return (
+    <div
+      className={`mc-card__media ${variant === 'campaign' ? 'mc-card__media--campaign' : ''}`}
+      data-tone={theme.tone}
+    >
+      <div className="mc-card__cover" aria-hidden="true">
+        <span className="mc-card__cover-orb mc-card__cover-orb--a" />
+        <span className="mc-card__cover-orb mc-card__cover-orb--b" />
+        <span className="mc-card__cover-icon">
+          <Icon size={28} strokeWidth={1.75} />
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const MissionStrip = ({ children }) => {
   const { ref, dragScrollProps } = useDragScroll();
@@ -83,14 +118,14 @@ const TemplateRow = ({
     ? Math.min(100, Math.round((completedCount / enrolledCount) * 1000) / 10)
     : 0;
   const deletedLabel = isDeletedView && item.deletedAt ? formatAdminDateTime(item.deletedAt) : null;
-  const posterSrc = getMissionPosterSrc(item);
+  const theme = getMissionCardTheme(item);
 
   return (
     <article
       className={`mc-card ${isDeletedView ? 'is-deleted' : item.active ? 'is-on' : 'is-off'}`}
     >
-      <div className="mc-card__media">
-        <img src={posterSrc} alt="" className="mc-card__media-img" loading="lazy" />
+      <div className="mc-card__media-wrap">
+        <MissionCardCover theme={theme} />
         <div className="mc-card__points">
           <strong>+{item.rewardPoints ?? 0}</strong>
           <span>điểm</span>
@@ -193,8 +228,8 @@ const CampaignRow = ({ item, onEdit, onArchive, onDelete, isArchiving, isDeletin
 
   return (
     <article className={`mc-card mc-card--campaign is-${(item.status || 'DRAFT').toLowerCase()}`}>
-      <div className="mc-card__media mc-card__media--campaign">
-        <img src={getCampaignPosterSrc()} alt="" className="mc-card__media-img" loading="lazy" />
+      <div className="mc-card__media-wrap">
+        <MissionCardCover theme={getCampaignCardTheme()} variant="campaign" />
         <div className="mc-card__points mc-card__points--status">
           <StatusBadge variant={statusVariant}>{getCampaignStatusLabel(item.status)}</StatusBadge>
         </div>

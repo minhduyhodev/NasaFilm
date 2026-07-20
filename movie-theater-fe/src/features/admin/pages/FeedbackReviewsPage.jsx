@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   Loader2,
   Plus,
-  RefreshCw,
   ShieldAlert,
   Star,
 } from 'lucide-react';
@@ -317,14 +316,6 @@ const FeedbackReviewsPage = () => {
       <PageHeader
         title="Kiểm duyệt đánh giá phim"
         description="Xử lý báo cáo từ khán giả và cấu hình từ cấm cho bình luận."
-        secondaryActions={[
-          {
-            label: 'Làm mới',
-            onClick: refreshCurrentTab,
-            disabled: isLoading,
-            icon: <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />,
-          },
-        ]}
       />
 
       <FilterPills

@@ -4,14 +4,6 @@ import {
   MISSION_PRESETS,
   MISSION_RECURRENCE_TYPES,
 } from '../api/adminMissionService';
-import posterExplorer from '../../../shared/assets/missions/mission-explorer-wide.png';
-import posterPremiere from '../../../shared/assets/missions/mission-premiere-wide.png';
-import posterHybrid from '../../../shared/assets/missions/mission-hybrid.png';
-import posterOrbit from '../../../shared/assets/missions/mission-orbit-wide.png';
-import posterReviewer from '../../../shared/assets/missions/mission-reviewer-wide.png';
-import posterMatchmaker from '../../../shared/assets/missions/mission-matchmaker-wide.png';
-import posterCampaign from '../../../shared/assets/missions/mission-premiere-wide.png';
-import posterFallback from '../../../shared/assets/missions/mission-explorer-wide.png';
 
 const conditionMap = Object.fromEntries(
   MISSION_CONDITION_TYPES.map((item) => [item.value, item.label]),
@@ -33,36 +25,39 @@ const FEATURE_LABELS = {
   ORBIT_SEAT: 'Phòng Orbit',
 };
 
-/** Poster theo mã nhiệm vụ hệ thống. */
-const POSTER_BY_CODE = {
-  EXPLORER: posterExplorer,
-  PREMIERE: posterPremiere,
-  HYBRID_PILOT: posterHybrid,
-  SOCIAL_ORBIT: posterOrbit,
-  REVIEWER: posterReviewer,
-  MATCHMAKER: posterMatchmaker,
-  MATCHMAKER_QUIZ: posterMatchmaker,
+/** Visual theme theo loại điều kiện — không dùng ảnh PNG. */
+const THEME_BY_CONDITION = {
+  GENRE_WINDOW: { tone: 'rose', icon: 'compass' },
+  PREMIERE_BOOKING: { tone: 'amber', icon: 'ticket' },
+  HYBRID_THEATER_VOD: { tone: 'slate', icon: 'clapperboard' },
+  ORBIT_ROOM_JOIN: { tone: 'teal', icon: 'users' },
+  REVIEW_WITH_VIBE_TAG: { tone: 'orange', icon: 'pen' },
+  MATCHMAKER_QUIZ: { tone: 'rose', icon: 'sparkles' },
 };
 
-/** Poster dự phòng theo loại điều kiện (nhiệm vụ tùy chỉnh). */
-const POSTER_BY_CONDITION = {
-  GENRE_WINDOW: posterExplorer,
-  PREMIERE_BOOKING: posterPremiere,
-  HYBRID_THEATER_VOD: posterHybrid,
-  ORBIT_ROOM_JOIN: posterOrbit,
-  REVIEW_WITH_VIBE_TAG: posterReviewer,
-  MATCHMAKER_QUIZ: posterMatchmaker,
+const THEME_BY_CODE = {
+  EXPLORER: THEME_BY_CONDITION.GENRE_WINDOW,
+  PREMIERE: THEME_BY_CONDITION.PREMIERE_BOOKING,
+  HYBRID_PILOT: THEME_BY_CONDITION.HYBRID_THEATER_VOD,
+  SOCIAL_ORBIT: THEME_BY_CONDITION.ORBIT_ROOM_JOIN,
+  REVIEWER: THEME_BY_CONDITION.REVIEW_WITH_VIBE_TAG,
+  MATCHMAKER: THEME_BY_CONDITION.MATCHMAKER_QUIZ,
+  MATCHMAKER_QUIZ: THEME_BY_CONDITION.MATCHMAKER_QUIZ,
 };
+
+const THEME_FALLBACK = { tone: 'slate', icon: 'target' };
+const THEME_CAMPAIGN = { tone: 'amber', icon: 'rocket' };
 
 export const getMissionDisplayTitle = (item) =>
   presetTitleMap[item?.code] || item?.title || 'Nhiệm vụ';
 
-export const getMissionPosterSrc = (item) =>
-  POSTER_BY_CODE[item?.code]
-  || POSTER_BY_CONDITION[item?.conditionType]
-  || posterFallback;
+/** Theme card: cùng conditionType dùng chung tone/icon — không gen ảnh mới. */
+export const getMissionCardTheme = (item) =>
+  THEME_BY_CODE[item?.code]
+  || THEME_BY_CONDITION[item?.conditionType]
+  || THEME_FALLBACK;
 
-export const getCampaignPosterSrc = () => posterCampaign;
+export const getCampaignCardTheme = () => THEME_CAMPAIGN;
 
 export const getFeatureLabel = (code) => FEATURE_LABELS[code] || code;
 
