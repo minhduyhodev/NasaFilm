@@ -94,10 +94,11 @@ public class TheaterNotificationService {
             if (ticket.ticketCode() == null || ticket.ticketCode().isBlank()) {
                 continue;
             }
-            String dataUri = qrCodeImageService.toBase64PngDataUri(ticket.ticketCode());
-            if (dataUri.isBlank()) {
-                continue;
-            }
+            
+            // Use a public QR code API instead of Base64 to ensure display in email clients
+            String imageUrl = "https://quickchart.io/qr?size=150&text=" + 
+                    java.net.URLEncoder.encode(ticket.ticketCode(), java.nio.charset.StandardCharsets.UTF_8);
+
             String seatLabel = ticket.seatLabel() != null && !ticket.seatLabel().isBlank()
                     ? ticket.seatLabel()
                     : "Vé";
@@ -107,7 +108,7 @@ public class TheaterNotificationService {
                       <p style="margin:10px 0 4px;color:#111827;font-size:13px;font-weight:700;">Ghế %s</p>
                       <p style="margin:0;color:#64748b;font-size:11px;font-family:monospace;word-break:break-all;">%s</p>
                     </div>
-                    """.formatted(dataUri, escapeHtml(seatLabel), escapeHtml(seatLabel), escapeHtml(ticket.ticketCode())));
+                    """.formatted(imageUrl, escapeHtml(seatLabel), escapeHtml(seatLabel), escapeHtml(ticket.ticketCode())));
         }
 
         if (cards.isEmpty()) {
