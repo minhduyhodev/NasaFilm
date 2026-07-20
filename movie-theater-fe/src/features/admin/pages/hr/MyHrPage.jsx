@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   ArrowLeftRight,
   BellRing,
@@ -66,9 +66,6 @@ const LEAVE_TYPE_OPTIONS = [
   { value: 'OTHER', label: 'Khác' },
 ];
 
-const now = new Date();
-const CURRENT_MONTH_RANGE = monthRangeIso(now.getFullYear(), now.getMonth() + 1);
-
 // Các loại thông báo HR sinh ra từ backend.
 const HR_NOTIF_TYPES = new Set([
   'shift_assigned',
@@ -107,11 +104,17 @@ const MyHrPage = () => {
   const [notifs, setNotifs] = useState([]);
   const [markingRead, setMarkingRead] = useState(false);
   const confirm = useConfirm();
-
-  const shiftRange = useMemo(
-    () => ({ from: addDaysIso(todayIso(), -7), to: addDaysIso(todayIso(), 21) }),
-    [],
-  );
+  const today = todayIso();
+  const initialMonthRange = useMemo(() => {
+    const now = new Date();
+    return monthRangeIso(now.getFullYear(), now.getMonth() + 1);
+  }, []);
+  const [shiftRange, setShiftRange] = useState(() => ({
+    from: addDaysIso(today, -7),
+    to: addDaysIso(today, 21),
+  }));
+  const [focusedShiftDate, setFocusedShiftDate] = useState(today);
+  const [attendanceRange, setAttendanceRange] = useState(initialMonthRange);
 
   const loadRequestCounts = useCallback(async () => {
     try {
@@ -169,7 +172,7 @@ const MyHrPage = () => {
         const data = await hrService.getMyShifts(shiftRange);
         setShifts(Array.isArray(data) ? data : []);
       } else if (tab === 'attendance') {
-        const data = await hrService.getMyAttendance(CURRENT_MONTH_RANGE);
+        const data = await hrService.getMyAttendance(attendanceRange);
         setAttendance(Array.isArray(data) ? data : []);
       } else if (tab === 'payslips') {
         const data = await hrService.getMyPayslips();
@@ -186,7 +189,7 @@ const MyHrPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [tab, shiftRange]);
+  }, [attendanceRange, shiftRange, tab]);
 
   useEffect(() => {
     loadOverview();
@@ -267,6 +270,22 @@ const MyHrPage = () => {
   const openSwapForShift = useCallback((shift) => {
     setSwapModalShift(shift);
   }, []);
+
+  const handleFocusDateChange = useCallback((value) => {
+    const nextDate = value || todayIso();
+    setFocusedShiftDate(nextDate);
+    if (nextDate < shiftRange.from || nextDate > shiftRange.to) {
+      setShiftRange({
+        from: addDaysIso(nextDate, -3),
+        to: addDaysIso(nextDate, 7),
+      });
+    }
+  }, [shiftRange.from, shiftRange.to]);
+
+  const focusedDateShifts = useMemo(
+    () => shifts.filter((shift) => shift.workDate === focusedShiftDate),
+    [focusedShiftDate, shifts],
+  );
 
   return (
     <AdminPage>
@@ -356,14 +375,100 @@ const MyHrPage = () => {
           <p>Đang tải...</p>
         </div>
       ) : tab === 'shifts' ? (
-        <ShiftList
-          shifts={shifts}
-          onCheckIn={(s) => openCheckpoint(s, 'in')}
-          onCheckOut={(s) => openCheckpoint(s, 'out')}
-          onRequestSwap={openSwapForShift}
-        />
+        <>
+          <div className="hr-toolbar-split">
+            <div className="hr-inline" style={{ gap: 12, alignItems: 'flex-end' }}>
+              <div className="hr-field">
+                <span className="hr-field__label">Xem nhanh ngày</span>
+                <AdminDatePicker
+                  value={focusedShiftDate}
+                  onChange={handleFocusDateChange}
+                  size="sm"
+                />
+              </div>
+              <div className="hr-field">
+                <span className="hr-field__label">Từ ngày</span>
+                <AdminDatePicker
+                  value={shiftRange.from}
+                  onChange={(value) => setShiftRange((prev) => ({ ...prev, from: value || prev.from }))}
+                  max={shiftRange.to || undefined}
+                  size="sm"
+                />
+              </div>
+              <div className="hr-field">
+                <span className="hr-field__label">Đến ngày</span>
+                <AdminDatePicker
+                  value={shiftRange.to}
+                  onChange={(value) => setShiftRange((prev) => ({ ...prev, to: value || prev.to }))}
+                  min={shiftRange.from || undefined}
+                  size="sm"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-sm font-medium"
+              onClick={() => {
+                const current = todayIso();
+                setFocusedShiftDate(current);
+                setShiftRange({ from: addDaysIso(current, -7), to: addDaysIso(current, 21) });
+              }}
+            >
+              Về hôm nay
+            </button>
+          </div>
+
+          <QuickCheckpointPanel
+            date={focusedShiftDate}
+            shifts={focusedDateShifts}
+            onCheckIn={(s) => openCheckpoint(s, 'in')}
+            onCheckOut={(s) => openCheckpoint(s, 'out')}
+          />
+
+          <ShiftList
+            shifts={shifts}
+            focusDate={focusedShiftDate}
+            onCheckIn={(s) => openCheckpoint(s, 'in')}
+            onCheckOut={(s) => openCheckpoint(s, 'out')}
+            onRequestSwap={openSwapForShift}
+          />
+        </>
       ) : tab === 'attendance' ? (
-        <AttendanceList attendance={attendance} />
+        <>
+          <div className="hr-toolbar-split">
+            <div className="hr-inline" style={{ gap: 12, alignItems: 'flex-end' }}>
+              <div className="hr-field">
+                <span className="hr-field__label">Từ ngày</span>
+                <AdminDatePicker
+                  value={attendanceRange.from}
+                  onChange={(value) => setAttendanceRange((prev) => ({ ...prev, from: value || prev.from }))}
+                  max={attendanceRange.to || undefined}
+                  size="sm"
+                />
+              </div>
+              <div className="hr-field">
+                <span className="hr-field__label">Đến ngày</span>
+                <AdminDatePicker
+                  value={attendanceRange.to}
+                  onChange={(value) => setAttendanceRange((prev) => ({ ...prev, to: value || prev.to }))}
+                  min={attendanceRange.from || undefined}
+                  size="sm"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="adm-btn adm-btn--ghost px-3 py-2 rounded-md cursor-pointer text-sm font-medium"
+              onClick={() => {
+                const now = new Date();
+                setAttendanceRange(monthRangeIso(now.getFullYear(), now.getMonth() + 1));
+              }}
+            >
+              Tháng này
+            </button>
+          </div>
+          <AttendanceList attendance={attendance} />
+        </>
       ) : tab === 'payslips' ? (
         <PayslipList payslips={payslips} />
       ) : tab === 'leave' ? (
@@ -448,7 +553,7 @@ function NotificationPanel({ notifs, onMarkRead, marking }) {
   );
 }
 
-function ShiftList({ shifts, onCheckIn, onCheckOut, onRequestSwap }) {
+function ShiftList({ shifts, focusDate, onCheckIn, onCheckOut, onRequestSwap }) {
   const today = todayIso();
 
   const groups = useMemo(() => {
@@ -463,10 +568,11 @@ function ShiftList({ shifts, onCheckIn, onCheckOut, onRequestSwap }) {
   // Ngày ưu tiên mở sẵn: hôm nay -> ngày gần nhất sắp tới -> ngày gần nhất đã qua.
   const primaryDate = useMemo(() => {
     if (dates.length === 0) return null;
+    if (focusDate && dates.includes(focusDate)) return focusDate;
     if (dates.includes(today)) return today;
     const upcoming = dates.find((d) => d >= today);
     return upcoming || dates[dates.length - 1];
-  }, [dates, today]);
+  }, [dates, focusDate, today]);
 
   const [expanded, setExpanded] = useState(() => new Set());
 
@@ -552,6 +658,62 @@ function ShiftList({ shifts, onCheckIn, onCheckOut, onRequestSwap }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function QuickCheckpointPanel({ date, shifts, onCheckIn, onCheckOut }) {
+  const actionableShifts = useMemo(() => (
+    shifts.filter((shift) => {
+      if (shift.status === 'CANCELLED') return false;
+      if (shift.checkInAt && !shift.checkOutAt) return true;
+      if (!shift.checkInAt) {
+        return shiftCheckInState(shift.workDate, shift.startTime, shift.endTime) === 'OPEN';
+      }
+      return false;
+    })
+  ), [shifts]);
+
+  if (actionableShifts.length === 0) {
+    return (
+      <div className="hr-alert hr-alert--info">
+        <QrCode className="h-5 w-5 hr-alert__icon shrink-0" />
+        <div className="hr-alert__body">
+          <p className="hr-alert__title">Quét mã QR trên màn hình quầy</p>
+          <p className="hr-alert__text">
+            Mã điểm danh không nằm trên trang cá nhân. Nhờ đồng nghiệp tại quầy mở{' '}
+            <Link to="/admin/hr/checkpoint" className="hr-link">Mã QR điểm danh quầy</Link>
+            {' '}trên tablet/màn hình, rồi quét mã khi bấm Check-in/Check-out.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hr-checkpoint-card mb-4">
+      <div className="hr-inline" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <p className="hr-card__title" style={{ marginBottom: 4 }}>Trạm chấm công nhân viên</p>
+          <p className="hr-strong">
+            {formatDate(date)} · Quét mã trên màn hình quầy
+          </p>
+          <p className="hr-muted" style={{ fontSize: 12, marginTop: 4 }}>
+            Mở <Link to="/admin/hr/checkpoint" className="hr-link">Mã QR điểm danh quầy</Link> trên tablet tại quầy, không phải trên điện thoại cá nhân.
+          </p>
+        </div>
+        <span className="hr-badge hr-badge--info">{actionableShifts.length} ca thao tác</span>
+      </div>
+      <div className="hr-day__body" style={{ padding: 0 }}>
+        {actionableShifts.map((shift) => (
+          <ShiftCard
+            key={shift.uuid}
+            shift={shift}
+            onCheckIn={onCheckIn}
+            onCheckOut={onCheckOut}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1247,8 +1409,9 @@ function CheckpointActionModal({ action, shift, onClose, onConfirm }) {
     >
       <div className="space-y-4">
         <p className="hr-muted" style={{ fontSize: 13 }}>
-          Quét mã QR điểm danh hiển thị tại quầy, hoặc nhập mã 6 số đang hiển thị để xác nhận bạn có
-          mặt tại nơi làm việc.
+          Quét mã QR đang hiển thị trên màn hình/tablet tại quầy (
+          <Link to="/admin/hr/checkpoint" className="hr-link">Mã QR điểm danh quầy</Link>
+          ), hoặc nhập 6 số đang hiện trên màn hình đó.
         </p>
 
         {scannerSupported ? (
