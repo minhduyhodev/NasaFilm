@@ -13,7 +13,6 @@ import {
   LogOut,
   Plus,
   QrCode,
-  RefreshCw,
   Send,
   Timer,
   Trash2,
@@ -304,15 +303,6 @@ const MyHrPage = () => {
             label: 'Xin nghỉ phép',
             onClick: () => setTab('leave'),
             icon: <CalendarX className="h-4 w-4" />,
-          },
-          {
-            label: 'Làm mới',
-            onClick: () => {
-              refreshAll();
-              loadNotifs();
-            },
-            disabled: loading,
-            icon: <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />,
           },
         ]}
       />

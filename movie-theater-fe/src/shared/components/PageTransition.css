@@ -1,5 +1,7 @@
 .page-transition-root,
-.tab-transition-root {
+.tab-transition-root,
+.dashboard-view-transition__stage,
+.dash-motion-card {
   width: 100%;
   will-change: opacity, transform;
 }
@@ -11,7 +13,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .page-transition-root,
-  .tab-transition-root {
+  .tab-transition-root,
+  .dashboard-view-transition__stage,
+  .dash-motion-card {
     animation: none !important;
     transition: none !important;
     transform: none !important;

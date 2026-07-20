@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { bookingService } from '../../../shared/services/bookingService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
@@ -137,14 +137,6 @@ const RefundsPage = () => {
       <PageHeader
         title="Duyệt hoàn tiền"
         description="Các yêu cầu hoàn tiền từ khách hủy vé — duyệt để cộng tiền về Ví NASA hoặc hoàn qua Mock Gateway."
-        secondaryActions={[
-          {
-            label: 'Làm mới',
-            onClick: loadRefunds,
-            disabled: isLoading,
-            icon: <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />,
-          },
-        ]}
       />
 
       <AdminTableShell
