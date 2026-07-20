@@ -389,7 +389,6 @@ export default function CounterPOSPage() {
     if (checked) {
       setCustomerSearch('');
       setSearchResults([]);
-      setShowQuickAddCustomer(false);
       try {
         const guest = await counterService.getWalkInCustomer();
         setSelectedCustomer({
