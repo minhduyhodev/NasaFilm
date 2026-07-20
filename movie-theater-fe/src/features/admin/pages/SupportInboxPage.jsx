@@ -38,6 +38,7 @@ import {
 } from '../components';
 import AdminSelectDropdown from '../components/AdminSelectDropdown';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { notifySupportAttentionChanged } from '../utils/supportAttention';
 import './SupportInboxPage.css';
 
 const STATUS_FILTERS = [
@@ -317,7 +318,14 @@ const SupportInboxPage = () => {
     setLoadingTickets(true);
     try {
       const list = await supportService.getAdminSupportRequests({ unpaged: true });
-      setTickets(Array.isArray(list) ? list : []);
+      const next = Array.isArray(list) ? list : [];
+      setTickets(next);
+      if (!selectedTicketCode && next[0]?.ticketCode) {
+        setSelectedTicketCode(next[0].ticketCode);
+      } else if (selectedTicketCode && !next.some((t) => t.ticketCode === selectedTicketCode)) {
+        setSelectedTicketCode(next[0]?.ticketCode || '');
+      }
+      notifySupportAttentionChanged();
     } catch (err) {
       notificationService.error(err?.response?.data?.message || 'Không tải được danh sách ticket hỗ trợ.');
     } finally {
@@ -329,6 +337,7 @@ const SupportInboxPage = () => {
     try {
       const list = await supportService.getPendingLiveSupportRequests();
       setLiveQueue(Array.isArray(list) ? list : []);
+      notifySupportAttentionChanged();
     } catch {
       setLiveQueue([]);
     }
