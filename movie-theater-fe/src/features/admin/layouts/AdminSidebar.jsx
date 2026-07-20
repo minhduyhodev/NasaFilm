@@ -36,6 +36,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { bookingService } from '../../../shared/services/bookingService';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
+import { supportService } from '../../../shared/services/supportService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import huyAdmin from '../../../shared/assets/huyadmin.jpg';
@@ -43,6 +44,7 @@ import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { hasPermission, hasAnyPermission, isAdmin, PERMISSIONS } from '../../../shared/utils/permissions';
 import { canAccessAdminDashboard, OPERATIONS_PERMISSIONS } from '../../../shared/utils/adminNavigation';
+import { SUPPORT_ATTENTION_EVENT } from '../utils/supportAttention';
 
 const getRoleDisplayLabel = (roles = []) => {
   if (roles.includes('admin')) return 'Quản trị viên';
@@ -73,6 +75,8 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
   });
   const [pendingRefundCount, setPendingRefundCount] = useState(0);
   const [pendingFeedbackReportCount, setPendingFeedbackReportCount] = useState(0);
+  const [pendingSupportCount, setPendingSupportCount] = useState(0);
+  const canManageSupport = hasPermission(user, PERMISSIONS.SUPPORT_MANAGE);
 
   const loadPendingRefundCount = useCallback(async () => {
     try {
@@ -92,6 +96,19 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     }
   }, []);
 
+  const loadPendingSupportCount = useCallback(async () => {
+    if (!canManageSupport) {
+      setPendingSupportCount(0);
+      return;
+    }
+    try {
+      const count = await supportService.getSupportAttentionCount();
+      setPendingSupportCount(Number(count) || 0);
+    } catch {
+      setPendingSupportCount(0);
+    }
+  }, [canManageSupport]);
+
   const toggleGroup = (group) => {
     setOpenGroups((prev) => ({
       ...prev,
@@ -106,13 +123,20 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
   useEffect(() => {
     loadPendingRefundCount();
     loadPendingFeedbackReportCount();
-  }, [loadPendingRefundCount, loadPendingFeedbackReportCount, location.pathname]);
+    loadPendingSupportCount();
+  }, [loadPendingRefundCount, loadPendingFeedbackReportCount, loadPendingSupportCount, location.pathname]);
 
   useEffect(() => {
     const refreshReportBadge = () => loadPendingFeedbackReportCount();
     window.addEventListener('admin-review-reports-changed', refreshReportBadge);
     return () => window.removeEventListener('admin-review-reports-changed', refreshReportBadge);
   }, [loadPendingFeedbackReportCount]);
+
+  useEffect(() => {
+    const refreshSupportBadge = () => loadPendingSupportCount();
+    window.addEventListener(SUPPORT_ATTENTION_EVENT, refreshSupportBadge);
+    return () => window.removeEventListener(SUPPORT_ATTENTION_EVENT, refreshSupportBadge);
+  }, [loadPendingSupportCount]);
 
   const enableRefundRealtime =
     location.pathname.startsWith('/admin/refunds') ||
@@ -130,6 +154,18 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     loadPendingFeedbackReportCount,
   );
 
+  useRealtimeTopic(
+    canManageSupport ? REALTIME_TOPICS.ADMIN_SUPPORT : null,
+    loadPendingSupportCount,
+    400,
+  );
+
+  useRealtimeTopic(
+    canManageSupport ? REALTIME_TOPICS.ADMIN_SUPPORT_LIVE : null,
+    loadPendingSupportCount,
+    400,
+  );
+
   const handleLogout = useCallback(async () => {
     const ok = await confirm({
       title: 'Đăng xuất',
@@ -142,17 +178,20 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
     navigate("/login");
   }, [confirm, logout, navigate]);
 
-  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge, permission } = {}) => {
+  const renderLink = (to, Icon, label, colorClass = "text-gray-400", { end: endOverride, badge, pulse, permission } = {}) => {
     if (permission && !hasPermission(user, permission)) {
       return null;
     }
+
+    const showBadge = Number(badge) > 0;
+    const showPulse = Boolean(pulse) || showBadge;
 
     return (
       <NavLink
         to={to}
         end={endOverride ?? to === "/admin"}
-        aria-label={label}
-        title={!isOpen ? label : undefined}
+        aria-label={showBadge ? `${label} (${badge} đang chờ)` : label}
+        title={!isOpen ? (showBadge ? `${label} · ${badge} đang chờ` : label) : undefined}
         className={({ isActive }) =>
           `adm-nav-link ${isOpen ? "" : "adm-nav-link--collapsed"} ${isActive ? "adm-nav-link--active" : ""}`
         }
@@ -160,18 +199,25 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
       >
         {({ isActive }) => (
           <>
-            <Icon
-              className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-red-400" : colorClass}`}
-              aria-hidden="true"
-            />
+            <span className="adm-nav-link__icon-wrap">
+              <Icon
+                className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-red-400" : colorClass}`}
+                aria-hidden="true"
+              />
+              {showPulse && !isOpen && (
+                <span className="adm-nav-link__dot" aria-hidden="true" />
+              )}
+            </span>
             {isOpen && (
               <>
                 <span className="truncate flex-1">{label}</span>
-                {badge > 0 && (
+                {showBadge ? (
                   <span className="adm-nav-badge">
                     {badge > 99 ? "99+" : badge}
                   </span>
-                )}
+                ) : showPulse ? (
+                  <span className="adm-nav-link__pulse" aria-hidden="true" />
+                ) : null}
               </>
             )}
           </>
@@ -338,7 +384,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Headset,
                 "Hỗ trợ khách hàng",
                 "text-rose-400",
-                { permission: PERMISSIONS.SUPPORT_MANAGE },
+                { badge: pendingSupportCount, pulse: pendingSupportCount > 0, permission: PERMISSIONS.SUPPORT_MANAGE },
               )}
             </div>
           )}
@@ -451,6 +497,12 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Clock,
                 "Bảng công của tôi",
                 "text-teal-400",
+              )}
+              {renderLink(
+                "/admin/hr/me?tab=swap",
+                ArrowLeftRight,
+                "Đổi ca & nghỉ phép",
+                "text-orange-400",
               )}
               {renderLink(
                 "/admin/hr/schedule",
