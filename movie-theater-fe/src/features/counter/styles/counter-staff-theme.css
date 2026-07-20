@@ -2199,3 +2199,78 @@
     min-width: 0;
   }
 }
+
+@media print {
+  /* Set page margin for thermal printers if supported */
+  @page {
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .staff-control__welcome-overlay,
+  .staff-control__welcome-overlay * {
+    visibility: visible;
+  }
+
+  .staff-control__welcome-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: transparent !important;
+    width: 100% !important;
+    display: block !important; /* Disable flex centering */
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .staff-control__modal-close,
+  .staff-control__modal-actions,
+  .staff-control__welcome-icon,
+  .staff-control__welcome-title,
+  .staff-control__welcome-sub {
+    display: none !important;
+  }
+
+  .staff-control__welcome-card {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    transform: none !important; /* Remove any translation */
+  }
+
+  .staff-control__ticket-stub {
+    width: 100%;
+    max-width: 80mm; /* Standard receipt width */
+    margin: 0; /* Align left */
+    padding: 10px;
+    border: none !important;
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    font-size: 11pt; /* Make text slightly larger for print */
+  }
+
+  .staff-control__ticket-stub * {
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+
+  .staff-control__ticket-qr {
+    border-top: 1px dashed #000 !important;
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+  }
+
+  .staff-control__ticket-qr svg {
+    color: #000 !important;
+    width: 80px !important;
+    height: 80px !important;
+  }
+}
