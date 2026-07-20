@@ -22,12 +22,14 @@ import com.thdpv.movietheater.hr.dto.request.LeaveRequestCreateRequest;
 import com.thdpv.movietheater.hr.dto.request.ShiftActionRequest;
 import com.thdpv.movietheater.hr.dto.request.SwapCreateRequest;
 import com.thdpv.movietheater.hr.dto.response.AttendanceResponse;
+import com.thdpv.movietheater.hr.dto.response.CheckpointCodeResponse;
 import com.thdpv.movietheater.hr.dto.response.LeaveRequestResponse;
 import com.thdpv.movietheater.hr.dto.response.MyHrOverviewResponse;
 import com.thdpv.movietheater.hr.dto.response.PayslipResponse;
 import com.thdpv.movietheater.hr.dto.response.ShiftAssignmentResponse;
 import com.thdpv.movietheater.hr.dto.response.ShiftSwapRequestResponse;
 import com.thdpv.movietheater.hr.service.AttendanceService;
+import com.thdpv.movietheater.hr.service.CheckpointCodeService;
 import com.thdpv.movietheater.hr.service.HrDirectory;
 import com.thdpv.movietheater.hr.service.HrSelfService;
 import com.thdpv.movietheater.hr.service.LeaveRequestService;
@@ -54,6 +56,16 @@ public class HrSelfServiceController {
     private final LeaveRequestService leaveRequestService;
     private final ShiftSwapService shiftSwapService;
     private final HrDirectory directory;
+    private final CheckpointCodeService checkpointCodeService;
+
+    /**
+     * Mã QR điểm danh hiển thị tại quầy — mọi nhân viên có thể mở trên tablet/màn hình quầy
+     * để đồng nghiệp quét khi check-in/out (không phải mã cá nhân trên điện thoại nhân viên).
+     */
+    @GetMapping("/checkpoint-display")
+    public ResponseEntity<ApiResponse<CheckpointCodeResponse>> checkpointDisplay() {
+        return ResponseEntity.ok(ApiResponse.success(checkpointCodeService.currentDisplay()));
+    }
 
     @GetMapping("/overview")
     public ResponseEntity<ApiResponse<MyHrOverviewResponse>> overview(

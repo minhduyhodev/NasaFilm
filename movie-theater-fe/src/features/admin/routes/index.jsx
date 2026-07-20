@@ -52,6 +52,7 @@ const HrSchedulePage = lazy(() => import("../pages/hr/HrSchedulePage"));
 const HrAttendancePage = lazy(() => import("../pages/hr/HrAttendancePage"));
 const HrPayrollPage = lazy(() => import("../pages/hr/HrPayrollPage"));
 const HrRequestsPage = lazy(() => import("../pages/hr/HrRequestsPage"));
+const HrCheckpointDisplayPage = lazy(() => import("../pages/hr/HrCheckpointDisplayPage"));
 
 const AdminPageLoader = () => (
   <div className="flex items-center justify-center p-20">
@@ -138,6 +139,14 @@ export const AdminRoutes = () => {
             element={(
               <ProtectedRoute allowedRoles={['admin', 'staff']}>
                 <MyHrPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="hr/checkpoint"
+            element={(
+              <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                <HrCheckpointDisplayPage />
               </ProtectedRoute>
             )}
           />
