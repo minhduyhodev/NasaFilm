@@ -1,9 +1,11 @@
 package com.thdpv.movietheater;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
+@Disabled("Manual/local integration checks requiring a configured database")
 class MovieTheaterBackendApplicationTests {
 
 	static {
@@ -200,4 +202,3 @@ class MovieTheaterBackendApplicationTests {
 		System.out.println("Fetched rows: " + response.getRows().size());
 	}
 }
-

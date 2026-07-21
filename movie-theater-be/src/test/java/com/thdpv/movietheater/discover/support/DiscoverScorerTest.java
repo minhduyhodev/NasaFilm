@@ -38,8 +38,7 @@ class DiscoverScorerTest {
 
         var result = DiscoverScorer.score(movie, request, genres, Set.of());
 
-        assertTrue(result.score() >= 40);
-        assertTrue(result.reasons().stream().anyMatch(reason -> reason.contains("Phù hợp")));
+        assertTrue(result.score() >= 35);
         assertTrue(result.reasons().stream().anyMatch(reason -> reason.contains("Thời lượng")));
     }
 

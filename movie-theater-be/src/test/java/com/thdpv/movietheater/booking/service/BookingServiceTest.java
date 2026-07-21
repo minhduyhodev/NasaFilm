@@ -320,7 +320,7 @@ class BookingServiceTest {
         when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
                 userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
         when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(movie));
-        when(bookingJpaRepository.save(any(Booking.class))).thenReturn(booking);
+        when(bookingJpaRepository.claimFirstPlay(eq(booking.getUuid()), any(), any(), any(), any())).thenReturn(1);
 
         VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
 
@@ -328,8 +328,7 @@ class BookingServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(
                 response.getStreamingUrl().startsWith("/api/media/stream?key=movie%2Fdemo-stream.mp4&token="),
                 () -> "expected stream URL with token but was: " + response.getStreamingUrl());
-        org.junit.jupiter.api.Assertions.assertNotNull(booking.getFirstPlayedAt());
-        org.junit.jupiter.api.Assertions.assertNotNull(booking.getExpiresAt());
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getExpiresAt());
     }
 
     @Test
