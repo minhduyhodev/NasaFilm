@@ -11,6 +11,7 @@ import { systemConfigService } from '../../../shared/services/systemConfigServic
 import { DEFAULT_SYSTEM_CONFIG } from '../../../shared/constants/systemConfig';
 import { buildAutoFormFromConfig } from './showtimes/showtimesAutoUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import Pagination from '../../../shared/components/Pagination';
 import { AdminPage, PageHeader, FilterPills } from '../components';
 import { resolveMediaUrl, handlePosterError, FALLBACK_POSTER } from '../../../shared/utils/mediaUrlUtils';
@@ -149,7 +150,7 @@ const ShowtimesPage = () => {
         setShowtimes(refreshed || []);
       }
     } catch (error) {
-      console.error('Failed to fetch showtimes:', error);
+      logger.error('Failed to fetch showtimes:', error);
       notificationService.error('Không tải được danh sách suất chiếu');
     } finally {
       setIsLoading(false);
@@ -164,7 +165,7 @@ const ShowtimesPage = () => {
         setMovies(data.content);
       }
     } catch (error) {
-      console.error('Failed to fetch movies:', error);
+      logger.error('Failed to fetch movies:', error);
     } finally {
       setIsLoadingMovies(false);
     }
@@ -183,7 +184,7 @@ const ShowtimesPage = () => {
       });
       setRoomsByCinema(map);
     } catch (error) {
-      console.error('Failed to fetch cinemas:', error);
+      logger.error('Failed to fetch cinemas:', error);
       // Fallback: endpoint cũ không kèm phòng
       try {
         const data = await cinemaService.getCinemas('', 0, 100);
@@ -217,7 +218,7 @@ const ShowtimesPage = () => {
       const data = await cinemaService.getRoomsByCinema(cinemaUuid);
       setCreateRooms(normalizeActiveRooms(data));
     } catch (error) {
-      console.error('Failed to fetch rooms:', error);
+      logger.error('Failed to fetch rooms:', error);
       setCreateRooms([]);
       notificationService.error('Không tải được danh sách phòng chiếu');
     } finally {
@@ -235,7 +236,7 @@ const ShowtimesPage = () => {
       const data = await cinemaService.getRoomsByCinema(cinemaUuid);
       setAutoRooms(normalizeActiveRooms(data));
     } catch (error) {
-      console.error('Failed to fetch rooms:', error);
+      logger.error('Failed to fetch rooms:', error);
       setAutoRooms([]);
       notificationService.error('Không tải được danh sách phòng chiếu');
     } finally {

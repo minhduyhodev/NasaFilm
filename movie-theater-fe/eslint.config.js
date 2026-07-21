@@ -10,7 +10,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
  * - exhaustive-deps / react-refresh: off (noisy suggestions only)
  */
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -29,6 +29,7 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'off',
 
       'react-refresh/only-export-components': 'off',
+      'no-console': 'error',
 
       'no-unused-vars': [
         'error',
@@ -39,6 +40,18 @@ export default defineConfig([
           ignoreRestSiblings: true,
         },
       ],
+    },
+  },
+  {
+    files: ['vite.config.js', 'vitest.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    files: ['src/shared/utils/logger.js'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ])

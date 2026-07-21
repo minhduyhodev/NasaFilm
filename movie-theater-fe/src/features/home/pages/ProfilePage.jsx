@@ -5,6 +5,7 @@ import { authService } from "../../auth/api/authService";
 import { AuthInput } from "../../auth/components/AuthInput";
 import { motion, AnimatePresence } from "framer-motion";
 import { normalizeAvatarUrl } from "../../../shared/utils/avatarUrl";
+import { logger } from "../../../shared/utils/logger";
 import {
   User,
   Mail,
@@ -294,7 +295,7 @@ export const ProfilePage = () => {
         setVouchers(wallet || []);
         setVoucherCatalog(catalog || []);
       } catch (err) {
-        console.error("Failed to load user vouchers:", err);
+        logger.error("Failed to load user vouchers:", err);
       } finally {
         setIsLoadingVouchers(false);
       }

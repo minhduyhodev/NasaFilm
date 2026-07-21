@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { bookingService } from '../../../shared/services/bookingService';
 import { orbitService } from '../../../shared/services/orbitService';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
@@ -117,7 +118,7 @@ const OrbitBookingPage = () => {
       try {
         await orbitService.updateMemberSeats(roomUuid, []);
       } catch (err) {
-        console.error('Failed to release seats on lock timeout:', err);
+        logger.error('Failed to release seats on lock timeout:', err);
       }
       seatMapActionsRef.current.setSelectedSeats([]);
       await seatMapActionsRef.current.fetchSeatMap([], { silent: true });

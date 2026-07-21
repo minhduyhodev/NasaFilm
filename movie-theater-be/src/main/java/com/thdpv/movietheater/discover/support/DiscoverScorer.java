@@ -193,7 +193,9 @@ public final class DiscoverScorer {
             default -> List.of();
         };
         return genreNamesByUuid.entrySet().stream()
-                .filter(entry -> keywords.stream().anyMatch(keyword -> normalize(entry.getValue()).contains(keyword)))
+                .filter(entry -> keywords.stream()
+                        .map(DiscoverScorer::normalize)
+                        .anyMatch(keyword -> normalize(entry.getValue()).contains(keyword)))
                 .map(Map.Entry::getKey)
                 .toList();
     }

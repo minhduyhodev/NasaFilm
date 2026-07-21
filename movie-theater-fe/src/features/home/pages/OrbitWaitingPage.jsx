@@ -8,6 +8,7 @@ import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { sameUuid, formatShowtimeDate, formatShowtimeLabel } from '../../../shared/utils/orbitUtils';
 import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
 import OrbitChatBox from '../components/OrbitChatBox';
@@ -57,7 +58,7 @@ const OrbitWaitingPage = () => {
           }
         }
       } catch (err) {
-        console.error('Failed to load room details:', err);
+        logger.error('Failed to load room details:', err);
         notificationService.error('Không thể tải thông tin phòng Orbit.');
         if (active) setLoading(false);
       }
@@ -96,7 +97,7 @@ const OrbitWaitingPage = () => {
         });
         setComboMetaMap(meta);
       } catch (err) {
-        console.error('Failed to resolve seat/combo labels:', err);
+        logger.error('Failed to resolve seat/combo labels:', err);
       }
     };
     loadLabels();
@@ -168,7 +169,7 @@ const OrbitWaitingPage = () => {
       notificationService.success('Đã mở khóa chỉnh sửa ghế & bắp nước.');
       navigate(`/booking/orbit/${roomUuid}`);
     } catch (err) {
-      console.error('Failed to revert completed status:', err);
+      logger.error('Failed to revert completed status:', err);
       notificationService.error(err.message || 'Không thể mở khóa lúc này.');
     } finally {
       setChanging(false);

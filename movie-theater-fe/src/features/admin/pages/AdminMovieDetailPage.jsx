@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { User, Edit2, Trash2, Loader2, Film, ChevronRight } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { formatDateDisplay, getScreeningModeLabel, getAgeRestrictionLabel } from '../utils/adminMovieUtils.jsx';
 import { getMovieStatusLabel } from '../utils/statusLabels';
 import { resolveMediaUrl, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
@@ -33,7 +34,7 @@ const AdminMovieDetailPage = () => {
         const detail = await movieService.getMovieDetail(movieUuid);
         if (isMounted) setMovie(detail);
       } catch (err) {
-        console.error('Failed to load movie detail:', err);
+        logger.error('Failed to load movie detail:', err);
         notificationService.error('Không thể lấy chi tiết phim');
         navigate('/admin/movies');
       } finally {
@@ -65,7 +66,7 @@ const AdminMovieDetailPage = () => {
       notificationService.success(`Đã xóa phim "${movie.title}"`);
       navigate('/admin/movies');
     } catch (err) {
-      console.error('Failed to delete movie:', err);
+      logger.error('Failed to delete movie:', err);
       notificationService.error(err.message || 'Xóa phim thất bại');
     } finally {
       setIsDeleting(false);

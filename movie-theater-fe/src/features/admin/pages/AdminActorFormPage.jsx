@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { AdminPage, PageHeader, Section, PrimaryButton, GhostButton } from '../components';
 import { adminInputClass, adminLabelClass, adminSelectClass } from '../components/adminFormStyles';
 
@@ -47,7 +48,7 @@ const AdminActorFormPage = () => {
           }));
         }
       } catch (err) {
-        console.error(err);
+        logger.error('Failed to load actor form data:', err);
         notificationService.error('Khong the tai du lieu');
         navigate('/admin/media');
       } finally {

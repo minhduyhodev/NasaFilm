@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle, QrCode } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Info, AlertTriangle, QrCode } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
 import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
@@ -8,6 +8,7 @@ import { authService } from '../../auth/api/authService';
 import { movieService } from '../../../shared/services/movieService';
 import { getMoviePosterUrl } from '../utils/movieUtils';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { showMissionCompletionToasts } from '../../../shared/services/missionService';
 import { promotionService } from '../../../shared/services/promotionService';
 import { walletService } from '../../../shared/services/walletService';
@@ -80,7 +81,7 @@ const CheckoutPage = () => {
     if (isOrbit && orbitRoomUuid) {
       comboService.getActiveCombos()
         .then(setActiveCombos)
-        .catch(err => console.error('Failed to load active combos in CheckoutPage:', err));
+        .catch(err => logger.error('Failed to load active combos in CheckoutPage:', err));
     }
   }, [isOrbit, orbitRoomUuid]);
 
@@ -180,7 +181,7 @@ const CheckoutPage = () => {
           setWalletBalance(Number(wallet.balance));
         }
       } catch (err) {
-        console.error('Failed to load user profile in CheckoutPage:', err);
+        logger.error('Failed to load user profile in CheckoutPage:', err);
       } finally {
         setLoadingProfile(false);
       }
@@ -192,7 +193,7 @@ const CheckoutPage = () => {
           setMyVouchers(data.filter((v) => v.remainingUsage > 0));
         }
       } catch (err) {
-        console.error('Failed to load user vouchers in CheckoutPage:', err);
+        logger.error('Failed to load user vouchers in CheckoutPage:', err);
       } finally {
         setLoadingVouchers(false);
       }
@@ -227,7 +228,7 @@ const CheckoutPage = () => {
         await orbitService.abortCheckout(orbitRoomUuid);
         notificationService.info('Hết thời gian thanh toán — phòng Orbit đã mở lại cho cả nhóm.');
       } catch (err) {
-        console.error('Auto abort checkout on expiry failed:', err);
+        logger.error('Auto abort checkout on expiry failed:', err);
       }
     })();
   }, [isExpired, isOrbit, orbitRoomUuid]);
@@ -439,7 +440,7 @@ const CheckoutPage = () => {
         });
       }
     } catch (error) {
-      console.error("Payment confirmation failed:", error);
+      logger.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
     } finally {
       setIsPaying(false);
@@ -458,7 +459,7 @@ const CheckoutPage = () => {
       try {
         await orbitService.abortCheckout(orbitRoomUuid);
       } catch (err) {
-        console.error('Failed to abort checkout on back navigation:', err);
+        logger.error('Failed to abort checkout on back navigation:', err);
       }
       navigate(`/booking/orbit/${orbitRoomUuid}`);
     } else {

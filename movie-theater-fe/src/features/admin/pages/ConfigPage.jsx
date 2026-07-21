@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { logger } from '../../../shared/utils/logger';
 import {
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_ROOM_TYPES,
@@ -283,7 +284,7 @@ const ConfigPage = () => {
     let isMounted = true;
     systemConfigService.getAdminConfig()
       .then((data) => { if (isMounted) setConfig(data); })
-      .catch((error) => console.error('Failed to load system configuration', error))
+      .catch((error) => logger.error('Failed to load system configuration', error))
       .finally(() => { if (isMounted) setIsLoading(false); });
 
     supportService.getSupportAiStatus()

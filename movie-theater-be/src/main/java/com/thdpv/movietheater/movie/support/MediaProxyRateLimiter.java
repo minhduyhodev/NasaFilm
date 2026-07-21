@@ -8,9 +8,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.thdpv.movietheater.movie.util.StreamTokenUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -18,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class MediaProxyRateLimiter {
 
     private static final int MAX_TRACKED_KEYS = 5_000;
+    private static final Logger log = LoggerFactory.getLogger(MediaProxyRateLimiter.class);
 
     private final Map<String, Deque<Long>> requestLog = new ConcurrentHashMap<>();
 
@@ -30,18 +35,21 @@ public class MediaProxyRateLimiter {
     }
 
     /** Video Range chunks — giới hạn cao hơn border redirect. */
-    public void assertStreamAllowed(HttpServletRequest request) {
-        assertAllowed("media:stream:" + clientIp(request), 2400, Duration.ofMinutes(1));
+    public void assertStreamAllowed(HttpServletRequest request, String streamToken) {
+        String client = clientIp(request);
+        assertAllowed("media:stream:ip:" + client, 600, Duration.ofMinutes(1));
+        String tokenHash = StreamTokenUtils.hash(streamToken);
+        if (tokenHash != null) {
+            assertAllowed("media:stream:token:" + tokenHash, 600, Duration.ofMinutes(1));
+        }
     }
 
     private String clientIp(HttpServletRequest request) {
         if (request == null) {
             return "unknown";
         }
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
+        // Do not trust X-Forwarded-For directly. A trusted reverse proxy should
+        // normalize remoteAddr through Spring's forward-header support.
         return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
     }
 
@@ -59,6 +67,7 @@ public class MediaProxyRateLimiter {
                 timestamps.pollFirst();
             }
             if (timestamps.size() >= maxRequests) {
+                log.warn("Media rate limit exceeded keyType={}", key.substring(0, key.lastIndexOf(':')));
                 throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                         "Quá nhiều yêu cầu media. Vui lòng thử lại sau.");
             }
