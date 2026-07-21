@@ -184,4 +184,3 @@ VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 
 - Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
 - README này chỉ đóng vai trò hướng dẫn vào dự án; phần chi tiết nên đặt trong thư mục `docs/`.
-test
