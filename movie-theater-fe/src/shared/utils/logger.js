@@ -1,52 +1,37 @@
-/**
- * Logger utility for development and production
- */
-
-
-
-const isDevelopment = import.meta.env.VITE_ENV === 'development';
-
-const colors = {
-  reset: '\x1b[0m',
-  debug: '\x1b[36m', // Cyan
-  info: '\x1b[34m', // Blue
-  warn: '\x1b[33m', // Yellow
-  error: '\x1b[31m', // Red
+const levels = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+  silent: Number.POSITIVE_INFINITY,
 };
 
-const getTimestamp = () => {
-  return new Date().toLocaleTimeString();
-};
+const configuredLevel = String(
+  import.meta.env.VITE_LOG_LEVEL || (import.meta.env.DEV ? 'debug' : 'warn'),
+).toLowerCase();
+const minimumLevel = levels[configuredLevel] ?? levels.warn;
 
-const formatMessage = (level, message, data) => {
-  const timestamp = getTimestamp();
-  const color = colors[level];
-  const prefix = `${color}[${timestamp}] [${level.toUpperCase()}]${colors.reset}`;
+const shouldLog = (level) => levels[level] >= minimumLevel;
 
-  if (data) {
-    return `${prefix} ${message}`, data;
+const formatMessage = (level, message) =>
+  `[${new Date().toISOString()}] [${level.toUpperCase()}] ${message}`;
+
+const write = (level, message, context) => {
+  if (!shouldLog(level)) return;
+
+  const method = level === 'debug' ? 'debug' : level === 'info' ? 'info' : level;
+  if (context === undefined) {
+    console[method](formatMessage(level, message));
+    return;
   }
-  return `${prefix} ${message}`;
+  console[method](formatMessage(level, message), context);
 };
 
 export const logger = {
-  debug: (message, data) => {
-    if (isDevelopment) {
-      console.debug(formatMessage('debug', message, data), data);
-    }
-  },
-
-  info: (message, data) => {
-    console.log(formatMessage('info', message, data), data);
-  },
-
-  warn: (message, data) => {
-    console.warn(formatMessage('warn', message, data), data);
-  },
-
-  error: (message, error) => {
-    console.error(formatMessage('error', message, error), error);
-  },
+  debug: (message, context) => write('debug', message, context),
+  info: (message, context) => write('info', message, context),
+  warn: (message, context) => write('warn', message, context),
+  error: (message, context) => write('error', message, context),
 };
 
 export default logger;

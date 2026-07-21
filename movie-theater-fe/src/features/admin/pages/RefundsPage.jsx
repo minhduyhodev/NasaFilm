@@ -6,6 +6,7 @@ import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import Pagination from '../../../shared/components/Pagination';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
 import { AdminPage, PageHeader, PrimaryButton, FilterPills, StatusBadge, AdminTableShell } from '../components';
 import './RefundsPage.css';
 
@@ -81,7 +82,7 @@ const RefundsPage = () => {
       setRefunds(Array.isArray(data?.content) ? data.content : []);
       setTotalItems(Number(data?.totalElements ?? 0));
     } catch (err) {
-      console.error('Failed to load refunds:', err);
+      logger.error('Failed to load refunds:', err);
       notificationService.error(
         listTab === 'history'
           ? 'Không thể tải lịch sử duyệt hoàn tiền.'
@@ -121,7 +122,7 @@ const RefundsPage = () => {
       notificationService.success('Duyệt hoàn tiền thành công.');
       await loadRefunds();
     } catch (err) {
-      console.error('Failed to approve refund:', err);
+      logger.error('Failed to approve refund:', err);
       notificationService.error(err?.message || 'Duyệt hoàn tiền thất bại.');
     } finally {
       setApprovingId(null);

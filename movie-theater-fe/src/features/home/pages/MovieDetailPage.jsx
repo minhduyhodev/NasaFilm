@@ -28,6 +28,7 @@ import {
 import { vodService } from "../../../shared/services/vodService";
 import { resolveMovieOnlinePrice } from "../../../shared/utils/systemConfig";
 import { systemConfigService } from "../../../shared/services/systemConfigService";
+import { logger } from "../../../shared/utils/logger";
 import { getOnlineMoviePath, getOnlineActionLabel, getMoviePosterUrl, formatAgeRestrictionBadge } from "../utils/movieUtils";
 import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
@@ -92,7 +93,7 @@ const MovieDetailPage = () => {
           const status = await vodService.getStatus(dbMovie.uuid);
           setVodStatus(status);
         } catch (err) {
-          console.error("Failed to load VOD status:", err);
+          logger.error("Failed to load VOD status:", err);
         }
       }
     };
@@ -119,10 +120,10 @@ const MovieDetailPage = () => {
           );
           setShowtimes(movieShowtimes);
         } catch (stErr) {
-          console.error("Failed to fetch showtimes:", stErr);
+          logger.error("Failed to fetch showtimes:", stErr);
         }
       } catch (err) {
-        console.error("Failed to fetch movie detail:", err);
+        logger.error("Failed to fetch movie detail:", err);
         setError("Không thể tải chi tiết phim. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);

@@ -5,6 +5,7 @@ import { showtimeRadarService } from '../../../shared/services/showtimeRadarServ
 import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { queryKeys } from '../../../shared/hooks/queries/queryKeys';
+import { logger } from '../../../shared/utils/logger';
 
 export const SHOWTIME_RADAR_STALE_TIME = 2 * 60 * 1000;
 
@@ -61,7 +62,7 @@ export const useShowtimeRadarRefresh = () => {
       }));
     } catch (error) {
       notificationService.error('Không thể làm mới gợi ý');
-      console.error(error);
+      logger.error('Failed to refresh showtime radar:', error);
     } finally {
       setRefreshing(false);
     }

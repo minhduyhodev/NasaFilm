@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { comboService } from '../../../../shared/services/comboService';
 import { notificationService } from '../../../../shared/services/notificationService';
+import { logger } from '../../../../shared/utils/logger';
 import AdminModal from '../AdminModal';
 import ComboFormPanel from './ComboFormPanel';
 import {
@@ -32,7 +33,7 @@ const ComboCatalogSection = ({ embedded = false, sectionId = 'danh-muc' }) => {
       const data = await comboService.getAdminCombos();
       setCombosList(data || []);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to load combo catalog:', err);
       notificationService.error('Không thể tải danh sách combo bắp nước.');
     } finally {
       setIsLoading(false);

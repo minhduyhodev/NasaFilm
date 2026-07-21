@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Copy, Check, Clock, Loader2, QrCode } from 'lucide-react';
 import { authService } from '../../auth/api/authService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 
 export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amount, description }) {
   const [qrData, setQrData] = useState(null);
@@ -59,7 +60,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
         }
       } catch (err) {
         if (isMounted) {
-          console.error('VietQR generate failed:', err);
+          logger.error('VietQR generate failed:', err);
           notificationService.error('Lỗi tạo mã QR thanh toán.');
           onClose();
         }
@@ -93,7 +94,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
             onPaymentSuccess(qrData);
           }
         } catch (err) {
-          console.error("Error polling VietQR payment:", err);
+          logger.error("Error polling VietQR payment:", err);
         }
       };
 

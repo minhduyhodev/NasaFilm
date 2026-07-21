@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import { tokenService } from '../../features/auth/utils/tokenService';
+import { logger } from '../utils/logger';
 
 const resolveApiBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -89,7 +90,7 @@ class StompSocketService {
       try {
         listener(connected);
       } catch (error) {
-        console.error('STOMP connection listener failed:', error);
+        logger.error('STOMP connection listener failed', error);
       }
     });
   }
@@ -165,7 +166,7 @@ class StompSocketService {
         this.notifyConnectionListeners();
       },
       onStompError: (frame) => {
-        console.error('WebSocket error:', frame.headers?.message ?? frame.body);
+        logger.error('WebSocket broker error', frame.headers?.message ?? frame.body);
       },
       onWebSocketClose: () => {
         this.connected = false;
@@ -234,7 +235,7 @@ class StompSocketService {
           settle(resolve);
         };
         this.client.onStompError = (frame) => {
-          console.error('WebSocket error:', frame.headers?.message ?? frame.body);
+          logger.error('WebSocket broker error', frame.headers?.message ?? frame.body);
           settle(reject, new Error(frame.headers?.message ?? 'STOMP error'));
         };
         this.client.onWebSocketError = () => {
@@ -264,7 +265,7 @@ class StompSocketService {
         if (preferredSockJs) {
           throw error;
         }
-        console.warn('Native WebSocket failed, retrying with SockJS:', error?.message ?? error);
+        logger.warn('Native WebSocket failed; retrying with SockJS', error?.message ?? error);
         const failedClient = this.client;
         this.client = null;
         this.connected = false;
@@ -315,7 +316,7 @@ class StompSocketService {
       })
       .catch((error) => {
         if (this.activeSubscriptions.has(id) && !entry.disposed) {
-          console.error(`Failed to subscribe to ${topic}:`, error);
+          logger.error(`Failed to subscribe to ${topic}`, error);
         }
       });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Copy, Check, Building2, CreditCard, QrCode,
   Loader2, X, AlertTriangle,
@@ -59,7 +59,6 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
     };
     generate();
     return () => { isMounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount]);
 
   // Auto-credit on success

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Building2, Milestone } from 'lucide-react';
 import { cinemaService } from '../../../shared/services/cinemaService';
+import { logger } from '../../../shared/utils/logger';
 import { CounterSelectDropdown } from './CounterSelectDropdown';
 
 export default function CounterLocationToolbar({
@@ -78,7 +79,7 @@ export default function CounterLocationToolbar({
           localStorage.removeItem('counter_room_uuid');
         }
       })
-      .catch((err) => console.error('Failed to load cinemas for counter toolbar:', err));
+      .catch((err) => logger.error('Failed to load cinemas for counter toolbar:', err));
 
     return () => { cancelled = true; };
   }, [selectedCinemaUuid, selectedRoomUuid, allowEmptyCinema, allowEmptyRoom]);

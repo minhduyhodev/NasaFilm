@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { logger } from '../../../shared/utils/logger';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -298,7 +299,7 @@ const DashboardPage = () => {
       });
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Failed to fetch dashboard stats', error);
+      logger.error('Failed to fetch dashboard stats', error);
     } finally {
       setIsLoading(false);
     }
@@ -351,7 +352,7 @@ const DashboardPage = () => {
 
       setActivities(merged);
     } catch (error) {
-      console.error('Failed to fetch dashboard activities', error);
+      logger.error('Failed to fetch dashboard activities', error);
       setActivities([]);
     }
   }, []);
@@ -369,7 +370,7 @@ const DashboardPage = () => {
       if (reqId !== seriesReqIdRef.current) return;
       setRevenueSeries(data);
     } catch (error) {
-      console.error('Failed to fetch revenue series', error);
+      logger.error('Failed to fetch revenue series', error);
       if (reqId !== seriesReqIdRef.current) return;
       setRevenueSeries(null);
     } finally {

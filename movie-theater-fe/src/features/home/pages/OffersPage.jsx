@@ -14,6 +14,7 @@ import TabTransition from '../../../shared/components/TabTransition';
 import { comboService } from '../../../shared/services/comboService';
 import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import { cinemaService } from '../../../shared/services/cinemaService';
+import { logger } from '../../../shared/utils/logger';
 
 import heroBg from '../../../shared/assets/offers_hero_bg.webp';
 import familyComboImg from '../../../shared/assets/offer_family_combo.webp';
@@ -144,7 +145,7 @@ const OffersPage = () => {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error('Failed to load combos:', err);
+          logger.error('Failed to load combos:', err);
           setComboError('Không thể tải danh sách combo.');
         }
       })
@@ -183,7 +184,7 @@ const OffersPage = () => {
         setCinemasLoaded(true);
       } catch (err) {
         if (!cancelled) {
-          console.error('Failed to load cinemas:', err);
+          logger.error('Failed to load cinemas:', err);
           setCinemaError('Không thể tải thông tin rạp chiếu.');
         }
       } finally {

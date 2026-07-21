@@ -6,7 +6,7 @@ import { bookingService } from './bookingService';
  * Endpoints:
  * - GET  /api/vod/status/{movieRef}   (UUID hoặc slug)
  * - POST /api/vod/play/{movieRef}
- * - POST /api/vod/heartbeat/{movieRef}?streamToken=
+ * - POST /api/vod/heartbeat/{movieRef} (HttpOnly cookie + X-Stream-Session)
  * - POST /api/vod/resend-ticket/{movieRef}
  * - POST /api/bookings/confirm-online
  * - GET  /api/bookings/my-bookings
@@ -24,8 +24,8 @@ export const vodService = {
     return bookingService.activateVodPlay(movieUuid, bookingUuid);
   },
 
-  heartbeat(movieUuid, streamToken, positionSeconds = null, durationSeconds = null) {
-    return bookingService.vodHeartbeat(movieUuid, streamToken, positionSeconds, durationSeconds);
+  heartbeat(movieUuid, streamSessionId, positionSeconds = null, durationSeconds = null) {
+    return bookingService.vodHeartbeat(movieUuid, streamSessionId, positionSeconds, durationSeconds);
   },
 
   getHistory() {

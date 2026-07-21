@@ -8,6 +8,7 @@ import { notificationService } from '../../shared/services/notificationService';
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../shared/utils/orbitRecentStorage';
 import { showMissionCompletionToasts } from '../../shared/services/missionService';
+import { logger } from '../../shared/utils/logger';
 
 export default function VietQRPage() {
   const location = useLocation();
@@ -85,7 +86,7 @@ export default function VietQRPage() {
         }
       } catch (err) {
         if (isMounted) {
-          console.error('VietQR generate failed:', err);
+          logger.error('VietQR generate failed:', err);
           notificationService.error(err.message || 'Lỗi tạo mã QR thanh toán.');
           navigate('/checkout', { replace: true });
         }
@@ -165,7 +166,7 @@ export default function VietQRPage() {
         });
       }
     } catch (error) {
-      console.error("Payment confirmation failed:", error);
+      logger.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng liên hệ CSKH.");
       confirmFired.current = false;
       setIsConfirming(false);
@@ -193,7 +194,7 @@ export default function VietQRPage() {
             await doConfirmBooking();
           }
         } catch (err) {
-          console.error("Error polling VietQR payment:", err);
+          logger.error("Error polling VietQR payment:", err);
         }
       };
 

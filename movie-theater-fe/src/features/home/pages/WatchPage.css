@@ -130,6 +130,33 @@
   transition: object-fit 0.55s ease;
 }
 
+.watch-stream-watermark {
+  @apply pointer-events-none absolute left-[8%] top-[12%] z-20 max-w-[80%] select-none whitespace-nowrap text-[9px] font-semibold tracking-wider text-white md:text-[11px];
+  opacity: 0.3;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  animation: watch-watermark-drift 24s steps(1, end) infinite;
+}
+
+@keyframes watch-watermark-drift {
+  0%,
+  100% {
+    left: 8%;
+    top: 12%;
+  }
+  25% {
+    left: 62%;
+    top: 22%;
+  }
+  50% {
+    left: 15%;
+    top: 74%;
+  }
+  75% {
+    left: 58%;
+    top: 68%;
+  }
+}
+
 .watch-cinema-vignette {
   @apply pointer-events-none absolute inset-0 z-[5];
   background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);

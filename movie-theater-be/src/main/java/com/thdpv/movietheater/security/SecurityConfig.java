@@ -152,8 +152,11 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(List.of(frontendUrl));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept", "x-api-key"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Cache-Control", "Content-Type", "Accept",
+                "Range", "X-Stream-Token", "X-Stream-Session", "X-Request-ID", "x-api-key"));
+        configuration.setExposedHeaders(List.of(
+                "Authorization", "Accept-Ranges", "Content-Range", "Content-Length", "X-Request-ID"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
