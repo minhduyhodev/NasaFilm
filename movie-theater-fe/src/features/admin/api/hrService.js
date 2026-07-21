@@ -171,6 +171,16 @@ class HrService {
     }
   }
 
+  /** Mã QR hiển thị tại quầy — mọi nhân viên có thể mở trên tablet/màn hình quầy. */
+  async getCheckpointDisplay() {
+    try {
+      const res = await authService.api.get('/api/hr/me/checkpoint-display');
+      return unwrap(res);
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   // ----- Hồ sơ lương nhân viên (HR_PAYROLL_MANAGE) -----
   async getEmployeeProfiles() {
     try {

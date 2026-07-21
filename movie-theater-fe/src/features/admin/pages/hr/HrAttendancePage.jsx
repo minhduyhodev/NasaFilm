@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, CheckCheck, Loader2, Lock, Pencil, QrCode, ScanLine, X } from 'lucide-react';
-import QRCode from 'qrcode';
 import { AdminPage, AdminModal, PageHeader, PrimaryButton, StatusBadge, AdminTableShell, AdminDatePicker, AdminDateTimePicker } from '../../components';
 import { adminInputClass, adminTextareaClass } from '../../components/adminFormStyles';
 import AdminSelectDropdown from '../../components/AdminSelectDropdown';
 import { hrService } from '../../api/hrService';
 import { notificationService } from '../../../../shared/services/notificationService';
 import { useConfirm } from '../../../../shared/context/ConfirmDialogContext';
+import CheckpointCodeDisplay from './CheckpointCodeDisplay';
 import {
   APPROVAL_STATUS_META,
   ATTENDANCE_STATUS_META,
@@ -43,6 +43,13 @@ function fromDatetimeLocal(value) {
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái duyệt' },
+  { value: 'PENDING', label: 'Chờ duyệt' },
+  { value: 'APPROVED', label: 'Đã duyệt' },
+  { value: 'REJECTED', label: 'Từ chối' },
+];
+
+const QUICK_FILTERS = [
+  { value: '', label: 'Tất cả' },
   { value: 'PENDING', label: 'Chờ duyệt' },
   { value: 'APPROVED', label: 'Đã duyệt' },
   { value: 'REJECTED', label: 'Từ chối' },
@@ -197,12 +204,24 @@ const HrAttendancePage = () => {
 
   const summary = useMemo(() => {
     const pending = records.filter((r) => r.approvalStatus === 'PENDING').length;
+    const approved = records.filter((r) => r.approvalStatus === 'APPROVED').length;
+    const rejected = records.filter((r) => r.approvalStatus === 'REJECTED').length;
     const otPending = records.reduce(
       (sum, r) => sum + Math.max(0, (r.otMinutes || 0) - (r.otMinutesApproved || 0)),
       0,
     );
-    return { pending, otPending };
+    const readyToApprove = records.filter(
+      (r) => r.approvalStatus === 'PENDING' && r.checkOutAt,
+    ).length;
+    return { pending, approved, rejected, otPending, readyToApprove, total: records.length };
   }, [records]);
+
+  const filterCounts = useMemo(() => ({
+    '': records.length,
+    PENDING: records.filter((r) => r.approvalStatus === 'PENDING').length,
+    APPROVED: records.filter((r) => r.approvalStatus === 'APPROVED').length,
+    REJECTED: records.filter((r) => r.approvalStatus === 'REJECTED').length,
+  }), [records]);
 
   return (
     <AdminPage>
@@ -232,24 +251,67 @@ const HrAttendancePage = () => {
         ]}
       />
 
-      <div className="hr-filters">
-        <div className="hr-field" style={{ minWidth: 170 }}>
-          <AdminDatePicker label="Từ ngày" value={from} onChange={setFrom} size="sm" max={to || undefined} />
-        </div>
-        <div className="hr-field" style={{ minWidth: 170 }}>
-          <AdminDatePicker label="Đến ngày" value={to} onChange={setTo} size="sm" min={from || undefined} />
-        </div>
-        <div className="hr-field" style={{ minWidth: 200 }}>
-          <AdminSelectDropdown label="Nhân viên" value={userFilter} options={staffOptions} onChange={setUserFilter} size="sm" />
-        </div>
-        <div className="hr-field" style={{ minWidth: 200 }}>
-          <AdminSelectDropdown label="Trạng thái duyệt" value={approvalFilter} options={STATUS_OPTIONS} onChange={setApprovalFilter} size="sm" />
-        </div>
+      <div className="hr-kpi-grid hr-kpi-grid--5">
+        <article className="hr-kpi-card">
+          <span className="hr-kpi-card__label">Tổng bản ghi</span>
+          <span className="hr-kpi-card__value">{summary.total}</span>
+          <span className="hr-kpi-card__hint">Trong khoảng đang lọc</span>
+        </article>
+        <article className="hr-kpi-card hr-kpi-card--warn">
+          <span className="hr-kpi-card__label">Chờ duyệt</span>
+          <span className="hr-kpi-card__value">{summary.pending}</span>
+          <span className="hr-kpi-card__hint">{summary.readyToApprove} đã check-out</span>
+        </article>
+        <article className="hr-kpi-card hr-kpi-card--success">
+          <span className="hr-kpi-card__label">Đã duyệt</span>
+          <span className="hr-kpi-card__value">{summary.approved}</span>
+          <span className="hr-kpi-card__hint">Dùng để tính lương</span>
+        </article>
+        <article className="hr-kpi-card">
+          <span className="hr-kpi-card__label">OT chưa duyệt</span>
+          <span className="hr-kpi-card__value" style={{ fontSize: 18 }}>{formatMinutes(summary.otPending)}</span>
+          <span className="hr-kpi-card__hint">Chỉnh trong form sửa</span>
+        </article>
+        <article className="hr-kpi-card">
+          <span className="hr-kpi-card__label">Từ chối</span>
+          <span className="hr-kpi-card__value">{summary.rejected}</span>
+          <span className="hr-kpi-card__hint">Không tính lương</span>
+        </article>
       </div>
 
-      <div className="hr-inline" style={{ marginBottom: 14 }}>
-        <StatusBadge variant="warning">{summary.pending} chờ duyệt</StatusBadge>
-        <StatusBadge variant="info">OT chưa duyệt: {formatMinutes(summary.otPending)}</StatusBadge>
+      <div className="hr-panel">
+        <div className="hr-panel__head">
+          <p className="hr-panel__title">Bộ lọc & trạng thái duyệt</p>
+          <div className="hr-filter-pills" role="tablist" aria-label="Lọc trạng thái duyệt">
+            {QUICK_FILTERS.map((f) => (
+              <button
+                key={f.value || 'all'}
+                type="button"
+                role="tab"
+                aria-selected={approvalFilter === f.value}
+                className={`hr-filter-pill${approvalFilter === f.value ? ' is-active' : ''}`}
+                onClick={() => setApprovalFilter(f.value)}
+              >
+                {f.label}
+                <span className="hr-filter-pill__count">{filterCounts[f.value] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="hr-filters" style={{ marginBottom: 0 }}>
+          <div className="hr-field" style={{ minWidth: 170 }}>
+            <AdminDatePicker label="Từ ngày" value={from} onChange={setFrom} size="sm" max={to || undefined} />
+          </div>
+          <div className="hr-field" style={{ minWidth: 170 }}>
+            <AdminDatePicker label="Đến ngày" value={to} onChange={setTo} size="sm" min={from || undefined} />
+          </div>
+          <div className="hr-field" style={{ minWidth: 200 }}>
+            <AdminSelectDropdown label="Nhân viên" value={userFilter} options={staffOptions} onChange={setUserFilter} size="sm" />
+          </div>
+          <div className="hr-field" style={{ minWidth: 200 }}>
+            <AdminSelectDropdown label="Trạng thái duyệt" value={approvalFilter} options={STATUS_OPTIONS} onChange={setApprovalFilter} size="sm" />
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -263,7 +325,7 @@ const HrAttendancePage = () => {
           <p>Không có bản ghi chấm công phù hợp bộ lọc.</p>
         </div>
       ) : (
-        <AdminTableShell>
+        <AdminTableShell className="hr-att-table">
           <table className="adm-table hr-table">
             <thead>
               <tr>
@@ -273,12 +335,12 @@ const HrAttendancePage = () => {
                 <th>Vào</th>
                 <th>Ra</th>
                 <th>Giờ công</th>
-                <th>OT (duyệt/tổng)</th>
+                <th>OT duyệt/tổng</th>
                 <th>Muộn</th>
                 <th>Về sớm</th>
-                <th>Trạng thái</th>
+                <th>Chấm công</th>
                 <th>Duyệt</th>
-                <th />
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -312,32 +374,28 @@ const HrAttendancePage = () => {
                     </td>
                     <td>
                       {r.approvalStatus === 'APPROVED' ? (
-                        <div className="hr-row-actions">
-                          <span
-                            className="hr-lock-note"
-                            title="Chấm công đã duyệt — không thể chỉnh sửa hoặc thay đổi"
-                          >
-                            <Lock className="h-3.5 w-3.5" />
-                            Đã khóa
-                          </span>
-                        </div>
+                        <span
+                          className="hr-lock-note"
+                          title="Chấm công đã duyệt — không thể chỉnh sửa hoặc thay đổi"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          Đã khóa
+                        </span>
                       ) : (
                         <div className="hr-row-actions">
                           <button
                             type="button"
-                            className="cursor-pointer"
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', padding: 4 }}
-                            title="Chỉnh sửa"
+                            className="hr-action-btn hr-action-btn--edit"
+                            title="Chỉnh sửa giờ vào/ra & OT"
                             onClick={() => setEditing(r)}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
-                            className="cursor-pointer"
-                            style={{ background: 'none', border: 'none', color: '#34d399', padding: 4 }}
-                            title="Duyệt"
-                            disabled={busy}
+                            className="hr-action-btn hr-action-btn--approve"
+                            title={r.checkOutAt ? 'Duyệt chấm công' : 'Cần check-out trước khi duyệt'}
+                            disabled={busy || !r.checkOutAt}
                             onClick={() => handleApprove(r)}
                           >
                             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -345,8 +403,7 @@ const HrAttendancePage = () => {
                           {r.approvalStatus !== 'REJECTED' && (
                             <button
                               type="button"
-                              className="cursor-pointer"
-                              style={{ background: 'none', border: 'none', color: '#f87171', padding: 4 }}
+                              className="hr-action-btn hr-action-btn--reject"
                               title="Từ chối"
                               disabled={busy}
                               onClick={() => handleReject(r)}
@@ -382,57 +439,6 @@ const HrAttendancePage = () => {
 };
 
 function CheckpointCodeModal({ onClose }) {
-  const [data, setData] = useState(null);
-  const [qrUrl, setQrUrl] = useState('');
-  const [remaining, setRemaining] = useState(0);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const periodRef = useRef(60);
-
-  const fetchCode = useCallback(async () => {
-    try {
-      const res = await hrService.getCheckpointCode();
-      setData(res);
-      setRemaining(res?.validForSeconds ?? 0);
-      periodRef.current = res?.periodSeconds || 60;
-      setError('');
-      if (res?.qrContent) {
-        const url = await QRCode.toDataURL(String(res.qrContent), {
-          width: 320,
-          margin: 1,
-          errorCorrectionLevel: 'M',
-          color: { dark: '#0b1020', light: '#ffffff' },
-        });
-        setQrUrl(url);
-      }
-    } catch (err) {
-      setError(err?.message || 'Không tải được mã điểm danh.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCode();
-  }, [fetchCode]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          fetchCode();
-          return periodRef.current;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [fetchCode]);
-
-  const code = data?.code || '';
-  const prettyCode = code.length === 6 ? `${code.slice(0, 3)} ${code.slice(3)}` : code;
-  const pct = periodRef.current > 0 ? Math.round((remaining / periodRef.current) * 100) : 0;
-
   return (
     <AdminModal
       open
@@ -452,29 +458,7 @@ function CheckpointCodeModal({ onClose }) {
         </div>
       }
     >
-      {loading ? (
-        <div className="hr-state">
-          <Loader2 className="h-8 w-8 text-red-500 animate-spin" />
-          <p>Đang tạo mã...</p>
-        </div>
-      ) : error ? (
-        <div className="hr-state">
-          <QrCode className="h-9 w-9 text-slate-500" />
-          <p>{error}</p>
-        </div>
-      ) : (
-        <div className="hr-checkpoint">
-          {qrUrl && <img src={qrUrl} alt="Mã QR điểm danh" className="hr-checkpoint__qr" />}
-          <div className="hr-checkpoint__code">{prettyCode}</div>
-          <div className="hr-checkpoint__bar">
-            <span className="hr-checkpoint__bar-fill" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="hr-muted" style={{ fontSize: 12, textAlign: 'center' }}>
-            Mã tự đổi sau <span className="hr-strong">{remaining}s</span>. Nhân viên có thể quét QR hoặc
-            nhập mã 6 số này khi chấm công.
-          </p>
-        </div>
-      )}
+      <CheckpointCodeDisplay fetchCode={() => hrService.getCheckpointCode()} />
     </AdminModal>
   );
 }
@@ -524,6 +508,15 @@ function EditModal({ record, onClose, onSaved }) {
         </div>
       }
     >
+      <div className="hr-edit-meta">
+        <StatusBadge variant={statusVariant(APPROVAL_STATUS_META, record.approvalStatus)}>
+          {statusBadge(APPROVAL_STATUS_META, record.approvalStatus).label}
+        </StatusBadge>
+        <StatusBadge variant={statusVariant(ATTENDANCE_STATUS_META, record.attendanceStatus)}>
+          {statusBadge(ATTENDANCE_STATUS_META, record.attendanceStatus).label}
+        </StatusBadge>
+        <span className="hr-muted" style={{ fontSize: 12 }}>Ca {record.shiftName}</span>
+      </div>
       <div className="space-y-4">
         <AdminDateTimePicker
           label="Giờ vào"

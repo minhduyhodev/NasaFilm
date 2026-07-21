@@ -132,7 +132,55 @@ public class AdminDashboardService {
             cinemaStats.add(new AdminDashboardResponse.CinemaStat(cinemaName, revenue, occupancyRate));
         }
 
-        // 5. Genre statistics
+        // 5. Room statistics (top by revenue)
+        List<Object[]> roomRows = entityManager.createNativeQuery("""
+                select
+                    cr.name as room_name,
+                    c.name as cinema_name,
+                    (
+                        select coalesce(sum(b.total_price), 0)
+                        from booking b
+                        join showtime st on st.uuid = b.showtime_uuid
+                        where st.cinema_room_uuid = cr.uuid and b.status = 'CONFIRMED'
+                    ) as total_revenue,
+                    (
+                        select count(1)
+                        from booking_seat bs
+                        join booking b on b.uuid = bs.booking_uuid
+                        join showtime st on st.uuid = b.showtime_uuid
+                        where st.cinema_room_uuid = cr.uuid and b.status = 'CONFIRMED'
+                    ) as tickets_sold,
+                    (
+                        select coalesce(sum(cr2.capacity), 0)
+                        from showtime st
+                        join cinema_room cr2 on cr2.uuid = st.cinema_room_uuid
+                        where st.cinema_room_uuid = cr.uuid
+                    ) as total_capacity
+                from cinema_room cr
+                join cinema c on c.uuid = cr.cinema_uuid
+                order by total_revenue desc
+                limit 8
+                """)
+                .getResultList();
+
+        List<AdminDashboardResponse.RoomStat> roomStats = new ArrayList<>();
+        for (Object[] row : roomRows) {
+            String roomName = stringValue(row[0]);
+            String cinemaName = stringValue(row[1]);
+            BigDecimal revenue = toBigDecimal(row[2]);
+            long ticketsSold = toLong(row[3]);
+            long totalCapacity = toLong(row[4]);
+
+            double occupancyRate = 0.0;
+            if (totalCapacity > 0) {
+                occupancyRate = (ticketsSold * 100.0) / totalCapacity;
+                occupancyRate = Math.round(occupancyRate * 10.0) / 10.0;
+            }
+
+            roomStats.add(new AdminDashboardResponse.RoomStat(roomName, cinemaName, revenue, occupancyRate));
+        }
+
+        // 6. Genre statistics
         List<Object[]> genreRows = entityManager.createNativeQuery("""
                 select
                     g.name as genre_name,
@@ -170,7 +218,7 @@ public class AdminDashboardService {
             genreStats.add(new AdminDashboardResponse.GenreStat(genreName, occupancyRate));
         }
 
-        // 6. Top movies by revenue (theater + online)
+        // 7. Top movies by revenue (theater + online)
         List<Object[]> movieRows = entityManager.createNativeQuery("""
                 select
                     m.uuid as movie_uuid,
@@ -222,6 +270,7 @@ public class AdminDashboardService {
                 growth,
                 conversionRate,
                 cinemaStats,
+                roomStats,
                 genreStats,
                 topMovies
         );
