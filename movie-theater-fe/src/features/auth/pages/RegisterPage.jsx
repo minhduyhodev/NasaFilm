@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Phone, Calendar } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { AuthLayout } from "../components/AuthLayout";
 import { AuthCard } from "../components/AuthCard";
 import { AuthInput } from "../components/AuthInput";
+import { AuthDatePicker } from "../components/AuthDatePicker";
 import { PasswordStrength } from "../components/PasswordStrength";
 import { SocialLoginButtons } from "../components/SocialLoginButtons";
 import { registerSchema } from "../utils/validation";
@@ -18,6 +19,20 @@ import { getDefaultAdminPath, isAdminOrStaffUser } from "../../../shared/utils/a
 import "./RegisterPage.css";
 import "../components/AuthInput.css";
 
+const GENDER_OPTIONS = [
+  { value: "MALE", label: "Nam" },
+  { value: "FEMALE", label: "Nữ" },
+  { value: "OTHER", label: "Khác" },
+];
+
+const getMaxBirthDate = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 12);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -32,15 +47,27 @@ export const RegisterPage = () => {
   const [otpError, setOtpError] = useState("");
   const [timer, setTimer] = useState(0);
   const otpRefs = useRef([]);
+  const maxBirthDate = useMemo(() => getMaxBirthDate(), []);
 
   const {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
     setError,
   } = useForm({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      dayOfBirth: "",
+      gender: "",
+      password: "",
+      confirmPassword: "",
+      agreeToTerms: false,
+    },
   });
 
   const password = watch("password");
@@ -292,20 +319,22 @@ export const RegisterPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
             <AuthInput
               {...register("fullName")}
-              label="Tên tài khoản"
-              placeholder="Chí Trung"
+              label="Họ và tên"
+              placeholder="Hồ Minh Duy "
               type="text"
               icon={<User size={15} />}
               error={errors.fullName}
+              autoComplete="name"
             />
 
             <AuthInput
               {...register("email")}
               label="Email"
-              placeholder="name@email.com"
+              placeholder="name@gmail.com"
               type="email"
               icon={<Mail size={15} />}
               error={errors.email}
+              autoComplete="email"
             />
 
             <AuthInput
@@ -315,36 +344,58 @@ export const RegisterPage = () => {
               type="tel"
               icon={<Phone size={15} />}
               error={errors.phoneNumber}
+              autoComplete="tel"
+              inputMode="numeric"
             />
 
             <div className="auth-form__row">
-              <AuthInput
-                {...register("dayOfBirth")}
-                label="Ngày sinh"
-                type="date"
-                icon={<Calendar size={15} />}
-                error={errors.dayOfBirth}
+              <Controller
+                name="dayOfBirth"
+                control={control}
+                render={({ field }) => (
+                  <AuthDatePicker
+                    id="register-dob"
+                    label="Ngày sinh"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    max={maxBirthDate}
+                    error={errors.dayOfBirth}
+                  />
+                )}
               />
 
-              <div className={`auth-field ${errors.gender ? 'auth-field--error' : ''}`}>
-                <label className="auth-field__label">Giới tính</label>
-                <div className="auth-field__control">
-                  <span className="auth-field__icon">
-                    <User size={15} />
-                  </span>
-                  <select
-                    {...register("gender")}
-                    className="auth-field__select app-select"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
-                      Chọn giới tính
-                    </option>
-                    <option value="MALE">Nam</option>
-                    <option value="FEMALE">Nữ</option>
-                    <option value="OTHER">Khác</option>
-                  </select>
-                </div>
+              <div className={`auth-field ${errors.gender ? "auth-field--error" : ""}`}>
+                <span className="auth-field__label" id="register-gender-label">
+                  Giới tính
+                </span>
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <div
+                      className="auth-gender"
+                      role="radiogroup"
+                      aria-labelledby="register-gender-label"
+                    >
+                      {GENDER_OPTIONS.map((option) => {
+                        const active = field.value === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            className={`auth-gender__btn${active ? " is-active" : ""}`}
+                            onClick={() => field.onChange(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                />
                 {errors.gender ? (
                   <p className="auth-field__error">{errors.gender.message}</p>
                 ) : null}

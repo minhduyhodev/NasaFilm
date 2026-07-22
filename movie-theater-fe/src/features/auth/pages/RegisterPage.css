@@ -13,7 +13,81 @@
 @media (min-width: 420px) {
   .auth-form__row {
     grid-template-columns: 1fr 1fr;
+    align-items: start;
   }
+}
+
+/* ── Date styles reused by AuthDatePicker trigger ── */
+.auth-date__display {
+  flex: 1;
+  padding: 0 2rem 0 2.15rem;
+  font-size: 0.9rem;
+  line-height: 2.45rem;
+  color: #f4f0eb;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.auth-date__display.is-placeholder {
+  color: rgba(244, 240, 235, 0.32);
+}
+
+.auth-date__chevron {
+  position: absolute;
+  right: 0.65rem;
+  display: inline-flex;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Gender segmented control ── */
+.auth-gender {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  min-height: 2.45rem;
+  padding: 0.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.auth-gender__btn {
+  border: 0;
+  border-radius: 0.28rem;
+  background: transparent;
+  color: rgba(244, 240, 235, 0.55);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.12s ease;
+}
+
+.auth-gender__btn:hover {
+  color: #f4f0eb;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-gender__btn.is-active {
+  color: #fff;
+  background: linear-gradient(180deg, #b85a60 0%, #a74d53 100%);
+  box-shadow: 0 4px 12px rgba(167, 77, 83, 0.28);
+}
+
+.auth-gender__btn:focus-visible {
+  outline: 2px solid rgba(196, 106, 112, 0.7);
+  outline-offset: 1px;
+}
+
+.auth-field--error .auth-gender {
+  border-color: rgba(196, 106, 112, 0.7);
 }
 
 .auth-terms-label {
