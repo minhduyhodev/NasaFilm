@@ -194,7 +194,8 @@ export const LoginPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn."
+      tagline="Điện ảnh. Không khoảng cách."
+      heroDescription="Trải nghiệm những bộ phim hay nhất, trên màn ảnh lớn gần bạn nhất."
     >
       <AuthCard title="Chào Mừng Trở Lại">
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
@@ -203,7 +204,7 @@ export const LoginPage = () => {
             label="Email"
             placeholder="explorer@nasafilm.com"
             type="email"
-            icon={<Mail size={20} />}
+            icon={<Mail size={15} />}
             error={errors.email}
           />
 
@@ -213,7 +214,7 @@ export const LoginPage = () => {
               label="Mật khẩu"
               placeholder="********"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.password}
               showPasswordToggle={true}
               showPassword={showPassword}
