@@ -1,0 +1,209 @@
+.auth-cinema {
+  --auth-red: #a74d53;
+  --auth-red-deep: #8c3d43;
+  --auth-ink: #f4f0eb;
+  --auth-muted: rgba(244, 240, 235, 0.68);
+
+  position: relative;
+  min-height: 100dvh;
+  color: var(--auth-ink);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #050306;
+}
+
+.auth-cinema__content {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: flex;
+  align-items: stretch;
+}
+
+.auth-cinema__grid {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__grid {
+    grid-template-columns: minmax(20rem, 28rem) minmax(18rem, 1fr);
+    padding: 2.5rem 3rem 3rem;
+    gap: 3rem;
+  }
+}
+
+.auth-cinema__panel {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+  order: 2;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__panel {
+    margin-inline: 0;
+    order: 1;
+  }
+}
+
+/* Mobile: brand above form. Desktop: brand lives in right hero column. */
+.auth-cinema__brand-mobile {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.auth-cinema__hero {
+  display: none;
+  order: 1;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__brand-mobile {
+    display: none;
+  }
+
+  .auth-cinema__hero {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    order: 2;
+    min-height: 20rem;
+    padding-left: 1rem;
+  }
+}
+
+.auth-cinema__brand-block {
+  max-width: 28rem;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__brand-block {
+    text-align: right;
+    margin-left: auto;
+  }
+}
+
+.auth-cinema__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  margin-bottom: 0.9rem;
+  transition: opacity 0.2s ease;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__brand {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+.auth-cinema__brand:hover {
+  opacity: 0.92;
+}
+
+.auth-cinema__logo {
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: contain;
+  border-radius: 0.35rem;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__logo {
+    width: 4.25rem;
+    height: 4.25rem;
+  }
+}
+
+.auth-cinema__logo--compact {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.auth-cinema__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+  font-family: 'Montserrat', 'Be Vietnam Pro', sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.1rem, 4.5vw, 3.4rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.auth-cinema__brand--compact {
+  font-size: 2rem;
+  margin-bottom: 1.25rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-cinema__brand--compact .auth-cinema__wordmark {
+  font-size: 1.85rem;
+}
+
+.auth-cinema__brand-nasa {
+  color: #fff;
+}
+
+.auth-cinema__brand-film {
+  color: var(--auth-red);
+}
+
+.auth-cinema__tagline {
+  margin: 0 0 0.55rem;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.auth-cinema__desc {
+  margin: 0;
+  max-width: 24rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--auth-muted);
+  font-weight: 400;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__desc {
+    margin-left: auto;
+  }
+}
+
+.auth-cinema__form-slot {
+  width: 100%;
+}
+
+.auth-cinema__centered {
+  width: 100%;
+  max-width: 28rem;
+  margin: auto;
+  padding: 2rem 1.25rem 2.5rem;
+}
+
+@media (max-height: 780px) and (min-width: 1024px) {
+  .auth-cinema__content {
+    align-items: flex-start;
+  }
+
+  .auth-cinema__grid {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}

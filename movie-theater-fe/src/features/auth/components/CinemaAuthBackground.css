@@ -1,0 +1,143 @@
+.cinema-auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050306;
+}
+
+/* Pure dark left plate — impossible for baked text to appear here */
+.cinema-auth-bg__void {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #050306;
+}
+
+/* Theater-only crop, locked to the right side of the viewport */
+.cinema-auth-bg__photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 38%;
+  z-index: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: brightness(0.92) contrast(1.04) saturate(0.94);
+}
+
+@media (max-width: 1023px) {
+  .cinema-auth-bg__photo {
+    left: 18%;
+    opacity: 0.85;
+  }
+}
+
+.cinema-auth-bg__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      90deg,
+      #050306 0%,
+      #050306 28%,
+      rgba(5, 3, 6, 0.72) 42%,
+      rgba(5, 3, 6, 0.2) 62%,
+      rgba(5, 3, 6, 0.12) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(5, 3, 6, 0.28) 0%,
+      transparent 24%,
+      transparent 78%,
+      rgba(5, 3, 6, 0.48) 100%
+    );
+}
+
+@media (max-width: 1023px) {
+  .cinema-auth-bg__veil {
+    background:
+      linear-gradient(
+        90deg,
+        #050306 0%,
+        rgba(5, 3, 6, 0.88) 35%,
+        rgba(5, 3, 6, 0.45) 70%,
+        rgba(5, 3, 6, 0.3) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(5, 3, 6, 0.35) 0%,
+        transparent 30%,
+        transparent 75%,
+        rgba(5, 3, 6, 0.5) 100%
+      );
+  }
+}
+
+.cinema-auth-bg__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+
+.cinema-auth-bg__constellations {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.cinema-auth-bg__constellation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+  animation: cinema-constellation-drift var(--dur, 16s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  will-change: transform, opacity;
+  opacity: 0;
+}
+
+.cinema-auth-bg__constellation--poster {
+  filter: drop-shadow(0 0 3px rgba(255, 230, 210, 0.28));
+}
+
+@keyframes cinema-constellation-drift {
+  0% {
+    transform:
+      translate3d(var(--sx), var(--sy), 0)
+      translate3d(-50%, -50%, 0)
+      scale(var(--ss))
+      rotate(var(--sr));
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--op, 0.5);
+  }
+  82% {
+    opacity: var(--op, 0.5);
+  }
+  100% {
+    transform:
+      translate3d(var(--ex), var(--ey), 0)
+      translate3d(-50%, -50%, 0)
+      scale(var(--es))
+      rotate(var(--er));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinema-auth-bg__constellation {
+    animation-duration: calc(var(--dur, 16s) * 1.2);
+  }
+}
