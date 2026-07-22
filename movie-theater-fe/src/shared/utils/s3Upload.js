@@ -3,6 +3,9 @@ import { movieService } from '../services/movieService';
 /** Đồng bộ ngưỡng multipart mặc định BE (20MB). FE tự quyết định; BE không đọc config này. */
 const MULTIPART_THRESHOLD_BYTES = 20 * 1024 * 1024;
 
+/** Số part upload song song — cân bằng tốc độ / ổn định mạng. */
+const MULTIPART_CONCURRENCY = 4;
+
 const guessContentType = (file, folder) => {
   if (file?.type) return file.type;
   if (folder === 'poster') return 'image/jpeg';
@@ -10,72 +13,160 @@ const guessContentType = (file, folder) => {
   return 'application/octet-stream';
 };
 
-const putBlob = async (url, blob, contentType) => {
-  const response = await fetch(url, {
-    method: 'PUT',
-    body: blob,
-    headers: contentType ? { 'Content-Type': contentType } : undefined,
+const clampPercent = (value) => Math.min(99, Math.max(0, Math.round(value)));
+
+/**
+ * PUT lên S3 bằng XHR để có upload progress theo byte (fetch không hỗ trợ).
+ * @returns {{ status: number, headers: { get: (name: string) => string | null } }}
+ */
+const putBlobWithProgress = (url, blob, contentType, onBytes) =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    if (contentType) {
+      xhr.setRequestHeader('Content-Type', contentType);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onBytes?.(event.loaded, event.total);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({
+          status: xhr.status,
+          headers: {
+            get: (name) => xhr.getResponseHeader(name),
+          },
+        });
+        return;
+      }
+      const text = typeof xhr.responseText === 'string' ? xhr.responseText : '';
+      reject(new Error(`Upload S3 thất bại (${xhr.status}): ${text.slice(0, 200)}`));
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Upload S3 thất bại (mạng / CORS). Kiểm tra kết nối và CORS bucket.'));
+    };
+    xhr.onabort = () => {
+      reject(new Error('Upload S3 đã bị hủy'));
+    };
+
+    xhr.send(blob);
   });
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Upload S3 thất bại (${response.status}): ${text.slice(0, 200)}`);
-  }
-  return response;
-};
 
 const uploadSinglePut = async ({ folder, file, contentType, movieTitle, onProgress }) => {
+  onProgress?.(2);
   const plan = await movieService.presignS3Put({
     folder,
     fileName: file.name,
     contentType,
     movieTitle,
   });
-  onProgress?.(5);
-  await putBlob(plan.url, file, contentType);
+  onProgress?.(4);
+
+  await putBlobWithProgress(plan.url, file, contentType, (loaded, total) => {
+    const ratio = total > 0 ? loaded / total : 0;
+    // 4–99% trong lúc đẩy byte; 100% sau khi xong.
+    onProgress?.(clampPercent(4 + ratio * 95));
+  });
+
   onProgress?.(100);
   return plan.key;
 };
 
+/**
+ * Chạy tối đa `limit` task song song từ danh sách async factories.
+ */
+const runWithConcurrency = async (factories, limit) => {
+  const results = new Array(factories.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(limit, factories.length) }, async () => {
+    while (nextIndex < factories.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await factories[index]();
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+};
+
 const uploadMultipart = async ({ folder, file, contentType, movieTitle, onProgress }) => {
+  onProgress?.(2);
   const init = await movieService.initiateS3Multipart({
     folder,
     fileName: file.name,
     contentType,
     movieTitle,
   });
+  onProgress?.(4);
+
   const partSize = Number(init.partSizeBytes) || 16 * 1024 * 1024;
   const totalParts = Math.max(1, Math.ceil(file.size / partSize));
-  const parts = [];
+  const partLoaded = new Array(totalParts).fill(0);
+  const partSizes = new Array(totalParts);
+
+  for (let i = 0; i < totalParts; i += 1) {
+    const start = i * partSize;
+    const end = Math.min(start + partSize, file.size);
+    partSizes[i] = end - start;
+  }
+
+  const reportProgress = () => {
+    const uploaded = partLoaded.reduce((sum, n) => sum + n, 0);
+    const ratio = file.size > 0 ? uploaded / file.size : 0;
+    onProgress?.(clampPercent(4 + ratio * 94));
+  };
 
   try {
-    for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
-      const start = (partNumber - 1) * partSize;
+    const factories = Array.from({ length: totalParts }, (_, index) => async () => {
+      const partNumber = index + 1;
+      const start = index * partSize;
       const end = Math.min(start + partSize, file.size);
       const blob = file.slice(start, end);
+
       const signed = await movieService.signS3MultipartPart({
         key: init.key,
         uploadId: init.uploadId,
         partNumber,
       });
-      const response = await putBlob(signed.url, blob);
+
+      const response = await putBlobWithProgress(signed.url, blob, undefined, (loaded) => {
+        partLoaded[index] = Math.min(loaded, partSizes[index]);
+        reportProgress();
+      });
+
+      partLoaded[index] = partSizes[index];
+      reportProgress();
+
       const eTag = response.headers.get('ETag') || response.headers.get('etag');
       if (!eTag) {
         throw new Error(
           'Thiếu ETag từ S3. Cần cấu hình CORS bucket ExposeHeaders = ETag.'
         );
       }
-      parts.push({
+
+      return {
         partNumber,
         eTag: eTag.replace(/"/g, ''),
-      });
-      onProgress?.(Math.round((partNumber / totalParts) * 100));
-    }
+      };
+    });
+
+    const parts = await runWithConcurrency(factories, MULTIPART_CONCURRENCY);
+    onProgress?.(98);
 
     await movieService.completeS3Multipart({
       key: init.key,
       uploadId: init.uploadId,
       parts,
     });
+
+    onProgress?.(100);
     return init.key;
   } catch (error) {
     try {
@@ -92,7 +183,8 @@ const uploadMultipart = async ({ folder, file, contentType, movieTitle, onProgre
 
 /**
  * Upload file local lên S3, trả về key (vd: movie/xxx.mp4).
- * File &lt; 20MB: PUT một lần. File lớn: multipart.
+ * File &lt; 20MB: PUT một lần. File lớn: multipart song song (4 part).
+ * onProgress nhận % 0–100 theo byte đã đẩy.
  */
 export const uploadMediaToS3 = async (folder, file, { movieTitle, onProgress } = {}) => {
   if (!file) {
