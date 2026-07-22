@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -128,7 +129,7 @@ class MovieControllerTest {
                 OffsetDateTime.now(),
                 OffsetDateTime.now());
 
-        when(movieService.getMovieDetail(any())).thenReturn(response);
+        when(movieService.getMovieDetailByRef(anyString())).thenReturn(response);
 
         mockMvc.perform(get("/api/movies/{movieUuid}", UUID.randomUUID()))
                 .andExpect(status().isOk())
@@ -255,7 +256,8 @@ class MovieControllerTest {
                 1);
 
         mockMvc.perform(post("/api/admin/movies/{movieUuid}/media", movieUuid)
-                        .with(user("staff@example.com").roles("STAFF"))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -288,7 +290,8 @@ class MovieControllerTest {
                 2);
 
         mockMvc.perform(put("/api/admin/movies/{movieUuid}/media/{mediaUuid}", movieUuid, mediaUuid)
-                        .with(user("staff@example.com").roles("STAFF"))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -302,7 +305,8 @@ class MovieControllerTest {
         doNothing().when(movieService).deleteMovieMedia(any(), any());
 
         mockMvc.perform(delete("/api/admin/movies/{movieUuid}/media/{mediaUuid}", UUID.randomUUID(), UUID.randomUUID())
-                        .with(user("staff@example.com").roles("STAFF")))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Xoa media phim thanh cong"));

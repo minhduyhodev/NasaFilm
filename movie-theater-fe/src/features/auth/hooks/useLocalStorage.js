@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '../../../shared/utils/logger';
 
 export const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {
@@ -18,12 +19,12 @@ export const useLocalStorage = (key, initialValue) => {
           try {
             window.localStorage.setItem(key, JSON.stringify(valueToStore));
           } catch (e) {
-            console.error('Error saving to localStorage:', e);
+            logger.error('Error saving to localStorage:', e);
           }
           return valueToStore;
         });
       } catch (error) {
-        console.error('Error saving to localStorage:', error);
+        logger.error('Error saving to localStorage:', error);
       }
     },
     [key]
@@ -34,7 +35,7 @@ export const useLocalStorage = (key, initialValue) => {
       window.localStorage.removeItem(key);
       setStoredValue(initialValue);
     } catch (error) {
-      console.error('Error removing from localStorage:', error);
+      logger.error('Error removing from localStorage:', error);
     }
   }, [key, initialValue]);
 

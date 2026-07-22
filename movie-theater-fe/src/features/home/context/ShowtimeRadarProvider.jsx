@@ -4,6 +4,7 @@ import { showtimeRadarService } from '../../../shared/services/showtimeRadarServ
 import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
 import { buildShowtimeRadarPayload } from '../../../shared/utils/showtimeRadarPayload';
+import { logger } from '../../../shared/utils/logger';
 import {
   collectGenreUuidsFromFavorites,
   mergeGenreSelections,
@@ -166,7 +167,7 @@ const useShowtimeRadarState = () => {
       return data;
     } catch (error) {
       notificationService.error('Không thể cập nhật Radar Suất Chiếu');
-      console.error(error);
+      logger.error('Failed to save showtime radar settings:', error);
       try {
         const data = await queryClient.fetchQuery({
           queryKey: queryKeys.showtimeRadar,
@@ -174,7 +175,7 @@ const useShowtimeRadarState = () => {
         });
         applyPreferenceData(data, true);
       } catch (reloadError) {
-        console.error(reloadError);
+        logger.error('Failed to reload showtime radar settings:', reloadError);
       }
       return null;
     } finally {
@@ -257,7 +258,7 @@ const useShowtimeRadarState = () => {
       return true;
     } catch (error) {
       notificationService.error('Không thể xóa cài đặt Radar');
-      console.error(error);
+      logger.error('Failed to reset showtime radar settings:', error);
       return false;
     } finally {
       setSaving(false);

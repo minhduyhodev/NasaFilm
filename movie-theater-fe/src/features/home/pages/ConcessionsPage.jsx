@@ -13,6 +13,7 @@ import {
 } from '../../../shared/utils/bookingSessionStorage';
 import { orbitService } from '../../../shared/services/orbitService';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
@@ -146,7 +147,7 @@ const ConcessionsPage = () => {
       });
       setQuantities(initial);
     } catch (err) {
-      console.error('Failed to hydrate orbit combos:', err);
+      logger.error('Failed to hydrate orbit combos:', err);
     }
   }, [isOrbitBooking, orbitRoomUuid, user]);
 
@@ -195,7 +196,7 @@ const ConcessionsPage = () => {
           try {
             await orbitService.abortCheckout(orbitRoomUuid);
           } catch (err) {
-            console.error('Failed to abort checkout on expiry:', err);
+            logger.error('Failed to abort checkout on expiry:', err);
           }
         }
         if (!cancelled) navigate(`/booking/orbit/${orbitRoomUuid}`);
@@ -236,7 +237,7 @@ const ConcessionsPage = () => {
         try {
           await orbitService.abortCheckout(orbitRoomUuid);
         } catch (err) {
-          console.error('Failed to abort checkout on back navigation:', err);
+          logger.error('Failed to abort checkout on back navigation:', err);
         }
       }
       navigate(`/booking/orbit/${orbitRoomUuid}`);
@@ -259,7 +260,7 @@ const ConcessionsPage = () => {
         setQuantities(initialQuantities);
         await hydrateCombosFromRoom(data || []);
       } catch (err) {
-        console.error("Failed to load combos:", err);
+        logger.error("Failed to load combos:", err);
         notificationService.error("Không thể tải danh sách bắp nước.");
       } finally {
         setIsLoading(false);
@@ -325,7 +326,7 @@ const ConcessionsPage = () => {
         notificationService.success('Hoàn tất chọn bắp nước thành công!');
         navigate(`/booking/orbit/${orbitRoomUuid}/waiting`);
       } catch (err) {
-        console.error('Failed to submit combos:', err);
+        logger.error('Failed to submit combos:', err);
         notificationService.error(err.message || 'Không thể hoàn tất chọn bắp nước. Vui lòng thử lại.');
       } finally {
         setIsSubmitting(false);

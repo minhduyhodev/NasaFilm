@@ -250,12 +250,15 @@ class BookingService {
     }
   }
 
-  async vodHeartbeat(movieUuid, streamToken, positionSeconds = null, durationSeconds = null) {
+  async vodHeartbeat(movieUuid, streamSessionId, positionSeconds = null, durationSeconds = null) {
     try {
-      const params = new URLSearchParams({ streamToken });
+      const params = new URLSearchParams();
       if (positionSeconds != null) params.set('positionSeconds', String(Math.floor(positionSeconds)));
       if (durationSeconds != null) params.set('durationSeconds', String(Math.floor(durationSeconds)));
-      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}?${params.toString()}`);
+      const query = params.size ? `?${params.toString()}` : '';
+      const response = await authService.api.post(`/api/vod/heartbeat/${movieUuid}${query}`, null, {
+        headers: streamSessionId ? { 'X-Stream-Session': streamSessionId } : undefined,
+      });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);
@@ -286,7 +289,7 @@ class BookingService {
  * - POST /api/bookings/confirm-online
  * - GET  /api/vod/status/{movieUuid}
  * - POST /api/vod/play/{movieUuid}
- * - POST /api/vod/heartbeat/{movieUuid}?streamToken=
+ * - POST /api/vod/heartbeat/{movieUuid} (HttpOnly cookie + X-Stream-Session)
  * - POST /api/vod/resend-ticket/{movieUuid}
  * - GET  /api/bookings/my-bookings (bookingType ONLINE, movieUuid)
  */

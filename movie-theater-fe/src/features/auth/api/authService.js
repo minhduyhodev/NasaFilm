@@ -1,6 +1,7 @@
 import axios from 'axios';
 import tokenService from '../utils/tokenService';
 import { resolveAvatarUrl } from '../../../shared/utils/avatarUrl';
+import { logger } from '../../../shared/utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -66,6 +67,7 @@ class AuthService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -182,7 +184,7 @@ class AuthService {
 
   async register(credentials) {
     try {
-      console.log("[AuthService] Gửi yêu cầu đăng ký cho email:", credentials.email);
+      logger.info("[AuthService] Gửi yêu cầu đăng ký.");
       const response = await this.api.post('/api/register', {
         email: credentials.email,
         password: credentials.password,
@@ -193,21 +195,21 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      console.error("[AuthService] Đăng ký thất bại. Lỗi:", error.message || error);
+      logger.error("[AuthService] Đăng ký thất bại. Lỗi:", error.message || error);
       throw this.handleError(error);
     }
   }
 
   async verifyRegister(email, code) {
     try {
-      console.log("[AuthService] Gửi yêu cầu xác thực OTP đăng ký cho email:", email);
+      logger.info("[AuthService] Gửi yêu cầu xác thực OTP đăng ký.");
       const response = await this.api.post('/api/register/verify', {
         email,
         code,
       });
       return response.data;
     } catch (error) {
-      console.error("[AuthService] Xác thực OTP thất bại. Lỗi:", error.message || error);
+      logger.error("[AuthService] Xác thực OTP thất bại. Lỗi:", error.message || error);
       throw this.handleError(error);
     }
   }
@@ -281,7 +283,7 @@ class AuthService {
       const refreshToken = tokenService.getRefreshToken();
       await this.api.post('/api/logout', { refreshToken });
     } catch (error) {
-      console.warn('Server logout failed, clearing local session anyway:', error);
+      logger.warn('Server logout failed, clearing local session anyway:', error);
     } finally {
       window.google?.accounts?.id?.disableAutoSelect?.();
       tokenService.clear();

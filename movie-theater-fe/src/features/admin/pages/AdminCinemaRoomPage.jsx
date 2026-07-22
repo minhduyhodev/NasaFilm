@@ -6,6 +6,7 @@ import {
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import {
   FALLBACK_SEAT_TYPES,
   SEAT_TYPE_CONFIGS,
@@ -161,7 +162,7 @@ const AdminCinemaRoomPage = () => {
       setCinema(cinemaDetail);
       setRoom(matchedRoom);
     } catch (error) {
-      console.error('Failed to load room workspace:', error);
+      logger.error('Failed to load room workspace:', error);
       notificationService.error('Không thể tải thông tin phòng chiếu.');
       navigate('/admin/cinemas');
     } finally {
@@ -208,7 +209,7 @@ const AdminCinemaRoomPage = () => {
       setAisleLayout(layout);
       setOriginalAisleLayout(JSON.parse(JSON.stringify(layout)));
     } catch (error) {
-      console.error('Failed to load seats for preview:', error);
+      logger.error('Failed to load seats for preview:', error);
       setSelectedRoomSeats([]);
       setOriginalSeats([]);
     } finally {
@@ -408,7 +409,7 @@ const AdminCinemaRoomPage = () => {
       await refreshRoomMeta();
       fetchSeats(room.uuid, serializeLayoutConfig(aisleLayout));
     } catch (error) {
-      console.error('Failed to save configuration:', error);
+      logger.error('Failed to save configuration:', error);
       notificationService.error(error.message || 'Lỗi khi lưu cấu hình');
     } finally {
       setIsSavingSeats(false);
@@ -763,7 +764,7 @@ const AdminCinemaRoomPage = () => {
       notificationService.success('Sao chép sơ đồ bố cục thành công!');
       fetchSeats(room.uuid, newLayoutJson);
     } catch (error) {
-      console.error('Failed to clone layout:', error);
+      logger.error('Failed to clone layout:', error);
       notificationService.error('Có lỗi xảy ra khi sao chép sơ đồ phòng.');
     } finally {
       setIsLoadingSeats(false);

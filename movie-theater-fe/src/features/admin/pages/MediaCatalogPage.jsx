@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { movieService } from "../../../shared/services/movieService";
 import { notificationService } from "../../../shared/services/notificationService";
+import { logger } from "../../../shared/utils/logger";
 import Pagination from "../../../shared/components/Pagination";
 import AdminModal from "../components/AdminModal";
 import ActorFormPanel from "../components/panels/ActorFormPanel";
@@ -68,7 +69,7 @@ const MediaCatalogPage = () => {
       setCountriesList(countriesData || []);
       setGenresList(genresData || []);
     } catch (err) {
-      console.error("Failed to load media catalog:", err);
+      logger.error("Failed to load media catalog:", err);
       notificationService.error("Không thể tải danh mục truyền thông");
     } finally {
       setIsLoading(false);

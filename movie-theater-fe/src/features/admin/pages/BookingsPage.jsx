@@ -8,6 +8,7 @@ import {
 import { movieService } from '../../../shared/services/movieService';
 import { showtimeService } from '../../../shared/services/showtimeService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import UserAvatar from '../../../shared/components/UserAvatar';
 import TabTransition from '../../../shared/components/TabTransition';
 import VirtualTableBody from '../../../shared/components/VirtualTableBody';
@@ -101,7 +102,7 @@ const BookingsPage = () => {
       setCinemasList(cinemasData || []);
       setShowtimes(showtimesData || []);
     } catch (err) {
-      console.error('Failed to fetch auxiliary data:', err);
+      logger.error('Failed to fetch auxiliary data:', err);
     }
   };
 
@@ -118,7 +119,7 @@ const BookingsPage = () => {
       });
       setBookings(Array.isArray(data?.content) ? data.content : []);
     } catch (err) {
-      console.error('Failed to load bookings:', err);
+      logger.error('Failed to load bookings:', err);
       notificationService.error('Không thể tải danh sách đơn đặt vé từ máy chủ.');
     } finally {
       setIsLoading(false);

@@ -128,7 +128,7 @@ class StompAuthChannelInterceptorTest {
         when(stompTopicAuthorizationService.isStaffTopic(destination)).thenReturn(false);
         when(supportTopicAccessService.isSupportUserTopic(destination)).thenReturn(true);
         when(supportTopicAccessService.parseTicketCode(destination)).thenReturn("TCK-001");
-        when(stompTopicAuthorizationService.hasAdminRole(any())).thenReturn(false);
+        when(stompTopicAuthorizationService.hasStaffOrAdminRole(any())).thenReturn(false);
         when(supportTopicAccessService.canSubscribe("owner@example.com", "TCK-001")).thenReturn(true);
 
         Message<?> message = stompSubscribeMessage(destination, authenticated("owner@example.com"));
@@ -143,7 +143,7 @@ class StompAuthChannelInterceptorTest {
         when(stompTopicAuthorizationService.isStaffTopic(destination)).thenReturn(false);
         when(supportTopicAccessService.isSupportUserTopic(destination)).thenReturn(true);
         when(supportTopicAccessService.parseTicketCode(destination)).thenReturn("TCK-001");
-        when(stompTopicAuthorizationService.hasAdminRole(any())).thenReturn(true);
+        when(stompTopicAuthorizationService.hasStaffOrAdminRole(any())).thenReturn(true);
 
         Message<?> message = stompSubscribeMessage(destination, authenticated("admin@example.com"));
         assertNotNull(interceptor.preSend(message, mock(MessageChannel.class)));
@@ -158,7 +158,7 @@ class StompAuthChannelInterceptorTest {
         when(stompTopicAuthorizationService.isStaffTopic(destination)).thenReturn(false);
         when(supportTopicAccessService.isSupportUserTopic(destination)).thenReturn(true);
         when(supportTopicAccessService.parseTicketCode(destination)).thenReturn("TCK-001");
-        when(stompTopicAuthorizationService.hasAdminRole(any())).thenReturn(false);
+        when(stompTopicAuthorizationService.hasStaffOrAdminRole(any())).thenReturn(false);
         when(supportTopicAccessService.canSubscribe("other@example.com", "TCK-001")).thenReturn(false);
 
         Message<?> message = stompSubscribeMessage(destination, authenticated("other@example.com"));
@@ -175,7 +175,7 @@ class StompAuthChannelInterceptorTest {
         Message<?> message = stompSubscribeMessage(destination, auth);
         interceptor.preSend(message, mock(MessageChannel.class));
 
-        verify(stompTopicAuthorizationService).assertAdminTopicAccess(auth);
+        verify(stompTopicAuthorizationService).assertAdminOrSupportTopicAccess(auth, destination);
     }
 
     private Message<?> stompConnectMessage(String authorizationHeader, Map<String, Object> sessionAttributes) {

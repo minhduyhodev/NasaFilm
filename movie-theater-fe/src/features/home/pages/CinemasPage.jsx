@@ -6,6 +6,7 @@ import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { showtimeService } from '../../../shared/services/showtimeService';
+import { logger } from '../../../shared/utils/logger';
 
 import heroBg from '../../../shared/assets/cinema_hero_bg.webp';
 import landmark81Img from '../../../shared/assets/cinema_landmark81.webp';
@@ -125,7 +126,7 @@ const CinemasPage = () => {
         setCinemas(enriched);
       } catch (err) {
         if (!cancelled) {
-          console.error('Failed to load cinemas:', err);
+          logger.error('Failed to load cinemas:', err);
           setError('Không thể tải danh sách rạp chiếu. Vui lòng thử lại sau.');
         }
       } finally {
@@ -178,7 +179,7 @@ const CinemasPage = () => {
         const list = Array.isArray(data) ? data : [];
         setShowtimesByCinema((prev) => new Map(prev).set(cinemaId, list));
       } catch (err) {
-        console.error('Failed to load showtimes:', err);
+        logger.error('Failed to load showtimes:', err);
         setShowtimesByCinema((prev) => new Map(prev).set(cinemaId, []));
       } finally {
         setLoadingShowtimesId(null);
