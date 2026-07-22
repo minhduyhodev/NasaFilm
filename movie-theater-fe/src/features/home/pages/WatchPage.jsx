@@ -582,8 +582,6 @@ const WatchPage = () => {
   }, [isPlaying, videoSource.type, videoSource.url, streamUrl]);
 
   const watchSessionReady = Boolean(movie && (streamData || previewReady));
-  const watermarkIdentity = user?.email || user?.fullName || 'NASAFILM VIEWER';
-  const watermarkLabel = `${watermarkIdentity} · ${watermarkTime.toLocaleString('vi-VN')}`;
 
   if (isLoading) {
     return (
@@ -674,7 +672,7 @@ const WatchPage = () => {
             onError={handleDirectVideoError}
           />
           <div className="watch-stream-watermark" aria-hidden>
-            {watermarkLabel}
+            NASAFILM
           </div>
           {videoError && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 p-6 text-center">

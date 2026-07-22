@@ -16,20 +16,6 @@ function needsStaffAttention(ticket) {
   return false;
 }
 
-/** Ticket/tin nhắn cần staff chú ý trên sidebar. */
-function needsStaffAttention(ticket) {
-  if (!ticket) return false;
-  if (ticket.liveRequested && !ticket.liveConnected) return true;
-  const status = `${ticket.status || ''}`.toUpperCase();
-  if (status === 'PENDING' || status === 'OPEN' || status === 'NEW' || status === 'LIVE_REQUESTED') {
-    return true;
-  }
-  if (status === 'IN_PROGRESS') {
-    const sender = `${ticket.lastMessageSender || ''}`.toUpperCase();
-    return sender === 'USER';
-  }
-  return false;
-}
 
 export const supportService = {
   async chatSupport(payload) {
