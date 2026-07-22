@@ -16,6 +16,7 @@ function needsStaffAttention(ticket) {
   return false;
 }
 
+
 export const supportService = {
   async chatSupport(payload) {
     const response = await authService.api.post('/api/support-ai/chat', payload, {

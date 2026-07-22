@@ -692,13 +692,12 @@ const SupportInboxPage = () => {
             </div>
           ) : null}
           <div
-            className={`support-message-row ${
-              isAdmin
+            className={`support-message-row ${isAdmin
                 ? 'support-message-row--admin'
                 : isSystem
                   ? 'support-message-row--system'
                   : 'support-message-row--user'
-            }`}
+              }`}
           >
             {!isAdmin && !isSystem ? (
               <span className="support-avatar" aria-hidden="true">
@@ -706,13 +705,12 @@ const SupportInboxPage = () => {
               </span>
             ) : null}
             <div
-              className={`support-bubble ${
-                isAdmin
+              className={`support-bubble ${isAdmin
                   ? 'support-bubble--admin'
                   : isSystem
                     ? 'support-bubble--system'
                     : 'support-bubble--user'
-              }`}
+                }`}
             >
               <div className="support-bubble-head">
                 <span className="support-bubble-sender">
@@ -865,7 +863,7 @@ const SupportInboxPage = () => {
                 className="support-attach-btn"
                 disabled={!canCompose || loading || pendingImages.length >= MAX_SUPPORT_IMAGES}
                 onClick={() => imageInputRef.current?.click()}
-                title="Chọn ảnh hoặc Ctrl+V dán ảnh chụp màn hình (tối đa 3)"
+                title="Gửi tối đa 3 ảnh"
               >
                 <Paperclip className="h-4 w-4" />
               </button>
@@ -874,7 +872,7 @@ const SupportInboxPage = () => {
                 className="support-attach-btn"
                 disabled={!canCompose || loading || pendingImages.length >= MAX_SUPPORT_IMAGES}
                 onClick={() => imageInputRef.current?.click()}
-                title="Đính kèm ảnh / Ctrl+V"
+                title="Đính kèm ảnh"
               >
                 <ImagePlus className="h-4 w-4" />
               </button>
