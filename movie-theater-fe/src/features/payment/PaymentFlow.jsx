@@ -12,6 +12,7 @@ import { showMissionCompletionToasts } from '../../shared/services/missionServic
 import { clearAllBookingSessions } from '../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../shared/utils/orbitRecentStorage';
 import { useConfirm } from '../../shared/context/ConfirmDialogContext';
+import { logger } from '../../shared/utils/logger';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -92,7 +93,7 @@ export default function PaymentFlow() {
       try {
         await orbitService.abortCheckout(checkoutState.orbitRoomUuid);
       } catch (err) {
-        console.error('Failed to abort checkout on back navigation:', err);
+        logger.error('Failed to abort checkout on back navigation:', err);
       }
       navigate(`/booking/orbit/${checkoutState.orbitRoomUuid}`);
     } else {
@@ -117,7 +118,7 @@ export default function PaymentFlow() {
         setClientSecret(data.data.clientSecret);
       }
     } catch (err) {
-      console.error(err);
+      logger.error('Stripe payment failed:', err);
       alert('Không thể khởi tạo thanh toán. Vui lòng thử lại.');
     } finally {
       setIsInitializing(false);
@@ -192,7 +193,7 @@ export default function PaymentFlow() {
         });
       }
     } catch (err) {
-      console.error('Booking confirmation failed after Stripe payment:', err);
+      logger.error('Booking confirmation failed after Stripe payment:', err);
       notificationService.error(err.message || 'Stripe thanh toán thành công nhưng xác nhận vé thất bại. Vui lòng liên hệ hỗ trợ.');
     } finally {
       setIsConfirming(false);

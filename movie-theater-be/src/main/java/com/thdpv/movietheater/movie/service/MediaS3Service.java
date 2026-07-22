@@ -37,6 +37,7 @@ public class MediaS3Service {
     private final String s3BucketHost;
     private final String bucket;
     private final long presignTtlSeconds;
+    private final long maxStreamChunkBytes;
     private final S3Presigner s3Presigner;
     private final S3Client s3Client;
     private final Cache<String, StreamHeadMeta> streamHeadCache;
@@ -48,11 +49,13 @@ public class MediaS3Service {
             @Value("${app.s3.public-base-url:" + S3MediaBorderUtils.DEFAULT_PUBLIC_BASE + "}") String s3PublicBaseUrl,
             @Value("${app.s3.bucket:java-06}") String bucket,
             @Value("${app.s3.presign-ttl-seconds:3600}") long presignTtlSeconds,
+            @Value("${app.vod.max-stream-chunk-bytes:8388608}") long maxStreamChunkBytes,
             ObjectProvider<S3Presigner> s3PresignerProvider,
             ObjectProvider<S3Client> s3ClientProvider) {
         this.s3PublicBaseUrl = s3PublicBaseUrl;
         this.bucket = bucket;
         this.presignTtlSeconds = presignTtlSeconds;
+        this.maxStreamChunkBytes = Math.max(1_048_576L, maxStreamChunkBytes);
         this.s3Presigner = s3PresignerProvider.getIfAvailable();
         this.s3Client = s3ClientProvider.getIfAvailable();
         this.streamHeadCache = Caffeine.newBuilder()
@@ -142,6 +145,11 @@ public class MediaS3Service {
             
             if (rangeHeader != null && rangeHeader.regionMatches(true, 0, "bytes=", 0, 6)) {
                 String spec = rangeHeader.substring(6).trim();
+                if (spec.contains(",")) {
+                    return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                            .header(HttpHeaders.CONTENT_RANGE, "bytes */" + totalSize)
+                            .build();
+                }
                 int dash = spec.indexOf('-');
                 if (dash >= 0) {
                     String startPart = spec.substring(0, dash).trim();
@@ -161,6 +169,7 @@ public class MediaS3Service {
                             endPos = totalSize - 1L;
                         }
                     }
+                    endPos = Math.min(endPos, startPos + maxStreamChunkBytes - 1L);
                     if (startPos > endPos || startPos < 0) {
                         return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
                                 .header(HttpHeaders.CONTENT_RANGE, "bytes */" + totalSize)
@@ -168,6 +177,10 @@ public class MediaS3Service {
                     }
                     partial = true;
                 }
+            }
+            if (!partial && totalSize > maxStreamChunkBytes) {
+                endPos = maxStreamChunkBytes - 1L;
+                partial = true;
             }
 
             final long rangeStart = startPos;
@@ -188,6 +201,11 @@ public class MediaS3Service {
             headers.setContentType(MediaType.parseMediaType(contentType));
             headers.setContentLength(partLength);
             headers.setCacheControl("private, no-store");
+            headers.setPragma("no-cache");
+            headers.setExpires(0);
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            headers.set("Referrer-Policy", "no-referrer");
+            headers.set("X-Content-Type-Options", "nosniff");
             if (partial) {
                 headers.set(HttpHeaders.CONTENT_RANGE,
                         "bytes " + rangeStart + "-" + rangeEnd + "/" + totalSize);

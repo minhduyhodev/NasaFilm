@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getDefaultOnlineStreamingPrice } from '../../../shared/utils/systemConfig';
 import {
@@ -208,7 +209,7 @@ const AdminMovieFormPage = () => {
       setFormData((prev) => ({ ...prev, [fieldName]: key }));
       notificationService.success(`Đã upload ${folder} lên S3: ${key}`);
     } catch (err) {
-      console.error('S3 upload failed:', err);
+      logger.error('S3 upload failed:', err);
       notificationService.error(err.message || `Upload ${folder} thất bại`);
     } finally {
       setUploadProgress((prev) => ({ ...prev, [folder]: null }));
@@ -253,7 +254,7 @@ const AdminMovieFormPage = () => {
           setMetadataLoaded(true);
         }
       } catch (err) {
-        console.error('Failed to load metadata in admin movie form:', err);
+        logger.error('Failed to load metadata in admin movie form:', err);
         notificationService.error('Không thể tải dữ liệu phân loại phim');
       }
     };
@@ -305,7 +306,7 @@ const AdminMovieFormPage = () => {
         setFormData(mapped);
         setInitialFormData(mapped);
       } catch (err) {
-        console.error('Failed to load movie for edit:', err);
+        logger.error('Failed to load movie for edit:', err);
         notificationService.error('Không thể lấy thông tin chi tiết phim để chỉnh sửa');
         navigate('/admin/movies');
       } finally {
@@ -476,7 +477,7 @@ const AdminMovieFormPage = () => {
         navigate(`/admin/movies/${created.uuid}`);
       }
     } catch (err) {
-      console.error('Failed to save movie:', err);
+      logger.error('Failed to save movie:', err);
       notificationService.error(err.message || 'Lưu phim thất bại');
     } finally {
       setIsSaving(false);

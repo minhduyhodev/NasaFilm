@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 export const BOOKING_SESSION_KEYS = {
   BOOKING: 'booking_state',
   CHECKOUT: 'checkout_state',
@@ -27,7 +29,7 @@ export function readBookingSession(key, locationState = null) {
       existing = JSON.parse(saved);
     }
   } catch (error) {
-    console.error(`Failed to parse session state (${key}):`, error);
+    logger.error(`Failed to parse session state (${key}):`, error);
   }
 
   if (locationState != null && typeof locationState === 'object') {
@@ -46,7 +48,7 @@ export function writeBookingSession(key, data) {
   try {
     sessionStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error(`Failed to save session state (${key}):`, error);
+    logger.error(`Failed to save session state (${key}):`, error);
   }
 }
 

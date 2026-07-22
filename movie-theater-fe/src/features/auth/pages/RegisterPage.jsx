@@ -16,6 +16,8 @@ import { notificationService } from "../../../shared/services/notificationServic
 import tokenService from "../utils/tokenService";
 import { getDefaultAdminPath, isAdminOrStaffUser } from "../../../shared/utils/adminNavigation";
 import "./RegisterPage.css";
+import "../components/AuthInput.css";
+
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -279,7 +281,8 @@ export const RegisterPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="Trải nghiệm điện ảnh chưa từng có trước đây. Ra mắt độc quyền, phòng chờ VIP và các sự kiện tuyển chọn đặc biệt."
+      tagline="Điện ảnh. Không khoảng cách."
+      heroDescription="Trải nghiệm những bộ phim hay nhất, trên màn ảnh lớn gần bạn nhất."
     >
       {step === 1 ? (
         <AuthCard
@@ -287,106 +290,91 @@ export const RegisterPage = () => {
           subtitle="Tham gia cộng đồng điện ảnh hàng đầu"
         >
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
-            {/* Full Name Input */}
             <AuthInput
               {...register("fullName")}
               label="Tên tài khoản"
               placeholder="Chí Trung"
               type="text"
-              icon={<User size={20} />}
+              icon={<User size={15} />}
               error={errors.fullName}
             />
 
-            {/* Email Input */}
             <AuthInput
               {...register("email")}
-              label="Địa chỉ Email"
+              label="Email"
               placeholder="name@email.com"
               type="email"
-              icon={<Mail size={20} />}
+              icon={<Mail size={15} />}
               error={errors.email}
             />
 
-            {/* Phone Number Input */}
             <AuthInput
               {...register("phoneNumber")}
               label="Số điện thoại"
               placeholder="+84 900-000-000"
               type="tel"
-              icon={<Phone size={20} />}
+              icon={<Phone size={15} />}
               error={errors.phoneNumber}
             />
 
-            {/* Date of Birth Input */}
-            <AuthInput
-              {...register("dayOfBirth")}
-              label="Ngày sinh"
-              type="date"
-              icon={<Calendar size={20} />}
-              error={errors.dayOfBirth}
-            />
+            <div className="auth-form__row">
+              <AuthInput
+                {...register("dayOfBirth")}
+                label="Ngày sinh"
+                type="date"
+                icon={<Calendar size={15} />}
+                error={errors.dayOfBirth}
+              />
 
-            {/* Gender Input */}
-            <div className="w-full space-y-2">
-              <label className="block text-sm font-medium text-gray-200">
-                Giới tính
-              </label>
-              <div className="relative flex items-center group">
-                <div className="absolute left-4 text-gray-400 group-focus-within:text-blue-400 transition-colors z-10">
-                  <User size={20} />
+              <div className={`auth-field ${errors.gender ? 'auth-field--error' : ''}`}>
+                <label className="auth-field__label">Giới tính</label>
+                <div className="auth-field__control">
+                  <span className="auth-field__icon">
+                    <User size={15} />
+                  </span>
+                  <select
+                    {...register("gender")}
+                    className="auth-field__select app-select"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Chọn giới tính
+                    </option>
+                    <option value="MALE">Nam</option>
+                    <option value="FEMALE">Nữ</option>
+                    <option value="OTHER">Khác</option>
+                  </select>
                 </div>
-                <select
-                  {...register("gender")}
-                  className={`w-full px-4 pl-12 pr-10 py-3 app-select bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 ${
-                    errors.gender ? 'border-red-500/50' : ''
-                  }`}
-                  defaultValue=""
-                >
-                  <option value="" disabled>Chọn giới tính</option>
-                  <option value="MALE">Nam</option>
-                  <option value="FEMALE">Nữ</option>
-                  <option value="OTHER">Khác</option>
-                </select>
+                {errors.gender ? (
+                  <p className="auth-field__error">{errors.gender.message}</p>
+                ) : null}
               </div>
-              {errors.gender && (
-                <p className="text-sm text-red-500 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                  {errors.gender.message}
-                </p>
-              )}
             </div>
 
-            {/* Password Input */}
             <AuthInput
               {...register("password")}
               label="Mật khẩu"
               placeholder="••••••••"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.password}
               showPasswordToggle={true}
               showPassword={showPassword}
               onPasswordToggle={() => setShowPassword(!showPassword)}
             />
 
-            {/* Password Strength Indicator */}
-            {password && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 rounded-lg p-4 border border-white/10"
-              >
-                <PasswordStrength password={password} showRequirements={true} />
-              </motion.div>
-            )}
+            {password ? (
+              <div className="auth-password-meter">
+                <PasswordStrength password={password} showRequirements={false} />
+              </div>
+            ) : null}
 
-            {/* Confirm Password Input */}
             <AuthInput
               {...register("confirmPassword")}
               label="Xác nhận mật khẩu"
               placeholder="••••••••"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.confirmPassword}
               showPasswordToggle={true}
               showPassword={showConfirmPassword}

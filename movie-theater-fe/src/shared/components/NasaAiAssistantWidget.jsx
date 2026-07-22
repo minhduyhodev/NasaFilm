@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -234,13 +234,29 @@ const resolveSupportErrorMessage = (error, fallback) => {
   const code = error?.response?.data?.code || error?.response?.data?.errorCode;
   const apiMessage = error?.response?.data?.message || error?.message;
   const msgNorm = normalise(`${apiMessage || ''}`);
-  if (status === 429 || code === 429 || `${code || ''}`.includes('RATE_LIMIT') || msgNorm.includes('qua nhanh')) {
+  const codeText = `${code || ''}`;
+  if (status === 429 || code === 429 || codeText.includes('RATE_LIMIT') || msgNorm.includes('qua nhanh')) {
     return 'Bạn gửi tin nhắn quá nhanh. Vui lòng đợi vài giây rồi thử lại.';
   }
-  if (code === 409 || msgNorm.includes('da danh gia') || `${code || ''}`.includes('ALREADY_RATED')) {
+  if (status === 403 && (msgNorm.includes('khoa chat') || msgNorm.includes('tieu chuan cong dong'))) {
+    return apiMessage || 'Tài khoản đang bị tạm khóa chat hỗ trợ do vi phạm tiêu chuẩn cộng đồng.';
+  }
+  if (codeText.includes('SUPPORT_BANNED_WORD') || msgNorm.includes('tu ngu khong phu hop') || msgNorm.includes('noi dung khong phu hop')) {
+    return apiMessage || 'Tin nhắn chứa từ ngữ không phù hợp. Vui lòng chỉnh sửa và gửi lại.';
+  }
+  if (codeText.includes('SUPPORT_IMAGE_INAPPROPRIATE') || msgNorm.includes('anh nhay cam') || msgNorm.includes('18+') || msgNorm.includes('quay roi')) {
+    return apiMessage || 'Ảnh nhạy cảm đã bị ẩn và không được gửi.';
+  }
+  if (codeText.includes('SUPPORT_IMAGE_UNRELATED') || msgNorm.includes('lien quan toi loi') || msgNorm.includes('lien quan toi nasafilm')) {
+    return apiMessage || 'Vui lòng gửi ảnh liên quan tới lỗi trên NASAFilm (màn hình lỗi thanh toán, mã vé, voucher, tài khoản…).';
+  }
+  if (msgNorm.includes('anh chua the') || msgNorm.includes('xac nhan anh an toan') || msgNorm.includes('kiem duyet anh') || codeText.includes('SUPPORT_IMAGE_MODERATION_PENDING')) {
+    return apiMessage || 'Ảnh chưa được xác nhận an toàn nên đã bị ẩn và không được gửi.';
+  }
+  if (code === 409 || msgNorm.includes('da danh gia') || codeText.includes('ALREADY_RATED')) {
     return 'Bạn đã đánh giá ticket này rồi.';
   }
-  if (msgNorm.includes('hoan tat') || msgNorm.includes('chi danh gia') || `${code || ''}`.includes('SATISFACTION_NOT_ALLOWED')) {
+  if (msgNorm.includes('hoan tat') || msgNorm.includes('chi danh gia') || codeText.includes('SATISFACTION_NOT_ALLOWED')) {
     return 'Chỉ đánh giá được khi ticket đã hoàn tất.';
   }
   return apiMessage || fallback;
@@ -1244,8 +1260,11 @@ const NasaAiAssistantWidget = () => {
         setActiveTicketCode(ai.autoTicketCode);
         setChatView(CHAT_VIEW.STAFF);
         setGuidedChatActive(false);
+        // Clear typing before slower ticket fetches so UI never sticks on "đang xử lý".
+        setTyping(false);
         await loadMyTickets();
         await refreshTicketThread(ai.autoTicketCode);
+        return;
       }
     } catch {
       pushBot(`${category.question}. Mô tả tối thiểu ${MIN_DESCRIPTION_LENGTH} ký tự.`);
@@ -1502,9 +1521,8 @@ const NasaAiAssistantWidget = () => {
     });
   };
 
-  const handlePickSupportImages = (event) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
+  const appendSupportImageFiles = (incomingFiles) => {
+    const files = Array.from(incomingFiles || []).filter(Boolean);
     if (!files.length) return;
 
     setPendingImages((prev) => {
@@ -1523,13 +1541,17 @@ const NasaAiAssistantWidget = () => {
           continue;
         }
         if (file.size > MAX_SUPPORT_IMAGE_BYTES) {
-          notificationService.error(`Ảnh "${file.name}" vượt quá 5MB.`);
+          notificationService.error(`Ảnh "${file.name || 'dán từ clipboard'}" vượt quá 5MB.`);
           continue;
         }
+        const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        const named = file.name
+          ? file
+          : new File([file], `screenshot-${Date.now()}-${accepted.length}.${ext}`, { type: file.type || 'image/png' });
         accepted.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          file,
-          previewUrl: URL.createObjectURL(file),
+          file: named,
+          previewUrl: URL.createObjectURL(named),
         });
       }
 
@@ -1538,6 +1560,24 @@ const NasaAiAssistantWidget = () => {
       }
       return accepted.length ? [...prev, ...accepted] : prev;
     });
+  };
+
+  const handlePickSupportImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    appendSupportImageFiles(files);
+  };
+
+  const handlePasteSupportImages = (event) => {
+    if (!isStaffView || !canReplyToTicket || uploadingImages) return;
+    const items = Array.from(event.clipboardData?.items || []);
+    const files = items
+      .filter((item) => item.kind === 'file' && `${item.type || ''}`.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    if (!files.length) return;
+    event.preventDefault();
+    appendSupportImageFiles(files);
   };
 
   const sendTicketReply = async (rawValue = draft) => {
@@ -1602,14 +1642,39 @@ const NasaAiAssistantWidget = () => {
     let hasAiReply = false;
 
     setTyping(true);
+    let ai = null;
     try {
-      const ai = await supportService.chatSupport({
+      ai = await supportService.chatSupport({
         message: value,
         history: buildHistory(value),
         mode: answerMode ? 'ANSWER' : 'SUPPORT',
         sessionId: botSessionId,
       });
+    } catch (error) {
+      const message = resolveSupportErrorMessage(
+        error,
+        error?.code === 'ECONNABORTED'
+          ? 'NASA BOT phản hồi quá lâu. Bạn thử gửi lại giúp mình nhé.'
+          : '',
+      );
+      if (message) {
+        pushBot(message);
+        hasAiReply = true;
+      }
+    } finally {
+      setTyping(false);
+    }
 
+    if (!ai) {
+      if (!hasAiReply) {
+        pushBot(answerMode
+          ? 'Mình chưa nhận được phản hồi AI. Kiểm tra API key và khởi động lại backend giúp mình nhé.'
+          : 'Mình đã nhận nội dung của bạn. Chọn danh mục hỗ trợ phía trên hoặc mở danh sách ticket.');
+      }
+      return;
+    }
+
+    try {
       if (ai?.sessionId) {
         setBotSessionId(ai.sessionId);
       }
@@ -1629,7 +1694,6 @@ const NasaAiAssistantWidget = () => {
         }
       }
 
-      // Handle auto-created ticket from backend
       if (!answerMode && ai?.autoTicketCode) {
         const ticketData = ai?.autoTicket || { ticketCode: ai.autoTicketCode, status: 'PENDING' };
         setTicket(ticketData);
@@ -1642,14 +1706,8 @@ const NasaAiAssistantWidget = () => {
         }
         return;
       }
-    } catch (error) {
-      const message = resolveSupportErrorMessage(error, '');
-      if (message) {
-        pushBot(message);
-        hasAiReply = true;
-      }
-    } finally {
-      setTyping(false);
+    } catch {
+      // Post-reply UI updates must never leave the composer stuck.
     }
 
     if (!hasAiReply) {
@@ -1727,35 +1785,68 @@ const NasaAiAssistantWidget = () => {
 
   const renderBotIntentPicker = () => (
     <div className="nasa-mode-picker">
-      <p className="nasa-mode-picker__lead">Chọn 1 trong 2 để bắt đầu</p>
-      <button
-        type="button"
-        className="nasa-mode-picker__option nasa-mode-picker__option--support"
-        onClick={() => enterBotIntent(BOT_INTENT.SUPPORT)}
-      >
-        <span className="nasa-mode-picker__icon">
-          <Headset className="h-5 w-5" />
-        </span>
-        <span className="nasa-mode-picker__copy">
-          <strong>1. Hỗ trợ</strong>
-          <span>Wizard · chọn danh mục → mô tả → gửi nhân viên / ticket</span>
-        </span>
-      </button>
-      <button
-        type="button"
-        className="nasa-mode-picker__option nasa-mode-picker__option--answer"
-        onClick={() => enterBotIntent(BOT_INTENT.ANSWER)}
-      >
-        <span className="nasa-mode-picker__icon">
-          <Sparkles className="h-5 w-5" />
-        </span>
-        <span className="nasa-mode-picker__copy">
-          <strong>2. Giải đáp</strong>
-          <span>
-            AI chat · hỏi tự do về NASAFilm
+      <div className="nasa-mode-picker__hero">
+        <div className="nasa-mode-picker__avatar">
+          <span className="nasa-mode-picker__avatar-ring" aria-hidden="true" />
+          <img src={nasaLogo} alt="NASA BOT" />
+        </div>
+        <h3 className="nasa-mode-picker__greeting">
+          Xin chào{user?.fullName ? `, ${user.fullName.split(' ').slice(-1)[0]}` : ''}!
+        </h3>
+        <p className="nasa-mode-picker__lead">
+          Mình là NASA BOT. Bạn cần gì hôm nay?
+        </p>
+      </div>
+
+      <div className="nasa-mode-picker__options">
+        <button
+          type="button"
+          className="nasa-mode-picker__option nasa-mode-picker__option--support"
+          onClick={() => enterBotIntent(BOT_INTENT.SUPPORT)}
+        >
+          <span className="nasa-mode-picker__icon">
+            <Headset className="h-5 w-5" />
           </span>
+          <span className="nasa-mode-picker__copy">
+            <strong>Hỗ trợ</strong>
+            <span>Chọn danh mục, mô tả vấn đề rồi gửi nhân viên hoặc tạo ticket</span>
+          </span>
+          <span className="nasa-mode-picker__arrow" aria-hidden="true">
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </button>
+        <button
+          type="button"
+          className="nasa-mode-picker__option nasa-mode-picker__option--answer"
+          onClick={() => enterBotIntent(BOT_INTENT.ANSWER)}
+        >
+          <span className="nasa-mode-picker__icon">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <span className="nasa-mode-picker__copy">
+            <strong>Giải đáp</strong>
+            <span>Hỏi tự do với AI về phim, vé, thanh toán, ưu đãi của NASAFilm</span>
+          </span>
+          <span className="nasa-mode-picker__arrow" aria-hidden="true">
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        </button>
+      </div>
+
+      <div className="nasa-mode-picker__meta">
+        <span className="nasa-mode-picker__meta-item">
+          <span className={`nasa-status-dot ${liveAvailability?.anyOnline ? 'nasa-status-dot--online' : ''}`} />
+          {liveAvailability?.anyOnline ? 'Nhân viên đang trực tuyến' : 'Nhân viên ngoại tuyến · để lại ticket'}
         </span>
-      </button>
+        <span className="nasa-mode-picker__meta-item">
+          <Clock className="h-3 w-3" />
+          Phản hồi trong vài phút
+        </span>
+        <span className="nasa-mode-picker__meta-item">
+          <ShieldCheck className="h-3 w-3" />
+          Bảo mật hội thoại
+        </span>
+      </div>
     </div>
   );
 
@@ -2356,7 +2447,7 @@ const NasaAiAssistantWidget = () => {
                         }
                         onClick={() => imageInputRef.current?.click()}
                         aria-label="Đính kèm ảnh"
-                        title="Gửi tối đa 3 ảnh"
+                        title="Chọn ảnh hoặc Ctrl+V dán ảnh chụp màn hình (tối đa 3)"
                       >
                         <ImagePlus className="h-4 w-4" />
                       </button>
@@ -2365,6 +2456,7 @@ const NasaAiAssistantWidget = () => {
                   <input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
+                    onPaste={handlePasteSupportImages}
                     placeholder={composerPlaceholder}
                     disabled={
                       typing

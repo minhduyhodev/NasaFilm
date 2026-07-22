@@ -6,6 +6,7 @@ import { cinemaService } from '../../../shared/services/cinemaService';
 import { CounterSelectDropdown } from '../components/CounterSelectDropdown';
 import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
 import '../../admin/styles/admin-theme.css';
 import '../styles/counter-staff-theme.css';
 
@@ -51,7 +52,7 @@ export default function CounterLayout() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch cinemas with rooms:', error);
+        logger.error('Failed to fetch cinemas with rooms:', error);
       }
     }
     fetchCinemas();

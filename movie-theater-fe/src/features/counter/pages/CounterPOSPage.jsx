@@ -20,6 +20,7 @@ import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
 import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
 import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
 import '../styles/counter-staff-theme.css';
 import '../../home/pages/BookingPage.css';
 
@@ -136,7 +137,7 @@ export default function CounterPOSPage() {
     const intervalId = setInterval(() => {
       const uuids = selectedSeatUuidsRef.current;
       if (uuids.length > 0) {
-        bookingService.syncSeatLocks(showtimeUuid, uuids).catch(console.error);
+        bookingService.syncSeatLocks(showtimeUuid, uuids).catch((err) => logger.error('Failed to sync seat locks:', err));
       }
     }, 4 * 60 * 1000); // Renew every 4 minutes
 
@@ -150,7 +151,7 @@ export default function CounterPOSPage() {
         const data = await counterService.getMovies();
         setMovies(data || []);
       } catch (err) {
-        console.error('Failed to load movies:', err);
+        logger.error('Failed to load movies:', err);
       }
     }
     loadMovies();
@@ -163,7 +164,7 @@ export default function CounterPOSPage() {
         const data = await comboService.getActiveCombos();
         setCombos(data || []);
       } catch (err) {
-        console.error('Failed to load combos:', err);
+        logger.error('Failed to load combos:', err);
       }
     }
     loadCombos();
@@ -188,7 +189,7 @@ export default function CounterPOSPage() {
           setSelectedShowtime(null);
         }
       } catch (err) {
-        console.error('Failed to load showtimes:', err);
+        logger.error('Failed to load showtimes:', err);
       }
     }
     loadShowtimes();
@@ -342,7 +343,7 @@ export default function CounterPOSPage() {
         const results = await counterService.searchCustomer(val);
         setSearchResults(results || []);
       } catch (err) {
-        console.error(err);
+        logger.error('Failed to confirm counter booking:', err);
       }
     } else {
       setSearchResults([]);

@@ -300,17 +300,6 @@ const FeedbackReviewsPage = () => {
     );
   };
 
-  const refreshCurrentTab = () => {
-    if (activeTab === 'reports') loadReports();
-    else if (activeTab === 'banned-words') loadBannedWords();
-    else loadAdminVibeTags();
-  };
-
-  const isLoading =
-    (activeTab === 'reports' && isReportsLoading) ||
-    (activeTab === 'banned-words' && isBannedWordsLoading) ||
-    (activeTab === 'vibe-tags' && isVibeTagsLoading);
-
   return (
     <AdminPage>
       <PageHeader

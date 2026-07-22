@@ -5,6 +5,7 @@ import { orbitService } from '../../../shared/services/orbitService';
 import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 
 const OrbitChatBox = ({ roomUuid }) => {
   const { user } = useAuthContext();
@@ -28,7 +29,7 @@ const OrbitChatBox = ({ roomUuid }) => {
           setLoading(false);
         }
       } catch (err) {
-        console.error('Failed to load chat history:', err);
+        logger.error('Failed to load chat history:', err);
         if (active) setLoading(false);
       }
     };
@@ -84,7 +85,7 @@ const OrbitChatBox = ({ roomUuid }) => {
     try {
       await orbitService.sendTypingStatus(roomUuid, typing);
     } catch (err) {
-      console.error('Failed to send typing status:', err);
+      logger.error('Failed to send typing status:', err);
     }
   };
 

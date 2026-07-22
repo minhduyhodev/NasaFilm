@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { useUpcomingMovies } from '../hooks/useHomeQueries';
-import { mapApiMovies } from '../utils/movieUtils';
-import HomeMovieCarousel from './HomeMovieCarousel';
+import { useMemo } from "react";
+import { useUpcomingMovies } from "../hooks/useHomeQueries";
+import { mapApiMovies } from "../utils/movieUtils";
+import HomeMovieCarousel from "./HomeMovieCarousel";
 
 const ComingSoon = () => {
   const { data, isLoading } = useUpcomingMovies();

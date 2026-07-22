@@ -8,6 +8,7 @@ import { notificationService } from '../../../shared/services/notificationServic
 import { normalizeAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { useNotification } from '../../../shared/context/NotificationContext';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
 import './Navbar.css';
@@ -632,10 +633,10 @@ const AuthControls = () => {
     setIsLoggingOut(true);
     try {
       await logout();
-      console.log("[Navbar] Đăng xuất thành công. Chuyển hướng người dùng về trang đăng nhập.");
+      logger.info("[Navbar] Đăng xuất thành công. Chuyển hướng người dùng về trang đăng nhập.");
       navigate('/login');
     } catch (err) {
-      console.error('[Navbar] Lỗi khi đăng xuất:', err);
+      logger.error('[Navbar] Lỗi khi đăng xuất:', err);
       notificationService.error("Có lỗi xảy ra khi đăng xuất. Vui lòng thử lại.");
       navigate('/login');
     } finally {
