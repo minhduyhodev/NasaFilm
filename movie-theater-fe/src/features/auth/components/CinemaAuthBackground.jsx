@@ -8,7 +8,7 @@ import posterStelar from '../../../shared/assets/movie_stelar_horizon.png';
 import posterVelvet from '../../../shared/assets/movie_velvet_legacy.png';
 import posterWhispers from '../../../shared/assets/movie_whispers_of_oak.png';
 
-const HERO_SRC = '/landing/hero-theater.png?v=2';
+const HERO_SRC = '/landing/hero-theater.png?v=3';
 
 const POSTER_SRCS = [
   posterAetheria,
@@ -452,11 +452,15 @@ function StarDustCanvas() {
 
 export const CinemaAuthBackground = () => (
   <div className="cinema-auth-bg" aria-hidden="true">
-    <div className="cinema-auth-bg__void" />
+    <div
+      className="cinema-auth-bg__void"
+      style={{ backgroundImage: `url(/landing/cosmos-auth.png?v=1)` }}
+    />
     <div
       className="cinema-auth-bg__photo"
       style={{ backgroundImage: `url(${HERO_SRC})` }}
     />
+    <div className="cinema-auth-bg__spill" />
     <div className="cinema-auth-bg__veil" />
     <StarDustCanvas />
     <ConstellationField />
