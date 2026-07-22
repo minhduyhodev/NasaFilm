@@ -17,8 +17,16 @@ export const AuthLayout = ({
     ? brand.slice(4) || 'FILM'
     : brand.slice(4);
 
-  const BrandBlock = ({ compact = false, showCopy = true }) => (
-    <div className={`auth-cinema__brand-block${compact ? ' auth-cinema__brand-block--compact' : ''}`}>
+  const BrandBlock = ({ compact = false, showCopy = true, onScreen = false }) => (
+    <div
+      className={[
+        'auth-cinema__brand-block',
+        compact ? 'auth-cinema__brand-block--compact' : '',
+        onScreen ? 'auth-cinema__brand-block--on-screen' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <Link to="/" className="auth-cinema__brand" aria-label="NASAFILM — về trang chủ">
         <img
           src={nasaFilmLogo}
@@ -46,6 +54,12 @@ export const AuthLayout = ({
     <div className="auth-cinema">
       <CinemaAuthBackground />
 
+      {showHero ? (
+        <div className="auth-cinema__screen-plane" aria-hidden={false}>
+          <BrandBlock showCopy onScreen />
+        </div>
+      ) : null}
+
       <div className="auth-cinema__content">
         {showHero ? (
           <div className="auth-cinema__grid">
@@ -61,14 +75,7 @@ export const AuthLayout = ({
               <div className="auth-cinema__form-slot">{children}</div>
             </motion.div>
 
-            <motion.aside
-              className="auth-cinema__hero"
-              initial={{ opacity: 0, x: 18 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.55, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <BrandBlock showCopy />
-            </motion.aside>
+            <aside className="auth-cinema__hero" aria-hidden="true" />
           </div>
         ) : (
           <motion.div
