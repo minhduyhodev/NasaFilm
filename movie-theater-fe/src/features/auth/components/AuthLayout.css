@@ -18,6 +18,15 @@
   min-height: 100dvh;
   display: flex;
   align-items: stretch;
+  /* Pass clicks through empty hero so on-screen brand Link works */
+  pointer-events: none;
+}
+
+.auth-cinema__panel,
+.auth-cinema__centered,
+.auth-cinema__form-slot,
+.auth-cinema__brand-mobile {
+  pointer-events: auto;
 }
 
 .auth-cinema__grid {
@@ -51,7 +60,7 @@
   .auth-cinema__panel {
     margin-inline: 0;
     order: 1;
-    z-index: 3;
+    z-index: 5;
   }
 }
 
@@ -92,7 +101,7 @@
     top: 40%;
     left: 71%;
     width: min(30vw, 24rem);
-    z-index: 2;
+    z-index: 4;
     transform-style: preserve-3d;
     transform-origin: center center;
     transform:
@@ -105,8 +114,15 @@
   }
 }
 
-.auth-cinema__screen-plane .auth-cinema__brand {
+.auth-cinema__screen-plane .auth-cinema__brand,
+.auth-cinema__screen-plane .auth-cinema__brand-block--on-screen {
   pointer-events: auto;
+}
+
+.auth-cinema__screen-plane .auth-cinema__brand {
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
 }
 
 .auth-cinema__brand-block {
