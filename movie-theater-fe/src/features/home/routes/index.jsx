@@ -1,53 +1,41 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
-import { ProtectedRoute } from "../../auth/components/ProtectedRoute.jsx";
-import { StaffAwayFromCustomerRoute } from "../../auth/components/StaffAwayFromCustomerRoute.jsx";
-import { useAuthContext } from "../../auth/hooks/useAuthContext";
-import HomeAnimatedLayout from "../layouts/HomeAnimatedLayout";
+import { lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { ProtectedRoute } from '../../auth/components/ProtectedRoute.jsx';
+import { StaffAwayFromCustomerRoute } from '../../auth/components/StaffAwayFromCustomerRoute.jsx';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import HomeAnimatedLayout from '../layouts/HomeAnimatedLayout';
 
-const OnlineMoviesPage = lazy(() => import("../pages/OnlineMoviesPage"));
-const HomePage = lazy(() => import("../pages/HomePage"));
-const TicketActivationPage = lazy(
-  () => import("../pages/TicketActivationPage"),
-);
-const AboutPage = lazy(() => import("../pages/AboutPage"));
-const MoviesPage = lazy(() => import("../pages/MoviesPage"));
-const GenresBrowsePage = lazy(() =>
-  import("../pages/CatalogBrowsePage").then((m) => ({
-    default: m.GenresBrowsePage,
-  })),
-);
-const CountriesBrowsePage = lazy(() =>
-  import("../pages/CatalogBrowsePage").then((m) => ({
-    default: m.CountriesBrowsePage,
-  })),
-);
-const CinemasPage = lazy(() => import("../pages/CinemasPage"));
-const OffersPage = lazy(() => import("../pages/OffersPage"));
-const ProfilePage = lazy(() => import("../pages/ProfilePage"));
-const TermsPage = lazy(() => import("../pages/TermsPage"));
-const PrivacyPage = lazy(() => import("../pages/PrivacyPage"));
-const PaymentPolicyPage = lazy(() => import("../pages/PaymentPolicyPage"));
-const RefundPolicyPage = lazy(() => import("../pages/RefundPolicyPage"));
-const FaqPage = lazy(() => import("../pages/FaqPage"));
-const MovieDetailPage = lazy(() => import("../pages/MovieDetailPage"));
-const BookingPage = lazy(() => import("../pages/BookingPage"));
-const OrbitBookingPage = lazy(() => import("../pages/OrbitBookingPage"));
-const OrbitWaitingPage = lazy(() => import("../pages/OrbitWaitingPage"));
-const ConcessionsPage = lazy(() => import("../pages/ConcessionsPage"));
-const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
-const BookingConfirmedPage = lazy(
-  () => import("../pages/BookingConfirmedPage"),
-);
-const PreShowBoardingPage = lazy(() => import("../pages/PreShowBoardingPage"));
-const WatchPage = lazy(() => import("../pages/WatchPage"));
-const RemindersPage = lazy(() => import("../pages/RemindersPage"));
-const WalletPage = lazy(() => import("../pages/WalletPage"));
-const SearchResultsPage = lazy(() => import("../pages/SearchResultsPage"));
-const MyMoviesPage = lazy(() => import("../pages/MyMoviesPage"));
-const PaymentFlow = lazy(() => import("../../payment/PaymentFlow"));
-const PaymentSuccess = lazy(() => import("../../payment/PaymentSuccess"));
-const VietQRPage = lazy(() => import("../../payment/VietQRPage"));
+const OnlineMoviesPage = lazy(() => import('../pages/OnlineMoviesPage'));
+const HomePage = lazy(() => import('../pages/HomePage'));
+const TicketActivationPage = lazy(() => import('../pages/TicketActivationPage'));
+const AboutPage = lazy(() => import('../pages/AboutPage'));
+const MoviesPage = lazy(() => import('../pages/MoviesPage'));
+const GenresBrowsePage = lazy(() => import('../pages/CatalogBrowsePage').then((m) => ({ default: m.GenresBrowsePage })));
+const CountriesBrowsePage = lazy(() => import('../pages/CatalogBrowsePage').then((m) => ({ default: m.CountriesBrowsePage })));
+const CinemasPage = lazy(() => import('../pages/CinemasPage'));
+const OffersPage = lazy(() => import('../pages/OffersPage'));
+const ProfilePage = lazy(() => import('../pages/ProfilePage'));
+const TermsPage = lazy(() => import('../pages/TermsPage'));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage'));
+const PaymentPolicyPage = lazy(() => import('../pages/PaymentPolicyPage'));
+const RefundPolicyPage = lazy(() => import('../pages/RefundPolicyPage'));
+const FaqPage = lazy(() => import('../pages/FaqPage'));
+const MovieDetailPage = lazy(() => import('../pages/MovieDetailPage'));
+const BookingPage = lazy(() => import('../pages/BookingPage'));
+const OrbitBookingPage = lazy(() => import('../pages/OrbitBookingPage'));
+const OrbitWaitingPage = lazy(() => import('../pages/OrbitWaitingPage'));
+const ConcessionsPage = lazy(() => import('../pages/ConcessionsPage'));
+const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
+const BookingConfirmedPage = lazy(() => import('../pages/BookingConfirmedPage'));
+const PreShowBoardingPage = lazy(() => import('../pages/PreShowBoardingPage'));
+const WatchPage = lazy(() => import('../pages/WatchPage'));
+const RemindersPage = lazy(() => import('../pages/RemindersPage'));
+const WalletPage = lazy(() => import('../pages/WalletPage'));
+const SearchResultsPage = lazy(() => import('../pages/SearchResultsPage'));
+const MyMoviesPage = lazy(() => import('../pages/MyMoviesPage'));
+const PaymentFlow = lazy(() => import('../../payment/PaymentFlow'));
+const PaymentSuccess = lazy(() => import('../../payment/PaymentSuccess'));
+const VietQRPage = lazy(() => import('../../payment/VietQRPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
@@ -70,10 +58,7 @@ export const HomeRoutes = () => {
           <Route element={<HomeAnimatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="online" element={<OnlineMoviesPage />} />
-            <Route
-              path="online/activate/:movieId"
-              element={<TicketActivationPage />}
-            />
+            <Route path="online/activate/:movieId" element={<TicketActivationPage />} />
             <Route path="movies" element={<MoviesPage />} />
             <Route path="genres" element={<GenresBrowsePage />} />
             <Route path="countries" element={<CountriesBrowsePage />} />
@@ -90,115 +75,115 @@ export const HomeRoutes = () => {
             <Route path="my-movies" element={<MyMoviesPage />} />
             <Route
               path="booking"
-              element={
+              element={(
                 <ProtectedRoute>
                   <BookingPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="booking/orbit/:roomUuid"
-              element={
+              element={(
                 <ProtectedRoute>
                   <OrbitBookingPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="booking/orbit/:roomUuid/waiting"
-              element={
+              element={(
                 <ProtectedRoute>
                   <OrbitWaitingPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="concessions"
-              element={
+              element={(
                 <ProtectedRoute>
                   <ConcessionsPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="checkout"
-              element={
+              element={(
                 <ProtectedRoute>
                   <CheckoutPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="booking-confirmed"
-              element={
+              element={(
                 <ProtectedRoute>
                   <BookingConfirmedPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="pre-show/boarding/:bookingUuid"
-              element={
+              element={(
                 <ProtectedRoute>
                   <PreShowBoardingPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="profile"
-              element={
+              element={(
                 <ProtectedRoute>
                   <ProfilePage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="reminders"
-              element={
+              element={(
                 <ProtectedRoute>
                   <RemindersPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="wallet"
-              element={
+              element={(
                 <ProtectedRoute>
                   <WalletPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="watch/:id"
-              element={
+              element={(
                 <ProtectedRoute>
                   <WatchPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="payment"
-              element={
+              element={(
                 <ProtectedRoute>
                   <PaymentFlow />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="payment/vietqr"
-              element={
+              element={(
                 <ProtectedRoute>
                   <VietQRPage />
                 </ProtectedRoute>
-              }
+              )}
             />
             <Route
               path="payment-success"
-              element={
+              element={(
                 <ProtectedRoute>
                   <PaymentSuccess />
                 </ProtectedRoute>
-              }
+              )}
             />
           </Route>
         </Route>

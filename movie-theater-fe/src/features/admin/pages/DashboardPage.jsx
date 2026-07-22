@@ -189,17 +189,17 @@ const SeriesBar = ({ height, loading, index, title }) => {
           ? { duration: 0 }
           : loading
             ? {
-                duration: 1.35,
-                repeat: Infinity,
-                repeatType: 'mirror',
-                ease: [0.45, 0.05, 0.55, 0.95],
-                delay: (index % 7) * 0.12,
-              }
+              duration: 1.35,
+              repeat: Infinity,
+              repeatType: 'mirror',
+              ease: [0.45, 0.05, 0.55, 0.95],
+              delay: (index % 7) * 0.12,
+            }
             : {
-                duration: 1.05,
-                ease: [0.22, 1, 0.36, 1],
-                delay: index * 0.055,
-              }
+              duration: 1.05,
+              ease: [0.22, 1, 0.36, 1],
+              delay: index * 0.055,
+            }
       }
     />
   );
@@ -209,12 +209,12 @@ const RevenueSeriesChart = ({ points, loading, formatRevenue }) => {
   const displayPoints = points.length
     ? points
     : Array.from({ length: SERIES_PLACEHOLDER_COUNT }, (_, i) => ({
-        periodStart: `placeholder-${i}`,
-        label: '···',
-        revenue: 0,
-        height: 24,
-        placeholder: true,
-      }));
+      periodStart: `placeholder-${i}`,
+      label: '···',
+      revenue: 0,
+      height: 24,
+      placeholder: true,
+    }));
 
   return (
     <div
