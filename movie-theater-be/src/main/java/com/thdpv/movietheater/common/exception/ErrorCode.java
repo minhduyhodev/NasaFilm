@@ -2,9 +2,6 @@ package com.thdpv.movietheater.common.exception;
 
 import org.springframework.http.HttpStatus;
 
-import lombok.Getter;
-
-@Getter
 public enum ErrorCode {
     SUCCESS(200, "Thanh cong", HttpStatus.OK),
     CREATED(201, "Tao thanh cong", HttpStatus.CREATED),
@@ -48,6 +45,11 @@ public enum ErrorCode {
     SUPPORT_RATE_LIMITED(429, "Bạn gửi tin nhắn quá nhanh. Vui lòng đợi vài giây rồi thử lại.", HttpStatus.TOO_MANY_REQUESTS),
     SUPPORT_SATISFACTION_NOT_ALLOWED(400, "Chỉ đánh giá được khi ticket đã hoàn tất.", HttpStatus.BAD_REQUEST),
     SUPPORT_ALREADY_RATED(409, "Bạn đã đánh giá ticket này rồi.", HttpStatus.CONFLICT),
+    SUPPORT_BANNED_WORD(400, "Tin nhắn chứa từ ngữ không phù hợp. Vui lòng chỉnh sửa và gửi lại.", HttpStatus.BAD_REQUEST),
+    SUPPORT_IMAGE_INAPPROPRIATE(400, "Ảnh nhạy cảm (18+, bạo lực/máu me, quấy rối tình dục…) đã bị ẩn và không được gửi.", HttpStatus.BAD_REQUEST),
+    SUPPORT_IMAGE_UNRELATED(400, "Vui lòng gửi ảnh liên quan tới lỗi trên NASAFilm (màn hình lỗi thanh toán, mã vé, voucher, tài khoản…).", HttpStatus.BAD_REQUEST),
+    SUPPORT_IMAGE_MODERATION_PENDING(503, "Ảnh chưa thể được xác nhận an toàn nên đã bị ẩn. Vui lòng thử ảnh khác.", HttpStatus.SERVICE_UNAVAILABLE),
+    SUPPORT_CHAT_BANNED(403, "Tài khoản đang bị tạm khóa chat hỗ trợ do vi phạm tiêu chuẩn cộng đồng.", HttpStatus.FORBIDDEN),
     REVIEW_ALREADY_REPORTED(409, "Ban da bao cao danh gia nay", HttpStatus.CONFLICT),
     CANNOT_REPORT_OWN_REVIEW(400, "Khong the bao cao danh gia cua chinh ban", HttpStatus.BAD_REQUEST),
     REVIEW_REPORT_NOT_FOUND(404, "Don bao cao khong ton tai", HttpStatus.NOT_FOUND),
@@ -92,5 +94,17 @@ public enum ErrorCode {
         this.code = code;
         this.message = message;
         this.httpStatus = httpStatus;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 }

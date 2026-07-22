@@ -557,9 +557,8 @@ const SupportInboxPage = () => {
     });
   };
 
-  const handlePickSupportImages = (event) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
+  const appendSupportImageFiles = (incomingFiles) => {
+    const files = Array.from(incomingFiles || []).filter(Boolean);
     if (!files.length) return;
 
     setPendingImages((prev) => {
@@ -578,13 +577,17 @@ const SupportInboxPage = () => {
           continue;
         }
         if (file.size > MAX_SUPPORT_IMAGE_BYTES) {
-          notificationService.error(`Ảnh "${file.name}" vượt quá 5MB.`);
+          notificationService.error(`Ảnh "${file.name || 'dán từ clipboard'}" vượt quá 5MB.`);
           continue;
         }
+        const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        const named = file.name
+          ? file
+          : new File([file], `screenshot-${Date.now()}-${accepted.length}.${ext}`, { type: file.type || 'image/png' });
         accepted.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          file,
-          previewUrl: URL.createObjectURL(file),
+          file: named,
+          previewUrl: URL.createObjectURL(named),
         });
       }
 
@@ -593,6 +596,26 @@ const SupportInboxPage = () => {
       }
       return accepted.length ? [...prev, ...accepted] : prev;
     });
+  };
+
+  const handlePickSupportImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    appendSupportImageFiles(files);
+  };
+
+  const handlePasteSupportImages = (event) => {
+    if (loading || !selectedTicket || isIncomingTicket(selectedTicket) || isClosedTicket(selectedTicket)) {
+      return;
+    }
+    const items = Array.from(event.clipboardData?.items || []);
+    const files = items
+      .filter((item) => item.kind === 'file' && `${item.type || ''}`.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    if (!files.length) return;
+    event.preventDefault();
+    appendSupportImageFiles(files);
   };
 
   const handleReply = async () => {
@@ -842,7 +865,7 @@ const SupportInboxPage = () => {
                 className="support-attach-btn"
                 disabled={!canCompose || loading || pendingImages.length >= MAX_SUPPORT_IMAGES}
                 onClick={() => imageInputRef.current?.click()}
-                title="Gửi tối đa 3 ảnh"
+                title="Chọn ảnh hoặc Ctrl+V dán ảnh chụp màn hình (tối đa 3)"
               >
                 <Paperclip className="h-4 w-4" />
               </button>
@@ -851,7 +874,7 @@ const SupportInboxPage = () => {
                 className="support-attach-btn"
                 disabled={!canCompose || loading || pendingImages.length >= MAX_SUPPORT_IMAGES}
                 onClick={() => imageInputRef.current?.click()}
-                title="Đính kèm ảnh"
+                title="Đính kèm ảnh / Ctrl+V"
               >
                 <ImagePlus className="h-4 w-4" />
               </button>
@@ -859,6 +882,7 @@ const SupportInboxPage = () => {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleTextareaKeyDown}
+                onPaste={handlePasteSupportImages}
                 className="support-textarea"
                 rows={1}
                 placeholder={
