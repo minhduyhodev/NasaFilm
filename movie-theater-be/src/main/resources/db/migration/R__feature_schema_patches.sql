@@ -209,3 +209,23 @@ ALTER TABLE cinema ADD COLUMN IF NOT EXISTS image_url varchar(1000);
 
 ALTER TABLE support_ticket_message ADD COLUMN IF NOT EXISTS image_urls jsonb;
 
+-- ── Support chat moderation & escalating penalties ───────────────────────────
+
+CREATE TABLE IF NOT EXISTS support_moderation_violation (
+    uuid uuid PRIMARY KEY,
+    user_email varchar(255) NOT NULL,
+    violation_type varchar(32) NOT NULL,
+    severity integer NOT NULL,
+    penalty_action varchar(32) NOT NULL,
+    blocked_until timestamptz,
+    details varchar(500),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_moderation_user_created
+    ON support_moderation_violation (lower(user_email), created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_support_moderation_active_ban
+    ON support_moderation_violation (lower(user_email), blocked_until DESC)
+    WHERE blocked_until IS NOT NULL;
+

@@ -99,6 +99,7 @@ public class SupportAiService {
     private final ObjectMapper objectMapper;
     private final SystemConfigService systemConfigService;
     private final SupportAiContextService supportAiContextService;
+    private final SupportContentModerationService contentModerationService;
 
     @Value("${app.groq.api-key}")
     private String groqApiKey;
@@ -112,10 +113,12 @@ public class SupportAiService {
     public SupportAiService(
             ObjectMapper objectMapper,
             SystemConfigService systemConfigService,
-            SupportAiContextService supportAiContextService) {
+            SupportAiContextService supportAiContextService,
+            SupportContentModerationService contentModerationService) {
         this.objectMapper = objectMapper;
         this.systemConfigService = systemConfigService;
         this.supportAiContextService = supportAiContextService;
+        this.contentModerationService = contentModerationService;
     }
 
     @jakarta.annotation.PostConstruct
@@ -142,7 +145,10 @@ public class SupportAiService {
         if (isGreetingOnly(message)) {
             return greetingReply();
         }
-        if (containsBannedWord(message)) {
+        if (contentModerationService.containsBannedWord(message)) {
+            contentModerationService.recordAiTextViolation(userEmail);
+            // Nếu vi phạm vừa kích hoạt khóa chat, báo lỗi ngay thay vì chỉ cảnh cáo mềm.
+            contentModerationService.assertChatAllowed(userEmail);
             return inappropriateReply();
         }
         if (isLowSignalMessage(message)) {
@@ -162,21 +168,15 @@ public class SupportAiService {
             return fallback(message, history);
         }
 
-        // Support mode: ticket-related categories use guided form (no AI)
-        if (!answerMode && isGuidedCategory(detectedCategory)) {
-            return fallback(message, history);
-        }
-        // Short confirm/edit replies ("ok", "sửa"…) from the guided buttons carry no
-        // category of their own — keep them in the guided flow (so "OK — Gửi ticket"
-        // finalizes the ticket) instead of routing to the free LLM, as long as the
-        // conversation history is already inside a ticket category.
+        // Support mode: keep guided category conversations in the form flow (no free LLM).
+        // Choice chips like "Mã hết hạn" detect as "other" — stay in the history category.
         if (!answerMode) {
-            String norm = normalize(message).trim();
-            if (CONFIRM_YES.contains(norm) || CONFIRM_EDIT.contains(norm)) {
-                String historyCategory = detectCategoryFromHistory(history);
-                if (historyCategory != null && isGuidedCategory(historyCategory)) {
-                    return fallback(message, history);
-                }
+            if (isGuidedCategory(detectedCategory)) {
+                return fallback(message, history);
+            }
+            String historyCategory = detectCategoryFromHistory(history);
+            if (historyCategory != null && isGuidedCategory(historyCategory)) {
+                return fallback(message, history);
             }
         }
 
@@ -411,22 +411,19 @@ public class SupportAiService {
         return guidedFlowReply(message, normalized, category, history);
     }
 
-    /** Detect category from conversation history (look at last bot message or first user message). */
+    /** Detect category from conversation history (user turns only).
+     *  Bot prompts list cross-category options ("thanh toán", "vé"…) and would
+     *  mis-detect if scanned with {@link #detectCategory}. Prefer the earliest
+     *  user category signal (chip / seed / first descriptive message). */
     private String detectCategoryFromHistory(List<SupportAiMessage> history) {
         if (history == null) return null;
-        // Check last bot message for category context
-        for (int i = history.size() - 1; i >= 0; i--) {
-            SupportAiMessage m = history.get(i);
-            if ("assistant".equals(m.role()) || "bot".equals(m.role())) {
-                String cat = detectCategory(m.content());
-                if (!"other".equals(cat)) return cat;
-            }
-        }
-        // Fallback: check first user message in history
         for (SupportAiMessage m : history) {
-            if ("user".equals(m.role())) {
-                String cat = detectCategory(m.content());
-                if (!"other".equals(cat)) return cat;
+            if (m == null || !"user".equals(m.role()) || m.content() == null) {
+                continue;
+            }
+            String cat = detectCategory(m.content());
+            if (!"other".equals(cat)) {
+                return cat;
             }
         }
         return null;
@@ -820,7 +817,9 @@ public class SupportAiService {
         Map<String, List<String>> keywords = new java.util.LinkedHashMap<>();
         keywords.put("payment", List.of("thanh toan", "payment", "giao dich", "refund", "hoan tien", "tru tien", "chua nhan ve", "zalopay", "momo", "vnpay", "the ngan hang"));
         keywords.put("account", List.of("tai khoan", "account", "login", "dang nhap", "dang ky", "otp", "mat khau", "quen mat khau", "khoa tai khoan", "profile"));
-        keywords.put("promo", List.of("voucher", "khuyen mai", "promo", "ma giam gia", "uu dai", "coupon", "combo", "bap nuoc"));
+        keywords.put("promo", List.of(
+                "voucher", "khuyen mai", "promo", "ma giam gia", "uu dai", "coupon", "combo", "bap nuoc",
+                "het han", "khong ap dung", "ma voucher"));
         keywords.put("membership", List.of("hoi vien", "membership", "vip", "diem", "diem thuong", "tich diem", "hang thanh vien", "quyen loi"));
         keywords.put("ticket", List.of("ve", "ticket", "dat ve", "ma ve", "ma don", "suat chieu", "lich chieu", "ghe", "doi ve", "hoan ve", "huy ve", "phong chieu"));
         return keywords;
@@ -835,70 +834,12 @@ public class SupportAiService {
                 .toLowerCase();
     }
 
-    // Curse words that must be checked against ORIGINAL text (with diacritics)
-    // because after normalization they collide with common Vietnamese words.
-    // e.g. "cặc" (curse) normalizes to "cac" which collides with "các" (plural marker).
-    private static final List<String> DIACRITIC_BANNED_WORDS = List.of(
-            "cặc", "lồn", "địt", "đụ", "cứt", "đéo", "cặt", "lìn"
-    );
-
-    private boolean containsDiacriticBannedWord(String originalText) {
-        if (originalText == null) return false;
-        String lower = originalText.toLowerCase();
-        // Strip punctuation for matching but keep diacritics
-        String cleaned = lower.replaceAll("[^a-z0-9àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ\\s]", " ")
-                .replaceAll("\\s+", " ").trim();
-        return DIACRITIC_BANNED_WORDS.stream()
-                .anyMatch(word -> cleaned.matches(".*\\b" + java.util.regex.Pattern.quote(word) + "\\b.*"));
-    }
-
     private boolean isGreetingOnly(String text) {
         String normalized = normalize(text).replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
-        return normalized.matches("^(hi|hello|hey|xin chao|chao|chao ban|alo|hallo|good morning|good afternoon|good evening)$");
+        return normalized.matches(
+                "^(hi|hello|hey|xin chao|chao|chao ban|alo|hallo|good morning|good afternoon|good evening)$");
     }
 
-    private List<String> bannedWords() {
-        try {
-            Object nasaBot = systemConfigService.getConfig().get("nasaBot");
-            if (nasaBot instanceof Map<?, ?> botMap) {
-                Object words = ((Map<String, Object>) botMap).get("bannedWords");
-                if (words instanceof List<?> items) {
-                    List<String> normalizedWords = items.stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .map(String::trim)
-                            .filter(item -> !item.isBlank())
-                            .toList();
-                    if (!normalizedWords.isEmpty()) {
-                        return normalizedWords;
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-            // fallback below
-        }
-        return defaultBannedWords();
-    }
-
-    private List<String> defaultBannedWords() {
-        return List.of("dm", "dmm", "dit", "dit me", "du ma", "duma", "clm", "cc", "lon", "cai lon", "chui", "fuck", "shit", "bitch");
-    }
-
-    private boolean containsBannedWord(String text) {
-        // Check diacritic-based banned words first (against original text)
-        if (containsDiacriticBannedWord(text)) {
-            return true;
-        }
-        String normalized = normalize(text).replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
-        if (normalized.isBlank()) {
-            return false;
-        }
-        return bannedWords().stream()
-                .map(this::normalize)
-                .map(word -> word.replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim())
-                .filter(word -> !word.isBlank())
-                .anyMatch(word -> normalized.matches(".*\\b" + java.util.regex.Pattern.quote(word) + "\\b.*"));
-    }
     private boolean isLowSignalMessage(String text) {
         String normalized = normalize(text).replaceAll("[^a-z0-9\\s]", " ").replaceAll("\\s+", " ").trim();
         if (normalized.isBlank()) {

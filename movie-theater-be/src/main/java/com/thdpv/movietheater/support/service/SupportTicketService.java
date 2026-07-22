@@ -1,11 +1,14 @@
 package com.thdpv.movietheater.support.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,36 +50,42 @@ public class SupportTicketService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Cloudinary cloudinary;
+    private final SupportContentModerationService contentModerationService;
 
     public SupportTicketService(
             SupportTicketRepository supportTicketRepository,
             SupportTicketMessageRepository supportTicketMessageRepository,
             UserRepository userRepository,
             ApplicationEventPublisher eventPublisher,
-            Cloudinary cloudinary) {
+            Cloudinary cloudinary,
+            SupportContentModerationService contentModerationService) {
         this.supportTicketRepository = supportTicketRepository;
         this.supportTicketMessageRepository = supportTicketMessageRepository;
         this.userRepository = userRepository;
         this.eventPublisher = eventPublisher;
         this.cloudinary = cloudinary;
+        this.contentModerationService = contentModerationService;
     }
 
     @Transactional
     public SupportTicketResponse create(String ownerEmail, SupportTicketCreateRequest request) {
+        contentModerationService.assertChatAllowed(ownerEmail);
         assertNoActiveSupport(ownerEmail);
+        String description = request.getDescription().trim();
+        contentModerationService.assertCleanUserText(ownerEmail, description);
         SupportTicket ticket = new SupportTicket();
         ticket.setTicketCode(generateTicketCode());
         ticket.setOwnerEmail(ownerEmail);
         ticket.setOwnerName(userRepository.findByEmailIgnoreCase(ownerEmail).map(u -> u.getFullName()).orElse(null));
         ticket.setCategory(request.getCategory().trim());
-        ticket.setDescription(request.getDescription().trim());
+        ticket.setDescription(description);
         ticket.setStatus("PENDING");
         ticket.setReadByAdmin(false);
-        ticket.setLastMessage(request.getDescription().trim());
+        ticket.setLastMessage(description);
         ticket.setLastMessageSender("USER");
 
         SupportTicket saved = supportTicketRepository.save(ticket);
-        saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), request.getDescription().trim(), List.of());
+        saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), description, List.of());
         return map(saved);
     }
 
@@ -128,7 +137,20 @@ public class SupportTicketService {
                 .toList();
     }
 
-    public List<String> uploadImages(MultipartFile[] files) {
+    public List<String> uploadUserImages(String ownerEmail, MultipartFile[] files) {
+        contentModerationService.assertChatAllowed(ownerEmail);
+        return uploadImages(files, ownerEmail, true);
+    }
+
+    public List<String> uploadAdminImages(MultipartFile[] files) {
+        return uploadImages(files, null, false);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private List<String> uploadImages(
+            MultipartFile[] files,
+            String ownerEmail,
+            boolean penalizeUser) {
         if (files == null || files.length == 0) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Chưa chọn ảnh nào.");
         }
@@ -136,36 +158,79 @@ public class SupportTicketService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi lần chỉ gửi tối đa 3 ảnh.");
         }
 
-        List<String> urls = new ArrayList<>();
+        List<MultipartFile> validFiles = new ArrayList<>();
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) {
                 continue;
             }
             validateImageFile(file);
+            validFiles.add(file);
+        }
+        if (validFiles.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Không có ảnh hợp lệ để tải lên.");
+        }
+
+        // Upload in parallel, then moderate in order (keeps error cleanup simple).
+        List<Map> uploadedResults = new ArrayList<>(Collections.nCopies(validFiles.size(), null));
+        List<Exception> failures = Collections.synchronizedList(new ArrayList<>());
+        IntStream.range(0, validFiles.size()).parallel().forEach(index -> {
             try {
-                Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
-                        ObjectUtils.asMap(
-                                "folder", "support-attachments",
-                                "resource_type", "image"));
+                uploadedResults.set(index, uploadSupportImage(validFiles.get(index)));
+            } catch (RuntimeException error) {
+                failures.add(error);
+            }
+        });
+        if (!failures.isEmpty()) {
+            uploadedResults.stream().filter(Objects::nonNull)
+                    .forEach(contentModerationService::destroyUploaded);
+            Exception first = failures.get(0);
+            if (first instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Không tải được ảnh lên lúc này.");
+        }
+
+        List<String> urls = new ArrayList<>();
+        try {
+            for (Map uploadResult : uploadedResults) {
+                contentModerationService.assertImageApproved(
+                        uploadResult,
+                        ownerEmail,
+                        penalizeUser);
                 String url = (String) uploadResult.get("secure_url");
                 if (url == null || url.isBlank()) {
                     throw new AppException(ErrorCode.INTERNAL_ERROR, "Upload ảnh thất bại.");
                 }
                 urls.add(url);
-            } catch (AppException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new AppException(ErrorCode.INTERNAL_ERROR, "Tải ảnh hỗ trợ thất bại: " + e.getMessage());
             }
+        } catch (RuntimeException error) {
+            uploadedResults.stream().filter(Objects::nonNull)
+                    .forEach(contentModerationService::destroyUploaded);
+            throw error;
         }
 
-        if (urls.isEmpty()) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Không có ảnh hợp lệ để tải lên.");
-        }
-        if (urls.size() > MAX_IMAGES_PER_MESSAGE) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi lần chỉ gửi tối đa 3 ảnh.");
-        }
         return urls;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private Map uploadSupportImage(MultipartFile file) {
+        if (!contentModerationService.isImageSupportEnabled()) {
+            throw new AppException(
+                    ErrorCode.SUPPORT_IMAGE_MODERATION_PENDING,
+                    "Kiểm duyệt ảnh chưa sẵn sàng nên hệ thống tạm từ chối ảnh. Vui lòng thử lại sau.");
+        }
+        try {
+            return cloudinary.uploader().upload(
+                    file.getBytes(),
+                    contentModerationService.buildImageUploadOptions());
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Upload ảnh support thất bại: {} — {}", e.getClass().getSimpleName(), e.getMessage());
+            throw new AppException(
+                    ErrorCode.INTERNAL_ERROR,
+                    "Không tải được ảnh lên lúc này. Vui lòng thử lại sau.");
+        }
     }
 
     @Transactional
@@ -174,6 +239,7 @@ public class SupportTicketService {
             String ownerEmail,
             String message,
             List<String> imageUrls) {
+        contentModerationService.assertChatAllowed(ownerEmail);
         SupportTicket ticket = supportTicketRepository.findByTicketCode(ticketCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ticket hỗ trợ."));
         if (!ticket.getOwnerEmail().equalsIgnoreCase(ownerEmail)) {
@@ -185,6 +251,7 @@ public class SupportTicketService {
         }
 
         String trimmedMessage = normalizeMessage(message);
+        contentModerationService.assertCleanUserText(ownerEmail, trimmedMessage);
         List<String> normalizedImages = normalizeImageUrls(imageUrls);
         assertMessageOrImages(trimmedMessage, normalizedImages);
 
@@ -476,17 +543,31 @@ public class SupportTicketService {
         if (imageUrls == null || imageUrls.isEmpty()) {
             return List.of();
         }
-        List<String> normalized = imageUrls.stream()
-                .filter(url -> url != null && !url.isBlank())
-                .map(String::trim)
-                .filter(url -> url.startsWith("https://") || url.startsWith("http://"))
-                .distinct()
-                .limit(MAX_IMAGES_PER_MESSAGE)
-                .toList();
         if (imageUrls.size() > MAX_IMAGES_PER_MESSAGE) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Mỗi tin nhắn chỉ đính kèm tối đa 3 ảnh.");
         }
-        return normalized;
+        List<String> normalized = new ArrayList<>();
+        for (String rawUrl : imageUrls) {
+            if (rawUrl == null || rawUrl.isBlank()) {
+                continue;
+            }
+            String url = rawUrl.trim();
+            if (!isApprovedSupportImageUrl(url)) {
+                throw new AppException(
+                        ErrorCode.BAD_REQUEST,
+                        "Ảnh đính kèm không hợp lệ hoặc chưa qua kiểm duyệt.");
+            }
+            if (!normalized.contains(url)) {
+                normalized.add(url);
+            }
+        }
+        return List.copyOf(normalized);
+    }
+
+    private boolean isApprovedSupportImageUrl(String url) {
+        return url.startsWith("https://res.cloudinary.com/")
+                && url.contains("/image/upload/")
+                && url.contains("/support-attachments/");
     }
 
     private void assertMessageOrImages(String message, List<String> imageUrls) {

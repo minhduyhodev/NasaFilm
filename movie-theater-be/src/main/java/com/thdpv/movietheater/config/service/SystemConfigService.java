@@ -342,7 +342,9 @@ public class SystemConfigService {
                 "account", List.of("tai khoan", "account", "login", "dang nhap", "dang ky", "otp", "mat khau", "quen mat khau", "khoa tai khoan", "profile"),
                 "promo", List.of("voucher", "khuyen mai", "promo", "ma giam gia", "uu dai", "coupon", "combo", "bap nuoc"),
                 "membership", List.of("hoi vien", "membership", "vip", "diem", "diem thuong", "tich diem", "hang thanh vien", "quyen loi")));
-        bot.put("bannedWords", List.of("dm", "dmm", "dit", "dit me", "du ma", "duma", "clm", "cc", "lon", "cac", "cai lon", "chui", "fuck", "shit", "bitch"));
+        bot.put("bannedWords", List.of(
+                "dm", "dmm", "dit", "dit me", "du ma", "duma", "clm", "cc", "lon", "cac", "cai lon", "chui",
+                "fuck", "shit", "bitch", "asshole", "dick", "pussy", "đm", "đmm", "vcl", "vl"));
         return bot;
     }
 
