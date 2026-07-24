@@ -16,6 +16,10 @@ WORKDIR /app
 
 # Run as non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
+
+# Create logs directory and set ownership to spring user
+RUN mkdir -p /app/logs && chown -R spring:spring /app
+
 USER spring:spring
 
 # Copy built JAR from builder stage
