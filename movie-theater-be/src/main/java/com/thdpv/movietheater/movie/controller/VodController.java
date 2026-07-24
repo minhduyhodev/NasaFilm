@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +25,9 @@ import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
 import com.thdpv.movietheater.booking.service.BookingService;
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.movie.service.MovieService;
+import com.thdpv.movietheater.movie.support.VodStreamCookieSupport;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +38,12 @@ public class VodController {
 
     private final BookingService bookingService;
     private final MovieService movieService;
+
+    @Value("${app.vod.stream-cookie.secure:false}")
+    private boolean streamCookieSecure;
+
+    @Value("${app.vod.stream-cookie.same-site:Lax}")
+    private String streamCookieSameSite;
 
     @GetMapping("/status/{movieRef}")
     public ResponseEntity<ApiResponse<VodStatusResponse>> getVodStatus(
@@ -64,21 +76,38 @@ public class VodController {
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid,
                 bookingUuid);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        String rawStreamToken = response.getStreamToken();
+        ResponseCookie streamCookie = VodStreamCookieSupport.create(
+                rawStreamToken,
+                response.getExpiresAt(),
+                streamCookieSecure,
+                streamCookieSameSite);
+        response.setStreamToken(null);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, streamCookie.toString())
+                .body(ApiResponse.success(response));
     }
 
     @PostMapping("/heartbeat/{movieRef}")
     public ResponseEntity<ApiResponse<Void>> vodHeartbeat(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable("movieRef") String movieRef,
-            @RequestParam("streamToken") String streamToken,
+            @RequestHeader(value = "X-Stream-Session", required = false) String streamSessionId,
+            @RequestHeader(value = "X-Stream-Token", required = false) String streamTokenHeader,
+            @RequestParam(value = "streamToken", required = false) String streamTokenQuery,
             @RequestParam(value = "positionSeconds", required = false) Integer positionSeconds,
-            @RequestParam(value = "durationSeconds", required = false) Integer durationSeconds) {
+            @RequestParam(value = "durationSeconds", required = false) Integer durationSeconds,
+            HttpServletRequest request) {
+        String streamToken = firstNonBlank(
+                VodStreamCookieSupport.read(request),
+                streamTokenHeader,
+                streamTokenQuery);
         UUID movieUuid = movieService.resolveMovieUuid(movieRef);
         bookingService.vodHeartbeat(
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid,
                 streamToken,
+                streamSessionId,
                 positionSeconds,
                 durationSeconds);
         return ResponseEntity.ok(ApiResponse.success(null, "Heartbeat OK"));
@@ -101,5 +130,17 @@ public class VodController {
                 userDetails != null ? userDetails.getUsername() : null,
                 movieUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Mã vé đã được gửi tới email của bạn"));
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }

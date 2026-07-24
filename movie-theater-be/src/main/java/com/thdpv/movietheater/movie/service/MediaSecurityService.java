@@ -13,6 +13,7 @@ import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
+import com.thdpv.movietheater.movie.util.StreamTokenUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,8 +35,14 @@ public class MediaSecurityService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu token phát trực tuyến");
         }
 
+        String rawToken = token.trim();
+        OffsetDateTime now = OffsetDateTime.now();
         Optional<Booking> bookingOpt = bookingRepository
-                .findFirstByStreamTokenAndExpiresAtAfter(token.trim(), OffsetDateTime.now());
+                .findFirstByStreamTokenAndExpiresAtAfter(StreamTokenUtils.hash(rawToken), now);
+        if (bookingOpt.isEmpty()) {
+            // Transitional support for sessions created before token hashing was deployed.
+            bookingOpt = bookingRepository.findFirstByStreamTokenAndExpiresAtAfter(rawToken, now);
+        }
         if (bookingOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Token phát không hợp lệ hoặc đã hết hạn");
         }

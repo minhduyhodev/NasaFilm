@@ -18,6 +18,7 @@ import com.thdpv.movietheater.movie.service.ImageProxyService;
 import com.thdpv.movietheater.movie.service.MediaS3Service;
 import com.thdpv.movietheater.movie.service.MediaSecurityService;
 import com.thdpv.movietheater.movie.support.MediaProxyRateLimiter;
+import com.thdpv.movietheater.movie.support.VodStreamCookieSupport;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,9 +64,12 @@ public class MediaProxyController {
             @RequestParam(required = false) String key,
             @RequestParam(required = false) String url,
             @RequestParam(required = false) String token,
+            @RequestHeader(value = "X-Stream-Token", required = false) String tokenHeader,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader,
             HttpServletRequest request) {
-        mediaProxyRateLimiter.assertStreamAllowed(request);
+        String cookieToken = VodStreamCookieSupport.read(request);
+        String resolvedToken = firstNonBlank(cookieToken, tokenHeader, token);
+        mediaProxyRateLimiter.assertStreamAllowed(request, resolvedToken);
         if (!mediaS3Service.isS3ClientAvailable()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
@@ -80,7 +84,7 @@ public class MediaProxyController {
             return ResponseEntity.badRequest().build();
         }
 
-        mediaSecurityService.assertVodStreamAllowed(resolvedKey, token);
+        mediaSecurityService.assertVodStreamAllowed(resolvedKey, resolvedToken);
 
         return mediaS3Service.buildStreamResponse(resolvedKey, rangeHeader);
     }
@@ -89,5 +93,17 @@ public class MediaProxyController {
     public ResponseEntity<byte[]> proxyImage(@RequestParam String url, HttpServletRequest request) {
         mediaProxyRateLimiter.assertProxyAllowed(request);
         return imageProxyService.proxyImage(url, mediaS3Service.getS3BucketHost(), mediaS3Service);
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }

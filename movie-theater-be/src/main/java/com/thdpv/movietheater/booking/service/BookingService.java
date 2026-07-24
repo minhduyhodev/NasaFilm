@@ -54,6 +54,7 @@ import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
+import com.thdpv.movietheater.movie.util.StreamTokenUtils;
 import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
@@ -1645,9 +1646,8 @@ public class BookingService {
                 playbackState = "EXPIRED";
             } else {
                 playbackState = "STREAMING";
-                String resolved = S3MediaBorderUtils.resolveStreamingUrl(movie);
-                // Kèm token hiện tại (nếu còn) — WatchPage vẫn chỉ play sau activate/Play
-                streamingUrl = S3MediaBorderUtils.toStreamUrlWithToken(resolved, booking.getStreamToken());
+                // Không trả token đã lưu qua API trạng thái. Client phải tạo phiên mới qua /play.
+                streamingUrl = null;
             }
         }
 
@@ -1763,17 +1763,17 @@ public class BookingService {
         }
 
         OffsetDateTime now = OffsetDateTime.now();
-        String streamToken = UUID.randomUUID().toString();
+        String streamToken = StreamTokenUtils.generate();
+        String storedStreamToken = StreamTokenUtils.hash(streamToken);
 
         if (booking.getFirstPlayedAt() != null) {
             if (booking.getExpiresAt() != null && now.isAfter(booking.getExpiresAt())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
             }
-            booking.setStreamToken(streamToken);
+            booking.setStreamToken(storedStreamToken);
             bookingJpaRepository.save(booking);
-            return new VodPlayResponse(streamToken,
-                    S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
-                    booking.getExpiresAt());
+            // URL không kèm token — token đi qua cookie HttpOnly / header heartbeat.
+            return buildVodPlayResponse(streamToken, streamingUrl, booking.getExpiresAt());
         }
 
         int durationMinutes = movie.getDurationMinutes() != null ? movie.getDurationMinutes() : 120;
@@ -1782,7 +1782,7 @@ public class BookingService {
         OffsetDateTime expiresAt = firstPlayedAt.plusMinutes(Math.round(durationMinutes * lockMultiplier));
 
         int claimed = bookingJpaRepository.claimFirstPlay(
-                booking.getUuid(), firstPlayedAt, expiresAt, streamToken, now);
+                booking.getUuid(), firstPlayedAt, expiresAt, storedStreamToken, now);
         if (claimed == 0) {
             // Another concurrent activate won first play — resume that watch window without firing missions again.
             Booking latest = bookingJpaRepository.findById(booking.getUuid())
@@ -1790,20 +1790,28 @@ public class BookingService {
             if (latest.getExpiresAt() != null && now.isAfter(latest.getExpiresAt())) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
             }
-            latest.setStreamToken(streamToken);
+            latest.setStreamToken(storedStreamToken);
             bookingJpaRepository.save(latest);
-            return new VodPlayResponse(streamToken,
-                    S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
-                    latest.getExpiresAt());
+            return buildVodPlayResponse(streamToken, streamingUrl, latest.getExpiresAt());
         }
 
         List<MissionCompletionResponse> missionCompletions = missionService.handleEvent(
                 MissionEventPayload.vodFirstPlay(userUuid, booking.getUuid(), movieUuid, now));
 
-        VodPlayResponse response = new VodPlayResponse(streamToken,
-                S3MediaBorderUtils.toStreamUrlWithToken(streamingUrl, streamToken),
-                expiresAt);
+        VodPlayResponse response = buildVodPlayResponse(streamToken, streamingUrl, expiresAt);
         response.setMissionCompletions(missionCompletions);
+        return response;
+    }
+
+    private VodPlayResponse buildVodPlayResponse(
+            String rawStreamToken,
+            String streamingUrl,
+            OffsetDateTime expiresAt) {
+        VodPlayResponse response = new VodPlayResponse(
+                rawStreamToken,
+                S3MediaBorderUtils.toStreamUrl(streamingUrl),
+                expiresAt);
+        response.setStreamSessionId(StreamTokenUtils.fingerprint(rawStreamToken));
         return response;
     }
 
@@ -1841,6 +1849,12 @@ public class BookingService {
     @Transactional
     public void vodHeartbeat(String currentUserEmail, UUID movieUuid, String streamToken,
             Integer positionSeconds, Integer durationSeconds) {
+        vodHeartbeat(currentUserEmail, movieUuid, streamToken, null, positionSeconds, durationSeconds);
+    }
+
+    @Transactional
+    public void vodHeartbeat(String currentUserEmail, UUID movieUuid, String streamToken,
+            String streamSessionId, Integer positionSeconds, Integer durationSeconds) {
         if (streamToken == null || streamToken.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Token phát trực tuyến không hợp lệ");
         }
@@ -1858,9 +1872,13 @@ public class BookingService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Vé xem phim trực tuyến của bạn đã hết hạn");
         }
 
-        if (!streamToken.equals(booking.getStreamToken())) {
+        if (!StreamTokenUtils.matches(streamToken, booking.getStreamToken())) {
             // Kick-out: conflict (409)
             throw new AppException(ErrorCode.CONFLICT, "Tài khoản đang được xem trên thiết bị khác");
+        }
+        if (streamSessionId != null
+                && !StreamTokenUtils.matchesFingerprint(streamSessionId, booking.getStreamToken())) {
+            throw new AppException(ErrorCode.CONFLICT, "Phiên xem này đã được thay thế bởi phiên khác");
         }
 
         if (positionSeconds != null && positionSeconds >= 0) {

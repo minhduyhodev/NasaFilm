@@ -1,4 +1,5 @@
 import tokenService from '../../features/auth/utils/tokenService';
+import { logger } from '../utils/logger';
 
 const DEFAULT_AUTO_CLOSE = 4000;
 const toastListeners = new Set();
@@ -171,7 +172,7 @@ export const notificationService = {
       const data = localStorage.getItem(`nasa_notifications_${userId}`);
       return data ? JSON.parse(data) : [];
     } catch (e) {
-      console.error('[NotificationService] Loi khi doc notifications:', e);
+      logger.error('[NotificationService] Loi khi doc notifications:', e);
       return [];
     }
   },
@@ -193,7 +194,7 @@ export const notificationService = {
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
       return newNotif;
     } catch (e) {
-      console.error('[NotificationService] Loi khi them notification:', e);
+      logger.error('[NotificationService] Loi khi them notification:', e);
       return null;
     }
   },
@@ -206,7 +207,7 @@ export const notificationService = {
       localStorage.setItem(`nasa_notifications_${userId}`, JSON.stringify(updatedList));
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error('[NotificationService] Loi khi cap nhat trang thai doc:', e);
+      logger.error('[NotificationService] Loi khi cap nhat trang thai doc:', e);
     }
   },
 
@@ -216,7 +217,7 @@ export const notificationService = {
       localStorage.removeItem(`nasa_notifications_${userId}`);
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error('[NotificationService] Loi khi xoa notifications:', e);
+      logger.error('[NotificationService] Loi khi xoa notifications:', e);
     }
   },
 };

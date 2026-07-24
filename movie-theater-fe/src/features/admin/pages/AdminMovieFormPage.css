@@ -278,16 +278,39 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.75rem;
+  padding-bottom: 1.5rem;
   text-align: center;
   color: rgba(148, 163, 184, 0.7);
   font-size: 11px;
   line-height: 1.35;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
 }
 
 .amf-poster__icon {
   width: 1.75rem;
   height: 1.75rem;
   color: #e11d48;
+}
+
+.amf-poster__progress {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0.85rem;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.amf-poster__progress-bar {
+  height: 100%;
+  width: 0;
+  background: #e11d48;
+  transition: width 0.2s ease-out;
 }
 
 /* ── Media row + red upload square ── */
@@ -316,17 +339,59 @@
   background: #e11d48;
   color: #fff;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
 }
 
 .amf-media-upload:hover {
   background: #be123c;
 }
 
+.amf-media-upload.is-uploading {
+  pointer-events: none;
+  opacity: 0.9;
+  cursor: wait;
+}
+
 .amf-media-upload__pct {
   font-size: 8px;
   font-weight: 700;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.amf-media-progress {
+  position: relative;
+  margin-top: 0.45rem;
+  height: 1.35rem;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.amf-media-progress__bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: linear-gradient(90deg, #e11d48 0%, #fb7185 100%);
+  transition: width 0.2s ease-out;
+}
+
+.amf-media-progress__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 0.5rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ── Tag picker ── */

@@ -23,6 +23,8 @@ import MovieReviewsSection from '../components/MovieReviewsSection';
 import { getVideoSource, isEmbeddableSource, isUnsupportedSource, getProviderLabel } from '../utils/videoSourceUtils';
 import Hls from 'hls.js';
 import { useHomeChrome } from '../context/HomeChromeContext';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { logger } from '../../../shared/utils/logger';
 import './WatchPage.css';
 
 const toPlayableStreamUrl = async (rawUrl) => {
@@ -50,6 +52,7 @@ const resolvePlayExpiresAt = (playSession, movie, lockMultiplier) =>
 const WatchPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const playerSlotRef = useRef(null);
@@ -75,6 +78,7 @@ const WatchPage = () => {
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const [ticketExpired, setTicketExpired] = useState(false);
   const [reviewsExpanded, setReviewsExpanded] = useState(true);
+  const [watermarkTime, setWatermarkTime] = useState(() => new Date());
   const heartbeatIntervalRef = useRef(null);
   // Vị trí xem gần nhất — dùng để flush heartbeat cuối khi rời trang.
   const lastPositionRef = useRef({ position: 0, duration: null });
@@ -173,6 +177,12 @@ const WatchPage = () => {
       if (cinemaUiTimerRef.current) clearTimeout(cinemaUiTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    const timer = window.setInterval(() => setWatermarkTime(new Date()), 30000);
+    return () => window.clearInterval(timer);
+  }, [isPlaying]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -287,6 +297,7 @@ const WatchPage = () => {
         setPreviewReady(true);
       } catch (err) {
         if (!active) return;
+        logger.error('Failed to initialize VOD playback', err);
         setError(err.message || 'Không thể bắt đầu luồng phát phim trực tuyến.');
       } finally {
         if (active) setIsLoading(false);
@@ -301,7 +312,7 @@ const WatchPage = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!streamData?.streamToken) return;
+    if (!streamData?.streamingUrl || !streamData?.streamSessionId) return;
 
     const readVideoPosition = () => {
       const video = videoRef.current;
@@ -319,9 +330,10 @@ const WatchPage = () => {
       try {
         const { position, duration } = readVideoPosition();
         const movieRef = movie?.uuid || id;
-        await vodService.heartbeat(movieRef, streamData.streamToken, position, duration);
+        await vodService.heartbeat(movieRef, streamData.streamSessionId, position, duration);
       } catch (err) {
         const moviePath = movie?.slug || movie?.uuid || id;
+        logger.warn('VOD heartbeat was rejected', { status: err.status, message: err.message });
         if (err.status === 409 || err.message?.includes('thiết bị khác')) {
           notificationService.error('Tài khoản đang xem ở thiết bị khác.');
           navigate(`/movie/${moviePath}?from=online`);
@@ -335,7 +347,7 @@ const WatchPage = () => {
     sendHeartbeat();
     heartbeatIntervalRef.current = setInterval(sendHeartbeat, 15000);
 
-    const streamToken = streamData.streamToken;
+    const streamSessionId = streamData.streamSessionId;
     const movieRef = movie?.uuid || id;
 
     // Flush khi đóng tab/reload — fetch keepalive vẫn gửi được lúc trang unload.
@@ -344,7 +356,6 @@ const WatchPage = () => {
       const { position, duration } = lastPositionRef.current;
       if (!(position > 1)) return;
       const params = new URLSearchParams({
-        streamToken,
         positionSeconds: String(Math.floor(position)),
       });
       if (duration > 0) params.set('durationSeconds', String(Math.floor(duration)));
@@ -352,7 +363,11 @@ const WatchPage = () => {
       fetch(`${import.meta.env.VITE_API_URL || ''}/api/vod/heartbeat/${movieRef}?${params.toString()}`, {
         method: 'POST',
         keepalive: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Stream-Session': streamSessionId,
+        },
+        credentials: 'include',
       }).catch(() => {});
     };
     window.addEventListener('pagehide', flushOnPageHide);
@@ -364,7 +379,7 @@ const WatchPage = () => {
       readVideoPosition();
       const { position, duration } = lastPositionRef.current;
       if (position > 1) {
-        vodService.heartbeat(movieRef, streamToken, position, duration).catch(() => {});
+        vodService.heartbeat(movieRef, streamSessionId, position, duration).catch(() => {});
       }
     };
   }, [streamData, id, movie, navigate]);
@@ -412,7 +427,7 @@ const WatchPage = () => {
       return;
     }
     setVideoError('');
-    if (streamData?.streamToken) {
+    if (streamData?.streamingUrl) {
       setIsPlaying(true);
       return;
     }
@@ -447,7 +462,9 @@ const WatchPage = () => {
       setVodExpiresAt(expiresAt);
       setPreviewReady(false);
       setIsPlaying(true);
+      logger.info('VOD playback session activated', { movieRef });
     } catch (err) {
+      logger.error('Failed to activate VOD playback', err);
       notificationService.error(err?.message || 'Không thể bắt đầu phát phim.');
     } finally {
       setIsStartingPlay(false);
@@ -457,7 +474,7 @@ const WatchPage = () => {
 
   // Tự động gọi handlePlay khi load xong preview
   useEffect(() => {
-    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamToken) {
+    if (previewReady && !isPlaying && !isStartingPlay && !streamData?.streamingUrl) {
       handlePlay();
     }
   }, [previewReady, isPlaying, isStartingPlay, streamData]);
@@ -654,6 +671,9 @@ const WatchPage = () => {
             onLoadedMetadata={handleVideoResume}
             onError={handleDirectVideoError}
           />
+          <div className="watch-stream-watermark" aria-hidden>
+            NASAFILM
+          </div>
           {videoError && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 p-6 text-center">
               <AlertCircle className="w-10 h-10 text-red-500 mb-3" />

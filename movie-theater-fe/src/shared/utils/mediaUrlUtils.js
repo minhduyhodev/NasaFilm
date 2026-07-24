@@ -57,18 +57,6 @@ export const isAwsS3Key = (url) => {
 const toBorderFromKey = (key) =>
   `/api/media/border?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
 
-const extractStreamToken = (url) => {
-  if (!url?.trim()) return null;
-  try {
-    const parsed = url.trim().startsWith('http')
-      ? new URL(url.trim())
-      : new URL(url.trim(), 'http://localhost');
-    return parsed.searchParams.get('token');
-  } catch {
-    return null;
-  }
-};
-
 const toStreamFromKey = (key, token = null) => {
   let path = `/api/media/stream?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
   if (token) {
@@ -188,13 +176,22 @@ export const resolvePlayableMediaUrl = async (url) => {
     return '';
   }
   const trimmed = url.trim();
+  // Prefer cookie-authenticated stream URL without query token leakage.
   if (isStreamMediaUrl(trimmed)) {
-    return trimmed;
+    try {
+      const parsed = trimmed.startsWith('http')
+        ? new URL(trimmed)
+        : new URL(trimmed, 'http://localhost');
+      parsed.searchParams.delete('token');
+      const path = `${parsed.pathname}${parsed.search}`;
+      return trimmed.startsWith('http') ? parsed.toString() : path;
+    } catch {
+      return trimmed;
+    }
   }
-  const token = extractStreamToken(trimmed);
   const key = unwrapMediaUrl(trimmed);
   if (key.toLowerCase().startsWith('movie/')) {
-    return toStreamFromKey(key, token);
+    return toStreamFromKey(key);
   }
   return resolveMediaUrl(trimmed) || trimmed;
 };

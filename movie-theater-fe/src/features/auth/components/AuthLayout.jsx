@@ -1,174 +1,123 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { SpaceBackground } from './SpaceBackground';
-import nasaLogo from '../../../shared/assets/NASAFILM.jpg';
+import { CinemaAuthBackground } from './CinemaAuthBackground';
+import { useCosmosHomeTransition } from './CosmosHomeTransition.jsx';
+import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
+import './AuthLayout.css';
 
 export const AuthLayout = ({
   children,
   showHero = true,
-  heroTitle: _heroTitle = 'NASAFILM',
-  heroDescription = 'Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn.',
+  heroTitle = 'NASAFILM',
+  heroDescription = 'Trải nghiệm những bộ phim hay nhất, trên màn ảnh lớn gần bạn nhất.',
+  tagline = 'Điện ảnh. Không khoảng cách.',
 }) => {
-  const [logoSrc, setLogoSrc] = React.useState(nasaLogo);
+  const { startTransition } = useCosmosHomeTransition({
+    to: '/',
+    durationMs: 3400,
+  });
 
-  React.useEffect(() => {
-    const img = new Image();
-    img.src = nasaLogo;
-    img.onload = () => {
-      const width = img.width;
-      const height = img.height;
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      const imgData = ctx.getImageData(0, 0, width, height);
-      const data = imgData.data;
-      
-      // Flood fill from corners to find and remove white background
-      const visited = new Uint8Array(width * height);
-      const queue = [];
-      
-      const isWhite = (x, y) => {
-        const idx = (y * width + x) * 4;
-        const r = data[idx];
-        const g = data[idx+1];
-        const b = data[idx+2];
-        return r > 240 && g > 240 && b > 240;
-      };
-      
-      const corners = [
-        [0, 0],
-        [width - 1, 0],
-        [0, height - 1],
-        [width - 1, height - 1]
-      ];
-      
-      corners.forEach(([x, y]) => {
-        if (isWhite(x, y)) {
-          queue.push([x, y]);
-          visited[y * width + x] = 1;
-        }
-      });
-      
-      while (queue.length > 0) {
-        const [cx, cy] = queue.shift();
-        const idx = (cy * width + cx) * 4;
-        data[idx+3] = 0; // Transparent
-        
-        const neighbors = [
-          [cx + 1, cy],
-          [cx - 1, cy],
-          [cx, cy + 1],
-          [cx, cy - 1]
-        ];
-        
-        for (const [nx, ny] of neighbors) {
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            const vIdx = ny * width + nx;
-            if (visited[vIdx] === 0 && isWhite(nx, ny)) {
-              visited[vIdx] = 1;
-              queue.push([nx, ny]);
-            }
-          }
-        }
-      }
-      
-      ctx.putImageData(imgData, 0, 0);
-      setLogoSrc(canvas.toDataURL());
-    };
-  }, []);
+  const brand = heroTitle.replace(/\s/g, '');
+  const nasaPart = brand.toUpperCase().startsWith('NASA') ? 'NASA' : brand.slice(0, 4);
+  const filmPart = brand.toUpperCase().startsWith('NASA')
+    ? brand.slice(4) || 'FILM'
+    : brand.slice(4);
+
+  const BrandBlock = ({ compact = false, showCopy = true, onScreen = false }) => (
+    <div
+      className={[
+        'auth-cinema__brand-block',
+        compact ? 'auth-cinema__brand-block--compact' : '',
+        onScreen ? 'auth-cinema__brand-block--on-screen' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <a
+        href="/"
+        className="auth-cinema__brand"
+        aria-label="NASAFILM — về trang chủ"
+        onClick={startTransition}
+      >
+        <img
+          src={nasaFilmLogo}
+          alt=""
+          className={`auth-cinema__logo${compact ? ' auth-cinema__logo--compact' : ''}`}
+          width={compact ? 48 : 72}
+          height={compact ? 48 : 72}
+        />
+        <span className="auth-cinema__wordmark">
+          <span className="auth-cinema__brand-nasa">{nasaPart}</span>
+          <span className="auth-cinema__brand-film">{filmPart || 'FILM'}</span>
+        </span>
+      </a>
+
+      {showCopy ? (
+        <>
+          <p className="auth-cinema__tagline">{tagline}</p>
+          <p className="auth-cinema__desc">{heroDescription}</p>
+        </>
+      ) : null}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#030307] text-white overflow-hidden relative flex flex-col justify-between">
-      {/* Dynamic Starry Canvas Background */}
-      <SpaceBackground />
+    <div className="auth-cinema">
+      <CinemaAuthBackground />
 
-      {/* Cosmic spot lights */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-3xl opacity-40 animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-rose-600/10 rounded-full blur-3xl opacity-30"></div>
-      </div>
-
-
-
-      {/* Content Area */}
-      <div className="relative z-10 flex-1 flex items-center justify-center py-8 md:py-10">
-        <div className="w-full max-w-7xl px-6 sm:px-8 lg:px-12">
-          {showHero ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-              {/* Left Side Hero */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className="hidden lg:block text-white"
-              >
-                <div className="space-y-6 max-w-lg">
-                  <div>
-                    <Link to="/" className="flex items-center gap-5 mb-6 hover:opacity-90 transition-opacity cursor-pointer">
-                      <img
-                        src={logoSrc}
-                        alt="NASAFILM Logo"
-                        className="h-20 md:h-24 w-auto object-contain select-none"
-                      />
-                      <span className="text-4xl md:text-5xl font-black tracking-tight leading-none">
-                        NASA<span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Film</span>
-                      </span>
-                    </Link>
-                    <p className="text-base text-gray-300 leading-relaxed font-medium">
-                      {heroDescription}
-                    </p>
-                  </div>
-
-                  {/* Decorative line */}
-                  <div className="pt-2">
-                    <div className="h-0.5 w-24 bg-gradient-to-r from-red-500 to-transparent"></div>
-                  </div>
-
-                  {/* Features list */}
-                  <div className="space-y-4 pt-4">
-                    {['Ra Mắt Phim Độc Quyền', 'Trải Nghiệm Dịch Vụ VIP', 'Đặt Vé Ưu Tiên'].map((feature, index) => (
-                      <motion.div
-                        key={feature}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * (index + 1) }}
-                        className="flex items-center gap-3.5"
-                      >
-                        <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.8)]"></div>
-                        <span className="text-gray-400 font-semibold text-sm">{feature}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Form Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="flex justify-center lg:justify-end"
-              >
-                {children}
-              </motion.div>
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex justify-center"
-            >
-              {children}
-            </motion.div>
-          )}
+      {showHero ? (
+        <div className="auth-cinema__screen-plane">
+          <BrandBlock showCopy onScreen />
         </div>
+      ) : null}
+
+      <div className="auth-cinema__content">
+        {showHero ? (
+          <div className="auth-cinema__grid">
+            <motion.div
+              className="auth-cinema__panel"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="auth-cinema__brand-mobile">
+                <BrandBlock showCopy={false} />
+              </div>
+              <div className="auth-cinema__form-slot">{children}</div>
+            </motion.div>
+
+            <aside className="auth-cinema__hero" aria-hidden="true" />
+          </div>
+        ) : (
+          <motion.div
+            className="auth-cinema__centered"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <a
+              href="/"
+              className="auth-cinema__brand auth-cinema__brand--compact"
+              aria-label="NASAFILM — về trang chủ"
+              onClick={startTransition}
+            >
+              <img
+                src={nasaFilmLogo}
+                alt=""
+                className="auth-cinema__logo auth-cinema__logo--compact"
+                width={48}
+                height={48}
+              />
+              <span className="auth-cinema__wordmark">
+                <span className="auth-cinema__brand-nasa">NASA</span>
+                <span className="auth-cinema__brand-film">FILM</span>
+              </span>
+            </a>
+            {children}
+          </motion.div>
+        )}
       </div>
-
-
     </div>
   );
 };
+
+export default AuthLayout;

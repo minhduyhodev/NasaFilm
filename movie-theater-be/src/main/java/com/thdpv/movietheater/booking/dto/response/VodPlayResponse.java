@@ -8,6 +8,7 @@ import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 
 public class VodPlayResponse {
     private String streamToken;
+    private String streamSessionId;
     private String streamingUrl;
     private OffsetDateTime expiresAt;
     private List<MissionCompletionResponse> missionCompletions = new ArrayList<>();
@@ -27,6 +28,14 @@ public class VodPlayResponse {
 
     public void setStreamToken(String streamToken) {
         this.streamToken = streamToken;
+    }
+
+    public String getStreamSessionId() {
+        return streamSessionId;
+    }
+
+    public void setStreamSessionId(String streamSessionId) {
+        this.streamSessionId = streamSessionId;
     }
 
     public String getStreamingUrl() {

@@ -28,6 +28,7 @@ import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
 import com.thdpv.movietheater.support.service.SupportAiService;
 import com.thdpv.movietheater.support.service.SupportAiSessionService;
+import com.thdpv.movietheater.support.service.SupportChatPenaltyService;
 import com.thdpv.movietheater.support.service.SupportTicketService;
 import com.thdpv.movietheater.support.support.SupportActionRateLimiter;
 
@@ -41,16 +42,19 @@ public class SupportController {
     private final SupportTicketService supportTicketService;
     private final SupportAiSessionService supportAiSessionService;
     private final SupportActionRateLimiter supportActionRateLimiter;
+    private final SupportChatPenaltyService supportChatPenaltyService;
 
     public SupportController(
             SupportAiService supportAiService,
             SupportTicketService supportTicketService,
             SupportAiSessionService supportAiSessionService,
-            SupportActionRateLimiter supportActionRateLimiter) {
+            SupportActionRateLimiter supportActionRateLimiter,
+            SupportChatPenaltyService supportChatPenaltyService) {
         this.supportAiService = supportAiService;
         this.supportTicketService = supportTicketService;
         this.supportAiSessionService = supportAiSessionService;
         this.supportActionRateLimiter = supportActionRateLimiter;
+        this.supportChatPenaltyService = supportChatPenaltyService;
     }
 
     @PostMapping("/support-ai/chat")
@@ -58,6 +62,9 @@ public class SupportController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody SupportAiRequest request) {
         String userKey = userDetails != null ? userDetails.getUsername() : "anonymous";
+        if (userDetails != null) {
+            supportChatPenaltyService.assertChatAllowed(userKey);
+        }
         supportActionRateLimiter.assertAiChatAllowed(userKey);
 
         var history = request.history() == null ? List.<SupportAiService.SupportAiMessage>of() : request.history().stream()
@@ -188,7 +195,8 @@ public class SupportController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("files") MultipartFile[] files) {
         supportActionRateLimiter.assertTicketMessageAllowed(userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(supportTicketService.uploadImages(files)));
+        return ResponseEntity.ok(ApiResponse.success(
+                supportTicketService.uploadUserImages(userDetails.getUsername(), files)));
     }
 
     @PostMapping("/support-requests/{ticketCode}/messages")

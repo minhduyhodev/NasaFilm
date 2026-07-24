@@ -1,0 +1,361 @@
+.auth-cinema {
+  --auth-red: #a74d53;
+  --auth-red-deep: #8c3d43;
+  --auth-ink: #f4f0eb;
+  --auth-muted: rgba(244, 240, 235, 0.68);
+
+  position: relative;
+  min-height: 100dvh;
+  color: var(--auth-ink);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #050306;
+}
+
+.auth-cinema__content {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: flex;
+  align-items: stretch;
+  /* Pass clicks through empty hero so on-screen brand Link works */
+  pointer-events: none;
+}
+
+.auth-cinema__panel,
+.auth-cinema__centered,
+.auth-cinema__form-slot,
+.auth-cinema__brand-mobile {
+  pointer-events: auto;
+}
+
+.auth-cinema__grid {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__grid {
+    grid-template-columns: minmax(20rem, 28rem) minmax(18rem, 1fr);
+    padding: 2.5rem 3rem 3rem;
+    gap: 3rem;
+    min-height: 100dvh;
+  }
+}
+
+.auth-cinema__panel {
+  width: 100%;
+  max-width: 28rem;
+  margin-inline: auto;
+  order: 2;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__panel {
+    margin-inline: 0;
+    order: 1;
+    z-index: 5;
+  }
+}
+
+.auth-cinema__brand-mobile {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.auth-cinema__hero {
+  display: none;
+  order: 1;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__brand-mobile {
+    display: none;
+  }
+
+  .auth-cinema__hero {
+    display: block;
+    position: relative;
+    order: 2;
+    min-height: 20rem;
+    overflow: visible;
+  }
+}
+
+/* Stick brand onto cinema screen — viewport-fixed (outside motion) */
+.auth-cinema__screen-plane {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema__screen-plane {
+    display: block;
+    position: fixed;
+    /* Optical center of the projected screen (viewport %) */
+    top: 40%;
+    left: 71%;
+    width: min(30vw, 24rem);
+    z-index: 4;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    transform:
+      perspective(880px)
+      translate(-50%, -50%)
+      rotateY(-20deg)
+      rotateX(7deg)
+      rotateZ(-0.8deg);
+    pointer-events: none;
+  }
+}
+
+.auth-cinema__screen-plane .auth-cinema__brand,
+.auth-cinema__screen-plane .auth-cinema__brand-block--on-screen {
+  pointer-events: auto;
+}
+
+.auth-cinema__screen-plane .auth-cinema__brand {
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.auth-cinema__brand-block {
+  max-width: 28rem;
+}
+
+.auth-cinema__brand-block--on-screen {
+  max-width: none;
+  width: 100%;
+  text-align: center;
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  transform-style: preserve-3d;
+  /* Projected onto bright screen — slight lift + soft veil */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.06) 100%
+  );
+  border-radius: 0.15rem;
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__brand {
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 0.55rem;
+  gap: 0.7rem;
+  transform: translateZ(4px);
+  transform-style: preserve-3d;
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__logo {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.28rem;
+  background: rgba(8, 6, 10, 0.28);
+  transform: translateZ(3px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    1px 1px 0 rgba(0, 0, 0, 0.4),
+    2px 2px 0 rgba(0, 0, 0, 0.3),
+    3px 3px 0 rgba(0, 0, 0, 0.2),
+    6px 10px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0.96;
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__wordmark {
+  position: relative;
+  font-size: clamp(2.35rem, 4.1vw, 3.55rem);
+  letter-spacing: -0.03em;
+  transform: translateZ(5px);
+}
+
+/* Extruded type sitting on the screen surface */
+.auth-cinema__brand-block--on-screen .auth-cinema__brand-nasa {
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.45),
+    1px 1px 0 #1a1216,
+    2px 2px 0 #1a1216,
+    3px 3px 0 #151014,
+    4px 4px 0 #120c10,
+    5px 5px 0 #0e0a0c,
+    6px 6px 0 #0a0809,
+    7px 8px 0 rgba(0, 0, 0, 0.35),
+    9px 12px 18px rgba(0, 0, 0, 0.45);
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__brand-film {
+  color: #e08a90;
+  text-shadow:
+    -1px -1px 0 rgba(255, 200, 205, 0.3),
+    1px 1px 0 #5c2228,
+    2px 2px 0 #5c2228,
+    3px 3px 0 #4a1a20,
+    4px 4px 0 #3a1418,
+    5px 5px 0 #2a0e12,
+    6px 6px 0 #1c0a0c,
+    7px 8px 0 rgba(40, 8, 12, 0.35),
+    9px 12px 18px rgba(0, 0, 0, 0.42);
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__tagline {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1rem, 1.55vw, 1.28rem);
+  color: #fff;
+  transform: translateZ(2px);
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.2),
+    1px 1px 0 rgba(0, 0, 0, 0.6),
+    2px 2px 0 rgba(0, 0, 0, 0.4),
+    3px 4px 0 rgba(0, 0, 0, 0.22),
+    5px 8px 14px rgba(0, 0, 0, 0.4);
+}
+
+.auth-cinema__brand-block--on-screen .auth-cinema__desc {
+  margin: 0 auto;
+  max-width: 21rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(255, 245, 235, 0.88);
+  transform: translateZ(1px);
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.5),
+    2px 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 1280px) {
+  .auth-cinema__screen-plane {
+    top: 39%;
+    left: 72%;
+    width: min(26vw, 25rem);
+  }
+}
+
+@media (min-width: 1536px) {
+  .auth-cinema__screen-plane {
+    top: 38%;
+    left: 73%;
+  }
+}
+
+@media (max-height: 780px) and (min-width: 1024px) {
+  .auth-cinema__screen-plane {
+    top: 37%;
+  }
+}
+
+.auth-cinema__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  margin-bottom: 0.9rem;
+  transition: opacity 0.2s ease;
+}
+
+.auth-cinema__brand:hover {
+  opacity: 0.92;
+}
+
+.auth-cinema__logo {
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: contain;
+  border-radius: 0.35rem;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.auth-cinema__logo--compact {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.auth-cinema__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+  font-family: 'Montserrat', 'Be Vietnam Pro', sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.1rem, 4.5vw, 3.4rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.auth-cinema__brand--compact {
+  font-size: 2rem;
+  margin-bottom: 1.25rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-cinema__brand--compact .auth-cinema__wordmark {
+  font-size: 1.85rem;
+}
+
+.auth-cinema__brand-nasa {
+  color: #fff;
+}
+
+.auth-cinema__brand-film {
+  color: var(--auth-red);
+}
+
+.auth-cinema__tagline {
+  margin: 0 0 0.55rem;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.auth-cinema__desc {
+  margin: 0;
+  max-width: 24rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--auth-muted);
+  font-weight: 400;
+}
+
+.auth-cinema__form-slot {
+  width: 100%;
+}
+
+.auth-cinema__centered {
+  width: 100%;
+  max-width: 28rem;
+  margin: auto;
+  padding: 2rem 1.25rem 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .auth-cinema .cinema-auth-bg__veil {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(1, 0, 6, 0.22) 0%,
+        rgba(5, 3, 14, 0.08) 20%,
+        transparent 38%,
+        transparent 78%,
+        rgba(4, 3, 8, 0.1) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(1, 0, 6, 0.2) 0%,
+        transparent 24%,
+        transparent 76%,
+        rgba(1, 0, 6, 0.4) 100%
+      );
+  }
+}

@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { useNowShowingMovies } from '../hooks/useHomeQueries';
-import { mapApiMovies } from '../utils/movieUtils';
-import HomeMovieCarousel from './HomeMovieCarousel';
+import { useMemo } from "react";
+import { useNowShowingMovies } from "../hooks/useHomeQueries";
+import { mapApiMovies } from "../utils/movieUtils";
+import HomeMovieCarousel from "./HomeMovieCarousel";
 
 const NowShowing = () => {
   const { data, isLoading } = useNowShowingMovies();

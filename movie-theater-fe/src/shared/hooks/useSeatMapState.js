@@ -6,6 +6,7 @@ import { REALTIME_TOPICS } from '../constants/realtimeTopics';
 import { parseLayoutConfig } from '../utils/aisleLayoutUtils';
 import { parseSeatMapSelection } from '../utils/orbitUtils';
 import { notificationService } from '../services/notificationService';
+import { logger } from '../utils/logger';
 
 /**
  * Shared seat-map fetch, parse, realtime refresh, lock countdown.
@@ -84,7 +85,7 @@ export function useSeatMapState(showtimeUuid, options = {}) {
         const data = await bookingService.getSeatMap(showtimeUuid, uuids);
         applySeatMapData(data);
       } catch (error) {
-        console.error('Failed to fetch seat map:', error);
+        logger.error('Failed to fetch seat map:', error);
         if (!silent) {
           if (onFetchError) {
             onFetchError(error);
@@ -118,7 +119,7 @@ export function useSeatMapState(showtimeUuid, options = {}) {
       lockTimeoutHandledRef.current = true;
       const handler = onLockTimeoutRef.current;
       if (handler) {
-        Promise.resolve(handler()).catch(console.error);
+        Promise.resolve(handler()).catch((err) => logger.error('Failed to handle seat map event:', err));
       }
       setTimeLeft(null);
       return undefined;

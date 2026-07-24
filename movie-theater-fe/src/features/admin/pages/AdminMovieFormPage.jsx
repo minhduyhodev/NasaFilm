@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { systemConfigService } from '../../../shared/services/systemConfigService';
 import { getDefaultOnlineStreamingPrice } from '../../../shared/utils/systemConfig';
 import {
@@ -198,17 +199,22 @@ const AdminMovieFormPage = () => {
       return;
     }
     setUploadProgress((prev) => ({ ...prev, [folder]: 1 }));
+    let lastShown = 1;
     try {
       const key = await uploadMediaToS3(folder, file, {
         movieTitle: formData.title.trim(),
         onProgress: (percent) => {
-          setUploadProgress((prev) => ({ ...prev, [folder]: percent }));
+          const next = Math.min(100, Math.max(0, Math.round(percent)));
+          // Tránh re-render liên tục khi XHR báo từng byte.
+          if (next === lastShown && next !== 100) return;
+          lastShown = next;
+          setUploadProgress((prev) => ({ ...prev, [folder]: next }));
         },
       });
       setFormData((prev) => ({ ...prev, [fieldName]: key }));
       notificationService.success(`Đã upload ${folder} lên S3: ${key}`);
     } catch (err) {
-      console.error('S3 upload failed:', err);
+      logger.error('S3 upload failed:', err);
       notificationService.error(err.message || `Upload ${folder} thất bại`);
     } finally {
       setUploadProgress((prev) => ({ ...prev, [folder]: null }));
@@ -253,7 +259,7 @@ const AdminMovieFormPage = () => {
           setMetadataLoaded(true);
         }
       } catch (err) {
-        console.error('Failed to load metadata in admin movie form:', err);
+        logger.error('Failed to load metadata in admin movie form:', err);
         notificationService.error('Không thể tải dữ liệu phân loại phim');
       }
     };
@@ -305,7 +311,7 @@ const AdminMovieFormPage = () => {
         setFormData(mapped);
         setInitialFormData(mapped);
       } catch (err) {
-        console.error('Failed to load movie for edit:', err);
+        logger.error('Failed to load movie for edit:', err);
         notificationService.error('Không thể lấy thông tin chi tiết phim để chỉnh sửa');
         navigate('/admin/movies');
       } finally {
@@ -476,7 +482,7 @@ const AdminMovieFormPage = () => {
         navigate(`/admin/movies/${created.uuid}`);
       }
     } catch (err) {
-      console.error('Failed to save movie:', err);
+      logger.error('Failed to save movie:', err);
       notificationService.error(err.message || 'Lưu phim thất bại');
     } finally {
       setIsSaving(false);
@@ -527,11 +533,16 @@ const AdminMovieFormPage = () => {
                       <Upload className="amf-poster__icon" />
                       <span>
                         {uploadProgress.poster != null
-                          ? `${uploadProgress.poster}%`
+                          ? `Đang upload… ${uploadProgress.poster}%`
                           : formData.posterUrl?.trim()
                             ? 'Không tải được ảnh'
                             : 'Chưa có poster'}
                       </span>
+                      {uploadProgress.poster != null ? (
+                        <div className="amf-poster__progress" aria-hidden="true">
+                          <div className="amf-poster__progress-bar" style={{ width: `${uploadProgress.poster}%` }} />
+                        </div>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -605,8 +616,12 @@ const AdminMovieFormPage = () => {
                     placeholder="trailer/trailerAvatar2009.mp4"
                     value={formData.trailerUrl}
                     onChange={(e) => setFormData((prev) => ({ ...prev, trailerUrl: e.target.value }))}
+                    disabled={uploadProgress.trailer != null}
                   />
-                  <label className="amf-media-upload" title="Upload trailer">
+                  <label
+                    className={`amf-media-upload${uploadProgress.trailer != null ? ' is-uploading' : ''}`}
+                    title="Upload trailer"
+                  >
                     <Upload className="w-4 h-4" />
                     {uploadProgress.trailer != null ? (
                       <span className="amf-media-upload__pct">{uploadProgress.trailer}%</span>
@@ -624,6 +639,12 @@ const AdminMovieFormPage = () => {
                     />
                   </label>
                 </div>
+                {uploadProgress.trailer != null ? (
+                  <div className="amf-media-progress" role="progressbar" aria-valuenow={uploadProgress.trailer} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="amf-media-progress__bar" style={{ width: `${uploadProgress.trailer}%` }} />
+                    <span className="amf-media-progress__label">Đang upload trailer… {uploadProgress.trailer}%</span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="amf-field">
@@ -635,8 +656,12 @@ const AdminMovieFormPage = () => {
                     placeholder="movie/avatar2009.mp4"
                     value={formData.streamingUrl}
                     onChange={(e) => setFormData((prev) => ({ ...prev, streamingUrl: e.target.value }))}
+                    disabled={uploadProgress.movie != null}
                   />
-                  <label className="amf-media-upload" title="Upload phim">
+                  <label
+                    className={`amf-media-upload${uploadProgress.movie != null ? ' is-uploading' : ''}`}
+                    title="Upload phim"
+                  >
                     <Upload className="w-4 h-4" />
                     {uploadProgress.movie != null ? (
                       <span className="amf-media-upload__pct">{uploadProgress.movie}%</span>
@@ -654,6 +679,12 @@ const AdminMovieFormPage = () => {
                     />
                   </label>
                 </div>
+                {uploadProgress.movie != null ? (
+                  <div className="amf-media-progress" role="progressbar" aria-valuenow={uploadProgress.movie} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="amf-media-progress__bar" style={{ width: `${uploadProgress.movie}%` }} />
+                    <span className="amf-media-progress__label">Đang upload phim… {uploadProgress.movie}%</span>
+                  </div>
+                ) : null}
               </div>
             </div>
 

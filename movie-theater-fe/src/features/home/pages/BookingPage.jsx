@@ -10,6 +10,7 @@ import { getMoviePosterUrl } from '../utils/movieUtils';
 import { BOOKING_SESSION_KEYS, readBookingSession, writeBookingSession } from '../../../shared/utils/bookingSessionStorage';
 import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
 import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
+import { logger } from '../../../shared/utils/logger';
 
 import './BookingPage.css';
 
@@ -52,7 +53,7 @@ const BookingPage = () => {
       await bookingService.syncSeatLocks(showtimeUuid, []);
       notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại.');
     } catch (error) {
-      console.error(error);
+      logger.error('Failed to load booking data:', error);
     }
   }, [showtimeUuid]);
 
@@ -134,7 +135,7 @@ const BookingPage = () => {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
       await fetchSeatMap(nextSelectedUuids);
     } catch (err) {
-      console.error('Failed to sync couple seat locks:', err);
+      logger.error('Failed to sync couple seat locks:', err);
       notificationService.error(err.message || 'Không thể giữ ghế này. Vui lòng chọn ghế khác.');
     }
   };
@@ -154,7 +155,7 @@ const BookingPage = () => {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
       await fetchSeatMap(nextSelectedUuids);
     } catch (err) {
-      console.error('Failed to sync seat locks:', err);
+      logger.error('Failed to sync seat locks:', err);
       notificationService.error(err.message || 'Không thể giữ ghế này. Vui lòng chọn ghế khác.');
     }
   };

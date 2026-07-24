@@ -40,7 +40,7 @@ export const SocialLoginButtons = ({
     <div className="space-y-3">
       {!isPrioritized && (
         <p className="text-center text-xs text-gray-500 uppercase tracking-widest">
-          Or continue with
+          Hoặc tiếp tục với
         </p>
       )}
 

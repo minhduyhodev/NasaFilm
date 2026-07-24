@@ -211,17 +211,23 @@ const MovieMatchmakerWidget = () => {
 
   useEffect(() => {
     if (!expanded || authLoading || !isAuthenticated) return undefined;
-    if (discoverConfig || configLoading) return undefined;
+    // Không phụ thuộc configLoading — nếu thêm vào deps sẽ cleanup ngay sau
+    // setConfigLoading(true) và đánh cancelled=true → kẹt "Đang tải câu hỏi…" mãi.
+    if (discoverConfig) return undefined;
 
     let cancelled = false;
     setConfigLoading(true);
     discoverService
       .getConfig()
       .then((data) => {
-        if (!cancelled) setDiscoverConfig(data);
+        if (cancelled) return;
+        setDiscoverConfig(data && typeof data === 'object' ? data : {});
       })
       .catch(() => {
-        if (!cancelled) setDiscoverConfig(null);
+        if (cancelled) return;
+        // Fallback local để quiz vẫn chạy khi API lỗi.
+        setDiscoverConfig({});
+        notificationService.error('Không tải được cấu hình Matchmaker. Dùng bộ câu hỏi mặc định.');
       })
       .finally(() => {
         if (!cancelled) setConfigLoading(false);
@@ -229,7 +235,7 @@ const MovieMatchmakerWidget = () => {
     return () => {
       cancelled = true;
     };
-  }, [expanded, authLoading, isAuthenticated, discoverConfig, configLoading]);
+  }, [expanded, authLoading, isAuthenticated, discoverConfig]);
 
   const loadGenres = useCallback(async () => {
     setLoadingGenres(true);
@@ -271,17 +277,34 @@ const MovieMatchmakerWidget = () => {
   }, [discoverConfig, isAuthenticated]);
 
   const moodOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.moods, discoverConfig?.moodOptions, MOOD_UI),
+    () =>
+      buildConfigOptions(
+        discoverConfig?.moods?.length ? discoverConfig.moods : Object.keys(MOOD_UI),
+        discoverConfig?.moodOptions,
+        MOOD_UI,
+      ),
     [discoverConfig],
   );
 
   const durationOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.durations, discoverConfig?.durationOptions, DURATION_UI),
+    () =>
+      buildConfigOptions(
+        discoverConfig?.durations?.length ? discoverConfig.durations : Object.keys(DURATION_UI),
+        discoverConfig?.durationOptions,
+        DURATION_UI,
+      ),
     [discoverConfig],
   );
 
   const viewingOptions = useMemo(
-    () => buildConfigOptions(discoverConfig?.viewingLocations, discoverConfig?.viewingOptions, VIEWING_UI),
+    () =>
+      buildConfigOptions(
+        discoverConfig?.viewingLocations?.length
+          ? discoverConfig.viewingLocations
+          : Object.keys(VIEWING_UI),
+        discoverConfig?.viewingOptions,
+        VIEWING_UI,
+      ),
     [discoverConfig],
   );
 
@@ -385,7 +408,7 @@ const MovieMatchmakerWidget = () => {
             >
               {renderResults()}
             </motion.div>
-          ) : configLoading || !discoverConfig ? (
+          ) : configLoading ? (
             <motion.div
               key="config-loading"
               initial={{ opacity: 0 }}

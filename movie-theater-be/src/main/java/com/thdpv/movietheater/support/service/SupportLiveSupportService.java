@@ -21,6 +21,7 @@ public class SupportLiveSupportService {
     private final SupportTicketService supportTicketService;
     private final UserRepository userRepository;
     private final SupportAgentPresenceService supportAgentPresenceService;
+    private final SupportContentModerationService contentModerationService;
     private final ApplicationEventPublisher eventPublisher;
 
     public SupportLiveSupportService(
@@ -28,11 +29,13 @@ public class SupportLiveSupportService {
             SupportTicketService supportTicketService,
             UserRepository userRepository,
             SupportAgentPresenceService supportAgentPresenceService,
+            SupportContentModerationService contentModerationService,
             ApplicationEventPublisher eventPublisher) {
         this.supportTicketRepository = supportTicketRepository;
         this.supportTicketService = supportTicketService;
         this.userRepository = userRepository;
         this.supportAgentPresenceService = supportAgentPresenceService;
+        this.contentModerationService = contentModerationService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -46,24 +49,27 @@ public class SupportLiveSupportService {
 
     @Transactional
     public SupportTicketResponse requestLiveSupport(String ownerEmail, SupportLiveRequestCreateRequest request) {
+        contentModerationService.assertChatAllowed(ownerEmail);
         supportTicketService.assertNoActiveSupport(ownerEmail);
         if (!supportAgentPresenceService.hasOnlineAgents()) {
             throw new IllegalArgumentException("Hiện chưa có admin hoặc staff online để hỗ trợ trực tiếp.");
         }
+        String description = request.getDescription().trim();
+        contentModerationService.assertCleanUserText(ownerEmail, description);
         SupportTicket ticket = new SupportTicket();
         ticket.setTicketCode(supportTicketService.generateTicketCode());
         ticket.setOwnerEmail(ownerEmail);
         ticket.setOwnerName(userRepository.findByEmailIgnoreCase(ownerEmail).map(u -> u.getFullName()).orElse(ownerEmail));
         ticket.setCategory(request.getCategory().trim());
-        ticket.setDescription(request.getDescription().trim());
+        ticket.setDescription(description);
         ticket.setStatus("LIVE_REQUESTED");
         ticket.setLiveRequested(true);
         ticket.setLiveConnected(false);
         ticket.setReadByAdmin(false);
-        ticket.setLastMessage(request.getDescription().trim());
+        ticket.setLastMessage(description);
         ticket.setLastMessageSender("USER");
         SupportTicket saved = supportTicketRepository.save(ticket);
-        supportTicketService.saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), request.getDescription().trim());
+        supportTicketService.saveMessage(saved.getUuid(), "USER", saved.getOwnerName(), description);
         eventPublisher.publishEvent(new SupportLiveEvent("LIVE_REQUESTED", saved.getTicketCode(), null, null));
         return supportTicketService.map(saved);
     }

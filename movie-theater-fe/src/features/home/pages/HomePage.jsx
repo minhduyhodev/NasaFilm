@@ -4,6 +4,7 @@ import TicketFilters from "../components/TicketFilters";
 import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
 import NowShowing from "../components/NowShowing";
 import LazySection from "../../../shared/components/LazySection";
+import HomeArrivalFade from "../components/HomeArrivalFade";
 import "../components/HomeSpaceBackdrop.css";
 
 const HomeSpaceBackdrop = lazy(() => import("../components/HomeSpaceBackdrop"));
@@ -20,6 +21,7 @@ const SectionPlaceholder = ({ minHeight = "12rem" }) => (
 const HomePage = () => {
   return (
     <div className="text-white min-h-screen">
+      <HomeArrivalFade />
       <main className="pt-0">
         <Hero />
 

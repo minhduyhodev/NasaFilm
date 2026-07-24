@@ -65,7 +65,7 @@ public class AdminSupportController {
 
     @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<List<String>>> uploadImages(@RequestParam("files") MultipartFile[] files) {
-        return ResponseEntity.ok(ApiResponse.success(supportTicketService.uploadImages(files)));
+        return ResponseEntity.ok(ApiResponse.success(supportTicketService.uploadAdminImages(files)));
     }
 
     @PostMapping("/{ticketCode}/messages")

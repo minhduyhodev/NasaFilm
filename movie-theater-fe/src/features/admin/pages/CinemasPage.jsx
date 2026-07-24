@@ -3,6 +3,7 @@ import { MapPin, Search, Plus, Tv, Activity, Grid, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cinemaService } from '../../../shared/services/cinemaService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import { AdminPage, PageHeader, AdminKpiGrid, StatusBadge, PrimaryButton } from '../components';
 import AdminModal from '../components/AdminModal';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
@@ -63,7 +64,7 @@ const CinemasPage = () => {
         setAllRooms(roomsResults.flat());
       }
     } catch (error) {
-      console.error('Failed to fetch cinemas or global stats:', error);
+      logger.error('Failed to fetch cinemas or global stats:', error);
       notificationService.error('Không thể tải danh sách rạp chiếu.');
     } finally {
       setIsLoadingCinemas(false);
@@ -76,7 +77,7 @@ const CinemasPage = () => {
       const data = await cinemaService.getRoomsByCinema(cinemaUuid);
       setRooms(data || []);
     } catch (error) {
-      console.error('Failed to fetch rooms:', error);
+      logger.error('Failed to fetch rooms:', error);
       notificationService.error('Không thể tải danh sách phòng chiếu.');
     } finally {
       setIsLoadingRooms(false);

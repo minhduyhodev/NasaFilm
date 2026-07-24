@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { movieService } from '../../../shared/services/movieService';
 import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
 import Pagination from '../../../shared/components/Pagination';
 import VirtualGrid from '../../../shared/components/VirtualGrid';
 import {
@@ -222,7 +223,7 @@ const MoviesPage = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to load overall stats:', err);
+      logger.error('Failed to load overall stats:', err);
     }
   };
 
@@ -263,7 +264,7 @@ const MoviesPage = () => {
         hasLoadedRef.current = true;
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
-        console.error('Failed to load admin movies list:', err);
+        logger.error('Failed to load admin movies list:', err);
         notificationService.error('Không thể tải danh sách phim');
         setMovies([]);
       } finally {
@@ -285,7 +286,7 @@ const MoviesPage = () => {
         setGenresList(genresData);
         setCountriesList(countriesData);
       } catch (err) {
-        console.error('Failed to load metadata:', err);
+        logger.error('Failed to load metadata:', err);
       }
     };
     fetchMetadata();
