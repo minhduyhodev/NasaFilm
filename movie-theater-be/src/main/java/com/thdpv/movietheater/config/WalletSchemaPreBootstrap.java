@@ -29,6 +29,7 @@ public final class WalletSchemaPreBootstrap {
             return;
         }
 
+        log.info("Wallet pre-bootstrap connecting to: host={}, port={}, dbName={}, username={}", host, port, dbName, username);
         String url = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
         try {
             Class.forName("org.postgresql.Driver");
