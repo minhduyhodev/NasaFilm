@@ -1,4 +1,23 @@
+version: '3.8'
+
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: movie-backend
+    ports:
+      - "8080:8080"
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      - redis
+      - postgres
+
   postgres:
     image: postgres:18
     container_name: movie-postgres
@@ -10,6 +29,7 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    restart: always
 
   redis:
     image: redis:7-alpine
@@ -19,6 +39,7 @@ services:
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
+    restart: always
 
 volumes:
   postgres_data:
