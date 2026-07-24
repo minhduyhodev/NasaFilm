@@ -18,19 +18,35 @@ public final class WalletSchemaPreBootstrap {
     }
 
     public static void apply() {
-        String host = firstNonBlank(firstNonBlank(System.getProperty("DB_HOST"), System.getenv("DB_HOST")), "localhost");
-        String port = firstNonBlank(firstNonBlank(System.getProperty("DB_PORT"), System.getenv("DB_PORT")), "5432");
-        String dbName = firstNonBlank(System.getProperty("DB_NAME"), System.getenv("DB_NAME"));
-        String username = firstNonBlank(System.getProperty("DB_USERNAME"), System.getenv("DB_USERNAME"));
-        String password = firstNonBlank(System.getProperty("DB_PASSWORD"), System.getenv("DB_PASSWORD"));
+        String url = firstNonBlank(System.getProperty("SPRING_DATASOURCE_URL"), System.getenv("SPRING_DATASOURCE_URL"));
+        String username = firstNonBlank(System.getProperty("SPRING_DATASOURCE_USERNAME"), System.getenv("SPRING_DATASOURCE_USERNAME"));
+        String password = firstNonBlank(System.getProperty("SPRING_DATASOURCE_PASSWORD"), System.getenv("SPRING_DATASOURCE_PASSWORD"));
 
-        if (isBlank(dbName) || isBlank(username)) {
-            log.warn("Skip wallet schema pre-bootstrap: DB_NAME/DB_USERNAME not configured.");
+        if (isBlank(url)) {
+            String host = firstNonBlank(firstNonBlank(System.getProperty("DB_HOST"), System.getenv("DB_HOST")), "localhost");
+            String port = firstNonBlank(firstNonBlank(System.getProperty("DB_PORT"), System.getenv("DB_PORT")), "5432");
+            String dbName = firstNonBlank(System.getProperty("DB_NAME"), System.getenv("DB_NAME"));
+            if (isBlank(dbName)) {
+                log.warn("Skip wallet schema pre-bootstrap: database connection URL or DB_NAME not configured.");
+                return;
+            }
+            url = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
+        }
+
+        if (isBlank(username)) {
+            username = firstNonBlank(System.getProperty("DB_USERNAME"), System.getenv("DB_USERNAME"));
+        }
+
+        if (isBlank(username)) {
+            log.warn("Skip wallet schema pre-bootstrap: database username not configured.");
             return;
         }
 
-        log.info("Wallet pre-bootstrap connecting to: host={}, port={}, dbName={}, username={}", host, port, dbName, username);
-        String url = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
+        if (isBlank(password)) {
+            password = firstNonBlank(System.getProperty("DB_PASSWORD"), System.getenv("DB_PASSWORD"));
+        }
+
+        log.info("Wallet pre-bootstrap connecting to: url={}, username={}", url, username);
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
