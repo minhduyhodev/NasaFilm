@@ -2,7 +2,7 @@
 set -e
 
 echo "=== [1/4] Pulling latest code from Git ==="
-git pull origin main
+git pull github main
 
 echo "=== [2/4] Shutting down current containers ==="
 docker compose down
