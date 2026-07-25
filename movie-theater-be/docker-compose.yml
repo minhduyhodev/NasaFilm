@@ -16,7 +16,6 @@ services:
       - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
     depends_on:
       - redis
-
   redis:
     image: redis:7-alpine
     container_name: movie-redis
