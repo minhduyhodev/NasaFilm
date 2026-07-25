@@ -30,6 +30,12 @@ public final class WalletSchemaPreBootstrap {
         }
 
         String url = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
+        String sslMode = firstNonBlank(System.getProperty("DB_SSL_MODE"), System.getenv("DB_SSL_MODE"));
+        if (!isBlank(sslMode)) {
+            url += "?sslmode=" + sslMode;
+        } else {
+            url += "?sslmode=prefer";
+        }
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
