@@ -149,7 +149,7 @@ public class SecurityConfig {
         if ("*".equals(frontendUrl)) {
             configuration.addAllowedOriginPattern("*");
         } else {
-            configuration.setAllowedOrigins(List.of(frontendUrl));
+            configuration.setAllowedOrigins(java.util.Arrays.asList(frontendUrl.split(",")));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of(
