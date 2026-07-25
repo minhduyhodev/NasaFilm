@@ -146,10 +146,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        if ("*".equals(frontendUrl)) {
+        boolean isWildcard = "*".equals(frontendUrl) || frontendUrl == null || frontendUrl.isBlank();
+        if (isWildcard) {
             configuration.addAllowedOriginPattern("*");
+            // allowCredentials must be false when using wildcard origin pattern
+            configuration.setAllowCredentials(false);
         } else {
-            configuration.setAllowedOrigins(java.util.Arrays.asList(frontendUrl.split(",")));
+            java.util.List<String> origins = java.util.Arrays.stream(frontendUrl.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+            configuration.setAllowedOrigins(origins);
+            configuration.setAllowCredentials(true);
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of(
@@ -157,7 +165,6 @@ public class SecurityConfig {
                 "Range", "X-Stream-Token", "X-Stream-Session", "X-Request-ID", "x-api-key"));
         configuration.setExposedHeaders(List.of(
                 "Authorization", "Accept-Ranges", "Content-Range", "Content-Length", "X-Request-ID"));
-        configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
