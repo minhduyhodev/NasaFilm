@@ -1,0 +1,20 @@
+export const queryKeys = {
+  wallet: ['wallet', 'summary'],
+  walletTransactions: (page, size, type, date) => [
+    'wallet',
+    'transactions',
+    page,
+    size,
+    type ?? 'all',
+    date ?? 'all-dates',
+  ],
+  myBookings: ['bookings', 'mine'],
+  movies: (params) => ['movies', 'list', params],
+  movieFilterOptions: ['movies', 'filterOptions'],
+  onlineSpotlight: ['online', 'spotlight'],
+  onlineCatalog: (params) => ['online', 'catalog', params],
+  adminShowtimes: ['admin', 'showtimes'],
+  showtimeRadar: ['user', 'showtime-radar'],
+  favorites: ['favorites', 'list'],
+  boardingPass: (bookingUuid) => ['pre-show', 'boarding', bookingUuid],
+};

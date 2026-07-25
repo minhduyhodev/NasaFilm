@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,11 +27,15 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
+import com.thdpv.movietheater.auth.dto.LoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.entity.UserSession;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
+import com.thdpv.movietheater.auth.support.AuthActionRateLimiter;
 import com.thdpv.movietheater.config.repository.RoleRepository;
 import com.thdpv.movietheater.security.JwtUtils;
 import com.thdpv.movietheater.user.entity.Role;
@@ -42,6 +45,11 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.auth.dto.VerifyRequest;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
+import java.time.LocalDateTime;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -65,6 +73,12 @@ class AuthServiceTest {
     private RoleRepository roleRepository;
 
     @Mock
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Mock
+    private UserPermissionRepository userPermissionRepository;
+
+    @Mock
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Mock
@@ -72,6 +86,12 @@ class AuthServiceTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private AuthActionRateLimiter authActionRateLimiter;
+
+    @Mock
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     private AuthService authService;
 
@@ -83,10 +103,14 @@ class AuthServiceTest {
                 userSessionRepository,
                 userRepository,
                 userRoleRepository,
+                rolePermissionRepository,
+                userPermissionRepository,
                 googleIdTokenVerifier,
                 passwordEncoder,
                 emailService,
-                roleRepository);
+                roleRepository,
+                authActionRateLimiter,
+                redisTemplate);
 
         ReflectionTestUtils.setField(authService, "refreshTokenExpirationMs", 86400000L);
         ReflectionTestUtils.setField(authService, "googleClientId", "google-client-id");
@@ -110,7 +134,7 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.empty());
         when(roleRepository.findByName(RoleName.CUSTOMER)).thenReturn(Optional.of(customerRole));
         when(jwtUtils.generateToken(email)).thenReturn("generated-access-token");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             if (user.getId() == null) {
                 user.setId(userId);
@@ -134,12 +158,12 @@ class AuthServiceTest {
         assertEquals(email, response.getEmail());
         assertEquals(fullName, response.getFullName());
         assertEquals(avatarUrl, response.getAvatarUrl());
-        assertEquals(List.of("ROLE_CUSTOMER"), response.getRoles());
+        assertEquals(List.of("CUSTOMER"), response.getRoles());
         assertEquals("generated-access-token", response.getAccessToken());
         assertNotNull(response.getRefreshToken());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
+        verify(userRepository).saveAndFlush(userCaptor.capture());
         User savedUser = userCaptor.getValue();
         assertSame(savedUser.getId(), response.getUserId());
         assertEquals(avatarUrl, savedUser.getAvatarUrl());
@@ -165,5 +189,112 @@ class AuthServiceTest {
         payload.put("picture", avatarUrl);
 
         return new GoogleIdToken(new JsonWebSignature.Header(), payload, new byte[0], new byte[0]);
+    }
+
+    @Test
+    void verifyRegisterShouldIncrementAttemptsOnInvalidCode() {
+        String email = "test@example.com";
+        VerifyRequest request = new VerifyRequest();
+        request.setEmail(email);
+        request.setCode("wrong-code");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        user.setVerificationCode("123456");
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(0);
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.verifyRegister(request, new MockHttpServletRequest());
+        });
+
+        assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
+        assertEquals(1, user.getVerificationAttempts());
+    }
+
+    @Test
+    void verifyRegisterShouldLockAccountOnTooManyAttempts() {
+        String email = "test@example.com";
+        VerifyRequest request = new VerifyRequest();
+        request.setEmail(email);
+        request.setCode("wrong-code");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        user.setVerificationCode("123456");
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setVerificationAttempts(9);
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.verifyRegister(request, new MockHttpServletRequest());
+        });
+
+        assertEquals(ErrorCode.VERIFICATION_CODE_INVALID, exception.getErrorCode());
+        assertEquals(0, user.getVerificationAttempts());
+        assertNotNull(user.getVerificationLockTime());
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenUserIsBanned() {
+        String email = "banned@example.com";
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.BANNED);
+
+        org.springframework.security.core.userdetails.User principal = 
+            new org.springframework.security.core.userdetails.User(email, "password", List.of());
+        org.springframework.security.core.Authentication authentication = 
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null);
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.login(request, httpServletRequest);
+        });
+
+        assertEquals(ErrorCode.ACCOUNT_BANNED, exception.getErrorCode());
+    }
+
+    @Test
+    void loginShouldThrowExceptionWhenUserIsSuspended() {
+        String email = "suspended@example.com";
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password");
+
+        User user = new User();
+        user.setEmail(email);
+        user.setStatus(UserStatus.SUSPENDED);
+
+        org.springframework.security.core.userdetails.User principal = 
+            new org.springframework.security.core.userdetails.User(email, "password", List.of());
+        org.springframework.security.core.Authentication authentication = 
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null);
+
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.login(request, httpServletRequest);
+        });
+
+        assertEquals(ErrorCode.ACCOUNT_SUSPENDED, exception.getErrorCode());
     }
 }

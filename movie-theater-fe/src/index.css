@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,15 +15,14 @@
     font-family: 'Montserrat', sans-serif;
   }
 
-  /* Fallback headings to Montserrat 700 */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold;
-  }
-
   /* Buttons & navbar links defaulting to 600 */
   button, .btn, .btn-primary, .navbar-nav-link, [role="button"] {
     font-family: 'Inter', sans-serif;
     @apply font-semibold; /* 600 */
+  }
+
+  .font-ui {
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -55,19 +54,25 @@
 /* Global animations */
 @layer components {
   .btn-primary {
-    @apply py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg shadow-red-600/20;
+    @apply py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg shadow-red-600/10 hover:shadow-red-600/20 hover:-translate-y-[1px] active:translate-y-0;
   }
 
   .btn-secondary {
-    @apply py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all duration-200;
+    @apply py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/[0.06] hover:border-white/10 text-white font-medium rounded-lg transition-all duration-300;
   }
 
   .glass-effect {
-    @apply bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl;
+    @apply bg-black/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl transition-all duration-300;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  .glass-effect:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 40px 0 rgba(220, 38, 38, 0.03), 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   }
 
   .input-auth {
-    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-white/10 transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/30 focus:bg-white/[0.08] transition-all duration-300;
   }
 }
 
@@ -105,6 +110,13 @@ input::-ms-clear {
   display: none;
 }
 
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 /* Style for browser native calendar picker indicator in dark inputs */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator,
@@ -132,4 +144,115 @@ input[class*="bg-white"]::-webkit-calendar-picker-indicator {
   position: relative;
   overflow: hidden;
   background-color: #030307; /* Fallback dark background matching auth page */
+}
+
+/* Admin typography — sync with global Google Fonts (Be Vietnam Pro / Montserrat / Inter) */
+.admin-shell,
+.admin-shell .font-sans {
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3,
+.admin-shell .font-heading {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-shell button,
+.admin-shell [role="button"],
+.admin-shell .font-ui {
+  font-family: 'Inter', sans-serif;
+}
+
+.admin-shell .font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Scrollable areas — neutral thumb (avoids global red scrollbar in forms) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Modern native select — dark theme dropdown list + custom chevron */
+.app-select,
+.admin-shell select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-select:hover:not(:disabled),
+.admin-shell select:not([multiple]):hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.app-select:focus,
+.admin-shell select:not([multiple]):focus {
+  outline: none;
+}
+
+.app-select option,
+.admin-shell select:not([multiple]) option {
+  background-color: #121826;
+  color: #e2e8f0;
+}
+
+.app-select option:checked,
+.admin-shell select:not([multiple]) option:checked {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-dropdown-fade-in {
+  animation: dropdownFadeIn 0.15s ease-out forwards;
+}
+
+.app-select option:disabled,
+.admin-shell select:not([multiple]) option:disabled {
+  color: #64748b;
+}
+
+.app-select:disabled,
+.admin-shell select:not([multiple]):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

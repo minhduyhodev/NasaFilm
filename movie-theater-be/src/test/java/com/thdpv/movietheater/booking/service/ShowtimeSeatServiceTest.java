@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -31,8 +32,12 @@ import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
 import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.cinema.enums.SeatStatus;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
 
@@ -57,6 +62,18 @@ class ShowtimeSeatServiceTest {
     @Mock
     private BookingSeatRepository bookingSeatRepository;
 
+    @Mock
+    private CinemaRoomRepository cinemaRoomRepository;
+
+    @Mock
+    private SystemConfigService systemConfigService;
+
+    @Mock
+    private SeatMapEventPublisher seatMapEventPublisher;
+
+    @Mock
+    private ShowtimeOverlapSupport showtimeOverlapSupport;
+
     @InjectMocks
     private ShowtimeSeatService showtimeSeatService;
 
@@ -72,6 +89,9 @@ class ShowtimeSeatServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(showtimeSeatService, "autoSlideEnabled", true);
+        lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
+        lenient().when(systemConfigService.getSeatLockTtlSeconds()).thenReturn(300);
+        lenient().when(showtimeOverlapSupport.planSlideIfPast(any(), any())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -111,6 +131,10 @@ class ShowtimeSeatServiceTest {
         when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+        CinemaRoom mockRoom = new CinemaRoom();
+        mockRoom.setLayoutConfig("{\"rows\":[]}");
+        mockRoom.setStatus(CinemaRoomStatus.ACTIVE);
+        when(cinemaRoomRepository.findById(any())).thenReturn(Optional.of(mockRoom));
 
         // Mock SeatViewDto list
         // Row A: seat 1 is AVAILABLE (but selected by user), seat 2 is AVAILABLE, seat 3 is BOOKED/UNAVAILABLE.
@@ -154,6 +178,10 @@ class ShowtimeSeatServiceTest {
         when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+        CinemaRoom mockRoom = new CinemaRoom();
+        mockRoom.setLayoutConfig("{\"rows\":[]}");
+        mockRoom.setStatus(CinemaRoomStatus.ACTIVE);
+        when(cinemaRoomRepository.findById(any())).thenReturn(Optional.of(mockRoom));
 
         SeatViewDto row1 = createSeatViewDto(showtimeUuid, seat1, "A", 1, "ACTIVE", false, null);
         SeatViewDto row2 = createSeatViewDto(showtimeUuid, seat2, "A", 2, "ACTIVE", false, null);

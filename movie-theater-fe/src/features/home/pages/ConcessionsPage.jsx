@@ -1,120 +1,155 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Star, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { ArrowLeft, ArrowRight, Clock, Loader2 } from 'lucide-react';
 import { notificationService } from '../../../shared/services/notificationService';
 import { comboService } from '../../../shared/services/comboService';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
+import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
+import {
+  BOOKING_SESSION_KEYS,
+  readBookingSession,
+  writeBookingSession,
+} from '../../../shared/utils/bookingSessionStorage';
+import { orbitService } from '../../../shared/services/orbitService';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
+import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
+import { sameUuid } from '../../../shared/utils/orbitUtils';
+import comboFallbackImg from '../../../shared/assets/offer_family_combo.webp';
 
-// Import movie poster assets for summary preview (giúp đồng nhất UI với BookingPage)
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
+function getComboImageUrl(combo) {
+  const raw = combo?.imageUrl?.trim();
+  if (!raw) return comboFallbackImg;
+  return resolveMediaUrl(raw, 400);
+}
 
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, rating: 8.9, format: 'IMAX 4K' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, rating: 7.4, format: 'DOLBY ATMOS' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, rating: 9.2, format: 'PREMIER' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, rating: 8.1, format: 'IMAX 3D' },
-  'KINETIC PULSE': { poster: kineticPulseImg, rating: 7.8, format: '4DX Immersive' },
-  'AETHERIA': { poster: aetheriaImg, rating: 8.5, format: 'IMAX 3D' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, rating: 8.9, format: '2D Lồng Tiếng' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, rating: 4.7, format: '2D Phụ Đề' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, rating: 4.6, format: '2D VN' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', rating: 8.5, format: 'IMAX 3D' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', rating: 8.5, format: 'IMAX 3D' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', rating: 8.2, format: '2D Phụ Đề' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', rating: 7.8, format: '2D Phụ Đề' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', rating: 9.0, format: '2D Lồng Tiếng' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', rating: 7.5, format: '2D Phụ Đề' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDNZGCN-dgL3_iYyo3N9bk9mYRKTuKI0afwrbdNoSV44T8GYG0FUZ5Au3HZF6bCbPWrK3n1K-ZL-kg946Pnffa8Kwx2TUI1gpKu4gZ8usEEasZIgEf08y0j3DHe8eF_uzZ9EONUNNg7PU55HEWnCvIIX7hLaNUOm88ySxdElrkSYcd-AonsJy_gM8VhQrtWxv6-_Ndu2jXqKjx7A6HgQthjwngecceimt-dIoOB3b73-hmfWgpkMoHa7Y_mcxYnVaLBzA9Q1LFMGx8',
-      rating: 8.5,
-      format: 'IMAX 3D'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDNZGCN-dgL3_iYyo3N9bk9mYRKTuKI0afwrbdNoSV44T8GYG0FUZ5Au3HZF6bCbPWrK3n1K-ZL-kg946Pnffa8Kwx2TUI1gpKu4gZ8usEEasZIgEf08y0j3DHe8eF_uzZ9EONUNNg7PU55HEWnCvIIX7hLaNUOm88ySxdElrkSYcd-AonsJy_gM8VhQrtWxv6-_Ndu2jXqKjx7A6HgQthjwngecceimt-dIoOB3b73-hmfWgpkMoHa7Y_mcxYnVaLBzA9Q1LFMGx8',
-    rating: 8.5,
-    format: 'IMAX 3D'
-  };
-};
-
-// Định nghĩa thông tin mô tả và hình ảnh bổ sung cho các combo để UI sinh động hơn
-const comboMeta = {
-  "combo bắp nước": {
-    image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
-    description: "1 Bắp lớn + 2 Nước ngọt cỡ vừa. Sự lựa chọn hoàn hảo cho các cặp đôi khi đi xem phim."
-  },
-  "combo solo": {
-    image: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60",
-    description: "1 Bắp lớn + 1 Nước ngọt cỡ vừa. Thích hợp cho trải nghiệm một mình trọn vẹn."
-  },
-  "combo gia đình": {
-    image: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=500&auto=format&fit=crop&q=60",
-    description: "2 Bắp lớn + 4 Nước ngọt lớn. Đủ dùng thoải mái cho cả gia đình hoặc nhóm bạn thân."
-  }
-};
+function getComboDescription(combo) {
+  return combo?.description?.trim() || 'Combo bắp nước chất lượng cao đi kèm suất chiếu.';
+}
 
 const ConcessionsPage = () => {
+  const confirm = useConfirm();
+  const { user } = useAuthContext();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Khôi phục booking state từ sessionStorage nếu trang bị reload
-  const getBookingState = () => {
-    if (location.state) {
-      try {
-        sessionStorage.setItem('booking_state', JSON.stringify(location.state));
-      } catch (e) {
-        console.error("Failed to save booking state to sessionStorage:", e);
-      }
-      return location.state;
-    }
-    try {
-      const saved = sessionStorage.getItem('booking_state');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to parse booking state from sessionStorage:", e);
-    }
-    return {};
-  };
-
-  const bookingState = getBookingState();
+  const [bookingState] = useState(() =>
+    readBookingSession(BOOKING_SESSION_KEYS.BOOKING, location.state) ?? {},
+  );
 
   const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
+    showtimeUuid: _showtimeUuid = '',
+    theater = '',
+    movie = '',
+    movieUuid = '',
     moviePoster = '',
-    movieRating = null,
+    movieRating: _movieRating = null,
     movieFormat = '',
     movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30',
+    date = '',
+    showtime = '',
     selectedSeats = [],
-    totalAmount = 0, // Giá trị tiền vé
-    lockExpiresAt = null
+    totalAmount = 0,
+    lockExpiresAt = null,
+    orbitRoomUuid = null,
+    isOrbit = false,
   } = bookingState;
 
-  const movieInfo = getMovieInfo(movie);
+  const isOrbitBooking = isOrbit || Boolean(orbitRoomUuid);
+  const isHost = bookingState.isHost === true;
+  const [orbitRoomStatus, setOrbitRoomStatus] = useState(null);
+  const [memberCompleted, setMemberCompleted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const expiryHandledRef = React.useRef(false);
+
+  const showBackToSeats = !isOrbitBooking
+    || isHost
+    || (orbitRoomStatus === 'OPEN' && !memberCompleted);
+
+  const [movieMeta, setMovieMeta] = useState({ poster: '', ageRestriction: '' });
+
+  useEffect(() => {
+    if (!movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [movieUuid]);
+
+  const resolvedPoster = moviePoster || movieMeta.poster;
+  const resolvedAge = movieAgeRestriction || movieMeta.ageRestriction;
 
   const [combos, setCombos] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [lockExpiresMs, setLockExpiresMs] = useState(lockExpiresAt);
+
+  useRealtimeTopic(
+    isOrbitBooking && orbitRoomUuid ? REALTIME_TOPICS.orbitRoom(orbitRoomUuid) : null,
+    (updatedRoom) => {
+      if (!updatedRoom) return;
+      setOrbitRoomStatus(updatedRoom.status);
+      if (updatedRoom.expiresAt) {
+        const ms = new Date(updatedRoom.expiresAt).getTime();
+        setLockExpiresMs(ms);
+      }
+      if (updatedRoom.status === 'OPEN' && !isHost) {
+        notificationService.info('Host đã hủy thanh toán — bạn có thể chỉnh sửa lại.');
+        navigate(`/booking/orbit/${orbitRoomUuid}`);
+      }
+    },
+  );
+
+  const hydrateCombosFromRoom = useCallback(async (comboList) => {
+    if (!isOrbitBooking || !orbitRoomUuid || !user) return;
+    try {
+      const room = await orbitService.getRoom(orbitRoomUuid);
+      setOrbitRoomStatus(room?.status || null);
+      if (room?.expiresAt) {
+        setLockExpiresMs(new Date(room.expiresAt).getTime());
+      }
+      const member = (room?.members || []).find(
+        (m) => sameUuid(m.userUuid, user.id || user.uuid),
+      );
+      setMemberCompleted(Boolean(member?.completed));
+      if (!member?.combosJson) return;
+      let saved = [];
+      try {
+        saved = JSON.parse(member.combosJson);
+      } catch {
+        saved = [];
+      }
+      if (!Array.isArray(saved) || saved.length === 0) return;
+      const initial = {};
+      comboList.forEach((item) => {
+        initial[item.uuid] = 0;
+      });
+      saved.forEach((entry) => {
+        const key = entry.comboUuid;
+        if (key && initial[key] !== undefined) {
+          initial[key] = entry.quantity || 0;
+        }
+      });
+      setQuantities(initial);
+    } catch (err) {
+      logger.error('Failed to hydrate orbit combos:', err);
+    }
+  }, [isOrbitBooking, orbitRoomUuid, user]);
 
   const scrollContainerRef = React.useRef(null);
 
@@ -132,24 +167,84 @@ const ConcessionsPage = () => {
 
   // Khởi tạo bộ đếm thời gian giữ ghế
   useEffect(() => {
-    if (lockExpiresAt) {
+    if (lockExpiresMs) {
       const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
+        const diff = Math.max(0, Math.floor((lockExpiresMs - Date.now()) / 1000));
         setTimeLeft(diff);
       };
       calculateTimeLeft();
       const interval = setInterval(calculateTimeLeft, 1000);
       return () => clearInterval(interval);
     }
-  }, [lockExpiresAt]);
+    return undefined;
+  }, [lockExpiresMs]);
 
-  // Điều hướng ngược về nếu hết hạn giữ ghế
+  // Điều hướng khi hết hạn giữ ghế
   useEffect(() => {
-    if (timeLeft === 0) {
-      notificationService.error("Hết thời gian giữ ghế. Vui lòng chọn lại.");
-      navigate(-1);
+    if (timeLeft !== 0 || expiryHandledRef.current) return undefined;
+
+    let cancelled = false;
+    expiryHandledRef.current = true;
+    const redirectOnExpire = async () => {
+      if (isOrbitBooking && orbitRoomUuid) {
+        notificationService.error(
+          isHost
+            ? 'Hết thời gian thanh toán nhóm. Vui lòng quay lại phòng.'
+            : 'Hết thời gian giữ ghế. Vui lòng quay lại phòng Orbit.',
+        );
+        if (isHost) {
+          try {
+            await orbitService.abortCheckout(orbitRoomUuid);
+          } catch (err) {
+            logger.error('Failed to abort checkout on expiry:', err);
+          }
+        }
+        if (!cancelled) navigate(`/booking/orbit/${orbitRoomUuid}`);
+        return;
+      }
+      notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại.');
+      if (!cancelled) navigate(-1);
+    };
+    redirectOnExpire();
+    return () => {
+      cancelled = true;
+    };
+  }, [timeLeft, navigate, isOrbitBooking, orbitRoomUuid, isHost]);
+
+  const handleBackToSeats = async () => {
+    if (isOrbitBooking && orbitRoomUuid) {
+      if (!isHost && (orbitRoomStatus === 'CHECKOUT' || orbitRoomStatus === null)) {
+        try {
+          const room = await orbitService.getRoom(orbitRoomUuid);
+          if (room?.status === 'CHECKOUT') {
+            notificationService.info(
+              'Host đã xác nhận ghế và đang thanh toán. Bạn không thể quay lại chọn ghế lúc này.',
+            );
+            return;
+          }
+        } catch {
+          /* continue */
+        }
+      }
+      if (isHost) {
+        const ok = await confirm({
+          title: 'Quay lại chọn ghế',
+          message: 'Thao tác này sẽ hủy phiên checkout nhóm. Tiếp tục?',
+          confirmLabel: 'Quay lại',
+          variant: 'warning',
+        });
+        if (!ok) return;
+        try {
+          await orbitService.abortCheckout(orbitRoomUuid);
+        } catch (err) {
+          logger.error('Failed to abort checkout on back navigation:', err);
+        }
+      }
+      navigate(`/booking/orbit/${orbitRoomUuid}`);
+      return;
     }
-  }, [timeLeft, navigate]);
+    navigate(-1);
+  };
 
   // Lấy danh sách Combo hoạt động từ Backend API
   useEffect(() => {
@@ -158,21 +253,21 @@ const ConcessionsPage = () => {
         const data = await comboService.getActiveCombos();
         setCombos(data || []);
         
-        // Mặc định số lượng ban đầu của tất cả combo là 0
         const initialQuantities = {};
         data.forEach(item => {
           initialQuantities[item.uuid] = 0;
         });
         setQuantities(initialQuantities);
+        await hydrateCombosFromRoom(data || []);
       } catch (err) {
-        console.error("Failed to load combos:", err);
+        logger.error("Failed to load combos:", err);
         notificationService.error("Không thể tải danh sách bắp nước.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchCombos();
-  }, []);
+  }, [hydrateCombosFromRoom]);
 
   // Xử lý tăng số lượng combo
   const handleIncrease = (comboUuid) => {
@@ -210,52 +305,75 @@ const ConcessionsPage = () => {
     }));
 
   // Xử lý chuyển tiếp sang trang Checkout
-  const handleContinue = () => {
-    navigate('/checkout', {
-      state: {
+  // Xử lý chuyển tiếp sang trang Checkout hoặc Hoàn tất cho Member Orbit
+  const handleContinue = async () => {
+    if (isOrbitBooking && !isHost) {
+      const ok = await confirm({
+        title: 'Hoàn tất chọn bắp nước',
+        message: 'Xác nhận lựa chọn bắp nước của bạn? Sau khi hoàn tất, bạn không thể thay đổi trừ khi chủ phòng hủy checkout.',
+        confirmLabel: 'Hoàn tất',
+        variant: 'warning',
+      });
+      if (!ok) return;
+
+      setIsSubmitting(true);
+      try {
+        const payloadCombos = selectedCombosList.map((c) => ({
+          comboUuid: c.comboUuid,
+          quantity: c.quantity,
+        }));
+        await orbitService.updateMemberCombos(orbitRoomUuid, payloadCombos, true);
+        notificationService.success('Hoàn tất chọn bắp nước thành công!');
+        navigate(`/booking/orbit/${orbitRoomUuid}/waiting`);
+      } catch (err) {
+        logger.error('Failed to submit combos:', err);
+        notificationService.error(err.message || 'Không thể hoàn tất chọn bắp nước. Vui lòng thử lại.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      const checkoutPayload = {
         ...bookingState,
         selectedCombos: selectedCombosList,
-        totalAmount: overallTotal
-      }
-    });
-  };
-
-  // Lấy ảnh minh họa và mô tả cho từng combo dựa trên tên
-  const getMeta = (name) => {
-    const key = Object.keys(comboMeta).find(k => name.toLowerCase().includes(k));
-    return key ? comboMeta[key] : {
-      image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
-      description: "Sản phẩm bắp và nước ngọt chất lượng cao đi kèm suất chiếu."
-    };
+        totalAmount: overallTotal,
+      };
+      writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, checkoutPayload);
+      writeBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, checkoutPayload);
+      navigate('/checkout', { state: checkoutPayload });
+    }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0f121d] flex flex-col items-center justify-center text-white">
-        <Navbar />
         <Loader2 className="h-10 w-10 animate-spin text-red-500 mb-4" />
         <p className="text-xl font-bold animate-pulse">Đang tải menu bắp nước...</p>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#0f121d] text-white flex flex-col">
-      <Navbar />
 
       <main className="flex-grow py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
         
         {/* Cột trái: Danh sách Combo bắp nước */}
         <div className="lg:col-span-8 flex flex-col">
           {/* Nút quay lại chọn ghế */}
+          {showBackToSeats && (
           <button 
-            onClick={() => navigate(-1)}
+            onClick={handleBackToSeats}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group cursor-pointer w-fit"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-semibold">Quay lại chọn ghế</span>
           </button>
+          )}
+          {!showBackToSeats && isOrbitBooking && (
+            <p className="text-xs text-amber-400/90 mb-6 font-semibold">
+              Host đã xác nhận ghế — bạn không thể quay lại chọn ghế lúc này.
+            </p>
+          )}
 
           <div className="flex justify-between items-end mb-6 gap-4">
             <div>
@@ -295,8 +413,6 @@ const ConcessionsPage = () => {
           >
             {combos.map((combo) => {
               const qty = quantities[combo.uuid] || 0;
-              const meta = getMeta(combo.name);
-              
               return (
                 <div 
                   key={combo.uuid} 
@@ -305,8 +421,9 @@ const ConcessionsPage = () => {
                   {/* Ảnh Combo */}
                   <div className="w-full h-44 overflow-hidden relative bg-[#0f121d]">
                     <img 
-                      src={meta.image} 
-                      alt={combo.name} 
+                      src={getComboImageUrl(combo)} 
+                      alt={combo.name}
+                      onError={handlePosterError}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                     {qty > 0 && (
@@ -323,7 +440,7 @@ const ConcessionsPage = () => {
                         {combo.name}
                       </h3>
                       <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 min-h-[34px]">
-                        {meta.description}
+                        {getComboDescription(combo)}
                       </p>
                     </div>
 
@@ -372,7 +489,7 @@ const ConcessionsPage = () => {
             {timeLeft !== null && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold mb-4 animate-pulse">
                 <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  <Clock className="w-4 h-4" />
                   <span>Thời gian giữ ghế:</span>
                 </div>
                 <span className="font-mono text-sm font-black">
@@ -386,23 +503,21 @@ const ConcessionsPage = () => {
               <img 
                 alt="Movie Poster" 
                 className="w-20 h-28 rounded-lg object-cover shadow-xl border border-white/5 bg-[#0f121d]" 
-                src={moviePoster || movieInfo.poster} 
+                src={resolvedPoster || undefined} 
               />
               <div className="space-y-1">
                 <h2 className="text-sm font-black text-white uppercase tracking-wide leading-tight line-clamp-2">{movie}</h2>
-                <div className="flex items-center gap-1 text-yellow-400 font-bold text-[11px]">
-                  <Star className="h-3 w-3 fill-current" />
-                  <span>{(movieRating || movieInfo.rating).toFixed(1)} IMDb</span>
-                </div>
                 <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                  {movieAgeRestriction && (
+                  {movieFormat && (
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{movieFormat}</span>
+                  )}
+                  {resolvedAge && (
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      movieAgeRestriction.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-                      movieAgeRestriction.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
+                      resolvedAge.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
+                      resolvedAge.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
                       'bg-amber-600/90 text-white'
                     }`}>
-                      {movieAgeRestriction}
+                      {resolvedAge}
                     </span>
                   )}
                 </div>
@@ -451,10 +566,21 @@ const ConcessionsPage = () => {
               
               <button 
                 onClick={handleContinue}
-                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.35)] active:scale-[0.98]"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.35)] active:scale-[0.98]"
               >
-                Tiếp tục
+                {isSubmitting ? 'Đang xử lý...' : (isOrbitBooking && !isHost ? 'Hoàn tất đặt vé & bắp nước' : 'Tiếp tục')}
               </button>
+
+              {isOrbitBooking && showBackToSeats && (
+                <button
+                  type="button"
+                  onClick={handleBackToSeats}
+                  className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-2 flex items-center justify-center transition-colors"
+                >
+                  Quay lại đặt ghế
+                </button>
+              )}
             </div>
           </div>
         </aside>
@@ -468,15 +594,14 @@ const ConcessionsPage = () => {
           
           <button
             onClick={handleContinue}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] cursor-pointer"
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] cursor-pointer"
           >
-            Tiếp tục
+            {isSubmitting ? 'Đang xử lý...' : (isOrbitBooking && !isHost ? 'Hoàn tất' : 'Tiếp tục')}
           </button>
         </div>
 
       </main>
-
-      <Footer />
     </div>
   );
 };

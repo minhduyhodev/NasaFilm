@@ -10,16 +10,23 @@ public class JwtResponse {
     private String refreshToken;
     private String email;
     private List<String> roles;
+    private List<String> permissions;
     private UUID userId;
     private String fullName;
     private String avatarUrl;
 
     public JwtResponse(String accessToken, String refreshToken, String email, List<String> roles, UUID userId,
             String fullName, String avatarUrl) {
+        this(accessToken, refreshToken, email, roles, roles, userId, fullName, avatarUrl);
+    }
+
+    public JwtResponse(String accessToken, String refreshToken, String email, List<String> roles, List<String> permissions,
+            UUID userId, String fullName, String avatarUrl) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.email = email;
         this.roles = roles;
+        this.permissions = permissions;
         this.userId = userId;
         this.fullName = fullName;
         this.avatarUrl = avatarUrl;
@@ -59,6 +66,14 @@ public class JwtResponse {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
     }
 
     public UUID getUserId() {

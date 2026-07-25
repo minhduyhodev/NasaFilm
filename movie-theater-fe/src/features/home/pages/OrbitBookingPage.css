@@ -1,0 +1,224 @@
+.orbit-booking {
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(220, 38, 38, 0.06), transparent 55%),
+    #0a0a0c;
+  color: #e5e2e1;
+  min-height: 100dvh;
+  padding-top: 96px;
+}
+
+.orbit-booking__hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+}
+
+.orbit-booking__panel {
+  background: rgba(17, 18, 21, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .orbit-booking__panel {
+    background: #111215;
+    backdrop-filter: none;
+  }
+}
+
+.orbit-booking__member-dot {
+  flex-shrink: 0;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+/* Orbit member seat colors on map */
+.orbit-booking .seat.orbit-member-0.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-0 {
+  border-color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.28) !important;
+  color: #fecaca !important;
+  opacity: 1;
+  cursor: default;
+}
+
+.orbit-booking .seat.orbit-member-1.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-1 {
+  border-color: #60a5fa !important;
+  background: rgba(96, 165, 250, 0.28) !important;
+  color: #bfdbfe !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-2.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-2 {
+  border-color: #34d399 !important;
+  background: rgba(52, 211, 153, 0.28) !important;
+  color: #a7f3d0 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-3.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-3 {
+  border-color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.28) !important;
+  color: #fde68a !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-4.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-4 {
+  border-color: #c084fc !important;
+  background: rgba(192, 132, 252, 0.28) !important;
+  color: #e9d5ff !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-5.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-5 {
+  border-color: #fb923c !important;
+  background: rgba(251, 146, 60, 0.28) !important;
+  color: #fed7aa !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-6.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-6 {
+  border-color: #2dd4bf !important;
+  background: rgba(45, 212, 191, 0.28) !important;
+  color: #99f6e4 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-7.orbit-member-locked,
+.orbit-booking .orbit-legend-swatch.orbit-member-7 {
+  border-color: #f472b6 !important;
+  background: rgba(244, 114, 182, 0.28) !important;
+  color: #fbcfe8 !important;
+  opacity: 1;
+}
+
+.orbit-booking .seat.orbit-member-self.orbit-member-locked {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.45) !important;
+}
+
+.orbit-booking__member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.orbit-booking__member--self {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.orbit-booking__share {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+  word-break: break-all;
+}
+
+.orbit-booking__cta-host {
+  background: #dc2626;
+  box-shadow: 0 0 24px rgba(220, 38, 38, 0.28);
+}
+
+.orbit-booking__cta-host:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.orbit-booking__cta-host:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.orbit-booking__cta-cancel {
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(239, 68, 68, 0.06);
+  color: #fca5a5;
+}
+
+.orbit-booking__cta-cancel:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+.orbit-booking__status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.orbit-booking__status--open {
+  color: #34d399;
+}
+
+.orbit-booking__status--checkout {
+  color: #fbbf24;
+}
+
+.orbit-booking__status--closed {
+  color: #71717a;
+}
+
+.orbit-booking__skeleton {
+  animation: orbit-pulse 1.4s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  border-radius: 0.75rem;
+}
+
+@keyframes orbit-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.orbit-booking__sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(10, 10, 12, 0.98), rgba(10, 10, 12, 0.85));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 1024px) {
+  .orbit-booking__sticky-cta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-booking__cta-host {
+    transition: none;
+  }
+
+  .orbit-booking__skeleton {
+    animation: none;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}

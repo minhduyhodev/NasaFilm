@@ -1,0 +1,70 @@
+[
+  {
+    "matchTitle": "Mortal Kombat 2",
+    "posterUrl": "poster/MortalKombat2_Poster.jpg",
+    "trailerUrl": "trailer/MortalKombat2_Trailer.mp4",
+    "streamingUrl": "movie/MortalKombat2_FIlm.mp4"
+  },
+  {
+    "matchTitle": "Zootopia 2",
+    "posterUrl": "poster/zootopia-2.jpg",
+    "trailerUrl": "trailer/TRAILER-zootopia-2.mp4",
+    "streamingUrl": "movie/zootopia-2.mp4",
+    "status": "NOW_SHOWING"
+  },
+  {
+    "matchTitle": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
+    "posterUrl": "poster/kimetsu-no-yaiba.jpg",
+    "trailerUrl": "trailer/TRAILER-kimetsu-no-yaiba.mp4",
+    "streamingUrl": "movie/kimetsu-no-yai-001.mp4",
+    "status": "NOW_SHOWING"
+  },
+  {
+    "matchTitle": "Avatar 2009",
+    "createIfMissing": true,
+    "description": "Người lính Jake Sully tham gia chương trình Avatar trên hành tinh Pandora và bị kẹt giữa nhiệm vụ quân sự với việc bảo vệ thế giới Na'vi.",
+    "durationMinutes": 162,
+    "releaseDate": "2009-12-18",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": ["Hành động", "Khoa học viễn tưởng", "Phiêu lưu"],
+    "countries": ["Mỹ"],
+    "posterUrl": "poster/Avatar2009.jpg",
+    "trailerUrl": "trailer/trailerAvatar2009.mkv",
+    "streamingUrl": "movie/avatar2009.mp4"
+  },
+  {
+    "matchTitle": "The Matrix",
+    "createIfMissing": true,
+    "description": "Hacker Neo khám phá thế giới thực chỉ là mô phỏng máy tính và gia nhập cuộc chiến giải phóng nhân loại khỏi máy móc.",
+    "durationMinutes": 136,
+    "releaseDate": "1999-03-31",
+    "status": "NOW_SHOWING",
+    "ageRating": "T16",
+    "genres": ["Hành động", "Khoa học viễn tưởng"],
+    "countries": ["Mỹ"],
+    "posterUrl": "poster/TheMatrix.png",
+    "trailerUrl": "trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "movie/TheMatrix.mp4"
+  },
+  {
+    "matchTitle": "Lời thì thầm của Trái tim",
+    "createIfMissing": true,
+    "description": "Nữ sinh Shizuku khao khát trở thành nhà văn, gặp cậu bạn Seiji và bước vào chuyến phiêu lưu giữa thế giới thực với trí tưởng tượng — câu chuyện Ghibli về tuổi trẻ và ước mơ.",
+    "durationMinutes": 111,
+    "releaseDate": "2025-01-10",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": ["Hoạt hình", "Tình cảm", "Gia đình"],
+    "countries": ["Nhật Bản"],
+    "posterUrl": "poster/Whisper-of-the-Heart-Poster.jpg",
+    "trailerUrl": "trailer/TheMatrixTrailer.mkv",
+    "streamingUrl": "movie/Whisper-of-the-Heart.mp4"
+  },
+  {
+    "matchTitle": "Ngôi đền kỳ quái",
+    "posterUrl": "poster/NgoiDenKyQuai.webp",
+    "trailerUrl": "https://www.youtube.com/watch?v=Jr9fXN74ivE",
+    "streamingUrl": "movie/ngoidenkyquai.mp4"
+  }
+]

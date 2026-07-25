@@ -1,0 +1,5358 @@
+[
+  {
+    "uuid": "d468d514-4518-4d2e-8245-377a81842506",
+    "title": "Kẻ Ẩn Danh",
+    "description": "Lâm - một cựu giang hồ ẩn danh muốn sống yên bình bên gia đình, nhưng số phận đẩy anh vào một cuộc chiến sinh tử để cứu con gái.",
+    "durationMinutes": 110,
+    "releaseDate": "2023-08-25",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": [
+      "Hành động",
+      "Kịch tính"
+    ],
+    "countries": [
+      "Việt Nam"
+    ],
+    "actors": [
+      {
+        "uuid": "9c0791fa-0a06-4222-989a-94dc4cc0192c",
+        "fullName": "Phương Anh Đào",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/Ph%C6%B0%C6%A1ngAnh%C4%90%C3%A0o_x5o3im.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính nữ",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "9f0ec2cc-c83e-4488-a314-52d37e0d5355",
+        "fullName": "Trấn Thành",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/TranThanh_guowtg.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Lâm",
+        "castOrder": 2,
+        "isMain": true
+      },
+      {
+        "uuid": "6af13d68-7e10-4154-b07d-7d1fe1038783",
+        "fullName": "Thái Hòa",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/ThaiHoa_lwv8dh.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Vai phụ 1",
+        "castOrder": 3,
+        "isMain": false
+      },
+      {
+        "uuid": "36b798b0-23cd-471b-aec2-15df0a89b154",
+        "fullName": "Quách Ngọc Ngoan",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/QuachNgocNgoan_iywaex.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Vai phụ 2",
+        "castOrder": 4,
+        "isMain": false
+      },
+      {
+        "uuid": "954371f5-4a85-4409-ad01-b1eb111344d4",
+        "fullName": "Tuấn Trần",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/TuanTran_ofshrq.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Vai phụ 3",
+        "castOrder": 5,
+        "isMain": false
+      },
+      {
+        "uuid": "6bfb37f2-91bb-4c2f-8d0f-eca3623567f0",
+        "fullName": "Pháo",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/Phao_ssx13u.webp",
+        "countryName": "Việt Nam",
+        "characterName": "Cameo",
+        "castOrder": 6,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "16c72e6a-8be7-4cfc-a2b4-aa342111524b",
+        "mediaUrl": "poster/KeAnDanh_Poster.jpg",
+        "mediaType": "POSTER",
+        "title": "KeAnDanh Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:10:42.834857Z",
+        "updatedAt": "2026-06-15T14:10:42.834857Z"
+      },
+      {
+        "uuid": "330e20bb-1ca9-49bb-a40d-70f22ad0ce11",
+        "mediaUrl": "trailer/KeAnDanh_Trailer.mp4",
+        "mediaType": "TRAILER",
+        "title": "KeAnDanh Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:10:42.836025Z",
+        "updatedAt": "2026-06-15T14:10:42.836025Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream11.com/20231125/49519_efc10c2a/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-15T14:10:42.830007Z",
+    "updatedAt": "2026-06-15T14:10:42.830007Z"
+  },
+  {
+    "uuid": "a3eddd45-fc87-4534-963f-1083d4073761",
+    "title": "Mortal Kombat 2",
+    "description": "Cuộc chiến giành số phận Earthrealm tiếp tục diễn ra với những võ sĩ huyền thoại chống lại các thế lực Outworld.",
+    "durationMinutes": 125,
+    "releaseDate": "2025-10-24",
+    "status": "NOW_SHOWING",
+    "ageRating": "T18",
+    "genres": [
+      "Hành động",
+      "Viễn tưởng"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "uuid": "04a9cfd8-97bc-4e7d-86ca-d463d22ada61",
+        "fullName": "Karl Urban",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/KarlUrban_eavsxb.webp",
+        "countryName": "Mỹ",
+        "characterName": "Johnny Cage",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "5059371d-a068-45be-bb85-df048995a947",
+        "fullName": "Lewis Tan",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/LewisTan_jc5hlm.webp",
+        "countryName": "Mỹ",
+        "characterName": "Cole Young",
+        "castOrder": 2,
+        "isMain": true
+      },
+      {
+        "uuid": "5c424458-9a99-4d69-906d-e49048a1d2f7",
+        "fullName": "Jessica McNamee",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/JessicaMcNamee_jsphbu.webp",
+        "countryName": "Mỹ",
+        "characterName": "Sonya Blade",
+        "castOrder": 3,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "99125fd5-6f45-4aab-8ba5-71b72330e1a7",
+        "mediaUrl": "https://www.google.com/imgres?q=Mortal%20Kombat%202&imgurl=https%3A%2F%2Fm.media-amazon.com%2Fimages%2FM%2FMV5BNTg2YWNkN2EtMzc1Ny00ZTBhLWFmYTItMmMyNzhjNjhhNmVhXkEyXkFqcGc%40._V1_.jpg&imgrefurl=https%3A%2F%2Fwww.imdb.com%2Ftitle%2Ftt17490712%2F&docid=0umo7EWBfSxDqM&tbnid=PN9X8khxo6-B8M&vet=12ahUKEwjuurCdhLaVAxVIUGwGHZFYMssQnPAOegQIMxAA..i&w=2024&h=3000&hcb=2&ved=2ahUKEwjuurCdhLaVAxVIUGwGHZFYMssQnPAOegQIMxAA",
+        "mediaType": "POSTER",
+        "title": "MortalKombat2 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:10:42.850042Z",
+        "updatedAt": "2026-06-15T14:10:42.850042Z"
+      },
+      {
+        "uuid": "e2d9666f-17b7-4067-86a0-47de009f3a0a",
+        "mediaUrl": "https://www.youtube.com/watch?v=YlF5yyAcBD0",
+        "mediaType": "TRAILER",
+        "title": "MortalKombat2 Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:10:42.851078Z",
+        "updatedAt": "2026-06-15T14:10:42.851078Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260608/34303_1bc949fb/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-15T14:10:42.847699Z",
+    "updatedAt": "2026-06-15T14:10:42.847699Z"
+  },
+  {
+    "uuid": "21a75176-9f9e-458a-93e5-4db2bda5814e",
+    "title": "Mưa Đỏ",
+    "description": "Tác phẩm nghệ thuật đầy bi tráng về tình yêu và lòng quả cảm trong những năm tháng chiến tranh khốc liệt.",
+    "durationMinutes": 95,
+    "releaseDate": "2024-04-30",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": [
+      "Tình cảm",
+      "Chiến tranh"
+    ],
+    "countries": [
+      "Việt Nam"
+    ],
+    "actors": [
+      {
+        "fullName": "Quyền Linh",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "d3bca6c1-75e8-421e-a6ec-c07a663a86f9"
+      },
+      {
+        "fullName": "Chi Bảo",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai phụ",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "a48c88a4-4acd-4e14-b6e7-05eaff11ba95"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "66ca5452-ec1c-481a-b242-323ffa6e08e0",
+        "mediaUrl": "poster/MuaDo_Poster.jpg",
+        "mediaType": "POSTER",
+        "title": "MuaDo Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:10:42.862767Z",
+        "updatedAt": "2026-06-15T14:10:42.862767Z"
+      },
+      {
+        "uuid": "fe47736f-7127-4ec1-81a0-645ea3f6fe37",
+        "mediaUrl": "trailer/MuaDo_Trailer.mp4",
+        "mediaType": "TRAILER",
+        "title": "MuaDo Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:10:42.864045Z",
+        "updatedAt": "2026-06-15T14:10:42.864045Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/embed/Psb5qgkdlkw?si=whoeSAr8rXdERtU1",
+    "createdAt": "2026-06-15T14:10:42.859305Z",
+    "updatedAt": "2026-06-15T14:10:42.860307Z"
+  },
+  {
+    "uuid": "9af9e603-2c43-41d9-90ab-2bda3137d80e",
+    "title": "Thanh Gươm Diệt Quỷ: Căn nhà phát ra tiếng trống",
+    "description": "Tanjirou cùng các trụ cột bước vào cuộc chiến sinh tử chống lại chúa quỷ Muzan trong pháo đài vô tận.",
+    "durationMinutes": 105,
+    "releaseDate": "2024-02-23",
+    "status": "NOW_SHOWING",
+    "ageRating": "T16",
+    "genres": [
+      "Hoạt hình",
+      "Hành động"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [
+      {
+        "uuid": "52016220-7f87-4b31-88c3-cf1629cc4f80",
+        "fullName": "Akari Kito",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/AkariKito_zozun0.webp",
+        "countryName": "Nhật Bản",
+        "characterName": "Nezuko Kamado",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "69c0f8e0-7d2e-44b2-a186-15647433a55b",
+        "fullName": "Yumiri Hanamori",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/YumiriHanamori_bw0jhx.webp",
+        "countryName": "Nhật Bản",
+        "characterName": "Kanao Tsuyuri",
+        "castOrder": 2,
+        "isMain": false
+      },
+      {
+        "uuid": "8c24ef00-f8dc-4c9d-82ec-4696a2c071ab",
+        "fullName": "Kengo Kawanishi",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/KengoKawanishi_krpprp.webp",
+        "countryName": "Nhật Bản",
+        "characterName": "Genya Shinazugawa",
+        "castOrder": 3,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "aafb2faa-1cef-4967-93a0-29571905818a",
+        "mediaUrl": "https://phimmoir.app/storage/images/thanh-guom-diet-quy-can-nha-phat-ra-tieng-trong/thanh-guom-diet-quy-can-nha-phat-ra-tieng-trong-thumb.webp",
+        "mediaType": "POSTER",
+        "title": "ThanhGuongDietQuy Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:10:42.877549Z",
+        "updatedAt": "2026-06-15T14:10:42.877549Z"
+      },
+      {
+        "uuid": "69ad2bdf-4a9d-4e6c-b069-052e6f4c2974",
+        "mediaUrl": "trailer/ThanhGuongDietQuy_Trailer.mp4",
+        "mediaType": "TRAILER",
+        "title": "ThanhGuongDietQuy Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:10:42.878682Z",
+        "updatedAt": "2026-06-15T14:10:42.878682Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream16.com/20231111/37169_bb2128cc/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-15T14:10:42.874193Z",
+    "updatedAt": "2026-06-15T14:10:42.874193Z"
+  },
+  {
+    "uuid": "e8a1a7e3-c2b0-404a-b60a-1f8d50c91b47",
+    "title": "Truy Tìm Long Diên Hương",
+    "description": "Cuộc phiêu lưu mạo hiểm tìm kiếm báu vật vô giá Long Diên Hương dưới đáy biển sâu thẳm.",
+    "durationMinutes": 100,
+    "releaseDate": "2024-06-01",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Phiêu lưu",
+      "Kịch tính"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [
+      {
+        "fullName": "Tiến Luật",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "318b6cc3-2d50-467e-85fb-30ff18b1fc6c"
+      },
+      {
+        "fullName": "Huỳnh Lập",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Pháp sư",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "520496aa-70fd-40c1-b0e3-7834b4667e19"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "48306047-df3d-4a29-a46f-5a8c4ffdefc9",
+        "mediaUrl": "poster/TruyTimLongDienHuong_Poster.jpg",
+        "mediaType": "POSTER",
+        "title": "TruyTimLongDienHuong Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:10:42.891506Z",
+        "updatedAt": "2026-06-15T14:10:42.891506Z"
+      },
+      {
+        "uuid": "ba81ea01-bdd8-43e6-a0b6-19708bb3d6c5",
+        "mediaUrl": "trailer/TruyTimLongDienHuong_Trailer.mp4",
+        "mediaType": "TRAILER",
+        "title": "TruyTimLongDienHuong Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:10:42.892502Z",
+        "updatedAt": "2026-06-15T14:10:42.892502Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260305/26519_49cea6b6/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-15T14:10:42.889403Z",
+    "updatedAt": "2026-06-15T14:10:42.889403Z"
+  },
+  {
+    "uuid": "89415d01-3189-491e-ad12-e2f488e06608",
+    "title": "Sword Art Online Alicization",
+    "description": "Lấy bối cảnh hai tháng sau khi thế giới ảo tử thần bắt đầu, phim xoay quanh hành trình của Kirito và Asuna khám phá tầng 4 của pháo đài Aincrad cùng môi trường bí ẩn và các con trùm khó nhằn.",
+    "durationMinutes": 101,
+    "releaseDate": "2026-06-15",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": [
+      "Hoạt hình",
+      "Hành động"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "89e4b221-cb21-465b-9d6e-db5015739e2c",
+        "mediaUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ7-6TbT5SwzJt4e3085ccNhHNddbdKY2MEt44CXpF5ZA&s=10",
+        "mediaType": "POSTER",
+        "title": "SAO Alicization Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-15T14:53:41.333921Z",
+        "updatedAt": "2026-06-15T14:53:41.333921Z"
+      },
+      {
+        "uuid": "617c4f50-38f4-4003-b831-cc63b80fd33b",
+        "mediaUrl": "https://vs-prodamdfandango.akamaized.net/out/v1/b8926cbbb6524b64b320ecd281f84f4e/24179244572d48768920647994272718/55cfc6748196457d965dfd98aa2d46b8/d18057147c904ac6acda75542d2a2d01/1af7b8b9f8ca4653ae82f69b3af973ab/index_1.m3u8",
+        "mediaType": "TRAILER",
+        "title": "SAO Alicization Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-15T14:53:41.335914Z",
+        "updatedAt": "2026-06-15T14:53:41.335914Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream16.com/20231101/36544_4f541c5c/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-15T14:53:41.327382Z",
+    "updatedAt": "2026-06-15T14:53:41.327382Z"
+  },
+  {
+    "uuid": "b8b70aa9-781e-4c46-90a0-f1047117dd6f",
+    "title": "Sword Art Online: Ordinal Scale",
+    "description": "Đao Kiếm Thần Vực: Ranh Giới Hư Ảo - Sword Art Online: Ordinal Scale 2017 Đao Kiếm Thần Vực: Ranh Giới Hư Ảo' là một bộ phim hành động khoa học viễn tưởng hấp dẫn với sự tham gia của các diễn viên tài năng như Ayana Taketatsu, Haruka Tomatsu, và Yoshitsugu Matsuoka. Được đạo diễn bởi Tomohiko Itou, bộ phim là phần tiếp theo của loạt phim nổi tiếng 'Sword Art Online'. 'Câu chuyện của Ranh Giới Hư Ảo' diễn ra vào năm 2026, tập trung vào việc phát triển của công nghệ mới Augma, với khả năng sử dụng Augmented Reality (AR) để mang người chơi vào một thế giới ảo hoàn toàn mới. Đây được coi là sự cải tiến đáng kể so với các phiên bản trước đó như NerveGear và Amusphere.",
+    "durationMinutes": 148,
+    "releaseDate": "2023-07-20",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Viễn tưởng"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [
+      {
+        "uuid": "b8f2bd0e-fe43-4449-8f28-6e72761d4c18",
+        "fullName": "Lý Tuyết Kiện",
+        "avatarUrl": null,
+        "countryName": "Trung Quốc",
+        "characterName": "Cơ Phát",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "da2d370d-0eb7-4085-999a-4dec625b5e6a",
+        "fullName": "Phí Tường Anh",
+        "avatarUrl": null,
+        "countryName": "Trung Quốc",
+        "characterName": "Đát Kỷ",
+        "castOrder": 2,
+        "isMain": true
+      },
+      {
+        "uuid": "26ccf4aa-0154-442e-bd39-6f8a2ed67041",
+        "fullName": "Huỳnh Bột",
+        "avatarUrl": null,
+        "countryName": "Trung Quốc",
+        "characterName": "Vương Trụ",
+        "castOrder": 3,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "7c3b929e-6d11-4d48-8137-a55fdc5553c0",
+        "mediaUrl": "https://phimmoir.app/storage/images/dao-kiem-than-vuc-ranh-gioi-hu-ao-ngoai-truyen-2/dao-kiem-than-vuc-ranh-gioi-hu-ao-ngoai-truyen-2-thumb.webp",
+        "mediaType": "POSTER",
+        "title": "SAO Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T02:24:22.417197Z",
+        "updatedAt": "2026-06-17T02:24:22.417197Z"
+      },
+      {
+        "uuid": "a1373521-7e52-474b-bb8a-c25491e0ad7d",
+        "mediaUrl": "https://www.youtube.com/embed/VNxxReVeVDI?si=lHKBZi0303sl7jPB",
+        "mediaType": "TRAILER",
+        "title": "SAO Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T02:24:22.418208Z",
+        "updatedAt": "2026-06-17T02:24:22.418208Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream12.com/20220604/17406_220682bd/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T02:24:22.410997Z",
+    "updatedAt": "2026-06-17T02:24:22.410997Z"
+  },
+  {
+    "uuid": "5f251179-fbae-4c15-baac-da91458efaef",
+    "title": "Thỏ Oi",
+    "description": "Hành trình đáng yêu của chú thỏ nhỏ Oi vượt qua muôn vàn thử thách trong khu rừng thần kỳ để tìm lại gia đình, mang đến những tiếng cười và cảm xúc ấm lòng cho khán giả mọi lứa tuổi.",
+    "durationMinutes": 88,
+    "releaseDate": "2024-01-19",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Hài hước"
+    ],
+    "countries": [
+      "Việt Nam"
+    ],
+    "actors": [
+      {
+        "uuid": "3bb89bf5-ff27-44d5-916f-1791740e1caf",
+        "fullName": "Kaity Nguyễn",
+        "avatarUrl": null,
+        "countryName": "Việt Nam",
+        "characterName": "Thỏ Oi (lồng tiếng)",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "00983234-c0eb-4c9a-b7aa-bb72f4b1a95c",
+        "fullName": "Diệu Nhi",
+        "avatarUrl": null,
+        "countryName": "Việt Nam",
+        "characterName": "Cáo Lửa (lồng tiếng)",
+        "castOrder": 2,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "50b26c6e-bcf7-4563-8e4f-540c443621af",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/thooi_ajyute.jpg",
+        "mediaType": "POSTER",
+        "title": "ThoOi Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T02:24:22.434884Z",
+        "updatedAt": "2026-06-17T02:24:22.434884Z"
+      },
+      {
+        "uuid": "0007c9e6-a6bd-462e-bc7f-f06be0f1bedc",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/video/upload/Trailer_Th%E1%BB%8F_%C6%A1i_zmfl7g.mp4",
+        "mediaType": "TRAILER",
+        "title": "ThoOi Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T02:24:22.436025Z",
+        "updatedAt": "2026-06-17T02:24:22.436025Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260601/33526_aa721632/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T02:24:22.432549Z",
+    "updatedAt": "2026-06-17T02:24:22.432549Z"
+  },
+  {
+    "uuid": "a08db160-200c-47bf-910a-4c6ef0976164",
+    "title": "Parasite",
+    "description": "Gia đình nhà Ki-taek nghèo khó từng bước thâm nhập vào cuộc sống xa hoa của gia đình Park giàu có. Bộ phim là tuyệt tác châm biếm xã hội sắc bén, đoạt giải Palme d'Or và Oscar Phim hay nhất.",
+    "durationMinutes": 132,
+    "releaseDate": "2019-05-30",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Kịch tính",
+      "Hài hước"
+    ],
+    "countries": [
+      "Hàn Quốc"
+    ],
+    "actors": [
+      {
+        "uuid": "d7812b18-ebdc-49c9-ab0b-3e0238a13122",
+        "fullName": "Song Kang-ho",
+        "avatarUrl": null,
+        "countryName": "Hàn Quốc",
+        "characterName": "Ki-taek",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "c5ec6c89-e0df-43c5-8175-0cfaa9cfc927",
+        "fullName": "Lee Sun-kyun",
+        "avatarUrl": null,
+        "countryName": "Hàn Quốc",
+        "characterName": "Park Dong-ik",
+        "castOrder": 2,
+        "isMain": true
+      },
+      {
+        "uuid": "b1a55aaf-ca6b-4696-a735-58de11d7f668",
+        "fullName": "Cho Yeo-jeong",
+        "avatarUrl": null,
+        "countryName": "Hàn Quốc",
+        "characterName": "Choi Yeon-gyo",
+        "castOrder": 3,
+        "isMain": false
+      },
+      {
+        "uuid": "c5601c3b-c15c-4e14-93a0-1a0152cdfe26",
+        "fullName": "Choi Woo-shik",
+        "avatarUrl": null,
+        "countryName": "Hàn Quốc",
+        "characterName": "Ki-woo",
+        "castOrder": 4,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "d27ded79-b439-4941-a499-c20ab5af5e09",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/parasite_joyon1.jpg",
+        "mediaType": "POSTER",
+        "title": "Parasite Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T02:24:22.45116Z",
+        "updatedAt": "2026-06-17T02:24:22.45116Z"
+      },
+      {
+        "uuid": "068f600b-05d6-4129-a4d4-29689085e1e1",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/video/upload/Parasite_-_Official_Trailer_2019_Bong_Joon_Ho_Film_pf8lwc.mp4",
+        "mediaType": "TRAILER",
+        "title": "Parasite Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T02:24:22.453253Z",
+        "updatedAt": "2026-06-17T02:24:22.453253Z"
+      }
+    ],
+    "streamingUrl": "https://aa.opstream6.com/20220217/212_95dbd939/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T02:24:22.448661Z",
+    "updatedAt": "2026-06-17T02:24:22.448661Z"
+  },
+  {
+    "uuid": "97310ca7-117c-43a5-92a3-cd1da163271e",
+    "title": "Oppenheimer",
+    "description": "Bộ phim tiểu sử về J. Robert Oppenheimer - cha đẻ của bom nguyên tử - và những mâu thuẫn đạo đức khi ông dẫn dắt Dự án Manhattan, thay đổi mãi mãi lịch sử nhân loại.",
+    "durationMinutes": 180,
+    "releaseDate": "2023-07-21",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Kịch tính",
+      "Chiến tranh"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "uuid": "42d2becd-0c67-4b82-bd86-fa1221d25873",
+        "fullName": "Cillian Murphy",
+        "avatarUrl": null,
+        "countryName": "Mỹ",
+        "characterName": "J. Robert Oppenheimer",
+        "castOrder": 1,
+        "isMain": true
+      },
+      {
+        "uuid": "f84ba293-e47e-4b1a-985b-4cbe32939c42",
+        "fullName": "Emily Blunt",
+        "avatarUrl": null,
+        "countryName": "Mỹ",
+        "characterName": "Katherine Oppenheimer",
+        "castOrder": 2,
+        "isMain": true
+      },
+      {
+        "uuid": "ec70eb29-56ed-448a-b0fb-e916843f8cfa",
+        "fullName": "Matt Damon",
+        "avatarUrl": null,
+        "countryName": "Mỹ",
+        "characterName": "Leslie Groves",
+        "castOrder": 3,
+        "isMain": false
+      },
+      {
+        "uuid": "00e9b6f1-27f2-4705-988a-9596543c7a3d",
+        "fullName": "Robert Downey Jr.",
+        "avatarUrl": null,
+        "countryName": "Mỹ",
+        "characterName": "Lewis Strauss",
+        "castOrder": 4,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "0e2fb5bb-f95c-47f9-b7ef-bf9c84a6285c",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/oppenheimer_dd7yrc.jpg",
+        "mediaType": "POSTER",
+        "title": "Oppenheimer Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T02:24:22.483509Z",
+        "updatedAt": "2026-06-17T02:24:22.483509Z"
+      },
+      {
+        "uuid": "53edb2b3-4ee2-4009-844d-37c35104cd40",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/video/upload/Oppenheimer_New_Trailer_nh37xc.mp4",
+        "mediaType": "TRAILER",
+        "title": "Oppenheimer Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T02:24:22.483509Z",
+        "updatedAt": "2026-06-17T02:24:22.483509Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream13.com/20231110/1541_c87336c4/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T02:24:22.480996Z",
+    "updatedAt": "2026-06-17T02:24:22.480996Z"
+  },
+  {
+    "uuid": "1421021a-203b-436f-804b-e1570eb7a1de",
+    "title": "Người Nhện: Dự Hành Đa Vũ Trụ",
+    "description": "Miles Morales bước vào hành trình liên vũ trụ khi anh gặp gỡ các phiên bản Người Nhện từ những vũ trụ khác.",
+    "durationMinutes": 140,
+    "releaseDate": "2024-04-01",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Viễn tưởng",
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "fullName": "Shameik Moore",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Miles Morales",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "f42130a8-6e01-49d8-9daa-15887d1a51f7"
+      },
+      {
+        "fullName": "Hailee Steinfeld",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Gwen Stacy",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "8291a8d6-861a-4d9e-ac61-4a1555c833fa"
+      },
+      {
+        "fullName": "Oscar Isaac",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Miguel O'Hara",
+        "castOrder": 3,
+        "isMain": false,
+        "uuid": "c1a713e7-642a-4f22-8d43-7f9a8ef7efa3"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "b00a6ab9-271c-4c0d-8dd2-a57a48d741fb",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/nguoi-nhen_wlrfql.jpg",
+        "mediaType": "POSTER",
+        "title": "Nguoi Nhen Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T02:42:52.746595Z",
+        "updatedAt": "2026-06-17T02:42:52.746595Z"
+      },
+      {
+        "uuid": "6fbb07c8-fca9-4149-8732-c92a1aca0786",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/video/upload/trailer_ng%C6%B0%E1%BB%9Di_nh%E1%BB%87n_du_h%C3%A0nh_%C4%91a_v%C5%A9_tr%E1%BB%A5_-_Search_o0wzwx.mp4",
+        "mediaType": "TRAILER",
+        "title": "Nguoi Nhen Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T02:42:52.747697Z",
+        "updatedAt": "2026-06-17T02:42:52.747697Z"
+      }
+    ],
+    "streamingUrl": null,
+    "createdAt": "2026-06-17T02:42:52.743371Z",
+    "updatedAt": "2026-06-17T02:42:52.743371Z"
+  },
+  {
+    "uuid": "849300ad-4cdd-4d74-bafa-5b8aaabedc54",
+    "title": "Siêu Quậy Marsupilami",
+    "description": "Để cứu lấy công việc, David Ticoule chấp nhận vận chuyển một kiện hàng bí ẩn từ Nam Mỹ về Pháp. Anh đưa con trai Léo và vợ cũ Tess đi cùng, vô tình kéo họ vào một phi vụ nguy hiểm mà chính anh cũng chưa kịp hiểu rõ. Mọi thứ nhanh chóng vượt khỏi tầm kiểm soát khi kiện hàng bị mở ra ngoài ý muốn. Bên trong là một sinh vật nhỏ bé, đáng yêu nhưng kéo theo hàng loạt rắc rối không tưởng. Từ một chuyến đi tưởng chừng đơn giản, hành trình trên biển bỗng biến thành chuỗi tình huống dở khóc dở cười. Giữa đại dương, họ phải học cách tin tưởng và sát cánh bên nhau để vượt qua hỗn loạn, đồng thời bảo vệ chính gia đình mình.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-06-30",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Hoạt hình",
+      "Hài hước"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "uuid": "f84ba293-e47e-4b1a-985b-4cbe32939c42",
+        "fullName": "Emily Blunt",
+        "avatarUrl": null,
+        "countryName": "Mỹ",
+        "characterName": "Lồng tiếng",
+        "castOrder": 1,
+        "isMain": true
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "4be953bd-7afe-4566-b557-628fd94cc560",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/sieu-quay-marsupilami_nxwdoy.webp",
+        "mediaType": "POSTER",
+        "title": "Siêu Quậy Marsupilami Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:21:52.829363Z",
+        "updatedAt": "2026-06-17T07:21:52.829363Z"
+      },
+      {
+        "uuid": "291be71c-e350-43a9-ab55-51e729daaadd",
+        "mediaUrl": "https://www.youtube.com/embed/xzc6xQfWq4E?si=hadJDGoJGSnzvr-h",
+        "mediaType": "TRAILER",
+        "title": "Siêu Quậy Marsupilami Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:21:52.830531Z",
+        "updatedAt": "2026-06-17T07:21:52.830531Z"
+      }
+    ],
+    "streamingUrl": null,
+    "createdAt": "2026-06-17T07:19:39.921721Z",
+    "updatedAt": "2026-06-17T07:19:39.922837Z"
+  },
+  {
+    "uuid": "654c3526-5a39-4922-98f7-8c73dcceaef4",
+    "title": "Phim Điện Ảnh - Lớp Học Ám Sát: Giờ Của Chúng Ta (2026)",
+    "description": "United by a common mission to eliminate their teacher, Koro-sensei, an alien creature with phenomenal strength, join Nagisa and his Class 3-E classmates in brand-new adventures.",
+    "durationMinutes": 120,
+    "releaseDate": "2026-06-28",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Hoạt hình",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "451b3ad7-1a78-493b-94ee-cb109f226a51",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/lophocamsat_uahfry.webp",
+        "mediaType": "POSTER",
+        "title": "Phim Điện Ảnh - Lớp Học Ám Sát: Giờ Của Chúng Ta (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:29:41.548984Z",
+        "updatedAt": "2026-06-17T07:29:41.548984Z"
+      },
+      {
+        "uuid": "06b1380c-f192-495d-8c5c-ac0b54a3894e",
+        "mediaUrl": "https://www.youtube.com/watch?v=bjkwRzGSe-E",
+        "mediaType": "TRAILER",
+        "title": "Phim Điện Ảnh - Lớp Học Ám Sát: Giờ Của Chúng Ta (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:29:41.550005Z",
+        "updatedAt": "2026-06-17T07:29:41.550005Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=bjkwRzGSe-E",
+    "createdAt": "2026-06-17T07:29:41.544822Z",
+    "updatedAt": "2026-06-17T07:29:41.544822Z"
+  },
+  {
+    "uuid": "e7ea001e-800a-4f3c-9a7e-1d6c5e6867d6",
+    "title": "Star Wars: Mandalorian và Grogu (2026)",
+    "description": "Đế Chế tàn bạo đã sụp đổ, nhưng những lãnh chúa chiến tranh của phe Đế Chế vẫn còn rải rác khắp thiên hà. Khi Nền Cộng hòa Mới nỗ lực bảo vệ những gì Quân Nổi Loạn đã chiến đấu để giành lấy, họ đã nhờ đến sự trợ giúp của thợ săn tiền thưởng Mandalorian - huyền thoại Din Djarin và cậu bé học việc Grogu.",
+    "durationMinutes": 142,
+    "releaseDate": "2026-06-30",
+    "status": "COMING_SOON",
+    "ageRating": "P",
+    "genres": [
+      "Hành động",
+      "Chiến tranh",
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "fullName": "Pedro Pascal",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "The Mandalorian",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "cd41c913-334e-47f9-a9f0-0d199179c383"
+      },
+      {
+        "fullName": "Sigourney Weaver",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Vai chưa tiết lộ",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "fd29a022-ccf6-44d5-9046-c6f35ff23a10"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "2f85e746-a2c7-47f1-93f2-3ef2d2068025",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/star-war_hifxda.webp",
+        "mediaType": "POSTER",
+        "title": "Star Wars: Mandalorian và Grogu (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:36:43.312403Z",
+        "updatedAt": "2026-06-17T07:36:43.312403Z"
+      },
+      {
+        "uuid": "0e7df59d-c97e-42e1-8e16-1cb1f8acc3b4",
+        "mediaUrl": "https://www.youtube.com/watch?v=_pa1KLXuW0Y",
+        "mediaType": "TRAILER",
+        "title": "Star Wars: Mandalorian và Grogu (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:36:43.313406Z",
+        "updatedAt": "2026-06-17T07:36:43.313406Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=_pa1KLXuW0Y",
+    "createdAt": "2026-06-17T07:36:43.305565Z",
+    "updatedAt": "2026-06-17T07:36:43.305565Z"
+  },
+  {
+    "uuid": "c37a27ba-b80a-407b-9d68-2e05e9767e1e",
+    "title": "Tên Cậu Là Gì?",
+    "description": "Bộ phim là câu chuyện hoán đổi cơ thể của 2 cô cậu Mitsuha - nữ sinh trung học sống ở một thị trấn nhỏ của vùng Itomori và Taki – nam sinh tại thủ đô Tokyo đầy sôi động. Mitsuha luôn chán chường với cuộc sống tẻ nhạt của mình và mơ ước được làm anh chàng đẹp trai sống tại thủ đô. Trong khi đó, Taki hằng đêm lại nhìn thấy mình trong hình hài cô gái vùng miền quê. Ước mơ của cả 2 đã thành sự thật khi sao chổi nghìn năm xuất hiện trên trái đất và rồi cứ cách ngày lại được hoán đổi cơ thể cho nhau.",
+    "durationMinutes": 110,
+    "releaseDate": "2026-06-30",
+    "status": "COMING_SOON",
+    "ageRating": "P",
+    "genres": [
+      "Tình cảm",
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [
+      {
+        "uuid": "52016220-7f87-4b31-88c3-cf1629cc4f80",
+        "fullName": "Akari Kito",
+        "avatarUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/AkariKito_zozun0.webp",
+        "countryName": "Nhật Bản",
+        "characterName": null,
+        "castOrder": 1,
+        "isMain": false
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "2316e11b-50fc-4f94-acf2-ee6a15dbc39e",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/ten-cau-la-gi_wyhblk.webp",
+        "mediaType": "POSTER",
+        "title": "Tên Cậu Là Gì? Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:43:14.285194Z",
+        "updatedAt": "2026-06-17T07:43:14.285194Z"
+      },
+      {
+        "uuid": "ea676e5f-46bd-4c2f-a1ab-6ad6151ce8fa",
+        "mediaUrl": "https://www.youtube.com/watch?v=_mifHzxFNQ4",
+        "mediaType": "TRAILER",
+        "title": "Tên Cậu Là Gì? Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:43:14.286568Z",
+        "updatedAt": "2026-06-17T07:43:14.286568Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream11.com/20220315/2087_9b2fb836/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T07:43:14.276237Z",
+    "updatedAt": "2026-06-17T07:43:14.276237Z"
+  },
+  {
+    "uuid": "9f717d66-1a49-4313-b0eb-1917460c667f",
+    "title": "Làng Trùng Tang (2025)",
+    "description": "Làng Trùng Tang theo chân Fitri (Wavi Zihan) – một nữ tư vấn viên quyết tâm làm sáng tỏ vụ bạo lực học đường liên quan đến cậu học sinh nghèo Jaya (Ali Fikry), giữa bối cảnh những lời kêu cứu bị phớt lờ và sự thật dần chìm trong im lặng. Thế nhưng, càng đào sâu, Fitri càng đối mặt với những hiện tượng rùng rợn: những người liên quan lần lượt gặp kết cục bí ẩn, rồi lại xuất hiện như chưa từng có chuyện gì xảy ra. Một thế lực siêu nhiên đang thao túng dân làng, khiến họ đối diện với \"bản thể bóng tối\" của chính mình – Qorin.",
+    "durationMinutes": 145,
+    "releaseDate": "2026-06-20",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Kịch tính",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [
+      {
+        "fullName": "Hoàng Yến Chibi",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính nữ",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "43527bcf-c755-46a1-bbbc-d51107e6af92"
+      },
+      {
+        "fullName": "Quốc Huy",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Vai chính nam",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "d411da93-8394-465f-b65b-7f82136b67cc"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "9ef0c340-0a2d-4d80-92af-a5ed4ed85ebd",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/langtrungtang_ofldsn.webp",
+        "mediaType": "POSTER",
+        "title": "Làng Trùng Tang (2025) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:45:08.482699Z",
+        "updatedAt": "2026-06-17T07:45:08.482699Z"
+      },
+      {
+        "uuid": "814da1bf-ccd8-4a2f-b285-144f499e646f",
+        "mediaUrl": "https://www.youtube.com/watch?v=m2yrJJVpTzI",
+        "mediaType": "TRAILER",
+        "title": "Làng Trùng Tang (2025) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:45:08.485011Z",
+        "updatedAt": "2026-06-17T07:45:08.485011Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=m2yrJJVpTzI",
+    "createdAt": "2026-06-17T07:45:08.469857Z",
+    "updatedAt": "2026-06-17T07:45:08.469857Z"
+  },
+  {
+    "uuid": "378ced8b-3141-46b4-abf4-829577cdcab2",
+    "title": "Mother Mary: Hào Quang Đơn Độc (2026)",
+    "description": "Những vết thương chôn giấu từ lâu trỗi dậy khi ngôi sao nhạc pop biểu tượng Mother Mary tái ngộ người bạn thân đã rạn nứt — đồng thời là nhà thiết kế trang phục cũ của cô, Sam Anselm — ngay trước thềm màn trở lại sân khấu.",
+    "durationMinutes": 160,
+    "releaseDate": "2026-06-23",
+    "status": "COMING_SOON",
+    "ageRating": "T16",
+    "genres": [
+      "Hành động",
+      "Tình cảm"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "753ef453-8971-403a-ab26-ad57489e3aad",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/mothermary_qvwlhi.webp",
+        "mediaType": "POSTER",
+        "title": "Mother Mary: Hào Quang Đơn Độc (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T07:50:09.937497Z",
+        "updatedAt": "2026-06-17T07:50:09.937497Z"
+      },
+      {
+        "uuid": "55a01cbd-ba78-4451-ac39-9fe8ede33a7d",
+        "mediaUrl": "https://www.youtube.com/watch?v=STlchJG1G60",
+        "mediaType": "TRAILER",
+        "title": "Mother Mary: Hào Quang Đơn Độc (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T07:50:09.938506Z",
+        "updatedAt": "2026-06-17T07:50:09.938506Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=STlchJG1G60",
+    "createdAt": "2026-06-17T07:49:14.153912Z",
+    "updatedAt": "2026-06-17T07:50:09.939516Z"
+  },
+  {
+    "uuid": "8c85bc87-ae04-4874-8dd8-9671b074377d",
+    "title": "Ngôi đền kỳ quái",
+    "description": "Thương hiệu Kinh dị - Hài Thái Lan ăn khách nhất đã trở lại. Một năm sau khi đánh bại hồn ma Nak Tinn, nhóm bạn của Balloon và First chưa kịp tận hưởng cuộc sống bình yên thì một linh hồn báo thù bất ngờ quay trở lại và săn đuổi họ. Nhưng lần này mục tiêu của Pee Nak không phải là Balloon hay First mà là chú tiểu Nott và những người thân của cậu. Để phá giải lời nguyền \"Kẻ nào được yêu thương thì phải chết\", cả nhóm buộc phải quay lại ngôi đền bí ẩn và đối mặt với thế lực tàn ác hơn bao giờ hết!",
+    "durationMinutes": 118,
+    "releaseDate": "2026-06-25",
+    "status": "COMING_SOON",
+    "ageRating": "T16",
+    "genres": [
+      "Kịch tính",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [
+      {
+        "fullName": "Chinawut Indracusin",
+        "avatarUrl": "",
+        "countryName": "Thái Lan",
+        "characterName": "Nong",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "b3430ecd-5ee3-4993-8391-6558b497e28f"
+      },
+      {
+        "fullName": "Bhuripat Vejvongsatechawat",
+        "avatarUrl": "",
+        "countryName": "Thái Lan",
+        "characterName": "First",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "1bd425ca-1429-46de-8c18-eb0d7d6a35e9"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "7217dc52-847e-4ba4-a342-fd6296c4a1cd",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/ngoidenkyquai_xcvynt.webp",
+        "mediaType": "POSTER",
+        "title": "Ngôi đền kỳ quái Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:08:44.734371Z",
+        "updatedAt": "2026-06-17T08:08:44.734371Z"
+      },
+      {
+        "uuid": "dceda4bd-28f1-444f-8c56-fca7637aadf7",
+        "mediaUrl": "https://www.youtube.com/watch?v=Jr9fXN74ivE",
+        "mediaType": "TRAILER",
+        "title": "Ngôi đền kỳ quái Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:08:44.737519Z",
+        "updatedAt": "2026-06-17T08:08:44.737519Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream15.com/20220227/259_3a1852f2/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T08:08:44.721808Z",
+    "updatedAt": "2026-06-17T08:08:44.721808Z"
+  },
+  {
+    "uuid": "00f4bd16-5077-4d8f-a261-644eaf45549b",
+    "title": "Làng Quỷ Quái",
+    "description": "Làng Quỷ Quái hay còn được gọi là Làng Tai Ương là cái tên rùng rợn dành cho Kokaloak, vùng cấm địa nơi hội tụ hàng trăm loại oan hồn chưa siêu thoát. Bất chấp hiểm nguy, một nhóm thanh niên liều lĩnh xâm nhập nơi này để lần theo một bí mật kinh hoàng… nhưng trớ trêu thay lại dở khóc dở cười. Khi mọi thứ dần vượt khỏi tầm kiểm soát, kế hoạch ban đầu bị đảo lộn hoàn toàn, đẩy cả nhóm vào những tình huống \"khóc không ra nước mắt\". Giữa ranh giới mong manh của sợ hãi và \"ối giời ơi\", liệu họ sẽ đối mặt và thoát ra khỏi cơn ác mộng này bằng cách nào?",
+    "durationMinutes": 99,
+    "releaseDate": "2026-06-27",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Kịch tính",
+      "Kinh dị"
+    ],
+    "countries": [],
+    "actors": [
+      {
+        "fullName": "Cao Minh Đạt",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Trưởng làng",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "8bd0483d-4b2c-4551-b668-bbc5e499d6dc"
+      },
+      {
+        "fullName": "Oanh Kiều",
+        "avatarUrl": "",
+        "countryName": "Việt Nam",
+        "characterName": "Mận",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "6d11d1b3-0613-4b97-ba56-36bebefe3be8"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "d600483f-6a33-4506-8229-617abc1e88ea",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/langquyquai_ltqtcx.webp",
+        "mediaType": "POSTER",
+        "title": "Làng Quỷ Quái Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:14:17.025738Z",
+        "updatedAt": "2026-06-17T08:14:17.025738Z"
+      },
+      {
+        "uuid": "211130c1-1aaa-42a8-a101-15d248711ce8",
+        "mediaUrl": "https://www.youtube.com/watch?v=EVwNbnP2uLY",
+        "mediaType": "TRAILER",
+        "title": "Làng Quỷ Quái Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:14:17.028106Z",
+        "updatedAt": "2026-06-17T08:14:17.028106Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=EVwNbnP2uLY",
+    "createdAt": "2026-06-17T08:14:17.020123Z",
+    "updatedAt": "2026-06-17T08:14:17.020123Z"
+  },
+  {
+    "uuid": "6db8c20d-9788-4a83-8b8f-1392d495b2b4",
+    "title": "He-Man và Những Chiến Binh Vũ Trụ",
+    "description": "Thương hiệu huyền thoại trở lại màn ảnh rộng. Sau 15 năm thất lạc, Thanh Gươm Quyền Năng đưa Hoàng tử Adam (Nicholas Galitzine) trở về hành tinh Eternia và phát hiện quê hương đã rơi vào sự cai trị tàn bạo của Skeletor (Jared Leto). Để cứu gia đình và thế giới của mình, Adam phải sát cánh cùng những đồng minh thân cận như Teela (Camila Mendes) và Duncan/Man-At-Arms (Idris Elba), đồng thời chấp nhận định mệnh thật sự của mình: trở thành He-Man - người đàn ông mạnh nhất vũ trụ.",
+    "durationMinutes": 161,
+    "releaseDate": "2026-06-25",
+    "status": "NOW_SHOWING",
+    "ageRating": "T13",
+    "genres": [
+      "Hành động",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "92c2935e-7263-4fad-bc45-bd4a8e5f124e",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/he-man_rgrpsn.webp",
+        "mediaType": "POSTER",
+        "title": "He-Man và Những Chiến Binh Vũ Trụ Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:15:59.396561Z",
+        "updatedAt": "2026-06-17T08:15:59.396561Z"
+      },
+      {
+        "uuid": "e6107d7c-8b77-4641-a2b6-938a76ef2749",
+        "mediaUrl": "https://www.youtube.com/watch?v=0szhmvln_AE",
+        "mediaType": "TRAILER",
+        "title": "He-Man và Những Chiến Binh Vũ Trụ Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:15:59.398072Z",
+        "updatedAt": "2026-06-17T08:15:59.398072Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260607/34277_3a92b465/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-17T08:15:59.388779Z",
+    "updatedAt": "2026-06-17T08:15:59.388779Z"
+  },
+  {
+    "uuid": "e99b48a6-a848-4901-a8b5-ab2c11379584",
+    "title": "Kumanthong - Ác Quỷ Dẫn Đường (2026)",
+    "description": "Một người mẹ đơn thân, vì tương lai của đứa con trai gần như mù lòa, quyết liều mình băng qua khu rừng ma ám trong đêm tối. Nhưng khi một tà linh từ Alas Roban bắt đầu chiếm hữu đứa trẻ, cô buộc phải đối mặt với những thế lực siêu nhiên kinh hoàng và bước vào hành trình tìm kiếm sự cứu rỗi tâm linh trước khi mất đi tất cả.",
+    "durationMinutes": 111,
+    "releaseDate": "2026-06-30",
+    "status": "COMING_SOON",
+    "ageRating": "P",
+    "genres": [
+      "Kịch tính",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Hàn Quốc"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "b7ae91ed-893d-4414-be7f-b8afcbfd4031",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/kumanthong_tcjtze.webp",
+        "mediaType": "POSTER",
+        "title": "Kumanthong - Ác Quỷ Dẫn Đường (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:18:16.488904Z",
+        "updatedAt": "2026-06-17T08:18:16.488904Z"
+      },
+      {
+        "uuid": "2491e679-0dd1-4f9c-b7cb-6782bd9d755e",
+        "mediaUrl": "https://www.youtube.com/watch?v=Vo9XOu4nx1g",
+        "mediaType": "TRAILER",
+        "title": "Kumanthong - Ác Quỷ Dẫn Đường (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:18:16.491002Z",
+        "updatedAt": "2026-06-17T08:18:16.491002Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=Vo9XOu4nx1g",
+    "createdAt": "2026-06-17T08:18:16.478477Z",
+    "updatedAt": "2026-06-17T08:18:16.478477Z"
+  },
+  {
+    "uuid": "fe49c9d9-d278-48cd-9ed3-0834b5a1d7eb",
+    "title": "Điện Ảnh Conan 29 - Thiên Thần Sa Ngã Trên Xa Lộ (2026)",
+    "description": "Conan Movie 29, tựa tiếng Nhật là Detective Conan: Highway no Datenshi (Thiên thần sa ngã trên xa lộ), đã được công bố và sẽ ra mắt tại Nhật Bản vào ngày 10/04/2026, tập trung vào các pha hành động tốc độ, sự trở lại của nhân vật \"Nữ thần gió\" Chihaya Hagiwara và một chiếc mô tô bí ẩn. Phim có bối cảnh chính là Cầu vịnh Yokohama và được đạo diễn bởi Takahiro Hasui",
+    "durationMinutes": 109,
+    "releaseDate": "2026-06-26",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [
+      {
+        "fullName": "Minami Takayama",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Conan Edogawa",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "4862f57b-3b82-47bf-bf57-cf8178c09c55"
+      },
+      {
+        "fullName": "Wakana Yamazaki",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Ran Mouri",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "5601fa42-426a-4ccb-9267-e942c762ca91"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "b9ab8c2f-70fc-4acd-a07b-835c1c7501b1",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/conan_xmfel6.webp",
+        "mediaType": "POSTER",
+        "title": "Điện Ảnh Conan 29 - Thiên Thần Sa Ngã Trên Xa Lộ (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:19:48.959084Z",
+        "updatedAt": "2026-06-17T08:19:48.959084Z"
+      },
+      {
+        "uuid": "996661bf-c3c4-4840-a7ac-ee29639685ef",
+        "mediaUrl": "https://www.youtube.com/watch?v=AgTzZDGYghA",
+        "mediaType": "TRAILER",
+        "title": "Điện Ảnh Conan 29 - Thiên Thần Sa Ngã Trên Xa Lộ (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:19:48.960336Z",
+        "updatedAt": "2026-06-17T08:19:48.960336Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=AgTzZDGYghA",
+    "createdAt": "2026-06-17T08:19:48.954532Z",
+    "updatedAt": "2026-06-17T08:19:48.954532Z"
+  },
+  {
+    "uuid": "1589e2f5-7ac1-48a0-b2cc-23ad6ff7d9c2",
+    "title": "Gintama The Movie 2026: Yoshiwara Trong Biển Lửa (2026)",
+    "description": "Yoshiwara — khu phố đèn đỏ khổng lồ nằm sâu dưới lòng đất, nơi ánh mặt trời không bao giờ chạm tới và pháp luật gần như vô dụng. Tại đây, dục vọng và bạo lực bị thống trị bởi Housen, \"Dạ Vương\" khét tiếng thuộc tộc chiến binh Yato. Ở Edo, Sakata Gintoki cùng nhóm Yorozuya gặp Seita, cậu bé mồ côi sống bằng nghề móc túi. Seita tin rằng Hinowa — Oiran nổi tiếng nhất Yoshiwara — chính là mẹ ruột thất lạc của mình. Cảm động trước mong muốn giản đơn \"chỉ được gặp mẹ một lần\", Gintoki và đồng đội quyết định bước vào Yoshiwara để giúp cậu. Nhưng nơi đây bị Housen cai trị bằng sức mạnh tuyệt đối, biến cuộc tìm kiếm thành trận chiến giữa tình người và bóng tối của \"thành phố đêm vĩnh cửu\".",
+    "durationMinutes": 123,
+    "releaseDate": "2026-06-20",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Nhật Bản"
+    ],
+    "actors": [
+      {
+        "fullName": "Tomokazu Sugita",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Gintoki Sakata",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "4cc4f246-e54a-4fea-8225-82fa8c50e07b"
+      },
+      {
+        "fullName": "Rie Kugimiya",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Kagura",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "d086ec6f-9ed0-41f5-a3ba-ab942e77b4f4"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "6ee3ef6f-2661-4dd2-9417-5163132eabe5",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/gintama_botnbr.webp",
+        "mediaType": "POSTER",
+        "title": "Gintama The Movie 2026: Yoshiwara Trong Biển Lửa (2026) Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:21:36.563887Z",
+        "updatedAt": "2026-06-17T08:21:36.563887Z"
+      },
+      {
+        "uuid": "f0a323e9-3c42-4afc-ad3f-84a0f2717176",
+        "mediaUrl": "https://www.youtube.com/watch?v=8aK6aZXIuXE",
+        "mediaType": "TRAILER",
+        "title": "Gintama The Movie 2026: Yoshiwara Trong Biển Lửa (2026) Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:21:36.566771Z",
+        "updatedAt": "2026-06-17T08:21:36.566771Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=8aK6aZXIuXE",
+    "createdAt": "2026-06-17T08:21:36.556239Z",
+    "updatedAt": "2026-06-17T08:21:36.556239Z"
+  },
+  {
+    "uuid": "2c124719-e890-419d-9fbf-9d9e63623f3d",
+    "title": "Khách",
+    "description": "Vài tuần sau khi bắt đầu hành trình sống trên xe van, một cặp đôi trẻ chứng kiến một vụ tai nạn kinh hoàng khiến người tài xế thiệt mạng. Không lâu sau, họ bị một thực thể quỷ dị bám theo ráo riết — thứ không thể bị cắt đuôi và luôn lần ra họ dù họ chạy đến bất cứ đâu.",
+    "durationMinutes": 119,
+    "releaseDate": "2026-06-25",
+    "status": "NOW_SHOWING",
+    "ageRating": "P",
+    "genres": [
+      "Kịch tính",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "52f34f81-67dc-43db-8704-bc1b852f0014",
+        "mediaUrl": "https://res.cloudinary.com/dmywhl4za/image/upload/khach_l3yolu.webp",
+        "mediaType": "POSTER",
+        "title": "Khách Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-17T08:25:28.765341Z",
+        "updatedAt": "2026-06-17T08:25:28.765341Z"
+      },
+      {
+        "uuid": "9b3cad3f-8aa0-417a-b796-89af9962b359",
+        "mediaUrl": "https://www.youtube.com/watch?v=v0CUDN9NsuA",
+        "mediaType": "TRAILER",
+        "title": "Khách Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-17T08:25:28.767416Z",
+        "updatedAt": "2026-06-17T08:25:28.767416Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=v0CUDN9NsuA",
+    "createdAt": "2026-06-17T08:25:28.75912Z",
+    "updatedAt": "2026-06-17T08:25:28.75912Z"
+  },
+  {
+    "uuid": "790aba4e-770d-41d6-8d24-7429b62120f5",
+    "title": "Husbands in Action",
+    "description": "Một thám tử bắt tay với người chồng mới của vợ cũ để truy tìm kẻ bắt cóc cô. Liệu cặp đôi bất đắc dĩ này có thể gạt bỏ hiềm khích để cùng nhau giải cứu?",
+    "durationMinutes": 169,
+    "releaseDate": "2026-06-18",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hài hước",
+      "Hành động"
+    ],
+    "countries": [
+      "Hàn Quốc"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1451344-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/rdmXkKPjGw43u4wp3aod4aIPiH.jpg",
+        "mediaType": "POSTER",
+        "title": "Husbands in Action Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1451344-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=PSJgwm2xcbI",
+        "mediaType": "TRAILER",
+        "title": "Husbands in Action Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260619/35261_3bfc3fb5/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "006532ab-04c6-4f35-84e6-21ba252a2c2b",
+    "title": "Voicemails for Isabelle",
+    "description": "Những tin nhắn thoại đầy tâm sự hài hước của một cô gái trẻ gửi cho người chị đã khuất vô tình bị chuyển nhầm đến một người xa lạ, người dần dần đem lòng yêu cô từ xa.",
+    "durationMinutes": 102,
+    "releaseDate": "2026-06-20",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Tình cảm",
+      "Hài hước"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-614945-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/canZTWSxACSnAluir3dCtMxKpA1.jpg",
+        "mediaType": "POSTER",
+        "title": "Voicemails for Isabelle Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-614945-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=9mi3YVYm3ZU",
+        "mediaType": "TRAILER",
+        "title": "Voicemails for Isabelle Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260619/35260_c8caec33/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "8d92da8a-e614-4b60-9b10-03c10c99cd4a",
+    "title": "Toy Story 5",
+    "description": "Khi Bonnie nhận được một chiếc máy tính bảng Lilypad làm quà và trở nên mê mẩn nó, công việc của Buzz, Woody, Jessie và cả nhóm trở nên khó khăn gấp bội khi phải đối đầu với mối đe dọa hoàn toàn mới cho giờ chơi.",
+    "durationMinutes": 91,
+    "releaseDate": "2026-06-17",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Gia đình",
+      "Hài hước",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [
+      {
+        "fullName": "Tom Hanks",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Woody",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "c0acc594-a2ae-4387-a771-aa30ee235a22"
+      },
+      {
+        "fullName": "Tim Allen",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Buzz Lightyear",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "a87d8ae9-3d96-472e-ab57-8cbda9c1fbdc"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "tmdb-1084244-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/pxG26JdyuiDvJbSoucknaFiLeZD.jpg",
+        "mediaType": "POSTER",
+        "title": "Toy Story 5 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1084244-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=c51ND9Hdbw0",
+        "mediaType": "TRAILER",
+        "title": "Toy Story 5 Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=c51ND9Hdbw0",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "c4898a6e-3701-4263-a5cc-afd166439880",
+    "title": "Obsession",
+    "description": "Sau khi phá vỡ \"Cây Liễu Một Điều Ước\" bí ẩn để chinh phục trái tim người mình thầm thương, một chàng trai lãng mạn vô vọng nhận ra mình đạt được đúng điều mình ước, nhưng sớm phát hiện một số ham muốn phải trả giá bằng thứ đen tối, đáng sợ.",
+    "durationMinutes": 123,
+    "releaseDate": "2026-05-13",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Giật gân"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1339713-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg",
+        "mediaType": "POSTER",
+        "title": "Obsession Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1339713-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=gMC8kkwbIQQ",
+        "mediaType": "TRAILER",
+        "title": "Obsession Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream15.com/20230326/36293_6f830ce6/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "ceb1d916-46b2-4e3d-af6e-04dc469c10bc",
+    "title": "Your Fault: London",
+    "description": "Nick và Noah cùng bước vào những cuộc phiêu lưu làm thay đổi cuộc đời, đe dọa chia cắt họ — Nick bận rộn với công việc kinh doanh cùng cha, còn Noah bắt đầu chương mới tại Đại học Oxford. Sống tách biệt và gặp gỡ những người mới, cả hai vướng vào cám dỗ, ganh đua và phản bội khiến mối quan hệ của họ bị thử thách chưa từng có.",
+    "durationMinutes": 119,
+    "releaseDate": "2026-06-17",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Tình cảm",
+      "Kịch tính"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1477317-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/nLxu237EJAisFCYKK48hN9Plobx.jpg",
+        "mediaType": "POSTER",
+        "title": "Your Fault: London Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1477317-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=A3ZbjkDxYUs",
+        "mediaType": "TRAILER",
+        "title": "Your Fault: London Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=A3ZbjkDxYUs",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "9929a257-1bd4-4856-ad3a-1067bd583b26",
+    "title": "Backrooms",
+    "description": "Một cánh cửa kỳ lạ xuất hiện trong tầng hầm của một cửa hàng nội thất.",
+    "durationMinutes": 116,
+    "releaseDate": "2026-05-27",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1083381-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/rhGx6E3qRNMgj3i5su2oukNHwIQ.jpg",
+        "mediaType": "POSTER",
+        "title": "Backrooms Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1083381-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=0HjdiohVOik",
+        "mediaType": "TRAILER",
+        "title": "Backrooms Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=0HjdiohVOik",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "ef39057d-3a9b-47f6-9d62-1564af1e40c4",
+    "title": "Pressure",
+    "description": "Trong 72 giờ căng thẳng trước Ngày D, khi vận mệnh thế giới tự do treo lơ lửng, Tướng Dwight D. Eisenhower và Đại úy James Stagg phải đối mặt với một lựa chọn không thể nào — phát động cuộc đổ bộ đường biển lớn nhất và nguy hiểm nhất lịch sử, hoặc chấp nhận rủi ro thua cuộc chiến.",
+    "durationMinutes": 105,
+    "releaseDate": "2026-05-25",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Lịch sử",
+      "Chiến tranh"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1318413-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/gFjEggtrejCN79r6SXRjM269OtG.jpg",
+        "mediaType": "POSTER",
+        "title": "Pressure Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1318413-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=xcPgrKoXe_c",
+        "mediaType": "TRAILER",
+        "title": "Pressure Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://v7.kkphimplayer7.com/20260618/lG7hp9SZ/3500kb/hls/index.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "96465390-6adc-4b30-b81a-7f52763f1c7a",
+    "title": "Disclosure Day",
+    "description": "Một chuyên gia an ninh mạng trở thành người tố giác sau khi phát hiện bí mật về người ngoài hành tinh, khiến anh bị một tập đoàn truy đuổi. Trong khi đó, một nhà khí tượng học đang trải qua những hiện tượng kỳ lạ hợp sức cùng anh để chứng minh có sự sống ngoài tầm hiểu biết của con người.",
+    "durationMinutes": 101,
+    "releaseDate": "2026-06-10",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Giật gân"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1275779-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/3o5YPjDGDTcTDL5ftDA9NwN9dLd.jpg",
+        "mediaType": "POSTER",
+        "title": "Disclosure Day Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1275779-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=SCYT8vb2siQ",
+        "mediaType": "TRAILER",
+        "title": "Disclosure Day Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=SCYT8vb2siQ",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "450b4396-0698-42e6-9692-925ec4a22c8b",
+    "title": "Michael",
+    "description": "Câu chuyện về Michael Jackson, một trong những nghệ sĩ có sức ảnh hưởng nhất mà thế giới từng biết đến, và cuộc đời anh vượt ra ngoài âm nhạc. Hành trình từ khi tài năng phi thường được phát hiện với vai trò trưởng nhóm Jackson Five, cho đến khi trở thành nghệ sĩ có tầm nhìn với tham vọng sáng tạo không ngừng để trở thành nghệ sĩ giải trí vĩ đại nhất thế giới.",
+    "durationMinutes": 174,
+    "releaseDate": "2026-04-22",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Âm nhạc",
+      "Kịch tính"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-936075-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/zm0KAbOjlt9eR5y7vDiL2dEOwMl.jpg",
+        "mediaType": "POSTER",
+        "title": "Michael Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-936075-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=3zOLzsbOleM",
+        "mediaType": "TRAILER",
+        "title": "Michael Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260610/34383_d3d92bc3/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "a9bcfded-d1ee-451f-909b-f06bfe2c409e",
+    "title": "Spider-Man: Brand New Day",
+    "description": "Chiến đấu chống tội phạm toàn thời gian trong vai Spider-Man giữa một thế giới không còn nhớ đến anh — cùng áp lực chứng kiến bạn bè cũ tiếp tục cuộc sống mà không có anh — đã khơi dậy một sự thay đổi trong Peter Parker mà có thể anh không kiểm soát nổi. Nhưng chính sự biến đổi đó có thể là điều duy nhất ngăn chặn được mối đe dọa mới đầy chấn động cho thành phố và những người anh yêu thương.",
+    "durationMinutes": 157,
+    "releaseDate": "2026-07-29",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Hành động",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-969681-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/yyB2VJEW3an2xCdcYCPQhn9QERR.jpg",
+        "mediaType": "POSTER",
+        "title": "Spider-Man: Brand New Day Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-969681-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=62bIsvRcPv0",
+        "mediaType": "TRAILER",
+        "title": "Spider-Man: Brand New Day Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=62bIsvRcPv0",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "96f4e315-660c-490a-b0aa-29d8b1400031",
+    "title": "Deep Water",
+    "description": "Một nhóm hành khách quốc tế trên chuyến bay từ Los Angeles đến Thượng Hải buộc phải hạ cánh khẩn cấp xuống vùng biển đầy cá mập. Nhóm người hoảng loạn phải hợp tác và vượt qua bất đồng nếu muốn thoát khỏi chiếc máy bay đang chìm và đàn cá mập điên cuồng bị thu hút bởi xác máy bay.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-04-30",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1127384-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/kjcuS7xaRyqRjVaVcH4t0qHshuX.jpg",
+        "mediaType": "POSTER",
+        "title": "Deep Water Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1127384-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=f0ptq0Lzdh8",
+        "mediaType": "TRAILER",
+        "title": "Deep Water Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=f0ptq0Lzdh8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "bcac158d-b2fb-4558-9b5b-cd6f65f5e913",
+    "title": "Mortal Kombat II",
+    "description": "Những nhà vô địch được người hâm mộ yêu thích — nay có thêm sự góp mặt của chính Johnny Cage — đối đầu nhau trong trận chiến đẫm máu, không giới hạn để đánh bại sự thống trị tăm tối của Shao Kahn, đang đe dọa sự tồn vong của Địa Giới và những người bảo vệ nó.",
+    "durationMinutes": 163,
+    "releaseDate": "2026-05-06",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Viễn tưởng",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-931285-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/hwRdDFIhaEmpRgoki805YvyyjZf.jpg",
+        "mediaType": "POSTER",
+        "title": "Mortal Kombat II Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-931285-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=ZdC5mFHPldg",
+        "mediaType": "TRAILER",
+        "title": "Mortal Kombat II Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260608/34303_1bc949fb/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "b802bb0a-57c4-4345-9100-29facdb784e6",
+    "title": "Project Hail Mary",
+    "description": "Giáo viên khoa học Ryland Grace tỉnh dậy trên một con tàu vũ trụ cách xa Trái Đất hàng năm ánh sáng mà không nhớ mình là ai hay vì sao mình ở đó. Khi ký ức dần trở lại, anh bắt đầu khám phá nhiệm vụ của mình: giải mã bí ẩn về chất kỳ lạ đang khiến mặt trời lụi tàn.",
+    "durationMinutes": 142,
+    "releaseDate": "2026-03-15",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-687163-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/yihdXomYb5kTeSivtFndMy5iDmf.jpg",
+        "mediaType": "POSTER",
+        "title": "Project Hail Mary Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-687163-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=m08TxIsFTRI",
+        "mediaType": "TRAILER",
+        "title": "Project Hail Mary Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260425/30238_b276f01d/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "a9d37978-d859-46e3-823a-ab97ef913f78",
+    "title": "The Furious",
+    "description": "Sau khi con gái của Vương Vĩ bị một mạng lưới tội phạm bắt cóc và không nhận được sự giúp đỡ nào từ cảnh sát tham nhũng, Vĩ quyết tự mình đi tìm con. Đồng minh duy nhất của anh là Navin, một nhà báo kiên cường có vợ mất tích bí ẩn. Được thúc đẩy bởi cơn thịnh nộ báo thù, bộ đôi bất đắc dĩ này lao vào cuộc đối đầu võ thuật khốc liệt với những kẻ bắt cóc.",
+    "durationMinutes": 92,
+    "releaseDate": "2026-06-10",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1280738-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/zP19YO60jwEsfKd5Qf1UvA5uJu8.jpg",
+        "mediaType": "POSTER",
+        "title": "The Furious Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1280738-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=Avky8dVaqAII",
+        "mediaType": "TRAILER",
+        "title": "The Furious Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=Avky8dVaqAII",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "8b86b3ed-8803-46c4-ab06-dadc63200026",
+    "title": "Masters of the Universe",
+    "description": "Sau 15 năm xa cách, Thanh Gươm Quyền Năng dẫn lối Hoàng tử Adam trở về Eternia, nơi anh phát hiện quê hương mình tan nát dưới ách thống trị độc ác của Skeletor. Để cứu gia đình và thế giới của mình, Adam phải hợp sức cùng những đồng minh thân thiết nhất, Teela và Duncan/Man-At-Arms, và đón nhận định mệnh thực sự của mình — trở thành He-Man, người đàn ông quyền năng nhất vũ trụ.",
+    "durationMinutes": 91,
+    "releaseDate": "2026-06-03",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Viễn tưởng",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-454639-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/3YMd9Ogae4rDKLWuAZFuse9xhc5.jpg",
+        "mediaType": "POSTER",
+        "title": "Masters of the Universe Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-454639-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=X21JsHLHnY8",
+        "mediaType": "TRAILER",
+        "title": "Masters of the Universe Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream11.com/20240125/50898_746d59d2/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "813a5be4-517e-46bc-937f-65390ec752c8",
+    "title": "Scary Movie",
+    "description": "Hai mươi sáu năm sau khi thoát khỏi tên sát nhân đeo mặt nạ quen thuộc đáng ngờ, Bộ Tứ Cốt Lõi lại một lần nữa lọt vào tầm ngắm của kẻ giết người, và không một thương hiệu phim kinh dị nào còn an toàn.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-06-03",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Hài hước",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1273221-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/reZ8NInXjMkkaOpUHcI3Pn7iaRN.jpg",
+        "mediaType": "POSTER",
+        "title": "Scary Movie Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1273221-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=0fZ58S-7QP0",
+        "mediaType": "TRAILER",
+        "title": "Scary Movie Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream14.com/20220305/783_1885bcb1/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "d2cbda81-e17f-482e-a797-b31135452e50",
+    "title": "The Death of Robin Hood",
+    "description": "Vật lộn với quá khứ sau cả đời chìm trong tội ác và giết chóc, Robin Hood bị thương nặng sau một trận chiến mà anh tưởng chừng là trận cuối cùng. Trong tay một người phụ nữ bí ẩn, anh được trao cho một cơ hội cứu rỗi.",
+    "durationMinutes": 115,
+    "releaseDate": "2026-06-18",
+    "status": "NOW_SHOWING",
+    "ageRating": null,
+    "genres": [
+      "Kịch tính",
+      "Giật gân"
+    ],
+    "countries": [
+      "Mỹ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "tmdb-1284465-poster",
+        "mediaUrl": "https://image.tmdb.org/t/p/w500/4cD7KeABHyzeJmzdA6QKe36fp2d.jpg",
+        "mediaType": "POSTER",
+        "title": "The Death of Robin Hood Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      },
+      {
+        "uuid": "tmdb-1284465-trailer",
+        "mediaUrl": "https://www.youtube.com/watch?v=tlSDDuWxO_0",
+        "mediaType": "TRAILER",
+        "title": "The Death of Robin Hood Trailer",
+        "isPrimary": false,
+        "sortOrder": 2,
+        "createdAt": "2026-06-20T00:00:00.000000Z",
+        "updatedAt": "2026-06-20T00:00:00.000000Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=tlSDDuWxO_0",
+    "createdAt": "2026-06-20T00:00:00.000000Z",
+    "updatedAt": "2026-06-20T00:00:00.000000Z"
+  },
+  {
+    "uuid": "9870bd64-561d-4b3b-8676-882734f58b37",
+    "title": "Hokum",
+    "description": "Khi tiểu thuyết gia Ohm Bauman lui về một quán trọ hẻo lánh để rải tro cốt cha mẹ, anh bị ám ảnh bởi những câu chuyện về một mụ phù thủy lảng vảng trong căn phòng tân hôn. Những ảo ảnh đáng sợ và một vụ mất tích chấn động buộc anh phải đối mặt với những góc khuất tăm tối trong quá khứ.",
+    "durationMinutes": 129,
+    "releaseDate": "2026-04-29",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "816df139-0fa9-471f-b342-9ae7e0a486c7",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/jKPWwsbAM6HKURPYQ1eG8DmKMKn.jpg",
+        "mediaType": "POSTER",
+        "title": "Hokum Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260603/33659_56f828cd/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "1647afb0-9da2-4652-ad67-40969ddfd457",
+    "title": "In the Grey",
+    "description": "Một đội đặc nhiệm tinh nhuệ sống ẩn mình trong bóng tối. Khi một bạo chúa tàn nhẫn đánh cắp khối tài sản trị giá hàng tỷ đô, họ được cử đi đoạt lại — một phi vụ bất khả thi biến thành trò chơi chết người đầy chiến thuật, lừa lọc và sinh tồn.",
+    "durationMinutes": 107,
+    "releaseDate": "2026-05-13",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "39fa7da8-cd92-4803-9761-1c4334d2b4fc",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/dQgIcW6Th08kMRf2HBoYWoFE6OD.jpg",
+        "mediaType": "POSTER",
+        "title": "IntheGrey Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://v7.kkphimplayer7.com/20260602/jRNkC1Xq/3500kb/hls/index.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "931e052f-d325-4d1a-b5c2-6a327a2434d5",
+    "title": "Bhooth Bangla",
+    "description": "Một người đàn ông thừa kế tòa lâu đài ở vùng nông thôn Mangalpur và lên kế hoạch tổ chức đám cưới cho em gái tại đó, nhưng những sự kiện siêu nhiên kỳ lạ và sự hoảng loạn của dân làng buộc anh phải điều tra quá khứ bí ẩn của ngôi nhà.",
+    "durationMinutes": 138,
+    "releaseDate": "2026-04-16",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Hài"
+    ],
+    "countries": [
+      "Ấn Độ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "9f6f2f7a-13bd-43ee-8b12-a27d6f463f86",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/79RBp8afL4u4z3nVGR78z6eIvBB.jpg",
+        "mediaType": "POSTER",
+        "title": "BhoothBangla Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=XW1RkKiRnsg",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "48108601-0c86-4c8a-869d-2be12491e674",
+    "title": "undertone",
+    "description": "Người dẫn chương trình podcast siêu nhiên nổi tiếng bị ám ảnh bởi những đoạn ghi âm đáng sợ bí ẩn gửi đến cho cô.",
+    "durationMinutes": 171,
+    "releaseDate": "2026-03-12",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "5b5ecebf-45e0-485b-b65c-b832e70b8a76",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/2PFgFMnrdCPXWiZl1PUvky7Mo9D.jpg",
+        "mediaType": "POSTER",
+        "title": "undertone Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260415/29487_371f5bb6/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "1a7c7052-9caa-43dc-b985-b4f80e49d40a",
+    "title": "Avatar: Fire and Ash",
+    "description": "Trong bối cảnh hậu cuộc chiến tàn khốc chống lại RDA và mất đi đứa con trai cả, Jake Sully và Neytiri đối mặt với mối đe dọa mới trên Pandora: tộc người Tro Tàn, một bộ tộc Na'vi bạo lực và khát quyền lực do Varang tàn nhẫn cầm đầu. Gia đình Jake phải chiến đấu để sinh tồn và bảo vệ tương lai của Pandora trong cuộc xung đột đẩy họ đến giới hạn cảm xúc và thể chất.",
+    "durationMinutes": 94,
+    "releaseDate": "2025-12-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Phiêu lưu",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "2519da72-fd66-482f-9a7f-896d46b4001c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/bRBeSHfGHwkEpImlhxPmOcUsaeg.jpg",
+        "mediaType": "POSTER",
+        "title": "AvatarFireandAsh Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260330/28313_83be9a14/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "b3305eee-bd4e-43cc-8d86-0d55ee82c19e",
+    "title": "A Family of Bastards",
+    "description": "Sau cái chết của cha, Mohamed phát hiện ra sự tồn tại của một người em trai và em gái cùng cha khác mẹ. Cùng nhau, họ phải quản lý quán bar đáng ngờ được thừa kế, vốn dính líu đến tội phạm, buôn ma túy và mại dâm.",
+    "durationMinutes": 97,
+    "releaseDate": "2026-06-12",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Pháp"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3238659c-6437-442a-bea7-e9aa2891f2f9",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/lJRVhYwrJq9IfXOE5FvSxUxXfnf.jpg",
+        "mediaType": "POSTER",
+        "title": "AFamilyofBastards Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=V953fHEqous",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "1c62507e-96eb-4dce-b9b7-596d63ba98df",
+    "title": "Over Your Dead Body",
+    "description": "Một cặp đôi rạn nứt đến một căn nhà gỗ hẻo lánh để \"hàn gắn\", nhưng mỗi người đều âm thầm có ý định giết người kia.",
+    "durationMinutes": 156,
+    "releaseDate": "2026-03-14",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Hài",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "5ba1b679-a99e-410a-94e6-a76144368961",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/kZCauMzAt9eMAhLMopCqnFw1Q5k.jpg",
+        "mediaType": "POSTER",
+        "title": "OverYourDeadBody Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260527/33129_8f5d1c52/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "525dd3c9-493a-482d-80e4-80d555565de7",
+    "title": "Minions & Monsters",
+    "description": "Đây là câu chuyện náo nhiệt, lố bịch và hoàn toàn có thật về cách những Minion chinh phục Hollywood, trở thành ngôi sao điện ảnh, mất tất cả, vô tình thả lũ quái vật ra thế giới rồi cùng nhau cố gắng cứu hành tinh khỏi sự hỗn loạn mà chính họ gây ra.",
+    "durationMinutes": 100,
+    "releaseDate": "2026-06-24",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Phiêu lưu",
+      "Hoạt hình",
+      "Hài",
+      "Gia đình",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "9a975416-406c-41c2-b980-540eea38b74c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/nz7i42yhLIJ4ve9JKgM6NthoLHO.jpg",
+        "mediaType": "POSTER",
+        "title": "MinionsMonsters Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=ZSdOwt-G49w",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "8bb90dbf-855c-41cb-936d-0ae5cb5e29cf",
+    "title": "Leviticus",
+    "description": "Hai cậu thiếu niên phải trốn chạy khỏi một thực thể bạo lực mang hình dạng của người mà họ khao khát nhất — chính là nhau.",
+    "durationMinutes": 134,
+    "releaseDate": "2026-06-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Lãng mạn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "f065c40d-4775-4d3b-81a8-6268be9227b0",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/cu0XnXLzJGPeI0msCoJKgnEecKz.jpg",
+        "mediaType": "POSTER",
+        "title": "Leviticus Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=gfkLVd23T64",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "937c25ab-a2af-4dae-9b6f-5e1afedc06b0",
+    "title": "Never Change!",
+    "description": "Năm 2008, lớp tốt nghiệp của trường trung học North Meadows bị cắt ngang năm cuối cấp bởi một cơn lốc xoáy thảm khốc. Giờ đây ở độ tuổi giữa 30, họ buộc phải trở về để hoàn thành nốt năm học dang dở.",
+    "durationMinutes": 162,
+    "releaseDate": "2026-06-09",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "eff830f2-0847-41bd-9ae4-8941a47b4603",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/yuNToCHZyZybJQ89HSiAR91JEiI.jpg",
+        "mediaType": "POSTER",
+        "title": "NeverChange Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=w5nRZ9BrewE",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "789d69dd-1ba0-4399-9a7a-0f6ba96e25bc",
+    "title": "Blades of the Guardians",
+    "description": "Đào Mã, \"kẻ bị truy nã nguy hiểm thứ hai,\" được ân nhân của mình — thủ lĩnh gia tộc họ Mạc — giao phó một nhiệm vụ hộ tống bí ẩn: áp giải \"kẻ bị truy nã nguy hiểm nhất\" đến Trường An.",
+    "durationMinutes": 95,
+    "releaseDate": "2026-02-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Chính kịch",
+      "Lịch sử"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "ad78d083-703e-40b7-a89e-e3c13352f617",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/AbunjMKX4P1sDNlKfhYrWkIoRD9.jpg",
+        "mediaType": "POSTER",
+        "title": "BladesoftheGuardians Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream14.com/20230603/37241_50cc8570/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "b9477c1b-670d-46e0-987c-d9c9852e03b0",
+    "title": "The Mandalorian and Grogu",
+    "description": "Đế chế tàn ác đã sụp đổ, nhưng các lãnh chúa của Đế chế cũ vẫn còn rải rác khắp thiên hà. Khi Tân Cộng Hòa non trẻ nỗ lực bảo vệ mọi thành quả mà cuộc nổi dậy đã giành được, họ đã chiêu mộ thợ săn tiền thưởng Mandalorian huyền thoại Din Djarin và người học trò nhỏ tuổi Grogu.",
+    "durationMinutes": 152,
+    "releaseDate": "2026-05-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Phiêu lưu",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "d4805069-d34c-49ea-bcd7-54c88bff3713",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/5Vi8dSauVwH1HOsiZceDMbRr1Ca.jpg",
+        "mediaType": "POSTER",
+        "title": "TheMandalorianandGrogu Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=IHWlvwu8t1w",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "4414e3fe-7502-484d-9fb4-276e543dbbf1",
+    "title": "Citizen Vigilante",
+    "description": "Sanders, bất mãn trước sự thiếu công lý công khai, quyết định tự tay hành động bằng cách trở thành một kẻ trừng phạt tội ác. Anh ra tay trừng trị cả tội phạm lẫn quan chức tham nhũng. Khi hành động của anh ngày càng leo thang, danh tiếng của anh cũng tăng theo, giành được sự ủng hộ của công chúng như một anh hùng, nhưng đồng thời thu hút sự chú ý của Henry, một sĩ quan Interpol coi anh là mối đe dọa cho xã hội.",
+    "durationMinutes": 115,
+    "releaseDate": "2026-06-19",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Hành động",
+      "Tội phạm",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "8843b9c5-93a5-472b-a650-9cbcc179a681",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/6LmJD3Wohe0g4U62wgi7RyJqfE4.jpg",
+        "mediaType": "POSTER",
+        "title": "CitizenVigilante Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=fVxmjwaPEFU",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "9cd2df41-cc27-4c42-b862-47c66b6d408f",
+    "title": "Maternal Instinct",
+    "description": "Cảnh sát chặn xe một phụ nữ tuyên bố vừa mới sinh con. Nhưng đứa bé — và cả vết máu — lại không phải của cô. Những lời dối trá rối rắm dần được hé lộ trong bộ phim tài liệu tội phạm có thật này.",
+    "durationMinutes": 92,
+    "releaseDate": "2026-06-11",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Tài liệu",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "93703b31-a9d0-4908-bc4c-86430597599d",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/4KdmT71AGzDMp5hJbAu9vysKQKT.jpg",
+        "mediaType": "POSTER",
+        "title": "MaternalInstinct Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=fzW61JgRbNk",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "e83b95bf-f1c5-4ff7-bed2-50808ce3ec95",
+    "title": "Colors of Evil: Black",
+    "description": "Điều tra vụ mất tích của trẻ em tại một thị trấn hẻo lánh ở Ba Lan, công tố viên Leopold Bilski phải làm sáng tỏ một truyền thuyết địa phương đầy hiểm ác trước khi quá muộn.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-06-10",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Bí ẩn",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Ba Lan"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a876e663-29e3-4e4b-b8a8-38b7fd7c0bd7",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/reeKdj7BSznr7wSGzAtIMrPFgKo.jpg",
+        "mediaType": "POSTER",
+        "title": "ColorsofEvilBlack Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260610/34426_abfa1f5e/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "657ef751-ac79-4827-9028-a9715a896b6d",
+    "title": "They Will Kill You",
+    "description": "Một phụ nữ ứng tuyển vào vị trí quản gia qua mục tìm việc tại một tòa nhà cao tầng bí ẩn ở New York, không hề hay biết mình đang bước vào một cộng đồng từng chứng kiến nhiều vụ mất tích trong nhiều năm và có thể đang chịu sự khống chế của một giáo phái Satan.",
+    "durationMinutes": 143,
+    "releaseDate": "2026-03-25",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Hài",
+      "Hành động"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "dcad6656-7c0a-4238-83e3-70c25efcd371",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/6oI4oQKTWMVUlr8Ivqydp28Ruu6.jpg",
+        "mediaType": "POSTER",
+        "title": "TheyWillKillYou Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260418/29686_a7329df9/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "bbda8a19-cd57-4d85-a212-483db9580993",
+    "title": "Love, Ngo",
+    "description": "\"Love, Ngo\" kể về Ngongo, một chàng trai chăm chỉ tình nguyện tại một tổ chức hỗ trợ trẻ sứt môi hở hàm ếch trong khi phụ giúp mẹ bán bánh mì kẹp thịt. Bộ phim khắc họa hành trình của anh với tình yêu, gia đình và sự chấp nhận bản thân sau khi đem lòng yêu một người phụ nữ có gia đình phản đối vì tình trạng sức khỏe và địa vị xã hội của anh.",
+    "durationMinutes": 141,
+    "releaseDate": "2026-06-03",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài"
+    ],
+    "countries": [
+      "Philippines"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "cb4e5bd1-15f2-4ba0-a404-2c6fb2364622",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/qA7FX4vp2qWfkMd2R3JrbGP6vbu.jpg",
+        "mediaType": "POSTER",
+        "title": "LoveNgo Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=nkpTJeSrDd8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "82bc0c28-2223-4f9e-8e80-a2bf5c1589f6",
+    "title": "Scream 7",
+    "description": "Khi một kẻ giết người Ghostface mới xuất hiện tại thị trấn yên bình nơi Sidney Prescott đã xây dựng cuộc sống mới, nỗi sợ hãi sâu thẳm nhất của cô trở thành hiện thực khi con gái cô trở thành mục tiêu tiếp theo. Quyết tâm bảo vệ gia đình, Sidney phải đối mặt với những nỗi kinh hoàng trong quá khứ để chấm dứt cuộc tắm máu một lần và mãi mãi.",
+    "durationMinutes": 96,
+    "releaseDate": "2026-02-25",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "f3f813f4-9918-4875-ae15-1d92f170f449",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/jjyuk0edLiW8vOSnlfwWCCLpbh5.jpg",
+        "mediaType": "POSTER",
+        "title": "Scream7 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260320/27585_1833ac47/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "f5aefc4b-7726-480e-b8ec-d3635421ccf2",
+    "title": "The Punisher: One Last Kill",
+    "description": "Khi Frank Castle tìm kiếm ý nghĩa vượt ra ngoài sự báo thù, một thế lực bất ngờ kéo anh trở lại cuộc chiến.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-05-12",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Chính kịch",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "1c28758c-2802-465f-bb0f-e7f7f4de42da",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/qQclTgLMDvGBuUBFGHRipxkEwWR.jpg",
+        "mediaType": "POSTER",
+        "title": "ThePunisherOneLastKill Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:45:36.290307Z",
+        "updatedAt": "2026-06-21T03:45:36.290307Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260514/31745_ed21b54c/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:45:36.290307Z",
+    "updatedAt": "2026-06-21T03:45:36.290307Z"
+  },
+  {
+    "uuid": "4219fe38-e22d-4de4-b449-0467afd0d1d0",
+    "title": "The Devil Wears Prada 2",
+    "description": "Andy Sachs trở lại Runway khi Miranda Priestly điều hướng một bối cảnh truyền thông mới và vị thế của Runway trong đó. Bộ đôi tái hợp với trợ lý cũ Emily Charlton, nay là người đứng đầu một thương hiệu xa xỉ nắm giữ nguồn vốn có thể cứu vãn sự tồn vong của Runway.",
+    "durationMinutes": 121,
+    "releaseDate": "2026-04-29",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3869f4fc-4b22-4395-9ed7-b5b6d5dcde31",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/xTI42pmsP5EDnvsNJPEDubwWBQO.jpg",
+        "mediaType": "POSTER",
+        "title": "TheDevilWearsPrada2 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=e9HXmMnUEdE",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "2ed32198-2403-4977-bad2-719445c57486",
+    "title": "Saccharine",
+    "description": "Sau khi mắc phải một trào lưu giảm cân kỳ lạ liên quan đến việc ăn tro cốt người, nữ sinh y khoa si tình Hana thấy mình bị ám ảnh bởi hồn ma của người mà cô đang ăn.",
+    "durationMinutes": 125,
+    "releaseDate": "2026-05-22",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "f4053df6-a1df-42d0-a3b4-d5c89358e27c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/wTlqMc4Jt8ZBtHh8CREblU3ajAB.jpg",
+        "mediaType": "POSTER",
+        "title": "Saccharine Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=uIY13LD3RUY",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "569fbac3-b70b-4f8a-9af7-4b796cd55ec5",
+    "title": "Ready or Not: Here I Come",
+    "description": "Ngay sau khi sống sót qua cuộc tấn công toàn diện từ gia đình Le Domas, Grace phát hiện cô đã bước vào cấp độ tiếp theo của trò chơi ác mộng — lần này có em gái ghẻ lạnh Faith bên cạnh. Grace chỉ có một cơ hội để sống sót, giữ mạng cho em gái và giành lấy Ghế Cao của Hội Đồng nắm quyền kiểm soát thế giới. Bốn gia tộc đối địch đang săn lùng cô để giành ngôi vị, và ai thắng sẽ thống trị tất cả.",
+    "durationMinutes": 175,
+    "releaseDate": "2026-03-19",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Kinh dị",
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "83ead2bf-7b52-48e8-9b4f-d8c092880922",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/13ZcJzSGEqVgDSqsS9U5EkQwPkV.jpg",
+        "mediaType": "POSTER",
+        "title": "ReadyorNotHereICome Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260414/29417_eb5c505e/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "0175d724-e4bc-4b06-afd0-f711597a907d",
+    "title": "Mārama",
+    "description": "Năm 1859. Khi một thiếu nữ Māori trẻ tuổi được triệu tập từ New Zealand đến North Yorkshire, cô khám phá ra di sản thuộc địa kinh hoàng của mình và buộc phải đối đầu, hủy diệt người quý tộc Anh đã tàn phá gia đình cô.",
+    "durationMinutes": 175,
+    "releaseDate": "2026-04-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Chính kịch",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "b92c2b7f-b246-4088-a0eb-148f897ce0b1",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/tD9yi1i2t6cgXDrqaBRzjUy7bEX.jpg",
+        "mediaType": "POSTER",
+        "title": "Mārama Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=qRQrXmHW8p4",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "4d910a23-46f4-43dc-a7cf-a408e55897ab",
+    "title": "Office Romance",
+    "description": "Jackie, Chủ tịch kiêm CEO của Air Cruz, điều hành công ty với kỷ luật nghiêm ngặt, bao gồm chính sách cấm quan hệ tình cảm nội bộ chặt chẽ với mọi nhân viên. Khi một luật sư quyến rũ mới bắt đầu làm việc cho cô, chính sách đó bị thử thách nghiêm trọng.",
+    "durationMinutes": 111,
+    "releaseDate": "2026-06-04",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn",
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "1ab77d44-2e78-4911-9aff-2d12149d9532",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/1HRUTqEVDmJC4L6tp6zd85MI6uH.jpg",
+        "mediaType": "POSTER",
+        "title": "OfficeRomance Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260605/33891_e0652a00/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "f6c6cbb0-84a4-43cf-9c42-7ea2c1412309",
+    "title": "Lee Cronin's The Mummy",
+    "description": "Cô con gái nhỏ của một nhà báo biến mất không dấu vết giữa sa mạc — tám năm sau, gia đình tan vỡ bàng hoàng khi cô trở về, biến cuộc đoàn tụ tưởng chừng vui mừng thành cơn ác mộng thực sự.",
+    "durationMinutes": 171,
+    "releaseDate": "2026-04-15",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "b6546b12-298a-4099-974b-8e7227cd0802",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/1q308iixueCU4pFtSYugNOevtNx.jpg",
+        "mediaType": "POSTER",
+        "title": "LeeCroninsTheMummy Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260518/32323_5f6eb080/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "d2d7447b-cb09-46c2-880f-adc61d3c3856",
+    "title": "Evil Dead Burn",
+    "description": "Sau khi mất chồng, một người phụ nữ tìm sự an ủi bên nhà chồng tại căn nhà gia đình hẻo lánh của họ. Khi từng người một biến thành Deadite — biến cuộc sum họp thành buổi đoàn tụ địa ngục — cô nhận ra rằng những lời thề cô đã hứa khi còn sống... vẫn tiếp tục ngay cả sau khi chết.",
+    "durationMinutes": 117,
+    "releaseDate": "2026-07-08",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "c1df95fa-8669-435a-ae16-c1fed2d32277",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/syGSQh7bqPHCFRhwHewHdR5EqjD.jpg",
+        "mediaType": "POSTER",
+        "title": "EvilDeadBurn Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=7yMXwS1Ghug&t=1s",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "eb62bd5e-d947-449b-b2d5-346a50982934",
+    "title": "Your Heart Will Be Broken",
+    "description": "Nữ sinh trung học Polina được cứu khỏi nạn bắt nạt tại trường mới và lập một thỏa thuận với kẻ bắt nạt chính Bars: anh ta phải giả vờ làm bạn trai và bảo vệ cô, còn cô phải làm theo mọi điều anh nói. Trong trò chơi này, cặp đôi dần nảy sinh tình cảm thật, nhưng gia đình và bạn học của họ lại có lý do để chia cắt đôi tình nhân.",
+    "durationMinutes": 173,
+    "releaseDate": "2026-03-26",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "46286df0-9fe3-4150-ae4d-840f2ff16ec1",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/7wIBfBl2gejt6xHxNSK0reVIm7E.jpg",
+        "mediaType": "POSTER",
+        "title": "YourHeartWillBeBroken Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=b6tPEfe7NCI",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "332fc018-2752-4ff7-baf8-e2c779c139d6",
+    "title": "Normal",
+    "description": "Một cảnh sát trưởng tạm quyền khiêm tốn với quá khứ đầy sóng gió phản ứng với một vụ cướp ngân hàng tại thị trấn nhỏ yên bình và vô tình phát hiện ra điều gì đó còn bùng nổ hơn nhiều.",
+    "durationMinutes": 106,
+    "releaseDate": "2026-04-16",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "fcaf06d7-d7b9-4226-9dbb-5bf28af9398c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/g8JqVRu2eC5SGJd9idauTXurMl2.jpg",
+        "mediaType": "POSTER",
+        "title": "Normal Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260520/32438_08d32c7b/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "898adf80-5b12-4260-9f8c-4050a2d13226",
+    "title": "Karuppu",
+    "description": "Trong một thế giới mà công lý dần suy yếu, vị thần hộ mệnh Vettai Karuppu hóa thân thành luật sư để chiến đấu chống lại một hệ thống pháp luật tham nhũng chuyên bóc lột kẻ yếu thế.",
+    "durationMinutes": 116,
+    "releaseDate": "2026-05-14",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a1a409ab-ab53-4901-b7a9-3154c8f06409",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/ky3KDMdvaeApRVL03kpfYHXzXqd.jpg",
+        "mediaType": "POSTER",
+        "title": "Karuppu Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=hQmoM4I35rs",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "88ef6648-7af9-4b43-a60a-e6e273f83cff",
+    "title": "Exit 8",
+    "description": "Một người đàn ông mắc kẹt trong hành lang tàu điện ngầm vô trùng vô tận quyết tâm tìm Lối Ra Số 8. Quy tắc cho hành trình của anh rất đơn giản: không được bỏ sót bất cứ điều gì bất thường. Nếu phát hiện điều dị thường, phải quay lại ngay lập tức. Nếu không, hãy tiếp tục. Sau đó rời đi qua Lối Ra Số 8. Nhưng chỉ một sơ suất nhỏ cũng sẽ đưa anh trở lại điểm xuất phát. Liệu anh có bao giờ đến được đích và thoát khỏi hành lang vô tận này?",
+    "durationMinutes": 170,
+    "releaseDate": "2025-08-28",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "16bed5d9-c7a0-4e7c-b1bc-9ef4f4954940",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/nQXYTvm6AY4WmtcPskroqC7Skh.jpg",
+        "mediaType": "POSTER",
+        "title": "Exit8 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream13.com/20251024/13744_035eb76e/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "30250802-000c-43d2-a43a-117d8266cc85",
+    "title": "Cocktail 2",
+    "description": "Sau một thập kỷ bên nhau, mối quan hệ của Diya và Kunal bị lung lay khi Ally, một người bạn cũ, trở lại cuộc sống của họ. Những gì bắt đầu như một kế hoạch giữa hai người phụ nữ nhanh chóng biến thành hỗn loạn, mở ra một chuỗi cảm xúc vừa hài hước vừa kịch tính mà không ai trong số họ lường trước được.",
+    "durationMinutes": 111,
+    "releaseDate": "2026-06-19",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn",
+      "Hài"
+    ],
+    "countries": [
+      "Ấn Độ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3c891e42-4a27-4bf8-8f04-d6e44bdbdde5",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/oIQmtByV1LtEQSwM4EpdLTyoSlM.jpg",
+        "mediaType": "POSTER",
+        "title": "Cocktail2 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream17.com/20240530/9175_fee7acea/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "4794e7c0-7b5c-44a6-8efb-7d39d5d5720e",
+    "title": "Misdirection",
+    "description": "Một cặp đôi tuyệt vọng đã thực hiện hàng loạt vụ đột nhập nhà sang trọng để trả nợ băng đảng. Khi họ cố gắng cướp nạn nhân mới nhất, họ rơi vào một trò chơi mèo vờn chuột chết người. Tình thế đảo ngược và kẻ săn mồi trở thành con mồi.",
+    "durationMinutes": 104,
+    "releaseDate": "2026-02-10",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Hành động"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "6cafe0a8-4b97-493d-bfe4-89520cd1a9f8",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/z7padnoIDHbmxPdqEHryhqlaVqc.jpg",
+        "mediaType": "POSTER",
+        "title": "Misdirection Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260224/25750_d717e27d/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "8be5a6de-c387-474b-bc8c-36b5ff31e386",
+    "title": "Badland Rising",
+    "description": "Một người đàn ông bình thường bắt đầu chuyến lái xe 19 tiếng đồng hồ về nhà, không hề hay biết mình đang bị hai tên tội phạm điên loạn bám đuôi. Khi phát hiện ra động cơ của chúng, hành trình của anh biến thành cuộc chiến sinh tồn khốc liệt.",
+    "durationMinutes": 97,
+    "releaseDate": "2026-06-12",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "61174466-2bf0-47f5-9938-c294ef639b83",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/u7rRl06V3320RSeBcircpaeePnr.jpg",
+        "mediaType": "POSTER",
+        "title": "BadlandRising Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=zw6cOAUVakg",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "33613e13-3eed-49a6-89d6-b54f73b4cc5a",
+    "title": "The Drama",
+    "description": "Một cặp đôi đính hôn hạnh phúc bị thử thách khi một biến cố bất ngờ khiến tuần lễ cưới của họ chệch hướng hoàn toàn.",
+    "durationMinutes": 156,
+    "releaseDate": "2026-04-01",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn",
+      "Hài",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a49538b3-c486-42c6-8d10-c3e438c81c57",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/qhGCY6DIemLoCi7x1GuEt98m4JF.jpg",
+        "mediaType": "POSTER",
+        "title": "TheDrama Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260505/31100_77c33d0f/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "cc500b52-51b5-47b6-8ffc-6d086b607150",
+    "title": "Hexed",
+    "description": "Một cô bé tuổi teen bốc đồng và khác thường tên Billie phát hiện ra năng lực phép thuật bí mật, khi được giải phóng đã đưa cô vào một hành trình đầy kỳ quan từ vùng ngoại ô đến vương quốc phù thủy rộng lớn mang tên Hexe. Buộc phải hợp tác cùng người mẹ thận trọng Alice, họ khám phá ra những bí mật gia đình có thể thay đổi cả thế giới của các phù thủy mãi mãi.",
+    "durationMinutes": 115,
+    "releaseDate": "2026-11-25",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Phiêu lưu",
+      "Hoạt hình",
+      "Gia đình",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "c27afddc-295b-49e8-9964-8f462252c4bb",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/CH41Un3T29NThPlxQKcS0I6XEc.jpg",
+        "mediaType": "POSTER",
+        "title": "Hexed Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=mtC4sjABZNw",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "6e2205ca-088e-45f1-9133-64c3d262d4c4",
+    "title": "Zootopia 2",
+    "description": "Sau khi phá được vụ án lớn nhất lịch sử Zootopia, hai cảnh sát trẻ Judy Hopps và Nick Wilde lại lao vào một vụ bí ẩn đầy ngoắt ngoéo khi Gary De'Snake xuất hiện và đảo lộn cả thành phố động vật. Để phá án, Judy và Nick phải hoạt động ngầm tại những khu vực bất ngờ mới, nơi mối quan hệ đối tác đang phát triển của họ bị thử thách chưa từng có.",
+    "durationMinutes": 125,
+    "releaseDate": "2025-11-26",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Phiêu lưu",
+      "Hài",
+      "Bí ẩn",
+      "Gia đình"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [
+      {
+        "fullName": "Ginnifer Goodwin",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Judy Hopps",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "2543a63d-8a63-4368-8f4c-b7b225cf97d1"
+      },
+      {
+        "fullName": "Jason Bateman",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Nick Wilde",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "3caabce7-3a77-47fc-9bfb-cc386af8f4c8"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "2af02da2-82b6-448e-a719-b854f5a104be",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/oJ7g2CifqpStmoYQyaLQgEU32qO.jpg",
+        "mediaType": "POSTER",
+        "title": "Zootopia2 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream10.com/20251207/31687_14f97b19/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "0e086972-c55a-401e-be2d-bc508c9b13d6",
+    "title": "Greenland 2: Migration",
+    "description": "Sau khi tìm được nơi trú ẩn an toàn trong hầm ngầm Greenland kể từ khi sao chổi Clarke tàn phá Trái Đất, gia đình Garrity giờ đây phải đánh cược tất cả để bắt đầu một hành trình nguy hiểm xuyên qua vùng đất hoang tàn của châu Âu, tìm kiếm một mái nhà mới.",
+    "durationMinutes": 91,
+    "releaseDate": "2026-01-07",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Phiêu lưu",
+      "Giật gân",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "894c5e67-f79f-4e77-8c6d-0c7489c89f21",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/z2tqCJLsw6uEJ8nJV8BsQXGa3dr.jpg",
+        "mediaType": "POSTER",
+        "title": "Greenland2Migration Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260129/23293_2bc16f61/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "b96c4eac-8cca-4a6f-90a3-f903364bd0e5",
+    "title": "Dhurandhar: The Revenge",
+    "description": "Khi các băng nhóm đối địch, quan chức tham nhũng và Thiếu tá tàn nhẫn Iqbal siết chặt vòng vây, nhiệm vụ vì tổ quốc của Hamza dần trở thành một cuộc chiến cá nhân đẫm máu, nơi ranh giới giữa người yêu nước và quái vật dần biến mất giữa những con phố Lyari.",
+    "durationMinutes": 143,
+    "releaseDate": "2026-03-18",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm",
+      "Giật gân"
+    ],
+    "countries": [
+      "Ấn Độ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "46421647-d28f-4f7d-9cf9-3ca350c9640f",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/ptTwQES14pr5c3aZvJg56YlYgb1.jpg",
+        "mediaType": "POSTER",
+        "title": "DhurandharTheRevenge Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=Pb2KJlBGids",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "0f111d62-c52b-4ea7-977f-d389bc4398f6",
+    "title": "Girls Like Girls",
+    "description": "Coley, 17 tuổi, đến từ vùng nông thôn Oregon, đối diện với sự gần gũi sau khi mẹ qua đời. Gặp gỡ Sonya khơi dậy những cảm xúc mới, nhưng sự nghi ngờ bản thân cản trở mối liên kết giữa họ. Sonya, chưa từng hẹn hò với con gái, cũng còn nhiều băn khoăn. Cả hai dần học cách đón nhận cảm xúc của mình.",
+    "durationMinutes": 104,
+    "releaseDate": "2026-06-18",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "05b3a9c3-a1e9-46a6-ac2c-d219697643af",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/lFjtAAK5jCPXdcKIgpVJ54Hm0G0.jpg",
+        "mediaType": "POSTER",
+        "title": "GirlsLikeGirls Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:48:55.867286Z",
+        "updatedAt": "2026-06-21T03:48:55.867286Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=ZC1kEknG2ro",
+    "createdAt": "2026-06-21T03:48:55.867286Z",
+    "updatedAt": "2026-06-21T03:48:55.867286Z"
+  },
+  {
+    "uuid": "dcd22d8b-95f3-4f83-9f4c-901eecbbd5e2",
+    "title": "Tom Clancy's Jack Ryan: Ghost War",
+    "description": "Jack Ryan miễn cưỡng bị kéo trở lại thế giới tình báo khi một nhiệm vụ bí mật quốc tế hé lộ một âm mưu chết người. Chạy đua với thời gian, anh hợp lực cùng đồng minh CIA Mike November và James Greer, cùng nữ sĩ quan MI6 sắc sảo Emma Marlowe, để đối đầu với một đơn vị tác chiến đen rời khỏi tầm kiểm soát trong cuộc chiến vừa nguy hiểm vừa mang tính cá nhân sâu sắc.",
+    "durationMinutes": 109,
+    "releaseDate": "2026-05-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a3d79447-0a73-4341-91dd-7c024f179468",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/8ehYxUh5MWE41AeE9gkHE8DKzvB.jpg",
+        "mediaType": "POSTER",
+        "title": "TomClancysJackRyanGhostWar Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260520/32552_e6098d5b/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "2cb37d70-71dc-4fc0-8a86-b0620769d281",
+    "title": "GOAT",
+    "description": "Một chú dê nhỏ mang giấc mơ lớn nhận được cơ hội ngàn năm có một để gia nhập hàng ngũ chuyên nghiệp và chơi roarball, một môn thể thao cường độ cao, nam nữ thi đấu chung, va chạm toàn phần, do những loài động vật nhanh nhất và hung dữ nhất thế giới thống trị.",
+    "durationMinutes": 141,
+    "releaseDate": "2026-02-11",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Hài",
+      "Gia đình"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "7cb78c94-ba35-47bb-92e5-73ceaed7a229",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/wfuqMlaExcoYiUEvKfVpUTt1v4u.jpg",
+        "mediaType": "POSTER",
+        "title": "GOAT Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260325/27831_8d518efb/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "71e083ae-63a7-4dd1-91d9-ffbc76eb6ccb",
+    "title": "The Marked Woman",
+    "description": "Khi một phụ nữ được tìm thấy trong một container vận chuyển mà không nhớ mình là ai, hai thám tử chạy đua với thời gian để tìm ra danh tính của cô — và kẻ nào muốn cô phải chết.",
+    "durationMinutes": 176,
+    "releaseDate": "2026-06-05",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a9e4457d-b66e-444a-bf15-70994975e6d9",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/dyUZ6IKbzmgtdshHevJahpH51Eq.jpg",
+        "mediaType": "POSTER",
+        "title": "TheMarkedWoman Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260605/33889_2528242a/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "0b86cbbc-33db-4755-943e-1a389522b7ea",
+    "title": "Fuze",
+    "description": "Một quả bom chưa nổ từ Thế chiến II được phát hiện tại một công trường xây dựng đông đúc giữa trung tâm London. Hỗn loạn bùng phát khi quân đội và cảnh sát bắt đầu cuộc sơ tán quy mô lớn chạy đua với thời gian.",
+    "durationMinutes": 141,
+    "releaseDate": "2026-03-23",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm",
+      "Chính kịch",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3e33c8a3-290f-4580-ac0b-ac968c9780fc",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/oMFdQE5hMJ9JjhNORegwTo0GKmh.jpg",
+        "mediaType": "POSTER",
+        "title": "Fuze Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=vh9FR7R9QCo",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "fe7ac46c-4778-448a-badc-3587d85c0177",
+    "title": "The Amazing Digital Circus: The Last Act",
+    "description": "Khi Caine biến mất và rạp xiếc chìm trong bóng tối, các thành viên còn lại chỉ còn những sai lầm và tổn thương trong quá khứ để làm bạn. Khi viễn cảnh vĩnh hằng dần khép lại quanh họ, họ khám phá ra sự thật về Rạp Xiếc Kỹ Thuật Số và lịch sử của nó.",
+    "durationMinutes": 169,
+    "releaseDate": "2026-06-03",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Chính kịch",
+      "Khoa học viễn tưởng",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "f6a1051f-410b-45c9-93d6-f6f2c6965cb6",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/uoZeXWuUS2z2F7VaC1iS5RS5cnk.jpg",
+        "mediaType": "POSTER",
+        "title": "TheAmazingDigitalCircusTheLastAct Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=dXJRFOrQfTY",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "568c3757-1c49-4b9e-85a9-eb1732431b06",
+    "title": "Iron Lung",
+    "description": "Trong tương lai hậu tận thế, nơi một sự kiện gọi là \"Cuộc Đại Tịch Lặng\" khiến mọi vì sao và hành tinh có thể sinh sống được biến mất khỏi vũ trụ, một tù nhân được cử đi tìm kiếm trong một đại dương máu được phát hiện trên một mặt trăng hoang vắng, sử dụng một chiếc tàu ngầm nhỏ mang tên \"Lá Phổi Sắt\".",
+    "durationMinutes": 124,
+    "releaseDate": "2026-01-30",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Bí ẩn",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "eff84527-fa28-4f04-ab73-10e25121cddf",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/sIwakdbMGS1krtgendTWpxTY9Hw.jpg",
+        "mediaType": "POSTER",
+        "title": "IronLung Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260530/33413_1e33d42f/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "89dd3587-a023-4ffd-ad0b-a3405c3703ef",
+    "title": "Marty Supreme",
+    "description": "Marty Mauser, một chàng trai trẻ ôm giấc mơ không ai tin tưởng, trải qua địa ngục và quay lại để theo đuổi sự vĩ đại.",
+    "durationMinutes": 149,
+    "releaseDate": "2025-12-19",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "b33cb65f-1fa9-420c-8f52-daa8d9ff5fef",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/lYWEXbQgRTR4ZQleSXAgRbxAjvq.jpg",
+        "mediaType": "POSTER",
+        "title": "MartySupreme Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260218/25331_e41a2904/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "bbac30fe-6bec-4230-88f3-6b086a836743",
+    "title": "How to Make a Killing",
+    "description": "Bị gia đình giàu có từ chối ngay từ khi sinh ra, Becket Redfellow, một lao động bình dân, sẽ không từ thủ đoạn nào để giành lại quyền thừa kế của mình, bất kể có bao nhiêu người thân cản đường.",
+    "durationMinutes": 115,
+    "releaseDate": "2026-02-16",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "15c96544-1e40-4a5c-9d16-d450e3d44864",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/kw7x5mSmHhoeeqwXLwXTBsofD1N.jpg",
+        "mediaType": "POSTER",
+        "title": "HowtoMakeaKilling Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260325/27892_3b9b987d/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "14282872-b56f-4f90-8f25-e04c6ec3e718",
+    "title": "Beast",
+    "description": "Huyền thoại MMA Patton James, nay là ngư dân thương mại, bị kéo trở lại lồng đấu khi anh trai anh gặp nguy hiểm. Tái hợp với huấn luyện viên cũ Sammy, anh quyết tâm cho một trận đấu cuối cùng trong giải vô địch chống lại nhà vô địch tàn bạo Xavier Grau.",
+    "durationMinutes": 148,
+    "releaseDate": "2026-04-10",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a61e010f-80b2-4cc1-a471-26544d36be6b",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/7NrvUI3vnW8H3rD7ExKcTL7KRcQ.jpg",
+        "mediaType": "POSTER",
+        "title": "Beast Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260510/31497_1dcfee25/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "13b0c76e-bcb3-4f18-b1e2-53a95d333a22",
+    "title": "I Am Frankelda",
+    "description": "Một nhà văn trẻ tài năng ở Mexico thế kỷ 19 du hành vào tiềm thức của mình và đối mặt trực tiếp với những nhân vật từ chính những câu chuyện ma quái cô viết ra.",
+    "durationMinutes": 153,
+    "releaseDate": "2025-10-23",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Gia đình",
+      "Giả tưởng",
+      "Kinh dị",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "0797b563-e195-4f35-905e-a657ddbbdaf2",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/hDzllxB1TQ7uUxVvjnGHirJJovt.jpg",
+        "mediaType": "POSTER",
+        "title": "IAmFrankelda Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260612/34738_806c472f/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "0ffc7201-7485-416d-854e-9b449bb7bdd7",
+    "title": "Send Help",
+    "description": "Hai đồng nghiệp mắc kẹt trên một hòn đảo hoang, là những người duy nhất sống sót sau vụ tai nạn máy bay. Trên đảo, họ phải vượt qua những hiềm khích cũ và hợp tác để sinh tồn, nhưng cuối cùng, đó là cuộc đấu trí và ý chí để thoát ra sống sót.",
+    "durationMinutes": 111,
+    "releaseDate": "2026-01-22",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Giật gân",
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "29aad9da-85c6-439e-b233-8e8a51788dad",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/zbJWVHOtj3ljBzWgL1P8pxP03Up.jpg",
+        "mediaType": "POSTER",
+        "title": "SendHelp Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260324/27815_47dd74c3/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "4bbbcf73-7f4a-4b6e-a128-af00471541b8",
+    "title": "Shrek 5",
+    "description": "Shrek và Donkey hợp sức trong một cuộc phiêu lưu náo nhiệt mới giữa thành phố lớn.",
+    "durationMinutes": 152,
+    "releaseDate": "2027-06-30",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Hài",
+      "Giả tưởng",
+      "Phiêu lưu",
+      "Gia đình"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [
+      {
+        "fullName": "Mike Myers",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Shrek",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "ed708c42-b89b-49df-a2f6-5acd918b4ca7"
+      },
+      {
+        "fullName": "Eddie Murphy",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Donkey",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "fa28a41b-ee75-4c93-8f30-baa144beec32"
+      },
+      {
+        "fullName": "Cameron Diaz",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Fiona",
+        "castOrder": 3,
+        "isMain": true,
+        "uuid": "7934aa7a-e6ea-4fa8-8911-529965bb3294"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "b439ce94-35f2-4a44-80c3-05a3693ecacd",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/aRntI6gNBMu4B6YozI7rxXRPyQo.jpg",
+        "mediaType": "POSTER",
+        "title": "Shrek5 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=hUoExO2YkEE",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "238a36f5-aa17-438b-a041-1446a9c98e9b",
+    "title": "Empire of Lies",
+    "description": "Khi một thiếu nữ bí ẩn đến phỏng vấn một người đàn ông hoang tưởng sống cô lập ở vùng nông thôn, anh buộc phải đối mặt với vai trò của mình trong vụ giết hại con gái.",
+    "durationMinutes": 155,
+    "releaseDate": "2026-03-27",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "004a2582-4b61-4402-abad-2194b9400f75",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/2uAFDuOCv6jjbRolZQDnVsbjU8n.jpg",
+        "mediaType": "POSTER",
+        "title": "EmpireofLies Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=f-GXR-9HD1Y",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "4d108d92-824e-4524-8bd6-b538950dd392",
+    "title": "Busboys",
+    "description": "Một cặp bạn ngốc nghếch tin rằng nếu trở thành nhân viên phục vụ, mọi vấn đề của họ sẽ được giải quyết. Họ không hoàn toàn sai, nhưng cũng không hoàn toàn đúng.",
+    "durationMinutes": 118,
+    "releaseDate": "2026-04-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "25d26dba-f3b2-4a77-9da0-192722ece168",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/z7aBU98usPaaFymldN6IcYRsHZr.jpg",
+        "mediaType": "POSTER",
+        "title": "Busboys Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=SEVbq2DvsEQ",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "08662101-7323-4e2b-9d64-b99a18c1afcd",
+    "title": "Passenger",
+    "description": "Sau khi chứng kiến một vụ tai nạn cao tốc kinh hoàng, một cặp đôi trẻ sớm nhận ra họ không rời khỏi hiện trường một mình, khi một thực thể quỷ dữ mang tên Passenger không ngừng theo đuổi cả hai, biến chuyến phiêu lưu sống trên xe van của họ thành cơn ác mộng.",
+    "durationMinutes": 88,
+    "releaseDate": "2026-05-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "236b0346-ece9-49fd-8ed0-efb1a7be9284",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/2sOEJzhPzjTkZSlPbGxOJ7xgIyS.jpg",
+        "mediaType": "POSTER",
+        "title": "Passenger Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": null,
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "11a36335-49bb-43f8-aa58-e0600fcbe631",
+    "title": "Shelter",
+    "description": "Một người đàn ông sống ẩn dật tự nguyện trên một hòn đảo hẻo lánh giải cứu một cô bé khỏi cơn bão dữ dội, mở ra một chuỗi sự kiện buộc anh phải rời khỏi nơi ẩn náu để bảo vệ cô khỏi những kẻ thù liên quan đến quá khứ của anh.",
+    "durationMinutes": 89,
+    "releaseDate": "2026-01-28",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Tội phạm",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "d96e2175-522d-4669-bd60-864d99592585",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg",
+        "mediaType": "POSTER",
+        "title": "Shelter Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260225/25764_7bd89d30/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "6301ae80-c908-4069-87c8-59e147582cb0",
+    "title": "Good Luck, Have Fun, Don't Die",
+    "description": "Một \"Người Đến Từ Tương Lai\" xuất hiện tại một quán ăn ở LA, nơi anh phải chiêu mộ đúng tổ hợp những vị khách bất mãn để cùng tham gia nhiệm vụ một đêm nhằm cứu thế giới khỏi mối đe dọa tận thế từ trí tuệ nhân tạo nổi loạn.",
+    "durationMinutes": 135,
+    "releaseDate": "2026-02-13",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Hành động",
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "47bc9774-753f-4470-89ff-26e464dcc1f7",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/rWcfOdY7TU6lTdazWj0ebDZnAfO.jpg",
+        "mediaType": "POSTER",
+        "title": "GoodLuckHaveFunDontDie Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260311/26967_407db1f4/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "0985b983-7271-479f-bb3c-8272f4e8ce9e",
+    "title": "Avatar Aang: The Last Airbender",
+    "description": "Avatar Aang, vị Khí Hành Giả cuối cùng của thế giới, biết được về một sức mạnh cổ xưa có thể cứu nền văn hóa của mình khỏi tuyệt diệt. Với sự giúp đỡ của bạn bè, cậu bắt đầu hành trình toàn cầu để tìm ra nó trước khi nó rơi vào tay kẻ xấu và đe dọa phá vỡ nền hòa bình mà họ đã hy sinh tất cả để đạt được.",
+    "durationMinutes": 162,
+    "releaseDate": "2026-10-09",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Phiêu lưu",
+      "Hoạt hình",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "e86bd653-2644-468b-894a-145ed157805a",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/29Jdsak3SrwGds5k1t43kH6Khed.jpg",
+        "mediaType": "POSTER",
+        "title": "AvatarAangTheLastAirbender Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=eMF8MPu6CAQ",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "7bca1504-2598-48c2-a37d-ed54aa91a6a9",
+    "title": "28 Years Later: The Bone Temple",
+    "description": "Tiến sĩ Kelson rơi vào một mối quan hệ mới đầy chấn động — với những hệ quả có thể thay đổi cả thế giới mà họ biết — và cuộc chạm trán của Spike với Jimmy Crystal trở thành cơn ác mộng anh không thể nào thoát khỏi.",
+    "durationMinutes": 142,
+    "releaseDate": "2026-01-14",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Giật gân",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "4c88b8fb-ac32-4dac-b72c-ebe08409443c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/kK1BGkG3KAvWB0WMV1DfOx9yTMZ.jpg",
+        "mediaType": "POSTER",
+        "title": "28YearsLaterTheBoneTemple Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260221/25518_98c276f8/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "ebf0b09c-cf35-46d5-8f93-2630106291dd",
+    "title": "War Machine",
+    "description": "Trong nhiệm vụ cuối cùng đầy gian khổ của khóa huấn luyện Biệt Kích Lục Quân, một kỹ sư chiến đấu phải dẫn dắt đơn vị mình chống lại một cỗ máy giết người khổng lồ đến từ thế giới khác.",
+    "durationMinutes": 96,
+    "releaseDate": "2026-02-12",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Khoa học viễn tưởng",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "09a85605-3ff1-4898-ba6b-0d34635e7fa6",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/rFhKkXhk7ClU03jQ5rHIApJDwev.jpg",
+        "mediaType": "POSTER",
+        "title": "WarMachine Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:52:57.443357Z",
+        "updatedAt": "2026-06-21T03:52:57.443357Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260306/26622_00fd113d/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:52:57.443357Z",
+    "updatedAt": "2026-06-21T03:52:57.443357Z"
+  },
+  {
+    "uuid": "32c66dfb-af40-4e11-9de6-9af587120d64",
+    "title": "Superman",
+    "description": "Superman, một nhà báo tại Metropolis, dấn thân vào hành trình hòa giải di sản Krypton với cuộc sống nuôi dưỡng bởi con người trong vai Clark Kent.",
+    "durationMinutes": 155,
+    "releaseDate": "2025-07-09",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Phiêu lưu",
+      "Hành động"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [
+      {
+        "fullName": "David Corenswet",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Clark Kent / Superman",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "c841abf2-c227-4cd6-a36e-1d70eb9c852a"
+      },
+      {
+        "fullName": "Rachel Brosnahan",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Lois Lane",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "a1b74db0-af3f-4469-a7c6-93da5470f38b"
+      },
+      {
+        "fullName": "Nicholas Hoult",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Lex Luthor",
+        "castOrder": 3,
+        "isMain": false,
+        "uuid": "109f6b72-e48f-465c-904b-01c2ff7ee7fe"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "ac0c0038-cd02-47e9-9920-3167a9016f56",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/ldyfo0BKmz5rWtJJKCvwaNS4cJT.jpg",
+        "mediaType": "POSTER",
+        "title": "Superman Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream14.com/20230703/38374_3bb131f2/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "57cf7517-5b25-464b-8589-f04a27ade977",
+    "title": "Marsupilami",
+    "description": "David được giao nhiệm vụ giao một gói hàng bí ẩn từ Nam Mỹ, chỉ để phát hiện ra mình đang mang theo một chú Marsupilami con!",
+    "durationMinutes": 133,
+    "releaseDate": "2026-02-04",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Phiêu lưu",
+      "Hài"
+    ],
+    "countries": [
+      "Pháp"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "7013a45f-fb0f-4520-9314-56f62db73ad5",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/rJNHFa07Id2ylQgw0ttzGwpeczE.jpg",
+        "mediaType": "POSTER",
+        "title": "Marsupilami Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream10.com/20220324/1666_c1142f00/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "b588882e-df84-45d6-a0b3-a99b9902084b",
+    "title": "Summer House",
+    "description": "Selin du hành ngược thời gian đến một ngôi nhà nghỉ hè và thấy mình ở giữa tuổi trẻ của mẹ mình, thay đổi định mệnh gia đình và xây dựng lại cuộc đời chính cô.",
+    "durationMinutes": 162,
+    "releaseDate": "2026-06-06",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Lãng mạn",
+      "Gia đình",
+      "Chính kịch",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3e21378e-83dd-4b2a-aa21-f4038cdfb433",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/81xUChgVphBFehihIgbXbyneZXP.jpg",
+        "mediaType": "POSTER",
+        "title": "SummerHouse Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=MI0vPaSrsW8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "b2d403e2-6811-42ff-8792-3c3bbda733f0",
+    "title": "Signal One",
+    "description": "Một nhà khoa học máy tính được một tỷ phú công nghệ mời tham gia cơ sở riêng trên một hòn đảo Caribbean để điều tra vật chất ngoài hành tinh trên Trái Đất. Khi họ liên lạc được với thế giới bên ngoài, hỗn loạn bùng nổ khiến chúng ta tự hỏi: liệu họ đến trong hòa bình?",
+    "durationMinutes": 91,
+    "releaseDate": "2026-06-05",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Bí ẩn",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "6fd1e1b1-29ad-4155-b43b-dd85092f4fe8",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/bi7Aeaozl51cd5K6vAn8tI1lOW0.jpg",
+        "mediaType": "POSTER",
+        "title": "SignalOne Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=1yMCW2RzJUo",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "cc8ee26a-103d-477c-8754-f30a919fe92c",
+    "title": "Crime 101",
+    "description": "Khi một tên trộm khó nắm bắt với những vụ cướp táo bạo dọc theo xa lộ 101 biểu tượng ở Los Angeles nhắm đến phi vụ lớn nhất đời mình, hy vọng đây sẽ là phi vụ cuối cùng, con đường của hắn giao nhau với một nhân viên môi giới bảo hiểm vỡ mộng đang đứng trước ngã rẽ cuộc đời. Quyết tâm phá án, một thám tử kiên định siết chặt vòng vây quanh phi vụ, đẩy mọi rủi ro lên cao hơn nữa.",
+    "durationMinutes": 117,
+    "releaseDate": "2026-02-11",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Tội phạm",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "c4252788-15d6-418c-a14e-7209fcea49c5",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/tVvpFIoteRHNnoZMhdnwIVwJpCA.jpg",
+        "mediaType": "POSTER",
+        "title": "Crime101 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260314/27098_cd043768/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "54944909-e40e-4d22-b291-f4a8a8257aa1",
+    "title": "Sinners",
+    "description": "Cố gắng bỏ lại cuộc sống đầy sóng gió phía sau, hai anh em sinh đôi trở về quê nhà để làm lại từ đầu, chỉ để phát hiện ra một thế lực tà ác còn lớn hơn đang chờ đón họ trở lại.",
+    "durationMinutes": 91,
+    "releaseDate": "2025-04-16",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "287530f4-c4b5-49a4-bca3-e5fdb6344019",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/fWPgbnt2LSqkQ6cdQc0SZN9CpLm.jpg",
+        "mediaType": "POSTER",
+        "title": "Sinners Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20250530/6646_510f2318/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "a7ee439d-508e-4a43-8021-10f0081b962c",
+    "title": "Avengers: Doomsday",
+    "description": "Những siêu anh hùng được yêu mến từ ba vũ trụ riêng biệt va chạm trên một quỹ đạo định mệnh chết chóc và đối mặt với mối đe dọa sinh tồn chưa từng có.",
+    "durationMinutes": 137,
+    "releaseDate": "2026-12-16",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Khoa học viễn tưởng",
+      "Hành động",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [
+      {
+        "fullName": "Robert Downey Jr.",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Doctor Doom",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "9967c2c4-e7ff-416e-b50a-3a064973ade4"
+      },
+      {
+        "fullName": "Pedro Pascal",
+        "avatarUrl": "",
+        "countryName": "Mỹ",
+        "characterName": "Reed Richards / Mr. Fantastic",
+        "castOrder": 2,
+        "isMain": false,
+        "uuid": "b0a224ba-9d72-470a-9c77-95968671341a"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "25f52982-3bf8-4456-ae75-547be4749abf",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/8HkIe2i4ScpCkcX9SzZ9IPasqWV.jpg",
+        "mediaType": "POSTER",
+        "title": "AvengersDoomsday Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=E6fobg5x168",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "db019a87-92c8-4594-8281-2fb1901ffa8f",
+    "title": "The Breadwinner",
+    "description": "Sau khi vợ anh, Katie, giành được hợp đồng trong mơ trên Shark Tank khiến cô phải đi công tác dài ngày — người trụ cột gia đình lâu năm Nate Wilcox giờ đây phải tự lo cho gia đình với vai trò ông bố nội trợ lần đầu tiên.",
+    "durationMinutes": 134,
+    "releaseDate": "2026-05-29",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Gia đình"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "697ede1b-1686-4b41-9c93-a7abe187d482",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/4apG9Xk6HQvV48JKEjSUeiebju7.jpg",
+        "mediaType": "POSTER",
+        "title": "TheBreadwinner Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream12.com/20220319/4318_25c4bfdb/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "8f4026b1-28e8-4581-9690-28f77abfd1a8",
+    "title": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
+    "description": "Đội Diệt Quỷ bị cuốn vào Vô Tận Thành, nơi Tanjiro, Nezuko và các Trụ Cột phải đối đầu với những con quỷ Thượng Huyền đáng sợ trong trận chiến tuyệt vọng khi cuộc đối đầu cuối cùng với Muzan Kibutsuji bắt đầu.",
+    "durationMinutes": 96,
+    "releaseDate": "2025-07-18",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Hành động",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [
+      {
+        "fullName": "Natsuki Hanae",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Tanjiro Kamado",
+        "castOrder": 1,
+        "isMain": true,
+        "uuid": "fc0bebeb-ab13-4b26-a640-eadd5971d333"
+      },
+      {
+        "fullName": "Yoshitsugu Matsuoka",
+        "avatarUrl": "",
+        "countryName": "Nhật Bản",
+        "characterName": "Inosuke Hashibira",
+        "castOrder": 2,
+        "isMain": true,
+        "uuid": "1fcd9ef8-2319-4d91-b901-873d52b40904"
+      }
+    ],
+    "medias": [
+      {
+        "uuid": "05ae3ed7-8e47-4806-bafa-00651531c24f",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/fWVSwgjpT2D78VUh6X8UBd2rorW.jpg",
+        "mediaType": "POSTER",
+        "title": "DemonSlayerKimetsunoYaibaInfinityCastle Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20251230/21248_b8719842/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "2e3bbd6a-3555-404e-8173-4ceac270bffc",
+    "title": "Seven Snipers",
+    "description": "Khi một cựu xạ thủ tinh nhuệ bị truy lùng bởi tên lãnh chúa tàn bạo từng giam giữ cô, cô phải chiến đấu đến cùng để bảo vệ đứa con gái mà mình đã nuôi nấng trong bí mật, trên một nông trại hẻo lánh ở Úc.",
+    "durationMinutes": 142,
+    "releaseDate": "2026-04-30",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "0aa4ccaa-9fbf-4f04-a500-03ad4d6913dd",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/xIZ8huVdXCL7OMtsjd3XvmFP5sK.jpg",
+        "mediaType": "POSTER",
+        "title": "SevenSnipers Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=-r-HtsJPgto",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "27488426-ac51-4630-83e0-fedf77c09e49",
+    "title": "Couture",
+    "description": "Giữa cơn lốc của Tuần Lễ Thời Trang, ba người phụ nữ giao thoa cuộc đời tại Paris, đối mặt với những bi kịch của thế giới và những câu hỏi lớn của cuộc đời họ.",
+    "durationMinutes": 127,
+    "releaseDate": "2026-02-18",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch"
+    ],
+    "countries": [
+      "Pháp"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "9b413835-23e8-479d-80be-819759f374e2",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/10Wp5u7gwwDrlRfw3EDO0JJSl7n.jpg",
+        "mediaType": "POSTER",
+        "title": "Couture Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=5XNuytIE4sg",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "1b54639a-710f-4c35-80de-92fd53a7a0cb",
+    "title": "Protector",
+    "description": "Cuộc sống của Nikki tan vỡ khi con gái cô bị bắt cóc. Bị đẩy vào thế giới ngầm tội phạm trong khi bị cảnh sát và quân đội truy lùng, cô phải chiến đấu để cứu con mình.",
+    "durationMinutes": 131,
+    "releaseDate": "2026-02-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "892b5f30-7870-4b88-8324-3ae82f3bf672",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/icOZpnGuH9YrEaW3wrw5GJaXGih.jpg",
+        "mediaType": "POSTER",
+        "title": "Protector Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream14.com/20230602/37161_f0ba8ea4/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "05d28c6e-2952-4303-bb94-abdd46683f9d",
+    "title": "KPop Demon Hunters",
+    "description": "Khi các ngôi sao K-pop Rumi, Mira và Zoey không bận biểu diễn cháy vé sân vận động, họ sử dụng năng lực bí mật để bảo vệ người hâm mộ khỏi những mối đe dọa siêu nhiên.",
+    "durationMinutes": 100,
+    "releaseDate": "2025-06-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giả tưởng",
+      "Âm nhạc",
+      "Hài",
+      "Hoạt hình"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "19f70f50-991c-4d79-aa3e-b667892a6024",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/zT7Lhw3BhJbMkRqm9Zlx2YGMsY0.jpg",
+        "mediaType": "POSTER",
+        "title": "KPopDemonHunters Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20250620/7651_83decbc2/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "89e0324a-c17c-4066-a2cb-a08f8ddf76b9",
+    "title": "Colony",
+    "description": "Giáo sư Se-jeong rơi vào cơn ác mộng đẫm máu khi một loại virus đột biến nhanh được phát tán trong một hội nghị công nghệ sinh học, buộc các nhà chức trách phải phong tỏa cơ sở. Mắc kẹt bên trong không lối thoát, Se-jeong cùng một nhóm nhỏ người sống sót phải chiến đấu để tồn tại trong khi những người nhiễm bệnh trải qua những biến đổi kinh hoàng.",
+    "durationMinutes": 162,
+    "releaseDate": "2026-05-21",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân",
+      "Kinh dị"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "d30ce905-9354-44a5-bb3a-2ab98137d268",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/tN799oUR0f1gUKDYdMNrDaY7I51.jpg",
+        "mediaType": "POSTER",
+        "title": "Colony Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=V_Ipdzuj664",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "c52bbd42-ccac-4e4d-9dc3-65ccd9901e5b",
+    "title": "The Last House",
+    "description": "Một gia đình bất ngờ bị niêm phong trong chính ngôi nhà của mình phải hợp sức sinh tồn trước nguồn lực cạn kiệt và mối đe dọa bí ẩn đang giam giữ họ.",
+    "durationMinutes": 153,
+    "releaseDate": "2026-08-07",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Khoa học viễn tưởng",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "309a8147-99c1-4b6d-9dd9-826825637313",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/ivmUB2djVH6HQrQfV0qEekdJWWf.jpg",
+        "mediaType": "POSTER",
+        "title": "TheLastHouse Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream15.com/20220321/1700_7716ac72/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "139ccc40-2613-4e92-aa9b-0b3d5b1f516f",
+    "title": "Apex",
+    "description": "Một phụ nữ đang đau buồn thử thách giới hạn bản thân trong chuyến phiêu lưu một mình giữa hoang dã nước Úc, vô tình rơi vào một trò chơi xoắn não với một kẻ sát nhân tinh quái coi cô là con mồi.",
+    "durationMinutes": 107,
+    "releaseDate": "2026-04-24",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "6fe17f27-613e-45ca-94bd-e84145e5e359",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/eTp7gSPkSF3Aw79mNx1NkBP1PZT.jpg",
+        "mediaType": "POSTER",
+        "title": "Apex Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream10.com/20220321/1201_07a8d88d/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "5beb5a85-85cb-45e4-a63d-5a2d6aa09914",
+    "title": "Sheep in the Box",
+    "description": "Trong tương lai gần, Otone Komoto làm kiến trúc sư. Cô kết hôn với Kensuke Komoto, người điều hành một công ty xây dựng. Cặp vợ chồng quyết định chào đón một robot hình người vào nhà với vai trò con trai của họ.",
+    "durationMinutes": 100,
+    "releaseDate": "2026-05-29",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "aaefd5f9-e648-4b76-9a27-7d2bdc4fb172",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/9rOCIYYT8Q76FHgl3Nm5ofuc6TQ.jpg",
+        "mediaType": "POSTER",
+        "title": "SheepintheBox Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:56:23.021515Z",
+        "updatedAt": "2026-06-21T03:56:23.021515Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=KDWfWwdrLOo",
+    "createdAt": "2026-06-21T03:56:23.021515Z",
+    "updatedAt": "2026-06-21T03:56:23.021515Z"
+  },
+  {
+    "uuid": "e93c40c0-1d20-4cae-8331-c9e73321c84d",
+    "title": "The Sheep Detectives",
+    "description": "George Hardy là một người chăn cừu đêm nào cũng đọc tiểu thuyết trinh thám cho đàn cừu yêu quý của mình nghe, nghĩ rằng chúng không thể nào hiểu được. Nhưng khi một sự cố bí ẩn làm xáo trộn cuộc sống trên nông trại, đàn cừu nhận ra chúng phải tự mình trở thành những thám tử.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-04-30",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Gia đình",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3243fb59-ead0-4ff5-b4bf-2b27fc986c62",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/6QtL9rl3Zb4d8qW6EJ4qO5hSSfU.jpg",
+        "mediaType": "POSTER",
+        "title": "TheSheepDetectives Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=pyZI5oM6hWk&t=2s",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "93551f57-828a-426f-b21b-0b3db4d72a9e",
+    "title": "Predator: Badlands",
+    "description": "Bị trục xuất khỏi bộ tộc, một Predator trẻ tuổi tìm thấy một đồng minh bất ngờ là một android bị hư hỏng và bắt đầu hành trình nguy hiểm để tìm kiếm đối thủ cuối cùng.",
+    "durationMinutes": 113,
+    "releaseDate": "2025-11-05",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Khoa học viễn tưởng",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "3b951d9d-9273-4888-b697-a1bfaa212061",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/pHpq9yNUIo6aDoCXEBzjSolywgz.jpg",
+        "mediaType": "POSTER",
+        "title": "PredatorBadlands Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260110/22083_771f0d31/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "1adb6fec-c308-47f7-bab2-1b24d63ce204",
+    "title": "Enola Holmes 3",
+    "description": "Cuộc phiêu lưu đưa thám tử Enola Holmes đến Malta, nơi kế hoạch kết hôn của cô tan vỡ khi sự mất tích của Sherlock đẩy cô vào một vụ án đầy nguy hiểm.",
+    "durationMinutes": 107,
+    "releaseDate": "2026-07-01",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Phiêu lưu",
+      "Bí ẩn",
+      "Tội phạm"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "74b8d270-d34f-4931-b22d-efce51eaf7fb",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/thzeOvTcdqz14h4CZnw93SrTTKn.jpg",
+        "mediaType": "POSTER",
+        "title": "EnolaHolmes3 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=g1fq327snPU",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "defe4e40-1d61-49da-ba14-ec64da2316e7",
+    "title": "The Wrecking Crew",
+    "description": "Hai anh em cùng cha khác mẹ ly tán Jonny và James đoàn tụ sau cái chết bí ẩn của cha họ. Khi họ truy tìm sự thật, những bí mật chôn giấu hé lộ một âm mưu đe dọa xé nát gia đình họ.",
+    "durationMinutes": 126,
+    "releaseDate": "2026-01-28",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Hài",
+      "Tội phạm",
+      "Bí ẩn"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "9ca225a7-3736-4309-ba80-0eb072e995a9",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/gbVwHl4YPSq6BcC92TQpe7qUTh6.jpg",
+        "mediaType": "POSTER",
+        "title": "TheWreckingCrew Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260130/23497_e689582f/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "ec8e1316-bf79-4170-ae4e-d01e6bac493a",
+    "title": "The Invite",
+    "description": "Hôn nhân của Joe và Angela đang trên bờ vực tan vỡ. Khi họ mời những người hàng xóm tầng trên bí ẩn đến dự tiệc tối, đêm hôm đó dần xoay chuyển sang những điều không ai ngờ tới.",
+    "durationMinutes": 98,
+    "releaseDate": "2026-06-25",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch",
+      "Hài"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "17f3ecaa-1c15-4689-ba2e-6ca99414183a",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/vJRFj5ri9Zm7Tg0Tn7pBmOtXqKb.jpg",
+        "mediaType": "POSTER",
+        "title": "TheInvite Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=OJ19I9q_hOQ",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "14bd40ef-d19d-4f37-ad4c-e58e33549572",
+    "title": "Animal Farm",
+    "description": "Một nhóm động vật trang trại nổi dậy chống lại người chủ vô tâm, mơ về sự bình đẳng và tự do. Nhưng khi đàn lợn nắm quyền kiểm soát, cuộc cách mạng biến thành chế độ chuyên chế, sự thật bị viết lại và mọi tiếng nói bất đồng đều bị đàn áp.",
+    "durationMinutes": 111,
+    "releaseDate": "2026-04-30",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Hài",
+      "Chính kịch",
+      "Gia đình",
+      "Khoa học viễn tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "89e038d7-5c69-48fc-a2b4-70d8db853663",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/6pzI1DIlxwAFffw9OZcG6cr031U.jpg",
+        "mediaType": "POSTER",
+        "title": "AnimalFarm Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://kd.opstream3.com/20230130/30010_0202b916/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "8f5c1b4f-ea83-4bb2-9896-f8c5c3828abf",
+    "title": "Double Happiness",
+    "description": "Tim Kao, bếp trưởng tỉ mỉ của một khách sạn năm sao tại Đài Loan, chuẩn bị kết hôn với vị hôn thê Hong Kong Daisy Wu. Nhưng cha mẹ ly hôn của Tim từ chối tham dự cùng một buổi lễ, và mỗi người đều khăng khăng tự tổ chức riêng.",
+    "durationMinutes": 126,
+    "releaseDate": "2026-02-17",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch"
+    ],
+    "countries": [
+      "Trung Quốc"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "ec0e185e-fd37-430b-bc1e-0fd9473753c4",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/1N5lbL2x4Bz7YBjEWtu34VRBKCe.jpg",
+        "mediaType": "POSTER",
+        "title": "DoubleHappiness Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20250605/6946_6ea3f187/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "949a5357-9236-4c44-abc0-6194c5d5c10a",
+    "title": "The Wizard of the Kremlin",
+    "description": "Trong cơn hỗn loạn của nước Nga hậu Xô Viết, sĩ quan KGB đang lên Vladimir Putin hợp sức cùng bậc thầy thao túng Vadim Baranov để định hình lại cuộc sống sau Bức Màn Sắt, bằng bạo lực và lừa dối thay đổi cả thế giới mãi mãi.",
+    "durationMinutes": 99,
+    "releaseDate": "2026-01-21",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch"
+    ],
+    "countries": [
+      "Pháp"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "35b8245d-c235-42e6-8319-15f3ec297b16",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/85EYON4oXVYTPdMuW5q5ELQLU88.jpg",
+        "mediaType": "POSTER",
+        "title": "TheWizardoftheKremlin Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=Aad7IJLOMb4",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "e16d27ac-33ad-4e67-874e-e10dbc54cc61",
+    "title": "Heart of the Beast",
+    "description": "Sau một vụ rơi máy bay kinh hoàng, sĩ quan Lực Lượng Đặc Biệt James Belmont và chú chó chiến đấu Odin của anh mắc kẹt sâu trong vùng hoang dã Alaska. Cùng nhau, họ buộc phải chiến đấu khốc liệt để sinh tồn trước thiên nhiên khắc nghiệt.",
+    "durationMinutes": 133,
+    "releaseDate": "2026-09-23",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "4dcbf4db-7bc0-4663-94b1-8a2331a7b1a9",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/1ApfSA8JTqeha3GTFEY8syV4auq.jpg",
+        "mediaType": "POSTER",
+        "title": "HeartoftheBeast Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=EiAk7EtHnUQ",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "54e214a0-061a-402c-b786-c67a4ed26569",
+    "title": "The Passenger",
+    "description": "Hassan, một tài xế xe đưa đón sân bay người Mỹ gốc Somali tại Minneapolis, đang chật vật mưu sinh. Khi Lloyd, một thanh niên mắc kẹt tại sân bay, đề nghị trả tiền để Hassan chở anh đến Chicago bằng đường bộ, có vẻ như đáng để mạo hiểm.",
+    "durationMinutes": 180,
+    "releaseDate": "2026-06-05",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a5a51664-dcf5-4085-b248-e623cacc1583",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/i9XqCdF0jrgqveYUaLjOSiRepIq.jpg",
+        "mediaType": "POSTER",
+        "title": "ThePassenger Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260607/34125_6ca75765/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "5b257685-84b9-47c6-80c6-fe8082786f13",
+    "title": "Tuner",
+    "description": "Cuộc đời của một người chỉnh âm piano tài năng bị đảo lộn khi anh phát hiện ra kỹ năng tỉ mỉ trong việc chỉnh âm piano của mình cũng có thể áp dụng để phá két sắt.",
+    "durationMinutes": 172,
+    "releaseDate": "2026-05-21",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Tội phạm",
+      "Giật gân"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "a50028f1-4ff8-4ffe-8052-2b93bfc0f577",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/kyM60vcgf7lfofmZB4F5Rj7OrHW.jpg",
+        "mediaType": "POSTER",
+        "title": "Tuner Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=IBPNLWbVHbM",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "27498af4-c21f-4d07-8c16-a9da43757afc",
+    "title": "Brothers Under Fire",
+    "description": "Đội biệt đội của Đại úy Jordan Wright đang nghỉ phép dự đám cưới ở Mexico thì chạm trán một băng đảng ma túy khát máu. Khi Jordan cố gắng dẫn dắt những người sống sót đến nơi an toàn, chiến tranh nổ ra giữa đội của anh và băng đảng, buộc anh vào trận chiến để cứu lấy đồng đội.",
+    "durationMinutes": 148,
+    "releaseDate": "2026-04-15",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Giật gân",
+      "Bí ẩn",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "f9da5142-898c-4db3-978c-2d83e1748106",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/e5EKqk9V7N3w0WvYFhl6wSVrMp0.jpg",
+        "mediaType": "POSTER",
+        "title": "BrothersUnderFire Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=DrG4QkBpqMc",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "8f005e60-ef3d-46c1-be13-47ed835d7e05",
+    "title": "I Swear",
+    "description": "Được chẩn đoán mắc hội chứng Tourette năm 15 tuổi, John Davidson vượt qua nghịch cảnh trong những năm tháng thiếu niên đầy sóng gió để trưởng thành, tìm thấy nguồn cảm hứng từ lòng tốt của người khác để khám phá mục đích thực sự của cuộc đời mình.",
+    "durationMinutes": 157,
+    "releaseDate": "2025-09-22",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Chính kịch",
+      "Lịch sử"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "7cc6cbc0-7e31-432e-866b-8bb1593e8ad3",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/vUwyhNWBKkSwK8ELvEeBRwV724h.jpg",
+        "mediaType": "POSTER",
+        "title": "ISwear Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream13.com/20251204/20968_8c2b7c5f/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "7ec5af9c-ce5a-47ed-959b-3484fb49d31d",
+    "title": "The Land of Sometimes",
+    "description": "Cặp song sinh Alfie và Elise tìm thấy chiếc Đồng Hồ Ước Nguyện kỳ diệu vào đêm Giáng Sinh và bị Người Thu Gom Ước Nguyện cuốn vào Vùng Đất Đôi Khi đầy âm nhạc, nơi họ học được rằng mọi điều ước đều có cái giá phải trả.",
+    "durationMinutes": 137,
+    "releaseDate": "2026-03-20",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hoạt hình",
+      "Giả tưởng",
+      "Gia đình",
+      "Phiêu lưu"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "77345490-e392-45b7-8372-acec7630b33e",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/uEZAx4Rk42hv8bfrXC9pyQPWErw.jpg",
+        "mediaType": "POSTER",
+        "title": "TheLandofSometimes Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=mf0eNlwLfAk",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "bbfc3328-1c1b-40a9-9d64-16ee199a4b4c",
+    "title": "F1",
+    "description": "Huyền thoại đua xe Sonny Hayes bị thuyết phục trở lại đường đua để dẫn dắt một đội đua Công Thức 1 đang gặp khó khăn — đồng thời cố vấn cho một tay đua trẻ đầy triển vọng — trong khi theo đuổi một cơ hội cuối cùng để giành vinh quang.",
+    "durationMinutes": 137,
+    "releaseDate": "2025-06-25",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hành động",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "93a72769-0139-4cae-9fbd-8a1bf541123b",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/9PXZIUsSDh4alB80jheWX4fhZmy.jpg",
+        "mediaType": "POSTER",
+        "title": "F1 Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://phimtv.cv/1day2love/play/embed.php?url=https%3A%2F%2Fs6.kkphimplayer6.com%2F20250821%2F97C6stWe%2Findex.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "c94d9e96-14f0-4b6a-91a5-d4e69b9f0e72",
+    "title": "Ladies First",
+    "description": "Một gã đàn ông đào hoa kiêu ngạo nhưng cuốn hút thấy cuộc sống đầy tiền bạc, quyền lực và những mối tình chớp nhoáng của mình bị đảo lộn khi tỉnh dậy trong một thế giới song song do phụ nữ thống trị.",
+    "durationMinutes": 152,
+    "releaseDate": "2026-05-21",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Giả tưởng"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "098acb3a-4626-4c85-800b-245c8241550c",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/kjR56Yv17pbjTVBTMjqepvcus4f.jpg",
+        "mediaType": "POSTER",
+        "title": "LadiesFirst Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://vip.opstream90.com/20260522/32693_55b631a0/3000k/hls/mixed.m3u8",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "2394b1e6-5a8a-4d49-ab15-6498501195ac",
+    "title": "Kraken",
+    "description": "Một nhà sinh vật biển đang nghiên cứu tại một trang trại cá thì gặp phải những hiện tượng kỳ lạ. Cùng với hai vụ chết chóc tàn bạo của hai thiếu niên, mọi dấu hiệu đều chỉ về vịnh hẹp sâu thẳm; liệu có điều gì đó còn ẩn sâu hơn những gì mắt thường có thể thấy?",
+    "durationMinutes": 139,
+    "releaseDate": "2026-02-06",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Kinh dị",
+      "Hành động",
+      "Giật gân"
+    ],
+    "countries": [
+      "Khác"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "aa64abe5-2da2-4194-a33a-60de059f30dc",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/xdZ8k5s8DTwWyPBMIcflrYLgcAK.jpg",
+        "mediaType": "POSTER",
+        "title": "Kraken Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=HEhDqQTOJqs",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  },
+  {
+    "uuid": "6db7ad6d-2648-4cbf-844e-62cbb18e4590",
+    "title": "Power Ballad",
+    "description": "Khi Rick, một ca sĩ đám cưới đã qua thời đỉnh cao, gặp ngôi sao nhóm nhạc nam đang lụi tàn Danny tại một buổi diễn, cả hai gắn kết qua âm nhạc và một buổi jam đêm khuya. Nhưng khi Danny biến một bài hát của Rick thành bản hit hồi sinh sự nghiệp của mình, Rick quyết tâm giành lại sự công nhận mà anh tin mình xứng đáng có được — dù phải đánh đổi tất cả những gì anh trân trọng.",
+    "durationMinutes": 128,
+    "releaseDate": "2026-05-18",
+    "status": "COMING_SOON",
+    "ageRating": null,
+    "genres": [
+      "Hài",
+      "Âm nhạc",
+      "Chính kịch"
+    ],
+    "countries": [
+      "Hoa Kỳ"
+    ],
+    "actors": [],
+    "medias": [
+      {
+        "uuid": "d67b843d-652e-46eb-9a4f-9d104c5b60b0",
+        "mediaUrl": "https://image.tmdb.org/t/p/w780/lsDLLagSIyTu0Gi06QjVKDp2LI2.jpg",
+        "mediaType": "POSTER",
+        "title": "PowerBallad Poster",
+        "isPrimary": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-21T03:57:58.375843Z",
+        "updatedAt": "2026-06-21T03:57:58.375843Z"
+      }
+    ],
+    "streamingUrl": "https://www.youtube.com/watch?v=Um_WWbB8Tm0",
+    "createdAt": "2026-06-21T03:57:58.375843Z",
+    "updatedAt": "2026-06-21T03:57:58.375843Z"
+  }
+]

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
@@ -23,6 +25,7 @@ import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
 import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.CinemaWithRoomsResponse;
 import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.service.CinemaService;
 
@@ -52,12 +55,28 @@ public class CinemaController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/admin/cinemas/upload")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<String>> uploadCinemaImage(@RequestParam("file") MultipartFile file) {
+        String imageUrl = cinemaService.uploadImage(file);
+        return ResponseEntity.ok(ApiResponse.success(imageUrl));
+    }
+
     @GetMapping("/cinemas")
     public ResponseEntity<ApiResponse<Page<CinemaResponse>>> getCinemas(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Page<CinemaResponse> response = cinemaService.getCinemas(keyword, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/cinemas/with-rooms")
+    public ResponseEntity<ApiResponse<List<CinemaWithRoomsResponse>>> getCinemasWithRooms(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        List<CinemaWithRoomsResponse> response = cinemaService.getCinemasWithRooms(keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -83,6 +102,20 @@ public class CinemaController {
             @Valid @RequestBody CinemaRoomRequest request) {
         CinemaRoomResponse response = cinemaService.updateRoom(roomUuid, request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/admin/rooms/{roomUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable UUID roomUuid) {
+        cinemaService.deleteRoom(roomUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xoa phong chieu thanh cong"));
+    }
+
+    @DeleteMapping("/admin/cinemas/{cinemaUuid}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteCinema(@PathVariable UUID cinemaUuid) {
+        cinemaService.deleteCinema(cinemaUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa rạp chiếu thành công"));
     }
 
     @GetMapping("/cinemas/{cinemaUuid}/rooms")

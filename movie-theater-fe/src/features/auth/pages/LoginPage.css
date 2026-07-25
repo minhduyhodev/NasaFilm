@@ -1,83 +1,171 @@
 .auth-form {
-  @apply space-y-4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.auth-form__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+}
+
+@media (min-width: 420px) {
+  .auth-form__row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .auth-field-wrapper {
-  @apply space-y-2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .auth-form-actions {
-  @apply flex items-center justify-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.1rem;
 }
 
 .auth-remember-label {
-  @apply flex items-center gap-2 cursor-pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
 }
 
 .auth-checkbox {
-  @apply w-4 h-4 bg-white/10 border border-white/20 rounded cursor-pointer accent-red-600;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  accent-color: #a74d53;
 }
 
 .auth-checkbox-label {
-  @apply text-sm text-gray-300;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .auth-forgot-link {
-  @apply text-sm text-red-400 hover:text-red-300 transition-colors;
+  font-size: 0.78rem;
+  color: #c46a70;
+  transition: color 0.15s ease;
+}
+
+.auth-forgot-link:hover {
+  color: #e08a90;
 }
 
 .auth-submit-btn {
-  @apply w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/20;
+  width: 100%;
+  height: 2.5rem;
+  margin-top: 0.15rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #a74d53;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 8px 20px rgba(167, 77, 83, 0.22);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background: #8c3d43;
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .auth-loading-spinner {
-  @apply flex items-center justify-center gap-2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .auth-spinner-icon {
-  @apply w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: auth-spin 0.7s linear infinite;
 }
 
-.auth-divider-wrapper {
-  @apply relative my-2.5;
-}
-
-.auth-divider-line {
-  @apply w-full border-t border-white/10;
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-footer {
-  @apply text-center pt-2.5 text-sm;
+  text-align: center;
+  padding-top: 0.35rem;
+  font-size: 0.8rem;
 }
 
 .auth-footer-text {
-  @apply text-gray-400;
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .auth-footer-link {
-  @apply text-red-400 hover:text-red-300 font-semibold transition-colors;
+  font-weight: 650;
+  color: #c46a70;
+  transition: color 0.15s ease;
+}
+
+.auth-footer-link:hover {
+  color: #e08a90;
 }
 
 .auth-quick-login-section {
-  @apply space-y-2 pt-1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.15rem;
 }
 
 .auth-quick-login-title {
-  @apply block text-sm font-bold text-gray-500 uppercase tracking-wider text-center;
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.32);
 }
 
 .auth-quick-btn {
-  @apply flex items-center justify-center gap-3 py-3 px-4 text-sm font-semibold text-white/80 rounded-lg border border-white/10 bg-white/5 transition hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed w-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  height: 2.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.auth-quick-btn.customer {
-  @apply hover:border-red-500/50 hover:bg-red-500/10;
+.auth-quick-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.auth-quick-btn.google {
-  @apply hover:border-blue-500/50 hover:bg-blue-500/10;
-}
-
-.auth-quick-btn.apple {
-  @apply hover:border-white/50 hover:bg-white/10;
+.auth-quick-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -1,118 +1,160 @@
-import React from 'react';
-import { Star, Tag, Clock, Globe } from 'lucide-react';
+import { Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl, formatAgeRestrictionBadge, resolveAgeRestrictionClass } from '../utils/movieUtils';
+import PosterImage from '../../../shared/components/PosterImage';
+import FavoriteIconButton from './FavoriteIconButton';
+import './MovieCard.css';
 
-const MovieCard = ({ uuid, title, genre, genres, rating, poster, primaryMediaUrl, duration, durationMinutes, format, hoverDetails, ageRestriction }) => {
-  const formatDuration = (mins) => {
-    if (!mins) return '';
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
+const formatDurationShort = (mins) => {
+  if (!mins) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0 && m > 0) return `${h} giờ ${m} phút`;
+  if (h > 0) return `${h} giờ`;
+  return `${m}'`;
+};
+
+const resolveStatusBadge = ({ releaseDate, reviewAverageRating, reviewCount }) => {
+  if (releaseDate) {
+    const releasedAt = new Date(releaseDate).getTime();
+    if (!Number.isNaN(releasedAt)) {
+      const daysSinceRelease = (Date.now() - releasedAt) / (1000 * 60 * 60 * 24);
+      if (daysSinceRelease >= 0 && daysSinceRelease <= 21) {
+        return { label: 'MỚI', type: 'new' };
+      }
+    }
+  }
+  if (reviewAverageRating >= 4.5 && reviewCount >= 1) {
+    return { label: 'HOT', type: 'hot' };
+  }
+  return null;
+};
+
+const MovieCard = ({
+  uuid,
+  slug: slugProp,
+  title,
+  genre,
+  genres,
+  poster,
+  primaryMediaUrl,
+  duration,
+  durationMinutes,
+  ageRestriction,
+  actionLabel = 'Mua vé',
+  fromOnline = false,
+  getOnlinePath,
+  vodStatus,
+  reviewAverageRating,
+  reviewCount,
+  releaseDate,
+  bestOnBigScreen = false,
+  countries,
+  hoverDetails,
+  posterLoading = 'lazy',
+}) => {
+  const pathId = slugProp || uuid
+    || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const resolveOnlinePath = (movieRef) => {
+    if (getOnlinePath) return getOnlinePath(movieRef);
+    return getOnlineMoviePath(movieRef, vodStatus);
   };
+  const linkTarget =
+    fromOnline && pathId
+      ? resolveOnlinePath(pathId)
+      : getMovieDetailPath(pathId, { online: false });
 
-  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-  const linkTarget = uuid ? `/movie/${uuid}` : `/movie/${slug}`;
-  const displayPoster = primaryMediaUrl || poster;
-  const displayGenre = genres && genres.length > 0 ? genres.join(' / ') : genre;
-  const displayDuration = durationMinutes ? formatDuration(durationMinutes) : duration;
-  const displayRating = rating ? rating : '0.0';
-
-  // Format badge color mappings matching mockup styles
-  const getFormatBadgeStyle = (fmt) => {
-    const f = fmt?.toUpperCase() || '';
-    if (f.includes('IMAX')) return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500';
-    if (f.includes('4DX')) return 'bg-cyan-500/10 border-cyan-500/30 text-cyan-500';
-    if (f.includes('DOLBY')) return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-500';
-    return 'bg-red-500/10 border-red-500/30 text-red-500';
-  };
+  const displayGenres = genres?.length
+    ? genres.join(', ')
+    : genre;
+  const displayDuration = durationMinutes
+    ? formatDurationShort(durationMinutes)
+    : duration;
+  const displayCountry = countries?.length
+    ? countries.join(', ')
+    : hoverDetails?.country;
+  const hasReviewScore = reviewAverageRating > 0 && reviewCount > 0;
+  const statusBadge = resolveStatusBadge({ releaseDate, reviewAverageRating, reviewCount });
 
   return (
-    <div className="group flex flex-col w-full h-full transition-all duration-300">
-      {/* Clickable Poster Frame */}
-      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-[20px] transition-transform duration-500 group-hover:scale-[1.02] shadow-[0_15px_35px_rgba(0,0,0,0.4)]">
-        <Link to={linkTarget} className="block w-full h-full">
-          <img
-            src={displayPoster}
+    <article className="movie-card group">
+      <div className="movie-card__poster-wrap">
+        <Link to={linkTarget} className="movie-card__poster-link" aria-label={title}>
+          <PosterImage
+            src={pickPosterMediaUrl({ uuid, primaryMediaUrl, poster })}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            width={400}
+            className="movie-card__poster"
+            loading={posterLoading}
           />
         </Link>
 
-        {/* Rating and Format Badges on Poster (floating, clean) */}
-        <div className="absolute top-4 left-4 z-10 flex gap-1.5">
-          {format && !format.toUpperCase().includes('2D') && (
-            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md text-white border border-white/10`}>
-              {format}
+        <div className="movie-card__badges-left">
+          {bestOnBigScreen && (
+            <span className="movie-card__status movie-card__status--bigscreen" title="Khán giả NASA khuyên xem rạp">
+              BIG SCREEN
             </span>
           )}
-          {ageRestriction && (
-            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-              ageRestriction.toUpperCase() === 'P' ? 'bg-emerald-600/90 text-white' : 
-              ageRestriction.toUpperCase().includes('T18') ? 'bg-red-600/90 text-white' : 
-              'bg-amber-600/90 text-white'
-            }`}>
-              {ageRestriction}
+          {statusBadge && (
+            <span className={`movie-card__status movie-card__status--${statusBadge.type}`}>
+              {statusBadge.label}
+            </span>
+          )}
+          {hasReviewScore && (
+            <span className="movie-card__rating">
+              <Star className="movie-card__rating-icon" aria-hidden="true" />
+              {Number(reviewAverageRating).toFixed(1)}
             </span>
           )}
         </div>
-        {rating && (
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-black/60 backdrop-blur-md text-yellow-400 border border-white/10">
-            <Star className="h-3 w-3 fill-current text-yellow-400" />
-            <span>{parseFloat(displayRating).toFixed(1)}</span>
+
+        {uuid && (
+          <div className="movie-card__favorite">
+            <FavoriteIconButton movieUuid={uuid} />
           </div>
         )}
 
-        {/* Hover Details Overlay on Poster */}
-        {hoverDetails && (
-          <Link to={linkTarget} className="absolute inset-0 bg-black/90 backdrop-blur-[6px] z-30 flex flex-col justify-center p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <h4 className="text-base font-black text-white uppercase tracking-wide mb-4 font-heading border-b border-white/10 pb-2">
-              {hoverDetails.fullTitle || title}
-            </h4>
-            <div className="flex flex-col gap-3">
-              {hoverDetails.genre && (
-                <div className="flex items-center gap-2.5 text-xs font-semibold text-gray-300">
-                  <Tag className="h-4 w-4 text-red-500" />
-                  <span>{hoverDetails.genre}</span>
-                </div>
-              )}
-              {hoverDetails.duration && (
-                <div className="flex items-center gap-2.5 text-xs font-semibold text-gray-300">
-                  <Clock className="h-4 w-4 text-red-500" />
-                  <span>{hoverDetails.duration}</span>
-                </div>
-              )}
-              {hoverDetails.country && (
-                <div className="flex items-center gap-2.5 text-xs font-semibold text-gray-300">
-                  <Globe className="h-4 w-4 text-red-500" />
-                  <span>{hoverDetails.country}</span>
-                </div>
-              )}
-
-            </div>
-          </Link>
+        {ageRestriction && (
+          <span
+            className={resolveAgeRestrictionClass(ageRestriction)}
+            title={ageRestriction}
+          >
+            {formatAgeRestrictionBadge(ageRestriction)}
+          </span>
         )}
       </div>
 
-      {/* Info details under poster */}
-      <div className="mt-4 flex flex-col space-y-1 text-left px-1">
+      <div className="movie-card__body">
         <Link to={linkTarget}>
-          <h3 className="text-sm md:text-base font-bold text-white uppercase tracking-wide leading-tight group-hover:text-red-500 transition-colors duration-200 font-heading line-clamp-1">
-            {title}
-          </h3>
+          <h3 className="movie-card__title">{title}</h3>
         </Link>
-        
-        <p className="text-xs text-gray-400 font-medium truncate">
-          {displayGenre} {displayDuration && ` · ${displayDuration}`}
-        </p>
 
-        {/* Clean Editorial Link */}
-        <div className="pt-2">
-          <Link to={linkTarget} className="inline-block text-xs font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors duration-200 border-b border-transparent hover:border-red-400">
-            [Mua vé]
-          </Link>
-        </div>
+        {displayGenres && (
+          <p className="movie-card__genres">{displayGenres}</p>
+        )}
+
+        {(displayDuration || displayCountry) && (
+          <div className="movie-card__meta">
+            {displayDuration && (
+              <span className="movie-card__meta-item">
+                <Clock className="movie-card__meta-icon" aria-hidden="true" />
+                {displayDuration}
+              </span>
+            )}
+            {displayCountry && (
+              <span className="movie-card__meta-item">
+                <Globe className="movie-card__meta-icon" aria-hidden="true" />
+                {displayCountry}
+              </span>
+            )}
+          </div>
+        )}
+
+        <Link to={linkTarget} className="movie-card__cta">
+          {actionLabel}
+        </Link>
       </div>
-    </div>
+    </article>
   );
 };
 

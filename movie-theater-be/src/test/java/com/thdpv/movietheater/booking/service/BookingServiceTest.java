@@ -3,8 +3,12 @@ package com.thdpv.movietheater.booking.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -23,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
-import com.thdpv.movietheater.booking.dto.response.BookingResponse;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
@@ -40,6 +43,14 @@ import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.booking.repository.PromotionRepository;
+import com.thdpv.movietheater.movie.entity.Movie;
+import com.thdpv.movietheater.booking.dto.response.VodStatusResponse;
+import com.thdpv.movietheater.booking.dto.response.VodPlayResponse;
+import com.thdpv.movietheater.config.service.SystemConfigService;
+import com.thdpv.movietheater.mission.service.MissionService;
+import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
@@ -68,6 +79,33 @@ class BookingServiceTest {
     @Mock
     private CinemaRoomRepository cinemaRoomRepository;
 
+    @Mock
+    private MovieRepository movieRepository;
+
+    @Mock
+    private PromotionRepository promotionRepository;
+
+    @Mock
+    private SystemConfigService systemConfigService;
+
+    @Mock
+    private ShowtimeCapacityService showtimeCapacityService;
+
+    @Mock
+    private MissionService missionService;
+
+    @Mock
+    private SeatGapValidationService seatGapValidationService;
+
+    @Mock
+    private OrbitRoomService orbitRoomService;
+
+    @Mock
+    private ShowtimeOverlapSupport showtimeOverlapSupport;
+
+    @Mock
+    private com.thdpv.movietheater.payment.service.PaymentService paymentService;
+
     @InjectMocks
     private BookingService bookingService;
 
@@ -83,6 +121,19 @@ class BookingServiceTest {
         mockUser.setId(userUuid);
         mockUser.setEmail("customer@example.com");
         ReflectionTestUtils.setField(bookingService, "autoSlideEnabled", true);
+        lenient().when(showtimeOverlapSupport.planSlideIfPast(any(), any())).thenReturn(Optional.empty());
+        lenient().when(systemConfigService.getMaxSeatsPerBooking()).thenReturn(8);
+        lenient().when(systemConfigService.getOnlineWatchLockMultiplier()).thenReturn(2.0);
+        lenient().doNothing().when(showtimeCapacityService)
+                .validateCapacity(any(), any(Integer.class), any(), any());
+        lenient().when(missionService.handleEvent(any())).thenReturn(List.of());
+        lenient().doAnswer(invocation -> {
+            new SeatGapValidationService(bookingRepository).validateNoSingleSeatGap(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1),
+                    invocation.getArgument(2));
+            return null;
+        }).when(seatGapValidationService).validateNoSingleSeatGap(any(), anyCollection(), any());
     }
 
     @Test
@@ -125,7 +176,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -149,7 +200,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -183,7 +234,7 @@ class BookingServiceTest {
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
-        
+
         Showtime mockShowtime = new Showtime();
         mockShowtime.setUuid(showtimeUuid);
         mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
@@ -206,5 +257,118 @@ class BookingServiceTest {
 
         assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
         assertEquals("Khong duoc de trong 1 ghe le bi kep giua", exception.getMessage());
+    }
+
+    @Test
+    void confirmBookingWithOrbitShouldInvokeAssertCheckoutReady() {
+        UUID orbitRoomUuid = UUID.randomUUID();
+        UUID seatUuid = UUID.randomUUID();
+        List<UUID> seatUuids = List.of(seatUuid);
+
+        ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
+        request.setOrbitRoomUuid(orbitRoomUuid);
+
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Showtime mockShowtime = new Showtime();
+        mockShowtime.setUuid(showtimeUuid);
+        mockShowtime.setStatus(ShowtimeStatus.OPEN_FOR_BOOKING);
+        mockShowtime.setStartTime(OffsetDateTime.now().plusHours(2));
+        when(showtimeRepository.findById(showtimeUuid)).thenReturn(Optional.of(mockShowtime));
+
+        org.mockito.Mockito.doThrow(new AppException(ErrorCode.BAD_REQUEST, "Phòng Orbit chưa sẵn sàng thanh toán"))
+                .when(orbitRoomService)
+                .assertCheckoutReady(orbitRoomUuid, userUuid, showtimeUuid, seatUuids);
+
+        AppException exception = assertThrows(AppException.class, () ->
+                bookingService.confirmBooking("customer@example.com", request));
+
+        assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+        verify(orbitRoomService).assertCheckoutReady(orbitRoomUuid, userUuid, showtimeUuid, seatUuids);
+    }
+
+    @Test
+    void getVodStatus_NoBooking_ReturnsNoneState() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.empty());
+
+        VodStatusResponse response = bookingService.getVodStatus("customer@example.com", movieUuid);
+
+        assertEquals(false, response.isHasPurchased());
+        assertEquals("NONE", response.getPlaybackState());
+    }
+
+    @Test
+    void activateVodPlay_FirstTime_SetsExpirationAndReturnsToken() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Booking booking = new Booking();
+        booking.setUuid(UUID.randomUUID());
+        booking.setUserUuid(userUuid);
+        booking.setMovieUuid(movieUuid);
+        booking.setBookingType("ONLINE");
+        booking.setStatus("CONFIRMED");
+
+        Movie movie = new Movie();
+        movie.setUuid(movieUuid);
+        movie.setDurationMinutes(120);
+        movie.setStreamingUrl("https://java-06.s3.ap-southeast-1.amazonaws.com/movie/demo-stream.mp4");
+
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
+        when(movieRepository.findById(movieUuid)).thenReturn(Optional.of(movie));
+        when(bookingJpaRepository.claimFirstPlay(
+                eq(booking.getUuid()), any(OffsetDateTime.class), any(OffsetDateTime.class),
+                any(String.class), any(OffsetDateTime.class))).thenReturn(1);
+
+        VodPlayResponse response = bookingService.activateVodPlay("customer@example.com", movieUuid);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getStreamToken());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                com.thdpv.movietheater.movie.util.StreamTokenUtils.fingerprint(response.getStreamToken()),
+                response.getStreamSessionId());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "/api/media/stream?key=movie%2Fdemo-stream.mp4",
+                response.getStreamingUrl());
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getExpiresAt());
+    }
+
+    @Test
+    void vodHeartbeat_TokenMismatch_ThrowsConflict() {
+        UUID movieUuid = UUID.randomUUID();
+        when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
+
+        Booking booking = new Booking();
+        booking.setUuid(UUID.randomUUID());
+        booking.setUserUuid(userUuid);
+        booking.setMovieUuid(movieUuid);
+        booking.setBookingType("ONLINE");
+        booking.setStatus("CONFIRMED");
+        booking.setFirstPlayedAt(OffsetDateTime.now());
+        booking.setExpiresAt(OffsetDateTime.now().plusHours(2));
+        booking.setStreamToken("token-a");
+
+        when(bookingJpaRepository.findFirstByUserUuidAndMovieUuidAndBookingTypeAndStatusOrderByCreatedAtDesc(
+                userUuid, movieUuid, "ONLINE", "CONFIRMED")).thenReturn(Optional.of(booking));
+
+        AppException exception = assertThrows(AppException.class, () -> {
+            bookingService.vodHeartbeat("customer@example.com", movieUuid, "token-b", null, null);
+        });
+
+        assertEquals(ErrorCode.CONFLICT, exception.getErrorCode());
+        assertEquals("Tài khoản đang được xem trên thiết bị khác", exception.getMessage());
+    }
+
+    @Test
+    void revokeExpiredVodStreamTokens_DelegatesToRepository() {
+        when(bookingJpaRepository.revokeExpiredVodStreamTokens(any(OffsetDateTime.class))).thenReturn(4);
+
+        int count = bookingService.revokeExpiredVodStreamTokens();
+
+        assertEquals(4, count);
+        verify(bookingJpaRepository).revokeExpiredVodStreamTokens(any(OffsetDateTime.class));
     }
 }

@@ -1,5 +1,7 @@
 HELP.md
 target/
+coverage/
+logs/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -43,6 +45,28 @@ bin/
 thdpv-movie-theater-fe/
 docs/movie_theater.sql
 
-.claude/
 
 skills-lock.json
+# Agent skills (installed via npx skills add; canonical copy in .cursor/skills)
+.agents/
+
+
+### Cursor ###
+.Cursor/
+
+
+/skills-lock.json
+
+
+.claude/
+
+
+special function/
+
+.testsprite/
+
+tests/
+
+testsprite-plans/
+
+testsprite_tests/

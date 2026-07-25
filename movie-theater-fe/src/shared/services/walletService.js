@@ -1,0 +1,87 @@
+import { authService } from '../../features/auth/api/authService';
+
+class WalletService {
+  async getWallet() {
+    try {
+      const response = await authService.api.get('/api/wallet');
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async getTransactions(page = 0, size = 10, type = null, date = null) {
+    try {
+      const response = await authService.api.get('/api/wallet/transactions', {
+        params: {
+          page,
+          size,
+          ...(type ? { type } : {}),
+          ...(date ? { date } : {}),
+        },
+      });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async topUp(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createTopUpIntent(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/intent', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async confirmTopUp(paymentIntentId) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/confirm', { paymentIntentId });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async withdraw(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/withdraw', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createVietQRTopUp(amount) {
+    try {
+      const response = await authService.api.post('/api/wallet/top-up/vietqr', { amount });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async checkVietQRTopUp(code, amount) {
+    try {
+      const response = await authService.api.get('/api/wallet/top-up/vietqr/check', {
+        params: { code, amount },
+      });
+      return response.data; // { data: WalletSummaryResponse | null, message }
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+}
+
+export const walletService = new WalletService();
+export default walletService;

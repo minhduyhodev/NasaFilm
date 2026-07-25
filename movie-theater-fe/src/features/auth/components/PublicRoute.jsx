@@ -1,8 +1,10 @@
-import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../hooks/useAuthContext';
-
-
+import {
+  getDefaultAdminPath,
+  isAdminOrStaffUser,
+  remapLegacyCounterPath,
+} from '../../../shared/utils/adminNavigation';
 
 export const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuthContext();
@@ -17,23 +19,17 @@ export const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    const roles = user?.roles || [];
-    const isAdminOrStaff = roles.some((r) => {
-      if (!r) return false;
-      const roleLower = r.toLowerCase();
-      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
-    });
+    let to = location.state?.from?.pathname;
 
-    const defaultTarget = isAdminOrStaff ? '/admin' : '/';
-    let to = (location.state)?.from?.pathname;
-    if (isAdminOrStaff) {
-      if (!to || !to.startsWith('/admin')) {
-        to = '/admin';
+    if (isAdminOrStaffUser(user)) {
+      if (to?.startsWith('/counter')) {
+        to = remapLegacyCounterPath(to);
       }
-    } else {
-      if (!to || to.startsWith('/admin') || to === '/unauthorized') {
-        to = '/';
+      if (!to || (!to.startsWith('/admin') && to !== '/unauthorized')) {
+        to = getDefaultAdminPath(user);
       }
+    } else if (!to || to.startsWith('/admin') || to.startsWith('/counter') || to === '/unauthorized') {
+      to = '/';
     }
 
     return <Navigate to={to} replace />;

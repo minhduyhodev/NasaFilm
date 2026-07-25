@@ -28,7 +28,7 @@ export const registerSchema = z
       .or(z.literal(''))
       .refine(
         (val) => !val || /^(0[35789][0-9]{8})$/.test(val),
-        'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09'
+        'Định dạng số điện thoại không hợp lệ. Hệ thống chỉ hỗ trợ các đầu số di động hiện hành tại Việt Nam.'
       ),
     dayOfBirth: z
       .string()
@@ -37,7 +37,7 @@ export const registerSchema = z
         const birthDate = new Date(val);
         const today = new Date();
         return birthDate < today;
-      }, 'Ngày sinh phải ở quá khứ')
+      }, 'Ngày sinh không hợp lệ. Bạn không thể chọn ngày sinh ở tương lai.')
       .refine((val) => {
         const birthDate = new Date(val);
         const today = new Date();
@@ -94,7 +94,23 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
-
-
-
+export const activateAccountSchema = z
+  .object({
+    temporaryPassword: z
+      .string()
+      .min(1, 'Vui lòng nhập mật khẩu tạm thời từ email'),
+    password: z
+      .string()
+      .min(1, 'Mật khẩu không được để trống')
+      .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+      .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất một chữ cái viết hoa')
+      .regex(/[a-z]/, 'Mật khẩu phải chứa ít nhất một chữ cái viết thường')
+      .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất một chữ số')
+      .regex(/[!@#$%^&*]/, 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*)'),
+    confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu không trùng khớp',
+    path: ['confirmPassword'],
+  });
 

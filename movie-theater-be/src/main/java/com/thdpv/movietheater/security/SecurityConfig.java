@@ -36,10 +36,14 @@ public class SecurityConfig {
     @Value("${app.frontend-url:*}")
     private String frontendUrl;
 
+    @Value("${app.swagger.enabled:false}")
+    private boolean swaggerEnabled;
+
     private final JwtAuthTokenFilter jwtAuthTokenFilter;
     private final CustomUserDetailsService customUserDetailsService;
     private final ObjectMapper objectMapper;
 
+    /** Catalog and auth endpoints that remain anonymous. Sensitive admin/debug paths are not listed. */
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/login",
             "/api/google",
@@ -49,8 +53,11 @@ public class SecurityConfig {
             "/api/register/verify",
             "/api/forgot-password",
             "/api/reset-password",
+            "/api/activate-account",
             "/api/movies",
             "/api/movies/**",
+            "/api/search",
+            "/api/search/**",
             "/api/showtimes",
             "/api/genres",
             "/api/countries",
@@ -58,6 +65,27 @@ public class SecurityConfig {
             "/api/cinemas",
             "/api/cinemas/**",
             "/api/showtimes/*/seat-map",
+            "/api/showtimes/*/seat-map/watch",
+            "/api/orbit-rooms/feature-status",
+            "/api/system-config",
+            "/api/media/proxy",
+            "/api/media/border",
+            "/api/media/stream",
+            "/api/payments/config",
+            "/api/promotions/public",
+            "/api/promotions/validate",
+            "/api/combos/active",
+            "/api/review-vibe-tags",
+            "/api/review-vibe-tags/**",
+            "/ws/**",
+            "/stomp/**",
+            "/actuator/health",
+            "/actuator/health/**",
+            "/v1/payments/**",
+            "/v1/webhooks/**"
+    };
+
+    private static final String[] SWAGGER_ENDPOINTS = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"
@@ -102,10 +130,13 @@ public class SecurityConfig {
                                 ErrorCode.FORBIDDEN)))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/movies/*/stream").authenticated()
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    if (swaggerEnabled) {
+                        auth.requestMatchers(SWAGGER_ENDPOINTS).permitAll();
+                    }
+                    auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                            .anyRequest().authenticated();
+                })
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -121,8 +152,11 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(List.of(frontendUrl));
         }
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Cache-Control", "Content-Type", "Accept",
+                "Range", "X-Stream-Token", "X-Stream-Session", "X-Request-ID", "x-api-key"));
+        configuration.setExposedHeaders(List.of(
+                "Authorization", "Accept-Ranges", "Content-Range", "Content-Length", "X-Request-ID"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

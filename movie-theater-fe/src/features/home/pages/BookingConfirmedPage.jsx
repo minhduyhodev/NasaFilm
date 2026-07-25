@@ -1,34 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Download } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
 import './BookingConfirmedPage.css';
 
 export const BookingConfirmedPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
-
-  // Check and extract state, redirect to profile if missing
+  const [fetchedPoster, setFetchedPoster] = useState('');
   const bookingData = location.state;
-  
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    if (!bookingData || !bookingData.bookingUuid) {
-      console.warn("No booking data found in location state. Redirecting to profile.");
+
+    if (!bookingData?.bookingUuid) {
       navigate('/profile', { replace: true });
+      return;
+    }
+
+    if (!bookingData.isVod) {
+      navigate(`/pre-show/boarding/${bookingData.bookingUuid}`, {
+        state: { justConfirmed: true },
+        replace: true,
+      });
     }
   }, [bookingData, navigate]);
 
+  useEffect(() => {
+    if (!bookingData?.isVod || !bookingData?.movieUuid || bookingData?.moviePoster) return undefined;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(bookingData.movieUuid)
+      .then((detail) => {
+        if (!cancelled) setFetchedPoster(getMoviePosterUrl(detail));
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingData]);
 
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  if (!bookingData) {
+  if (!bookingData?.isVod) {
     return null;
   }
 
@@ -36,148 +48,116 @@ export const BookingConfirmedPage = () => {
     bookingUuid = '',
     movie = 'Phim đã đặt',
     moviePoster = '',
-    movieFormat = 'IMAX 3D',
     movieRating = 'T16',
-    theater = 'NASA Film Cinema',
-    date = '',
-    showtime = '',
-    selectedSeats = [],
-    tickets = [],
-    totalPrice = 0
+    date = 'Mọi lúc, mọi nơi',
+    showtime = 'Xem trực tuyến',
+    movieUuid = '',
   } = bookingData;
 
   const bookingId = `#CL-${bookingUuid.substring(0, 8).toUpperCase()}`;
-  const firstTicketCode = tickets[0]?.ticketCode || 'NASAFILM';
-  
-  // Real QR generation using api.qrserver.com
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(firstTicketCode)}`;
-
-  // Default fallback poster
-  const defaultPoster = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo';
+  const displayPoster = moviePoster || fetchedPoster;
 
   return (
     <div className="bg-mesh min-h-screen flex flex-col justify-between">
-      <Navbar />
-      
       <main className="relative z-10 flex-grow flex items-center justify-center px-4 md:px-16 lg:px-20 py-12 mt-12 w-full max-w-7xl mx-auto">
-        <div 
-          className="glass-panel max-w-4xl w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-300 text-left bg-[#101217]"
-        >
-          {/* Left Side: Movie Poster & Success Overlay */}
-          <div className="relative w-full md:w-2/5 h-72 md:h-auto overflow-hidden shrink-0 border-r border-white/5">
-            <img 
-              className="absolute inset-0 w-full h-full object-cover" 
-              alt="Cinematic movie poster" 
-              src={avatarLoadFailed ? defaultPoster : moviePoster || defaultPoster}
-              onError={() => setAvatarLoadFailed(true)}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-transparent to-transparent"></div>
-            
-            {/* Animated Checkmark Overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+        <div className="booking-confirmed-ticket glass-panel max-w-4xl w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-300 text-left bg-[#101217] min-w-0">
+          <div className="booking-confirmed-poster relative w-full md:w-2/5 h-72 md:h-auto overflow-hidden shrink-0 border-r border-white/5">
+            {displayPoster ? (
+              <img
+                className="booking-confirmed-poster__image absolute inset-0 w-full h-full object-cover"
+                alt="Poster phim"
+                src={displayPoster}
+              />
+            ) : (
+              <div className="booking-confirmed-poster__fallback absolute inset-0 bg-gradient-to-br from-neutral-900 via-[#121212] to-black" />
+            )}
+            <div className="booking-confirmed-poster__shade absolute inset-0 bg-gradient-to-t from-[#0A0A0C] via-transparent to-transparent" />
+            <div className="booking-confirmed-poster__success absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
               <div className="w-20 h-20 rounded-full border-4 border-[#ccc5bf] flex items-center justify-center neon-gold-glow bg-[#101217]/50">
                 <svg className="w-12 h-12 text-[#ccc5bf]" fill="none" stroke="currentColor" strokeWidth="3.5" viewBox="0 0 24 24">
-                  <path className="checkmark-animate" d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
+                  <path className="checkmark-animate" d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
             </div>
           </div>
-          
-          {/* Right Side: Confirmation Details */}
-          <div className="flex-grow p-8 md:p-10 flex flex-col justify-between">
+
+          <div className="booking-confirmed-details flex-grow p-6 sm:p-8 md:p-10 flex flex-col justify-between min-w-0">
             <div>
               <div className="flex items-center gap-3 mb-5 stagger-item" style={{ animationDelay: '0.1s' }}>
                 <span className="text-[#ccc5bf] text-[10px] font-black tracking-widest uppercase">Trải nghiệm thượng lưu</span>
-                <div className="h-[1px] flex-1 bg-white/10"></div>
+                <div className="h-[1px] flex-1 bg-white/10" />
               </div>
-              
-              <h1 className="text-3xl font-black text-white mb-2 stagger-item" style={{ animationDelay: '0.2s' }}>Đặt Vé Thành Công</h1>
+
+              <h1 className="text-3xl font-black text-white mb-2 stagger-item" style={{ animationDelay: '0.2s' }}>
+                Mua vé online thành công
+              </h1>
               <p className="text-[#c8c5ca] text-xs font-semibold mb-8 stagger-item" style={{ animationDelay: '0.3s' }}>
-                Hành trình điện ảnh của bạn đã sẵn sàng. Chào mừng bạn đến với suất chiếu.
+                Mã VOD đã được gửi qua email. Kích hoạt vé để bắt đầu xem phim ngay.
               </p>
-              
-              {/* Movie Details Grid */}
-              <div className="grid grid-cols-2 gap-y-6 gap-x-4 mb-8">
-                <div className="stagger-item" style={{ animationDelay: '0.4s' }}>
+
+              <div className="booking-confirmed-grid grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4 mb-8">
+                <div className="booking-confirmed-field stagger-item min-w-0" style={{ animationDelay: '0.4s' }}>
                   <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Phim</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white line-clamp-1">{movie}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-bold text-white truncate">{movie}</span>
                     {movieRating && (
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                        movieRating.toUpperCase() === 'P' ? 'bg-emerald-600 text-white' : 
-                        movieRating.toUpperCase().includes('T18') ? 'bg-red-600 text-white' : 
-                        'bg-amber-600 text-white'
-                      }`}>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${String(movieRating || '').toUpperCase() === 'P' ? 'bg-emerald-600 text-white'
+                          : String(movieRating || '').toUpperCase().includes('T18') ? 'bg-red-600 text-white'
+                            : 'bg-amber-600 text-white'
+                        }`}
+                      >
                         {movieRating}
                       </span>
                     )}
                   </div>
                 </div>
-                
-                <div className="stagger-item" style={{ animationDelay: '0.5s' }}>
+
+                <div className="booking-confirmed-field stagger-item min-w-0" style={{ animationDelay: '0.5s' }}>
                   <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Thời gian</span>
-                  <span className="text-sm font-bold text-white">{showtime} • {date}</span>
+                  <span className="text-sm font-bold text-white break-words">{showtime} • {date}</span>
                 </div>
-                
-                <div className="stagger-item" style={{ animationDelay: '0.6s' }}>
-                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Rạp & Phòng chiếu</span>
-                  <span className="text-sm font-bold text-white line-clamp-1">
-                    {theater.replace('NASA ', '')} ({movieFormat})
-                  </span>
+
+                <div className="booking-confirmed-field stagger-item min-w-0" style={{ animationDelay: '0.6s' }}>
+                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Hình thức</span>
+                  <span className="text-sm font-bold text-white break-words">Xem trực tuyến (VOD)</span>
                 </div>
-                
-                <div className="stagger-item" style={{ animationDelay: '0.7s' }}>
-                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Ghế đã đặt</span>
-                  <span className="text-sm font-bold text-[#ccc5bf]">
-                    {selectedSeats.map(s => s.id).join(', ')}
-                  </span>
+
+                <div className="booking-confirmed-field stagger-item min-w-0" style={{ animationDelay: '0.7s' }}>
+                  <span className="block text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Mã đơn</span>
+                  <span className="text-sm font-bold text-[#ccc5bf] break-words">{bookingId}</span>
                 </div>
               </div>
-              
-              {/* QR Code Section */}
-              <div 
-                className="flex items-center gap-5 p-4 glass-panel rounded-xl border-white/5 qr-pulse stagger-item bg-white/[0.01]" 
-                style={{ animationDelay: '0.8s' }}
-              >
-                <div className="bg-white p-1.5 rounded-lg w-20 h-20 flex-shrink-0 flex items-center justify-center shadow-lg">
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="Mã QR soát vé" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div>
-                  <span className="block text-white text-xs font-bold mb-1">Mã vé: {firstTicketCode}</span>
-                  <span className="block text-gray-400 text-[10px] font-semibold mb-1">Mã đơn: {bookingId}</span>
-                  <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block">
-                    Vui lòng xuất trình mã QR này tại lối vào VIP để soát vé vào phòng chiếu.
+
+              <div className="booking-confirmed-qr flex items-start gap-4 p-4 glass-panel rounded-xl border-white/5 qr-pulse stagger-item bg-white/[0.01] min-w-0" style={{ animationDelay: '0.8s' }}>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <span className="block text-white text-xs font-bold mb-1">Mã vé đã gửi qua email</span>
+                  <span className="text-[#c8c5ca] text-[9px] font-medium leading-relaxed block break-words">
+                    Kiểm tra hộp thư đăng ký để lấy mã VOD, sau đó vào trang kích hoạt và nhập mã để bắt đầu xem phim.
                   </span>
                 </div>
               </div>
             </div>
-            
-            {/* Action Buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 action-buttons-group stagger-item" style={{ animationDelay: '0.9s' }}>
-              <button 
-                onClick={handlePrint}
-                className="flex-grow bg-[#ccc5bf] text-[#1c1b1d] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-white transition-all duration-300 neon-gold-glow cursor-pointer active:scale-95"
+
+            <div className="mt-8 flex flex-col gap-3 action-buttons-group stagger-item" style={{ animationDelay: '0.9s' }}>
+              <button
+                type="button"
+                onClick={() => navigate(`/online/activate/${movieUuid}`)}
+                className="w-full bg-red-600 text-white font-bold text-xs uppercase tracking-wider py-3.5 px-4 rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-700 transition-all duration-300 cursor-pointer active:scale-95 text-center"
               >
-                <Download className="w-4 h-4 text-[#1c1b1d] shrink-0" />
-                In / Tải vé PDF
-              </button>
-              
-              <button 
-                onClick={() => navigate('/movies')}
-                className="flex-grow border border-white/10 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl hover:bg-white/5 transition-all duration-300 cursor-pointer active:scale-95"
-              >
-                Tiếp tục xem phim
+                Kích hoạt vé xem online
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/online')}
+              className="booking-confirmed-skip mt-3 w-full border border-white/10 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl hover:bg-white/5 transition-all duration-300 cursor-pointer active:scale-95"
+            >
+              Về trang online
+            </button>
           </div>
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 };

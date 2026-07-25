@@ -1,83 +1,103 @@
 .footer-wrapper {
-  @apply relative border-t border-white/5 bg-[#0f0f0f] pt-16 pb-8 text-gray-400;
+  @apply relative border-t border-white/[0.07] bg-[#070a11] pb-7 pt-20 text-slate-400;
 }
 
 .footer-glow {
-  @apply absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-[1px] bg-gradient-to-r from-transparent via-red-500/25 to-transparent blur-sm;
+  @apply absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-rose-400/40 to-transparent;
 }
 
 .footer-container {
-  @apply mx-auto max-w-7xl px-4 md:px-8 lg:px-20;
+  @apply mx-auto max-w-7xl px-5 md:px-10 lg:px-16;
 }
 
 .footer-grid {
-  @apply grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8;
+  @apply grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_0.7fr_0.85fr_1.05fr] lg:gap-10;
 }
 
 .footer-col {
-  @apply space-y-4;
+  @apply space-y-5;
+}
+
+.footer-brand {
+  @apply max-w-sm;
 }
 
 .footer-brand-logo {
-  @apply flex items-center gap-2.5;
+  @apply flex w-fit items-center gap-3 rounded-sm transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
 }
 
 .footer-logo-img {
-  @apply h-14 w-auto object-contain rounded-lg;
+  @apply h-11 w-11 rounded-lg object-cover;
 }
 
 .footer-brand-name {
-  @apply text-base font-black tracking-wider text-white;
+  @apply text-lg font-black tracking-[0.04em] text-white;
 }
 
-.footer-brand-sub {
-  @apply text-[10px] uppercase tracking-widest text-red-500 font-bold;
+.footer-brand-name span {
+  @apply text-rose-400;
+}
+
+.footer-brand-kicker {
+  @apply mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600;
 }
 
 .footer-brand-text {
-  @apply text-sm leading-relaxed text-gray-400/80;
+  @apply mt-3 text-sm leading-6 text-slate-400;
 }
 
-.footer-social-list {
-  @apply flex items-center gap-4 pt-2;
+.footer-live-note {
+  @apply mt-7 flex w-fit items-center gap-2 border-l border-emerald-400/50 pl-3 text-[11px] font-medium text-slate-500;
+}
+
+.footer-live-note svg {
+  @apply text-emerald-400;
 }
 
 .footer-col-title {
-  @apply text-sm font-bold uppercase tracking-wider text-white;
+  @apply text-xs font-bold uppercase tracking-[0.16em] text-slate-200;
 }
 
 .footer-links-list {
-  @apply space-y-2.5 text-sm;
+  @apply space-y-3 text-sm;
 }
 
 .footer-link-item {
-  @apply hover:text-white transition-colors duration-200 flex items-center gap-1.5;
+  @apply inline-block text-slate-400 transition-all duration-200 hover:translate-x-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
 }
 
-.footer-link-dot {
-  @apply h-1 w-1 rounded-full bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+.footer-support-card {
+  @apply border-l border-white/10 pl-6 md:col-span-2 lg:col-span-1;
 }
 
-.footer-contact-list {
-  @apply space-y-3.5 text-sm;
+.footer-support-card > svg {
+  @apply mb-7 text-rose-400;
 }
 
-.footer-contact-item {
-  @apply flex items-start gap-3;
+.footer-support-label {
+  @apply mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600;
 }
 
-.footer-contact-icon {
-  @apply h-5 w-5 text-red-500 flex-shrink-0 mt-0.5;
+.footer-support-card h2 {
+  @apply max-w-xs text-lg font-bold leading-6 tracking-[-0.02em] text-white;
+}
+
+.footer-support-link {
+  @apply mt-6 inline-flex items-center gap-2 border-b border-white/20 pb-1 text-xs font-bold text-slate-300 transition-all duration-200 hover:gap-3 hover:border-rose-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
 }
 
 .footer-divider {
-  @apply my-10 border-t border-white/5;
+  @apply mb-7 mt-16 border-t border-white/[0.07];
 }
 
 .footer-bottom {
-  @apply flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500/80;
+  @apply flex flex-col gap-4 text-[11px] text-slate-600 sm:flex-row sm:items-center sm:justify-between;
 }
 
 .footer-bottom-links {
-  @apply flex items-center gap-6;
+  @apply flex flex-wrap items-center gap-x-6 gap-y-2;
+}
+
+.footer-bottom-links a {
+  @apply transition-colors duration-200 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
 }

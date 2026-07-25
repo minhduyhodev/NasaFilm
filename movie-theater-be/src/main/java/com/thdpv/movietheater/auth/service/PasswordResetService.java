@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.auth.service;
 
-import java.time.LocalDateTime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,62 +40,53 @@ public class PasswordResetService {
         this.emailService = emailService;
     }
 
-    /**
-     * Step 1: User requests password reset. We verify email, generate a stateless reset token, and send email.
-     */
     @Transactional
     public void requestPasswordReset(String email) {
         User user = userRepository.findByEmailIgnoreCase(email.trim())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "Người dùng không tồn tại với email này"));
+                .orElse(null);
+
+        if (user == null) {
+            logger.info("[PasswordResetService] Password reset requested for non-existent email: {}", email);
+            return;
+        }
 
         if (user.getAuthProvider() == com.thdpv.movietheater.user.enums.AuthProvider.GOOGLE) {
             throw new AppException(ErrorCode.BAD_REQUEST, "GOOGLE_SSO_ACCOUNT");
         }
 
-        // Generate stateless reset token (expires in 15 minutes)
         String resetToken = jwtUtils.generateResetToken(user.getEmail(), user.getPassword());
 
-        // Build reset link
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
-        // Send email asynchronously
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
 
         logger.info("[PasswordResetService] Password reset link sent to: {}", user.getEmail());
     }
 
-    /**
-     * Step 2: User submits new password with the token. We parse and verify, and then update password.
-     */
     @Transactional
     public void resetPassword(String token, String newPassword) {
         try {
-            // Parse token
             Claims claims = jwtUtils.parseResetToken(token);
 
-            // Verify purpose
             String purpose = claims.get("purpose", String.class);
             if (!"RESET_PASSWORD".equals(purpose)) {
                 throw new AppException(ErrorCode.TOKEN_INVALID, "Liên kết đặt lại mật khẩu không hợp lệ");
             }
 
-            // Verify email
             String email = claims.getSubject();
             if (email == null || email.isBlank()) {
                 throw new AppException(ErrorCode.TOKEN_INVALID, "Token không chứa email");
             }
 
-            // Get user
             User user = userRepository.findByEmailIgnoreCase(email)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-            // Verify password state (single-use validation)
             String oldPasswordHash = claims.get("pass", String.class);
             if (user.getPassword() == null || !user.getPassword().equals(oldPasswordHash)) {
-                throw new AppException(ErrorCode.TOKEN_INVALID, "Liên kết đặt lại mật khẩu đã được sử dụng hoặc đã hết hiệu lực");
+                throw new AppException(ErrorCode.TOKEN_INVALID,
+                        "Liên kết đặt lại mật khẩu đã được sử dụng hoặc đã hết hiệu lực");
             }
 
-            // Update user password
             user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
 

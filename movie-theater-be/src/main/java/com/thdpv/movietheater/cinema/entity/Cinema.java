@@ -12,6 +12,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 @Entity
 @Table(name = "cinema")
@@ -25,11 +28,28 @@ public class Cinema {
     @Column(name = "name", nullable = false)
     private String name;
 
+
     @Column(name = "address")
     private String address;
 
     @Column(name = "phone_number")
     private String phoneNumber;
+
+    @Column(name = "entrance_note", length = 500)
+    private String entranceNote;
+
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private CinemaStatus status = CinemaStatus.ACTIVE;
 
     @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CinemaRoom> cinemaRooms = new ArrayList<>();
@@ -76,6 +96,38 @@ public class Cinema {
         this.phoneNumber = phoneNumber;
     }
 
+    public String getEntranceNote() {
+        return entranceNote;
+    }
+
+    public void setEntranceNote(String entranceNote) {
+        this.entranceNote = entranceNote;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
     public List<CinemaRoom> getCinemaRooms() {
         return cinemaRooms;
     }
@@ -87,5 +139,13 @@ public class Cinema {
     public void addCinemaRoom(CinemaRoom room) {
         cinemaRooms.add(room);
         room.setCinema(this);
+    }
+
+    public CinemaStatus getStatus() {
+        return status != null ? status : CinemaStatus.ACTIVE;
+    }
+
+    public void setStatus(CinemaStatus status) {
+        this.status = status;
     }
 }

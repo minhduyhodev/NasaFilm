@@ -1,16 +1,24 @@
 package com.thdpv.movietheater.movie.service;
 
+import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,12 +27,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.booking.entity.Showtime;
+import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.common.time.AppTimeZones;
+import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.common.util.MojibakeUtils;
+import com.thdpv.movietheater.config.cache.CacheNames;
+import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
+import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.GenreRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieActorRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
@@ -32,6 +50,8 @@ import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
 import com.thdpv.movietheater.movie.entity.Actor;
 import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.Genre;
@@ -40,12 +60,18 @@ import com.thdpv.movietheater.movie.entity.MovieActor;
 import com.thdpv.movietheater.movie.entity.MovieCountry;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
 import com.thdpv.movietheater.movie.repository.ActorRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
-import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
-import com.thdpv.movietheater.movie.repository.MovieRepository;
 import com.thdpv.movietheater.movie.repository.MovieActorRepository;
+import com.thdpv.movietheater.movie.repository.MovieCountryRepository;
+import com.thdpv.movietheater.movie.repository.MovieGenreRepository;
+import com.thdpv.movietheater.movie.repository.MovieMediaRepository;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 
@@ -60,6 +86,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MovieService {
 
+    private static final Pattern NON_SLUG = Pattern.compile("[^a-z0-9]+");
+    private static final Pattern MULTI_DASH = Pattern.compile("-{2,}");
+
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final CountryRepository countryRepository;
@@ -67,18 +96,32 @@ public class MovieService {
     private final MovieMediaRepository movieMediaRepository;
     private final UserRepository userRepository;
     private final MovieActorRepository movieActorRepository;
+    private final MovieGenreRepository movieGenreRepository;
+    private final MovieCountryRepository movieCountryRepository;
+    private final ShowtimeRepository showtimeRepository;
+    private final SystemConfigService systemConfigService;
+    private final CatalogCacheEvictor catalogCacheEvictor;
+    private final MovieReviewStatsService movieReviewStatsService;
 
     @Transactional
     public MovieDetailResponse createMovie(CreateMovieRequest request, String operatorEmail) {
         Movie movie = new Movie();
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
+        movie.setRating(request.getRating());
         replaceGenres(movie, request.getGenreUuids());
         replaceCountries(movie, request.getCountryUuids());
         replaceActors(movie, request.getActors());
         replaceMedias(movie, request.getMedias(), operatorEmail);
-        return toMovieDetailResponse(movieRepository.save(movie));
+        syncStreamingUrlFromMediasIfMissing(movie);
+        MovieDetailResponse response = toMovieDetailResponse(movieRepository.save(movie));
+        catalogCacheEvictor.evictMovieLists();
+        return response;
     }
 
     @Transactional
@@ -86,7 +129,14 @@ public class MovieService {
         Movie movie = getMovieOrThrow(movieUuid);
         applyMovieFields(movie, request.getTitle(), request.getDescription(), request.getDurationMinutes(),
                 request.getReleaseDate(), request.getStatus(), request.getAgeRestriction());
-        movie.setStreamingUrl(trimToNull(request.getStreamingUrl()));
+        applyStreamingUrl(movie, request.getStreamingUrl(), request.getMedias());
+        if (request.getScreeningMode() != null) {
+            movie.setScreeningMode(ScreeningMode.valueOf(request.getScreeningMode().toUpperCase()));
+        }
+        movie.setOnlinePrice(request.getOnlinePrice());
+        if (request.getRating() != null) {
+            movie.setRating(request.getRating());
+        }
 
         if (request.getGenreUuids() != null) {
             replaceGenres(movie, request.getGenreUuids());
@@ -101,7 +151,10 @@ public class MovieService {
             replaceMedias(movie, request.getMedias(), operatorEmail);
         }
 
-        return toMovieDetailResponse(movieRepository.save(movie));
+        syncStreamingUrlFromMediasIfMissing(movie);
+        MovieDetailResponse response = toMovieDetailResponse(movieRepository.save(movie));
+        catalogCacheEvictor.evictMovieLists();
+        return response;
     }
 
     @Transactional
@@ -111,34 +164,36 @@ public class MovieService {
         boolean hasBooking = movieRepository.existsBookingByMovieUuid(movieUuid);
         movie.setStatus(hasShowtime || hasBooking ? "INACTIVE" : "DELETED");
         movieRepository.save(movie);
+        catalogCacheEvictor.evictMovieLists();
     }
 
     @Transactional(readOnly = true)
-    public Page<MovieListResponse> getMovieList(
-            String keyword,
-            String status,
-            List<UUID> genreUuids,
-            UUID countryUuid,
-            String ageRestriction,
-            UUID actorUuid,
-            UUID cinemaUuid,
-            java.time.LocalDate showtimeDate,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-        Pageable pageable = PageRequest.of(
-                Math.max(page, 0),
-                size > 0 ? size : 10,
-                Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC,
-                        resolveSortBy(sortBy)));
+    @Cacheable(value = CacheNames.MOVIES, key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
+    public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
+        Sort resolvedSort = Sort.unsorted();
+        if (pageable.getSort().isSorted()) {
+            List<Sort.Order> safeOrders = new ArrayList<>();
+            for (Sort.Order order : pageable.getSort()) {
+                String resolvedProperty = resolveSortBy(order.getProperty());
+                safeOrders.add(new Sort.Order(order.getDirection(), resolvedProperty));
+            }
+            resolvedSort = Sort.by(safeOrders);
+        } else {
+            resolvedSort = Sort.by(Sort.Direction.DESC, "releaseDate");
+        }
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10,
+                resolvedSort);
 
         Specification<Movie> specification = (root, query, cb) -> {
             query.distinct(true);
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE")));
+            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE", "ENDED", "DRAFT")));
 
+            String keyword = filter.getKeyword();
             if (keyword != null && !keyword.isBlank()) {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -146,29 +201,48 @@ public class MovieService {
                         cb.like(cb.lower(root.get("description")), pattern)));
             }
 
+            String status = filter.getStatus();
+            boolean bookableShowtimeFilter = Boolean.TRUE.equals(filter.getRequireBookableShowtime());
+            boolean comingSoonWithoutShowtimes = false;
             if (status != null && !status.isBlank()) {
-                predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
+                String normalizedStatus = status.trim().toUpperCase();
+                // Đang chiếu thực tế = có suất còn đặt được (không phụ thuộc movie.status)
+                if (bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus)) {
+                    // skip equality on status
+                } else if ("COMING_SOON".equals(normalizedStatus)) {
+                    // Sắp chiếu = chưa có suất OPEN_FOR_BOOKING/SOLD_OUT sắp tới
+                    comingSoonWithoutShowtimes = true;
+                    predicates.add(root.get("status").in("COMING_SOON", "NOW_SHOWING"));
+                } else {
+                    predicates.add(cb.equal(root.get("status"), normalizedStatus));
+                }
             }
 
+            List<UUID> genreUuids = filter.getGenreUuids();
             if (genreUuids != null && !genreUuids.isEmpty()) {
                 Join<Movie, MovieGenre> movieGenreJoin = root.join("movieGenres", JoinType.LEFT);
                 predicates.add(movieGenreJoin.get("genre").get("uuid").in(genreUuids));
             }
 
+            UUID countryUuid = filter.getCountryUuid();
             if (countryUuid != null) {
                 Join<Movie, MovieCountry> movieCountryJoin = root.join("movieCountries", JoinType.LEFT);
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
+            String ageRestriction = filter.getAgeRestriction();
             if (ageRestriction != null && !ageRestriction.isBlank()) {
                 predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));
             }
 
+            UUID actorUuid = filter.getActorUuid();
             if (actorUuid != null) {
                 Join<Movie, MovieActor> movieActorJoin = root.join("movieActors", JoinType.LEFT);
                 predicates.add(cb.equal(movieActorJoin.get("actor").get("uuid"), actorUuid));
             }
 
+            UUID cinemaUuid = filter.getCinemaUuid();
+            java.time.LocalDate showtimeDate = filter.getShowtimeDate();
             if (cinemaUuid != null || showtimeDate != null) {
                 Subquery<UUID> subquery = query.subquery(UUID.class);
                 Root<Showtime> stRoot = subquery
@@ -184,10 +258,8 @@ public class MovieService {
                 }
 
                 if (showtimeDate != null) {
-                    OffsetDateTime startOfDay = showtimeDate.atStartOfDay()
-                            .atOffset(OffsetDateTime.now().getOffset());
-                    OffsetDateTime endOfDay = showtimeDate.plusDays(1).atStartOfDay()
-                            .atOffset(OffsetDateTime.now().getOffset());
+                    OffsetDateTime startOfDay = AppTimeZones.dayStart(showtimeDate);
+                    OffsetDateTime endOfDay = AppTimeZones.dayStart(showtimeDate.plusDays(1));
                     subPredicates.add(cb.greaterThanOrEqualTo(stRoot.get("startTime"), startOfDay));
                     subPredicates.add(cb.lessThan(stRoot.get("startTime"), endOfDay));
                 }
@@ -196,34 +268,235 @@ public class MovieService {
                 predicates.add(root.get("uuid").in(subquery));
             }
 
+            if (bookableShowtimeFilter || comingSoonWithoutShowtimes) {
+                OffsetDateTime now = OffsetDateTime.now();
+                Subquery<UUID> bookableSubquery = query.subquery(UUID.class);
+                Root<Showtime> bookableRoot = bookableSubquery.from(Showtime.class);
+                bookableSubquery.select(bookableRoot.get("movieUuid"));
+                bookableSubquery.where(
+                        cb.greaterThan(bookableRoot.get("startTime"), now),
+                        bookableRoot.get("status").in(
+                                ShowtimeStatus.OPEN_FOR_BOOKING,
+                                ShowtimeStatus.SOLD_OUT));
+                if (bookableShowtimeFilter) {
+                    predicates.add(root.get("uuid").in(bookableSubquery));
+                    predicates.add(cb.or(
+                            cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                            cb.isNull(root.get("screeningMode"))));
+                } else {
+                    predicates.add(cb.not(root.get("uuid").in(bookableSubquery)));
+                    predicates.add(cb.or(
+                            cb.equal(root.get("status"), "COMING_SOON"),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.THEATER_ONLY),
+                            cb.equal(root.get("screeningMode"), ScreeningMode.BOTH),
+                            cb.isNull(root.get("screeningMode"))));
+                }
+            }
+
+            if (Boolean.TRUE.equals(filter.getOnlineOnly())) {
+                predicates.add(cb.or(
+                        cb.equal(root.get("screeningMode"), ScreeningMode.ONLINE_ONLY),
+                        cb.equal(root.get("screeningMode"), ScreeningMode.BOTH)));
+            }
+
+            boolean requireAws = Boolean.TRUE.equals(filter.getRequireAwsStreaming())
+                    || Boolean.TRUE.equals(filter.getOnlineOnly());
+            if (requireAws) {
+                // Chỉ áp dụng cho luồng xem online — chấp nhận key (movie/...) hoặc Object URL cũ
+                jakarta.persistence.criteria.Expression<String> streamingLower =
+                        cb.lower(root.get("streamingUrl"));
+                predicates.add(cb.isNotNull(root.get("streamingUrl")));
+                predicates.add(cb.or(
+                        cb.like(streamingLower, "movie/%"),
+                        cb.and(
+                                cb.like(streamingLower, "%" + S3MediaBorderUtils.DEFAULT_BUCKET_HOST.toLowerCase() + "%"),
+                                cb.like(streamingLower, "%/movie/%"))));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return movieRepository.findAll(specification, pageable)
-                .map(this::toMovieListResponse);
+        org.springframework.data.domain.Page<Movie> moviePage = movieRepository.findAll(specification, safePageable);
+        List<MovieListResponse> content = toMovieListResponses(moviePage.getContent());
+        return new org.springframework.data.domain.PageImpl<>(content, safePageable, moviePage.getTotalElements());
+    }
+
+    private List<MovieListResponse> toMovieListResponses(List<Movie> movies) {
+        if (movies == null || movies.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uuids = movies.stream().map(Movie::getUuid).toList();
+        Map<UUID, Movie> loaded = loadMoviesWithListRelations(uuids);
+        Map<UUID, MovieReviewStatsResponse> reviewStats = movieReviewStatsService.getStatsBatch(uuids);
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(uuids);
+        return movies.stream()
+                .map(movie -> {
+                    MovieListResponse response = toMovieListResponse(loaded.getOrDefault(movie.getUuid(), movie));
+                    var stats = reviewStats.get(movie.getUuid());
+                    if (stats != null && stats.getTotalReviews() > 0) {
+                        response.setReviewAverageRating(stats.getAverageRating());
+                        response.setReviewCount(stats.getTotalReviews());
+                    }
+                    response.setBestOnBigScreen(bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
+                    return response;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private Map<UUID, Movie> loadMoviesWithListRelations(Collection<UUID> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Movie> loaded = movieRepository.findAllByIdWithMedias(uuids).stream()
+                .collect(Collectors.toMap(Movie::getUuid, movie -> movie, (left, right) -> left));
+        movieRepository.findAllByIdWithGenres(uuids);
+        movieRepository.findAllByIdWithCountries(uuids);
+        return loaded;
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.UPCOMING_MOVIES, key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    public Page<MovieListResponse> getUpcomingMovieList(Pageable pageable) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Pageable safePageable = PageRequest.of(
+                Math.max(pageable.getPageNumber(), 0),
+                pageable.getPageSize() > 0 ? pageable.getPageSize() : 10);
+
+        long total = movieRepository.countUpcomingMovies(now);
+        if (total == 0) {
+            return new PageImpl<>(List.of(), safePageable, 0);
+        }
+
+        List<UUID> pageUuids = movieRepository.findUpcomingMovieUuids(
+                now,
+                safePageable.getPageSize(),
+                safePageable.getOffset());
+
+        if (pageUuids.isEmpty()) {
+            return new PageImpl<>(List.of(), safePageable, total);
+        }
+
+        Map<UUID, Movie> movieByUuid = loadMoviesWithListRelations(pageUuids);
+
+        Map<UUID, OffsetDateTime> nextStarts = showtimeRepository
+                .findEarliestScheduledStarts(pageUuids, now).stream()
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> (OffsetDateTime) row[1],
+                        (a, b) -> a));
+
+        Map<UUID, Boolean> bestOnBigScreenByMovie = movieReviewStatsService.getBestOnBigScreenBatch(pageUuids);
+
+        List<MovieListResponse> pageContent = pageUuids.stream()
+                .map(movieByUuid::get)
+                .filter(Objects::nonNull)
+                .map(movie -> {
+                    MovieListResponse response = toMovieListResponse(movie);
+                    response.setNextShowtimeStart(nextStarts.get(movie.getUuid()));
+                    response.setBestOnBigScreen(
+                            bestOnBigScreenByMovie.getOrDefault(movie.getUuid(), false));
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(pageContent, safePageable, total);
     }
 
     @Transactional(readOnly = true)
     public MovieDetailResponse getMovieDetail(UUID movieUuid) {
         Movie movie = getMovieOrThrow(movieUuid);
-        System.out.println("DEBUG - Movie Detail: UUID=" + movieUuid + ", Title=" + movie.getTitle());
-        for (MovieMedia mm : movie.getMovieMedias()) {
-            System.out.println("DEBUG - Media: Type=" + mm.getMediaType() + ", URL=" + mm.getMediaUrl());
-        }
         if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
             throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
         }
         return toMovieDetailResponse(movie);
     }
 
+    /** Chi tiết phim theo UUID hoặc slug (URL đẹp). */
+    @Transactional
+    public MovieDetailResponse getMovieDetailByRef(String idOrSlug) {
+        Movie movie = resolveMovieRef(idOrSlug);
+        if ("DELETED".equalsIgnoreCase(movie.getStatus())) {
+            throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+        }
+        if (movie.getSlug() == null || movie.getSlug().isBlank()) {
+            ensureSlug(movie);
+            movie = movieRepository.save(movie);
+        }
+        return toMovieDetailResponse(movie);
+    }
+
+    @Transactional
+    public int backfillMissingSlugs() {
+        int updated = 0;
+        for (Movie movie : movieRepository.findAll()) {
+            if (movie.getSlug() == null || movie.getSlug().isBlank()) {
+                ensureSlug(movie);
+                movieRepository.save(movie);
+                updated++;
+            }
+        }
+        return updated;
+    }
+
+    /**
+     * Map UUID → {@link MovieListResponse} (medias/genres/countries + review stats).
+     * Dùng cho Discover curated khi phim không nằm trong trang candidate mặc định.
+     */
     @Transactional(readOnly = true)
+    public List<MovieListResponse> getMovieListByUuids(List<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uniqueUuids = movieUuids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .limit(50)
+                .toList();
+        if (uniqueUuids.isEmpty()) {
+            return List.of();
+        }
+        List<Movie> movies = movieRepository.findAllById(uniqueUuids).stream()
+                .filter(movie -> movie.getStatus() == null || !"DELETED".equalsIgnoreCase(movie.getStatus()))
+                .toList();
+        return toMovieListResponses(movies);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MovieSummaryResponse> getMovieSummaries(List<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> uniqueUuids = movieUuids.stream().filter(java.util.Objects::nonNull).distinct().limit(50).toList();
+        if (uniqueUuids.isEmpty()) {
+            return List.of();
+        }
+        return movieRepository.findAllByIdWithMedias(uniqueUuids).stream()
+                .filter(movie -> !"DELETED".equalsIgnoreCase(movie.getStatus()))
+                .map(movie -> new MovieSummaryResponse(
+                        movie.getUuid(),
+                        movie.getTitle(),
+                        movie.getAgeRestriction(),
+                        resolvePrimaryMediaUrl(movie)))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.GENRES, key = "'all'")
     public List<Genre> getAllGenres() {
-        return genreRepository.findAll();
+        return genreRepository.findAll().stream()
+                .filter(g -> g.getName() != null && !MojibakeUtils.looksCorrupt(g.getName()))
+                .sorted(java.util.Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<Country> getAllCountries() {
-        return countryRepository.findAll();
+        return countryRepository.findAll().stream()
+                .filter(c -> c.getName() != null && !MojibakeUtils.looksCorrupt(c.getName()))
+                .sorted(java.util.Comparator.comparing(Country::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -278,6 +551,93 @@ public class MovieService {
     }
 
     @Transactional
+    public Genre createGenre(GenreRequest request) {
+        String name = trim(request.getName());
+        if (genreRepository.existsByNameIgnoreCase(name)) {
+            throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+        }
+        Genre genre = new Genre();
+        genre.setName(name);
+        Genre saved = genreRepository.save(genre);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
+        return saved;
+    }
+
+    @Transactional
+    public Genre updateGenre(UUID genreUuid, GenreRequest request) {
+        Genre genre = genreRepository.findById(genreUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai"));
+        String name = trim(request.getName());
+        genreRepository.findByNameIgnoreCase(name)
+                .filter(existing -> !existing.getUuid().equals(genreUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "The loai da ton tai");
+                });
+        genre.setName(name);
+        Genre saved = genreRepository.save(genre);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
+        return saved;
+    }
+
+    @Transactional
+    public void deleteGenre(UUID genreUuid) {
+        if (!genreRepository.existsById(genreUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "The loai khong ton tai");
+        }
+        if (movieGenreRepository.existsByGenre_Uuid(genreUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "The loai dang duoc su dung trong phim, khong the xoa");
+        }
+        genreRepository.deleteById(genreUuid);
+        catalogCacheEvictor.evictGenres();
+        catalogCacheEvictor.evictMovieLists();
+    }
+
+    @Transactional
+    public Country createCountry(CountryRequest request) {
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        if (countryRepository.existsByCodeIgnoreCase(code)) {
+            throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+        }
+        Country country = new Country();
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public Country updateCountry(UUID countryUuid, CountryRequest request) {
+        Country country = countryRepository.findById(countryUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai"));
+        String code = trim(request.getCode()).toUpperCase();
+        String name = trim(request.getName());
+        countryRepository.findByCodeIgnoreCase(code)
+                .filter(existing -> !existing.getUuid().equals(countryUuid))
+                .ifPresent(existing -> {
+                    throw new AppException(ErrorCode.CONFLICT, "Ma quoc gia da ton tai");
+                });
+        country.setCode(code);
+        country.setName(name);
+        return countryRepository.save(country);
+    }
+
+    @Transactional
+    public void deleteCountry(UUID countryUuid) {
+        if (!countryRepository.existsById(countryUuid)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Quoc gia khong ton tai");
+        }
+        if (movieCountryRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung trong phim, khong the xoa");
+        }
+        if (actorRepository.existsByCountry_Uuid(countryUuid)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Quoc gia dang duoc su dung boi dien vien, khong the xoa");
+        }
+        countryRepository.deleteById(countryUuid);
+    }
+
+    @Transactional
     public MovieMediaResponse addMovieMedia(UUID movieUuid, MovieMediaRequest request, String operatorEmail) {
         Movie movie = getMovieOrThrow(movieUuid);
         UUID operatorId = resolveOperatorId(operatorEmail);
@@ -303,7 +663,7 @@ public class MovieService {
             clearPrimaryFlags(movie);
         }
 
-        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaUrl(S3MediaBorderUtils.toStoredKey(trim(request.getMediaUrl())));
         movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
         movieMedia.setTitle(trimToNull(request.getTitle()));
         movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
@@ -322,12 +682,88 @@ public class MovieService {
 
     private void applyMovieFields(Movie movie, String title, String description, Integer durationMinutes,
             LocalDate releaseDate, String status, String ageRestriction) {
-        movie.setTitle(trim(title));
-        movie.setDescription(trimToNull(description));
+        String cleanTitle = title != null ? Jsoup.clean(title, Safelist.none()).trim() : null;
+        if (cleanTitle == null || cleanTitle.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Tên phim không hợp lệ hoặc không được để trống.");
+        }
+        movie.setTitle(cleanTitle);
+        movie.setDescription(description != null ? Jsoup.clean(description, Safelist.none()).trim() : null);
         movie.setDurationMinutes(durationMinutes);
         movie.setReleaseDate(releaseDate);
         movie.setStatus(normalizeUpper(status));
         movie.setAgeRestriction(trim(ageRestriction));
+        ensureSlug(movie);
+    }
+
+    /**
+     * Resolve movie by UUID hoặc slug (URL đẹp). UUID vẫn là khóa ổn định cho API nội bộ.
+     */
+    @Transactional(readOnly = true)
+    public Movie resolveMovieRef(String idOrSlug) {
+        if (idOrSlug == null || idOrSlug.isBlank()) {
+            throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+        }
+        String trimmed = idOrSlug.trim();
+        try {
+            return getMovieOrThrow(UUID.fromString(trimmed));
+        } catch (IllegalArgumentException ignored) {
+            // not a UUID — try slug
+        }
+        return movieRepository.findBySlugIgnoreCase(trimmed)
+                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public UUID resolveMovieUuid(String idOrSlug) {
+        return resolveMovieRef(idOrSlug).getUuid();
+    }
+
+    private void ensureSlug(Movie movie) {
+        // Giữ slug cũ để URL đẹp không đổi khi sửa tên phim; UUID vẫn luôn resolve được.
+        if (movie.getSlug() != null && !movie.getSlug().isBlank()) {
+            return;
+        }
+        String base = slugFromTitle(movie.getTitle());
+        if (base == null || base.isBlank()) {
+            base = "phim";
+        }
+        String candidate = base;
+        int suffix = 2;
+        while (true) {
+            var existing = movieRepository.findBySlugIgnoreCase(candidate);
+            if (existing.isEmpty()
+                    || (movie.getUuid() != null && existing.get().getUuid().equals(movie.getUuid()))) {
+                movie.setSlug(candidate);
+                return;
+            }
+            candidate = base + "-" + suffix++;
+            if (suffix > 500) {
+                movie.setSlug(base + "-" + UUID.randomUUID().toString().substring(0, 8));
+                return;
+            }
+        }
+    }
+
+    /** Tạo slug URL thân thiện từ tên phim (vd: "Ngôi đền kỳ quái" → ngoi-den-ky-quai). */
+    private static String slugFromTitle(String title) {
+        if (title == null || title.isBlank()) {
+            return null;
+        }
+        String normalized = Normalizer.normalize(title.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'd')
+                .toLowerCase(Locale.ROOT);
+        String dashed = NON_SLUG.matcher(normalized).replaceAll("-");
+        dashed = MULTI_DASH.matcher(dashed).replaceAll("-");
+        dashed = dashed.replaceAll("^-+|-+$", "");
+        if (dashed.isBlank()) {
+            return null;
+        }
+        if (dashed.length() > 120) {
+            dashed = dashed.substring(0, 120).replaceAll("-+$", "");
+        }
+        return dashed;
     }
 
     private void replaceGenres(Movie movie, List<UUID> genreUuids) {
@@ -458,7 +894,7 @@ public class MovieService {
 
     private MovieMedia toMovieMediaEntity(MovieMediaRequest request, UUID operatorId) {
         MovieMedia movieMedia = new MovieMedia();
-        movieMedia.setMediaUrl(trim(request.getMediaUrl()));
+        movieMedia.setMediaUrl(S3MediaBorderUtils.toStoredKey(trim(request.getMediaUrl())));
         movieMedia.setMediaType(normalizeUpper(request.getMediaType()));
         movieMedia.setTitle(trimToNull(request.getTitle()));
         movieMedia.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
@@ -492,7 +928,7 @@ public class MovieService {
     }
 
     private MovieListResponse toMovieListResponse(Movie movie) {
-        return new MovieListResponse(
+        MovieListResponse response = new MovieListResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -500,20 +936,25 @@ public class MovieService {
                 movie.getReleaseDate(),
                 movie.getStatus(),
                 movie.getAgeRestriction(),
-                resolvePrimaryMediaUrl(movie),
+                toBorderMediaUrl(resolvePrimaryMediaUrl(movie)),
                 movie.getMovieGenres().stream()
                         .map(movieGenre -> movieGenre.getGenre().getName())
                         .toList(),
                 movie.getMovieCountries().stream()
                         .map(movieCountry -> movieCountry.getCountry().getName())
                         .toList(),
-                movie.getStreamingUrl(),
+                toPlayableStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(resolveOnlinePrice(movie));
+        response.setRating(movie.getRating());
+        response.setSlug(movie.getSlug());
+        return response;
     }
 
     private MovieDetailResponse toMovieDetailResponse(Movie movie) {
-        return new MovieDetailResponse(
+        MovieDetailResponse response = new MovieDetailResponse(
                 movie.getUuid(),
                 movie.getTitle(),
                 movie.getDescription(),
@@ -536,9 +977,14 @@ public class MovieService {
                                 right.getSortOrder() != null ? right.getSortOrder() : 0))
                         .map(this::toMovieMediaResponse)
                         .collect(Collectors.toList()),
-                movie.getStreamingUrl(),
+                toPlayableStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie)),
                 movie.getCreatedAt(),
                 movie.getUpdatedAt());
+        response.setScreeningMode(movie.getScreeningMode() != null ? movie.getScreeningMode().name() : null);
+        response.setOnlinePrice(resolveOnlinePrice(movie));
+        response.setRating(movie.getRating());
+        response.setSlug(movie.getSlug());
+        return response;
     }
 
     private ActorResponse toActorResponse(MovieActor movieActor) {
@@ -559,28 +1005,40 @@ public class MovieService {
     private ActorSummaryResponse toActorSummaryResponse(Actor actor) {
         UUID countryUuid = null;
         String countryName = null;
+        String countryCode = null;
         if (actor.getCountry() != null) {
             countryUuid = actor.getCountry().getUuid();
             countryName = actor.getCountry().getName();
+            countryCode = actor.getCountry().getCode();
         }
         return new ActorSummaryResponse(
                 actor.getUuid(),
                 actor.getFullName(),
                 actor.getAvatarUrl(),
                 countryUuid,
-                countryName);
+                countryName,
+                countryCode);
     }
 
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
         return new MovieMediaResponse(
                 movieMedia.getUuid(),
-                movieMedia.getMediaUrl(),
+                toBorderMediaUrl(movieMedia.getMediaUrl()),
                 movieMedia.getMediaType(),
                 movieMedia.getTitle(),
                 movieMedia.getIsPrimary(),
                 movieMedia.getSortOrder(),
                 movieMedia.getCreatedAt(),
                 movieMedia.getUpdatedAt());
+    }
+
+    private String toBorderMediaUrl(String mediaUrl) {
+        return S3MediaBorderUtils.toBorderUrl(mediaUrl);
+    }
+
+    /** File phim (movie/) → /api/media/stream; còn lại giữ border. */
+    private String toPlayableStreamingUrl(String mediaUrl) {
+        return S3MediaBorderUtils.toStreamUrl(mediaUrl);
     }
 
     private String resolvePrimaryMediaUrl(Movie movie) {
@@ -647,28 +1105,39 @@ public class MovieService {
         return value == null ? null : value.trim().toUpperCase();
     }
 
-    @Transactional(readOnly = true)
-    public String getMovieStreamUrl(UUID movieUuid, String email) {
-        if (email == null || email.isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
+    private void applyStreamingUrl(Movie movie, String streamingUrl, List<MovieMediaRequest> medias) {
+        String resolved = trimToNull(streamingUrl);
+        if (resolved == null) {
+            resolved = S3MediaBorderUtils.resolveFromMediaRequests(medias);
         }
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
-
-        Movie movie = movieRepository.findById(movieUuid)
-                .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_FOUND));
-
-        if (movie.getStreamingUrl() == null || movie.getStreamingUrl().isBlank()) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
+        if (resolved != null) {
+            resolved = S3MediaBorderUtils.toStoredKey(resolved);
         }
-
-        boolean isVip = user.getScore() != null && user.getScore() >= 10000;
-        boolean hasTicket = movieRepository.hasConfirmedBookingForMovie(user.getId(), movieUuid);
-
-        if (!isVip && !hasTicket) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Yêu cầu khách hàng mua vé phim hoặc nâng cấp VIP");
+        if (resolved != null && !S3MediaBorderUtils.isAwsMovieStreamingUrl(resolved)) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "streamingUrl chi chap nhan S3 key thu muc movie/ (vd: movie/avatar2009.mp4) hoac Object URL bucket java-06");
         }
+        movie.setStreamingUrl(resolved);
+    }
 
-        return movie.getStreamingUrl();
+    private void syncStreamingUrlFromMediasIfMissing(Movie movie) {
+        if (trimToNull(movie.getStreamingUrl()) != null) {
+            if (!S3MediaBorderUtils.isAwsMovieStreamingUrl(movie.getStreamingUrl())) {
+                movie.setStreamingUrl(null);
+            }
+            return;
+        }
+        movie.setStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie));
+    }
+
+    private BigDecimal resolveOnlinePrice(Movie movie) {
+        if (movie.getOnlinePrice() != null) {
+            return movie.getOnlinePrice();
+        }
+        ScreeningMode mode = movie.getScreeningMode();
+        if (mode == ScreeningMode.ONLINE_ONLY || mode == ScreeningMode.BOTH) {
+            return systemConfigService.getDefaultOnlinePrice();
+        }
+        return null;
     }
 }

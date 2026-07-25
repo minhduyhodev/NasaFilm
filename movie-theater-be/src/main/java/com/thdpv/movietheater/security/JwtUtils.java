@@ -14,6 +14,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -32,8 +33,14 @@ public class JwtUtils {
         SecretKey key;
         try {
             key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        } catch (IllegalArgumentException ex) {
-            key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        } catch (DecodingException | IllegalArgumentException ex) {
+            byte[] rawSecret = secret.getBytes(StandardCharsets.UTF_8);
+            if (rawSecret.length < 32) {
+                throw new IllegalStateException(
+                        "app.jwt.secret must be valid Base64 or a plain text secret with at least 32 characters",
+                        ex);
+            }
+            key = Keys.hmacShaKeyFor(rawSecret);
         }
         this.secretKey = key;
         this.accessTokenExpirationMs = accessTokenExpirationMs;
@@ -85,6 +92,17 @@ public class JwtUtils {
                 .claim("purpose", "RESET_PASSWORD")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 900000)) // 15 minutes
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateActivationToken(String email, String passwordHash) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("pass", passwordHash)
+                .claim("purpose", "ACTIVATE_ACCOUNT")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 259200000L)) // 72 hours
                 .signWith(secretKey, Jwts.SIG.HS256)
                 .compact();
     }

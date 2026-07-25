@@ -16,10 +16,11 @@ public class UserProfileResponse {
     private LocalDate dayOfBirth;
     private String gender;
     private Integer score;
+    private Integer lifetimeScore;
 
     public UserProfileResponse(UUID id, String email, String fullName,
             String avatarUrl, AuthProvider authProvider, String phoneNumber,
-            LocalDate dayOfBirth, String gender, Integer score) {
+            LocalDate dayOfBirth, String gender, Integer score, Integer lifetimeScore) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
@@ -29,6 +30,13 @@ public class UserProfileResponse {
         this.dayOfBirth = dayOfBirth;
         this.gender = gender;
         this.score = score;
+        this.lifetimeScore = lifetimeScore;
+    }
+
+    public UserProfileResponse(UUID id, String email, String fullName,
+            String avatarUrl, AuthProvider authProvider, String phoneNumber,
+            LocalDate dayOfBirth, String gender, Integer score) {
+        this(id, email, fullName, avatarUrl, authProvider, phoneNumber, dayOfBirth, gender, score, score);
     }
 
     public UUID getId() {
@@ -65,5 +73,9 @@ public class UserProfileResponse {
 
     public Integer getScore() {
         return score;
+    }
+
+    public Integer getLifetimeScore() {
+        return lifetimeScore;
     }
 }

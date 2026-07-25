@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -9,6 +10,7 @@ public class MovieDetailResponse {
 
     private UUID uuid;
     private String title;
+    private String slug;
     private String description;
     private Integer durationMinutes;
     private LocalDate releaseDate;
@@ -21,6 +23,9 @@ public class MovieDetailResponse {
     private String streamingUrl;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String screeningMode;
+    private BigDecimal onlinePrice;
+    private Double rating;
 
     public MovieDetailResponse() {
     }
@@ -66,6 +71,14 @@ public class MovieDetailResponse {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {
@@ -162,5 +175,29 @@ public class MovieDetailResponse {
 
     public void setStreamingUrl(String streamingUrl) {
         this.streamingUrl = streamingUrl;
+    }
+
+    public String getScreeningMode() {
+        return screeningMode;
+    }
+
+    public void setScreeningMode(String screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
     }
 }

@@ -1,6 +1,5 @@
 package com.thdpv.movietheater.movie.controller;
 
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -21,25 +20,27 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
 import com.thdpv.movietheater.movie.dto.response.ActorResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import org.springframework.data.domain.Pageable;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.nullable;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -79,7 +80,7 @@ class MovieControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private MovieService movieService;
 
     @Test
@@ -99,8 +100,7 @@ class MovieControllerTest {
                 OffsetDateTime.now());
         Page<MovieListResponse> page = new PageImpl<>(List.of(movie), PageRequest.of(0, 10), 1);
 
-        when(movieService.getMovieList(nullable(String.class), nullable(String.class), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(),
-                anyString(), anyString()))
+        when(movieService.getMovieList(any(MovieFilterRequest.class), any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/movies"))
@@ -129,7 +129,7 @@ class MovieControllerTest {
                 OffsetDateTime.now(),
                 OffsetDateTime.now());
 
-        when(movieService.getMovieDetail(any())).thenReturn(response);
+        when(movieService.getMovieDetailByRef(anyString())).thenReturn(response);
 
         mockMvc.perform(get("/api/movies/{movieUuid}", UUID.randomUUID()))
                 .andExpect(status().isOk())
@@ -256,7 +256,8 @@ class MovieControllerTest {
                 1);
 
         mockMvc.perform(post("/api/admin/movies/{movieUuid}/media", movieUuid)
-                        .with(user("staff@example.com").roles("STAFF"))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -289,7 +290,8 @@ class MovieControllerTest {
                 2);
 
         mockMvc.perform(put("/api/admin/movies/{movieUuid}/media/{mediaUuid}", movieUuid, mediaUuid)
-                        .with(user("staff@example.com").roles("STAFF"))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -303,7 +305,8 @@ class MovieControllerTest {
         doNothing().when(movieService).deleteMovieMedia(any(), any());
 
         mockMvc.perform(delete("/api/admin/movies/{movieUuid}/media/{mediaUuid}", UUID.randomUUID(), UUID.randomUUID())
-                        .with(user("staff@example.com").roles("STAFF")))
+                        .with(user("staff@example.com")
+                                .authorities(new SimpleGrantedAuthority("MOVIE_WRITE"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Xoa media phim thanh cong"));

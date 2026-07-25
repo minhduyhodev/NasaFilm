@@ -2,8 +2,16 @@ import React, { createContext, useCallback, useEffect } from 'react';
 import { authService } from '../api/authService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import tokenService from '../utils/tokenService';
+import { clearOrbitRecentStorage } from '../../../shared/utils/orbitRecentStorage';
+import { clearNasaBotStorage } from '../../../shared/utils/nasaBotStorage';
 
 export const AuthContext = createContext(undefined);
+
+// Clear per-user local state that must not leak to the next (or anonymous) session.
+const clearGuestSessionStorage = () => {
+  clearOrbitRecentStorage();
+  clearNasaBotStorage();
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useLocalStorage('auth_user', null);
@@ -11,31 +19,101 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = React.useState(null);
 
   useEffect(() => {
-    const initializeAuth = () => {
+    let cancelled = false;
+
+    const initializeAuth = async () => {
       try {
         const token = tokenService.getToken();
         const storedUser = tokenService.getUser();
 
-        if (token && tokenService.isTokenExpired(token)) {
-          tokenService.clear();
-          setUser(null);
-        } else if (token && storedUser) {
-          setUser(storedUser);
-        } else if (token && !storedUser) {
-          tokenService.clear();
-          setUser(null);
-        } else {
-          setUser(null);
+        if (!token) {
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
+          return;
         }
-      } catch (err) {
+
+        if (tokenService.isTokenExpired(token)) {
+          const refresh = tokenService.getRefreshToken();
+          if (refresh) {
+            try {
+              await authService.refreshToken();
+              if (!cancelled) {
+                setUser(tokenService.getUser() ?? storedUser);
+              }
+              return;
+            } catch {
+              tokenService.clear();
+              if (!cancelled) setUser(null);
+              clearGuestSessionStorage();
+              return;
+            }
+          }
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
+          return;
+        }
+
+        if (storedUser) {
+          if (!cancelled) setUser(storedUser);
+        } else {
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
+        }
+      } catch {
         tokenService.clear();
-        setUser(null);
+        if (!cancelled) setUser(null);
+        clearGuestSessionStorage();
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     initializeAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser]);
+
+  useEffect(() => {
+    const refreshSoon = async () => {
+      const token = tokenService.getToken();
+      if (!token || tokenService.isTokenExpired(token)) {
+        return;
+      }
+      const expiresAt = tokenService.getTokenExpiration(token);
+      if (!expiresAt) {
+        return;
+      }
+      const msLeft = expiresAt - Date.now();
+      if (msLeft > 0 && msLeft < 60_000 && tokenService.getRefreshToken()) {
+        try {
+          await authService.refreshToken();
+        } catch {
+          // Next API call will trigger interceptor logout.
+        }
+      }
+    };
+
+    const syncExpiredSession = () => {
+      const token = tokenService.getToken();
+      if (!token) {
+        return;
+      }
+      if (tokenService.isTokenExpired(token)) {
+        tokenService.clear();
+        setUser(null);
+        clearGuestSessionStorage();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      refreshSoon();
+      syncExpiredSession();
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
   }, [setUser]);
 
   const login = useCallback(async (credentials) => {
@@ -88,6 +166,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
     } finally {
+      clearGuestSessionStorage();
       setUser(null);
       setError(null);
     }

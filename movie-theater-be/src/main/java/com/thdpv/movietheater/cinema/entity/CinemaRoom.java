@@ -58,6 +58,9 @@ public class CinemaRoom {
     @Column(name = "status")
     private CinemaRoomStatus status;
 
+    @Column(name = "layout_config", columnDefinition = "TEXT")
+    private String layoutConfig;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cinema_uuid", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Cinema cinema;
@@ -124,6 +127,14 @@ public class CinemaRoom {
 
     public void setStatus(CinemaRoomStatus status) {
         this.status = status;
+    }
+
+    public String getLayoutConfig() {
+        return layoutConfig;
+    }
+
+    public void setLayoutConfig(String layoutConfig) {
+        this.layoutConfig = layoutConfig;
     }
 
     public Cinema getCinema() {

@@ -1,11 +1,12 @@
 package com.thdpv.movietheater.movie.controller;
 
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
-import com.thdpv.movietheater.movie.entity.Genre;
-import com.thdpv.movietheater.movie.entity.Country;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,18 +19,26 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.thdpv.movietheater.common.response.ApiResponse;
 import com.thdpv.movietheater.movie.dto.request.ActorRequest;
+import com.thdpv.movietheater.movie.dto.request.CountryRequest;
 import com.thdpv.movietheater.movie.dto.request.CreateMovieRequest;
+import com.thdpv.movietheater.movie.dto.request.GenreRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieFilterRequest;
 import com.thdpv.movietheater.movie.dto.request.MovieMediaRequest;
+import com.thdpv.movietheater.movie.dto.request.MovieUuidListRequest;
 import com.thdpv.movietheater.movie.dto.request.UpdateMovieRequest;
+import com.thdpv.movietheater.movie.dto.response.ActorAvatarEnrichmentResponse;
 import com.thdpv.movietheater.movie.dto.response.ActorSummaryResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieDetailResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieListResponse;
 import com.thdpv.movietheater.movie.dto.response.MovieMediaResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieSummaryResponse;
+import com.thdpv.movietheater.movie.entity.Country;
+import com.thdpv.movietheater.movie.entity.Genre;
+import com.thdpv.movietheater.movie.service.ActorAvatarEnrichmentService;
 import com.thdpv.movietheater.movie.service.MovieService;
 
 import jakarta.validation.Valid;
@@ -41,18 +50,20 @@ import lombok.RequiredArgsConstructor;
 public class MovieController {
 
     private final MovieService movieService;
+    private final ActorAvatarEnrichmentService actorAvatarEnrichmentService;
 
     @PostMapping("/admin/movies")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> createMovie(
             @Valid @RequestBody CreateMovieRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        MovieDetailResponse response = movieService.createMovie(request, userDetails != null ? userDetails.getUsername() : null);
+        MovieDetailResponse response = movieService.createMovie(request,
+                userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/movies/{movieUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieDetailResponse>> updateMovie(
             @PathVariable UUID movieUuid,
             @Valid @RequestBody UpdateMovieRequest request,
@@ -63,7 +74,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/movies/{movieUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID movieUuid) {
         movieService.softDeleteMovie(movieUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa mem phim thanh cong"));
@@ -71,31 +82,34 @@ public class MovieController {
 
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) List<UUID> genreUuids,
-            @RequestParam(required = false) UUID countryUuid,
-            @RequestParam(required = false) String ageRestriction,
-            @RequestParam(required = false) UUID actorUuid,
-            @RequestParam(required = false) UUID cinemaUuid,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate showtimeDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "releaseDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        Page<MovieListResponse> response = movieService.getMovieList(
-                keyword, status, genreUuids, countryUuid, ageRestriction, actorUuid, cinemaUuid, showtimeDate, page, size, sortBy, sortDir);
+            MovieFilterRequest filter,
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getMovieList(filter, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/movies/{movieUuid}")
-    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable UUID movieUuid) {
-        MovieDetailResponse response = movieService.getMovieDetail(movieUuid);
+    @GetMapping("/movies/upcoming")
+    public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getUpcomingMovies(
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getUpcomingMovieList(pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/movies/{movieRef}")
+    public ResponseEntity<ApiResponse<MovieDetailResponse>> getMovieDetail(@PathVariable("movieRef") String movieRef) {
+        MovieDetailResponse response = movieService.getMovieDetailByRef(movieRef);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/movies/summaries")
+    public ResponseEntity<ApiResponse<List<MovieSummaryResponse>>> getMovieSummaries(
+            @Valid @RequestBody MovieUuidListRequest request) {
+        List<MovieSummaryResponse> response = movieService.getMovieSummaries(request.getUuids());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/admin/movies/{movieUuid}/media")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieMediaResponse>> addMovieMedia(
             @PathVariable UUID movieUuid,
             @Valid @RequestBody MovieMediaRequest request,
@@ -106,7 +120,7 @@ public class MovieController {
     }
 
     @PutMapping("/admin/movies/{movieUuid}/media/{mediaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<MovieMediaResponse>> updateMovieMedia(
             @PathVariable UUID movieUuid,
             @PathVariable UUID mediaUuid,
@@ -118,7 +132,7 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/movies/{movieUuid}/media/{mediaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteMovieMedia(
             @PathVariable UUID movieUuid,
             @PathVariable UUID mediaUuid) {
@@ -142,14 +156,14 @@ public class MovieController {
     }
 
     @PostMapping("/admin/actors")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<ActorSummaryResponse>> createActor(@Valid @RequestBody ActorRequest request) {
         ActorSummaryResponse response = movieService.createActor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/actors/{actorUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<ActorSummaryResponse>> updateActor(
             @PathVariable UUID actorUuid,
             @Valid @RequestBody ActorRequest request) {
@@ -158,17 +172,63 @@ public class MovieController {
     }
 
     @DeleteMapping("/admin/actors/{actorUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteActor(@PathVariable UUID actorUuid) {
         movieService.deleteActor(actorUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa dien vien thanh cong"));
     }
 
-    @GetMapping("/movies/{movieUuid}/stream")
-    public ResponseEntity<ApiResponse<String>> getMovieStream(
-            @PathVariable UUID movieUuid,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String streamUrl = movieService.getMovieStreamUrl(movieUuid, userDetails != null ? userDetails.getUsername() : null);
-        return ResponseEntity.ok(ApiResponse.success(streamUrl));
+    @PostMapping("/admin/actors/enrich-avatars")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<ActorAvatarEnrichmentResponse>> enrichActorAvatars() {
+        ActorAvatarEnrichmentResponse response = actorAvatarEnrichmentService.enrichMissingAvatars();
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PostMapping("/admin/genres")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Genre>> createGenre(@Valid @RequestBody GenreRequest request) {
+        Genre response = movieService.createGenre(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
+    }
+
+    @PutMapping("/admin/genres/{genreUuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Genre>> updateGenre(
+            @PathVariable UUID genreUuid,
+            @Valid @RequestBody GenreRequest request) {
+        Genre response = movieService.updateGenre(genreUuid, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/admin/genres/{genreUuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Void>> deleteGenre(@PathVariable UUID genreUuid) {
+        movieService.deleteGenre(genreUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xoa the loai thanh cong"));
+    }
+
+    @PostMapping("/admin/countries")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Country>> createCountry(@Valid @RequestBody CountryRequest request) {
+        Country response = movieService.createCountry(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
+    }
+
+    @PutMapping("/admin/countries/{countryUuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Country>> updateCountry(
+            @PathVariable UUID countryUuid,
+            @Valid @RequestBody CountryRequest request) {
+        Country response = movieService.updateCountry(countryUuid, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/admin/countries/{countryUuid}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE')")
+    public ResponseEntity<ApiResponse<Void>> deleteCountry(@PathVariable UUID countryUuid) {
+        movieService.deleteCountry(countryUuid);
+        return ResponseEntity.ok(ApiResponse.success(null, "Xoa quoc gia thanh cong"));
+    }
+
 }

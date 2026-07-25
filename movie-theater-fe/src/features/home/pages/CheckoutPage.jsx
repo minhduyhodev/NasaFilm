@@ -1,114 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Landmark, Info, AlertTriangle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import { notificationService } from '../../../shared/services/notificationService';
+import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Info, AlertTriangle, QrCode } from 'lucide-react';
+import { vodService } from '../../../shared/services/vodService';
+import { getMemberDiscountRate, getMemberTierLabel } from '../../../shared/constants/member';
 import { bookingService } from '../../../shared/services/bookingService';
 import { authService } from '../../auth/api/authService';
+import { movieService } from '../../../shared/services/movieService';
+import { getMoviePosterUrl } from '../utils/movieUtils';
+import { notificationService } from '../../../shared/services/notificationService';
+import { logger } from '../../../shared/utils/logger';
+import { showMissionCompletionToasts } from '../../../shared/services/missionService';
+import { promotionService } from '../../../shared/services/promotionService';
+import { walletService } from '../../../shared/services/walletService';
 import { comboService } from '../../../shared/services/comboService';
+import PosterImage from '../../../shared/components/PosterImage';
 
-// Import movie poster assets
-import stelarHorizonImg from '../../../shared/assets/movie_stelar_horizon.png';
-import midnightEchoImg from '../../../shared/assets/movie_midnight_echo.png';
-import velvetLegacyImg from '../../../shared/assets/movie_velvet_legacy.png';
-import whispersOfOakImg from '../../../shared/assets/movie_whispers_of_oak.png';
-import kineticPulseImg from '../../../shared/assets/movie_kinetic_pulse.png';
-import aetheriaImg from '../../../shared/assets/movie_aetheria.png';
-import doraemonPoster from '../../../shared/assets/Doraemon_Movie_2026_Poster.png';
-import ngoiDenPoster from '../../../shared/assets/ngoidenkyquai.webp';
-import ocMuonHonPoster from '../../../shared/assets/ocmuonhon.jpg';
-import maXoPoster from '../../../shared/assets/maxo.jpg';
-import kumanthongPoster from '../../../shared/assets/kumanthong.jpg';
-import gohanPoster from '../../../shared/assets/tam-biet-gohan.webp';
-import baTronPoster from '../../../shared/assets/batron.webp';
-import khachPoster from '../../../shared/assets/khach.webp';
-
-import './CheckoutPage.css';
-
-const movieLookup = {
-  'STELAR HORIZON': { poster: stelarHorizonImg, format: 'IMAX 4K', age: 'PG-13' },
-  'MIDNIGHT ECHO': { poster: midnightEchoImg, format: 'DOLBY ATMOS', age: 'T16' },
-  'VELVET LEGACY': { poster: velvetLegacyImg, format: 'PREMIER', age: 'T13' },
-  'WHISPERS OF OAK': { poster: whispersOfOakImg, format: 'IMAX 3D', age: 'T16' },
-  'KINETIC PULSE': { poster: kineticPulseImg, format: '4DX Immersive', age: 'T16' },
-  'AETHERIA': { poster: aetheriaImg, format: 'IMAX 3D', age: 'K' },
-  'Doraemon: Lâu Đài Dưới Đáy Biển': { poster: doraemonPoster, format: '2D Lồng Tiếng', age: 'P' },
-  'Ngôi Đền Kỳ Quái 5': { poster: ngoiDenPoster, format: '2D Phụ Đề', age: 'T16' },
-  'Ốc Mượn Hồn': { poster: ocMuonHonPoster, format: '2D VN', age: 'T16' },
-  'GALACTIC VANGUARD: RISING TIDE': { poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYqavNEfcS3zyX2HMQ1uG4gKIAPAyU4L9ks1n82DMfbRBzxq7IdDZK5KsLA7fIW73GWQRz13F_uaagugNXp77bEq0AnzBTzNI0b-TlyYqzpm-vk9x0NtdDREoBJemeckMbhRxyxC1bk7rk3A3EHSCZbzCyBBfq2Ic0FBiQg8LHwgi6M-oy10EodnS4_uU9tWSNGbSOU6Zs2myWZlcuBwNQ9h2CXwHAbJuA4yD9WNj5iwy5bzZbhxrtDJe-WkkbZ_qVOZqacgwbjtU', format: 'IMAX 3D', age: 'PG-13' },
-  'Mortal Kombat 2': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg', format: 'IMAX 3D', age: 'T16' },
-  'Kẻ Ẩn Danh': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg', format: '2D Phụ Đề', age: 'T16' },
-  'Mưa Đỏ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg', format: '2D Phụ Đề', age: 'T13' },
-  'Thanh Gươm Diệt Quỷ': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif', format: '2D Lồng Tiếng', age: 'T16' },
-  'Truy Tìm Long Diên Hương': { poster: 'https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg', format: '2D Phụ Đề', age: 'T13' }
-};
-
-const getMovieInfo = (title) => {
-  if (!title) {
-    return {
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-      format: 'IMAX 3D',
-      age: 'PG-13'
-    };
-  }
-  const key = Object.keys(movieLookup).find((k) => k.toLowerCase() === title.toLowerCase());
-  return key ? movieLookup[key] : {
-    poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDaRGxA2n8K-9Nzi1Z6u0ZRe54rIm8VazGxDq9pkrsHJIkwSs-AfthE5koJ65mz-CX6kq2pSpRV8X-FCRD14DxV0FMhVgmm6yuP4WkR1TAMVy5PQuBCmWR3PZCMLK4lS0rCCSD7f9kayWXJFC7Vy4a7sh4h0UCZKTTA0Ra7uiCntAbwAxTj3pNKmiGWzoPhYbp3I61ngh3sEh7UpnlDqxrdMJAASqYSgLtiVKe183uMYWzHaK4D8llCcllEH9nd_45gHL4JnwtRBEo',
-    format: 'IMAX 3D',
-    age: 'PG-13'
-  };
-};
+import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
+import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
+import { orbitService } from '../../../shared/services/orbitService';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 
 const CheckoutPage = () => {
+  const confirm = useConfirm();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Try to restore from sessionStorage if location.state is not available
-  const getInitialState = () => {
-    if (location.state) {
-      try {
-        sessionStorage.setItem('checkout_state', JSON.stringify(location.state));
-      } catch (e) {
-        console.error("Failed to save checkout state to sessionStorage:", e);
-      }
-      return location.state;
-    }
-    try {
-      const saved = sessionStorage.getItem('checkout_state');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to parse checkout state from sessionStorage:", e);
-    }
-    return {};
-  };
+  const [checkoutState] = useState(() =>
+    readBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, location.state),
+  );
 
-  const checkoutState = getInitialState();
+  const isStateValid = Boolean(
+    checkoutState &&
+    ((checkoutState.isVod && checkoutState.movieUuid) ||
+      (!checkoutState.isVod && checkoutState.showtimeUuid))
+  );
 
-  // Extract payment details from state, or fallback to mock data
-  const {
-    showtimeUuid = '11111111-1111-1111-1111-111111111111',
-    theater = 'NASA Landmark 81 - Phòng chiếu IMAX',
-    movie = 'GALACTIC VANGUARD: RISING TIDE',
-    moviePoster = '',
-    movieRating = null,
-    movieFormat = '',
-    movieAgeRestriction = '',
-    date = 'Hôm nay, 10/06',
-    showtime = '19:30',
-    selectedSeats = [
-      { id: 'E5', price: 120000, type: 'Ghế VIP' },
-      { id: 'E6', price: 120000, type: 'Ghế VIP' }
-    ],
-    totalAmount = 240000
-  } = checkoutState;
+  const isVod = checkoutState?.isVod ?? false;
+  const showtimeUuid = checkoutState?.showtimeUuid ?? '';
+  const theater = checkoutState?.theater ?? '';
+  const movie = checkoutState?.movie ?? '';
+  const moviePoster = checkoutState?.moviePoster ?? '';
+  const _movieRating = checkoutState?.movieRating ?? null;
+  const movieFormat = checkoutState?.movieFormat ?? '';
+  const movieAgeRestriction = checkoutState?.movieAgeRestriction ?? '';
+  const date = checkoutState?.date ?? '';
+  const showtime = checkoutState?.showtime ?? '';
+  const selectedSeats = checkoutState?.selectedSeats ?? [];
+  const totalAmount = checkoutState?.totalAmount ?? 0;
+  const movieUuid = checkoutState?.movieUuid ?? '';
+  const durationMinutes = checkoutState?.durationMinutes ?? 0;
+  const lockExpiresAt = checkoutState?.lockExpiresAt ?? null;
+  const orbitRoomUuid = checkoutState?.orbitRoomUuid ?? null;
+  const isOrbit = checkoutState?.isOrbit ?? Boolean(orbitRoomUuid);
+  const orbitMembers = checkoutState?.orbitMembers ?? [];
 
-  const movieInfo = getMovieInfo(movie);
+  const hasUncompletedMembers = useMemo(() => {
+    if (!isOrbit || !orbitMembers.length) return false;
+    return orbitMembers.filter(m => !m.host).some(m => !m.completed);
+  }, [isOrbit, orbitMembers]);
 
+  const [vodMovieMeta, setVodMovieMeta] = useState({ poster: '', ageRestriction: '' });
+  const [theaterMovieMeta, setTheaterMovieMeta] = useState({ poster: '', ageRestriction: '' });
   const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [checkoutCombos, setCheckoutCombos] = useState(checkoutState.selectedCombos || []);
+  const [checkoutCombos, _setCheckoutCombos] = useState(() => checkoutState?.selectedCombos || []);
   const [voucherInput, setVoucherInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
@@ -116,55 +70,143 @@ const CheckoutPage = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [combosList, setCombosList] = useState([]);
   const [myVouchers, setMyVouchers] = useState([]);
-  const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [_loadingVouchers, setLoadingVouchers] = useState(true);
+  const orbitAutoAbortRef = useRef(false);
+
+  const [activeCombos, setActiveCombos] = useState([]);
+  useEffect(() => {
+    if (isOrbit && orbitRoomUuid) {
+      comboService.getActiveCombos()
+        .then(setActiveCombos)
+        .catch(err => logger.error('Failed to load active combos in CheckoutPage:', err));
+    }
+  }, [isOrbit, orbitRoomUuid]);
+
+  const resolvedOtherMembersCombos = useMemo(() => {
+    if (!isOrbit || !orbitMembers.length || !activeCombos.length) return [];
+    return orbitMembers
+      .filter((m) => !m.host)
+      .flatMap((m) => {
+        try {
+          const list = JSON.parse(m.combosJson || '[]');
+          return list.map((c) => {
+            const detail = activeCombos.find((item) => item.uuid === c.comboUuid);
+            return {
+              memberDisplayName: m.displayName,
+              comboUuid: c.comboUuid,
+              quantity: c.quantity,
+              name: detail?.name || 'Combo bắp nước',
+              price: detail?.price || 0,
+            };
+          });
+        } catch {
+          return [];
+        }
+      });
+  }, [isOrbit, orbitMembers, activeCombos]);
+
+  const otherMembersCombosTotal = useMemo(() => {
+    return resolvedOtherMembersCombos.reduce((sum, c) => sum + c.price * c.quantity, 0);
+  }, [resolvedOtherMembersCombos]);
 
   useEffect(() => {
+    if (!isStateValid) {
+      notificationService.error('Phiên giao dịch không hợp lệ hoặc đã hết hạn.');
+      navigate('/', { replace: true });
+    }
+  }, [isStateValid, navigate]);
+
+  useEffect(() => {
+    if (!isStateValid || !isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setVodMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, [isStateValid, isVod, movieUuid]);
+
+  useEffect(() => {
+    if (!isStateValid || isVod || !movieUuid) return;
+    let cancelled = false;
+    movieService
+      .getMovieDetail(movieUuid)
+      .then((detail) => {
+        if (!cancelled) {
+          setTheaterMovieMeta({
+            poster: getMoviePosterUrl(detail),
+            ageRestriction: detail.ageRestriction || '',
+          });
+        }
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, [isStateValid, isVod, movieUuid]);
+
+  const resolvedPoster = isVod
+    ? moviePoster || vodMovieMeta.poster
+    : moviePoster || theaterMovieMeta.poster;
+  const resolvedAge = isVod
+    ? movieAgeRestriction || vodMovieMeta.ageRestriction
+    : movieAgeRestriction || theaterMovieMeta.ageRestriction;
+  const resolvedFormat = isVod ? 'VOD Online' : movieFormat;
+
+  useEffect(() => {
+    if (!isStateValid) return;
     window.scrollTo(0, 0);
     const fetchProfile = async () => {
       try {
-        const data = await authService.getProfile();
-        if (data) {
-          setUserScore(data.score || 0);
+        const [profile, wallet] = await Promise.all([
+          authService.getProfile(),
+          walletService.getWallet().catch(() => null),
+        ]);
+        if (profile) {
+          setUserScore(profile.score || 0);
+        }
+        if (wallet?.balance != null) {
+          setWalletBalance(Number(wallet.balance));
         }
       } catch (err) {
-        console.error("Failed to load user profile in CheckoutPage:", err);
+        logger.error('Failed to load user profile in CheckoutPage:', err);
       } finally {
         setLoadingProfile(false);
       }
     };
-    const fetchCombos = async () => {
-      try {
-        const data = await comboService.getActiveCombos();
-        setCombosList(data || []);
-      } catch (err) {
-        console.error("Failed to load combos in CheckoutPage:", err);
-      }
-    };
     const fetchVouchers = async () => {
       try {
-        const response = await authService.api.get('/api/promotions/my-vouchers');
-        const data = response.data.data ?? response.data;
+        const data = await promotionService.getMyVouchers();
         if (Array.isArray(data)) {
-          setMyVouchers(data.filter(v => v.remainingUsage > 0));
+          setMyVouchers(data.filter((v) => v.remainingUsage > 0));
         }
       } catch (err) {
-        console.error("Failed to load user vouchers in CheckoutPage:", err);
+        logger.error('Failed to load user vouchers in CheckoutPage:', err);
       } finally {
         setLoadingVouchers(false);
       }
     };
     fetchProfile();
-    fetchCombos();
     fetchVouchers();
-  }, []);
+  }, [isStateValid]);
 
   useEffect(() => {
-    if (location.state?.lockExpiresAt) {
+    if (!isStateValid || isVod) return;
+    if (lockExpiresAt) {
       const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((location.state.lockExpiresAt - Date.now()) / 1000));
+        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
         if (diff <= 0) {
           setIsExpired(true);
           setTimeLeft(0);
@@ -176,17 +218,30 @@ const CheckoutPage = () => {
       const interval = setInterval(calculateTimeLeft, 1000);
       return () => clearInterval(interval);
     }
-  }, [location.state?.lockExpiresAt]);
+  }, [isStateValid, isVod, lockExpiresAt]);
 
-  const memberDiscountRate = userScore >= 10000 ? 0.15 : 0.10;
-  const memberTier = userScore >= 10000 ? "NASA'VIP" : "NASA'FRIEND";
+  useEffect(() => {
+    if (!isExpired || !isOrbit || !orbitRoomUuid || orbitAutoAbortRef.current) return;
+    orbitAutoAbortRef.current = true;
+    (async () => {
+      try {
+        await orbitService.abortCheckout(orbitRoomUuid);
+        notificationService.info('Hết thời gian thanh toán — phòng Orbit đã mở lại cho cả nhóm.');
+      } catch (err) {
+        logger.error('Auto abort checkout on expiry failed:', err);
+      }
+    })();
+  }, [isExpired, isOrbit, orbitRoomUuid]);
+
+  const memberDiscountRate = getMemberDiscountRate(userScore);
+  const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
   const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
   const comboPrice = comboOriginalPrice - comboDiscountAmount;
-  const hasCombo = checkoutCombos.length > 0;
-  
-  const ticketSum = selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + comboPrice;
+  const hasCombo = checkoutCombos.length > 0 || resolvedOtherMembersCombos.length > 0;
+
+  const ticketSum = isVod ? totalAmount : selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
+  const subtotal = ticketSum + comboPrice + otherMembersCombosTotal;
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -231,7 +286,7 @@ const CheckoutPage = () => {
   };
 
   const handleApplyVoucher = async () => {
-    const code = voucherInput.trim();
+    const code = voucherInput.trim().toUpperCase();
     if (code === '') {
       setDiscount(0);
       setVoucherError('');
@@ -255,65 +310,197 @@ const CheckoutPage = () => {
   };
 
   const handlePay = async () => {
-    if (isExpired) {
+    if (hasUncompletedMembers) {
+      notificationService.error("Vui lòng đợi tất cả thành viên khác hoàn tất chọn bắp nước!");
+      return;
+    }
+    if (!isVod && isExpired) {
       notificationService.error("Thời gian giữ ghế đã hết hạn!");
       return;
     }
+    if (paymentMethod === 'wallet' && walletBalance < finalTotal) {
+      notificationService.warning('Số dư ví không đủ. Vui lòng nạp thêm tại trang Ví NASA.');
+      navigate('/wallet');
+      return;
+    }
+
+    const paymentLabel = paymentMethod === 'wallet'
+      ? 'Số dư ví NASA'
+      : paymentMethod === 'card'
+        ? 'Thẻ Visa/Mastercard'
+        : paymentMethod === 'vietqr'
+          ? 'VietQR chuyển khoản'
+          : 'Apple Pay';
+    const seatLabel = isVod
+      ? 'Xem phim Online'
+      : `Ghế: ${selectedSeats.map((s) => s.id).join(', ')}`;
+    const ok = await confirm({
+      title: 'Xác nhận thanh toán',
+      message: 'Bạn có chắc muốn hoàn tất đặt vé và thanh toán?',
+      highlight: `${finalTotal.toLocaleString('vi-VN')} đ · ${paymentLabel}`,
+      detail: `${isVod ? movie : `${movie} · ${theater}`} · ${seatLabel}`,
+      confirmLabel: 'Thanh toán ngay',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
+    // Send only the host's own combos. For Orbit group bookings the server merges in each member's combos
+    // authoritatively from the room (BookingService.confirmBooking), so pre-merging them here would
+    // double-charge members. finalTotal above already reflects the full host + members amount.
+    const hostCombos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+
+    if (paymentMethod === 'card') {
+      navigate('/payment', {
+        state: {
+          amount: finalTotal,
+          checkoutState: {
+            ...checkoutState,
+            selectedCombos: hostCombos,
+            voucherCode: discount > 0 ? voucherInput.trim() : null,
+          },
+        },
+      });
+      return;
+    }
+
+    if (paymentMethod === 'vietqr') {
+      navigate('/payment/vietqr', {
+        state: {
+          amount: finalTotal,
+          checkoutState: {
+            ...checkoutState,
+            selectedCombos: hostCombos,
+            voucherCode: discount > 0 ? voucherInput.trim() : null,
+          },
+        },
+      });
+      return;
+    }
+
     setIsPaying(true);
     try {
-      const seatUuids = selectedSeats.map(s => s.seatUuid);
-      const combos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
-      
-      const response = await bookingService.confirmBooking(showtimeUuid, seatUuids, combos, discount > 0 ? voucherInput.trim() : null);
-      
+      let response;
+      if (isVod) {
+        response = await vodService.confirmOnlineBooking(movieUuid, discount > 0 ? voucherInput.trim() : null, paymentMethod);
+      } else {
+        const seatUuids = selectedSeats.map(s => s.seatUuid);
+        response = await bookingService.confirmBooking(
+          showtimeUuid,
+          seatUuids,
+          hostCombos,
+          discount > 0 ? voucherInput.trim() : null,
+          paymentMethod,
+          orbitRoomUuid,
+        );
+      }
+
+      const successMessage = isVod
+        ? `Mua vé xem phim Online thành công! Hãy kích hoạt mã vé để bắt đầu xem.`
+        : `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`;
+
       notificationService.addNotification(
         "Đặt vé thành công",
-        `Bạn đã đặt thành công vé xem phim ${movie} tại ${theater}. Suất chiếu lúc ${showtime} ngày ${date}. Ghế: ${selectedSeats.map(s => s.id).join(', ')}.`,
+        successMessage,
         "success"
       );
-      
-      notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${
-        paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay'
-      }.`);
-      
-      navigate('/booking-confirmed', {
-        state: {
-          bookingUuid: response.bookingUuid,
-          movie: movie,
-          moviePoster: moviePoster || movieInfo.poster,
-          movieFormat: movieFormat || movieInfo.format,
-          movieRating: movieAgeRestriction || movieInfo.age,
-          theater: theater,
-          date: date,
-          showtime: showtime,
-          selectedSeats: selectedSeats,
-          tickets: response.tickets || [],
-          totalPrice: finalTotal,
-          combos: response.combos || []
-        },
-        replace: true
-      });
+
+      const methodLabel = paymentMethod === 'wallet' ? 'Số dư tài khoản' : paymentMethod === 'vietqr' ? 'VietQR chuyển khoản' : paymentMethod === 'card' ? 'Thẻ Visa/Mastercard' : 'Apple Pay';
+
+      notificationService.success(`Đặt vé thành công! Bạn đã thanh toán ${(finalTotal).toLocaleString('vi-VN')} đ bằng ${methodLabel}.`);
+      showMissionCompletionToasts(response?.missionCompletions);
+      clearAllBookingSessions();
+      if (orbitRoomUuid) {
+        removeOrbitRoom(orbitRoomUuid);
+      }
+
+      if (isVod) {
+        navigate('/booking-confirmed', {
+          state: {
+            bookingUuid: response.bookingUuid,
+            movie: movie,
+            moviePoster: resolvedPoster,
+            movieFormat: 'VOD Online',
+            movieRating: resolvedAge,
+            theater: 'Trình phát video NASA VOD',
+            date: 'Mọi lúc, mọi nơi',
+            showtime: 'Xem trực tuyến',
+            selectedSeats: selectedSeats,
+            tickets: response.tickets || [],
+            totalPrice: finalTotal,
+            combos: response.combos || [],
+            isVod: true,
+            movieUuid: movieUuid,
+          },
+          replace: true,
+        });
+      } else {
+        navigate(`/pre-show/boarding/${response.bookingUuid}`, {
+          state: { justConfirmed: true },
+          replace: true,
+        });
+      }
     } catch (error) {
-      console.error("Payment confirmation failed:", error);
+      logger.error("Payment confirmation failed:", error);
       notificationService.error(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
     } finally {
       setIsPaying(false);
     }
   };
 
+  const handleBackToBooking = async () => {
+    if (isOrbit && orbitRoomUuid) {
+      const ok = await confirm({
+        title: 'Quay lại phòng nhóm',
+        message: 'Phiên thanh toán nhóm sẽ bị hủy. Bạn có chắc muốn quay lại?',
+        confirmLabel: 'Quay lại',
+        variant: 'warning',
+      });
+      if (!ok) return;
+      try {
+        await orbitService.abortCheckout(orbitRoomUuid);
+      } catch (err) {
+        logger.error('Failed to abort checkout on back navigation:', err);
+      }
+      navigate(`/booking/orbit/${orbitRoomUuid}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  if (!isStateValid) {
+    return null;
+  }
+
   return (
     <div className="checkout-wrapper">
-      <Navbar />
-      
+
       <main className="mt-8 flex-grow pt-4 pb-20 px-4 md:px-16 lg:px-20 max-w-7xl mx-auto w-full">
         {/* Navigation Breadcrumb / Back Action */}
-        <div 
-          className="mb-8 flex items-center gap-2 group cursor-pointer w-fit" 
-          onClick={() => navigate(-1)}
+        <div
+          className="mb-8 flex items-center gap-2 group cursor-pointer w-fit"
+          onClick={handleBackToBooking}
         >
           <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
-          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">Quay lại chọn ghế</span>
+          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
+            {isVod ? 'Quay lại chi tiết phim' : isOrbit ? 'Quay lại phòng nhóm' : 'Quay lại chọn ghế'}
+          </span>
         </div>
+
+        {isOrbit && (
+          <section className="mb-6 p-4 rounded-xl border border-red-500/25 bg-red-500/5">
+            <p className="text-sm font-black text-white uppercase tracking-wide">Thanh toán nhóm</p>
+            <p className="text-xs text-zinc-400 mt-1">Chủ phòng trả toàn bộ vé nhóm · {selectedSeats.length} ghế · {orbitMembers.length || 'nhiều'} thành viên</p>
+            {orbitMembers.length > 0 && (
+              <ul className="mt-3 space-y-1 text-xs text-zinc-300">
+                {orbitMembers.map((m) => (
+                  <li key={m.userUuid}>
+                    {m.displayName}{m.host ? ' (Chủ phòng)' : ''}: {(m.seatUuids?.length || 0)} ghế
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Order Summary & Details */}
@@ -322,7 +509,7 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 border-l-4 border-red-600 pl-4 uppercase tracking-wider text-white">Tóm tắt đơn hàng</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-36 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shrink-0 border border-white/5 bg-[#0f121d]">
-                  <img className="w-full h-full object-cover" alt="Movie Poster" src={moviePoster || movieInfo.poster} />
+                  <PosterImage className="w-full h-full object-cover" alt="Movie Poster" src={resolvedPoster} width={400} />
                 </div>
                 <div className="flex flex-col justify-between py-1 flex-grow">
                   <div>
@@ -334,25 +521,26 @@ const CheckoutPage = () => {
                       </div>
                       <div className="flex items-center gap-2.5 text-[#c8c5ca]">
                         <Clock className="w-4.5 h-4.5 text-cyan-400 shrink-0" />
-                        <span className="text-xs font-semibold">{showtime} • {theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP'}</span>
+                        <span className="text-xs font-semibold">{showtime} • {isVod ? theater : (theater.includes('IMAX') ? 'Phòng chiếu IMAX' : 'Phòng chiếu VIP')}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-yellow-400 font-bold">
                         <Armchair className="w-4.5 h-4.5 text-yellow-500 fill-yellow-500/10 shrink-0" />
-                        <span className="text-xs font-bold uppercase tracking-wide">Ghế: {selectedSeats.map(s => s.id).join(', ')}</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          {isVod ? 'Vé xem trực tuyến (VOD)' : `Ghế: ${selectedSeats.map(s => s.id).join(', ')}`}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
-                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{movieFormat || movieInfo.format}</span>
-                    {(movieAgeRestriction || movieInfo.age) && (
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${
-                        (movieAgeRestriction || movieInfo.age).toUpperCase() === 'P' 
-                          ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20' 
-                          : (movieAgeRestriction || movieInfo.age).toUpperCase().includes('T18') 
-                            ? 'bg-red-600/10 text-red-500 border-red-500/20' 
-                            : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
-                      }`}>
-                        {movieAgeRestriction || movieInfo.age}
+                    <span className="bg-white/5 text-gray-300 px-3 py-1 rounded-full text-[10px] font-black border border-white/10 uppercase tracking-wide">{resolvedFormat}</span>
+                    {resolvedAge && (
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${resolvedAge.toUpperCase() === 'P'
+                        ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/20'
+                        : resolvedAge.toUpperCase().includes('T18')
+                          ? 'bg-red-600/10 text-red-500 border-red-500/20'
+                          : 'bg-amber-600/10 text-amber-500 border-amber-500/20'
+                        }`}>
+                        {resolvedAge}
                       </span>
                     )}
                   </div>
@@ -364,36 +552,54 @@ const CheckoutPage = () => {
               <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Chi tiết thanh toán</h2>
               <div className="space-y-4">
                 {/* Seat tickets breakdown */}
-                {Object.entries(seatGroupBreakdown).map(([type, data]) => (
+                {!isVod && Object.entries(seatGroupBreakdown).map(([type, data]) => (
                   <div key={type} className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">{type} ({data.count}x)</span>
                     <span className="text-xs font-bold text-white">{(data.sum).toLocaleString('vi-VN')} đ</span>
                   </div>
                 ))}
 
-
+                {isVod && (
+                  <div className="flex justify-between items-center text-[#c8c5ca]">
+                    <span className="text-xs font-semibold">Vé xem phim trực tuyến (VOD)</span>
+                    <span className="text-xs font-bold text-white">{(totalAmount).toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )}
 
                 {/* Selected Combo packs breakdown */}
-                <div className="pt-4 border-t border-white/5 space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
-                  {checkoutCombos.length === 0 ? (
-                    <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
-                      Không mua kèm bắp nước.
-                    </div>
-                  ) : (
-                    checkoutCombos.map(combo => (
-                      <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
-                        <div>
-                          <span className="text-xs font-bold text-white block">{combo.name}</span>
-                          <span className="text-[10px] font-semibold text-gray-400">Số lượng: {combo.quantity}</span>
-                        </div>
-                        <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                {!isVod && (
+                  <div className="pt-4 border-t border-white/5 space-y-3">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                    {checkoutCombos.length === 0 && resolvedOtherMembersCombos.length === 0 ? (
+                      <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
+                        Không mua kèm bắp nước.
                       </div>
-                    ))
-                  )}
-                </div>
+                    ) : (
+                      <>
+                        {checkoutCombos.map(combo => (
+                          <div key={combo.comboUuid} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                            <div>
+                              <span className="text-xs font-bold text-white block">{combo.name}</span>
+                              <span className="text-[10px] font-semibold text-gray-400">Bạn (Host) · Số lượng: {combo.quantity}</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        ))}
+                        {resolvedOtherMembersCombos.map((combo, idx) => (
+                          <div key={`member-combo-${idx}`} className="flex justify-between items-center p-3 rounded-xl border border-white/5 bg-white/5">
+                            <div>
+                              <span className="text-xs font-bold text-white block">{combo.name}</span>
+                              <span className="text-[10px] font-semibold text-gray-400">{combo.memberDisplayName} · Số lượng: {combo.quantity}</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-yellow-400">{(combo.price * combo.quantity).toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
 
-                {hasCombo && (
+                {hasCombo && !isVod && (
                   <div className="flex justify-between items-center text-[#c8c5ca]">
                     <span className="text-xs font-semibold">Ưu đãi thành viên ({memberTier})</span>
                     <span className="text-xs font-bold text-green-500">-{comboDiscountAmount.toLocaleString('vi-VN')} đ</span>
@@ -415,17 +621,27 @@ const CheckoutPage = () => {
                 </div>
               </div>
             </section>
+
+            {isVod && (
+              <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-6 space-y-3 text-xs leading-relaxed text-purple-300 text-left">
+                <p className="font-bold text-purple-400 text-sm uppercase tracking-wider">Điều khoản dịch vụ VOD:</p>
+                <ul className="list-disc pl-5 space-y-2 font-medium">
+                  <li>Vé xem có thời hạn sử dụng trong vòng <span className="font-extrabold text-white">{(durationMinutes * 2) || 240} phút</span> kể từ lần đầu tiên nhấn nút xem phim.</li>
+                  <li>Mỗi vé chỉ hỗ trợ phát trên <span className="font-extrabold text-white">01 thiết bị duy nhất</span> tại cùng một thời điểm.</li>
+                  <li>Mọi hành vi sao chép, chia sẻ stream trái phép sẽ bị hệ thống tự động khóa tài khoản vĩnh viễn.</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Payment Options & CTA */}
           <div className="lg:col-span-5 space-y-6">
             <section className="glass-panel p-6 rounded-2xl flex flex-col h-full text-left">
-              {timeLeft !== null && (
-                <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${
-                  timeLeft < 60 
-                    ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse' 
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                }`}>
+              {timeLeft !== null && !isVod && (
+                <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${timeLeft < 60
+                  ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-500'
+                  }`}>
                   <div className="flex items-center gap-1.5">
                     <Clock className={`w-4 h-4 shrink-0 ${timeLeft < 60 ? 'text-red-500' : 'text-amber-500'}`} />
                     <span>Thời gian thanh toán còn lại:</span>
@@ -436,45 +652,45 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              <h2 className="text-xl font-bold mb-6 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
+              <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
               <div className="space-y-4 flex-grow">
                 {/* Wallet Balance */}
-                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${
-                  paymentMethod === 'wallet' ? 'border-red-600/50 bg-red-600/5 ring-1 ring-red-600/20' : 'border-white/10 bg-white/5'
-                }`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
+                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${paymentMethod === 'wallet' ? 'border-red-600/50 bg-red-600/5 ring-1 ring-red-600/20' : 'border-white/10 bg-white/5'
+                  }`}>
+                  <input
+                    type="radio"
+                    name="payment"
                     checked={paymentMethod === 'wallet'}
                     onChange={() => setPaymentMethod('wallet')}
                     className="hidden"
                   />
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${
-                    paymentMethod === 'wallet' ? 'border-red-600 bg-red-600' : 'border-white/30'
-                  }`}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${paymentMethod === 'wallet' ? 'border-red-600 bg-red-600' : 'border-white/30'
+                    }`}>
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
-                    <div className="text-xs font-bold text-white">Số dư tài khoản</div>
-                    <div className="text-[10px] font-semibold text-gray-400">Ví credits (Đang có: 500.000 đ)</div>
+                    <div className="text-xs font-bold text-white">Ví NASA</div>
+                    <div className="text-[10px] font-semibold text-gray-400">
+                      {loadingProfile
+                        ? 'Đang tải số dư...'
+                        : `Số dư: ${walletBalance.toLocaleString('vi-VN')} đ · ${memberTier}`}
+                    </div>
                   </div>
                   <Wallet className="w-5 h-5 text-red-500 shrink-0 fill-red-500/10" />
                 </label>
 
                 {/* Credit Card */}
-                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${
-                  paymentMethod === 'card' ? 'border-red-600/50 bg-red-600/5 ring-1 ring-red-600/20' : 'border-white/10 bg-white/5'
-                }`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
+                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${paymentMethod === 'card' ? 'border-red-600/50 bg-red-600/5 ring-1 ring-red-600/20' : 'border-white/10 bg-white/5'
+                  }`}>
+                  <input
+                    type="radio"
+                    name="payment"
                     checked={paymentMethod === 'card'}
                     onChange={() => setPaymentMethod('card')}
                     className="hidden"
                   />
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${
-                    paymentMethod === 'card' ? 'border-red-600 bg-red-600' : 'border-white/30'
-                  }`}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${paymentMethod === 'card' ? 'border-red-600 bg-red-600' : 'border-white/30'
+                    }`}>
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
@@ -484,42 +700,44 @@ const CheckoutPage = () => {
                   <CreditCard className="w-5 h-5 text-[#c8c5ca] group-hover:text-white transition-colors shrink-0" />
                 </label>
 
-                {/* Apple Pay / MoMo */}
-                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${
-                  paymentMethod === 'apple' ? 'border-red-600/50 bg-red-600/5 ring-1 ring-red-600/20' : 'border-white/10 bg-white/5'
-                }`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    checked={paymentMethod === 'apple'}
-                    onChange={() => setPaymentMethod('apple')}
+                {/* VietQR Bank Transfer */}
+                <label className={`relative flex items-center p-4 rounded-xl border cursor-pointer hover:bg-white/5 transition-all group active:scale-[0.99] ${paymentMethod === 'vietqr' ? 'border-blue-500/50 bg-blue-600/5 ring-1 ring-blue-500/20' : 'border-white/10 bg-white/5'
+                  }`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === 'vietqr'}
+                    onChange={() => setPaymentMethod('vietqr')}
                     className="hidden"
                   />
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${
-                    paymentMethod === 'apple' ? 'border-red-600 bg-red-600' : 'border-white/30'
-                  }`}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-all ${paymentMethod === 'vietqr' ? 'border-blue-500 bg-blue-500' : 'border-white/30'
+                    }`}>
                     <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                   </div>
                   <div className="flex-grow">
-                    <div className="text-xs font-bold text-white">Ví Điện Tử (MoMo / ZaloPay)</div>
-                    <div className="text-[10px] font-semibold text-gray-400">Thanh toán nhanh chóng, an toàn</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">VietQR — Chuyển khoản ngân hàng</span>
+                    </div>
+                    <div className="text-[10px] font-semibold text-gray-400">Quét mã QR · Xác nhận tức thì</div>
                   </div>
-                  <Landmark className="w-5 h-5 text-[#c8c5ca] group-hover:text-white transition-colors shrink-0" />
+                  <QrCode className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors shrink-0" />
                 </label>
+
+
               </div>
 
               {/* Voucher Section */}
               <div className="mt-8 pt-6 border-t border-white/5">
                 <label className="block text-[10px] font-black uppercase text-gray-400 mb-2.5 ml-1 tracking-wider">Áp dụng Voucher</label>
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Nhập mã KM (Ví dụ: THDPV50, CINELUXE)"
                     value={voucherInput}
-                    onChange={(e) => setVoucherInput(e.target.value)}
+                    onChange={(e) => setVoucherInput(e.target.value.replace(/\s/g, '').toUpperCase())}
                     className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-grow focus:outline-none focus:border-red-500/50 text-xs text-white transition-colors uppercase tracking-wider font-bold"
                   />
-                  <button 
+                  <button
                     onClick={handleApplyVoucher}
                     className="bg-white/10 text-white hover:bg-white/15 px-5 py-3 rounded-xl font-bold text-xs uppercase cursor-pointer active:scale-95 transition-all"
                   >
@@ -540,14 +758,13 @@ const CheckoutPage = () => {
                       {myVouchers.map((v) => {
                         const isSelected = voucherInput.trim().toUpperCase() === v.code.toUpperCase() && discount > 0;
                         return (
-                          <div 
+                          <div
                             key={v.id}
                             onClick={() => handleSelectVoucher(v.code)}
-                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                              isSelected 
-                                ? 'border-red-500/50 bg-red-500/10' 
-                                : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'
-                            }`}
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${isSelected
+                              ? 'border-red-500/50 bg-red-500/10'
+                              : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'
+                              }`}
                           >
                             <div className="pr-2">
                               <div className="flex items-center gap-2">
@@ -565,11 +782,10 @@ const CheckoutPage = () => {
                             </div>
                             <button
                               type="button"
-                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${
-                                isSelected 
-                                  ? 'bg-red-600 text-white shadow-md shadow-red-600/25' 
-                                  : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
-                              }`}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer ${isSelected
+                                ? 'bg-red-600 text-white shadow-md shadow-red-600/25'
+                                : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
+                                }`}
                             >
                               {isSelected ? 'Đang áp dụng' : 'Chọn'}
                             </button>
@@ -592,18 +808,33 @@ const CheckoutPage = () => {
                     <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider">Đã bao gồm VAT</span>
                   </div>
                 </div>
-                
-                <button 
+
+                {hasUncompletedMembers && (
+                  <div className="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 text-[10px] font-black text-center mb-3">
+                    Đang chờ tất cả thành viên khác hoàn tất chọn bắp nước trước khi thanh toán.
+                  </div>
+                )}
+
+                <button
                   onClick={handlePay}
-                  disabled={isPaying || isExpired}
-                  className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
-                    isPaying || isExpired
-                      ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5 shadow-none' 
-                      : 'bg-[#E61E2A] text-white neon-glow-red hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-[0_0_20px_rgba(230,30,42,0.35)]'
-                  }`}
+                  disabled={isPaying || isExpired || hasUncompletedMembers}
+                  className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${isPaying || isExpired || hasUncompletedMembers
+                    ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5 shadow-none'
+                    : 'bg-[#E61E2A] text-white neon-glow-red hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-[0_0_20px_rgba(230,30,42,0.35)]'
+                    }`}
                 >
-                  {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : 'Xác nhận & Thanh toán'}
+                  {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : (hasUncompletedMembers ? 'Chờ thành viên chọn bắp nước' : (isOrbit ? 'Xác nhận nhóm & Thanh toán' : 'Xác nhận & Thanh toán'))}
                 </button>
+
+                {isOrbit && (
+                  <button
+                    type="button"
+                    onClick={handleBackToBooking}
+                    className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-3 flex items-center justify-center transition-colors"
+                  >
+                    Quay lại chọn ghế
+                  </button>
+                )}
                 <p className="text-center text-[10px] font-medium text-gray-500 mt-4 leading-relaxed">
                   Bằng cách nhấn xác nhận, bạn đồng ý với các Điều khoản Sử dụng và Chính sách Bảo mật của THDPV CINEMA.
                 </p>
@@ -613,18 +844,18 @@ const CheckoutPage = () => {
         </div>
       </main>
 
-      <Footer />
-
       {isExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="glass-panel p-8 rounded-2xl max-w-sm w-full text-center border border-red-500/30 bg-[#111215] shadow-2xl space-y-4">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto animate-bounce shrink-0" />
             <h3 className="text-lg font-black text-white uppercase tracking-wider">Hết hạn giữ ghế!</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Đã quá 5 phút giữ ghế kể từ lúc chọn. Ghế của bạn đã được giải phóng để người khác chọn. Vui lòng quay lại để chọn ghế mới.
+              {isOrbit
+                ? 'Đã hết thời gian giữ ghế/phòng thanh toán nhóm. Ghế đã được giải phóng. Vui lòng quay lại phòng nhóm để chọn lại.'
+                : 'Đã hết thời gian giữ ghế. Ghế đã được giải phóng. Vui lòng quay lại chọn ghế.'}
             </p>
             <button
-              onClick={() => navigate(-1)}
+              onClick={handleBackToBooking}
               className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
             >
               Quay lại chọn ghế
@@ -632,6 +863,7 @@ const CheckoutPage = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

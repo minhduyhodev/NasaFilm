@@ -1,4 +1,5 @@
 import React from "react";
+import { logger } from "../../shared/utils/logger";
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -11,7 +12,10 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("Error caught by boundary:", error, errorInfo);
+    logger.error("Unhandled React render error", {
+      error,
+      componentStack: errorInfo?.componentStack,
+    });
   }
 
   render() {

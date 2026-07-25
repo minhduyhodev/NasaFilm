@@ -1,0 +1,126 @@
+package com.thdpv.movietheater.movie.service;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.thdpv.movietheater.config.cache.CacheNames;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewStatsResponse;
+import com.thdpv.movietheater.movie.dto.response.MovieReviewVibeStatsResponse;
+import com.thdpv.movietheater.movie.enums.MovieReviewStatus;
+import com.thdpv.movietheater.movie.repository.MovieReviewRepository;
+import com.thdpv.movietheater.movie.util.ReviewVibeTagUtil;
+
+@Service
+public class MovieReviewStatsService {
+
+    private final MovieReviewRepository movieReviewRepository;
+
+    public MovieReviewStatsService(MovieReviewRepository movieReviewRepository) {
+        this.movieReviewRepository = movieReviewRepository;
+    }
+
+    @Cacheable(value = CacheNames.MOVIE_REVIEW_SUMMARY, key = "#movieUuid")
+    @Transactional(readOnly = true)
+    public MovieReviewStatsResponse getStats(UUID movieUuid) {
+        MovieReviewStatsResponse stats = new MovieReviewStatsResponse();
+        long total = movieReviewRepository.countByMovieUuidAndStatus(movieUuid, MovieReviewStatus.VISIBLE);
+        stats.setTotalReviews(total);
+
+        double average = total == 0
+                ? 0
+                : movieReviewRepository.averageRatingByMovieUuidAndStatus(movieUuid, MovieReviewStatus.VISIBLE);
+        stats.setAverageRating(Math.round(average * 10.0) / 10.0);
+        stats.setRatingDistribution(buildDistribution(movieUuid));
+        return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, MovieReviewStatsResponse> getStatsBatch(Collection<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, MovieReviewStatsResponse> result = new HashMap<>();
+        for (Object[] row : movieReviewRepository.aggregateByMovieUuids(movieUuids, MovieReviewStatus.VISIBLE)) {
+            UUID movieUuid = (UUID) row[0];
+            long total = ((Number) row[1]).longValue();
+            double average = ((Number) row[2]).doubleValue();
+            MovieReviewStatsResponse stats = new MovieReviewStatsResponse();
+            stats.setTotalReviews(total);
+            stats.setAverageRating(total == 0 ? 0 : Math.round(average * 10.0) / 10.0);
+            result.put(movieUuid, stats);
+        }
+        for (UUID movieUuid : movieUuids) {
+            result.putIfAbsent(movieUuid, emptyStats());
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, Boolean> getBestOnBigScreenBatch(Collection<UUID> movieUuids) {
+        if (movieUuids == null || movieUuids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Boolean> result = new HashMap<>();
+        for (UUID movieUuid : movieUuids) {
+            result.put(movieUuid, false);
+        }
+        String theaterTagJson = ReviewVibeTagUtil.toJsonArrayContainsQuery(
+                ReviewVibeTagUtil.BEST_ON_BIG_SCREEN_TAG);
+        for (Object[] row : movieReviewRepository.aggregateVibeBadgeByMovieUuids(
+                movieUuids, MovieReviewStatus.VISIBLE.name(), theaterTagJson)) {
+            UUID movieUuid = (UUID) row[0];
+            long taggedCount = ((Number) row[1]).longValue();
+            long theaterTagCount = ((Number) row[2]).longValue();
+            Map<String, Long> counts = theaterTagCount > 0
+                    ? Map.of(ReviewVibeTagUtil.BEST_ON_BIG_SCREEN_TAG, theaterTagCount)
+                    : Map.of();
+            result.put(movieUuid, ReviewVibeTagUtil.isBestOnBigScreen(taggedCount, counts));
+        }
+        return result;
+    }
+
+    @Cacheable(value = CacheNames.MOVIE_REVIEW_VIBE_STATS, key = "#movieUuid")
+    @Transactional(readOnly = true)
+    public MovieReviewVibeStatsResponse getVibeStats(UUID movieUuid) {
+        Map<String, Long> vibeTagCounts = ReviewVibeTagUtil.toSortedTagCountMap(
+                movieReviewRepository.aggregateVibeTagCountsByMovieUuid(
+                        movieUuid, MovieReviewStatus.VISIBLE.name()));
+        long taggedReviewCount = movieReviewRepository.countTaggedVisibleReviews(
+                movieUuid, MovieReviewStatus.VISIBLE.name());
+
+        MovieReviewVibeStatsResponse stats = new MovieReviewVibeStatsResponse();
+        stats.setVibeTagCounts(vibeTagCounts);
+        stats.setTaggedReviewCount(taggedReviewCount);
+        stats.setBestOnBigScreen(ReviewVibeTagUtil.isBestOnBigScreen(taggedReviewCount, vibeTagCounts));
+        return stats;
+    }
+
+    private MovieReviewStatsResponse emptyStats() {
+        MovieReviewStatsResponse stats = new MovieReviewStatsResponse();
+        stats.setTotalReviews(0);
+        stats.setAverageRating(0);
+        return stats;
+    }
+
+    private Map<Integer, Long> buildDistribution(UUID movieUuid) {
+        Map<Integer, Long> distribution = new LinkedHashMap<>();
+        for (int star = 5; star >= 1; star--) {
+            distribution.put(star, 0L);
+        }
+        for (Object[] row : movieReviewRepository.countByRatingGroupAndStatus(movieUuid, MovieReviewStatus.VISIBLE)) {
+            int rating = ((Number) row[0]).intValue();
+            long count = ((Number) row[1]).longValue();
+            if (rating >= 1 && rating <= 5) {
+                distribution.put(rating, count);
+            }
+        }
+        return distribution;
+    }
+}

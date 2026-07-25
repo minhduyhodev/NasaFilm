@@ -1,0 +1,213 @@
+.profile-preferences-tab__desc {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.55;
+  max-width: 40rem;
+}
+
+.profile-preferences-tab__form {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.profile-preferences-tab__form h3,
+.profile-preferences-tab__radar h3 {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__muted {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.profile-preferences-tab__favorite-count {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.profile-preferences-tab__genre-hint {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}
+
+.profile-preferences-tab__chip.is-from-favorite.is-active {
+  border-color: rgba(251, 191, 36, 0.75);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+.profile-preferences-tab__chip.is-readonly {
+  cursor: default;
+  pointer-events: none;
+}
+
+.profile-preferences-tab__chips--readonly {
+  margin-top: 0.75rem;
+}
+
+.profile-preferences-tab__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.profile-preferences-tab__chip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.profile-preferences-tab__chip.is-active {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.14);
+  color: #fde68a;
+}
+
+.profile-preferences-tab__time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.profile-preferences-tab__time-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.profile-preferences-tab__time-row select {
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111216;
+  color: #fff;
+}
+
+.profile-preferences-tab__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #d4af37;
+  text-decoration: none;
+}
+
+.profile-preferences-tab__link:hover {
+  text-decoration: underline;
+}
+
+.profile-preferences-tab__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.profile-preferences-tab__save,
+.profile-preferences-tab__toggle,
+.profile-preferences-tab__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-preferences-tab__reset {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.profile-preferences-tab__save {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.16);
+  color: #fde68a;
+}
+
+.profile-preferences-tab__toggle {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+}
+
+.profile-preferences-tab__toggle.is-on {
+  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.14);
+  color: var(--radar-gold-text);
+}
+
+.profile-preferences-tab__radar {
+  margin-top: 1.5rem;
+  padding: 1.15rem;
+  border-radius: 18px;
+  border: 1px solid var(--radar-border, rgba(212, 175, 55, 0.2));
+  background: linear-gradient(165deg, rgba(17, 18, 22, 0.72) 0%, rgba(12, 10, 26, 0.55) 100%);
+}
+
+.profile-preferences-tab__radar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.profile-preferences-tab__radar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-preferences-tab__radar-title h3 {
+  color: var(--radar-gold-text, #fde68a);
+}
+
+.profile-preferences-tab__refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  transition: all 0.22s ease;
+}
+
+.profile-preferences-tab__refresh:hover:not(:disabled) {
+  border-color: rgba(212, 175, 55, 0.38);
+  color: var(--radar-gold-text);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* Shared suggestions list — styles in ShowtimeRadarWidget.css */

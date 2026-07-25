@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { SocialLoginButtons } from '../components/SocialLoginButtons';
 import { loginSchema } from '../utils/validation';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
+import { getDefaultAdminPath, isAdminOrStaffUser, remapLegacyCounterPath } from '../../../shared/utils/adminNavigation';
 import './LoginPage.css';
 
 export const LoginPage = () => {
@@ -50,21 +51,21 @@ export const LoginPage = () => {
   const redirectAfterLogin = () => {
     const from = location.state?.from?.pathname;
     const storedUser = tokenService.getUser();
-    const roles = storedUser?.roles || [];
 
-    const isAdminOrStaff = roles.some((r) => {
-      if (!r) return false;
-      const roleLower = r.toLowerCase();
-      return roleLower === 'admin' || roleLower === 'staff' || roleLower.includes('admin') || roleLower.includes('staff');
-    });
-
-    if (isAdminOrStaff) {
-      const targetPath = (from && from.startsWith('/admin')) ? from : '/admin';
+    if (isAdminOrStaffUser(storedUser)) {
+      let targetPath = from;
+      if (targetPath?.startsWith('/counter')) {
+        targetPath = remapLegacyCounterPath(targetPath);
+      }
+      if (!targetPath || (!targetPath.startsWith('/admin') && targetPath !== '/unauthorized')) {
+        targetPath = getDefaultAdminPath(storedUser);
+      }
       navigate(targetPath, { replace: true });
-    } else {
-      const targetPath = (from && !from.startsWith('/admin') && from !== '/unauthorized') ? from : '/';
-      navigate(targetPath, { replace: true });
+      return;
     }
+
+    const targetPath = (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized') ? from : '/';
+    navigate(targetPath, { replace: true });
   };
 
   useEffect(() => {
@@ -137,7 +138,7 @@ export const LoginPage = () => {
     };
   }, [googleClientId, loginWithGoogle]);
 
-  const handleQuickLogin = (email, password) => {
+  const _handleQuickLogin = (email, password) => {
     setValue('email', email);
     setValue('password', password);
     handleSubmit(onSubmit)();
@@ -193,7 +194,8 @@ export const LoginPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="Trải nghiệm điện ảnh đắm chìm nhất từng được chế tác cho kỷ nguyên số. Chất lượng đỉnh cao, đưa trực tiếp đến phòng chiếu tại nhà của bạn."
+      tagline="Điện ảnh. Không khoảng cách."
+      heroDescription="Trải nghiệm những bộ phim hay nhất, trên màn ảnh lớn gần bạn nhất."
     >
       <AuthCard title="Chào Mừng Trở Lại">
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
@@ -202,7 +204,7 @@ export const LoginPage = () => {
             label="Email"
             placeholder="explorer@nasafilm.com"
             type="email"
-            icon={<Mail size={20} />}
+            icon={<Mail size={15} />}
             error={errors.email}
           />
 
@@ -212,7 +214,7 @@ export const LoginPage = () => {
               label="Mật khẩu"
               placeholder="********"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.password}
               showPasswordToggle={true}
               showPassword={showPassword}

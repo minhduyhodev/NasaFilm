@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -9,6 +10,7 @@ public class MovieListResponse {
 
     private UUID uuid;
     private String title;
+    private String slug;
     private String description;
     private Integer durationMinutes;
     private LocalDate releaseDate;
@@ -20,6 +22,13 @@ public class MovieListResponse {
     private String streamingUrl;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String screeningMode;
+    private BigDecimal onlinePrice;
+    private Double rating;
+    private Double reviewAverageRating;
+    private Long reviewCount;
+    private Boolean bestOnBigScreen;
+    private OffsetDateTime nextShowtimeStart;
 
     public MovieListResponse() {
     }
@@ -62,6 +71,14 @@ public class MovieListResponse {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {
@@ -150,5 +167,61 @@ public class MovieListResponse {
 
     public void setStreamingUrl(String streamingUrl) {
         this.streamingUrl = streamingUrl;
+    }
+
+    public String getScreeningMode() {
+        return screeningMode;
+    }
+
+    public void setScreeningMode(String screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
+    }
+
+    public Double getReviewAverageRating() {
+        return reviewAverageRating;
+    }
+
+    public void setReviewAverageRating(Double reviewAverageRating) {
+        this.reviewAverageRating = reviewAverageRating;
+    }
+
+    public Long getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Long reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
+    public Boolean getBestOnBigScreen() {
+        return bestOnBigScreen;
+    }
+
+    public void setBestOnBigScreen(Boolean bestOnBigScreen) {
+        this.bestOnBigScreen = bestOnBigScreen;
+    }
+
+    public OffsetDateTime getNextShowtimeStart() {
+        return nextShowtimeStart;
+    }
+
+    public void setNextShowtimeStart(OffsetDateTime nextShowtimeStart) {
+        this.nextShowtimeStart = nextShowtimeStart;
     }
 }

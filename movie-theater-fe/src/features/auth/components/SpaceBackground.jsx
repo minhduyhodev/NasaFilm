@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import spaceAuthBg from '../../../shared/assets/space_auth_bg.png';
+import { useEffect, useRef } from 'react';
+import spaceAuthBg from '../../../shared/assets/space_auth_bg.webp';
 
 export const SpaceBackground = () => {
   const canvasRef = useRef(null);

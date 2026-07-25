@@ -1,0 +1,184 @@
+.ticket-activation-page {
+  background: #0a0a0a;
+}
+
+.activation-hero-title {
+  @apply text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-white leading-tight;
+  font-family: Montserrat, sans-serif;
+}
+
+.activation-panel {
+  @apply rounded-xl border border-white/10 bg-[#111111] p-6 md:p-8;
+}
+
+.activation-input-wrap {
+  @apply flex items-center gap-3 rounded-lg border border-white/10 bg-[#0d0d0d] px-4 py-3.5 focus-within:border-red-500/50 transition-colors;
+}
+
+.activation-input {
+  @apply w-full bg-transparent text-base md:text-lg font-bold tracking-[0.25em] text-white placeholder:text-white/25 outline-none uppercase;
+}
+
+.activation-btn {
+  @apply inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-4 text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-red-700 hover:shadow-[0_8px_24px_rgba(220,38,38,0.35)] disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.activation-badge {
+  @apply flex items-center gap-2 rounded-lg border border-white/5 bg-[#141414] px-3 py-2 text-[10px] font-bold tracking-wider text-white/70;
+}
+
+.activation-step-num {
+  @apply text-4xl font-black leading-none text-transparent;
+  -webkit-text-stroke: 1px rgba(220, 38, 38, 0.5);
+}
+
+.activation-movie-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.activation-movie-info {
+  display: flex;
+  min-width: 13rem;
+  align-items: center;
+  gap: 1rem;
+}
+
+.activation-btn-buy {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(100%, 21rem);
+  min-height: 4.25rem;
+  padding: 0.7rem 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.2), transparent 38%),
+    linear-gradient(135deg, #b91c1c 0%, #dc2626 54%, #991b1b 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 12px 30px rgba(127, 29, 29, 0.28);
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+
+.activation-btn-buy::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -40% auto -40% -35%;
+  width: 28%;
+  transform: skewX(-18deg) translateX(-220%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.activation-btn-buy:hover {
+  transform: translateY(-3px);
+  border-color: rgba(254, 202, 202, 0.72);
+  filter: saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 18px 38px rgba(127, 29, 29, 0.4);
+}
+
+.activation-btn-buy:hover::before {
+  transform: skewX(-18deg) translateX(700%);
+}
+
+.activation-btn-buy:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.activation-btn-buy:focus-visible {
+  outline: 3px solid rgba(248, 113, 113, 0.38);
+  outline-offset: 4px;
+}
+
+.activation-btn-buy__icon {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.7rem;
+  background: rgba(69, 10, 10, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.activation-btn-buy__icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke-width: 2;
+}
+
+.activation-btn-buy__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.activation-btn-buy__label {
+  font-size: 0.75rem;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.activation-btn-buy__hint {
+  color: rgba(254, 226, 226, 0.78);
+  font-size: 0.67rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.activation-btn-buy__arrow {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.activation-btn-buy:hover .activation-btn-buy__arrow {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activation-btn-buy,
+  .activation-btn-buy::before,
+  .activation-btn-buy__arrow {
+    transition: none;
+  }
+
+  .activation-btn-buy:hover,
+  .activation-btn-buy:active {
+    transform: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .activation-movie-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .activation-btn-buy {
+    width: 100%;
+  }
+}

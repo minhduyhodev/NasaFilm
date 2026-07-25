@@ -1,9 +1,7 @@
 package com.thdpv.movietheater.booking.service;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -27,10 +25,13 @@ import com.thdpv.movietheater.booking.dto.response.SeatViewDto;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.repository.BookingNativeRepository;
-import com.thdpv.movietheater.cinema.service.CinemaService;
+import com.thdpv.movietheater.cinema.entity.CinemaRoom;
+import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
+import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.config.service.SystemConfigService;
 
 import lombok.RequiredArgsConstructor;
 import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
@@ -40,17 +41,29 @@ import com.thdpv.movietheater.booking.repository.BookingSeatRepository;
 @RequiredArgsConstructor
 public class ShowtimeSeatService {
 
-    private static final int LOCK_TTL_SECONDS = 300;
-
     @Value("${app.showtime.auto-slide-enabled:false}")
     private boolean autoSlideEnabled;
 
+    private final SystemConfigService systemConfigService;
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
     private final BookingNativeRepository bookingRepository;
-    private final CinemaService cinemaService;
+    private final CinemaRoomRepository cinemaRoomRepository;
     private final SeatLockedRepository seatLockedRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final SeatMapEventPublisher seatMapEventPublisher;
+    private final ShowtimeCapacityService showtimeCapacityService;
+    private final SeatMapWatchRegistry seatMapWatchRegistry;
+    private final ShowtimeOverlapSupport showtimeOverlapSupport;
+
+    public void registerSeatMapWatch(UUID showtimeUuid) {
+        bookingRepository.ensureShowtimeExists(showtimeUuid);
+        seatMapWatchRegistry.register(showtimeUuid);
+    }
+
+    public void unregisterSeatMapWatch(UUID showtimeUuid) {
+        seatMapWatchRegistry.unregister(showtimeUuid);
+    }
 
     @Transactional
     public ShowtimeSeatMapResponse getSeatMap(UUID showtimeUuid, List<UUID> selectedSeatUuids, String currentUserEmail) {
@@ -65,25 +78,19 @@ public class ShowtimeSeatService {
         List<SeatViewDto> rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
 
         if (rows.isEmpty()) {
-            Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-            if (showtime != null) {
-                try {
-                    cinemaService.generateSeats(showtime.getCinemaRoomUuid(), null);
-                    rows = showtimeRepository.getShowtimeSeatViews(showtimeUuid, now);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND);
+            throw new AppException(ErrorCode.SHOWTIME_NOT_FOUND, "Chua co so do ghe cho suat chieu nay");
         }
 
         UUID responseShowtimeUuid = rows.get(0).getShowtimeUuid();
         UUID cinemaRoomUuid = rows.get(0).getCinemaRoomUuid();
         OffsetDateTime startTime = rows.get(0).getStartTime();
         OffsetDateTime endTime = rows.get(0).getEndTime();
+
+        CinemaRoom room = cinemaRoomRepository.findById(cinemaRoomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
+        if (room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
 
         Map<String, List<ShowtimeSeatMapResponse.SeatItem>> seatRows = new LinkedHashMap<>();
         for (SeatViewDto row : rows) {
@@ -99,30 +106,50 @@ public class ShowtimeSeatService {
             responseRows.add(new ShowtimeSeatMapResponse.RowItem(entry.getKey(), entry.getValue()));
         }
 
+        int lockTtlSeconds = systemConfigService.getSeatLockTtlSeconds();
+        String layoutConfig = room.getLayoutConfig();
         return new ShowtimeSeatMapResponse(
                 responseShowtimeUuid,
                 cinemaRoomUuid,
                 startTime,
                 endTime,
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 now,
-                responseRows);
+                responseRows,
+                layoutConfig);
     }
 
     @Transactional
     public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request) {
+        return syncSeatLocks(currentUserEmail, request, null);
+    }
+
+    /**
+     * @param ttlSecondsOverride optional lock lifetime (seconds); when null the default solo seat-lock TTL is used.
+     *                           Used by Orbit group rooms so member seat holds live as long as the room, not the
+     *                           short solo TTL.
+     */
+    @Transactional
+    public SeatLockSyncResponse syncSeatLocks(String currentUserEmail, SyncSeatLockRequest request,
+            Integer ttlSecondsOverride) {
         bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID currentUserUuid = resolveRequiredCurrentUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
         if (autoSlideEnabled) {
             autoSlideShowtimeIfPast(request.getShowtimeUuid(), now);
         }
-        OffsetDateTime expiresAt = now.plusSeconds(LOCK_TTL_SECONDS);
+        int lockTtlSeconds = ttlSecondsOverride != null && ttlSecondsOverride > 0
+                ? ttlSecondsOverride
+                : systemConfigService.getSeatLockTtlSeconds();
+        OffsetDateTime expiresAt = now.plusSeconds(lockTtlSeconds);
         List<UUID> requestedSeatUuids = normalizeRequestedSeatUuids(request.getSeatUuids());
 
         assertShowtimeValidForBooking(request.getShowtimeUuid(), now);
         cleanupExpiredLocks(request.getShowtimeUuid(), now);
         validateRequestedSeatsBelongToShowtime(request.getShowtimeUuid(), requestedSeatUuids);
+        validateSeatsAreBookable(request.getShowtimeUuid(), requestedSeatUuids);
+        showtimeCapacityService.validateCapacity(
+                request.getShowtimeUuid(), requestedSeatUuids.size(), currentUserUuid, now);
         validateSeatsNotBooked(request.getShowtimeUuid(), requestedSeatUuids);
         validateSeatsNotLockedByOther(request.getShowtimeUuid(), requestedSeatUuids, currentUserUuid, now);
 
@@ -143,9 +170,11 @@ public class ShowtimeSeatService {
         refreshSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToKeep, now, expiresAt);
         insertSeatLocks(request.getShowtimeUuid(), currentUserUuid, seatUuidsToInsert, now, expiresAt);
 
+        seatMapEventPublisher.notifySeatMapUpdated(request.getShowtimeUuid());
+
         return new SeatLockSyncResponse(
                 request.getShowtimeUuid(),
-                LOCK_TTL_SECONDS,
+                lockTtlSeconds,
                 requestedSeatUuids.isEmpty() ? null : expiresAt,
                 now,
                 requestedSeatUuids);
@@ -166,6 +195,7 @@ public class ShowtimeSeatService {
 
         String availabilityStatus = resolveAvailabilityStatus(seatDbStatus, booked, lockedUserUuid, currentUserUuid);
         BigDecimal price = basePrice.multiply(priceModifier);
+        boolean checkedIn = booked && row.getCheckedInAt() != null;
 
         return new ShowtimeSeatMapResponse.SeatItem(
                 seatUuid,
@@ -177,7 +207,8 @@ public class ShowtimeSeatService {
                 availabilityStatus,
                 selected,
                 false,
-                lockedUntil);
+                lockedUntil,
+                checkedIn);
     }
 
     private void applySingleGapBlocking(Map<String, List<ShowtimeSeatMapResponse.SeatItem>> seatRows) {
@@ -200,11 +231,11 @@ public class ShowtimeSeatService {
                     boolean rightUnavailable = (i == segmentEnd) || isUnavailableForGapRule(seats.get(i + 1));
 
                     if (leftUnavailable && rightUnavailable) {
-                        boolean leftSelectedByMe = (i != segmentStart) && (Boolean.TRUE.equals(seats.get(i - 1).getSelected())
-                                || "LOCKED_BY_ME".equals(seats.get(i - 1).getAvailabilityStatus()));
-                        boolean rightSelectedByMe = (i != segmentEnd) && (Boolean.TRUE.equals(seats.get(i + 1).getSelected())
-                                || "LOCKED_BY_ME".equals(seats.get(i + 1).getAvailabilityStatus()));
-                        if (leftSelectedByMe || rightSelectedByMe) {
+                        boolean leftCausedByHold = (i != segmentStart)
+                                && isActiveHoldOrSelection(seats.get(i - 1));
+                        boolean rightCausedByHold = (i != segmentEnd)
+                                && isActiveHoldOrSelection(seats.get(i + 1));
+                        if (leftCausedByHold || rightCausedByHold) {
                             current.setBlocked(true);
                         }
                     }
@@ -221,6 +252,12 @@ public class ShowtimeSeatService {
 
     private boolean isUnavailableForGapRule(ShowtimeSeatMapResponse.SeatItem seat) {
         return !"AVAILABLE".equals(seat.getAvailabilityStatus()) || Boolean.TRUE.equals(seat.getSelected());
+    }
+
+    private boolean isActiveHoldOrSelection(ShowtimeSeatMapResponse.SeatItem seat) {
+        return Boolean.TRUE.equals(seat.getSelected())
+                || "LOCKED_BY_ME".equals(seat.getAvailabilityStatus())
+                || "LOCKED_BY_OTHER".equals(seat.getAvailabilityStatus());
     }
 
     private String resolveAvailabilityStatus(String seatDbStatus, boolean booked, UUID lockedUserUuid,
@@ -249,6 +286,20 @@ public class ShowtimeSeatService {
         if (showtime.getStartTime().isBefore(now)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Suat chieu da bat dau hoac da dien ra, khong the thuc hien");
         }
+        CinemaRoom room = cinemaRoomRepository.findById(showtime.getCinemaRoomUuid()).orElse(null);
+        if (room != null && room.getStatus() != CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phong chieu khong o trang thai hoat dong");
+        }
+    }
+
+    private void validateSeatsAreBookable(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
+        if (requestedSeatUuids.isEmpty()) {
+            return;
+        }
+        long bookableCount = showtimeRepository.countBookableSeats(showtimeUuid, requestedSeatUuids);
+        if (bookableCount != requestedSeatUuids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Co ghe khong kha dung hoac dang bao tri");
+        }
     }
 
     private void autoSlideShowtimeIfPast(UUID showtimeUuid, OffsetDateTime now) {
@@ -256,21 +307,8 @@ public class ShowtimeSeatService {
             return;
         }
         Showtime showtime = showtimeRepository.findById(showtimeUuid).orElse(null);
-        if (showtime == null) {
-            return;
-        }
-        OffsetDateTime startTime = showtime.getStartTime();
-        OffsetDateTime endTime = showtime.getEndTime();
-        if (startTime.isBefore(now)) {
-            long daysToAdd = 0;
-            OffsetDateTime temp = startTime;
-            while (temp.isBefore(now)) {
-                temp = temp.plusDays(1);
-                daysToAdd++;
-            }
-            OffsetDateTime newStart = startTime.plusDays(daysToAdd);
-            bookingRepository.slideShowtime(showtimeUuid, newStart, daysToAdd);
-        }
+        showtimeOverlapSupport.planSlideIfPast(showtime, now).ifPresent(plan ->
+                bookingRepository.slideShowtime(showtimeUuid, plan.newStart(), plan.daysToAdd()));
     }
 
     private void cleanupExpiredLocks(UUID showtimeUuid, OffsetDateTime now) {
@@ -281,7 +319,12 @@ public class ShowtimeSeatService {
     @Scheduled(fixedDelay = 30000)
     public void cleanupExpiredLocksScheduled() {
         OffsetDateTime now = OffsetDateTime.now();
+        List<UUID> affectedShowtimes = seatLockedRepository.findShowtimeUuidsWithExpiredLocks(now);
+        if (affectedShowtimes.isEmpty()) {
+            return;
+        }
         seatLockedRepository.deleteExpiredLocksScheduled(now);
+        affectedShowtimes.forEach(seatMapEventPublisher::notifySeatMapUpdated);
     }
 
     private void validateRequestedSeatsBelongToShowtime(UUID showtimeUuid, List<UUID> requestedSeatUuids) {
@@ -367,8 +410,10 @@ public class ShowtimeSeatService {
         if (normalized.size() != seatUuids.size()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Danh sach ghe bi trung");
         }
-        if (normalized.size() > 8) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Khong duoc chon qua 8 ghe cho moi lan dat");
+        int maxSeats = systemConfigService.getMaxSeatsPerBooking();
+        if (normalized.size() > maxSeats) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Khong duoc chon qua " + maxSeats + " ghe cho moi lan dat");
         }
         return new ArrayList<>(normalized);
     }
@@ -389,65 +434,5 @@ public class ShowtimeSeatService {
         }
         return currentUserUuid;
     }
-
-    private UUID toUuid(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof UUID uuid) {
-            return uuid;
-        }
-        return UUID.fromString(value.toString());
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : value.toString();
-    }
-
-    private Integer toInteger(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Integer number) {
-            return number;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return Integer.parseInt(value.toString());
-    }
-
-    private BigDecimal toBigDecimal(Object value) {
-        if (value == null) {
-            return BigDecimal.ZERO;
-        }
-        if (value instanceof BigDecimal bigDecimal) {
-            return bigDecimal;
-        }
-        if (value instanceof Number number) {
-            return BigDecimal.valueOf(number.doubleValue());
-        }
-        return new BigDecimal(value.toString());
-    }
-
-    private OffsetDateTime toOffsetDateTime(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof OffsetDateTime offsetDateTime) {
-            return offsetDateTime;
-        }
-        if (value instanceof java.time.Instant instant) {
-            return instant.atOffset(ZoneOffset.UTC);
-        }
-        if (value instanceof Timestamp timestamp) {
-            return timestamp.toInstant().atOffset(ZoneOffset.UTC);
-        }
-        if (value instanceof java.util.Date date) {
-            return date.toInstant().atOffset(ZoneOffset.UTC);
-        }
-        return OffsetDateTime.parse(value.toString());
-    }
-
 
 }

@@ -1,5 +1,6 @@
 package com.thdpv.movietheater.movie.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -9,9 +10,13 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.thdpv.movietheater.movie.enums.ScreeningMode;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,6 +35,10 @@ public class Movie {
 
     @Column(name = "title", nullable = false)
     private String title;
+
+    /** URL-friendly id (vd: ngoi-den-ky-quai). API vẫn chấp nhận UUID. */
+    @Column(name = "slug", length = 160, unique = true)
+    private String slug;
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
@@ -54,8 +63,18 @@ public class Movie {
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
-    @Column(name = "streaming_url")
+    @Column(name = "streaming_url", length = 2048)
     private String streamingUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "screening_mode")
+    private ScreeningMode screeningMode = ScreeningMode.BOTH;
+
+    @Column(name = "online_price")
+    private BigDecimal onlinePrice;
+
+    @Column(name = "rating")
+    private Double rating;
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 20)
@@ -131,6 +150,14 @@ public class Movie {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {
@@ -229,4 +256,29 @@ public class Movie {
         this.streamingUrl = streamingUrl;
     }
 
+    public ScreeningMode getScreeningMode() {
+        return screeningMode != null ? screeningMode : ScreeningMode.BOTH;
+    }
+
+    public void setScreeningMode(ScreeningMode screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
+    public BigDecimal getOnlinePrice() {
+        return onlinePrice;
+    }
+
+    public void setOnlinePrice(BigDecimal onlinePrice) {
+        this.onlinePrice = onlinePrice;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
+    }
+
 }
+

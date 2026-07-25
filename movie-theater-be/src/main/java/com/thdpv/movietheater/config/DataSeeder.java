@@ -6,13 +6,26 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
+import com.thdpv.movietheater.auth.repository.PermissionRepository;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.common.util.MojibakeUtils;
 import com.thdpv.movietheater.config.repository.RoleRepository;
+import com.thdpv.movietheater.user.entity.Permission;
 import com.thdpv.movietheater.user.entity.Role;
+import com.thdpv.movietheater.user.entity.RolePermission;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.entity.UserRole;
 import com.thdpv.movietheater.user.enums.AuthProvider;
+import com.thdpv.movietheater.user.enums.PermissionName;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
@@ -22,18 +35,24 @@ import com.thdpv.movietheater.movie.entity.Country;
 import com.thdpv.movietheater.movie.entity.MovieGenre;
 import com.thdpv.movietheater.movie.entity.MovieCountry;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
+import com.thdpv.movietheater.movie.entity.Actor;
+import com.thdpv.movietheater.movie.entity.MovieActor;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.service.MovieService;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.movie.repository.GenreRepository;
 import com.thdpv.movietheater.movie.repository.CountryRepository;
-import com.thdpv.movietheater.cinema.entity.Cinema;
-import com.thdpv.movietheater.cinema.entity.CinemaRoom;
-import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
-import com.thdpv.movietheater.cinema.enums.RoomType;
-import com.thdpv.movietheater.cinema.repository.CinemaRepository;
-import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
+import com.thdpv.movietheater.movie.repository.ActorRepository;
 import com.thdpv.movietheater.cinema.service.CinemaService;
+
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -41,16 +60,26 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final CountryRepository countryRepository;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
-    private final CinemaRepository cinemaRepository;
-    private final CinemaRoomRepository cinemaRoomRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final CinemaService cinemaService;
+    private final ReferenceMetadataSeeder referenceMetadataSeeder;
+    private final ActorRepository actorRepository;
+    private final ObjectMapper objectMapper;
+    private final ResourceLoader resourceLoader;
+    private final TransactionTemplate transactionTemplate;
+    private final AwsMovieOverrideSeeder awsMovieOverrideSeeder;
+    private final MovieService movieService;
+
+    @Value("${app.seed.enabled:true}")
+    private boolean seedEnabled;
 
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
@@ -80,17 +109,26 @@ public class DataSeeder implements CommandLineRunner {
     private String customerFullName;
 
     public DataSeeder(RoleRepository roleRepository,
+            PermissionRepository permissionRepository,
+            RolePermissionRepository rolePermissionRepository,
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
             PasswordEncoder passwordEncoder,
             MovieRepository movieRepository,
             GenreRepository genreRepository,
             CountryRepository countryRepository,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            CinemaRepository cinemaRepository,
-            CinemaRoomRepository cinemaRoomRepository,
-            CinemaService cinemaService) {
+            JdbcTemplate jdbcTemplate,
+            CinemaService cinemaService,
+            ReferenceMetadataSeeder referenceMetadataSeeder,
+            ActorRepository actorRepository,
+            ObjectMapper objectMapper,
+            ResourceLoader resourceLoader,
+            PlatformTransactionManager transactionManager,
+            AwsMovieOverrideSeeder awsMovieOverrideSeeder,
+            MovieService movieService) {
         this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -98,24 +136,75 @@ public class DataSeeder implements CommandLineRunner {
         this.genreRepository = genreRepository;
         this.countryRepository = countryRepository;
         this.jdbcTemplate = jdbcTemplate;
-        this.cinemaRepository = cinemaRepository;
-        this.cinemaRoomRepository = cinemaRoomRepository;
         this.cinemaService = cinemaService;
+        this.referenceMetadataSeeder = referenceMetadataSeeder;
+        this.actorRepository = actorRepository;
+        this.objectMapper = objectMapper;
+        this.resourceLoader = resourceLoader;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.awsMovieOverrideSeeder = awsMovieOverrideSeeder;
+        this.movieService = movieService;
     }
 
     @Override
     public void run(String... args) {
         createDummyTables();
+        healWalletVersionColumn();
+        healUserSchemaColumns();
+        healMovieMediaUrlColumns();
+        referenceMetadataSeeder.healCatalogEncoding();
+        healMojibakeMovies();
+        healMojibakeActors();
+
+        // These are idempotent (INSERT IF NOT EXISTS) and must always run
+        // so that user accounts and their permissions are always up to date,
+        // regardless of whether bulk seed data is enabled.
         seedRoles();
         seedAdminUser();
         seedStaffUser();
         seedCustomerUser();
-        seedGenres();
-        seedCountries();
+        seedPermissions();
+        seedRolePermissions();
+        if (!seedEnabled) {
+            logger.info("Database seeding is disabled via configuration (app.seed.enabled = false).");
+            backfillMovieSlugs();
+            return;
+        }
+        seedGuestAccount();
+        seedUsersFromJson();
+        referenceMetadataSeeder.seedAll();
+        seedSeatTypes();
+        seedActors();
         seedMovies();
+        awsMovieOverrideSeeder.applyOverrides();
+
+        // Self-healing: Cập nhật giá vé Online mặc định cho các phim đã tồn tại nhưng
+        // có online_price là null
+        try {
+            jdbcTemplate.update("UPDATE movie SET online_price = 45000 WHERE online_price IS NULL");
+            logger.info("Successfully self-healed online_price for existing movies.");
+        } catch (Exception e) {
+            logger.error("Failed to self-heal online_price", e);
+        }
+
         seedCinemasAndRooms();
-        seedBookingData();
+        seedCombos();
+        seedPromotions();
+        seedShowtimes();
         repairOrphanBookingSeats();
+        backfillMovieSlugs();
+    }
+
+    /** Backfill slug qua MovieService để {@code @Transactional} có hiệu lực. */
+    private void backfillMovieSlugs() {
+        try {
+            int updated = movieService.backfillMissingSlugs();
+            if (updated > 0) {
+                logger.info("Backfilled slug for {} movies", updated);
+            }
+        } catch (Exception ex) {
+            logger.warn("Movie slug backfill skipped: {}", ex.getMessage());
+        }
     }
 
     private void createDummyTables() {
@@ -140,6 +229,12 @@ public class DataSeeder implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE showtime ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ");
 
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS booking (uuid UUID PRIMARY KEY, showtime_uuid UUID)");
+            try {
+                jdbcTemplate.execute("ALTER TABLE booking ALTER COLUMN showtime_uuid DROP NOT NULL");
+                logger.info("Altered booking table to make showtime_uuid nullable.");
+            } catch (Exception e) {
+                logger.warn("Could not alter booking showtime_uuid column: {}", e.getMessage());
+            }
 
             jdbcTemplate.execute("""
                         CREATE TABLE IF NOT EXISTS cinema_room (
@@ -230,249 +325,300 @@ public class DataSeeder implements CommandLineRunner {
                     """);
 
             logger.info("Created booking database tables successfully.");
+            migrateVoucherAndScoreSchema();
+            createPermissionTables();
         } catch (Exception e) {
             logger.error("Failed to create booking database tables", e);
         }
     }
 
-    private void seedBookingData() {
+    private void createPermissionTables() {
         try {
-            java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
-
-            // 1. Seed Cinema Rooms (JDBC Seed)
-            java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class,
-                    cinemaUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
-                        cinemaUuid, "NASA Landmark 81 JDBC", "Landmark 81, HCM", "19001080");
-            }
-
-            java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-            java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                    room1Uuid) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                    room2Uuid) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
-            }
-
-            // 2. Seed Seat Types
-            java.util.UUID stdType = java.util.UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-            java.util.UUID vipType = java.util.UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-            java.util.UUID cplType = java.util.UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    stdType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        stdType, "STANDARD", java.math.BigDecimal.valueOf(85000), java.math.BigDecimal.valueOf(1.0));
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    vipType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        vipType, "VIP", java.math.BigDecimal.valueOf(120000), java.math.BigDecimal.valueOf(1.0));
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
-                    cplType) == 0) {
-                jdbcTemplate.update(
-                        "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
-                        cplType, "COUPLE", java.math.BigDecimal.valueOf(160000), java.math.BigDecimal.valueOf(1.0));
-            }
-
-            // 3. Seed Seats for Room 1 and Room 2
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat WHERE cinema_room_uuid = ?", Integer.class,
-                    room1Uuid) == 0) {
-                String[] rows = { "A", "B", "C", "D", "E", "F", "G", "H" };
-                for (String rowName : rows) {
-                    java.util.UUID seatTypeUuid;
-                    if ("G".equals(rowName) || "H".equals(rowName)) {
-                        seatTypeUuid = cplType;
-                    } else if ("E".equals(rowName) || "F".equals(rowName)) {
-                        seatTypeUuid = vipType;
-                    } else {
-                        seatTypeUuid = stdType;
-                    }
-
-                    int maxSeats = ("G".equals(rowName) || "H".equals(rowName)) ? 6 : 12;
-                    for (int num = 1; num <= maxSeats; num++) {
-                        java.util.UUID seat1Uuid = java.util.UUID
-                                .nameUUIDFromBytes((room1Uuid.toString() + "_" + rowName + "_" + num)
-                                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        java.util.UUID seat2Uuid = java.util.UUID
-                                .nameUUIDFromBytes((room2Uuid.toString() + "_" + rowName + "_" + num)
-                                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                        jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                seat1Uuid, room1Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
-                        jdbcTemplate.update(
-                                "INSERT INTO seat (uuid, cinema_room_uuid, row_name, seat_number, status, seat_type_uuid, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                seat2Uuid, room2Uuid, rowName, num, "ACTIVE", seatTypeUuid, true);
-                    }
-                }
-            }
-
-            // 4. Seed Combos
-            java.util.UUID comboUuid = java.util.UUID.fromString("55555555-5555-5555-5555-555555555555");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboUuid, "Combo Bắp Nước", java.math.BigDecimal.valueOf(90000), "ACTIVE");
-            }
-
-            java.util.UUID comboSoloUuid = java.util.UUID.fromString("55555555-5555-5555-5555-666666666666");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboSoloUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboSoloUuid, "Combo Solo (1 Bắp + 1 Nước)", java.math.BigDecimal.valueOf(70000), "ACTIVE");
-            }
-
-            java.util.UUID comboFamilyUuid = java.util.UUID.fromString("55555555-5555-5555-5555-777777777777");
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
-                    comboFamilyUuid) == 0) {
-                jdbcTemplate.update("INSERT INTO combo (uuid, name, price, status) VALUES (?, ?, ?, ?)",
-                        comboFamilyUuid, "Combo Gia Đình (2 Bắp + 4 Nước)", java.math.BigDecimal.valueOf(160000),
-                        "ACTIVE");
-            }
-
-            // 5. Seed Showtimes for movies
-            List<Movie> dbMovies = movieRepository.findAll();
-            if (!dbMovies.isEmpty()) {
-                java.util.UUID movie1 = dbMovies.get(0).getUuid();
-                java.util.UUID movie2 = dbMovies.size() > 1 ? dbMovies.get(1).getUuid() : movie1;
-                java.util.UUID movie3 = dbMovies.size() > 2 ? dbMovies.get(2).getUuid() : movie1;
-                java.util.UUID movie4 = dbMovies.size() > 3 ? dbMovies.get(3).getUuid() : movie1;
-
-                java.util.UUID showtime1Uuid = java.util.UUID.fromString("11111111-1111-1111-1111-111111111111");
-                java.util.UUID showtime2Uuid = java.util.UUID.fromString("22222222-2222-2222-2222-222222222222");
-                java.util.UUID showtime3Uuid = java.util.UUID.fromString("33333333-3333-3333-3333-333333333333");
-                java.util.UUID showtime4Uuid = java.util.UUID.fromString("44444444-4444-4444-4444-444444444444");
-
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime1Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime1Uuid, movie1, room1Uuid,
-                            now.withHour(19).withMinute(30).withSecond(0).withNano(0),
-                            now.withHour(21).withMinute(30).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime2Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime2Uuid, movie2, room1Uuid,
-                            now.withHour(21).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(23).withMinute(0).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime3Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime3Uuid, movie3, room2Uuid,
-                            now.withHour(18).withMinute(0).withSecond(0).withNano(0),
-                            now.withHour(20).withMinute(0).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-                if (jdbcTemplate.queryForObject("SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class,
-                        showtime4Uuid) == 0) {
-                    jdbcTemplate.update(
-                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            showtime4Uuid, movie4, room2Uuid,
-                            now.withHour(20).withMinute(45).withSecond(0).withNano(0),
-                            now.withHour(22).withMinute(45).withSecond(0).withNano(0),
-                            java.math.BigDecimal.valueOf(80000), "OPEN_FOR_BOOKING");
-                }
-            }
-
-            // 6. Seed Vouchers
-            java.util.UUID promo1Uuid = java.util.UUID.fromString("11111111-1111-1111-1111-aaaaaaaaaaaa");
-            java.util.UUID promo2Uuid = java.util.UUID.fromString("22222222-2222-2222-2222-bbbbbbbbbbbb");
-            java.util.UUID promo3Uuid = java.util.UUID.fromString("33333333-3333-3333-3333-cccccccccccc");
-
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo1Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo1Uuid,
-                        "THDPV50",
-                        java.math.BigDecimal.valueOf(0.50),
-                        "PERCENTAGE",
-                        100,
-                        0,
-                        false,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo2Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo2Uuid,
-                        "CINELUXE",
-                        java.math.BigDecimal.valueOf(30000.00),
-                        "FIXED_AMOUNT",
-                        200,
-                        0,
-                        false,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-            if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
-                    promo3Uuid) == 0) {
-                jdbcTemplate.update(
-                        """
-                                    INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                        promo3Uuid,
-                        "NASAFIRST",
-                        java.math.BigDecimal.valueOf(50000.00),
-                        "FIXED_AMOUNT",
-                        500,
-                        0,
-                        true,
-                        now.minusDays(1),
-                        now.plusDays(30),
-                        "ACTIVE",
-                        now,
-                        now);
-            }
-
-            logger.info("Successfully seeded cinema rooms, seats, showtimes, combos, and promotions.");
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS permissions (
+                            uuid UUID PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL UNIQUE,
+                            description VARCHAR(255),
+                            created_at TIMESTAMPTZ,
+                            updated_at TIMESTAMPTZ
+                        )
+                    """);
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS role_permissions (
+                            uuid UUID PRIMARY KEY,
+                            role_id UUID NOT NULL,
+                            permission_id UUID NOT NULL,
+                            created_at TIMESTAMPTZ,
+                            CONSTRAINT uk_role_permissions_role_permission UNIQUE (role_id, permission_id)
+                        )
+                    """);
+            jdbcTemplate.execute("""
+                        CREATE TABLE IF NOT EXISTS user_permissions (
+                            uuid UUID PRIMARY KEY,
+                            user_id UUID NOT NULL,
+                            permission_id UUID NOT NULL,
+                            created_at TIMESTAMPTZ,
+                            CONSTRAINT uk_user_permissions_user_permission UNIQUE (user_id, permission_id)
+                        )
+                    """);
+            jdbcTemplate
+                    .execute("CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions (user_id)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions (permission_id)");
+            logger.info("Created permissions, role_permissions and user_permissions tables.");
         } catch (Exception e) {
-            logger.error("Failed to seed booking database data", e);
+            logger.error("Failed to create permissions tables", e);
+        }
+    }
+
+    private void seedPermissions() {
+        String[][] permissionDefs = {
+                { "aaaaaaaa-0001-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.TICKET_CHECKIN.name() },
+                { "aaaaaaaa-0002-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_BOOKING_CREATE.name() },
+                { "aaaaaaaa-0003-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_COMBO_CREATE.name() },
+                { "aaaaaaaa-0004-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_VOUCHER_APPLY.name() },
+                { "aaaaaaaa-0005-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_REFUND_PROCESS.name() },
+                { "aaaaaaaa-0006-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COUNTER_CUSTOMER_CREATE.name() },
+                { "aaaaaaaa-0007-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.MOVIE_WRITE.name() },
+                { "aaaaaaaa-0008-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SHOWTIME_WRITE.name() },
+                { "aaaaaaaa-0009-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.COMBO_WRITE.name() },
+                { "aaaaaaaa-0010-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.PROMOTION_WRITE.name() },
+                { "aaaaaaaa-0011-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.USER_VIEW.name() },
+                { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() },
+                { "aaaaaaaa-0013-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_SHIFT_MANAGE.name() },
+                { "aaaaaaaa-0014-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_ATTENDANCE_MANAGE.name() },
+                { "aaaaaaaa-0015-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_PAYROLL_MANAGE.name() }
+        };
+
+        for (String[] def : permissionDefs) {
+            String name = def[1];
+            PermissionName permissionName = PermissionName.valueOf(name);
+            Permission permission = permissionRepository.findByName(name).orElse(null);
+            if (permission == null) {
+                jdbcTemplate.update(
+                        "INSERT INTO permissions (uuid, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                        UUID.fromString(def[0]), name, permissionName.getDescription());
+                logger.info("Seeded new permission: {}", name);
+            } else {
+                permission.setDescription(permissionName.getDescription());
+                permissionRepository.save(permission);
+                logger.info("Updated existing permission: {}", name);
+            }
+        }
+    }
+
+    private void seedRolePermissions() {
+        Role staffRole = roleRepository.findByName(RoleName.STAFF)
+                .orElse(null);
+        Role adminRole = roleRepository.findByName(RoleName.ADMIN)
+                .orElse(null);
+
+        List<Permission> allPermissions = permissionRepository.findAll();
+        if (allPermissions.isEmpty()) {
+            return;
+        }
+
+        for (Permission permission : allPermissions) {
+            if (adminRole != null) {
+                seedRolePermissionIfNotExists(adminRole.getId(), permission.getId());
+            }
+            if (staffRole != null) {
+                seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
+            }
+        }
+    }
+
+    private void seedRolePermissionIfNotExists(UUID roleId, UUID permissionId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(1) FROM role_permissions WHERE role_id = ? AND permission_id = ?",
+                Integer.class, roleId, permissionId);
+        if (count != null && count == 0) {
+            RolePermission rp = new RolePermission();
+            rp.setRoleId(roleId);
+            rp.setPermissionId(permissionId);
+            rolePermissionRepository.save(rp);
+        }
+    }
+
+    private void seedGuestAccount() {
+        final String guestEmail = "counter_guest@nasafilm.com";
+        if (userRepository.findByEmailIgnoreCase(guestEmail).isPresent()) {
+            return;
+        }
+
+        transactionTemplate.executeWithoutResult(status -> {
+            User guest = new User();
+            guest.setEmail(guestEmail);
+            guest.setFullName("Counter Guest");
+            guest.setIsSystemAccount(true);
+            guest.setAuthProvider(AuthProvider.LOCAL);
+            guest.setStatus(UserStatus.ACTIVE);
+            guest = userRepository.saveAndFlush(guest);
+            assignRoleIfMissing(guest, RoleName.CUSTOMER);
+            logger.info("Seeded guest account: {}", guestEmail);
+        });
+    }
+
+    private void migrateVoucherAndScoreSchema() {
+        try {
+            jdbcTemplate
+                    .execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("""
+                    UPDATE users
+                    SET lifetime_score = GREATEST(COALESCE(score, 0), COALESCE(lifetime_score, 0))
+                    WHERE COALESCE(lifetime_score, 0) = 0
+                    """);
+            jdbcTemplate
+                    .execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS points_cost INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate
+                    .execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_score INTEGER NOT NULL DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_usage_per_user INTEGER");
+            jdbcTemplate.execute("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS user_voucher (
+                        uuid UUID PRIMARY KEY,
+                        user_uuid UUID NOT NULL,
+                        promotion_uuid UUID NOT NULL,
+                        status VARCHAR(32) NOT NULL,
+                        redeemed_at TIMESTAMPTZ NOT NULL,
+                        used_at TIMESTAMPTZ,
+                        booking_uuid UUID
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS payment (
+                        uuid UUID PRIMARY KEY,
+                        booking_uuid UUID NOT NULL,
+                        amount NUMERIC(15, 2) NOT NULL,
+                        currency VARCHAR(16) NOT NULL DEFAULT 'VND',
+                        method VARCHAR(64),
+                        status VARCHAR(32) NOT NULL,
+                        gateway_provider VARCHAR(64),
+                        gateway_transaction_id VARCHAR(255),
+                        idempotency_key VARCHAR(255) UNIQUE,
+                        paid_at TIMESTAMPTZ,
+                        created_at TIMESTAMPTZ NOT NULL,
+                        updated_at TIMESTAMPTZ NOT NULL
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_payment_booking ON payment (booking_uuid)
+                    """);
+            logger.info("Migrated voucher redemption and lifetime score schema.");
+
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS support_ticket (
+                        uuid UUID PRIMARY KEY,
+                        ticket_code VARCHAR(32) NOT NULL UNIQUE,
+                        owner_email VARCHAR(255) NOT NULL,
+                        owner_name VARCHAR(255),
+                        category VARCHAR(80) NOT NULL,
+                        description TEXT NOT NULL,
+                        status VARCHAR(32) NOT NULL,
+                        answer TEXT,
+                        admin_note TEXT,
+                        last_message TEXT,
+                        last_message_sender VARCHAR(24),
+                        read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at TIMESTAMPTZ,
+                        updated_at TIMESTAMPTZ
+                    )
+                    """);
+            jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS support_ticket_message (
+                        uuid UUID PRIMARY KEY,
+                        ticket_uuid UUID NOT NULL,
+                        sender_role VARCHAR(24) NOT NULL,
+                        sender_name VARCHAR(255),
+                        message TEXT NOT NULL,
+                        image_urls JSONB,
+                        created_at TIMESTAMPTZ
+                    )
+                    """);
+            jdbcTemplate.execute("ALTER TABLE support_ticket_message ADD COLUMN IF NOT EXISTS image_urls JSONB");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_owner ON support_ticket (owner_email)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_support_ticket_status ON support_ticket (status)");
+            jdbcTemplate.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_support_ticket_message_ticket ON support_ticket_message (ticket_uuid)");
+
+            jdbcTemplate.update("""
+                    UPDATE promotions
+                    SET status = 'ACTIVE',
+                        end_date = ?,
+                        updated_at = ?
+                    WHERE COALESCE(points_cost, 0) = 0
+                      AND (status <> 'ACTIVE' OR end_date IS NULL OR end_date < ?)
+                    """,
+                    java.time.OffsetDateTime.now().plusYears(1),
+                    java.time.OffsetDateTime.now(),
+                    java.time.OffsetDateTime.now());
+        } catch (Exception e) {
+            logger.error("Failed to migrate voucher/score schema", e);
+        }
+    }
+
+    private void healWalletVersionColumn() {
+        try {
+            Integer exists = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'users'
+                      AND column_name = 'wallet_version'
+                    """, Integer.class);
+            if (exists == null || exists == 0) {
+                jdbcTemplate.execute(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_version BIGINT NOT NULL DEFAULT 0");
+                logger.info("Added users.wallet_version column with default 0.");
+            } else {
+                jdbcTemplate.update("UPDATE users SET wallet_version = 0 WHERE wallet_version IS NULL");
+            }
+        } catch (Exception e) {
+            logger.warn("wallet_version self-heal skipped: {}", e.getMessage());
         }
     }
 
     private void seedRoles() {
-        for (RoleName roleName : RoleName.values()) {
-            if (roleRepository.findByName(roleName).isEmpty()) {
-                Role role = new Role();
-                role.setName(roleName);
-                role.setDescription(roleName.name() + " role");
-                roleRepository.save(role);
-                logger.info("Seeded role: {}", roleName);
+        List<Map<String, String>> rolesToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/roles.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    rolesToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, String>>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load roles.json, falling back to default", e);
+        }
+
+        if (rolesToSeed == null || rolesToSeed.isEmpty()) {
+            for (RoleName roleName : RoleName.values()) {
+                if (roleRepository.findByName(roleName).isEmpty()) {
+                    Role role = new Role();
+                    role.setName(roleName);
+                    role.setDescription(roleName.name() + " role");
+                    roleRepository.save(role);
+                    logger.info("Seeded default role: {}", roleName);
+                }
+            }
+        } else {
+            for (Map<String, String> roleData : rolesToSeed) {
+                String nameStr = roleData.get("name");
+                String description = roleData.get("description");
+                if (nameStr != null) {
+                    try {
+                        RoleName roleName = RoleName.valueOf(nameStr.toUpperCase());
+                        if (roleRepository.findByName(roleName).isEmpty()) {
+                            Role role = new Role();
+                            role.setName(roleName);
+                            role.setDescription(description != null ? description : roleName.name() + " role");
+                            roleRepository.save(role);
+                            logger.info("Seeded role from JSON: {}", roleName);
+                        }
+                    } catch (IllegalArgumentException ex) {
+                        logger.error("Invalid role name in JSON: {}", nameStr);
+                    }
+                }
             }
         }
     }
@@ -489,75 +635,329 @@ public class DataSeeder implements CommandLineRunner {
         createUserIfNotExists(customerEmail, customerPassword, customerFullName, RoleName.CUSTOMER);
     }
 
-    private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
-        java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
-
-        if (existingUserOpt.isPresent()) {
-            User user = existingUserOpt.get();
-            user.setPassword(passwordEncoder.encode(password));
-            user.setStatus(UserStatus.ACTIVE);
-            if (user.getAuthProvider() == null) {
-                user.setAuthProvider(AuthProvider.LOCAL);
+    private void seedUsersFromJson() {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/users.json");
+            if (!resource.exists()) {
+                return;
             }
-            userRepository.save(user);
-            logger.info("Updated existing {} user '{}' password from env configuration.",
-                    roleName.name(), email);
-            return;
+            List<Map<String, String>> usersToSeed;
+            try (InputStream is = resource.getInputStream()) {
+                usersToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, String>>>() {
+                });
+            }
+            if (usersToSeed == null || usersToSeed.isEmpty()) {
+                return;
+            }
+            for (Map<String, String> userData : usersToSeed) {
+                String email = userData.get("email");
+                String password = userData.get("password");
+                String fullName = userData.get("fullName");
+                String roleNameStr = userData.get("role");
+                if (email == null || password == null || roleNameStr == null) {
+                    continue;
+                }
+                try {
+                    RoleName roleName = RoleName.valueOf(roleNameStr.toUpperCase());
+                    createUserIfNotExists(email, password, fullName != null ? fullName : email, roleName);
+                } catch (IllegalArgumentException ex) {
+                    logger.error("Invalid role name '{}' for user '{}'", roleNameStr, email);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to seed users from JSON", e);
         }
+    }
 
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setFullName(fullName);
-        user.setAuthProvider(AuthProvider.LOCAL);
-        user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+    private void createUserIfNotExists(String email, String password, String fullName, RoleName roleName) {
+        transactionTemplate.executeWithoutResult(status -> {
+            Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(email);
+            User user;
+
+            if (existingUserOpt.isPresent()) {
+                user = existingUserOpt.get();
+                user.setPassword(passwordEncoder.encode(password));
+                user.setStatus(UserStatus.ACTIVE);
+                if (user.getAuthProvider() == null) {
+                    user.setAuthProvider(AuthProvider.LOCAL);
+                }
+                user = userRepository.saveAndFlush(user);
+                assignRoleIfMissing(user, roleName);
+                logger.info("Updated existing {} user '{}' password from env configuration.",
+                        roleName.name(), email);
+                return;
+            }
+
+            user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setFullName(fullName);
+            user.setAuthProvider(AuthProvider.LOCAL);
+            user.setStatus(UserStatus.ACTIVE);
+            user = userRepository.saveAndFlush(user);
+            assignRoleIfMissing(user, roleName);
+            logger.info("Seeded {} user: {}", roleName.name(), email);
+        });
+    }
+
+    private void assignRoleIfMissing(User user, RoleName roleName) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalStateException("Cannot assign role without persisted user id");
+        }
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException(roleName.name() + " role not found"));
 
+        Integer existing = jdbcTemplate.queryForObject("""
+                SELECT count(1)
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ? AND r.name = ?
+                """, Integer.class, user.getId(), roleName.name());
+        if (existing != null && existing > 0) {
+            return;
+        }
+
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(userRepository.getReferenceById(user.getId()));
         userRole.setRole(role);
         userRoleRepository.save(userRole);
-
-        logger.info("Seeded {} user: {}", roleName.name(), email);
     }
 
-    private void seedGenres() {
-        String[] genres = { "Hành động", "Kịch tính", "Viễn tưởng", "Tình cảm", "Chiến tranh", "Hoạt hình",
-                "Phiêu lưu" };
-        for (String name : genres) {
-            if (!genreRepository.existsByNameIgnoreCase(name)) {
-                Genre genre = new Genre();
-                genre.setName(name);
-                genreRepository.save(genre);
-                logger.info("Seeded genre: {}", name);
+    private void healUserSchemaColumns() {
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_account BOOLEAN NOT NULL DEFAULT FALSE");
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_score INTEGER NOT NULL DEFAULT 0");
+        } catch (Exception e) {
+            logger.warn("users schema self-heal skipped: {}", e.getMessage());
+        }
+    }
+
+    /** S3 / CDN URLs often exceed varchar(255); widen before seed sync. */
+    private void healMovieMediaUrlColumns() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE movie_media ALTER COLUMN media_url TYPE VARCHAR(2048)");
+            jdbcTemplate.execute("ALTER TABLE movie ALTER COLUMN streaming_url TYPE VARCHAR(2048)");
+            logger.info("Widened movie_media.media_url and movie.streaming_url to VARCHAR(2048).");
+        } catch (Exception e) {
+            logger.warn("movie media URL column widen skipped: {}", e.getMessage());
+        }
+    }
+
+    private void seedSeatTypes() {
+        List<Map<String, Object>> seatTypesToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/seat_types.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    seatTypesToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, Object>>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load seat_types.json", e);
+        }
+
+        if (seatTypesToSeed != null) {
+            for (Map<String, Object> data : seatTypesToSeed) {
+                String uuidStr = (String) data.get("uuid");
+                String name = (String) data.get("name");
+                Object basePriceObj = data.get("basePrice");
+                Object priceModifierObj = data.get("priceModifier");
+
+                if (uuidStr == null || name == null || basePriceObj == null) {
+                    continue;
+                }
+
+                UUID uuid = UUID.fromString(uuidStr);
+                BigDecimal basePrice = new BigDecimal(basePriceObj.toString());
+                BigDecimal priceModifier = priceModifierObj != null ? new BigDecimal(priceModifierObj.toString())
+                        : BigDecimal.ONE;
+
+                if (jdbcTemplate.queryForObject("SELECT count(1) FROM seat_type WHERE uuid = ?", Integer.class,
+                        uuid) == 0) {
+                    jdbcTemplate.update(
+                            "INSERT INTO seat_type (uuid, name, base_price, price_modifier) VALUES (?, ?, ?, ?)",
+                            uuid, name, basePrice, priceModifier);
+                    logger.info("Seeded seat type from JSON: {}", name);
+                }
             }
         }
     }
 
-    private void seedCountries() {
-        Object[][] countries = {
-                { "VN", "Việt Nam" },
-                { "US", "Mỹ" },
-                { "JP", "Nhật Bản" },
-                { "CN", "Trung Quốc" }
-        };
-        for (Object[] countryData : countries) {
-            String code = (String) countryData[0];
-            String name = (String) countryData[1];
-            if (!countryRepository.existsByCodeIgnoreCase(code)) {
-                Country country = new Country();
-                country.setCode(code);
-                country.setName(name);
-                countryRepository.save(country);
-                logger.info("Seeded country: {}", name);
+    private void seedActors() {
+        List<Map<String, String>> actorsToSeed = loadActorsJson();
+        if (actorsToSeed == null || actorsToSeed.isEmpty()) {
+            return;
+        }
+
+        List<Actor> allActors = actorRepository.findAll();
+        Map<String, Actor> byName = new java.util.HashMap<>();
+        Map<String, Actor> byAvatar = new java.util.HashMap<>();
+        for (Actor actor : allActors) {
+            if (actor.getFullName() != null) {
+                byName.putIfAbsent(actor.getFullName().toLowerCase(java.util.Locale.ROOT), actor);
+            }
+            if (actor.getAvatarUrl() != null && !actor.getAvatarUrl().isBlank()) {
+                byAvatar.putIfAbsent(actor.getAvatarUrl(), actor);
             }
         }
+
+        for (Map<String, String> actorData : actorsToSeed) {
+            String fullName = actorData.get("fullName");
+            String avatarUrl = actorData.get("avatarUrl");
+            String countryName = actorData.get("countryName");
+
+            if (fullName == null || MojibakeUtils.looksCorrupt(fullName)) {
+                continue;
+            }
+
+            Actor existing = byName.get(fullName.toLowerCase(java.util.Locale.ROOT));
+            if (existing == null && avatarUrl != null && !avatarUrl.isBlank()) {
+                existing = byAvatar.get(avatarUrl);
+            }
+
+            Country country = null;
+            if (countryName != null) {
+                country = countryRepository.findByNameIgnoreCase(countryName).orElse(null);
+            }
+
+            if (existing != null) {
+                boolean dirty = false;
+                if (!fullName.equals(existing.getFullName())) {
+                    existing.setFullName(fullName);
+                    dirty = true;
+                }
+                if (avatarUrl != null && !avatarUrl.isBlank()
+                        && (existing.getAvatarUrl() == null || existing.getAvatarUrl().isBlank())) {
+                    existing.setAvatarUrl(avatarUrl);
+                    dirty = true;
+                }
+                if (country != null && existing.getCountry() == null) {
+                    existing.setCountry(country);
+                    dirty = true;
+                }
+                if (dirty) {
+                    actorRepository.save(existing);
+                    logger.info("Synced actor from JSON: {}", fullName);
+                }
+            } else {
+                Actor actor = new Actor();
+                actor.setFullName(fullName);
+                actor.setAvatarUrl(avatarUrl);
+                actor.setCountry(country);
+                actorRepository.save(actor);
+                byName.put(fullName.toLowerCase(java.util.Locale.ROOT), actor);
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    byAvatar.put(avatarUrl, actor);
+                }
+                logger.info("Seeded actor from JSON: {}", fullName);
+            }
+        }
+    }
+
+    private List<Map<String, String>> loadActorsJson() {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/actors.json");
+            if (!resource.exists()) {
+                return List.of();
+            }
+            try (InputStream is = resource.getInputStream()) {
+                return objectMapper.readValue(is, new TypeReference<List<Map<String, String>>>() {
+                });
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load actors.json", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Sửa tên diễn viên lỗi font (vd. {@code PhÆ°Æ¡ng Anh ĐÃ o} → {@code Phương Anh Đào}).
+     */
+    private void healMojibakeActors() {
+        try {
+            int healed = 0;
+            int merged = 0;
+            List<Actor> all = actorRepository.findAll();
+            List<String> goodNames = new java.util.ArrayList<>(all.stream()
+                    .map(Actor::getFullName)
+                    .filter(n -> n != null && !MojibakeUtils.looksCorrupt(n))
+                    .toList());
+            Map<String, String> avatarToCanonical = new java.util.HashMap<>();
+            for (Map<String, String> row : loadActorsJson()) {
+                String name = row.get("fullName");
+                String avatar = row.get("avatarUrl");
+                if (name != null && !MojibakeUtils.looksCorrupt(name)) {
+                    goodNames.add(name);
+                    if (avatar != null && !avatar.isBlank()) {
+                        avatarToCanonical.put(avatar, name);
+                    }
+                }
+            }
+
+            for (Actor actor : all) {
+                String name = actor.getFullName();
+                if (!MojibakeUtils.looksCorrupt(name)) {
+                    continue;
+                }
+
+                String fixed = MojibakeUtils.tryFix(name);
+                if (fixed == null || fixed.equals(name)) {
+                    fixed = MojibakeUtils.matchCanonical(name, goodNames);
+                }
+                if ((fixed == null || fixed.equals(name))
+                        && actor.getAvatarUrl() != null
+                        && !actor.getAvatarUrl().isBlank()) {
+                    fixed = avatarToCanonical.get(actor.getAvatarUrl());
+                }
+                if (fixed == null || fixed.isBlank() || fixed.equals(name)) {
+                    logger.warn("Skip corrupt actor (no canonical match): '{}'", name);
+                    continue;
+                }
+
+                Optional<Actor> existing = actorRepository.findByFullNameIgnoreCase(fixed);
+                if (existing.isPresent() && !existing.get().getUuid().equals(actor.getUuid())) {
+                    mergeActorInto(actor.getUuid(), existing.get().getUuid());
+                    actorRepository.delete(actor);
+                    merged++;
+                    logger.info("Merged corrupt actor '{}' into '{}'", name, fixed);
+                } else {
+                    actor.setFullName(fixed);
+                    actorRepository.save(actor);
+                    healed++;
+                    logger.info("Renamed mojibake actor '{}' -> '{}'", name, fixed);
+                }
+            }
+            if (healed > 0 || merged > 0) {
+                logger.info("Healed corrupt actors: renamed={}, merged={}", healed, merged);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to heal mojibake actors", e);
+        }
+    }
+
+    private void mergeActorInto(UUID fromActorUuid, UUID toActorUuid) {
+        jdbcTemplate.update("""
+                DELETE FROM movie_actor ma
+                WHERE ma.actor_uuid = ?
+                  AND EXISTS (
+                      SELECT 1 FROM movie_actor ok
+                      WHERE ok.movie_uuid = ma.movie_uuid
+                        AND ok.actor_uuid = ?
+                        AND COALESCE(ok.character_name, '') = COALESCE(ma.character_name, '')
+                  )
+                """, fromActorUuid, toActorUuid);
+        jdbcTemplate.update(
+                "UPDATE movie_actor SET actor_uuid = ? WHERE actor_uuid = ?",
+                toActorUuid, fromActorUuid);
     }
 
     private void seedMovies() {
+        removeObsoleteComingSoonMovies();
+
         // Tự động chuyển đổi các phim cũ có status "LIVE" thành "NOW_SHOWING" để đồng
         // bộ hóa
         List<Movie> existingMovies = movieRepository.findAll();
@@ -569,183 +969,415 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
-        // 1. Kẻ Ẩn Danh
-        createMovieIfNotExists(
-                "Kẻ Ẩn Danh",
-                "Lâm - một cựu giang hồ ẩn danh muốn sống yên bình bên gia đình, nhưng số phận đẩy anh vào một cuộc chiến sinh tử để cứu con gái.",
-                110,
-                LocalDate.of(2023, 8, 25),
-                "NOW_SHOWING",
-                List.of("Hành động", "Kịch tính"),
-                List.of("VN"),
-                List.of(
-                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/KeAnDanh_Poster.jpg",
-                                "POSTER", "KeAnDanh Poster", true, 1),
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/KeAnDanh_Trailer.mp4",
-                                "TRAILER", "KeAnDanh Trailer", false, 2)),
-                "T13");
+        List<MovieJsonData> moviesToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/movies.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    moviesToSeed = objectMapper.readValue(is, new TypeReference<List<MovieJsonData>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load movies.json", e);
+        }
 
-        // 2. Mortal Kombat 2
-        createMovieIfNotExists(
-                "Mortal Kombat 2",
-                "Cuộc chiến giành số phận Earthrealm tiếp tục diễn ra với những võ sĩ huyền thoại chống lại các thế lực Outworld.",
-                125,
-                LocalDate.of(2025, 10, 24),
-                "NOW_SHOWING",
-                List.of("Hành động", "Viễn tưởng"),
-                List.of("US"),
-                List.of(
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MortalKombat2_Poster.jpg",
-                                "POSTER", "MortalKombat2 Poster", true, 1),
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MortalKombat2_Trailer.mp4",
-                                "TRAILER", "MortalKombat2 Trailer", false, 2)),
-                "T18");
+        if (moviesToSeed != null && !moviesToSeed.isEmpty()) {
+            for (MovieJsonData movieData : moviesToSeed) {
+                boolean exists = movieRepository.existsByTitleIgnoreCase(movieData.title);
 
-        // 3. Mưa Đỏ
-        createMovieIfNotExists(
-                "Mưa Đỏ",
-                "Tác phẩm nghệ thuật đầy bi tráng về tình yêu và lòng quả cảm trong những năm tháng chiến tranh khốc liệt.",
-                95,
-                LocalDate.of(2024, 4, 30),
-                "NOW_SHOWING",
-                List.of("Tình cảm", "Chiến tranh"),
-                List.of("VN"),
-                List.of(
-                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/poster/MuaDo_Poster.jpg",
-                                "POSTER", "MuaDo Poster", true, 1),
-                        new MovieMediaData("https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/MuaDo_Trailer.mp4",
-                                "TRAILER", "MuaDo Trailer", false, 2)),
-                "T13");
+                // if (exists) {
+                // continue;
+                // }
 
-        // 4. Thanh Gươm Diệt Quỷ
-        createMovieIfNotExists(
-                "Thanh Gươm Diệt Quỷ",
-                "Tanjirou cùng các trụ cột bước vào cuộc chiến sinh tử chống lại chúa quỷ Muzan trong pháo đài vô tận.",
-                105,
-                LocalDate.of(2024, 2, 23),
-                "NOW_SHOWING",
-                List.of("Hoạt hình", "Hành động"),
-                List.of("JP"),
-                List.of(
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/ThanhGuongDietQuy_Poster.gif",
-                                "POSTER", "ThanhGuongDietQuy Poster", true, 1),
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/ThanhGuongDietQuy_Trailer.mp4",
-                                "TRAILER", "ThanhGuongDietQuy Trailer", false, 2)),
-                "T16");
+                if (exists) {
+                    Movie movie = movieRepository.findByTitleIgnoreCase(movieData.title).orElse(null);
+                    if (movie != null) {
+                        // Chỉ cập nhật streamingUrl khi JSON có giá trị (AWS override file xử lý S3).
+                        // KHÔNG đè link S3 (movie/...) đã cấu hình bằng link cũ trong JSON
+                        // (opstream/youtube) — tránh mỗi lần khởi động lại làm hỏng phim online.
+                        if (movieData.streamingUrl != null && !movieData.streamingUrl.isBlank()) {
+                            boolean dbHasAwsKey = S3MediaBorderUtils.isAwsMovieStreamingUrl(movie.getStreamingUrl());
+                            boolean jsonIsAwsKey = S3MediaBorderUtils.isAwsMovieStreamingUrl(movieData.streamingUrl);
+                            if (!dbHasAwsKey || jsonIsAwsKey) {
+                                movie.setStreamingUrl(movieData.streamingUrl);
+                            }
+                        }
 
-        // 5. Truy Tìm Long Diên Hương
-        createMovieIfNotExists(
-                "Truy Tìm Long Diên Hương",
-                "Cuộc phiêu lưu mạo hiểm tìm kiếm báu vật vô giá Long Diên Hương dưới đáy biển sâu thẳm.",
-                100,
-                LocalDate.of(2024, 6, 1),
-                "NOW_SHOWING",
-                List.of("Phiêu lưu", "Kịch tính"),
-                List.of("CN"),
-                List.of(
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/poster/TruyTimLongDienHuong_Poster.jpg",
-                                "POSTER", "TruyTimLongDienHuong Poster", true, 1),
-                        new MovieMediaData(
-                                "https://java-06.s3.ap-southeast-1.amazonaws.com/trailer/TruyTimLongDienHuong_Trailer.mp4",
-                                "TRAILER", "TruyTimLongDienHuong Trailer", false, 2)),
-                "P");
-        // 6. Sword Art Online The Movie: Progressive Scherzo of Deep Night
-        createMovieIfNotExists(
-                "Sword Art Online The Movie: Progressive Scherzo of Deep Night",
-                "Lấy bối cảnh hai tháng sau khi thế giới ảo tử thần bắt đầu, phim xoay quanh hành trình của Kirito và Asuna khám phá tầng 4 của pháo đài Aincrad cùng môi trường bí ẩn và các con trùm khó nhằn.",
-                101,
-                LocalDate.of(2026, 6, 15),
-                "NOW_SHOWING",
-                List.of("Hoạt hình", "Hành động"),
-                List.of("JP"),
-                List.of(
-                        new MovieMediaData(
-                                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ7-6TbT5SwzJt4e3085ccNhHNddbdKY2MEt44CXpF5ZA&s=10",
-                                "POSTER", "SAO Progressive Poster", true, 1),
-                        new MovieMediaData(
-                                "https://vs-prodamdfandango.akamaized.net/out/v1/b8926cbbb6524b64b320ecd281f84f4e/24179244572d48768920647994272718/55cfc6748196457d965dfd98aa2d46b8/d18057147c904ac6acda75542d2a2d01/1af7b8b9f8ca4653ae82f69b3af973ab/index_1.m3u8",
-                                "TRAILER", "SAO Progressive Trailer", false, 2)),
-                "T13");
+                        // Cập nhật trailer trong medias
+                        if (movieData.medias != null) {
+                            for (MediaJsonData mediaData : movieData.medias) {
+                                if ("TRAILER".equals(mediaData.mediaType)) {
+                                    boolean hasTrailer = false;
+                                    if (movie.getMovieMedias() != null) {
+                                        for (MovieMedia mm : movie.getMovieMedias()) {
+                                            if ("TRAILER".equals(mm.getMediaType())) {
+                                                mm.setMediaUrl(mediaData.mediaUrl);
+                                                hasTrailer = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!hasTrailer) {
+                                        MovieMedia media = new MovieMedia();
+                                        media.setMovie(movie);
+                                        media.setMediaUrl(mediaData.mediaUrl);
+                                        media.setMediaType(mediaData.mediaType);
+                                        media.setTitle(mediaData.title);
+                                        media.setIsPrimary(mediaData.isPrimary != null ? mediaData.isPrimary : false);
+                                        media.setSortOrder(mediaData.sortOrder != null ? mediaData.sortOrder : 0);
+                                        movie.addMovieMedia(media);
+                                    }
+                                }
+                            }
+                        }
+                        movieRepository.save(movie);
+                        logger.info("Updated existing movie '{}' streaming/trailer from JSON.", movie.getTitle());
+                    }
+                    continue;
+                }
+
+                if (MojibakeUtils.looksLikeMojibake(movieData.title)
+                        || (movieData.title != null && movieData.title.indexOf('\uFFFD') >= 0)) {
+                    logger.warn("Skip seeding movie with corrupt title: {}", movieData.title);
+                    continue;
+                }
+
+                Movie movie = new Movie();
+                movie.setTitle(movieData.title);
+                movie.setDescription(movieData.description);
+                movie.setDurationMinutes(movieData.durationMinutes != null ? movieData.durationMinutes : 120);
+
+                LocalDate releaseDate = LocalDate.now();
+                if (movieData.releaseDate != null) {
+                    try {
+                        releaseDate = LocalDate.parse(movieData.releaseDate);
+                    } catch (Exception e) {
+                        logger.error("Invalid release date '{}' for movie '{}'", movieData.releaseDate,
+                                movieData.title);
+                    }
+                }
+                movie.setReleaseDate(releaseDate);
+                movie.setStatus(movieData.status != null ? movieData.status : "NOW_SHOWING");
+                movie.setAgeRestriction(movieData.ageRating != null ? movieData.ageRating : "P");
+                movie.setOnlinePrice(movieData.onlinePrice != null ? movieData.onlinePrice : BigDecimal.valueOf(45000));
+                movie.setRating(movieData.rating != null ? movieData.rating : 8.0);
+
+                // Add Genres
+                if (movieData.genres != null) {
+                    for (String genreName : movieData.genres) {
+                        Genre genre = genreRepository.findByNameIgnoreCase(genreName)
+                                .orElseGet(() -> {
+                                    Genre g = new Genre();
+                                    g.setName(genreName);
+                                    return genreRepository.save(g);
+                                });
+                        MovieGenre movieGenre = new MovieGenre();
+                        movieGenre.setMovie(movie);
+                        movieGenre.setGenre(genre);
+                        movie.addMovieGenre(movieGenre);
+                    }
+                }
+
+                // Add Countries
+                if (movieData.countries != null) {
+                    for (String countryName : movieData.countries) {
+                        Country country = countryRepository.findByNameIgnoreCase(countryName)
+                                .orElseGet(() -> {
+                                    Optional<Country> opt = countryRepository.findByCodeIgnoreCase(countryName);
+                                    if (opt.isPresent())
+                                        return opt.get();
+
+                                    String code = countryName.substring(0, Math.min(2, countryName.length()))
+                                            .toUpperCase();
+
+                                    // Special handling for "Khác" -> "XX" to avoid collision with Cambodia (KH)
+                                    if ("KHÁC".equalsIgnoreCase(countryName) || "KHAC".equalsIgnoreCase(countryName)
+                                            || countryName.startsWith("Kh")) {
+                                        code = "XX";
+                                    }
+
+                                    // Handle general collisions
+                                    if (countryRepository.existsByCodeIgnoreCase(code)) {
+                                        if ("XX".equals(code)) {
+                                            code = "ZZ";
+                                        } else {
+                                            boolean foundUnique = false;
+                                            for (char c1 = 'A'; c1 <= 'Z'; c1++) {
+                                                for (char c2 = 'A'; c2 <= 'Z'; c2++) {
+                                                    String testCode = "" + c1 + c2;
+                                                    if (!countryRepository.existsByCodeIgnoreCase(testCode)) {
+                                                        code = testCode;
+                                                        foundUnique = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (foundUnique) {
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Country c = new Country();
+                                    c.setCode(code);
+                                    c.setName(countryName);
+                                    return countryRepository.save(c);
+                                });
+                        MovieCountry movieCountry = new MovieCountry();
+                        movieCountry.setMovie(movie);
+                        movieCountry.setCountry(country);
+                        movie.addMovieCountry(movieCountry);
+                    }
+                }
+
+                // Add Medias
+                if (movieData.medias != null) {
+                    for (MediaJsonData mediaData : movieData.medias) {
+                        MovieMedia media = new MovieMedia();
+                        media.setMovie(movie);
+                        media.setMediaUrl(mediaData.mediaUrl);
+                        media.setMediaType(mediaData.mediaType);
+                        media.setTitle(mediaData.title);
+                        media.setIsPrimary(mediaData.isPrimary != null ? mediaData.isPrimary : false);
+                        media.setSortOrder(mediaData.sortOrder != null ? mediaData.sortOrder : 0);
+                        movie.addMovieMedia(media);
+                    }
+                }
+
+                // Add Actors
+                if (movieData.actors != null) {
+                    for (ActorJsonData actorData : movieData.actors) {
+                        Actor actor = actorRepository.findByFullNameIgnoreCase(actorData.fullName)
+                                .orElseGet(() -> {
+                                    Actor newActor = new Actor();
+                                    newActor.setFullName(actorData.fullName);
+                                    newActor.setAvatarUrl(actorData.avatarUrl);
+                                    if (actorData.countryName != null) {
+                                        Country country = countryRepository.findByNameIgnoreCase(actorData.countryName)
+                                                .orElse(null);
+                                        newActor.setCountry(country);
+                                    }
+                                    return actorRepository.save(newActor);
+                                });
+                        MovieActor movieActor = new MovieActor();
+                        movieActor.setMovie(movie);
+                        movieActor.setActor(actor);
+                        movieActor.setCharacterName(actorData.characterName);
+                        movieActor.setCastOrder(actorData.castOrder != null ? actorData.castOrder : 0);
+                        movieActor.setIsMain(actorData.isMain != null ? actorData.isMain : false);
+                        movie.addMovieActor(movieActor);
+                    }
+                }
+
+                movieRepository.save(movie);
+                logger.info("Seeded movie from JSON: {}", movie.getTitle());
+            }
+        }
+
+        // Self-healing: chỉ fill streaming_url trống từ media S3 movie/ (không copy trailer YouTube)
+        try {
+            int synced = jdbcTemplate.update("""
+                        UPDATE movie m
+                        SET streaming_url = src.media_url
+                        FROM (
+                            SELECT DISTINCT ON (mm.movie_uuid) mm.movie_uuid, mm.media_url
+                            FROM movie_media mm
+                            WHERE mm.media_type IN ('MOVIE', 'STREAM', 'FULL')
+                              AND mm.media_url IS NOT NULL
+                              AND btrim(mm.media_url) <> ''
+                              AND (
+                                    mm.media_url ILIKE '%/movie/%'
+                                 OR mm.media_url ILIKE '%.mp4%'
+                                 OR mm.media_url ILIKE '%.m3u8%'
+                              )
+                              AND mm.media_url NOT ILIKE '%youtube%'
+                              AND mm.media_url NOT ILIKE '%youtu.be%'
+                            ORDER BY mm.movie_uuid, mm.sort_order NULLS LAST
+                        ) src
+                        WHERE m.uuid = src.movie_uuid
+                          AND (m.streaming_url IS NULL OR btrim(m.streaming_url) = '')
+                          AND m.screening_mode IN ('BOTH', 'ONLINE_ONLY')
+                    """);
+            if (synced > 0) {
+                logger.info("Synced streaming_url from S3/movie media for {} online movies", synced);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to sync streaming_url from movie media", e);
+        }
+
+        // Self-healing: đồng bộ trạng thái phim theo ngày công chiếu
+        try {
+            LocalDate today = LocalDate.now();
+            int toComingSoon = jdbcTemplate.update(
+                    "UPDATE movie SET status = 'COMING_SOON' WHERE release_date > ? AND status IN ('NOW_SHOWING', 'DRAFT')",
+                    today);
+            int toNowShowing = jdbcTemplate.update(
+                    "UPDATE movie SET status = 'NOW_SHOWING' WHERE release_date <= ? AND status = 'COMING_SOON'",
+                    today);
+            if (toComingSoon > 0 || toNowShowing > 0) {
+                logger.info("Synced movie status by release date: {} -> COMING_SOON, {} -> NOW_SHOWING",
+                        toComingSoon, toNowShowing);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to sync movie status by release date", e);
+        }
+
+        // Self-healing: Cập nhật rating cho các phim đã tồn tại nếu rating là null
+        try {
+            jdbcTemplate.update("UPDATE movie SET rating = 8.0 WHERE rating IS NULL");
+            logger.info("Successfully self-healed ratings for existing movies.");
+        } catch (Exception e) {
+            logger.error("Failed to self-heal ratings", e);
+        }
     }
 
-    private void createMovieIfNotExists(
-            String title,
-            String description,
-            int durationMinutes,
-            LocalDate releaseDate,
-            String status,
-            List<String> genreNames,
-            List<String> countryCodes,
-            List<MovieMediaData> mediaList,
-            String ageRestriction) {
+    /**
+     * Dọn phim title lỗi font do seed từ movies.json bị hỏng UTF-8.
+     * - Mojibake (Ã­…): rename hoặc DELETE nếu đã có bản đúng
+     * - Replacement char U+FFFD (�): DELETE (bản twin đúng thường đã tồn tại)
+     */
+    private void healMojibakeMovies() {
+        try {
+            int deleted = 0;
+            int renamed = 0;
+            List<Movie> all = movieRepository.findAll();
+            for (Movie movie : all) {
+                String title = movie.getTitle();
+                if (title == null || "DELETED".equalsIgnoreCase(movie.getStatus())) {
+                    continue;
+                }
 
-        if (movieRepository.existsByTitleIgnoreCase(title)) {
-            return;
+                boolean hasReplacement = title.indexOf('\uFFFD') >= 0;
+                boolean hasMojibake = MojibakeUtils.looksLikeMojibake(title);
+                if (!hasReplacement && !hasMojibake) {
+                    continue;
+                }
+
+                if (hasReplacement) {
+                    Optional<Movie> twin = findHealthyTitleTwin(movie, title);
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.info("Deleted replacement-char movie '{}' (twin={})",
+                            title, twin.map(Movie::getTitle).orElse("none"));
+                    continue;
+                }
+
+                String fixedTitle = MojibakeUtils.tryFix(title);
+                if (fixedTitle == null || fixedTitle.isBlank() || fixedTitle.equals(title)) {
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.warn("Marked undecodable mojibake movie as DELETED: {}", title);
+                    continue;
+                }
+
+                Optional<Movie> existing = movieRepository.findByTitleIgnoreCase(fixedTitle);
+                if (existing.isPresent() && !existing.get().getUuid().equals(movie.getUuid())) {
+                    movie.setStatus("DELETED");
+                    movieRepository.save(movie);
+                    deleted++;
+                    logger.info("Deleted duplicate mojibake movie '{}' (kept '{}')", title, fixedTitle);
+                } else {
+                    movie.setTitle(fixedTitle);
+                    if (MojibakeUtils.looksLikeMojibake(movie.getDescription())) {
+                        String fixedDesc = MojibakeUtils.tryFix(movie.getDescription());
+                        if (fixedDesc != null) {
+                            movie.setDescription(fixedDesc);
+                        }
+                    }
+                    movieRepository.save(movie);
+                    renamed++;
+                    logger.info("Renamed mojibake movie '{}' -> '{}'", title, fixedTitle);
+                }
+            }
+            if (deleted > 0 || renamed > 0) {
+                logger.info("Healed corrupt movies: deletedDuplicates={}, renamed={}", deleted, renamed);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to heal mojibake movies", e);
         }
-
-        Movie movie = new Movie();
-        movie.setTitle(title);
-        movie.setDescription(description);
-        movie.setDurationMinutes(durationMinutes);
-        movie.setReleaseDate(releaseDate);
-        movie.setStatus(status);
-        movie.setAgeRestriction(ageRestriction);
-
-        // Add Genres
-        for (String genreName : genreNames) {
-            Genre genre = genreRepository.findByNameIgnoreCase(genreName)
-                    .orElseThrow(() -> new RuntimeException("Genre not found: " + genreName));
-            MovieGenre movieGenre = new MovieGenre();
-            movieGenre.setMovie(movie);
-            movieGenre.setGenre(genre);
-            movie.addMovieGenre(movieGenre);
-        }
-
-        // Add Countries
-        for (String countryCode : countryCodes) {
-            Country country = countryRepository.findByCodeIgnoreCase(countryCode)
-                    .orElseThrow(() -> new RuntimeException("Country not found: " + countryCode));
-            MovieCountry movieCountry = new MovieCountry();
-            movieCountry.setMovie(movie);
-            movieCountry.setCountry(country);
-            movie.addMovieCountry(movieCountry);
-        }
-
-        // Add Medias
-        for (MovieMediaData mediaData : mediaList) {
-            MovieMedia media = new MovieMedia();
-            media.setMovie(movie);
-            media.setMediaUrl(mediaData.url);
-            media.setMediaType(mediaData.type);
-            media.setTitle(mediaData.title);
-            media.setIsPrimary(mediaData.isPrimary);
-            media.setSortOrder(mediaData.sortOrder);
-            movie.addMovieMedia(media);
-        }
-
-        movieRepository.save(movie);
-        logger.info("Seeded movie: {}", title);
     }
 
-    private static class MovieMediaData {
-        String url;
-        String type;
-        String title;
-        boolean isPrimary;
-        int sortOrder;
+    private Optional<Movie> findHealthyTitleTwin(Movie corrupt, String corruptTitle) {
+        String likePattern = corruptTitle.replace("\uFFFD?", "%").replace("\uFFFD", "%");
+        for (Movie candidate : movieRepository.findAll()) {
+            if (candidate.getUuid().equals(corrupt.getUuid())) {
+                continue;
+            }
+            if ("DELETED".equalsIgnoreCase(candidate.getStatus())) {
+                continue;
+            }
+            String candidateTitle = candidate.getTitle();
+            if (candidateTitle == null || candidateTitle.indexOf('\uFFFD') >= 0) {
+                continue;
+            }
+            if (titleMatchesLikePattern(candidateTitle, likePattern)) {
+                return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
+    }
 
-        MovieMediaData(String url, String type, String title, boolean isPrimary, int sortOrder) {
-            this.url = url;
-            this.type = type;
-            this.title = title;
-            this.isPrimary = isPrimary;
-            this.sortOrder = sortOrder;
+    private static boolean titleMatchesLikePattern(String title, String likePattern) {
+        StringBuilder regex = new StringBuilder("^");
+        for (int i = 0; i < likePattern.length(); i++) {
+            char c = likePattern.charAt(i);
+            if (c == '%') {
+                regex.append(".*");
+            } else if ("\\.[]{}()*+-?^$|".indexOf(c) >= 0) {
+                regex.append('\\').append(c);
+            } else {
+                regex.append(c);
+            }
+        }
+        regex.append('$');
+        return title.matches("(?i)" + regex);
+    }
+
+    private void removeObsoleteComingSoonMovies() {
+        String[] titles = {
+                "Đường Đua Nghẹt Thở",
+                "PHIM ĐIỆN ẢNH DORAEMON: NOBITA VÀ LÂU ĐÀI DƯỚI ĐÁY BIỂN (PHIÊN BẢN MỚI)",
+                "Hiệp Sĩ Mặt Nạ Zeztz - Kamen Rider Zeztz",
+                "Ma Xó 2: Hồi Sinh"
+        };
+
+        try {
+            for (String title : titles) {
+                List<UUID> movieUuids = jdbcTemplate.query(
+                        "SELECT uuid FROM movie WHERE LOWER(title) = LOWER(?)",
+                        (rs, rowNum) -> rs.getObject("uuid", UUID.class),
+                        title);
+
+                for (UUID movieUuid : movieUuids) {
+                    jdbcTemplate.update(
+                            "DELETE FROM seat_locked WHERE showtime_uuid IN (SELECT uuid FROM showtime WHERE movie_uuid = ?)",
+                            movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking_seat WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking_combo WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM ticket WHERE booking_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM booking WHERE showtime_uuid IN "
+                            + "(SELECT uuid FROM showtime WHERE movie_uuid = ?))", movieUuid);
+                    jdbcTemplate.update("DELETE FROM showtime WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_media WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_genre WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_country WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie_actor WHERE movie_uuid = ?", movieUuid);
+                    jdbcTemplate.update("DELETE FROM movie WHERE uuid = ?", movieUuid);
+                    logger.info("Removed obsolete coming soon movie: {}", title);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to remove obsolete coming soon movies", e);
         }
     }
 
@@ -768,7 +1400,8 @@ public class DataSeeder implements CommandLineRunner {
                         WHERE cinema_uuid IN (
                             SELECT uuid FROM cinema
                             WHERE uuid <> '77777777-7777-7777-7777-777777777777'
-                              AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                                  AND name IN ('NASA Landmark 81', 'NASA Landmark 81 JDBC')
+                            )
                         )
                     """);
             jdbcTemplate.update(
@@ -781,24 +1414,8 @@ public class DataSeeder implements CommandLineRunner {
                     "UPDATE cinema_room SET room_code = 'ROOM-IMAX', name = 'Phòng chiếu IMAX' WHERE uuid = '88888888-8888-8888-8888-888888888888'");
             jdbcTemplate.update(
                     "UPDATE cinema_room SET room_code = 'ROOM-VIP', name = 'Phòng chiếu VIP' WHERE uuid = '99999999-9999-9999-9999-999999999999'");
-            // Self-healing for seat types: ensure standard seat types exist, migrate seat
-            // references, and clean up duplicates
-            jdbcTemplate.update("""
-                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                        VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'STANDARD', 85000, 1.0)
-                        ON CONFLICT (uuid) DO NOTHING
-                    """);
-            jdbcTemplate.update("""
-                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                        VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'VIP', 120000, 1.0)
-                        ON CONFLICT (uuid) DO NOTHING
-                    """);
-            jdbcTemplate.update("""
-                        INSERT INTO seat_type (uuid, name, base_price, price_modifier)
-                        VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'COUPLE', 160000, 1.0)
-                        ON CONFLICT (uuid) DO NOTHING
-                    """);
 
+            // Migrate seat types standard/vip/couple
             jdbcTemplate.update("""
                         UPDATE seat
                         SET seat_type_uuid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
@@ -858,47 +1475,228 @@ public class DataSeeder implements CommandLineRunner {
             logger.warn("Could not clean up, rename, or heal legacy cinema/showtime records: {}", e.getMessage());
         }
 
-        java.util.UUID cinemaUuid = java.util.UUID.fromString("77777777-7777-7777-7777-777777777777");
-        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class, cinemaUuid) == 0) {
-            jdbcTemplate.update("INSERT INTO cinema (uuid, name, address, phone_number) VALUES (?, ?, ?, ?)",
-                    cinemaUuid, "NASA Landmark 81", "Tòa nhà Landmark 81, Vinhomes Central Park, Bình Thạnh, TP.HCM",
-                    "19001080");
-            logger.info("Seeded cinema: NASA Landmark 81");
+        List<CinemaJsonData> cinemasToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/cinemas.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    cinemasToSeed = objectMapper.readValue(is, new TypeReference<List<CinemaJsonData>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load cinemas.json", e);
         }
 
-        // Create Room 1 (matching default FE name)
-        java.util.UUID room1Uuid = java.util.UUID.fromString("88888888-8888-8888-8888-888888888888");
-        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                room1Uuid) == 0) {
-            jdbcTemplate.update(
-                    "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    room1Uuid, "ROOM-IMAX", "Phòng chiếu IMAX", 0, "IMAX", "ACTIVE", cinemaUuid);
-            logger.info("Seeded room: Phòng chiếu IMAX");
+        if (cinemasToSeed != null) {
+            for (CinemaJsonData cinemaData : cinemasToSeed) {
+                UUID cinemaUuid = cinemaData.uuid != null ? UUID.fromString(cinemaData.uuid) : UUID.randomUUID();
+                if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema WHERE uuid = ?", Integer.class,
+                        cinemaUuid) == 0) {
+                    jdbcTemplate.update(
+                            "INSERT INTO cinema (uuid, name, address, phone_number, entrance_note, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            cinemaUuid, cinemaData.name, cinemaData.address, cinemaData.phoneNumber,
+                            cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude);
+                    logger.info("Seeded cinema from JSON: {}", cinemaData.name);
+                } else if (cinemaData.entranceNote != null || cinemaData.latitude != null
+                        || cinemaData.longitude != null) {
+                    jdbcTemplate.update(
+                            "UPDATE cinema SET entrance_note = COALESCE(?, entrance_note), latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude) WHERE uuid = ?",
+                            cinemaData.entranceNote, cinemaData.latitude, cinemaData.longitude, cinemaUuid);
+                }
 
-            // Auto-generate seats for Room 1 (NASA Standard Layout)
-            cinemaService.generateSeats(room1Uuid, null);
-            logger.info("Auto-generated NASA Standard seats for room: ROOM-IMAX");
+                if (cinemaData.rooms != null) {
+                    for (RoomJsonData roomData : cinemaData.rooms) {
+                        UUID roomUuid = roomData.uuid != null ? UUID.fromString(roomData.uuid) : UUID.randomUUID();
+                        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?",
+                                Integer.class, roomUuid) == 0) {
+                            jdbcTemplate.update(
+                                    "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                    roomUuid, roomData.roomCode, roomData.name, 0, roomData.roomType, roomData.status,
+                                    cinemaUuid);
+                            cinemaService.generateSeats(roomUuid, null);
+                            logger.info("Seeded room from JSON and generated seats: {}", roomData.roomCode);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void seedCombos() {
+        List<Map<String, Object>> combosToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/combos.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    combosToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, Object>>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load combos.json", e);
         }
 
-        // Create Room 2
-        java.util.UUID room2Uuid = java.util.UUID.fromString("99999999-9999-9999-9999-999999999999");
-        if (jdbcTemplate.queryForObject("SELECT count(1) FROM cinema_room WHERE uuid = ?", Integer.class,
-                room2Uuid) == 0) {
-            jdbcTemplate.update(
-                    "INSERT INTO cinema_room (uuid, room_code, name, capacity, room_type, status, cinema_uuid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    room2Uuid, "ROOM-VIP", "Phòng chiếu VIP", 0, "VIP", "ACTIVE", cinemaUuid);
-            logger.info("Seeded room: Phòng chiếu VIP");
+        if (combosToSeed != null) {
+            for (Map<String, Object> comboData : combosToSeed) {
+                String uuidStr = (String) comboData.get("uuid");
+                String name = (String) comboData.get("name");
+                String description = (String) comboData.get("description");
+                Object priceObj = comboData.get("price");
+                String imageUrl = (String) comboData.get("imageUrl");
+                String status = (String) comboData.get("status");
 
-            // Auto-generate seats for Room 2 (NASA Standard Layout)
-            cinemaService.generateSeats(room2Uuid, null);
-            logger.info("Auto-generated NASA Standard seats for room: ROOM-VIP");
+                if (uuidStr == null || name == null || priceObj == null) {
+                    continue;
+                }
+
+                UUID uuid = UUID.fromString(uuidStr);
+                BigDecimal price = new BigDecimal(priceObj.toString());
+                if (jdbcTemplate.queryForObject("SELECT count(1) FROM combo WHERE uuid = ?", Integer.class,
+                        uuid) == 0) {
+                    jdbcTemplate.update("INSERT INTO combo (uuid, name, description, price, image_url, status) VALUES (?, ?, ?, ?, ?, ?)",
+                            uuid, name, description, price, imageUrl, status != null ? status : "ACTIVE");
+                    logger.info("Seeded combo from JSON: {}", name);
+                } else {
+                    jdbcTemplate.update("UPDATE combo SET name = ?, description = ?, price = ?, image_url = ?, status = ? WHERE uuid = ?",
+                            name, description, price, imageUrl, status != null ? status : "ACTIVE", uuid);
+                }
+            }
+        }
+    }
+
+    private void seedPromotions() {
+        List<Map<String, Object>> promotionsToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/promotions.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    promotionsToSeed = objectMapper.readValue(is, new TypeReference<List<Map<String, Object>>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load promotions.json", e);
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        if (promotionsToSeed != null) {
+            for (Map<String, Object> promoData : promotionsToSeed) {
+                String uuidStr = (String) promoData.get("uuid");
+                String code = (String) promoData.get("code");
+                Object discountValueObj = promoData.get("discountValue");
+                String discountType = (String) promoData.get("discountType");
+                Object maxUsageObj = promoData.get("maxUsage");
+                Boolean oncePerUser = (Boolean) promoData.get("oncePerUser");
+                String status = (String) promoData.get("status");
+
+                if (uuidStr == null || code == null || discountValueObj == null || discountType == null) {
+                    continue;
+                }
+
+                UUID uuid = UUID.fromString(uuidStr);
+                BigDecimal discountValue = new BigDecimal(discountValueObj.toString());
+                int maxUsage = maxUsageObj != null ? ((Number) maxUsageObj).intValue() : 100;
+
+                if (jdbcTemplate.queryForObject("SELECT count(1) FROM promotions WHERE uuid = ?", Integer.class,
+                        uuid) == 0) {
+                    jdbcTemplate.update(
+                            """
+                                        INSERT INTO promotions (uuid, code, discount_value, discount_type, max_usage, used_count, once_per_user, start_date, end_date, status, created_at, updated_at, points_cost, min_score)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+                                    """,
+                            uuid, code, discountValue, discountType, maxUsage, 0,
+                            oncePerUser != null ? oncePerUser : false,
+                            now.minusDays(1), now.plusDays(30), status != null ? status : "ACTIVE", now, now);
+                    logger.info("Seeded promotion from JSON: {}", code);
+                }
+            }
+        }
+    }
+
+    private void seedShowtimes() {
+        List<ShowtimeJsonData> showtimesToSeed = null;
+        try {
+            Resource resource = resourceLoader.getResource("classpath:data/showtimes.json");
+            if (resource.exists()) {
+                try (InputStream is = resource.getInputStream()) {
+                    showtimesToSeed = objectMapper.readValue(is, new TypeReference<List<ShowtimeJsonData>>() {
+                    });
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to load showtimes.json", e);
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime baseDay = now.plusDays(1);
+
+        if (showtimesToSeed != null) {
+            for (ShowtimeJsonData data : showtimesToSeed) {
+                if (data.uuid == null || data.movieTitle == null || data.roomCode == null) {
+                    continue;
+                }
+
+                UUID showtimeUuid = UUID.fromString(data.uuid);
+
+                List<Movie> matchedMovies = movieRepository.findAll().stream()
+                        .filter(m -> m.getTitle().equalsIgnoreCase(data.movieTitle))
+                        .toList();
+                if (matchedMovies.isEmpty()) {
+                    logger.warn("Showtime movie title '{}' not found in database. Skipping showtime: {}",
+                            data.movieTitle, showtimeUuid);
+                    continue;
+                }
+                UUID movieUuid = matchedMovies.get(0).getUuid();
+
+                List<UUID> roomUuids = jdbcTemplate.query(
+                        "SELECT uuid FROM cinema_room WHERE LOWER(room_code) = LOWER(?)",
+                        (rs, rowNum) -> rs.getObject("uuid", UUID.class),
+                        data.roomCode);
+                if (roomUuids.isEmpty()) {
+                    logger.warn("Showtime room code '{}' not found in database. Skipping showtime: {}", data.roomCode,
+                            showtimeUuid);
+                    continue;
+                }
+                UUID roomUuid = roomUuids.get(0);
+
+                int startH = data.startHour != null ? data.startHour : 19;
+                int startM = data.startMinute != null ? data.startMinute : 30;
+                int endH = data.endHour != null ? data.endHour : 21;
+                int endM = data.endMinute != null ? data.endMinute : 30;
+                BigDecimal basePrice = data.basePrice != null ? data.basePrice : BigDecimal.valueOf(80000);
+                String status = data.status != null ? data.status : "OPEN_FOR_BOOKING";
+                OffsetDateTime startTime = baseDay.withHour(startH).withMinute(startM).withSecond(0).withNano(0);
+                OffsetDateTime endTime = baseDay.withHour(endH).withMinute(endM).withSecond(0).withNano(0);
+
+                Integer existing = jdbcTemplate.queryForObject(
+                        "SELECT count(1) FROM showtime WHERE uuid = ?", Integer.class, showtimeUuid);
+                if (existing != null && existing == 0) {
+                    jdbcTemplate.update(
+                            "INSERT INTO showtime (uuid, movie_uuid, cinema_room_uuid, start_time, end_time, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            showtimeUuid, movieUuid, roomUuid, startTime, endTime, basePrice, status);
+                    logger.info("Seeded showtime from JSON: {}", showtimeUuid);
+                } else {
+                    // Self-heal: các suất seed dùng UUID cố định nên chỉ insert ở lần chạy đầu.
+                    // Nếu ngày chiếu đã trôi qua (máy seed từ lâu) thì đẩy suất tới tương lai để
+                    // "phim đang chiếu" / lịch chiếu luôn có suất đặt được trên mọi máy — không
+                    // cần admin tạo tay.
+                    int rolled = jdbcTemplate.update(
+                            "UPDATE showtime SET start_time = ?, end_time = ?, status = ? WHERE uuid = ? AND start_time < ?",
+                            startTime, endTime, status, showtimeUuid, now);
+                    if (rolled > 0) {
+                        logger.info("Rolled stale seeded showtime {} forward to {}", showtimeUuid, startTime);
+                    }
+                }
+            }
         }
     }
 
     private void repairOrphanBookingSeats() {
         try {
             logger.info("=== RUNNING ORPHAN BOOKING SEATS REPAIR ===");
-            List<java.util.Map<String, Object>> orphans = jdbcTemplate.queryForList("""
+            List<Map<String, Object>> orphans = jdbcTemplate.queryForList("""
                         select bs.uuid as bs_uuid, bs.showtime_uuid, bs.seat_uuid
                         from booking_seat bs
                         left join seat s on s.uuid = bs.seat_uuid
@@ -912,36 +1710,36 @@ public class DataSeeder implements CommandLineRunner {
 
             logger.info("Found {} orphan booking seats. Repairing...", orphans.size());
 
-            for (java.util.Map<String, Object> orphan : orphans) {
-                java.util.UUID bsUuid = (java.util.UUID) orphan.get("bs_uuid");
-                java.util.UUID showtimeUuid = (java.util.UUID) orphan.get("showtime_uuid");
+            for (Map<String, Object> orphan : orphans) {
+                UUID bsUuid = (UUID) orphan.get("bs_uuid");
+                UUID showtimeUuid = (UUID) orphan.get("showtime_uuid");
 
-                List<java.util.UUID> roomUuids = jdbcTemplate.query(
+                List<UUID> roomUuids = jdbcTemplate.query(
                         "select cinema_room_uuid from showtime where uuid = ?",
-                        (rs, rowNum) -> (java.util.UUID) rs.getObject("cinema_room_uuid"),
+                        (rs, rowNum) -> (UUID) rs.getObject("cinema_room_uuid"),
                         showtimeUuid);
 
                 if (roomUuids.isEmpty()) {
                     continue;
                 }
-                java.util.UUID roomUuid = roomUuids.get(0);
+                UUID roomUuid = roomUuids.get(0);
 
-                List<java.util.UUID> validSeats = jdbcTemplate.query(
+                List<UUID> validSeats = jdbcTemplate.query(
                         "select uuid from seat where cinema_room_uuid = ? order by row_name asc, seat_number asc",
-                        (rs, rowNum) -> (java.util.UUID) rs.getObject("uuid"),
+                        (rs, rowNum) -> (UUID) rs.getObject("uuid"),
                         roomUuid);
 
                 if (validSeats.isEmpty()) {
                     continue;
                 }
 
-                List<java.util.UUID> assignedSeats = jdbcTemplate.query(
+                List<UUID> assignedSeats = jdbcTemplate.query(
                         "select seat_uuid from booking_seat where showtime_uuid = ?",
-                        (rs, rowNum) -> (java.util.UUID) rs.getObject("seat_uuid"),
+                        (rs, rowNum) -> (UUID) rs.getObject("seat_uuid"),
                         showtimeUuid);
 
-                java.util.UUID chosenSeat = null;
-                for (java.util.UUID seatUuid : validSeats) {
+                UUID chosenSeat = null;
+                for (UUID seatUuid : validSeats) {
                     if (!assignedSeats.contains(seatUuid)) {
                         chosenSeat = seatUuid;
                         break;
@@ -961,5 +1759,75 @@ public class DataSeeder implements CommandLineRunner {
         } catch (Exception e) {
             logger.error("Failed to repair orphan booking seats: {}", e.getMessage());
         }
+    }
+
+    private static class MovieJsonData {
+        @SuppressWarnings("unused")
+        public String uuid;
+        public String title;
+        public String description;
+        public Integer durationMinutes;
+        public String releaseDate;
+        public String status;
+        public String ageRating;
+        public List<String> genres;
+        public List<String> countries;
+        public List<ActorJsonData> actors;
+        public List<MediaJsonData> medias;
+        public String streamingUrl;
+        public Double rating;
+        public BigDecimal onlinePrice;
+    }
+
+    private static class ActorJsonData {
+        @SuppressWarnings("unused")
+        public String uuid;
+        public String fullName;
+        public String avatarUrl;
+        public String countryName;
+        public String characterName;
+        public Integer castOrder;
+        public Boolean isMain;
+    }
+
+    private static class MediaJsonData {
+        @SuppressWarnings("unused")
+        public String uuid;
+        public String mediaUrl;
+        public String mediaType;
+        public String title;
+        public Boolean isPrimary;
+        public Integer sortOrder;
+    }
+
+    private static class CinemaJsonData {
+        public String uuid;
+        public String name;
+        public String address;
+        public String phoneNumber;
+        public String entranceNote;
+        public Double latitude;
+        public Double longitude;
+        public List<RoomJsonData> rooms;
+    }
+
+    private static class RoomJsonData {
+        public String uuid;
+        public String roomCode;
+        public String name;
+        public String roomType;
+        public String status;
+    }
+
+    private static class ShowtimeJsonData {
+        public String uuid;
+        public String movieTitle;
+        public String roomCode;
+        public Integer startHour;
+        public Integer startMinute;
+        public Integer endHour;
+        public Integer endMinute;
+        public BigDecimal basePrice;
+        public String status;
     }
 }

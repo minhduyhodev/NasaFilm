@@ -1,8 +1,30 @@
 import axios from 'axios';
 import tokenService from '../utils/tokenService';
 import { resolveAvatarUrl } from '../../../shared/utils/avatarUrl';
+import { logger } from '../../../shared/utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+/** Các API công khai — không redirect /login khi token hết hạn. */
+const PUBLIC_API_PREFIXES = [
+  '/api/movies',
+  '/api/showtimes',
+  '/api/genres',
+  '/api/countries',
+  '/api/actors',
+  '/api/cinemas',
+  '/api/combos/active',
+  '/api/system-config',
+  '/api/promotions/public',
+  '/api/promotions/validate',
+  '/api/review-vibe-tags',
+  '/api/search',
+  '/api/media/proxy',
+  '/api/orbit-rooms/feature-status',
+];
+
+const isPublicApiRequest = (url = '') =>
+  PUBLIC_API_PREFIXES.some((prefix) => url.includes(prefix));
 
 const mapBackendRoles = (roles = []) => {
   return roles.map((role) => {
@@ -20,6 +42,7 @@ const buildAuthResponse = (jwtData) => ({
     email: jwtData.email,
     avatar: resolveAvatarUrl(jwtData),
     roles: mapBackendRoles(jwtData.roles ?? []),
+    permissions: jwtData.permissions ?? [],
   },
   token: jwtData.accessToken,
   tokenType: jwtData.tokenType,
@@ -44,6 +67,7 @@ class AuthService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -91,16 +115,20 @@ class AuthService {
             isRefreshing = false;
             refreshSubscribers = [];
             tokenService.clear();
-            sessionStorage.setItem('auth_expired', 'true');
-            window.location.href = '/login';
+            if (!isPublicApiRequest(requestUrl)) {
+              sessionStorage.setItem('auth_expired', 'true');
+              window.location.href = '/login';
+            }
             return Promise.reject(refreshError);
           }
         }
 
         if (error.response?.status === 401 && !isAuthRequest) {
           tokenService.clear();
-          sessionStorage.setItem('auth_expired', 'true');
-          window.location.href = '/login';
+          if (!isPublicApiRequest(requestUrl)) {
+            sessionStorage.setItem('auth_expired', 'true');
+            window.location.href = '/login';
+          }
         }
 
         return Promise.reject(error);
@@ -156,7 +184,7 @@ class AuthService {
 
   async register(credentials) {
     try {
-      console.log("[AuthService] Gửi yêu cầu đăng ký cho email:", credentials.email);
+      logger.info("[AuthService] Gửi yêu cầu đăng ký.");
       const response = await this.api.post('/api/register', {
         email: credentials.email,
         password: credentials.password,
@@ -167,21 +195,21 @@ class AuthService {
       });
       return response.data;
     } catch (error) {
-      console.error("[AuthService] Đăng ký thất bại. Lỗi:", error.message || error);
+      logger.error("[AuthService] Đăng ký thất bại. Lỗi:", error.message || error);
       throw this.handleError(error);
     }
   }
 
   async verifyRegister(email, code) {
     try {
-      console.log("[AuthService] Gửi yêu cầu xác thực OTP đăng ký cho email:", email);
+      logger.info("[AuthService] Gửi yêu cầu xác thực OTP đăng ký.");
       const response = await this.api.post('/api/register/verify', {
         email,
         code,
       });
       return response.data;
     } catch (error) {
-      console.error("[AuthService] Xác thực OTP thất bại. Lỗi:", error.message || error);
+      logger.error("[AuthService] Xác thực OTP thất bại. Lỗi:", error.message || error);
       throw this.handleError(error);
     }
   }
@@ -203,6 +231,19 @@ class AuthService {
     try {
       const response = await this.api.post('/api/reset-password', {
         token,
+        newPassword: password,
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async activateAccount({ token, temporaryPassword, password }) {
+    try {
+      const response = await this.api.post('/api/activate-account', {
+        token,
+        temporaryPassword,
         newPassword: password,
       });
       return response.data;
@@ -242,7 +283,7 @@ class AuthService {
       const refreshToken = tokenService.getRefreshToken();
       await this.api.post('/api/logout', { refreshToken });
     } catch (error) {
-      console.warn('Server logout failed, clearing local session anyway:', error);
+      logger.warn('Server logout failed, clearing local session anyway:', error);
     } finally {
       window.google?.accounts?.id?.disableAutoSelect?.();
       tokenService.clear();
@@ -284,13 +325,28 @@ class AuthService {
 
   handleError(error) {
     if (axios.isAxiosError(error)) {
-      const beMessage =
-        error.response?.data?.message ||
-        error.response?.data?.data?.message ||
-        error.message;
-      return new Error(beMessage);
+      const data = error.response?.data;
+      const beMessage = data?.message || data?.data?.message;
+
+      if (typeof beMessage === 'string' && beMessage.trim()) {
+        return new Error(beMessage.trim());
+      }
+
+      if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+        const firstFieldMessage = Object.values(data.data).find((value) => typeof value === 'string');
+        if (firstFieldMessage) {
+          return new Error(firstFieldMessage);
+        }
+      }
+
+      // Không nhận được phản hồi từ server (mất kết nối / backend chưa chạy / CORS).
+      if (!error.response) {
+        return new Error('Không kết nối được máy chủ. Kiểm tra backend có đang chạy không rồi thử lại.');
+      }
+
+      return new Error('Đã xảy ra lỗi. Vui lòng thử lại.');
     }
-    return error instanceof Error ? error : new Error('An unexpected error occurred');
+    return error instanceof Error ? error : new Error('Đã xảy ra lỗi. Vui lòng thử lại.');
   }
 }
 

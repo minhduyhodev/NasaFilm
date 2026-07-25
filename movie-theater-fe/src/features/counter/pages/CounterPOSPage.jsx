@@ -1,0 +1,888 @@
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
+import {
+  Ticket, Popcorn, User, Search, UserPlus, Loader2,
+  CreditCard, Banknote, QrCode, Check, ShoppingCart, Printer, X,
+} from 'lucide-react';
+import { counterService } from '../api/counterService';
+import { comboService } from '../../../shared/services/comboService';
+import { bookingService } from '../../../shared/services/bookingService';
+import { notificationService } from '../../../shared/services/notificationService';
+import { systemConfigService } from '../../../shared/services/systemConfigService';
+import { getMaxSeatsPerBooking } from '../../../shared/utils/systemConfig';
+import { useSeatMapState } from '../../../shared/hooks/useSeatMapState';
+import TheaterSeatMapPanel from '../../../shared/components/seatmap/TheaterSeatMapPanel';
+import { CounterPageHeader, PrintTicketModal } from '../components/CounterStaffUI';
+import { AdminPage } from '../../admin/components';
+import VietQRPOSModal from '../components/VietQRPOSModal';
+import CounterPosShowtimeFilters from '../components/CounterPosShowtimeFilters';
+import { resolveMediaUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
+import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { logger } from '../../../shared/utils/logger';
+import '../styles/counter-staff-theme.css';
+import '../../home/pages/BookingPage.css';
+
+const FORMAT_KEYWORDS = [
+  { match: /imax/i, label: 'IMAX' },
+  { match: /4dx|four.?dx/i, label: '4DX' },
+  { match: /dolby|atmos/i, label: 'DOLBY' },
+  { match: /vip/i, label: 'VIP' },
+  { match: /3d/i, label: '3D' },
+];
+
+const resolveShowtimeFormat = (showtime) => {
+  const haystack = `${showtime?.cinemaRoomName || ''} ${showtime?.roomType || ''}`;
+  const hit = FORMAT_KEYWORDS.find((item) => item.match.test(haystack));
+  return hit?.label || '2D';
+};
+
+/** Badge triad matching reference: Selling / Almost Full / Started */
+const resolveShowtimeBadge = (showtime) => {
+  const now = Date.now();
+  const start = new Date(showtime.startTime).getTime();
+  const end = showtime.endTime
+    ? new Date(showtime.endTime).getTime()
+    : start + 3 * 60 * 60 * 1000;
+
+  if (Number.isFinite(start) && now >= start && now < end) {
+    return { tone: 'started', label: 'Đã bắt đầu' };
+  }
+  if (showtime.status === 'SOLD_OUT') {
+    return { tone: 'almost', label: 'Sắp hết' };
+  }
+  if (showtime.status === 'FINISHED' || (Number.isFinite(end) && now >= end)) {
+    return { tone: 'started', label: 'Đã bắt đầu' };
+  }
+  return { tone: 'selling', label: 'Đang bán' };
+};
+
+export default function CounterPOSPage() {
+  const confirm = useConfirm();
+  const { user } = useAuthContext();
+  const canCreateBooking = hasPermission(user, PERMISSIONS.COUNTER_BOOKING_CREATE);
+  const canAddCombos = hasPermission(user, PERMISSIONS.COUNTER_COMBO_CREATE);
+  const canCreateCustomer = hasPermission(user, PERMISSIONS.COUNTER_CUSTOMER_CREATE);
+
+  const [locationVersion, setLocationVersion] = useState(0);
+  const currentCinemaUuid = useMemo(
+    () => localStorage.getItem('counter_cinema_uuid'),
+    [locationVersion],
+  );
+  const currentRoomUuid = useMemo(
+    () => localStorage.getItem('counter_room_uuid') || '',
+    [locationVersion],
+  );
+
+  // Core POS selections
+  const [movies, setMovies] = useState([]);
+  const [allShowtimes, setAllShowtimes] = useState([]);
+  const [filters, setFilters] = useState({ date: '', timeSlot: '', movieUuid: '' });
+  const [selectedShowtime, setSelectedShowtime] = useState(null);
+
+  const [combos, setCombos] = useState([]);
+  const [selectedCombos, setSelectedCombos] = useState({}); // comboUuid -> quantity
+
+  // Customer Management
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isWalkIn, setIsWalkIn] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ fullName: '', email: '', phoneNumber: '' });
+
+  // Promotion
+  const [promoCode, setPromoCode] = useState('');
+
+  // Payment
+  const [paymentMethod, setPaymentMethod] = useState('COUNTER_CASH');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [printTicketData, setPrintTicketData] = useState(null);
+  const [isVietQRModalOpen, setIsVietQRModalOpen] = useState(false);
+  const [maxSeatsPerBooking, setMaxSeatsPerBooking] = useState(() => getMaxSeatsPerBooking());
+
+  const showtimeUuid = selectedShowtime?.uuid || '';
+
+  const {
+    seatRows,
+    aisleLayout,
+    selectedSeats,
+    hasGapViolation,
+    isMapLoading,
+    fetchSeatMap,
+  } = useSeatMapState(showtimeUuid, {
+    enabled: Boolean(showtimeUuid),
+    lockTimerEnabled: false,
+  });
+
+  // Quầy POS: giữ lock ghế khi chọn, nhưng không đếm ngược — nhả lock khi đổi suất / rời trang
+  useEffect(() => {
+    return () => {
+      if (showtimeUuid) {
+        bookingService.syncSeatLocks(showtimeUuid, []).catch(() => {});
+      }
+    };
+  }, [showtimeUuid]);
+
+  // Ref to hold the latest selected seat UUIDs for the keep-alive interval
+  const selectedSeatUuidsRef = useRef([]);
+  useEffect(() => {
+    selectedSeatUuidsRef.current = selectedSeats.map(s => s.seatUuid);
+  }, [selectedSeats]);
+
+  // Keep seat locks alive periodically for POS staff so it doesn't expire after 5 mins
+  useEffect(() => {
+    if (!showtimeUuid) return;
+
+    const intervalId = setInterval(() => {
+      const uuids = selectedSeatUuidsRef.current;
+      if (uuids.length > 0) {
+        bookingService.syncSeatLocks(showtimeUuid, uuids).catch((err) => logger.error('Failed to sync seat locks:', err));
+      }
+    }, 4 * 60 * 1000); // Renew every 4 minutes
+
+    return () => clearInterval(intervalId);
+  }, [showtimeUuid]);
+
+  // Load Movies
+  useEffect(() => {
+    async function loadMovies() {
+      try {
+        const data = await counterService.getMovies();
+        setMovies(data || []);
+      } catch (err) {
+        logger.error('Failed to load movies:', err);
+      }
+    }
+    loadMovies();
+  }, []);
+
+  // Load Combos
+  useEffect(() => {
+    async function loadCombos() {
+      try {
+        const data = await comboService.getActiveCombos();
+        setCombos(data || []);
+      } catch (err) {
+        logger.error('Failed to load combos:', err);
+      }
+    }
+    loadCombos();
+  }, []);
+
+  useEffect(() => {
+    systemConfigService.getConfig()
+      .then((cfg) => setMaxSeatsPerBooking(getMaxSeatsPerBooking(cfg)))
+      .catch(() => {});
+  }, []);
+
+  // Load showtimes when cinema changes
+  useEffect(() => {
+    if (!currentCinemaUuid) return;
+
+    let cancelled = false;
+    async function loadShowtimes() {
+      try {
+        const data = await counterService.getShowtimes({ cinemaUuid: currentCinemaUuid });
+        if (!cancelled) {
+          setAllShowtimes(data || []);
+          setSelectedShowtime(null);
+        }
+      } catch (err) {
+        logger.error('Failed to load showtimes:', err);
+      }
+    }
+    loadShowtimes();
+    return () => { cancelled = true; };
+  }, [currentCinemaUuid]);
+
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'date') {
+        next.timeSlot = '';
+        next.movieUuid = '';
+      } else if (key === 'timeSlot') {
+        next.movieUuid = '';
+      }
+      return next;
+    });
+    setSelectedShowtime(null);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({ date: '', timeSlot: '', movieUuid: '' });
+    setSelectedShowtime(null);
+  }, []);
+
+  const hasActiveFilters = Boolean(filters.date || filters.timeSlot || filters.movieUuid);
+
+  // Listen to counter location changes
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setLocationVersion((v) => v + 1);
+      setFilters({ date: '', timeSlot: '', movieUuid: '' });
+      setSelectedShowtime(null);
+    };
+    window.addEventListener('counter-location-changed', handleLocationChange);
+    return () => window.removeEventListener('counter-location-changed', handleLocationChange);
+  }, []);
+
+  const matchingShowtimes = useMemo(
+    () => applyShowtimeFilters(
+      allShowtimes,
+      { roomUuid: currentRoomUuid, ...filters },
+      ['room', 'date', 'timeSlot', 'movieUuid'],
+    ),
+    [allShowtimes, currentRoomUuid, filters],
+  );
+
+  const moviePosterByUuid = useMemo(() => {
+    const map = new Map();
+    movies.forEach((movie) => {
+      const raw = movie.primaryMediaUrl || movie.posterUrl || movie.poster || '';
+      if (movie.uuid && raw) map.set(movie.uuid, resolveMediaUrl(raw, 240));
+    });
+    return map;
+  }, [movies]);
+
+  const flatShowtimes = useMemo(
+    () => matchingShowtimes
+      .slice()
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+    [matchingShowtimes],
+  );
+
+  const movieOptions = useMemo(() => [
+    { value: '', label: 'Phim' },
+    ...movies.map((movie) => {
+      const rawPoster = movie.primaryMediaUrl || movie.posterUrl || movie.poster || '';
+      return {
+        value: movie.uuid,
+        label: movie.title,
+        image: rawPoster ? resolveMediaUrl(rawPoster, 120) : '',
+      };
+    }),
+  ], [movies]);
+
+  const handleCoupleClick = useCallback(async (seats) => {
+    if (!showtimeUuid) return;
+
+    const pairUuids = seats.map((s) => s.seatUuid);
+    const bothSelected = pairUuids.every((uuid) =>
+      selectedSeats.some((s) => s.seatUuid === uuid),
+    );
+
+    if (!bothSelected) {
+      const seatsAfterAdd = new Set([
+        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...pairUuids,
+      ]);
+      if (seatsAfterAdd.size > maxSeatsPerBooking) {
+        notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
+        return;
+      }
+    }
+
+    const nextSelectedUuids = bothSelected
+      ? selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid)
+      : [
+        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...pairUuids,
+      ];
+
+    try {
+      await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể giữ ghế này');
+    }
+  }, [showtimeUuid, selectedSeats, maxSeatsPerBooking, fetchSeatMap]);
+
+  const handleSeatClick = useCallback(async (seat) => {
+    if (!showtimeUuid) return;
+
+    const isAlreadySelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
+    if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
+      notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
+      return;
+    }
+
+    const nextSelectedUuids = isAlreadySelected
+      ? selectedSeats.filter((s) => s.seatUuid !== seat.seatUuid).map((s) => s.seatUuid)
+      : [...selectedSeats.map((s) => s.seatUuid), seat.seatUuid];
+
+    try {
+      await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids);
+    } catch (err) {
+      notificationService.error(err.message || 'Không thể giữ ghế này');
+    }
+  }, [showtimeUuid, selectedSeats, maxSeatsPerBooking, fetchSeatMap]);
+
+  // Handle combo quantity adjustment
+  const handleComboQuantity = (comboUuid, delta) => {
+    setSelectedCombos(prev => {
+      const current = prev[comboUuid] || 0;
+      const next = current + delta;
+      if (next <= 0) {
+        const copy = { ...prev };
+        delete copy[comboUuid];
+        return copy;
+      }
+      return { ...prev, [comboUuid]: next };
+    });
+  };
+
+  // Customer search by phone
+  const handleCustomerSearch = async (e) => {
+    const val = e.target.value;
+    setCustomerSearch(val);
+    if (val.trim().length >= 3) {
+      try {
+        const results = await counterService.searchCustomer(val);
+        setSearchResults(results || []);
+      } catch (err) {
+        logger.error('Failed to confirm counter booking:', err);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  // Quick register customer inline
+  const handleQuickRegisterCustomer = async () => {
+    if (!newCustomer.fullName || !newCustomer.email || !newCustomer.phoneNumber) {
+      notificationService.error('Vui lòng điền đầy đủ họ tên, email, và số điện thoại');
+      return;
+    }
+    try {
+      const res = await counterService.createCustomer(newCustomer);
+      const existing = Boolean(res?.existingAccount);
+      setSelectedCustomer({
+        id: res.id,
+        fullName: res.fullName,
+        email: res.email,
+        phoneNumber: res.phoneNumber,
+      });
+      setCustomerSearch(res.email || '');
+      setSearchResults([]);
+      setIsWalkIn(false);
+      setNewCustomer({ fullName: '', email: '', phoneNumber: '' });
+      if (existing) {
+        notificationService.warning(
+          res.message || 'Email đã tồn tại — đã gán giao dịch cho tài khoản có sẵn (không tạo mới).',
+        );
+      } else {
+        notificationService.success(
+          res.message || 'Đăng ký khách hàng thành công. Tài khoản đã lưu vào hệ thống.',
+        );
+      }
+    } catch (err) {
+      notificationService.error(err.message || 'Lỗi đăng ký khách hàng');
+    }
+  };
+
+  // Walk-in Customer Setup
+  const handleWalkInToggle = async (e) => {
+    const checked = e.target.checked;
+    setIsWalkIn(checked);
+    if (checked) {
+      setCustomerSearch('');
+      setSearchResults([]);
+      try {
+        const guest = await counterService.getWalkInCustomer();
+        setSelectedCustomer({
+          id: guest.id,
+          fullName: 'Khách vãng lai',
+          email: guest.email,
+          phoneNumber: guest.phoneNumber,
+        });
+      } catch (err) {
+        setSelectedCustomer(null);
+        setIsWalkIn(false);
+        notificationService.error(err.message || 'Không thể kích hoạt khách vãng lai');
+      }
+    } else {
+      setSelectedCustomer(null);
+    }
+  };
+
+  // Order Pricing Math
+  const ticketsTotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+  const combosTotal = useMemo(() => {
+    return Object.entries(selectedCombos).reduce((sum, [uuid, qty]) => {
+      const combo = combos.find(c => c.uuid === uuid);
+      return sum + (combo ? combo.price * qty : 0);
+    }, 0);
+  }, [selectedCombos, combos]);
+
+  const subTotal = ticketsTotal + combosTotal;
+  const discount = 0; // Simple calculation fallback
+  const finalTotal = Math.max(0, subTotal - discount);
+
+  const executeConfirmPOSBooking = async (payload) => {
+    setIsSubmitting(true);
+    try {
+      const res = await counterService.confirmCounterBooking(payload);
+
+      // Trigger success dialog & thermal ticket mockup
+      setPrintTicketData({
+        movieTitle: selectedShowtime.movieTitle,
+        roomName: selectedShowtime.cinemaRoomName,
+        startTime: selectedShowtime.startTime,
+        customerName: selectedCustomer.fullName,
+        customerEmail: selectedCustomer.email,
+        seats: selectedSeats.map((s) => s.id || s.name || '').join(', '),
+        combos: Object.entries(selectedCombos).map(([uuid, qty]) => {
+          const combo = combos.find(c => c.uuid === uuid);
+          return `${qty}x ${combo?.name || ''}`;
+        }).join(', '),
+        totalPrice: finalTotal,
+        paymentMethod: paymentMethod,
+        tickets: res.tickets || []
+      });
+
+      // Clear selections but keep showtime if they need to check in more
+      setSelectedCombos({});
+      setPromoCode('');
+
+      await fetchSeatMap([]);
+      notificationService.success('Đã xuất vé và thanh toán thành công!');
+    } catch (err) {
+      notificationService.error(err.message || 'Lỗi xác nhận thanh toán');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmPOSBooking = async () => {
+    if (!canCreateBooking) {
+      notificationService.error('Bạn không có quyền bán vé tại quầy');
+      return;
+    }
+    if (!selectedShowtime) {
+      notificationService.error('Vui lòng chọn suất chiếu');
+      return;
+    }
+    if (selectedSeats.length === 0) {
+      notificationService.error('Vui lòng chọn ít nhất 1 ghế');
+      return;
+    }
+    if (!selectedCustomer) {
+      notificationService.error('Vui lòng chọn khách hàng hoặc bật Khách vãng lai');
+      return;
+    }
+
+    if (hasGapViolation) {
+      notificationService.error('Lỗi khoảng trống ghế — vui lòng chọn lại');
+      return;
+    }
+
+    const paymentLabel = paymentMethod === 'COUNTER_CASH'
+      ? 'Tiền mặt'
+      : paymentMethod === 'COUNTER_CARD'
+        ? 'Thẻ tại quầy'
+        : paymentMethod === 'COUNTER_VIETQR'
+          ? 'VietQR'
+          : paymentMethod;
+    const ok = await confirm({
+      title: 'Xác nhận bán vé tại quầy',
+      message: paymentMethod === 'COUNTER_VIETQR'
+        ? 'Mở mã VietQR để khách thanh toán?'
+        : 'Xác nhận xuất vé và thanh toán cho khách hàng?',
+      highlight: `${selectedCustomer.fullName || selectedCustomer.email} · ${finalTotal.toLocaleString('vi-VN')} đ`,
+      detail: `Ghế: ${selectedSeats.map((s) => s.id || s.name).join(', ')} · Thanh toán: ${paymentLabel}`,
+      confirmLabel: paymentMethod === 'COUNTER_VIETQR' ? 'Mở VietQR' : 'Xác nhận bán vé',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
+    if (paymentMethod === 'COUNTER_VIETQR') {
+      setIsVietQRModalOpen(true);
+      return;
+    }
+
+    const payload = {
+      customerUuid: selectedCustomer.id,
+      showtimeUuid: selectedShowtime.uuid,
+      seatUuids: selectedSeats.map(s => s.seatUuid),
+      combos: Object.entries(selectedCombos).map(([uuid, qty]) => ({
+        comboUuid: uuid,
+        quantity: qty
+      })),
+      promotionCode: promoCode || null,
+      paymentMethod: paymentMethod
+    };
+
+    await executeConfirmPOSBooking(payload);
+  };
+
+  const handleVietQRSuccess = async () => {
+    setIsVietQRModalOpen(false);
+    const payload = {
+      customerUuid: selectedCustomer.id,
+      showtimeUuid: selectedShowtime.uuid,
+      seatUuids: selectedSeats.map(s => s.seatUuid),
+      combos: Object.entries(selectedCombos).map(([uuid, qty]) => ({
+        comboUuid: uuid,
+        quantity: qty
+      })),
+      promotionCode: promoCode || null,
+      paymentMethod: paymentMethod
+    };
+    await executeConfirmPOSBooking(payload);
+  };
+
+  const getSeatLabel = (seat) => seat.id || seat.name || '';
+
+  return (
+    <AdminPage className="staff-control counter-pos">
+      <CounterPageHeader
+        eyebrow="Trung tâm vận hành rạp"
+        title="Quầy bán vé POS"
+        description="Chọn suất chiếu, ghế ngồi và thanh toán tại quầy."
+      />
+
+      <section className="staff-control__panel staff-control__panel--showtimes-picker counter-pos__daily">
+        <div className="counter-pos__daily-head">
+          <h2 className="counter-pos__daily-title">Suất chiếu theo ngày</h2>
+          <div className="counter-pos__daily-head-actions">
+            <CounterPosShowtimeFilters
+              showtimes={allShowtimes}
+              filters={filters}
+              roomUuid={currentRoomUuid}
+              onFilterChange={handleFilterChange}
+              movieOptions={movieOptions}
+            />
+            {hasActiveFilters && (
+              <button type="button" className="staff-control__filter-clear" onClick={handleClearFilters}>
+                <X className="w-3 h-3" />
+                Xóa lọc
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="counter-pos__daily-board">
+          {flatShowtimes.length === 0 ? (
+            <div className="counter-pos__showtime-empty">
+              Không có suất phù hợp với bộ lọc
+            </div>
+          ) : (
+            <div className="counter-pos__daily-strip-wrap">
+              <div className="counter-pos__daily-strip" role="list">
+                {flatShowtimes.map((st) => {
+                  const isActive = selectedShowtime?.uuid === st.uuid;
+                  const timeLabel = new Date(st.startTime).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  const poster =
+                    (st.moviePosterUrl ? resolveMediaUrl(st.moviePosterUrl, 240) : '')
+                    || moviePosterByUuid.get(st.movieUuid)
+                    || '';
+                  const formatLabel = resolveShowtimeFormat(st);
+                  const badge = resolveShowtimeBadge(st);
+
+                  return (
+                    <button
+                      key={st.uuid}
+                      type="button"
+                      role="listitem"
+                      onClick={() => setSelectedShowtime(st)}
+                      className={`counter-pos__daily-card ${isActive ? 'counter-pos__daily-card--active' : ''}`}
+                      title={`${timeLabel} · ${st.movieTitle || ''}`}
+                      aria-pressed={isActive}
+                    >
+                      <div className="counter-pos__daily-card-poster">
+                        {poster ? (
+                          <img
+                            src={poster}
+                            alt={st.movieTitle || ''}
+                            loading="lazy"
+                            decoding="async"
+                            onError={handlePosterError}
+                          />
+                        ) : (
+                          <span className="counter-pos__daily-card-poster-fallback" aria-hidden>
+                            <Ticket className="w-6 h-6" />
+                          </span>
+                        )}
+                      </div>
+                      <span className="counter-pos__daily-card-time">{timeLabel}</span>
+                      <span className="counter-pos__daily-card-format">{formatLabel}</span>
+                      <span className={`counter-pos__daily-card-badge counter-pos__daily-card-badge--${badge.tone}`}>
+                        {badge.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="staff-control__grid">
+        <section className="staff-control__panel staff-control__panel--map counter-pos__map-panel min-h-[460px]">
+          <h2 className="counter-pos__map-title">Sơ đồ ghế trực tiếp</h2>
+
+          {selectedShowtime ? (
+            <div className="w-full counter-pos__map-body">
+              {isMapLoading && seatRows.length === 0 ? (
+                <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Đang tải sơ đồ ghế...
+                </div>
+              ) : (
+                <div className="counter-pos-seatmap staff-control__seat-map-wrap">
+                  <TheaterSeatMapPanel
+                    seatRows={seatRows}
+                    aisleLayout={aisleLayout}
+                    hasGapViolation={hasGapViolation}
+                    onSeatClick={handleSeatClick}
+                    onCoupleClick={handleCoupleClick}
+                    screenAccent="white"
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="counter-pos__map-empty">
+              <div className="counter-pos__map-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 72 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="6" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="8" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="29" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="31" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="52" y="28" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="54" y="40" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="14" y="8" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="16" y="20" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="44" y="8" width="14" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+                  <rect x="46" y="20" width="10" height="6" rx="1.5" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </div>
+              <strong className="counter-pos__map-empty-title">Chưa chọn suất chiếu</strong>
+              <p className="counter-pos__map-empty-desc">
+                Chọn rạp, ngày, suất và phim ở bảng trên để kích hoạt sơ đồ ghế
+              </p>
+            </div>
+          )}
+        </section>
+
+        <div className="staff-control__sidebar">
+
+          <aside className="staff-control__panel staff-control__panel--combos">
+            <h2 className="staff-control__panel-title">
+              <Popcorn className="w-3.5 h-3.5" />
+              Bắp nước & Phụ kiện
+            </h2>
+            <div className="staff-control__combo-list">
+              {combos.map((combo) => {
+                const comboImage = combo.imageUrl?.trim()
+                  ? resolveMediaUrl(combo.imageUrl.trim(), 120)
+                  : '';
+                return (
+                  <div key={combo.uuid} className="staff-control__combo-item staff-control__combo-item--interactive counter-pos__combo-item">
+                    <div className="counter-pos__combo-main">
+                      {comboImage ? (
+                        <img
+                          src={comboImage}
+                          alt={combo.name}
+                          className="counter-pos__combo-poster"
+                          loading="lazy"
+                          decoding="async"
+                          onError={handlePosterError}
+                        />
+                      ) : (
+                        <div className="counter-pos__combo-poster counter-pos__combo-poster--placeholder" aria-hidden>
+                          <Popcorn className="w-4 h-4" />
+                        </div>
+                      )}
+                      <div className="counter-pos__combo-info">
+                        <span className="text-white font-semibold">{combo.name}</span>
+                        <p className="text-[0.65rem] text-red-400 font-bold mt-0.5">{combo.price.toLocaleString('vi-VN')}đ</p>
+                      </div>
+                    </div>
+                    <div className="staff-control__qty-controls">
+                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, -1)} disabled={!canAddCombos || !(selectedCombos[combo.uuid] > 0)}>−</button>
+                      <span>{selectedCombos[combo.uuid] || 0}</span>
+                      <button type="button" onClick={() => handleComboQuantity(combo.uuid, 1)} disabled={!canAddCombos}>+</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+
+          <aside className="staff-control__panel staff-control__panel--customer">
+            <div className="staff-control__panel-head">
+              <h2 className="staff-control__panel-title">
+                <User className="w-3.5 h-3.5" />
+                Khách hàng
+              </h2>
+              <label className="staff-control__walkin-toggle" htmlFor="walkInCheck">
+                <input type="checkbox" id="walkInCheck" checked={isWalkIn} onChange={handleWalkInToggle} />
+                Khách vãng lai
+              </label>
+            </div>
+
+            {!isWalkIn && (
+              <div className="staff-control__checkin-form">
+                <div className="staff-control__search-wrap">
+                  <Search className="w-4 h-4" />
+                  <input
+                    type="text"
+                    className="staff-control__input"
+                    value={customerSearch}
+                    onChange={handleCustomerSearch}
+                    placeholder="Tìm tên, SĐT hoặc email..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    name="counter-customer-search"
+                  />
+                </div>
+
+                {searchResults.length > 0 && (
+                  <div className="staff-control__search-results">
+                    {searchResults.map((cust) => (
+                      <button
+                        key={cust.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCustomer(cust);
+                          setSearchResults([]);
+                          setCustomerSearch(cust.email);
+                        }}
+                        className="staff-control__search-result"
+                      >
+                        <div className="staff-control__search-result-text">
+                          <p className="staff-control__search-result-name">{cust.fullName}</p>
+                          <p className="staff-control__search-result-meta">
+                            {[cust.phoneNumber, cust.email].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                        {selectedCustomer?.id === cust.id && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {customerSearch.trim().length >= 3 && !selectedCustomer && searchResults.length === 0 && (
+                  <p className="staff-control__empty-inline text-center py-2">Không tìm thấy khách hàng</p>
+                )}
+
+                {selectedCustomer && (
+                  <div className="staff-control__preview-card">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <p className="font-bold text-white">{selectedCustomer.fullName}</p>
+                        <p className="text-[0.65rem] text-slate-400">{selectedCustomer.phoneNumber}</p>
+                      </div>
+                      <button type="button" onClick={() => setSelectedCustomer(null)} className="text-slate-500 hover:text-white text-xs font-bold">Xóa</button>
+                    </div>
+                  </div>
+                )}
+
+                {canCreateCustomer && (
+                  <div className="staff-control__quick-register">
+                    <p className="staff-control__link-btn staff-control__link-btn--static">
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Đăng ký nhanh hội viên mới
+                    </p>
+                    <div className="staff-control__quick-form">
+                      <input className="staff-control__input" placeholder="Họ và tên..." value={newCustomer.fullName} onChange={(e) => setNewCustomer((p) => ({ ...p, fullName: e.target.value }))} />
+                      <input className="staff-control__input" placeholder="Email..." value={newCustomer.email} onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))} />
+                      <input className="staff-control__input" placeholder="Số điện thoại..." value={newCustomer.phoneNumber} onChange={(e) => setNewCustomer((p) => ({ ...p, phoneNumber: e.target.value }))} />
+                      <button type="button" className="staff-control__btn staff-control__btn--primary w-full" onClick={handleQuickRegisterCustomer}>Hoàn thành đăng ký</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isWalkIn && selectedCustomer && (
+              <div className="staff-control__preview-card staff-control__preview-card--success">
+                <span>Khách vãng lai đã kích hoạt</span>
+                <Check className="w-4 h-4" />
+              </div>
+            )}
+          </aside>
+
+          <aside className="staff-control__panel staff-control__panel--payment">
+            <h2 className="staff-control__panel-title">
+              <ShoppingCart className="w-3.5 h-3.5" />
+              Chi tiết thanh toán
+            </h2>
+
+            <div className="staff-control__cart-lines">
+              <div className="staff-control__cart-line"><span>Tạm tính vé ({selectedSeats.length} ghế)</span><span>{ticketsTotal.toLocaleString('vi-VN')}đ</span></div>
+              <div className="staff-control__cart-line"><span>Tạm tính bắp nước</span><span>{combosTotal.toLocaleString('vi-VN')}đ</span></div>
+              <div className="staff-control__cart-line"><span>Giảm giá mã</span><span className="text-red-400">-{discount.toLocaleString('vi-VN')}đ</span></div>
+              <div className="staff-control__cart-total"><span>Tổng cộng</span><span>{finalTotal.toLocaleString('vi-VN')}đ</span></div>
+            </div>
+
+            {selectedSeats.length > 0 && (
+              <div className="mb-3 space-y-1 max-h-24 overflow-y-auto">
+                {selectedSeats.map((seat) => (
+                  <div key={seat.seatUuid} className="flex justify-between text-[0.68rem] text-slate-400">
+                    <span>Ghế {getSeatLabel(seat)}</span>
+                    <span>{seat.price?.toLocaleString('vi-VN')}đ</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="staff-control__field">
+              <label className="staff-control__field-label">Phương thức thanh toán</label>
+              <div className="staff-control__payment-grid">
+                {[
+                  { id: 'COUNTER_CASH', label: 'Tiền mặt', icon: Banknote },
+                  { id: 'COUNTER_CARD', label: 'Quẹt thẻ', icon: CreditCard },
+                  { id: 'COUNTER_VIETQR', label: 'VietQR', icon: QrCode },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button key={id} type="button" onClick={() => setPaymentMethod(id)} className={`staff-control__payment-btn counter-pos__chip ${paymentMethod === id ? 'staff-control__payment-btn--active counter-pos__chip--active' : ''}`}>
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleConfirmPOSBooking}
+              disabled={!canCreateBooking || isSubmitting || selectedSeats.length === 0 || hasGapViolation}
+              className="staff-control__btn staff-control__btn--primary counter-pos__cta w-full"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Đang ghi nhận giao dịch...
+                </>
+              ) : hasGapViolation ? (
+                <>Lỗi khoảng trống ghế</>
+              ) : (
+                <>
+                  <Printer className="w-4 h-4" />
+                  In vé & Xác nhận thanh toán
+                </>
+              )}
+            </button>
+          </aside>
+        </div>
+      </div>
+
+      <PrintTicketModal data={printTicketData} onClose={() => setPrintTicketData(null)} />
+      <VietQRPOSModal
+        isOpen={isVietQRModalOpen}
+        onClose={() => setIsVietQRModalOpen(false)}
+        onPaymentSuccess={handleVietQRSuccess}
+        amount={finalTotal}
+      />
+    </AdminPage>
+  );
+}

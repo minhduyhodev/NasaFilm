@@ -19,6 +19,15 @@ class MovieService {
     }
   }
 
+  async getUpcomingMovies(params = {}) {
+    try {
+      const response = await authService.api.get('/api/movies/upcoming', { params });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async getMovieDetail(uuid) {
     try {
       const response = await authService.api.get(`/api/movies/${uuid}`);
@@ -28,8 +37,24 @@ class MovieService {
     }
   }
 
-  async getGenres() {
-    if (this.genresCache) {
+  async getMovieSummaries(uuids = []) {
+    const unique = [...new Set((uuids || []).filter(Boolean))];
+    if (unique.length === 0) return [];
+    try {
+      const response = await authService.api.post('/api/movies/summaries', { uuids: unique.slice(0, 50) });
+      return response.data.data ?? response.data ?? [];
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  clearMetadataCache() {
+    this.genresCache = null;
+    this.countriesCache = null;
+  }
+
+  async getGenres(forceRefresh = false) {
+    if (!forceRefresh && this.genresCache) {
       return this.genresCache;
     }
     try {
@@ -41,8 +66,8 @@ class MovieService {
     }
   }
 
-  async getCountries() {
-    if (this.countriesCache) {
+  async getCountries(forceRefresh = false) {
+    if (!forceRefresh && this.countriesCache) {
       return this.countriesCache;
     }
     try {
@@ -149,6 +174,111 @@ class MovieService {
   async deleteActor(uuid) {
     try {
       const response = await authService.api.delete(`/api/admin/actors/${uuid}`);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createGenre(data) {
+    try {
+      const response = await authService.api.post('/api/admin/genres', data);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateGenre(uuid, data) {
+    try {
+      const response = await authService.api.put(`/api/admin/genres/${uuid}`, data);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async deleteGenre(uuid) {
+    try {
+      const response = await authService.api.delete(`/api/admin/genres/${uuid}`);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async createCountry(data) {
+    try {
+      const response = await authService.api.post('/api/admin/countries', data);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async updateCountry(uuid, data) {
+    try {
+      const response = await authService.api.put(`/api/admin/countries/${uuid}`, data);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async deleteCountry(uuid) {
+    try {
+      const response = await authService.api.delete(`/api/admin/countries/${uuid}`);
+      this.clearMetadataCache();
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async presignS3Put(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/presign-put', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async initiateS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/initiate', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async signS3MultipartPart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/sign-part', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async completeS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/complete', data);
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
+  async abortS3Multipart(data) {
+    try {
+      const response = await authService.api.post('/api/admin/s3/multipart/abort', data);
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

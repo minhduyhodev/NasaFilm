@@ -1,4 +1,5 @@
 import tokenService from '../../features/auth/utils/tokenService';
+import { logger } from '../utils/logger';
 
 const DEFAULT_AUTO_CLOSE = 4000;
 const toastListeners = new Set();
@@ -52,18 +53,38 @@ const upsertToast = (toast) => {
   emitToastChange();
 };
 
+const toastActions = new Map();
+
 const showToast = (type, message, options = {}) => {
   const toastId = options.toastId || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  if (typeof options.onAction === 'function') {
+    toastActions.set(toastId, options.onAction);
+  } else {
+    toastActions.delete(toastId);
+  }
   const toast = {
     id: toastId,
     type,
+    title: options.title || null,
     message,
+    variant: options.variant || null,
     autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
+    actionLabel: options.actionLabel || null,
+    actionPath: options.actionPath || null,
+    hasAction: Boolean(options.onAction) || Boolean(options.actionPath && options.actionLabel),
   };
 
   upsertToast(toast);
   scheduleToastRemoval(toastId, toast.autoClose);
   return toastId;
+};
+
+export const runToastAction = (toastId) => {
+  const action = toastActions.get(toastId);
+  if (typeof action === 'function') {
+    action();
+  }
+  toastActions.delete(toastId);
 };
 
 export const subscribeToToasts = (listener) => {
@@ -77,13 +98,17 @@ export const subscribeToToasts = (listener) => {
 
 export const dismissToast = (toastId) => {
   if (!toastId) {
-    activeToasts.forEach((toast) => clearToastTimer(toast.id));
+    activeToasts.forEach((toast) => {
+      clearToastTimer(toast.id);
+      toastActions.delete(toast.id);
+    });
     activeToasts = [];
     emitToastChange();
     return;
   }
 
   clearToastTimer(toastId);
+  toastActions.delete(toastId);
   activeToasts = activeToasts.filter((toast) => toast.id !== toastId);
   emitToastChange();
 };
@@ -115,11 +140,22 @@ export const notificationService = {
       return;
     }
 
+    if (typeof options.onAction === 'function') {
+      toastActions.set(toastId, options.onAction);
+    }
+
     const nextToast = {
       ...existingToast,
       type: options.type || existingToast.type,
+      title: options.title ?? existingToast.title,
       message: options.render || options.message || existingToast.message,
+      variant: options.variant ?? existingToast.variant,
       autoClose: options.autoClose ?? existingToast.autoClose,
+      actionLabel: options.actionLabel ?? existingToast.actionLabel,
+      actionPath: options.actionPath ?? existingToast.actionPath,
+      hasAction: typeof options.onAction === 'function'
+        || Boolean((options.actionPath ?? existingToast.actionPath) && (options.actionLabel ?? existingToast.actionLabel))
+        || existingToast.hasAction,
     };
 
     upsertToast(nextToast);
@@ -136,7 +172,7 @@ export const notificationService = {
       const data = localStorage.getItem(`nasa_notifications_${userId}`);
       return data ? JSON.parse(data) : [];
     } catch (e) {
-      console.error('[NotificationService] Loi khi doc notifications:', e);
+      logger.error('[NotificationService] Loi khi doc notifications:', e);
       return [];
     }
   },
@@ -158,7 +194,7 @@ export const notificationService = {
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
       return newNotif;
     } catch (e) {
-      console.error('[NotificationService] Loi khi them notification:', e);
+      logger.error('[NotificationService] Loi khi them notification:', e);
       return null;
     }
   },
@@ -171,7 +207,7 @@ export const notificationService = {
       localStorage.setItem(`nasa_notifications_${userId}`, JSON.stringify(updatedList));
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error('[NotificationService] Loi khi cap nhat trang thai doc:', e);
+      logger.error('[NotificationService] Loi khi cap nhat trang thai doc:', e);
     }
   },
 
@@ -181,7 +217,7 @@ export const notificationService = {
       localStorage.removeItem(`nasa_notifications_${userId}`);
       window.dispatchEvent(new CustomEvent('nasa-notifications-updated'));
     } catch (e) {
-      console.error('[NotificationService] Loi khi xoa notifications:', e);
+      logger.error('[NotificationService] Loi khi xoa notifications:', e);
     }
   },
 };

@@ -1,0 +1,186 @@
+[
+  {
+    "uuid": "55555555-5555-5555-5555-555555555555",
+    "name": "Combo Bắp Nước",
+    "description": "1 Bắp lớn + 2 Nước ngọt cỡ vừa. Sự lựa chọn hoàn hảo cho các cặp đôi khi đi xem phim.",
+    "price": 90000,
+    "imageUrl": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-666666666666",
+    "name": "Combo Solo (1 Bắp + 1 Nước)",
+    "description": "1 Bắp lớn + 1 Nước ngọt cỡ vừa. Thích hợp cho trải nghiệm một mình trọn vẹn.",
+    "price": 70000,
+    "imageUrl": "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-777777777777",
+    "name": "Combo Gia Đình (2 Bắp + 4 Nước)",
+    "description": "2 Bắp lớn + 4 Nước ngọt lớn. Đủ dùng thoải mái cho cả gia đình hoặc nhóm bạn thân.",
+    "price": 160000,
+    "imageUrl": "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-111111111111",
+    "name": "Combo Phim Bom Tấn",
+    "description": "1 Bắp lớn vị phô mai + 2 Pepsi lớn + 1 gói khoai tây sấy giòn tan.",
+    "price": 125000,
+    "imageUrl": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-222222222222",
+    "name": "Combo Couple Ngọt Ngào",
+    "description": "1 Bắp lớn vị caramel + 2 Nước ngọt lớn tự chọn + 1 túi kẹo dẻo trái cây.",
+    "price": 115000,
+    "imageUrl": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-333333333333",
+    "name": "Combo VIP Premium",
+    "description": "2 Bắp phô mai lớn + 2 ly Coca Cola lớn + 1 phần xúc xích lắc phô mai nóng hổi.",
+    "price": 185000,
+    "imageUrl": "https://images.unsplash.com/photo-1618220179428-22790b461013?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-444444444444",
+    "name": "Combo Trẻ Em Vui Vẻ",
+    "description": "1 Bắp ngọt nhỏ + 1 Sữa tươi/nước ép trái cây + 1 đồ chơi xinh xắn ngẫu nhiên.",
+    "price": 65000,
+    "imageUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-888888888888",
+    "name": "Combo Lãng Mạn",
+    "description": "1 Bắp phô mai lớn + 1 ly Pepsi + 1 ly trà sữa trân châu truyền thống ngọt ngào.",
+    "price": 130000,
+    "imageUrl": "https://images.unsplash.com/photo-1478147427282-58a87a120781?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-999999999999",
+    "name": "Combo Lập Trình Viên",
+    "description": "1 Bắp caramel lớn + 1 Lon tăng lực Red Bull tỉnh táo + 1 Nước tinh khiết.",
+    "price": 95000,
+    "imageUrl": "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-aaaaaaaaaaaa",
+    "name": "Combo Bạn Thân (BFF)",
+    "description": "2 Bắp ngọt lớn + 3 Nước ngọt vừa + 1 bịch hạt hướng dương sạch.",
+    "price": 155000,
+    "imageUrl": "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-bbbbbbbbbbbb",
+    "name": "Combo Xem Phim Khuya",
+    "description": "1 Bắp mặn vừa + 1 Lon bia Heineken lạnh + 1 túi khô bò sợi cay nồng.",
+    "price": 135000,
+    "imageUrl": "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-cccccccccccc",
+    "name": "Combo Trải Nghiệm 3D",
+    "description": "1 Bắp caramel vừa + 1 Trà đào sả đá thanh mát + 1 snack rong biển Hàn Quốc.",
+    "price": 105000,
+    "imageUrl": "https://images.unsplash.com/photo-1556881286-fc6915169721?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "55555555-5555-5555-5555-dddddddddddd",
+    "name": "Combo Siêu Tiết Kiệm",
+    "description": "1 Bắp ngọt nhỏ + 1 Ly nước ngọt vừa. Giá sinh viên cực rẻ.",
+    "price": 55000,
+    "imageUrl": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-111111111111",
+    "name": "Coca-Cola Lon 320ml",
+    "description": "Nước giải khát có ga Coca-Cola hương vị truyền thống mát lạnh.",
+    "price": 30000,
+    "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-222222222222",
+    "name": "Pepsi Lon 320ml",
+    "description": "Nước giải khát Pepsi sảng khoái, đập tan cơn khát tức thì.",
+    "price": 30000,
+    "imageUrl": "https://images.unsplash.com/photo-1546813753-481917f8582f?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-333333333333",
+    "name": "Trà Sữa Trân Châu",
+    "description": "Trà sữa trân châu truyền thống thơm ngon đậm đà cùng trân châu đen dai giòn.",
+    "price": 45000,
+    "imageUrl": "https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-444444444444",
+    "name": "Nước Khoáng Aquafina 500ml",
+    "description": "Nước uống tinh khiết Aquafina đóng chai thanh khiết mỗi ngày.",
+    "price": 20000,
+    "imageUrl": "https://images.unsplash.com/photo-1560023907-5f339617ea30?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-555555555555",
+    "name": "Trà Đào Sả Đá",
+    "description": "Trà đào mát lạnh kết hợp hương sả thơm nồng và miếng đào giòn ngọt.",
+    "price": 40000,
+    "imageUrl": "https://images.unsplash.com/photo-1556881286-fc6915169721?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-666666666666",
+    "name": "Lon Tăng Lực Red Bull",
+    "description": "Nước tăng lực Red Bull (Bò Húc) nhập khẩu Thái Lan giúp nạp năng lượng nhanh.",
+    "price": 35000,
+    "imageUrl": "https://images.unsplash.com/photo-1622543953495-a178ecb782f2?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-777777777777",
+    "name": "Nước Ép Cam Tươi",
+    "description": "Nước cam ép nguyên chất giàu Vitamin C tốt cho sức khỏe.",
+    "price": 45000,
+    "imageUrl": "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-888888888888",
+    "name": "Nước Ép Dưa Hấu",
+    "description": "Nước ép dưa hấu tươi mát ngọt dịu giải nhiệt cực tốt.",
+    "price": 45000,
+    "imageUrl": "https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-999999999999",
+    "name": "Bia Heineken Lon 330ml",
+    "description": "Bia Heineken Premium cao cấp dành cho khách hàng trên 18 tuổi.",
+    "price": 45000,
+    "imageUrl": "https://images.unsplash.com/photo-1608270586620-248524c67de9?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  },
+  {
+    "uuid": "66666666-6666-6666-6666-aaaaaaaaaaaa",
+    "name": "Trà Xanh Không Độ",
+    "description": "Trà xanh đóng chai Không Độ giúp giải tỏa căng thẳng mệt mỏi.",
+    "price": 25000,
+    "imageUrl": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=500&auto=format&fit=crop&q=60",
+    "status": "ACTIVE"
+  }
+]

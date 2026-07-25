@@ -20,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(
@@ -59,6 +60,9 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    @Column(name = "is_system_account", nullable = false, columnDefinition = "boolean default false")
+    private Boolean isSystemAccount = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, length = 50)
     private AuthProvider authProvider = AuthProvider.LOCAL;
@@ -69,7 +73,17 @@ public class User {
 
     private Integer score = 0;
 
-    @Column(name = "verification_code")
+    @Column(name = "lifetime_score", nullable = false)
+    private Integer lifetimeScore = 0;
+
+    @Column(name = "wallet_balance", nullable = false, precision = 15, scale = 2)
+    private java.math.BigDecimal walletBalance = java.math.BigDecimal.ZERO;
+
+    @Version
+    @Column(name = "wallet_version", nullable = false, columnDefinition = "bigint not null default 0")
+    private Long walletVersion = 0L;
+
+    @Column(name = "verification_code", length = 100)
     private String verificationCode;
 
     @Column(name = "verification_code_expiry")
@@ -128,6 +142,15 @@ public class User {
         }
         if (score == null) {
             score = 0;
+        }
+        if (walletBalance == null) {
+            walletBalance = java.math.BigDecimal.ZERO;
+        }
+        if (walletVersion == null) {
+            walletVersion = 0L;
+        }
+        if (isSystemAccount == null) {
+            isSystemAccount = false;
         }
     }
 
@@ -203,6 +226,14 @@ public class User {
         this.phoneNumber = phoneNumber;
     }
 
+    public Boolean getIsSystemAccount() {
+        return isSystemAccount;
+    }
+
+    public void setIsSystemAccount(Boolean isSystemAccount) {
+        this.isSystemAccount = isSystemAccount;
+    }
+
     public AuthProvider getAuthProvider() {
         return authProvider;
     }
@@ -225,6 +256,22 @@ public class User {
 
     public void setScore(Integer score) {
         this.score = score;
+    }
+
+    public Integer getLifetimeScore() {
+        return lifetimeScore;
+    }
+
+    public void setLifetimeScore(Integer lifetimeScore) {
+        this.lifetimeScore = lifetimeScore;
+    }
+
+    public java.math.BigDecimal getWalletBalance() {
+        return walletBalance;
+    }
+
+    public void setWalletBalance(java.math.BigDecimal walletBalance) {
+        this.walletBalance = walletBalance;
     }
 
     public LocalDateTime getCreatedAt() {

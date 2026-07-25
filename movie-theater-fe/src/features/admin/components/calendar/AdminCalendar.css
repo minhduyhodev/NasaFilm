@@ -1,0 +1,809 @@
+/* Admin calendar system — BookingHub month layout, NasaFilm dark cinema tokens */
+
+@keyframes adm-cal-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Date picker (popover) ---- */
+.adm-datepicker {
+  position: relative;
+  width: 100%;
+}
+
+.adm-datepicker__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--adm-text-muted, #94a3b8);
+}
+
+.adm-datepicker__trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: var(--adm-radius-sm, 10px);
+  background: var(--adm-bg-input, #0f0f12);
+  border: 1px solid var(--adm-border-strong, rgba(255, 255, 255, 0.1));
+  color: var(--adm-text, #f8fafc);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.adm-datepicker__trigger--sm {
+  min-height: 38px;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.adm-datepicker__trigger:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.adm-datepicker__trigger--open,
+.adm-datepicker__trigger:focus-visible {
+  outline: none;
+  border-color: var(--adm-accent-border, rgba(239, 68, 68, 0.35));
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+.adm-datepicker__trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-datepicker__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--adm-text-dim, #64748b);
+  flex-shrink: 0;
+}
+
+.adm-datepicker__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-datepicker__value--empty {
+  color: var(--adm-text-dim, #64748b);
+}
+
+.adm-datepicker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--adm-text-dim, #64748b);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.adm-datepicker__clear:hover {
+  color: var(--adm-text, #f8fafc);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adm-datepicker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.adm-datepicker__panel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  width: 288px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--adm-bg-panel-solid, #0f1322);
+  border: 1px solid var(--adm-border-strong, #242d42);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), var(--adm-shadow-panel, none);
+  animation: adm-cal-fade 0.15s ease-out forwards;
+}
+
+.adm-datepicker__panel--right {
+  left: auto;
+  right: 0;
+}
+
+.adm-datepicker__panel--portal {
+  position: fixed;
+  margin-top: 0;
+}
+
+/* Shared month chrome (picker + board) */
+.adm-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.adm-cal-nav__title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--adm-text, #f8fafc);
+  font-family: var(--font-heading, inherit);
+}
+
+.adm-cal-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-text-muted, #94a3b8);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.adm-cal-nav__btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--adm-text, #f8fafc);
+}
+
+.adm-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.adm-cal-weekdays span {
+  padding: 4px 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--adm-text-dim, #64748b);
+}
+
+.adm-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.adm-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-text-secondary, #cbd5e1);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.adm-cal-day:hover:not(:disabled):not(.adm-cal-day--selected) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adm-cal-day--outside {
+  color: var(--adm-text-dim, #64748b);
+  opacity: 0.45;
+}
+
+.adm-cal-day--today:not(.adm-cal-day--selected) {
+  box-shadow: inset 0 0 0 1px var(--adm-accent-border, rgba(239, 68, 68, 0.35));
+  color: #fca5a5;
+  background: var(--adm-accent-soft, rgba(239, 68, 68, 0.12));
+}
+
+.adm-cal-day--selected {
+  background: var(--adm-accent, #ef4444);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+}
+
+.adm-cal-day--disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.adm-cal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--adm-border, #1a2238);
+}
+
+.adm-cal-footer__btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--adm-text-dim, #64748b);
+  transition: color 0.15s ease;
+}
+
+.adm-cal-footer__btn:hover {
+  color: var(--adm-text, #f8fafc);
+}
+
+.adm-cal-footer__btn--accent {
+  color: var(--adm-accent, #ef4444);
+}
+
+.adm-cal-footer__btn--accent:hover {
+  color: #fca5a5;
+}
+
+/* ---- DateTime picker ---- */
+.adm-datetime {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 8.75rem);
+  gap: 10px;
+  width: 100%;
+  align-items: end;
+}
+
+.adm-datetime__time {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .adm-datetime {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Time picker (wheel) ---- */
+.adm-timepicker {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.adm-timepicker .adm-datepicker__trigger {
+  padding: 0 0.65rem;
+  gap: 0.4rem;
+  color: #f8fafc;
+}
+
+.adm-timepicker .adm-datepicker__value {
+  color: #f8fafc;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.adm-timepicker .adm-datepicker__value--empty {
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.adm-timepicker__panel {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #141418;
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: adm-time-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes adm-time-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.adm-timepicker__preview {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.7rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(225, 29, 72, 0.08), transparent);
+}
+
+.adm-timepicker__preview-time {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.adm-timepicker__preview-colon {
+  display: inline-block;
+  margin: 0 0.05rem;
+  color: #e11d48;
+  animation: adm-time-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes adm-time-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.adm-timepicker__preview-hint {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.adm-timepicker__wheels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem 0.35rem;
+}
+
+.adm-time-col {
+  min-width: 0;
+}
+
+.adm-time-col__label {
+  display: block;
+  margin: 0 0 0.35rem;
+  text-align: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.adm-time-col__viewport {
+  position: relative;
+  height: calc(var(--adm-time-item-h, 36px) * var(--adm-time-visible, 5));
+  border-radius: 12px;
+  background: #0f0f12;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.adm-time-col__highlight {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  height: var(--adm-time-item-h, 36px);
+  transform: translateY(-50%);
+  border-radius: 10px;
+  background: rgba(225, 29, 72, 0.14);
+  border: 1px solid rgba(225, 29, 72, 0.28);
+  box-shadow: 0 0 18px rgba(225, 29, 72, 0.18);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.adm-time-col__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 42%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.adm-time-col__fade--top {
+  top: 0;
+  background: linear-gradient(180deg, #0f0f12 10%, transparent);
+}
+
+.adm-time-col__fade--bottom {
+  bottom: 0;
+  background: linear-gradient(0deg, #0f0f12 10%, transparent);
+}
+
+.adm-time-col__list {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+
+.adm-time-col__list::-webkit-scrollbar {
+  display: none;
+}
+
+.adm-time-col__spacer {
+  height: calc(var(--adm-time-item-h, 36px) * 2);
+  flex-shrink: 0;
+}
+
+.adm-time-col__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--adm-time-item-h, 36px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.adm-time-col__item:hover:not(:disabled) {
+  color: #cbd5e1;
+}
+
+.adm-time-col__item.is-selected {
+  color: #fff;
+  font-weight: 800;
+  transform: scale(1.06);
+}
+
+.adm-time-col__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.adm-timepicker__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem 0.7rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Month board (BookingHub calendar page) ---- */
+.adm-month-cal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .adm-month-cal {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-month-cal__board {
+  background: var(--adm-bg-panel, rgba(11, 15, 25, 0.72));
+  border: 1px solid var(--adm-border, #1a2238);
+  border-radius: var(--adm-radius, 14px);
+  box-shadow: var(--adm-shadow-panel);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.adm-month-cal__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--adm-border, #1a2238);
+}
+
+.adm-month-cal__toolbar .adm-cal-nav {
+  margin-bottom: 0;
+  flex: 1;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.adm-month-cal__toolbar .adm-cal-nav__title {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  min-width: 140px;
+  text-align: center;
+}
+
+.adm-month-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.adm-month-cal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--adm-text-muted, #94a3b8);
+}
+
+.adm-month-cal__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.adm-month-cal__grid-wrap {
+  padding: 8px 10px 12px;
+}
+
+.adm-month-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--adm-border, #1a2238);
+  margin-bottom: 0;
+}
+
+.adm-month-cal__weekdays span {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--adm-text-dim, #64748b);
+}
+
+.adm-month-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-left: 1px solid var(--adm-border, #1a2238);
+  border-top: 1px solid var(--adm-border, #1a2238);
+}
+
+.adm-month-cal__cell {
+  min-height: 96px;
+  padding: 6px 6px 8px;
+  border-right: 1px solid var(--adm-border, #1a2238);
+  border-bottom: 1px solid var(--adm-border, #1a2238);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+}
+
+.adm-month-cal__cell:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.adm-month-cal__cell--outside {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.adm-month-cal__cell--outside .adm-month-cal__daynum {
+  opacity: 0.35;
+}
+
+.adm-month-cal__cell--selected {
+  background: var(--adm-accent-soft, rgba(239, 68, 68, 0.12));
+  box-shadow: inset 0 0 0 1px var(--adm-accent-border, rgba(239, 68, 68, 0.35));
+}
+
+.adm-month-cal__cell--today .adm-month-cal__daynum {
+  background: var(--adm-accent, #ef4444);
+  color: #fff;
+}
+
+.adm-month-cal__daynum {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-secondary, #cbd5e1);
+}
+
+.adm-month-cal__events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.adm-month-cal__event {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 1px 2px;
+  border-radius: 4px;
+}
+
+.adm-month-cal__event-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--adm-text-secondary, #cbd5e1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-month-cal__more {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--adm-text-dim, #64748b);
+  padding-left: 2px;
+}
+
+.adm-month-cal__side {
+  background: var(--adm-bg-panel, rgba(11, 15, 25, 0.72));
+  border: 1px solid var(--adm-border, #1a2238);
+  border-radius: var(--adm-radius, 14px);
+  box-shadow: var(--adm-shadow-panel);
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.adm-month-cal__side-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--adm-border, #1a2238);
+}
+
+.adm-month-cal__side-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--adm-text, #f8fafc);
+  font-family: var(--font-heading, inherit);
+}
+
+.adm-month-cal__side-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--adm-text-muted, #94a3b8);
+}
+
+.adm-month-cal__side-body {
+  flex: 1;
+  padding: 12px 14px 16px;
+  overflow-y: auto;
+}
+
+.adm-month-cal__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 220px;
+  text-align: center;
+  color: var(--adm-text-muted, #94a3b8);
+  padding: 24px 16px;
+}
+
+.adm-month-cal__empty-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--adm-text-dim, #64748b);
+  opacity: 0.7;
+}
+
+.adm-month-cal__empty-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--adm-text-secondary, #cbd5e1);
+}
+
+.adm-month-cal__empty-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 220px;
+}
+
+.adm-month-cal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-month-cal__list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--adm-border, #1a2238);
+  background: rgba(15, 19, 34, 0.55);
+}
+
+.adm-month-cal__list-item-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.adm-month-cal__list-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--adm-text, #f8fafc);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-month-cal__list-item-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--adm-text-muted, #94a3b8);
+}
+
+@media (max-width: 640px) {
+  .adm-month-cal__cell {
+    min-height: 72px;
+    padding: 4px;
+  }
+
+  .adm-month-cal__event-label {
+    display: none;
+  }
+
+  .adm-month-cal__event {
+    justify-content: center;
+  }
+}

@@ -1,21 +1,27 @@
 package com.thdpv.movietheater.auth.service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
@@ -23,10 +29,16 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
+import com.thdpv.movietheater.auth.dto.RegisterRequest;
 import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
+import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.auth.entity.UserSession;
-import com.thdpv.movietheater.auth.repository.UserSessionRepository;
+import com.thdpv.movietheater.auth.repository.RolePermissionRepository;
+import com.thdpv.movietheater.auth.repository.UserPermissionRepository;
 import com.thdpv.movietheater.auth.repository.UserRoleRepository;
+import com.thdpv.movietheater.auth.repository.UserSessionRepository;
+import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
+import com.thdpv.movietheater.auth.support.AuthActionRateLimiter;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.config.repository.RoleRepository;
@@ -38,10 +50,6 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
-import com.thdpv.movietheater.auth.dto.RegisterRequest;
-import com.thdpv.movietheater.auth.dto.VerifyRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import com.thdpv.movietheater.auth.util.RefreshTokenHasher;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -55,12 +63,17 @@ public class AuthService {
     private final UserSessionRepository userSessionRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
+    private final UserPermissionRepository userPermissionRepository;
     private final RoleRepository roleRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AuthActionRateLimiter authActionRateLimiter;
 
-    private final java.util.concurrent.ConcurrentHashMap<String, java.time.LocalDateTime> otpRequestCooldown = new java.util.concurrent.ConcurrentHashMap<>();
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
+    private final ConcurrentHashMap<String, LocalDateTime> otpRequestCooldown = new ConcurrentHashMap<>();
 
     @Value("${app.jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
@@ -74,27 +87,36 @@ public class AuthService {
             UserSessionRepository userSessionRepository,
             UserRepository userRepository,
             UserRoleRepository userRoleRepository,
+            RolePermissionRepository rolePermissionRepository,
+            UserPermissionRepository userPermissionRepository,
             GoogleIdTokenVerifier googleIdTokenVerifier,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            AuthActionRateLimiter authActionRateLimiter,
+            org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userSessionRepository = userSessionRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.userPermissionRepository = userPermissionRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.roleRepository = roleRepository;
+        this.authActionRateLimiter = authActionRateLimiter;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
     public JwtResponse login(LoginRequest loginRequest, HttpServletRequest httpServletRequest) {
+        String email = loginRequest.getEmail() != null ? loginRequest.getEmail().trim() : "";
+        authActionRateLimiter.assertLoginAllowed(clientKey(httpServletRequest, email));
+
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
-                        loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(email, loginRequest.getPassword()));
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
@@ -102,15 +124,16 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
-        List<String> roles = userDetails.getAuthorities().stream()
+        List<String> authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.generateToken(userDetails.getUsername());
-        return createSessionAndResponse(user, accessToken, roles, httpServletRequest);
+        return createSessionAndResponse(user, accessToken, authorities, httpServletRequest);
     }
 
     @Transactional
@@ -145,6 +168,7 @@ public class AuthService {
                 .orElseGet(() -> createGoogleUser(email, fullName, avatarUrl));
 
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
         String accessToken = jwtUtils.generateToken(user.getEmail());
         return createSessionAndResponse(user, accessToken, getRoleAuthorities(user), httpServletRequest);
@@ -168,6 +192,7 @@ public class AuthService {
         User user = userRepository.findById(session.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
 
         String newRefreshToken = generateRefreshToken();
         LocalDateTime newExpiryDate = calculateRefreshExpiry();
@@ -181,9 +206,18 @@ public class AuthService {
         userSessionRepository.save(session);
 
         String newAccessToken = jwtUtils.generateToken(user.getEmail());
-        List<String> roles = getRoleAuthorities(user);
+        List<String> authorities = getRoleAuthorities(user);
+        List<String> roles = authorities.stream()
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .distinct()
+                .toList();
+        List<String> permissions = authorities.stream()
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .distinct()
+                .toList();
 
-        return new JwtResponse(newAccessToken, newRefreshToken, user.getEmail(), roles,
+        return new JwtResponse(newAccessToken, newRefreshToken, user.getEmail(), roles, permissions,
                 user.getId(), user.getFullName(), user.getAvatarUrl());
     }
 
@@ -201,7 +235,7 @@ public class AuthService {
         SecurityContextHolder.clearContext();
     }
 
-    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> roles,
+    private JwtResponse createSessionAndResponse(User user, String accessToken, List<String> authorities,
             HttpServletRequest httpServletRequest) {
         String refreshToken = generateRefreshToken();
         LocalDateTime expiryDate = calculateRefreshExpiry();
@@ -209,7 +243,7 @@ public class AuthService {
         String userAgent = resolveUserAgent(httpServletRequest);
         String ipAddress = resolveIpAddress(httpServletRequest);
 
-        java.util.Optional<UserSession> existingSessionOpt = java.util.Optional.empty();
+        Optional<UserSession> existingSessionOpt = Optional.empty();
         if (userAgent != null && !userAgent.isBlank()) {
             existingSessionOpt = userSessionRepository.findFirstByUserIdAndUserAgent(
                     user.getId(), userAgent);
@@ -237,7 +271,17 @@ public class AuthService {
         }
         userSessionRepository.save(userSession);
 
-        return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, user.getId(),
+        List<String> roles = authorities.stream()
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .distinct()
+                .toList();
+        List<String> permissions = authorities.stream()
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .distinct()
+                .toList();
+
+        return new JwtResponse(accessToken, refreshToken, user.getEmail(), roles, permissions, user.getId(),
                 user.getFullName(), user.getAvatarUrl());
     }
 
@@ -258,13 +302,40 @@ public class AuthService {
             throw new AppException(ErrorCode.USER_NOT_VERIFIED);
         }
 
+        if (user.getStatus() == UserStatus.BANNED) {
+            throw new AppException(ErrorCode.ACCOUNT_BANNED);
+        }
+
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
+
         throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVE);
     }
 
+    private void ensureNotSystemAccount(User user) {
+        if (Boolean.TRUE.equals(user.getIsSystemAccount())) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
     private List<String> getRoleAuthorities(User user) {
-        return userRoleRepository.findByUserId(user.getId()).stream()
-                .map(userRole -> "ROLE_" + userRole.getRole().getName().name())
-                .toList();
+        List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+
+        List<String> authorities = new ArrayList<>();
+        List<UUID> roleIds = new ArrayList<>();
+        for (UserRole userRole : userRoles) {
+            authorities.add("ROLE_" + userRole.getRole().getName().name());
+            roleIds.add(userRole.getRole().getId());
+        }
+
+        if (!roleIds.isEmpty()) {
+            // Load permissions for ALL roles the user has (ADMIN, STAFF, etc.)
+            authorities.addAll(rolePermissionRepository.findPermissionNamesByRoleIds(roleIds));
+        }
+        authorities.addAll(userPermissionRepository.findPermissionNamesByUserId(user.getId()));
+
+        return authorities.stream().distinct().toList();
     }
 
     private String resolveIpAddress(HttpServletRequest httpServletRequest) {
@@ -317,29 +388,73 @@ public class AuthService {
         user.setPassword(null);
         user.setAuthProvider(AuthProvider.GOOGLE);
         user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        User savedUser = userRepository.saveAndFlush(user);
 
         Role defaultRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Default customer role not found"));
 
         UserRole userRole = new UserRole();
-        userRole.setUser(user);
+        userRole.setUser(savedUser);
         userRole.setRole(defaultRole);
         userRoleRepository.save(userRole);
 
-        return user;
+        return savedUser;
     }
 
     @Transactional
-    public void register(RegisterRequest request) {
+    public void register(RegisterRequest request, HttpServletRequest httpServletRequest) {
         String email = request.getEmail().trim().toLowerCase();
-        java.time.LocalDateTime lastRequest = otpRequestCooldown.get(email);
-        if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(java.time.LocalDateTime.now())) {
-            long secondsLeft = java.time.Duration.between(java.time.LocalDateTime.now(), lastRequest.plusSeconds(60)).toSeconds();
-            throw new AppException(ErrorCode.BAD_REQUEST, "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
+        authActionRateLimiter.assertRegisterAllowed(clientKey(httpServletRequest, email));
+
+        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            LocalDateTime lockTime = existingUser.getVerificationLockTime();
+            if (lockTime != null && lockTime.isAfter(LocalDateTime.now())) {
+                long secondsLeft = Duration.between(LocalDateTime.now(), lockTime).toSeconds();
+                if (secondsLeft > 60) {
+                    long minutesLeft = (secondsLeft + 59) / 60;
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft
+                                    + " phút.");
+                } else {
+                    throw new AppException(ErrorCode.BAD_REQUEST,
+                            "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft
+                                    + " giây.");
+                }
+            }
         }
 
-        java.util.Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        long secondsLeft = 0;
+        boolean redisWorked = false;
+        try {
+            String redisKey = "otp:cooldown:register:" + email;
+            String ttlVal = redisTemplate.opsForValue().get(redisKey);
+            if (ttlVal != null) {
+                long expiredTimestamp = Long.parseLong(ttlVal);
+                long currentTimestamp = System.currentTimeMillis();
+                if (expiredTimestamp > currentTimestamp) {
+                    secondsLeft = (expiredTimestamp - currentTimestamp) / 1000;
+                    if (secondsLeft <= 0) secondsLeft = 1;
+                }
+            }
+            redisWorked = true;
+        } catch (Exception ex) {
+            logger.warn("Redis is offline, falling back to local memory for OTP cooldown check: {}", ex.getMessage());
+        }
+
+        if (!redisWorked) {
+            LocalDateTime lastRequest = otpRequestCooldown.get(email);
+            if (lastRequest != null && lastRequest.plusSeconds(60).isAfter(LocalDateTime.now())) {
+                secondsLeft = Duration.between(LocalDateTime.now(), lastRequest.plusSeconds(60)).toSeconds();
+            }
+        }
+
+        if (secondsLeft > 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST,
+                    "Vui lòng đợi " + secondsLeft + " giây trước khi yêu cầu mã OTP mới.");
+        }
+
         User user;
         if (existingUserOpt.isPresent()) {
             user = existingUserOpt.get();
@@ -348,7 +463,9 @@ public class AuthService {
             }
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                    ? request.getPhoneNumber().trim()
+                    : null);
             user.setDayOfBirth(request.getDayOfBirth());
             user.setGender(request.getGender());
         } else {
@@ -358,26 +475,46 @@ public class AuthService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setStatus(UserStatus.PENDING_VERIFICATION);
             user.setAuthProvider(AuthProvider.LOCAL);
-            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank() ? request.getPhoneNumber().trim() : null);
+            user.setPhoneNumber(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                    ? request.getPhoneNumber().trim()
+                    : null);
             user.setDayOfBirth(request.getDayOfBirth());
             user.setGender(request.getGender());
         }
 
-        // Generate 6-digit random code using SecureRandom
-        String otpCode = String.format("%06d", new java.security.SecureRandom().nextInt(1000000));
-        user.setVerificationCode(otpCode);
+        String otpCode = String.format("%06d", new SecureRandom().nextInt(1000000));
+        user.setVerificationCode(passwordEncoder.encode(otpCode));
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(5));
+        if (existingUserOpt.isEmpty()) {
+            user.setVerificationAttempts(0);
+            user.setVerificationLockTime(null);
+        }
 
         userRepository.save(user);
-        otpRequestCooldown.put(email, java.time.LocalDateTime.now());
 
-        // Send OTP email
+        boolean redisSaved = false;
+        try {
+            String redisKey = "otp:cooldown:register:" + email;
+            long expireAt = System.currentTimeMillis() + 60000;
+            redisTemplate.opsForValue().set(redisKey, String.valueOf(expireAt), java.time.Duration.ofSeconds(60));
+            redisSaved = true;
+        } catch (Exception ex) {
+            logger.warn("Redis is offline, falling back to local memory to save OTP cooldown: {}", ex.getMessage());
+        }
+
+        if (!redisSaved) {
+            otpRequestCooldown.put(email, LocalDateTime.now());
+        }
+
         emailService.sendOtpEmail(user.getEmail(), otpCode);
     }
 
-    @Transactional
-    public void verifyRegister(VerifyRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
+    @Transactional(noRollbackFor = AppException.class)
+    public void verifyRegister(VerifyRequest request, HttpServletRequest httpServletRequest) {
+        String email = request.getEmail().trim();
+        authActionRateLimiter.assertOtpVerifyAllowed(clientKey(httpServletRequest, email));
+
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (user.getStatus() == UserStatus.ACTIVE) {
@@ -386,31 +523,47 @@ public class AuthService {
 
         LocalDateTime lockTime = user.getVerificationLockTime();
         if (lockTime != null && lockTime.isAfter(LocalDateTime.now())) {
-            long secondsLeft = java.time.Duration.between(LocalDateTime.now(), lockTime).toSeconds();
+            long secondsLeft = Duration.between(LocalDateTime.now(), lockTime).toSeconds();
             if (secondsLeft > 60) {
                 long minutesLeft = (secondsLeft + 59) / 60;
-                throw new AppException(ErrorCode.BAD_REQUEST, "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft + " phút.");
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + minutesLeft
+                                + " phút.");
             } else {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft + " giây.");
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Tài khoản tạm thời bị khóa do nhập sai OTP quá nhiều lần. Vui lòng thử lại sau " + secondsLeft
+                                + " giây.");
             }
         }
 
-        if (user.getVerificationCode() == null
-                || !user.getVerificationCode().equals(request.getCode().trim())
-                || user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-            
+        String submittedCode = request.getCode() != null ? request.getCode().trim() : "";
+        String storedCode = user.getVerificationCode();
+        boolean otpValid = storedCode != null
+                && user.getVerificationCodeExpiry() != null
+                && !user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())
+                && matchesVerificationCode(submittedCode, storedCode);
+
+        if (!otpValid) {
             int attempts = (user.getVerificationAttempts() != null ? user.getVerificationAttempts() : 0) + 1;
-            if (attempts >= 5) {
+            final int maxAttempts = 5;
+            if (attempts >= maxAttempts) {
                 user.setVerificationLockTime(LocalDateTime.now().plusMinutes(15));
                 user.setVerificationAttempts(0);
                 userRepository.save(user);
-                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID, "Mã xác thực không hợp lệ. Bạn đã nhập sai quá 5 lần, tài khoản bị tạm khóa 15 phút.");
+                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
+                        "Mã xác thực không hợp lệ. Bạn đã nhập sai quá " + maxAttempts
+                                + " lần, tài khoản bị tạm khóa 15 phút.");
             } else {
                 user.setVerificationAttempts(attempts);
                 userRepository.save(user);
-                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID, "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (5 - attempts) + " lần thử.");
+                throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID,
+                        "Mã xác thực không hợp lệ hoặc đã hết hạn. Bạn còn " + (maxAttempts - attempts) + " lần thử.");
             }
         }
+
+        // Add Customer Role
+        Role role = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
 
         user.setVerificationAttempts(0);
         user.setVerificationLockTime(null);
@@ -418,10 +571,6 @@ public class AuthService {
         user.setVerificationCode(null);
         user.setVerificationCodeExpiry(null);
         userRepository.save(user);
-
-        // Add Customer Role
-        Role role = roleRepository.findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_ERROR));
 
         // Check if UserRole mapping already exists
         if (userRoleRepository.findByUserId(user.getId()).stream()
@@ -433,8 +582,33 @@ public class AuthService {
         }
     }
 
+    private boolean matchesVerificationCode(String submitted, String stored) {
+        if (submitted == null || submitted.isBlank() || stored == null || stored.isBlank()) {
+            return false;
+        }
+        // BCrypt hashes start with $2; allow brief plaintext match for in-flight OTPs after deploy
+        if (stored.startsWith("$2")) {
+            return passwordEncoder.matches(submitted, stored);
+        }
+        return stored.equals(submitted);
+    }
+
+    private String clientKey(HttpServletRequest request, String email) {
+        String ip = "unknown";
+        if (request != null) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                ip = forwarded.split(",")[0].trim();
+            } else if (request.getRemoteAddr() != null) {
+                ip = request.getRemoteAddr();
+            }
+        }
+        String identity = email != null ? email.trim().toLowerCase() : "";
+        return ip + "|" + identity;
+    }
+
     @Transactional
-    @Scheduled(cron = "0 0 2 * * ?") // Chạy vào 2h sáng mỗi ngày
+    @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupExpiredSessions() {
         userSessionRepository.deleteByExpiredAtBeforeOrStatus(LocalDateTime.now(), "REVOKED");
     }

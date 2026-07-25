@@ -1,0 +1,53 @@
+.toast-card--message {
+  animation: toastMessagePop 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-color: rgba(244, 63, 94, 0.35);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(244, 63, 94, 0.12),
+    0 0 28px rgba(244, 63, 94, 0.18);
+}
+
+.toast-message-icon {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.18);
+  color: #fb7185;
+}
+
+.toast-action-btn {
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(251, 113, 133, 0.35);
+  background: rgba(244, 63, 94, 0.16);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fecdd3;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.toast-action-btn:hover {
+  background: rgba(244, 63, 94, 0.28);
+  border-color: rgba(251, 113, 133, 0.55);
+  color: #fff;
+}
+
+@keyframes toastMessagePop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

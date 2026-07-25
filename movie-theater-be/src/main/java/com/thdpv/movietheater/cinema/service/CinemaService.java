@@ -2,7 +2,10 @@ package com.thdpv.movietheater.cinema.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -11,8 +14,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 import com.thdpv.movietheater.cinema.dto.request.CinemaRequest;
 import com.thdpv.movietheater.cinema.dto.request.CinemaRoomRequest;
@@ -20,6 +26,7 @@ import com.thdpv.movietheater.cinema.dto.request.GenerateSeatMapRequest;
 import com.thdpv.movietheater.cinema.dto.request.UpdateSeatRequest;
 import com.thdpv.movietheater.cinema.dto.response.CinemaResponse;
 import com.thdpv.movietheater.cinema.dto.response.CinemaRoomResponse;
+import com.thdpv.movietheater.cinema.dto.response.CinemaWithRoomsResponse;
 import com.thdpv.movietheater.cinema.dto.response.SeatResponse;
 import com.thdpv.movietheater.cinema.entity.Cinema;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
@@ -30,11 +37,13 @@ import com.thdpv.movietheater.cinema.repository.CinemaRoomRepository;
 import com.thdpv.movietheater.cinema.repository.SeatRepository;
 import com.thdpv.movietheater.cinema.repository.SeatTypeRepository;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
+import com.thdpv.movietheater.booking.service.ShowtimeService;
 import java.time.OffsetDateTime;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
 import com.thdpv.movietheater.cinema.enums.SeatStatus;
+import com.thdpv.movietheater.cinema.enums.CinemaStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,6 +56,21 @@ public class CinemaService {
     private final SeatTypeRepository seatTypeRepository;
     private final SeatRepository seatRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final ShowtimeService showtimeService;
+    private final Cloudinary cloudinary;
+
+    public String uploadImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "File ảnh rỗng");
+        }
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap("folder", "cinemas"));
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR, "Tải hình ảnh lên Cloudinary thất bại: " + e.getMessage());
+        }
+    }
 
     @Transactional
     public CinemaResponse createCinema(CinemaRequest request) {
@@ -59,6 +83,11 @@ public class CinemaService {
         cinema.setName(nameTrimmed);
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
+        cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setImageUrl(trimOrNull(request.getImageUrl()));
+        cinema.setLatitude(request.getLatitude());
+        cinema.setLongitude(request.getLongitude());
+        cinema.setStatus(request.getStatus() != null ? request.getStatus() : CinemaStatus.ACTIVE);
 
         Cinema savedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(savedCinema);
@@ -77,6 +106,11 @@ public class CinemaService {
         cinema.setName(nameTrimmed);
         cinema.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
         cinema.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().trim() : null);
+        cinema.setEntranceNote(trimOrNull(request.getEntranceNote()));
+        cinema.setImageUrl(trimOrNull(request.getImageUrl()));
+        cinema.setLatitude(request.getLatitude());
+        cinema.setLongitude(request.getLongitude());
+        cinema.setStatus(request.getStatus() != null ? request.getStatus() : cinema.getStatus());
 
         Cinema updatedCinema = cinemaRepository.save(cinema);
         return toCinemaResponse(updatedCinema);
@@ -92,7 +126,37 @@ public class CinemaService {
         } else {
             cinemas = cinemaRepository.findAll(pageable);
         }
-        return cinemas.map(this::toCinemaResponse);
+
+        List<UUID> cinemaUuids = cinemas.getContent().stream().map(Cinema::getUuid).collect(Collectors.toList());
+        Map<UUID, Long> roomCounts = cinemaUuids.isEmpty()
+                ? Map.of()
+                : cinemaRoomRepository.countRoomsByCinemaUuids(cinemaUuids).stream()
+                        .collect(Collectors.toMap(
+                                row -> (UUID) row[0],
+                                row -> (Long) row[1]));
+
+        return cinemas.map(cinema -> toCinemaResponse(cinema, roomCounts.getOrDefault(cinema.getUuid(), 0L).intValue()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CinemaWithRoomsResponse> getCinemasWithRooms(String keyword, int page, int size) {
+        Page<CinemaResponse> cinemaPage = getCinemas(keyword, page, size);
+        List<CinemaResponse> cinemas = cinemaPage.getContent();
+        if (cinemas.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> cinemaUuids = cinemas.stream().map(CinemaResponse::getUuid).collect(Collectors.toList());
+        Map<UUID, List<CinemaRoomResponse>> roomsByCinema = cinemaRoomRepository
+                .findByCinemaUuidInWithCinema(cinemaUuids).stream()
+                .map(this::toCinemaRoomResponse)
+                .collect(Collectors.groupingBy(CinemaRoomResponse::getCinemaUuid));
+
+        return cinemas.stream()
+                .map(cinema -> new CinemaWithRoomsResponse(
+                        cinema,
+                        roomsByCinema.getOrDefault(cinema.getUuid(), List.of())))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -116,11 +180,19 @@ public class CinemaService {
             throw new AppException(ErrorCode.CONFLICT, "Ma phong chieu da ton tai trong rap");
         }
 
+        // No seats exist yet for a brand-new room, so the provided capacity is only an
+        // informational placeholder. It will be overwritten with the real bookable seat
+        // count as soon as generateSeats()/updateSeat() run (see refreshRoomBookableCapacity).
+        Integer requestedCapacity = request.getCapacity();
+        if (requestedCapacity != null && requestedCapacity < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Suc chua phong khong duoc am");
+        }
+
         CinemaRoom room = new CinemaRoom();
         room.setCinema(cinema);
         room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
-        room.setCapacity(request.getCapacity() != null ? request.getCapacity() : 0);
+        room.setCapacity(requestedCapacity != null ? requestedCapacity : 0);
         room.setRoomType(request.getRoomType());
         room.setStatus(request.getStatus() != null ? request.getStatus() : CinemaRoomStatus.ACTIVE);
 
@@ -148,22 +220,38 @@ public class CinemaService {
             throw new AppException(ErrorCode.CONFLICT, "Ma phong chieu da ton tai trong rap");
         }
 
-        // Check if changing status to MAINTENANCE or DISABLED when there are future active showtimes
+        // When disabling/maintenance: cancel future showtimes so room can be taken offline
         if (request.getStatus() != null && request.getStatus() != room.getStatus()) {
             if (request.getStatus() == CinemaRoomStatus.MAINTENANCE || request.getStatus() == CinemaRoomStatus.DISABLED) {
-                boolean hasFutureActive = showtimeRepository.existsFutureActiveShowtimes(roomUuid, OffsetDateTime.now());
-                if (hasFutureActive) {
-                    throw new AppException(ErrorCode.CONFLICT, "Khong the chuyen trang thai phong chieu vi dang co lich chieu hoac suat chieu dang mo ban ve trong tuong lai.");
-                }
+                showtimeService.cancelFutureActiveShowtimesForRoom(roomUuid);
             }
             room.setStatus(request.getStatus());
         }
 
         room.setRoomCode(roomCodeTrimmed);
         room.setName(roomNameTrimmed);
-        room.setCapacity(request.getCapacity() != null ? request.getCapacity() : room.getCapacity());
+
+        // Capacity must always mirror reality. Once the room has a generated seat map,
+        // the client-provided capacity is silently overridden with the actual bookable
+        // (ACTIVE, non-aisle) seat count instead of trusting an arbitrary number — this is
+        // what prevents "capacity=1 while 100 seats exist" (or a stale/too-high value that
+        // no longer matches the real, sellable seat count) from ever being persisted.
+        long totalSeatCount = seatRepository.countByCinemaRoom_Uuid(roomUuid);
+        if (totalSeatCount > 0) {
+            long bookableSeatCount = seatRepository.countByCinemaRoom_UuidAndIsActiveTrueAndStatus(roomUuid, SeatStatus.ACTIVE);
+            room.setCapacity((int) bookableSeatCount);
+        } else if (request.getCapacity() != null) {
+            if (request.getCapacity() < 0) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Suc chua phong khong duoc am");
+            }
+            room.setCapacity(request.getCapacity());
+        }
+
         if (request.getRoomType() != null) {
             room.setRoomType(request.getRoomType());
+        }
+        if (request.getLayoutConfig() != null) {
+            room.setLayoutConfig(request.getLayoutConfig());
         }
 
         CinemaRoom updatedRoom = cinemaRoomRepository.save(room);
@@ -188,13 +276,21 @@ public class CinemaService {
         // Fetch existing seats in room to soft-disable or reuse
         List<Seat> existingSeats = seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(roomUuid);
 
-        // Check if there are future active showtimes or confirmed bookings for this room, but only if the room already has active seats
+        // Block resize only when seats are already linked to selling showtimes or future paid tickets.
+        // DRAFT / SCHEDULED (chưa mở bán) không chặn — admin vẫn chỉnh sơ đồ trước khi mở bán.
         boolean hasActiveSeats = existingSeats.stream().anyMatch(Seat::isActive);
         if (hasActiveSeats) {
-            boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(roomUuid, OffsetDateTime.now());
-            boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(roomUuid);
-            if (hasFutureShowtimes || hasConfirmedBookings) {
-                throw new AppException(ErrorCode.CONFLICT, "Không thể thiết lập lại sơ đồ ghế vì phòng chiếu đang có lịch chiếu sắp tới hoặc vé đã đặt.");
+            boolean hasSellingShowtimes = showtimeRepository.existsFutureBookableShowtime(
+                    roomUuid, OffsetDateTime.now());
+            boolean hasFutureConfirmedBookings = showtimeRepository.existsFutureConfirmedBookingForRoom(
+                    roomUuid, OffsetDateTime.now());
+            if (hasSellingShowtimes) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể đổi sơ đồ: phòng còn suất đang mở bán hoặc hết vé trong tương lai. Hãy đóng/hủy các suất đó trước.");
+            }
+            if (hasFutureConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT,
+                        "Không thể đổi sơ đồ: còn vé đã thanh toán cho suất chưa kết thúc (chưa FINISHED/CANCELLED). Hãy hủy/hoàn vé hoặc đợi suất chiếu xong.");
             }
         }
 
@@ -214,15 +310,29 @@ public class CinemaService {
             throw new AppException(ErrorCode.BAD_REQUEST, "So hang (1-26) hoac so ghe moi hang (1-30) khong hop le");
         }
 
+        // Aisle columns (1-based seatNumber within the generated grid) are walkways, not
+        // sellable seats. Mark them DISABLED at creation time so they never inflate the
+        // room's bookable capacity (previously every grid cell — including aisle columns —
+        // was created as an ACTIVE seat, so a 20-row room with aisles ended up with a wrong,
+        // too-high seat/capacity count).
+        Set<Integer> aisleColSet = new HashSet<>();
+        if (request != null && request.getAisleCols() != null) {
+            for (Integer col : request.getAisleCols()) {
+                if (col != null && col >= 1 && col <= seatsPerRow) {
+                    aisleColSet.add(col);
+                }
+            }
+        }
+
         List<Seat> seatsToSave = new ArrayList<>();
 
         // Proportional layout configuration:
         // - Last 1 row (or 2 rows if total rows >= 8) will be Couple seats
         // - Middle rows (from 50% to the Couple rows) will be VIP seats
         // - First rows will be Standard seats
-        int coupleRowsCount = (rowCount >= 8) ? 2 : 1;
+        int coupleRowsCount = 1;
         int vipStartRowIndex = rowCount / 2; // e.g. 8 / 2 = row index 4 (E)
-        int coupleStartRowIndex = rowCount - coupleRowsCount; // e.g. 8 - 2 = row index 6 (G)
+        int coupleStartRowIndex = rowCount - coupleRowsCount; // e.g. 8 - 1 = row index 7 (H)
 
         for (int r = 0; r < rowCount; r++) {
             char rowChar = (char) ('A' + r);
@@ -233,8 +343,7 @@ public class CinemaService {
 
             if (r >= coupleStartRowIndex) {
                 type = coupleType;
-                count = seatsPerRow / 2; // Couple seats take twice the width, so we generate half as many
-                if (count == 0) count = 1; // Ensure at least 1 seat
+                count = seatsPerRow; // Couple seats now have the same width and count as standard/VIP seats
             } else if (r >= vipStartRowIndex) {
                 type = vipType;
             } else {
@@ -242,12 +351,18 @@ public class CinemaService {
             }
 
             for (int i = 1; i <= count; i++) {
+                boolean isAisleCol = aisleColSet.contains(i);
                 String posKey = rowStr + "_" + i;
                 if (existingSeatMap.containsKey(posKey)) {
                     Seat seat = existingSeatMap.get(posKey);
                     seat.setActive(true);
-                    seat.setStatus(SeatStatus.ACTIVE);
                     seat.setSeatType(type);
+                    if (isAisleCol) {
+                        // Aisle position: never a sellable seat, regardless of its previous status.
+                        seat.setStatus(SeatStatus.DISABLED);
+                    } else if (seat.getStatus() == SeatStatus.DISABLED) {
+                        seat.setStatus(SeatStatus.ACTIVE);
+                    }
                     seatsToSave.add(seat);
                     existingSeatMap.remove(posKey);
                 } else {
@@ -259,7 +374,7 @@ public class CinemaService {
                     seat.setSeatType(type);
                     seat.setRowName(rowStr);
                     seat.setSeatNumber(i);
-                    seat.setStatus(SeatStatus.ACTIVE);
+                    seat.setStatus(isAisleCol ? SeatStatus.DISABLED : SeatStatus.ACTIVE);
                     seat.setActive(true);
                     seatsToSave.add(seat);
                 }
@@ -275,8 +390,10 @@ public class CinemaService {
 
         seatRepository.saveAll(seatsToSave);
 
-        // Update capacity of room to reflect the actual ACTIVE generated count
-        int activeCapacity = (int) seatsToSave.stream().filter(Seat::isActive).count();
+        // Update capacity to bookable ACTIVE seats only (exclude DISABLED / MAINTENANCE).
+        int activeCapacity = (int) seatsToSave.stream()
+                .filter(s -> s.isActive() && s.getStatus() == SeatStatus.ACTIVE)
+                .count();
         room.setCapacity(activeCapacity);
         cinemaRoomRepository.save(room);
     }
@@ -297,7 +414,20 @@ public class CinemaService {
         }
 
         Seat updatedSeat = seatRepository.save(seat);
+        refreshRoomBookableCapacity(updatedSeat.getCinemaRoom());
         return toSeatResponse(updatedSeat);
+    }
+
+    private void refreshRoomBookableCapacity(CinemaRoom room) {
+        if (room == null || room.getUuid() == null) {
+            return;
+        }
+        List<Seat> seats = seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(room.getUuid());
+        int capacity = (int) seats.stream()
+                .filter(s -> s.isActive() && s.getStatus() == SeatStatus.ACTIVE)
+                .count();
+        room.setCapacity(capacity);
+        cinemaRoomRepository.save(room);
     }
 
     @Transactional(readOnly = true)
@@ -305,9 +435,52 @@ public class CinemaService {
         if (!cinemaRoomRepository.existsById(roomUuid)) {
             throw new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai");
         }
-        return seatRepository.findByCinemaRoom_UuidOrderByRowNameAscSeatNumberAsc(roomUuid).stream()
+        return seatRepository.findByCinemaRoom_UuidAndIsActiveTrueOrderByRowNameAscSeatNumberAsc(roomUuid).stream()
                 .map(this::toSeatResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteRoom(UUID roomUuid) {
+        CinemaRoom room = cinemaRoomRepository.findById(roomUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phong chieu khong ton tai"));
+        boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(roomUuid, OffsetDateTime.now());
+        boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(roomUuid);
+        if (hasFutureShowtimes || hasConfirmedBookings) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Khong the xoa phong chieu vi dang co lich chieu hoac ve da dat");
+        }
+        if (room.getStatus() == CinemaRoomStatus.ACTIVE) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Chi co the xoa phong chieu dang bao tri hoac vo hieu hoa");
+        }
+        seatRepository.deleteByCinemaRoomUuid(roomUuid);
+        cinemaRoomRepository.delete(room);
+    }
+
+    @Transactional
+    public void deleteCinema(UUID cinemaUuid) {
+        Cinema cinema = cinemaRepository.findById(cinemaUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Rap phim khong ton tai"));
+
+        for (CinemaRoom room : cinema.getCinemaRooms()) {
+            boolean hasFutureShowtimes = showtimeRepository.existsFutureShowtime(room.getUuid(), OffsetDateTime.now());
+            boolean hasConfirmedBookings = showtimeRepository.existsConfirmedBookingForRoom(room.getUuid());
+            if (hasFutureShowtimes || hasConfirmedBookings) {
+                throw new AppException(ErrorCode.CONFLICT, 
+                        "Khong the xoa rap vi phong chieu " + room.getName() + " dang co lich chieu hoac ve da dat");
+            }
+        }
+        
+        if (cinema.getStatus() == CinemaStatus.ACTIVE) {
+            throw new AppException(ErrorCode.CONFLICT, 
+                    "Chi co the xoa rap chieu dang bao tri hoac vo hieu hoa");
+        }
+
+        for (CinemaRoom room : cinema.getCinemaRooms()) {
+            seatRepository.deleteByCinemaRoomUuid(room.getUuid());
+        }
+        cinemaRepository.delete(cinema);
     }
 
     private SeatResponse toSeatResponse(Seat seat) {
@@ -341,12 +514,30 @@ public class CinemaService {
     }
 
     private CinemaResponse toCinemaResponse(Cinema cinema) {
-        return new CinemaResponse(
+        return toCinemaResponse(cinema, cinema.getCinemaRooms() != null ? cinema.getCinemaRooms().size() : 0);
+    }
+
+    private CinemaResponse toCinemaResponse(Cinema cinema, int totalRooms) {
+        CinemaResponse response = new CinemaResponse(
                 cinema.getUuid(),
                 cinema.getName(),
                 cinema.getAddress(),
                 cinema.getPhoneNumber(),
-                cinema.getCinemaRooms() != null ? cinema.getCinemaRooms().size() : 0);
+                totalRooms);
+        response.setEntranceNote(cinema.getEntranceNote());
+        response.setImageUrl(cinema.getImageUrl());
+        response.setLatitude(cinema.getLatitude());
+        response.setLongitude(cinema.getLongitude());
+        response.setStatus(cinema.getStatus());
+        return response;
+    }
+
+    private String trimOrNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private CinemaRoomResponse toCinemaRoomResponse(CinemaRoom room) {
@@ -358,6 +549,7 @@ public class CinemaService {
                 room.getRoomType(),
                 room.getStatus(),
                 room.getCinema().getUuid(),
-                room.getCinema().getName());
+                room.getCinema().getName(),
+                room.getLayoutConfig());
     }
 }

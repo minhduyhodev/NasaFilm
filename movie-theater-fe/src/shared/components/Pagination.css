@@ -1,0 +1,397 @@
+/* Pagination — Trang X/Y + prev/next, rose accent, smooth motion */
+
+.pg {
+  --pg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pg-text: #8a8f98;
+  --pg-text-strong: #ededef;
+  --pg-border: rgba(255, 255, 255, 0.1);
+  --pg-border-hover: rgba(225, 29, 72, 0.45);
+  --pg-accent: #e11d48;
+  --pg-accent-soft: rgba(225, 29, 72, 0.14);
+  --pg-accent-glow: rgba(225, 29, 72, 0.28);
+  --pg-surface: transparent;
+  --pg-surface-hover: rgba(225, 29, 72, 0.1);
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+  margin-top: 1.75rem;
+  padding: 1.25rem 0 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: 'Be Vietnam Pro', Inter, system-ui, sans-serif;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.pg__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  min-width: 0;
+  overflow: visible;
+}
+
+.pg__label {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--pg-text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.pg__current {
+  color: var(--pg-accent);
+  font-weight: 700;
+}
+
+.pg__slash {
+  margin: 0 0.1em;
+  color: var(--pg-text);
+  font-weight: 400;
+}
+
+.pg__total {
+  color: var(--pg-text-strong);
+  font-weight: 600;
+}
+
+.pg__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
+.pg__size-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pg-text);
+  white-space: nowrap;
+}
+
+/* ---- Custom page-size dropdown ---- */
+.pg__size-menu {
+  position: relative;
+  z-index: 30;
+}
+
+.pg__size-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 3.5rem;
+  height: 32px;
+  padding: 0 0.55rem 0 0.7rem;
+  border: 1px solid var(--pg-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--pg-text-strong);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 220ms var(--pg-ease),
+    background-color 220ms var(--pg-ease),
+    box-shadow 220ms var(--pg-ease),
+    color 220ms var(--pg-ease);
+}
+
+.pg__size-trigger:hover {
+  border-color: var(--pg-border-hover);
+  background: var(--pg-surface-hover);
+  color: #fb7185;
+}
+
+.pg__size-menu.is-open .pg__size-trigger {
+  border-color: var(--pg-accent);
+  background: var(--pg-accent-soft);
+  color: #fb7185;
+  box-shadow: 0 0 0 3px var(--pg-accent-glow);
+}
+
+.pg__size-trigger:focus-visible {
+  border-color: var(--pg-accent);
+  box-shadow: 0 0 0 3px var(--pg-accent-glow);
+}
+
+.pg__size-value {
+  min-width: 1.1em;
+  text-align: center;
+}
+
+.pg__size-chevron {
+  width: 14px;
+  height: 14px;
+  color: inherit;
+  opacity: 0.75;
+  transition: transform 280ms var(--pg-ease);
+}
+
+.pg__size-menu.is-open .pg__size-chevron {
+  transform: rotate(180deg);
+}
+
+.pg__size-panel {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 4.5rem;
+  width: max-content;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: #121216;
+  box-shadow:
+    0 0 0 1px rgba(225, 29, 72, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.65),
+    0 0 28px rgba(225, 29, 72, 0.08);
+  transform: translateX(-50%) translateY(0) scale(1);
+  transform-origin: bottom center;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  animation: pg-size-open 200ms var(--pg-ease) both;
+}
+
+@keyframes pg-size-open {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.pg__size-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  height: 34px;
+  padding: 0 0.85rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #ededef;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color 160ms var(--pg-ease),
+    color 160ms var(--pg-ease),
+    transform 160ms var(--pg-ease);
+}
+
+.pg__size-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.pg__size-option:active {
+  transform: scale(0.97);
+}
+
+.pg__size-option.is-selected {
+  background: rgba(225, 29, 72, 0.18);
+  color: #fb7185;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(225, 29, 72, 0.35);
+}
+
+.pg__size-option.is-selected:hover {
+  background: rgba(225, 29, 72, 0.26);
+  color: #fda4af;
+}
+
+.pg__size-option:focus-visible {
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.45);
+}
+
+.pg__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.pg__pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0.15rem;
+}
+
+.pg__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pg-text);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 220ms var(--pg-ease),
+    background-color 220ms var(--pg-ease),
+    border-color 220ms var(--pg-ease),
+    box-shadow 220ms var(--pg-ease),
+    transform 220ms var(--pg-ease);
+}
+
+.pg__page:hover:not(.is-active) {
+  color: #fb7185;
+  background: var(--pg-surface-hover);
+  border-color: var(--pg-border-hover);
+}
+
+.pg__page:active:not(.is-active) {
+  transform: scale(0.94);
+}
+
+.pg__page:focus-visible {
+  outline: none;
+  border-color: var(--pg-accent);
+  box-shadow: 0 0 0 3px var(--pg-accent-glow);
+}
+
+.pg__page.is-active {
+  color: #fff;
+  font-weight: 700;
+  background: var(--pg-accent);
+  border-color: var(--pg-accent);
+  box-shadow: 0 4px 14px var(--pg-accent-glow);
+  cursor: default;
+  pointer-events: none;
+}
+
+.pg__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 36px;
+  color: var(--pg-text);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  user-select: none;
+  pointer-events: none;
+}
+
+.pg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--pg-border);
+  border-radius: 10px;
+  background: var(--pg-surface);
+  color: var(--pg-text);
+  cursor: pointer;
+  transition:
+    color 220ms var(--pg-ease),
+    background-color 220ms var(--pg-ease),
+    border-color 220ms var(--pg-ease),
+    box-shadow 220ms var(--pg-ease),
+    transform 220ms var(--pg-ease);
+}
+
+.pg__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.pg__btn:hover:not(:disabled) {
+  color: #fb7185;
+  background: var(--pg-surface-hover);
+  border-color: var(--pg-border-hover);
+  box-shadow: 0 0 0 3px var(--pg-accent-soft);
+}
+
+.pg__btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.pg__btn:focus-visible {
+  outline: none;
+  border-color: var(--pg-accent);
+  box-shadow: 0 0 0 3px var(--pg-accent-glow);
+}
+
+.pg__btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .pg {
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+  }
+
+  .pg__nav {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pg__pages {
+    flex: 1;
+    justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pg__pages::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pg__btn,
+  .pg__page {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+  }
+}
+
+.admin-shell .pg {
+  --pg-text: var(--adm-text-muted, #8a8f98);
+  --pg-text-strong: var(--adm-text, #ededef);
+  --pg-border: var(--adm-border-strong, rgba(255, 255, 255, 0.1));
+  --pg-accent: var(--adm-accent, #e11d48);
+  --pg-accent-soft: var(--adm-accent-soft, rgba(225, 29, 72, 0.14));
+  --pg-border-hover: var(--adm-accent-border, rgba(225, 29, 72, 0.35));
+  --pg-accent-glow: var(--adm-focus-ring, rgba(225, 29, 72, 0.5));
+}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
+import './AuthInput.css';
 
 export const AuthInput = React.forwardRef(
   (
@@ -13,84 +13,51 @@ export const AuthInput = React.forwardRef(
       onPasswordToggle,
       showPassword,
       type,
-      className,
+      className = '',
       ...props
     },
     ref
   ) => {
-    const [isFocused, setIsFocused] = React.useState(false);
-
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full space-y-2"
-      >
-        {label && (
-          <label className="block text-sm font-medium text-gray-200">
-            {label}
-          </label>
-        )}
+      <div className={`auth-field ${error ? 'auth-field--error' : ''}`}>
+        {label ? <label className="auth-field__label">{label}</label> : null}
 
-        <div className="relative group">
-          {/* Animated border effect */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isFocused ? 1 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent rounded-lg blur-sm pointer-events-none"
-          ></motion.div>
+        <div className="auth-field__control">
+          {icon ? <span className="auth-field__icon">{icon}</span> : null}
 
-          {/* Input container */}
-          <div className="relative flex items-center">
-            {icon && (
-              <div className="absolute left-4 text-gray-400 group-focus-within:text-blue-400 transition-colors">
-                {icon}
-              </div>
-            )}
+          <input
+            ref={ref}
+            type={showPasswordToggle && showPassword ? 'text' : type}
+            placeholder={placeholder}
+            className={[
+              'auth-field__input',
+              icon ? 'auth-field__input--icon' : '',
+              showPasswordToggle ? 'auth-field__input--toggle' : '',
+              className,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            {...props}
+          />
 
-            <input
-              ref={ref}
-              type={showPasswordToggle && showPassword ? 'text' : type}
-              placeholder={placeholder}
-              className={`w-full px-4 ${icon ? 'pl-12' : ''} ${
-                showPasswordToggle ? 'pr-12' : ''
-              } py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 ${
-                error ? 'border-red-500/50' : ''
-              } ${className}`}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              {...props}
-            />
-
-            {showPasswordToggle && (
-              <button
-                type="button"
-                onClick={onPasswordToggle}
-                className="absolute right-4 text-gray-400 hover:text-blue-400 transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            )}
-          </div>
+          {showPasswordToggle ? (
+            <button
+              type="button"
+              className="auth-field__toggle"
+              onClick={onPasswordToggle}
+              tabIndex={-1}
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          ) : null}
         </div>
 
-        {/* Error message */}
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-red-500 flex items-center gap-2"
-          >
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-            {error.message}
-          </motion.p>
-        )}
-      </motion.div>
+        {error ? <p className="auth-field__error">{error.message}</p> : null}
+      </div>
     );
   }
 );
 
 AuthInput.displayName = 'AuthInput';
+export default AuthInput;

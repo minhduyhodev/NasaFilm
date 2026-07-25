@@ -1,0 +1,24 @@
+.page-transition-root,
+.tab-transition-root,
+.dashboard-view-transition__stage,
+.dash-motion-card {
+  width: 100%;
+  will-change: opacity, transform;
+}
+
+/* Soft veil while content swaps — keeps layout from jumping harshly */
+.tab-transition-root {
+  min-height: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-root,
+  .tab-transition-root,
+  .dashboard-view-transition__stage,
+  .dash-motion-card {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

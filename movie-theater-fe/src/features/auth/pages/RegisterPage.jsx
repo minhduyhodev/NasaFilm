@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Phone, Calendar } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { AuthLayout } from "../components/AuthLayout";
 import { AuthCard } from "../components/AuthCard";
 import { AuthInput } from "../components/AuthInput";
+import { AuthDatePicker } from "../components/AuthDatePicker";
 import { PasswordStrength } from "../components/PasswordStrength";
 import { SocialLoginButtons } from "../components/SocialLoginButtons";
 import { registerSchema } from "../utils/validation";
@@ -14,7 +15,24 @@ import { authService } from "../api/authService";
 import { useAuthContext } from "../hooks/useAuthContext";
 import { notificationService } from "../../../shared/services/notificationService";
 import tokenService from "../utils/tokenService";
+import { getDefaultAdminPath, isAdminOrStaffUser } from "../../../shared/utils/adminNavigation";
 import "./RegisterPage.css";
+import "../components/AuthInput.css";
+
+const GENDER_OPTIONS = [
+  { value: "MALE", label: "Nam" },
+  { value: "FEMALE", label: "Nữ" },
+  { value: "OTHER", label: "Khác" },
+];
+
+const getMaxBirthDate = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 12);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -29,15 +47,27 @@ export const RegisterPage = () => {
   const [otpError, setOtpError] = useState("");
   const [timer, setTimer] = useState(0);
   const otpRefs = useRef([]);
+  const maxBirthDate = useMemo(() => getMaxBirthDate(), []);
 
   const {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
     setError,
   } = useForm({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      dayOfBirth: "",
+      gender: "",
+      password: "",
+      confirmPassword: "",
+      agreeToTerms: false,
+    },
   });
 
   const password = watch("password");
@@ -170,9 +200,9 @@ export const RegisterPage = () => {
 
   const redirectAfterLogin = () => {
     const storedUser = tokenService.getUser();
-    const roles = storedUser?.roles || [];
-    const isAdminOrStaff = roles.some((r) => r === "admin" || r === "staff");
-    const targetPath = isAdminOrStaff ? "/admin" : "/";
+    const targetPath = isAdminOrStaffUser(storedUser)
+      ? getDefaultAdminPath(storedUser)
+      : "/";
     navigate(targetPath, { replace: true });
   };
 
@@ -278,7 +308,8 @@ export const RegisterPage = () => {
     <AuthLayout
       showHero={true}
       heroTitle="NASAFILM"
-      heroDescription="Trải nghiệm điện ảnh chưa từng có trước đây. Ra mắt độc quyền, phòng chờ VIP và các sự kiện tuyển chọn đặc biệt."
+      tagline="Điện ảnh. Không khoảng cách."
+      heroDescription="Trải nghiệm những bộ phim hay nhất, trên màn ảnh lớn gần bạn nhất."
     >
       {step === 1 ? (
         <AuthCard
@@ -286,111 +317,115 @@ export const RegisterPage = () => {
           subtitle="Tham gia cộng đồng điện ảnh hàng đầu"
         >
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
-            {/* Full Name Input */}
             <AuthInput
               {...register("fullName")}
-              label="Tên tài khoản"
-              placeholder="Chí Trung"
+              label="Họ và tên"
+              placeholder="Hồ Minh Duy "
               type="text"
-              icon={<User size={20} />}
+              icon={<User size={15} />}
               error={errors.fullName}
+              autoComplete="name"
             />
 
-            {/* Email Input */}
             <AuthInput
               {...register("email")}
-              label="Địa chỉ Email"
-              placeholder="name@email.com"
+              label="Email"
+              placeholder="name@gmail.com"
               type="email"
-              icon={<Mail size={20} />}
+              icon={<Mail size={15} />}
               error={errors.email}
+              autoComplete="email"
             />
 
-            {/* Phone Number Input */}
             <AuthInput
               {...register("phoneNumber")}
-              label="Số điện thoại (Không bắt buộc)"
+              label="Số điện thoại"
               placeholder="+84 900-000-000"
               type="tel"
-              icon={<Phone size={20} />}
+              icon={<Phone size={15} />}
               error={errors.phoneNumber}
+              autoComplete="tel"
+              inputMode="numeric"
             />
 
-            {/* Date of Birth Input */}
-            <AuthInput
-              {...register("dayOfBirth")}
-              label="Ngày sinh"
-              type="date"
-              icon={<Calendar size={20} />}
-              error={errors.dayOfBirth}
-            />
+            <div className="auth-form__row">
+              <Controller
+                name="dayOfBirth"
+                control={control}
+                render={({ field }) => (
+                  <AuthDatePicker
+                    id="register-dob"
+                    label="Ngày sinh"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    max={maxBirthDate}
+                    error={errors.dayOfBirth}
+                  />
+                )}
+              />
 
-            {/* Gender Input */}
-            <div className="w-full space-y-2">
-              <label className="block text-sm font-medium text-gray-200">
-                Giới tính
-              </label>
-              <div className="relative flex items-center group">
-                <div className="absolute left-4 text-gray-400 group-focus-within:text-blue-400 transition-colors z-10">
-                  <User size={20} />
-                </div>
-                <select
-                  {...register("gender")}
-                  className={`w-full px-4 pl-12 pr-10 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 appearance-none cursor-pointer ${
-                    errors.gender ? 'border-red-500/50' : ''
-                  }`}
-                  defaultValue=""
-                >
-                  <option value="" disabled className="bg-[#18181b] text-gray-500">Chọn giới tính</option>
-                  <option value="MALE" className="bg-[#18181b] text-white">Nam</option>
-                  <option value="FEMALE" className="bg-[#18181b] text-white">Nữ</option>
-                  <option value="OTHER" className="bg-[#18181b] text-white">Khác</option>
-                </select>
-                <div className="absolute right-4 text-gray-400 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-chevron-down" viewBox="0 0 16 16">
-                    <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-                  </svg>
-                </div>
+              <div className={`auth-field ${errors.gender ? "auth-field--error" : ""}`}>
+                <span className="auth-field__label" id="register-gender-label">
+                  Giới tính
+                </span>
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <div
+                      className="auth-gender"
+                      role="radiogroup"
+                      aria-labelledby="register-gender-label"
+                    >
+                      {GENDER_OPTIONS.map((option) => {
+                        const active = field.value === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            className={`auth-gender__btn${active ? " is-active" : ""}`}
+                            onClick={() => field.onChange(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                />
+                {errors.gender ? (
+                  <p className="auth-field__error">{errors.gender.message}</p>
+                ) : null}
               </div>
-              {errors.gender && (
-                <p className="text-sm text-red-500 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                  {errors.gender.message}
-                </p>
-              )}
             </div>
 
-            {/* Password Input */}
             <AuthInput
               {...register("password")}
               label="Mật khẩu"
               placeholder="••••••••"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.password}
               showPasswordToggle={true}
               showPassword={showPassword}
               onPasswordToggle={() => setShowPassword(!showPassword)}
             />
 
-            {/* Password Strength Indicator */}
-            {password && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 rounded-lg p-4 border border-white/10"
-              >
-                <PasswordStrength password={password} showRequirements={true} />
-              </motion.div>
-            )}
+            {password ? (
+              <div className="auth-password-meter">
+                <PasswordStrength password={password} showRequirements={false} />
+              </div>
+            ) : null}
 
-            {/* Confirm Password Input */}
             <AuthInput
               {...register("confirmPassword")}
               label="Xác nhận mật khẩu"
               placeholder="••••••••"
               type="password"
-              icon={<Lock size={20} />}
+              icon={<Lock size={15} />}
               error={errors.confirmPassword}
               showPasswordToggle={true}
               showPassword={showConfirmPassword}
