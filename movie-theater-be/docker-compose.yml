@@ -6,8 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: movie-backend
-    ports:
-      - "8080:8080"
+    # Removed ports 8080:8080 because Caddy will proxy it internally
     restart: always
     env_file:
       - .env
@@ -16,6 +15,20 @@ services:
       - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
     depends_on:
       - redis
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: movie-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    command: caddy reverse-proxy --from api.nasafilm.site --to backend:8080
+    depends_on:
+      - backend
 
   redis:
     image: redis:7-alpine
@@ -29,3 +42,5 @@ services:
 
 volumes:
   redis_data:
+  caddy_data:
+  caddy_config:
