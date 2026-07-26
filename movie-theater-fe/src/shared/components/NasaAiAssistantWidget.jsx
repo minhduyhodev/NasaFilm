@@ -1355,6 +1355,14 @@ const NasaAiAssistantWidget = () => {
       return;
     }
 
+    if (!isLoggedInCustomer) {
+      const loginHint = 'Bạn cần đăng nhập để tạo ticket hoặc chat với nhân viên. NASA BOT vẫn trả lời câu hỏi khi bạn chưa đăng nhập.';
+      notificationService.info(loginHint);
+      pushBot(loginHint);
+      setChatFlow(null);
+      return;
+    }
+
     setTyping(true);
     try {
       let response = null;
@@ -1409,6 +1417,11 @@ const NasaAiAssistantWidget = () => {
   };
 
   const _requestLiveSupport = async (options = {}) => {
+    if (!isLoggedInCustomer) {
+      notificationService.info('Vui lòng đăng nhập để chat trực tiếp với nhân viên.');
+      return;
+    }
+
     const description = `${options.description || ticketDraft || activeTicket?.description || ''}`.trim()
       || 'Khách hàng cần hỗ trợ trực tiếp với admin hoặc staff.';
     const category = options.category || selectedCategory?.key || activeTicket?.category || detectCategory(description);
