@@ -18,11 +18,11 @@ public final class WalletSchemaPreBootstrap {
     }
 
     public static void apply() {
-        String host = firstNonBlank(System.getProperty("DB_HOST"), "localhost");
-        String port = firstNonBlank(System.getProperty("DB_PORT"), "5432");
-        String dbName = System.getProperty("DB_NAME");
-        String username = System.getProperty("DB_USERNAME");
-        String password = System.getProperty("DB_PASSWORD");
+        String host = firstNonBlank(System.getenv("DB_HOST"), "localhost");
+        String port = firstNonBlank(System.getenv("DB_PORT"), "5432");
+        String dbName = System.getenv("DB_NAME");
+        String username = System.getenv("DB_USERNAME");
+        String password = System.getenv("DB_PASSWORD");
 
         if (isBlank(dbName) || isBlank(username)) {
             log.warn("Skip wallet schema pre-bootstrap: DB_NAME/DB_USERNAME not configured.");
