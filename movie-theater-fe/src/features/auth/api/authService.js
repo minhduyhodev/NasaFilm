@@ -21,9 +21,6 @@ const PUBLIC_API_PREFIXES = [
   '/api/search',
   '/api/media/proxy',
   '/api/orbit-rooms/feature-status',
-  '/api/support-ai/chat',
-  '/api/support-ai/status',
-  '/api/support-live/availability',
 ];
 
 const isPublicApiRequest = (url = '') =>
@@ -94,11 +91,45 @@ class AuthService {
           requestUrl.includes('/api/google') ||
           requestUrl.includes('/api/refresh') ||
           requestUrl.includes('/api/register');
+        const isPublicRequest = isPublicApiRequest(requestUrl);
 
-        if (error.response?.status === 401 && !isAuthRequest && originalRequest && !originalRequest._retry) {
+        // Public API + stale Bearer: retry once without Authorization (no refresh).
+        if (
+          error.response?.status === 401
+          && isPublicRequest
+          && originalRequest
+          && !originalRequest._retry
+          && originalRequest.headers?.Authorization
+        ) {
+          originalRequest._retry = true;
+          delete originalRequest.headers.Authorization;
+          return this.api(originalRequest);
+        }
+
+        if (
+          error.response?.status === 401
+          && !isAuthRequest
+          && !isPublicRequest
+          && originalRequest
+          && !originalRequest._retry
+        ) {
+          const hasRefreshToken = Boolean(tokenService.getRefreshToken());
+
+          // Access token hết hạn / rác nhưng không có refresh → về login, đừng ném "No refresh token".
+          if (!hasRefreshToken) {
+            tokenService.clear();
+            sessionStorage.setItem('auth_expired', 'true');
+            window.location.href = '/login';
+            return Promise.reject(error);
+          }
+
           if (isRefreshing) {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
               subscribeTokenRefresh((token) => {
+                if (!token) {
+                  reject(error);
+                  return;
+                }
                 originalRequest.headers.Authorization = `Bearer ${token}`;
                 resolve(this.api(originalRequest));
               });
@@ -117,21 +148,18 @@ class AuthService {
           } catch (refreshError) {
             isRefreshing = false;
             refreshSubscribers = [];
+            onRefreshed(null);
             tokenService.clear();
-            if (!isPublicApiRequest(requestUrl)) {
-              sessionStorage.setItem('auth_expired', 'true');
-              window.location.href = '/login';
-            }
-            return Promise.reject(refreshError);
+            sessionStorage.setItem('auth_expired', 'true');
+            window.location.href = '/login';
+            return Promise.reject(error);
           }
         }
 
-        if (error.response?.status === 401 && !isAuthRequest) {
+        if (error.response?.status === 401 && !isAuthRequest && !isPublicRequest) {
           tokenService.clear();
-          if (!isPublicApiRequest(requestUrl)) {
-            sessionStorage.setItem('auth_expired', 'true');
-            window.location.href = '/login';
-          }
+          sessionStorage.setItem('auth_expired', 'true');
+          window.location.href = '/login';
         }
 
         return Promise.reject(error);
@@ -259,7 +287,10 @@ class AuthService {
     try {
       const currentRefreshToken = tokenService.getRefreshToken();
       if (!currentRefreshToken) {
-        throw new Error('No refresh token available');
+        tokenService.clear();
+        const sessionError = new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        sessionError.code = 'SESSION_EXPIRED';
+        throw sessionError;
       }
 
       const response = await axios.post(
@@ -271,12 +302,17 @@ class AuthService {
       const authResponse = buildAuthResponse(jwtData);
 
       tokenService.setToken(authResponse.token);
-      tokenService.setRefreshToken(authResponse.refreshToken);
+      if (authResponse.refreshToken) {
+        tokenService.setRefreshToken(authResponse.refreshToken);
+      }
       tokenService.setUser(authResponse.user);
 
       return authResponse.token;
     } catch (error) {
       tokenService.clear();
+      if (error?.code === 'SESSION_EXPIRED') {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }

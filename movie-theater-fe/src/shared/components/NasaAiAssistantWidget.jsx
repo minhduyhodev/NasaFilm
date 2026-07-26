@@ -235,6 +235,9 @@ const resolveSupportErrorMessage = (error, fallback) => {
   const apiMessage = error?.response?.data?.message || error?.message;
   const msgNorm = normalise(`${apiMessage || ''}`);
   const codeText = `${code || ''}`;
+  if (msgNorm.includes('refresh token') || msgNorm.includes('session_expired') || msgNorm.includes('phien dang nhap da het han')) {
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  }
   if (status === 429 || code === 429 || codeText.includes('RATE_LIMIT') || msgNorm.includes('qua nhanh')) {
     return 'Bạn gửi tin nhắn quá nhanh. Vui lòng đợi vài giây rồi thử lại.';
   }
@@ -512,6 +515,7 @@ const NasaAiAssistantWidget = () => {
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
   const isAdminUser = useMemo(() => hasAdminAccess(currentUser), [currentUser]);
   const isLoggedInCustomer = Boolean(currentUser?.email) && !isAdminUser;
+  const canUseNasaBot = Boolean(currentUser?.email);
 
   useEffect(() => {
     openRef.current = open;
@@ -1355,14 +1359,6 @@ const NasaAiAssistantWidget = () => {
       return;
     }
 
-    if (!isLoggedInCustomer) {
-      const loginHint = 'Bạn cần đăng nhập để tạo ticket hoặc chat với nhân viên. NASA BOT vẫn trả lời câu hỏi khi bạn chưa đăng nhập.';
-      notificationService.info(loginHint);
-      pushBot(loginHint);
-      setChatFlow(null);
-      return;
-    }
-
     setTyping(true);
     try {
       let response = null;
@@ -1417,11 +1413,6 @@ const NasaAiAssistantWidget = () => {
   };
 
   const _requestLiveSupport = async (options = {}) => {
-    if (!isLoggedInCustomer) {
-      notificationService.info('Vui lòng đăng nhập để chat trực tiếp với nhân viên.');
-      return;
-    }
-
     const description = `${options.description || ticketDraft || activeTicket?.description || ''}`.trim()
       || 'Khách hàng cần hỗ trợ trực tiếp với admin hoặc staff.';
     const category = options.category || selectedCategory?.key || activeTicket?.category || detectCategory(description);
@@ -2217,6 +2208,11 @@ const NasaAiAssistantWidget = () => {
             ? `Mở NASA BOT, ${unreadStaffTicketCodes.length} tin nhắn mới`
             : 'Mở NASA BOT'}
           onClick={() => {
+            if (!canUseNasaBot) {
+              notificationService.info('Vui lòng đăng nhập để sử dụng NASA BOT.');
+              navigate('/login', { state: { from: location.pathname || '/' } });
+              return;
+            }
             const pendingTicket = unreadStaffTicketCodes[0];
             setOpen(true);
             setShowTicketDrawer(false);
