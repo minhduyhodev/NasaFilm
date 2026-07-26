@@ -32,7 +32,6 @@ import com.thdpv.movietheater.support.service.SupportChatPenaltyService;
 import com.thdpv.movietheater.support.service.SupportTicketService;
 import com.thdpv.movietheater.support.support.SupportActionRateLimiter;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -61,11 +60,8 @@ public class SupportController {
     @PostMapping("/support-ai/chat")
     public ResponseEntity<ApiResponse<SupportAiResponse>> chat(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody SupportAiRequest request,
-            HttpServletRequest httpRequest) {
-        String userKey = userDetails != null
-                ? userDetails.getUsername()
-                : "ip:" + resolveClientIp(httpRequest);
+            @RequestBody SupportAiRequest request) {
+        String userKey = userDetails != null ? userDetails.getUsername() : "anonymous";
         if (userDetails != null) {
             supportChatPenaltyService.assertChatAllowed(userKey);
         }
@@ -244,22 +240,5 @@ public class SupportController {
     }
 
     public record SupportAiStatusResponse(boolean configured, String mode) {
-    }
-
-    private static String resolveClientIp(HttpServletRequest request) {
-        if (request == null) {
-            return "unknown";
-        }
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        String remote = request.getRemoteAddr();
-        return remote == null || remote.isBlank() ? "unknown" : remote.trim();
     }
 }
