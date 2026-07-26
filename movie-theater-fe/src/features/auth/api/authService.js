@@ -21,6 +21,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/search',
   '/api/media/proxy',
   '/api/orbit-rooms/feature-status',
+  '/api/support-ai/chat',
+  '/api/support-ai/status',
+  '/api/support-live/availability',
 ];
 
 const isPublicApiRequest = (url = '') =>
