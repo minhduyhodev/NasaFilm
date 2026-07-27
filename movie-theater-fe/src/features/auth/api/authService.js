@@ -329,6 +329,25 @@ class AuthService {
     }
   }
 
+  async getCurrentUser() {
+    try {
+      const response = await this.api.get('/api/me');
+      const meData = response.data.data ?? response.data;
+      const user = {
+        id: meData.userId,
+        fullName: meData.fullName,
+        email: meData.email,
+        avatar: resolveAvatarUrl(meData),
+        roles: mapBackendRoles(meData.roles ?? []),
+        permissions: meData.permissions ?? [],
+      };
+      tokenService.setUser(user);
+      return user;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async getProfile() {
     try {
       const response = await this.api.get('/api/user/profile');

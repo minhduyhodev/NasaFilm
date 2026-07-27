@@ -1,11 +1,15 @@
 package com.thdpv.movietheater.auth.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thdpv.movietheater.auth.dto.AuthMeResponse;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
@@ -18,6 +22,8 @@ import com.thdpv.movietheater.auth.dto.ResetPasswordRequest;
 import com.thdpv.movietheater.auth.service.AccountActivationService;
 import com.thdpv.movietheater.auth.service.AuthService;
 import com.thdpv.movietheater.auth.service.PasswordResetService;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.common.response.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,6 +42,17 @@ public class AuthController {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
         this.accountActivationService = accountActivationService;
+    }
+
+    /**
+     * Authoritative session identity. Role/permission claims in browser storage must not be trusted.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<AuthMeResponse>> me(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        return ResponseEntity.ok(ApiResponse.success(authService.getCurrentUser(userDetails.getUsername())));
     }
 
     @PostMapping("/login")
