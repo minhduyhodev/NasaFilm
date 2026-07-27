@@ -26,15 +26,6 @@ class WalletService {
     }
   }
 
-  async topUp(amount) {
-    try {
-      const response = await authService.api.post('/api/wallet/top-up', { amount });
-      return response.data.data ?? response.data;
-    } catch (error) {
-      throw authService.handleError(error);
-    }
-  }
-
   async createTopUpIntent(amount) {
     try {
       const response = await authService.api.post('/api/wallet/top-up/intent', { amount });
@@ -47,15 +38,6 @@ class WalletService {
   async confirmTopUp(paymentIntentId) {
     try {
       const response = await authService.api.post('/api/wallet/top-up/confirm', { paymentIntentId });
-      return response.data.data ?? response.data;
-    } catch (error) {
-      throw authService.handleError(error);
-    }
-  }
-
-  async withdraw(amount) {
-    try {
-      const response = await authService.api.post('/api/wallet/withdraw', { amount });
       return response.data.data ?? response.data;
     } catch (error) {
       throw authService.handleError(error);

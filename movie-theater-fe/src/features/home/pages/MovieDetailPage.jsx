@@ -504,7 +504,7 @@ const MovieDetailPage = () => {
     trailer: (() => {
       const raw =
         dbMovie.medias?.find((m) => m.mediaType === "TRAILER")?.mediaUrl || "";
-      // S3 key trailer/... → /api/media/border; YouTube giữ nguyên.
+      // S3 trailer/... → /api/media/stream (công khai); YouTube giữ nguyên.
       return resolveMediaUrl(raw) || raw;
     })(),
     cast:

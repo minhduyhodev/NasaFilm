@@ -131,22 +131,33 @@ public class SupportContentModerationService {
         if (text == null || text.isBlank()) {
             return false;
         }
-        if (containsDiacriticBannedWord(text)) {
+        String lowered = text.toLowerCase(Locale.ROOT);
+        if (containsDiacriticBannedWord(lowered)) {
             return true;
         }
         String normalized = stripDiacritics(text)
                 .replaceAll("[^a-z0-9\\s]", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
-        if (normalized.isBlank()) {
-            return false;
-        }
         for (String banned : resolveBannedWords()) {
+            String tokenFolded = banned == null ? "" : banned.trim().toLowerCase(Locale.ROOT);
+            if (tokenFolded.isBlank()) {
+                continue;
+            }
+            // Match with diacritics kept (custom words like "địt", "ngu ngốc").
+            if (tokenFolded.contains(" ")) {
+                if (lowered.contains(tokenFolded)) {
+                    return true;
+                }
+            } else if (matchesWholeWord(lowered, tokenFolded)) {
+                return true;
+            }
+
             String token = stripDiacritics(banned)
                     .replaceAll("[^a-z0-9\\s]", " ")
                     .replaceAll("\\s+", " ")
                     .trim();
-            if (token.isBlank()) {
+            if (token.isBlank() || normalized.isBlank()) {
                 continue;
             }
             if (token.contains(" ")) {
@@ -478,9 +489,11 @@ public class SupportContentModerationService {
         if (text == null) {
             return "";
         }
-        return Normalizer.normalize(text, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
+        // đ/Đ do not decompose under NFD — map explicitly so "ĐỊT" → "dit".
+        String lower = text.toLowerCase(Locale.ROOT)
+                .replace('đ', 'd');
+        return Normalizer.normalize(lower, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
     }
 
     enum ImageVerdict {

@@ -496,10 +496,12 @@
     0 8px 24px rgba(239, 68, 68, 0.2);
 }
 
-/* POS ? same seat map shell as user booking page */
+/* POS — seat map scroll handled by SeatMapZoomViewport */
 .counter-pos-seatmap {
   width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0.25rem 0;
 }
 
@@ -2405,6 +2407,8 @@
 .counter-pos__map-body {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .counter-pos__map-empty {

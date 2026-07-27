@@ -669,7 +669,10 @@
 /* KPI styles from AdminKpiGrid.css */
 
 .staff-control__seat-map-wrap {
-  overflow-x: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0.5rem 0.25rem;
   border-radius: 0.625rem;
   background: rgba(0, 0, 0, 0.15);
