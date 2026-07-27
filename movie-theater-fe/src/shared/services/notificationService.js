@@ -6,23 +6,37 @@ const toastListeners = new Set();
 const toastTimeouts = new Map();
 let activeToasts = [];
 
-/** Ẩn URL kỹ thuật (localhost / IP / http…) khỏi toast — chỉ hiện lời dễ hiểu. */
+/** Chỉ thay/cắt localhost & lỗi kỹ thuật thuần. Giữ nguyên toast tiếng Việt bình thường. */
 const sanitizeToastText = (value) => {
   if (value == null) return value;
   if (typeof value !== 'string') return String(value);
   const trimmed = value.trim();
   if (!trimmed) return trimmed;
 
-  const looksTechnical =
-    /https?:\/\//i.test(trimmed)
-    || /\blocalhost(?::\d+)?\b/i.test(trimmed)
-    || /\b127\.0\.0\.1(?::\d+)?\b/.test(trimmed)
-    || /\b0\.0\.0\.0(?::\d+)?\b/.test(trimmed)
-    || /ECONNREFUSED|ENOTFOUND|ERR_CONNECTION/i.test(trimmed);
+  const isPureTechnical =
+    /^(https?:\/\/\S+)$/i.test(trimmed)
+    || /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/\S*)?$/i.test(trimmed)
+    || /^(ECONNREFUSED|ENOTFOUND|ERR_CONNECTION)[:\s]*(.*)?$/i.test(trimmed)
+    || /^Network Error$/i.test(trimmed);
 
-  if (looksTechnical) {
+  if (isPureTechnical) {
     return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
   }
+
+  // Cắt URL localhost/IP trong câu, giữ phần chữ còn lại.
+  const withoutLocalUrls = trimmed
+    .replace(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?(?:\/\S*)?/gi, '')
+    .replace(/\b(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?(?:\/\S*)?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (withoutLocalUrls !== trimmed) {
+    if (withoutLocalUrls.length >= 8) {
+      return withoutLocalUrls;
+    }
+    return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
+  }
+
   return trimmed;
 };
 
@@ -82,11 +96,20 @@ const showToast = (type, message, options = {}) => {
   } else {
     toastActions.delete(toastId);
   }
+
+  const safeMessage = sanitizeToastText(message);
+  // Title tùy chọn chỉ dùng làm fallback nội dung — UI không hiện nhãn Success/Error/Info.
+  const safeTitle = options.title ? sanitizeToastText(options.title) : null;
+  const content = safeMessage || safeTitle;
+  if (!content) {
+    return toastId;
+  }
+
   const toast = {
     id: toastId,
     type,
-    title: options.title ? sanitizeToastText(options.title) : null,
-    message: sanitizeToastText(message),
+    title: null,
+    message: content,
     variant: options.variant || null,
     autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
     actionLabel: options.actionLabel || null,
