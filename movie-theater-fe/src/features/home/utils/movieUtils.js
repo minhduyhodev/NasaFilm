@@ -112,7 +112,10 @@ export const getMovieTrailerUrl = (movie) => {
 
   const medias = movie.medias || [];
   const trailerMedia = medias.find((m) => m.mediaType === 'TRAILER')?.mediaUrl;
-  return trailerMedia?.trim() || '';
+  const raw = trailerMedia?.trim() || '';
+  if (!raw) return '';
+  // Resolve border/key → stream so TrailerModal plays S3 trailers without a ticket.
+  return resolveMediaUrl(raw) || raw;
 };
 
 /** Prefer direct/HLS trailer for hero autoplay; fall back to any trailer (e.g. YouTube). */

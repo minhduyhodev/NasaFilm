@@ -7,25 +7,31 @@ import './ToastViewport.css';
 const TOAST_STYLES = {
   success: {
     accent: 'bg-emerald-500',
-    title: 'Success',
   },
   error: {
     accent: 'bg-red-500',
-    title: 'Lỗi',
   },
   warning: {
     accent: 'bg-amber-500',
-    title: 'Warning',
   },
   info: {
     accent: 'bg-sky-500',
-    title: 'Info',
   },
   loading: {
     accent: 'bg-slate-400',
-    title: 'Loading',
   },
 };
+
+/** Nhãn loại toast cũ — không bao giờ hiện lên UI. */
+const TYPE_LABEL_TITLES = new Set([
+  'success',
+  'error',
+  'warning',
+  'info',
+  'loading',
+  'lỗi',
+  'loi',
+]);
 
 const LoadingSpinner = () => (
   <div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -50,7 +56,13 @@ export const ToastViewport = () => {
       {toasts.map((toast) => {
         const style = TOAST_STYLES[toast.type] ?? TOAST_STYLES.info;
         const isMessage = toast.variant === 'message';
-        const title = toast.title || style.title;
+        const rawTitle = typeof toast.title === 'string' ? toast.title.trim() : '';
+        const message = typeof toast.message === 'string' ? toast.message.trim() : '';
+        const title = rawTitle && !TYPE_LABEL_TITLES.has(rawTitle.toLowerCase())
+          ? rawTitle
+          : '';
+        // Chỉ hiện title khi được truyền rõ (vd. tin nhắn hỗ trợ), không hiện Success/Lỗi/...
+        const showTitle = Boolean(title) && title !== message;
 
         return (
           <div
@@ -74,8 +86,18 @@ export const ToastViewport = () => {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">{title}</p>
-                <p className="mt-1 break-words text-sm text-slate-300">{toast.message}</p>
+                {showTitle ? (
+                  <p className="text-sm font-semibold text-white">{title}</p>
+                ) : null}
+                {message ? (
+                  <p className={[
+                    'break-words text-sm',
+                    showTitle ? 'mt-1 text-slate-300' : 'font-medium text-white',
+                  ].join(' ')}
+                  >
+                    {message}
+                  </p>
+                ) : null}
                 {toast.actionLabel && toast.actionPath ? (
                   <Link
                     to={toast.actionPath}

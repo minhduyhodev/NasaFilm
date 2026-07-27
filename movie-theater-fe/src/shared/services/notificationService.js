@@ -6,6 +6,26 @@ const toastListeners = new Set();
 const toastTimeouts = new Map();
 let activeToasts = [];
 
+/** Ẩn URL kỹ thuật (localhost / IP / http…) khỏi toast — chỉ hiện lời dễ hiểu. */
+const sanitizeToastText = (value) => {
+  if (value == null) return value;
+  if (typeof value !== 'string') return String(value);
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+
+  const looksTechnical =
+    /https?:\/\//i.test(trimmed)
+    || /\blocalhost(?::\d+)?\b/i.test(trimmed)
+    || /\b127\.0\.0\.1(?::\d+)?\b/.test(trimmed)
+    || /\b0\.0\.0\.0(?::\d+)?\b/.test(trimmed)
+    || /ECONNREFUSED|ENOTFOUND|ERR_CONNECTION/i.test(trimmed);
+
+  if (looksTechnical) {
+    return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
+  }
+  return trimmed;
+};
+
 const getUserId = () => {
   const user = tokenService.getUser();
   return user?.id || 'guest';
@@ -65,8 +85,8 @@ const showToast = (type, message, options = {}) => {
   const toast = {
     id: toastId,
     type,
-    title: options.title || null,
-    message,
+    title: options.title ? sanitizeToastText(options.title) : null,
+    message: sanitizeToastText(message),
     variant: options.variant || null,
     autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
     actionLabel: options.actionLabel || null,
@@ -147,8 +167,12 @@ export const notificationService = {
     const nextToast = {
       ...existingToast,
       type: options.type || existingToast.type,
-      title: options.title ?? existingToast.title,
-      message: options.render || options.message || existingToast.message,
+      title: options.title !== undefined
+        ? (options.title ? sanitizeToastText(options.title) : null)
+        : existingToast.title,
+      message: sanitizeToastText(
+        options.render || options.message || existingToast.message,
+      ),
       variant: options.variant ?? existingToast.variant,
       autoClose: options.autoClose ?? existingToast.autoClose,
       actionLabel: options.actionLabel ?? existingToast.actionLabel,
