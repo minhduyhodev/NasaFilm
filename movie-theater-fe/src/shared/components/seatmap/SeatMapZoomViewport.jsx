@@ -11,6 +11,14 @@ import './SeatMapGrid.css';
 const ABSOLUTE_MIN_ZOOM = 0.12;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.15;
+const DRAG_THRESHOLD_PX = 6;
+
+const isInteractiveSeatTarget = (target) => {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest(
+    'button, a, input, textarea, [data-no-pan], .seat, .seat-map-grid-cell, .aisle-slot-hit, [role="button"]',
+  ));
+};
 
 /** Larger rooms need a lower zoom floor so "Vừa khung" still fits. */
 const resolveMinZoom = (cols = 1, rowCount = 0) => {
@@ -122,7 +130,7 @@ const SeatMapZoomViewport = ({
 
   const onPointerDown = (e) => {
     if (e.button !== 0) return;
-    if (e.target.closest('button, a, input, textarea, [data-no-pan]')) return;
+    if (isInteractiveSeatTarget(e.target)) return;
     const vp = viewportRef.current;
     if (!vp) return;
     dragRef.current = {
@@ -131,27 +139,36 @@ const SeatMapZoomViewport = ({
       left: vp.scrollLeft,
       top: vp.scrollTop,
       pointerId: e.pointerId,
+      active: false,
     };
-    setIsDragging(true);
-    try {
-      vp.setPointerCapture?.(e.pointerId);
-    } catch {
-      // ignore
-    }
   };
 
   const onPointerMove = (e) => {
     const drag = dragRef.current;
     const vp = viewportRef.current;
-    if (!drag || !vp) return;
-    vp.scrollLeft = drag.left - (e.clientX - drag.x);
-    vp.scrollTop = drag.top - (e.clientY - drag.y);
+    if (!drag || !vp || drag.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.active) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      drag.active = true;
+      setIsDragging(true);
+      try {
+        vp.setPointerCapture?.(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+
+    vp.scrollLeft = drag.left - dx;
+    vp.scrollTop = drag.top - dy;
   };
 
-  const endDrag = () => {
+  const endDrag = (e) => {
     const drag = dragRef.current;
     const vp = viewportRef.current;
-    if (drag && vp) {
+    if (drag && vp && drag.active) {
       try {
         vp.releasePointerCapture?.(drag.pointerId);
       } catch {
