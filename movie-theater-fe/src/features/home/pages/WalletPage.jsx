@@ -119,24 +119,18 @@ function MethodCard({ id, icon: Icon, iconColor, title, subtitle, selected, onCl
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`relative w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
-        selected
-          ? 'border-red-500/60 bg-red-500/10 shadow-lg shadow-red-500/10'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
-      }`}
+      className={`wallet-method-card${selected ? ' is-selected' : ''}`}
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          selected ? 'bg-red-500/20' : 'bg-white/5'
-        }`}>
-          <Icon className={`w-5 h-5 ${selected ? 'text-red-400' : iconColor}`} />
+      <div className="wallet-method-card__row">
+        <div className={`wallet-method-card__icon ${selected ? 'is-selected' : ''}`}>
+          <Icon className={`w-5 h-5 ${selected ? 'text-red-300' : iconColor}`} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold ${selected ? 'text-white' : 'text-gray-300'}`}>{title}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+        <div className="wallet-method-card__content">
+          <p className="wallet-method-card__title">{title}</p>
+          <p className="wallet-method-card__subtitle">{subtitle}</p>
         </div>
         {selected && (
-          <CheckCircle2 className="w-5 h-5 text-red-400 shrink-0" />
+          <CheckCircle2 className="wallet-method-card__check" />
         )}
       </div>
     </button>
@@ -247,12 +241,12 @@ const WalletPage = () => {
   const methods = [
     {
       id: 'vietqr', icon: QrCode, iconColor: 'text-blue-400',
-      title: 'VietQR — Chuyển khoản ngân hàng',
+      title: 'VietQR · Chuyển khoản ngân hàng',
       subtitle: 'Quét mã QR bằng app ngân hàng, tự động xác nhận',
     },
     {
       id: 'stripe', icon: CreditCard, iconColor: 'text-violet-400',
-      title: 'Stripe — Thẻ quốc tế',
+      title: 'Stripe · Thẻ quốc tế',
       subtitle: 'Visa / Mastercard / American Express',
     },
   ];
@@ -265,7 +259,7 @@ const WalletPage = () => {
             <span className="account-page__eyebrow">Tài khoản / Ví</span>
             <h1 className="account-page__title">Ví NASA</h1>
             <p className="account-page__intro">
-              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn — hỗ trợ VietQR và thẻ quốc tế.
+              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn, hỗ trợ VietQR và thẻ quốc tế.
             </p>
           </div>
           <button
@@ -302,6 +296,7 @@ const WalletPage = () => {
                 </>
               ) : (
                 <>
+                  <div className="wallet-section-label">Nạp tiền vào ví</div>
                   <div className="account-chip-list" aria-label="Chọn nhanh số tiền">
                     {quickAmounts.map((value) => (
                       <button
@@ -315,22 +310,28 @@ const WalletPage = () => {
                       </button>
                     ))}
                   </div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '');
-                      setAmount(digits.slice(0, 9));
-                    }}
-                    className="account-input"
-                    aria-label="Số tiền giao dịch"
-                    placeholder={`Nhập số tiền bất kỳ, tối thiểu ${formatMoney(minTopUp)}`}
-                  />
+                  <label className="wallet-amount-field">
+                    <span className="wallet-section-label">Số tiền muốn nạp</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        setAmount(digits.slice(0, 9));
+                      }}
+                      className="account-input wallet-amount-field__input"
+                      aria-label="Số tiền giao dịch"
+                      placeholder={`Nhập số tiền bất kỳ, tối thiểu ${formatMoney(minTopUp)}`}
+                    />
+                    <span className="wallet-amount-field__hint">
+                      Tối thiểu {formatMoney(minTopUp)} · Tối đa {formatMoney(maxTopUp)}
+                    </span>
+                  </label>
 
-                  <div className="mb-5">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Chọn phương thức nạp tiền</p>
+                  <div className="wallet-method-section">
+                    <p className="wallet-section-label">Chọn phương thức nạp tiền</p>
                     <div className="wallet-method-grid">
                       {methods.map((m) => (
                         <MethodCard
@@ -343,7 +344,7 @@ const WalletPage = () => {
                     </div>
                   </div>
 
-                  <div className="account-actions">
+                  <div className="account-actions wallet-submit-row">
                     <button
                       type="button"
                       disabled={isSubmitting || !selectedMethod}
@@ -360,6 +361,7 @@ const WalletPage = () => {
           </div>
 
           <aside className="wallet-balance wallet-secondary" aria-labelledby="wallet-balance-title">
+            <div className="wallet-balance__badge">NASA Wallet</div>
             <div className="wallet-balance__label" id="wallet-balance-title">
               <Wallet className="h-5 w-5" />
               Số dư khả dụng
@@ -369,6 +371,7 @@ const WalletPage = () => {
             ) : (
               <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
             )}
+            <div className="wallet-balance__glow" aria-hidden />
             <p className="wallet-balance__provider">
               Live Gateway / {summary?.provider || 'stripe'}
             </p>

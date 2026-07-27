@@ -276,6 +276,7 @@ const LiveSeatMapView = ({
     <div className={`live-seat-map min-w-0 w-full ${compact ? 'live-seat-map--compact' : ''} ${isStaff ? 'live-seat-map--staff' : ''}`}>
       <SeatMapZoomViewport
         cols={maxSeatNumber}
+        rowCount={rowNames.length}
         variant="booking"
         className="w-full"
         maxHeightClass={compact ? 'max-h-[min(55vh,520px)]' : 'max-h-[min(72vh,760px)]'}

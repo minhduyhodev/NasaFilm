@@ -638,7 +638,7 @@ const OrbitBookingPage = () => {
           </div>
 
           {/* Cột giữa: Sơ đồ ghế */}
-          <div className="lg:col-span-6 flex flex-col">
+          <div className="lg:col-span-6 flex flex-col min-w-0 overflow-hidden">
             <OrbitSeatMapSection
               seatRows={seatRows}
               aisleLayout={aisleLayout}

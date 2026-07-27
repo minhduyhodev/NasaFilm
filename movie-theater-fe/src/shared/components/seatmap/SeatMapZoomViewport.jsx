@@ -8,16 +8,34 @@ import React, {
 import { Minus, Plus, Maximize2, Move } from 'lucide-react';
 import './SeatMapGrid.css';
 
-const MIN_ZOOM = 0.4;
+const ABSOLUTE_MIN_ZOOM = 0.12;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.15;
 
+/** Larger rooms need a lower zoom floor so "Vừa khung" still fits. */
+const resolveMinZoom = (cols = 1, rowCount = 0) => {
+  const seatsApprox = Math.max(cols, 1) * Math.max(rowCount, 1);
+  if (seatsApprox >= 900 || cols >= 40) return 0.12;
+  if (seatsApprox >= 500 || cols >= 30) return 0.16;
+  if (seatsApprox >= 300 || cols >= 22) return 0.2;
+  return 0.25;
+};
+
+/** Shrink natural seat size for very wide rooms so fit zoom stays usable. */
+const resolveBaseScale = (cols = 1) => {
+  if (cols >= 40) return 0.65;
+  if (cols >= 32) return 0.75;
+  if (cols >= 24) return 0.85;
+  return 1;
+};
+
 /**
  * Comfortable-size seat map with zoom (+/−/fit) and drag-to-pan.
- * Large rooms stay tappable — pan/zoom instead of shrinking seats unreadably.
+ * Large rooms (300–1000 seats) auto-fit into the panel instead of overflowing UI.
  */
 const SeatMapZoomViewport = ({
   cols = 1,
+  rowCount = 0,
   variant = 'booking',
   className = '',
   style,
@@ -34,6 +52,8 @@ const SeatMapZoomViewport = ({
   const [isDragging, setIsDragging] = useState(false);
   const [didInit, setDidInit] = useState(false);
 
+  const minZoom = resolveMinZoom(cols, rowCount);
+  const baseScale = resolveBaseScale(cols);
   zoomRef.current = zoom;
 
   const measureFit = useCallback(() => {
@@ -50,37 +70,43 @@ const SeatMapZoomViewport = ({
       (vp.clientHeight - pad) / naturalH,
       1,
     );
-    const clamped = Math.max(MIN_ZOOM, Math.min(1, nextFit));
+    const floor = Math.max(ABSOLUTE_MIN_ZOOM, minZoom);
+    const clamped = Math.max(floor, Math.min(1, nextFit));
     setFitZoom(clamped);
     return clamped;
-  }, []);
+  }, [minZoom]);
 
-  useLayoutEffect(() => {
-    const fitted = measureFit();
-    if (!didInit) {
-      const initial = cols >= 18
-        ? Math.min(1, Math.max(fitted, 0.85))
-        : Math.min(1, Math.max(fitted, 0.95));
-      setZoom(initial);
-      setDidInit(true);
-    }
-  }, [cols, measureFit, didInit]);
+  const layoutKey = `${cols}-${rowCount}`;
 
   useEffect(() => {
     setDidInit(false);
-  }, [cols]);
+  }, [layoutKey]);
+
+  useLayoutEffect(() => {
+    if (didInit) return;
+    const fitted = measureFit();
+    setZoom(fitted);
+    setDidInit(true);
+  }, [layoutKey, measureFit, didInit]);
 
   useEffect(() => {
     const vp = viewportRef.current;
-    if (!vp || typeof ResizeObserver === 'undefined') return undefined;
+    const content = contentRef.current;
+    if (!vp || !content || typeof ResizeObserver === 'undefined') return undefined;
+
     const ro = new ResizeObserver(() => {
-      measureFit();
+      const fitted = measureFit();
+      if (!didInit) {
+        setZoom(fitted);
+        setDidInit(true);
+      }
     });
     ro.observe(vp);
+    ro.observe(content);
     return () => ro.disconnect();
-  }, [measureFit]);
+  }, [layoutKey, measureFit, didInit]);
 
-  const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+  const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(Math.max(ABSOLUTE_MIN_ZOOM, minZoom), value));
 
   const zoomIn = () => setZoom((z) => clampZoom(Number((z + ZOOM_STEP).toFixed(2))));
   const zoomOut = () => setZoom((z) => clampZoom(Number((z - ZOOM_STEP).toFixed(2))));
@@ -177,6 +203,7 @@ const SeatMapZoomViewport = ({
           style={{
             '--seat-map-cols': Math.max(cols, 1),
             '--seat-zoom': zoom,
+            '--seat-base-scale': baseScale,
           }}
         >
           {children}
@@ -185,7 +212,9 @@ const SeatMapZoomViewport = ({
 
       {zoom <= fitZoom + 0.02 && fitZoom < 0.95 && (
         <p className="seat-map-zoom__tip">
-          Đang xem toàn phòng — bấm <strong>+</strong> hoặc <strong>100%</strong> để ghế to hơn, rồi kéo để chọn.
+          {cols >= 30 || (cols * Math.max(rowCount, 1)) >= 500
+            ? 'Phòng lớn — đang xem toàn cảnh. Bấm + hoặc 100% rồi kéo để chọn ghế.'
+            : 'Đang xem toàn phòng — bấm + hoặc 100% để ghế to hơn, rồi kéo để chọn.'}
         </p>
       )}
     </div>

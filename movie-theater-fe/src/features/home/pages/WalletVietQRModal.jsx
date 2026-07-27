@@ -253,7 +253,7 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
                 onClick={onClose}
                 className="mt-auto w-full py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-all"
               >
-                Đóng — Tôi sẽ chuyển khoản sau
+                Thanh toán lúc khác
               </button>
             </div>
           </div>

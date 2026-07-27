@@ -1151,7 +1151,7 @@ const AdminCinemaRoomPage = () => {
                 </div>
 
                 {/* Seating Chart Editor Canvas */}
-                <div className="relative bg-[#0B0F19] border border-[#1A2238] p-4 sm:p-8 mb-6 overflow-visible rounded-xl select-none min-w-0">
+                <div className="relative bg-[#0B0F19] border border-[#1A2238] p-4 sm:p-8 mb-6 overflow-hidden rounded-xl select-none min-w-0">
                   
                   {/* Design/Preview Switch Toolbar */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -1232,6 +1232,7 @@ const AdminCinemaRoomPage = () => {
                         <div ref={seatGridRef} className="w-full min-w-0">
                           <SeatMapZoomViewport
                             cols={maxSeatNumber}
+                            rowCount={rowNames.length}
                             variant="admin"
                             className="w-full"
                             maxHeightClass="max-h-[min(70vh,720px)]"

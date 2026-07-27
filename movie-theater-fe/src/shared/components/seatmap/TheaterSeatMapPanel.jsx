@@ -228,9 +228,10 @@ const TheaterSeatMapPanel = ({
   };
 
   return (
-    <div className={`flex flex-col items-center w-full min-w-0 ${className}`}>
+    <div className={`flex flex-col items-center w-full min-w-0 overflow-hidden ${className}`}>
       <SeatMapZoomViewport
         cols={maxSeatNumber}
+        rowCount={bookingRowNames.length}
         variant="booking"
         className="w-full"
       >
